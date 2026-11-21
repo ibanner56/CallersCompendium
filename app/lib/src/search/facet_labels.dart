@@ -17,12 +17,21 @@ String danceFormLabel(AppLocalizations l10n, DanceForm form) => switch (form) {
   DanceForm.square => l10n.commonDanceFormSquare,
 };
 
+/// A glossary entry's stored dance [form]'s label (#1023), or [form] as
+/// written for one a later build added.
+String glossaryEntryFormLabel(AppLocalizations l10n, String form) {
+  for (final value in DanceForm.values) {
+    if (value.name == form) return danceFormLabel(l10n, value);
+  }
+  return form;
+}
+
 /// A representative icon for a dance form, used for the Collection tile's
 /// leading avatar. Always paired with a text label (form name) so meaning is
 /// never carried by the glyph alone.
 IconData danceFormIcon(DanceForm form) => switch (form) {
   DanceForm.contra => Icons.view_stream_outlined,
-  DanceForm.ecd => Icons.groups_outlined,
+  DanceForm.ecd => Icons.diversity_3_outlined,
   DanceForm.square => Icons.crop_square,
 };
 
@@ -76,33 +85,52 @@ String danceLevelLabel(AppLocalizations l10n, DifficultyLevel level) {
 }
 
 /// Localized label for a [FormationShape], for chips and filters.
-String formationShapeLabel(AppLocalizations l10n, FormationShape shape) =>
-    switch (shape) {
-      FormationShape.dupleImproper => l10n.commonFormationDupleImproper,
-      FormationShape.reverseProgressionImproper =>
-        l10n.commonFormationReverseProgressionImproper,
-      FormationShape.becketCw => l10n.commonFormationBecketCw,
-      FormationShape.becketCcw => l10n.commonFormationBecketCcw,
-      FormationShape.dupleProper => l10n.commonFormationDupleProper,
-      FormationShape.dupleIndecent => l10n.commonFormationDupleIndecent,
-      FormationShape.tripleMinor => l10n.commonFormationTripleMinor,
-      FormationShape.threeFaceThree => l10n.commonFormationThreeFaceThree,
-      FormationShape.fourFaceFour => l10n.commonFormationFourFaceFour,
-      FormationShape.circleMixer => l10n.commonFormationCircleMixer,
-      FormationShape.sicilianCircle => l10n.commonFormationSicilianCircle,
-      FormationShape.scatterMixer => l10n.commonFormationScatterMixer,
-      FormationShape.longways => l10n.commonFormationLongways,
-      FormationShape.triplet => l10n.commonFormationTriplet,
-      FormationShape.grid => l10n.commonFormationGrid,
-      FormationShape.quadruplet => l10n.commonFormationQuadruplet,
-      FormationShape.other => l10n.commonFormationOther,
-    };
+String formationShapeLabel(
+  AppLocalizations l10n,
+  FormationShape shape,
+) => switch (shape) {
+  FormationShape.dupleImproper => l10n.commonFormationDupleImproper,
+  FormationShape.progressedImproper => l10n.commonFormationProgressedImproper,
+  FormationShape.reverseProgressionImproper =>
+    l10n.commonFormationReverseProgressionImproper,
+  FormationShape.becketCw => l10n.commonFormationBecketCw,
+  FormationShape.becketCcw => l10n.commonFormationBecketCcw,
+  FormationShape.dupleProper => l10n.commonFormationDupleProper,
+  FormationShape.dupleIndecent => l10n.commonFormationDupleIndecent,
+  FormationShape.tripleMinor => l10n.commonFormationTripleMinor,
+  FormationShape.threeFaceThree => l10n.commonFormationThreeFaceThree,
+  FormationShape.fourFaceFour => l10n.commonFormationFourFaceFour,
+  FormationShape.circleMixer => l10n.commonFormationCircleMixer,
+  FormationShape.sicilianCircle => l10n.commonFormationSicilianCircle,
+  FormationShape.scatterMixer => l10n.commonFormationScatterMixer,
+  FormationShape.longways => l10n.commonFormationLongways,
+  FormationShape.triplet => l10n.commonFormationTriplet,
+  FormationShape.grid => l10n.commonFormationGrid,
+  FormationShape.quadruplet => l10n.commonFormationQuadruplet,
+  FormationShape.other => l10n.commonFormationOther,
+  FormationShape.dupleMinor => l10n.commonFormationDupleMinor,
+  FormationShape.threeCoupleLongways => l10n.commonFormationThreeCoupleLongways,
+  FormationShape.fourCoupleLongways => l10n.commonFormationFourCoupleLongways,
+  FormationShape.fiveCoupleLongways => l10n.commonFormationFiveCoupleLongways,
+  FormationShape.sixCoupleLongways => l10n.commonFormationSixCoupleLongways,
+  FormationShape.circle => l10n.commonFormationCircle,
+  FormationShape.square => l10n.commonFormationSquare,
+  FormationShape.twoCoupleSet => l10n.commonFormationTwoCoupleSet,
+};
+
+/// The shape's label, marked improper when ECD's proper/improper checkbox is
+/// set (ADR-006 §12, F2). A contra dance never sets it: its shape already says
+/// proper or improper.
+String _shapeWithImproper(AppLocalizations l10n, Formation formation) {
+  final shape = formationShapeLabel(l10n, formation.shape);
+  return formation.improper ? l10n.commonFormationImproperFlag(shape) : shape;
+}
 
 /// Full formation label, including free-text [Formation.detail] if present.
 /// The detail is untrusted user text; it flows through a gen-l10n placeholder
 /// and is rendered as plain text by the caller.
 String formationLabel(AppLocalizations l10n, Formation formation) {
-  final base = formationShapeLabel(l10n, formation.shape);
+  final base = _shapeWithImproper(l10n, formation);
   final detail = formation.detail?.trim();
   return (detail == null || detail.isEmpty)
       ? base
@@ -117,7 +145,7 @@ String formationDisplayLabel(
   Dialect dialect, {
   required bool canonicalizeDiscouragedTerms,
 }) {
-  final base = formationShapeLabel(l10n, formation.shape);
+  final base = _shapeWithImproper(l10n, formation);
   final detail = formation.detail?.trim();
   if (detail == null || detail.isEmpty) return base;
   final renderedDetail = canonicalizeDiscouragedTerms
@@ -139,9 +167,15 @@ String formationDisplayLabel(
 /// Not dialect-aware by design — callers that need a dialect term reach for
 /// [FigureRenderer.displayToken] (or [FigureRenderer.singleDancerDefaultTerm])
 /// and fall back to this.
-String humanizeToken(String token) => token
-    .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
-    .toLowerCase();
+///
+/// A capital that starts a word after a one-letter capital word is a break
+/// too (`inARing` -> "in a ring"), as in the core renderer's humanizer.
+String humanizeToken(String token) =>
+    token.replaceAllMapped(_camelBoundary, (_) => ' ').toLowerCase();
+
+final RegExp _camelBoundary = RegExp(
+  r'(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])',
+);
 
 /// The discrete, pickable value vocabulary for a figure parameter, or `null`
 /// when the parameter has no closed vocabulary (rotation/beats/text). Used to
@@ -175,9 +209,12 @@ List<String>? figureParamChoices(ParamSpec spec) {
       return spec.choices;
     case ParamKind.rotation:
     case ParamKind.places:
+    case ParamKind.number:
     case ParamKind.beats:
     case ParamKind.text:
     case ParamKind.flag:
+    // A list of dancers (ECD's `who`): searching by one is ADR-006's W7.
+    case ParamKind.dancerList:
       return null;
   }
 }
@@ -250,7 +287,7 @@ String figureParamKeyLabel(
 /// Dancer sets/pairs are dialect vocabulary and route through
 /// [FigureRenderer.displayToken]; every other kind is structural vocabulary and
 /// is humanized. The single-dancer identities (`twosRole2`) are dancer
-/// vocabulary too, and read as `<first|second> <role term>` unless the dialect
+/// vocabulary too, and read as `<ordinal> <role term>` unless the dialect
 /// rewords them — before issue #832 they fell through to humanization and this
 /// picker showed `twos role2`. The stored value is always the canonical token
 /// regardless of the label shown.
@@ -268,9 +305,27 @@ String figureParamChoiceLabel(
   if (choice == ParamVocab.unspecified && paramAdmitsUnspecified(spec)) {
     return l10n.danceEditorParamNotStated;
   }
+  // A fraction of `other` states its amount in a sibling param (#2120); as a
+  // value on its own it means "some amount no named fraction states".
+  if (spec.kind == ParamKind.fraction && choice == 'other') {
+    return l10n.figureParamFractionOther;
+  }
   final isDancerKind =
-      spec.kind == ParamKind.dancerSet || spec.kind == ParamKind.dancerPair;
+      spec.kind == ParamKind.dancerSet ||
+      spec.kind == ParamKind.dancerPair ||
+      spec.kind == ParamKind.dancerList;
   return isDancerKind
-      ? FigureRenderer.displayToken(choice, spec, dialect)
+      ? FigureRenderer.displayToken(
+          choice,
+          // A list's token is labelled as a dancer set's (ECD's `who`).
+          spec.kind == ParamKind.dancerList
+              ? ParamSpec(
+                  ParamKind.dancerSet,
+                  defaultValue: null,
+                  choices: spec.choices,
+                )
+              : spec,
+          dialect,
+        )
       : humanizeToken(choice);
 }

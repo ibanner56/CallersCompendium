@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// Issue #295 — The Caller's Box balance-a-wave lines.
 ///
@@ -25,7 +26,7 @@ Future<List<Figure>> _figuresFor(List<String> lines) async {
   final adapter = CallersBoxAdapter();
   final discovered = await adapter.discover(ImportRequest(payload: payload));
   final raw = await adapter.fetch(discovered.single);
-  return adapter.parse(raw).dance.figures;
+  return figuresOf(adapter.parse(raw).dance);
 }
 
 int _totalBeats(List<Figure> figures) => figures.fold(0, (a, f) => a + f.beats);
@@ -283,6 +284,25 @@ void main() {
       });
     }
 
+    // A balance line whose annotation does not decode would lose it in the
+    // fold: only decoded params and notes carry over. It stays custom instead.
+    for (final pair in const [
+      ['(4) Pass the ocean', '(4) Balance wave of four (Ph1R,WL)'],
+      [
+        '(8) Same-role neighbor do-si-do 1 & 1/4; form wave of four',
+        '(4) Balance wave of four (SRNR,1CL)',
+      ],
+    ]) {
+      test('"${pair[1]}" after "${pair[0]}" does not fold away its '
+          'undecodable annotation', () async {
+        final figures = await _figuresFor(pair);
+        final balance = figures.last;
+        expect(balance.isCustom, isTrue);
+        expect(balance.params['text'], contains(pair[1].substring(4)));
+        expect(figures.any((f) => f.params['balance'] == true), isFalse);
+      });
+    }
+
     test(
       'an ordinary balance wave still folds (the guard is narrow)',
       () async {
@@ -298,12 +318,10 @@ void main() {
   });
 
   group('the existing forward balance-merge keeps its balances', () {
+    // Only a WAVE move claims a preceding balance-wave line: its balance is the
+    // wave's. Subject and ring moves do not — see the group below.
     const forwardCases = <String, String>{
-      '(12) Neighbor swing': 'swing',
-      '(4) Petronella': 'petronella',
       '(4) Rory O\'More right': 'rory_o_more',
-      '(4) Neighbor box the gnat': 'box_the_gnat',
-      '(4) Neighbor swat the flea': 'swat_the_flea',
       '(4) Circulate: women cross, men loop right': 'box_circulate',
     };
     forwardCases.forEach((line, move) {
@@ -341,6 +359,30 @@ void main() {
       },
     );
 
+    // #2160: TCB 18065's exact line pair, with the circulate's trailing
+    // bracket. Runs the real adapter, so the balance merge is exercised too.
+    const bracketNotes = <String, String>{
+      '[with N2]': 'with nextNeighbors',
+      '[with shadow]': 'with shadows',
+    };
+    for (final MapEntry(key: bracket, value: note) in bracketNotes.entries) {
+      test('a long-wave balance folds into "Circulate: … $bracket"', () async {
+        final figures = await _figuresFor([
+          '(4) Balance long wave (N2R, women face in)',
+          '(4) Circulate: Women cross, men loop right $bracket',
+        ]);
+        expect(figures, hasLength(1));
+        final figure = figures.single;
+        expect(figure.move, 'box_circulate');
+        expect(figure.isCustom, isFalse);
+        expect(figure.params['who'], 'role2s');
+        expect(figure.params['hand'], 'right');
+        expect(figure.params['balance'], isTrue);
+        expect(figure.params['beats'], 8);
+        expect(figure.note, note);
+      });
+    }
+
     test('a circulate hand overrides the preceding balance hand', () async {
       final figures = await _figuresFor([
         '(4) Women balance (LH)',
@@ -352,16 +394,57 @@ void main() {
       expect(figure.params['balance'], isTrue);
       expect(figure.params['beats'], 8);
     });
+  });
 
-    test('a long-wave balance also folds forward', () async {
+  group('a balance wave never folds into a subject or ring move', () {
+    // Folding `(4) Balance wave of four (NR,WL)` into a following swing /
+    // box the gnat / swat the flea would render `<who> balance & <move>`: the
+    // wave's sides, centre and hands are lost and the balance is claimed by
+    // the move's pair alone (for `Ones swing`, the twos' balance vanishes).
+    // Into a petronella it would turn the wave into a ring. The wave line
+    // stays its own figure — promoted to the balanced wave formation — and
+    // the following move is untouched.
+    const separateCases = <String, String>{
+      '(12) Neighbor swing': 'swing',
+      '(12) Ones swing': 'swing',
+      '(12) Partner swing': 'swing',
+      '(4) Petronella': 'petronella',
+      '(4) Neighbor box the gnat': 'box_the_gnat',
+      '(4) Neighbor swat the flea': 'swat_the_flea',
+    };
+    separateCases.forEach((line, move) {
+      test('a balance wave before "$line" stays its own figure', () async {
+        final figures = await _figuresFor([
+          '(4) Balance wave of four (NR,WL)',
+          line,
+        ]);
+        expect(figures, hasLength(2));
+        final wave = figures[0];
+        expect(wave.move, 'form_short_waves');
+        expect(wave.params['balance'], isTrue);
+        expect(wave.params['sides'], 'neighbors');
+        expect(wave.params['center'], 'role2s');
+        expect(wave.params['centerHand'], 'left');
+        expect(wave.beats, 4);
+        expect(figures[1].move, move);
+        expect(figures[1].params['prefix'], isNull);
+        expect(figures[1].params.containsKey('balance'), isFalse);
+      });
+    });
+
+    test('a long-wave balance stays its own figure before a swing', () async {
       final figures = await _figuresFor([
         '(4) Balance long wave (NR, women face in)',
         '(12) Partner swing',
       ]);
-      expect(figures, hasLength(1));
-      expect(figures.single.move, 'swing');
-      expect(figures.single.params['prefix'], 'balance');
-      expect(figures.single.params['beats'], 16);
+      expect(figures, hasLength(2));
+      expect(figures[0].move, 'form_long_waves');
+      expect(figures[0].params['balance'], isTrue);
+      expect(figures[0].params['whom'], 'neighbors');
+      expect(figures[0].params['who'], 'role2s');
+      expect(figures[1].move, 'swing');
+      expect(figures[1].params['prefix'], isNull);
+      expect(figures[1].params['beats'], 12);
     });
   });
 
@@ -382,6 +465,21 @@ void main() {
       expect(figures.single.params['beats'], 8);
       expect(_totalBeats(figures), 8);
     });
+
+    test(
+      'a threes- or fours-qualified balance folds too (taxonomy v40)',
+      () async {
+        for (final couple in ['Threes', 'Fours']) {
+          final figures = await _figuresFor([
+            '(4) Pass the ocean',
+            '(4) $couple balance wave of four',
+          ]);
+          expect(figures, hasLength(1), reason: couple);
+          expect(figures.single.move, 'pass_the_ocean', reason: couple);
+          expect(figures.single.params['balance'], isTrue, reason: couple);
+        }
+      },
+    );
 
     test(
       'a dancer-qualified balance folds when the wave has no who (null waveWho)',
@@ -546,5 +644,17 @@ void main() {
       expect(issues, isEmpty);
       expect(sections, hasLength(figures.length));
     });
+  });
+
+  test('a square corner on a balance line folds since taxonomy v38', () async {
+    // #1975: C2 decodes to the opposites, so the annotation is carried.
+    final figures = await _figuresFor([
+      '(4) Pass the ocean',
+      '(4) Balance wave of four (C2R,WL)',
+    ]);
+    expect(figures, hasLength(1));
+    expect(figures.single.move, 'pass_the_ocean');
+    expect(figures.single.params['sides'], 'opposites');
+    expect(figures.single.params['balance'], isTrue);
   });
 }

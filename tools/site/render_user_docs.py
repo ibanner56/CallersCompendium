@@ -25,7 +25,8 @@ as ``UserGuideDocs.slugify``, relative ``*.md`` links are rewritten to their
 rendered ``.html`` counterparts, and links that leave ``docs/user/`` (design
 docs, ``CONTRIBUTING.md``, the contributor-only style guide) are rewritten to
 GitHub URLs — mirroring ``UserGuideDocs.resolveLink``. Images render as real
-``<img>`` elements on Pages; the in-app reader still renders their alt text.
+``<img>`` elements on Pages; the in-app reader shows the same bundled files and
+falls back to their alt text only if one cannot load.
 
 **Link integrity is enforced.** A relative link to a guide that doesn't exist,
 a ``#fragment`` with no matching heading, two headings in one guide that slug to
@@ -37,6 +38,16 @@ path must exist, and ``blob/`` must be a file while ``tree/`` must be a
 directory. The gate runs on every PR that touches the guides, so a broken
 cross-link can't reach ``main``.
 
+**Image alt text is enforced.** Every ``![alt](path)`` image in any
+``docs/user/*.md`` (the unpublished style guide included, its fenced examples
+excluded) must have alt text, unless it is listed by name in
+``DECORATIVE_IMAGES``; the alt text must not be just the file name or a bare
+"image"/"screenshot"; and the file must exist under ``docs/user/images/``,
+because a missing one otherwise ships as a text caption instead of failing. What
+counts as an image is whatever the renderer parses as one, so a raw ``<img>`` or
+a reference-style ``![alt][ref]``, which it renders as literal text, is not
+checked and should not be used. See ``check_images``.
+
 Usage::
 
     python3 tools/site/render_user_docs.py                 # -> build/site
@@ -46,7 +57,7 @@ Usage::
 ``--out`` is erased and rewritten, so it must be a new or empty directory, or
 sit **below** ``build/`` or a temp directory — never one of those roots itself.
 
-Exit codes: 0 = rendered, 1 = broken links, 2 = bad input.
+Exit codes: 0 = rendered, 1 = broken links or images, 2 = bad input.
 """
 
 from __future__ import annotations
@@ -134,13 +145,20 @@ def discover_guides(user_docs: Path = USER_DOCS) -> list[str]:
     """
     if not user_docs.is_dir():
         _fail(f"missing source docs directory: {user_docs}")
-    names = [
+    # Sort the file-name *strings* (codepoint order on every platform), not the
+    # Path objects: `sorted(Path...)` compares case-insensitively on Windows, so
+    # `README.md` would land after lowercase guides there but before them on
+    # POSIX. Then pin the hub (README.md) first — it is the section landing page
+    # and must lead navigation regardless of any future uppercase guide name.
+    names = sorted(
         path.name
-        for path in sorted(user_docs.glob("*.md"))
+        for path in user_docs.glob("*.md")
         if path.name not in EXCLUDED_GUIDES
-    ]
+    )
     if not names:
         _fail(f"no user guides found under {user_docs}")
+    if HUB_DOC in names:
+        names = [HUB_DOC] + [name for name in names if name != HUB_DOC]
     return names
 
 
@@ -437,7 +455,7 @@ _FOOTER = f"""  <footer class="site-footer">
         <a href="{REPO_URL}" rel="noopener">Source code</a>
         <a href="{REPO_URL}/releases" rel="noopener">Releases</a>
         <a href="../privacy/">Privacy</a>
-        <a href="{REPO_URL}/blob/main/LICENSE" rel="noopener">License (AGPL-3.0)</a>
+        <a href="{REPO_URL}/blob/main/LICENSE" rel="noopener">License (AGPL-3.0-only)</a>
         <a href="mailto:{CONTACT_EMAIL}">Contact</a>
       </nav>
     </div>
@@ -554,16 +572,7 @@ def render_guides(user_docs: Path = USER_DOCS) -> list[Guide]:
         image_dir = user_docs / "images"
 
         def image_resolver(href: str, *, source_doc: str = doc) -> Optional[str]:
-            if not href or href.startswith(("/", "\\", "#")):
-                return None
-            candidate = (user_docs / source_doc).parent / href
-            try:
-                relative = candidate.resolve().relative_to(image_dir.resolve())
-            except ValueError:
-                return None
-            if not (image_dir / relative).is_file():
-                return None
-            return f"images/{relative.as_posix()}"
+            return _resolve_image(user_docs, image_dir, source_doc, href)
 
         result = render(
             source,
@@ -587,6 +596,22 @@ def render_guides(user_docs: Path = USER_DOCS) -> list[Guide]:
             )
         )
     return guides
+
+
+def _resolve_image(
+    user_docs: Path, image_dir: Path, source_doc: str, href: str
+) -> Optional[str]:
+    """The published path for an image ``href``, or None if it cannot ship."""
+    if not href or href.startswith(("/", "\\", "#")):
+        return None
+    candidate = (user_docs / source_doc).parent / href
+    try:
+        relative = candidate.resolve().relative_to(image_dir.resolve())
+    except ValueError:
+        return None
+    if not (image_dir / relative).is_file():
+        return None
+    return f"images/{relative.as_posix()}"
 
 
 def check_anchors(guides: list[Guide]) -> list[str]:
@@ -638,6 +663,104 @@ def check_links(guides: list[Guide]) -> list[str]:
                     f"docs/user/{guide.doc}: link {ref.href} has no matching "
                     f"heading (no #{ref.fragment} in {ref.target_page})"
                 )
+    return errors
+
+
+# Images that are purely decorative, as ``(guide file, destination as authored)``.
+# Only these may have empty alt text (docs/user/style-guide.md, "Alt-text
+# policy"). It starts empty on purpose: today every image carries alt text, and an
+# exemption is a decision to add by name, with the image in the same change.
+DECORATIVE_IMAGES: frozenset[tuple[str, str]] = frozenset()
+
+# Alt text that says nothing a screen-reader user could use.
+_GENERIC_ALT = frozenset(
+    {"image", "images", "img", "picture", "photo", "graphic", "screenshot", "screen shot"}
+)
+
+
+def _has_text(alt: str) -> bool:
+    """Whether alt text says anything: punctuation or whitespace alone does not."""
+    return any(char.isalnum() for char in alt)
+
+
+def _is_generic_alt(alt: str, dest: str) -> bool:
+    """Whether ``alt`` is just the file name or a bare placeholder word."""
+    text = alt.strip().lower().rstrip(".:!")
+    name = dest.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    stem = name.rsplit(".", 1)[0]
+    return text in _GENERIC_ALT or text in {dest.lower(), name, stem}
+
+
+def check_images(
+    user_docs: Path = USER_DOCS,
+    decorative: frozenset[tuple[str, str]] = DECORATIVE_IMAGES,
+) -> list[str]:
+    """Every image outside fenced code needs real alt text and a real file.
+
+    ``docs/user/style-guide.md`` says every image **must** have alt text; nothing
+    enforced it, and a missing image file only turned the picture into a text
+    caption instead of failing. This reads every ``docs/user/*.md``, published or
+    not (the style guide is the unpublished one), because the policy is about the
+    docs, not the site. Examples inside fenced code (the style guide's own) are
+    not images and are skipped, at any nesting depth, because the images come
+    from the renderer itself. It reports the guide and line of each problem:
+
+    * empty alt text, unless ``(guide, destination)`` is in ``decorative``;
+    * alt text that is the file name or a bare "image"/"screenshot";
+    * a destination that does not resolve to a file under ``docs/user/images/``;
+    * a ``decorative`` entry whose image is gone or whose every use now has alt
+      text.
+
+    "An image" is whatever the renderer parses as one (``![alt](path)``); a raw
+    HTML ``<img>`` or a reference-style ``![alt][ref]`` is not an image to it and
+    renders as literal text, so write images in the first form. Reports the line
+    holding the image's closing ``)`` (its last line, if it wraps).
+    """
+    image_dir = user_docs / "images"
+    errors: list[str] = []
+    seen: dict[tuple[str, str], list[str]] = {}
+    for path in sorted(user_docs.glob("*.md"), key=lambda p: p.name):
+        doc = path.name
+        # The renderer is the only judge of what an image is; see
+        # RenderResult.images.
+        for image in render(path.read_text(encoding="utf-8")).images:
+            key = (doc, image.dest)
+            seen.setdefault(key, []).append(image.alt)
+            problems: list[str] = []
+            if not _has_text(image.alt):
+                if key not in decorative:
+                    problems.append(
+                        "has no alt text (describe what it shows, or, if it is "
+                        f"purely decorative, add ({doc!r}, {image.dest!r}) to "
+                        "DECORATIVE_IMAGES in tools/site/render_user_docs.py)"
+                    )
+            elif _is_generic_alt(image.alt, image.dest):
+                problems.append(
+                    f"alt text {image.alt!r} is its file name or a bare "
+                    "placeholder (describe what the image shows)"
+                )
+            if _resolve_image(user_docs, image_dir, doc, image.dest) is None:
+                problems.append(
+                    "does not resolve to a file under docs/user/images/ (a "
+                    "missing file ships as a text caption, not an image)"
+                )
+            if problems:
+                errors.append(
+                    f"docs/user/{doc}:{image.line}: image {image.dest} "
+                    + "; ".join(problems)
+                    + "."
+                )
+    for doc, dest in sorted(decorative):
+        if (doc, dest) not in seen:
+            errors.append(
+                f"DECORATIVE_IMAGES lists ({doc!r}, {dest!r}) but docs/user/{doc} "
+                "has no such image; remove the stale exemption."
+            )
+        elif all(_has_text(alt) for alt in seen[(doc, dest)]):
+            errors.append(
+                f"DECORATIVE_IMAGES lists ({doc!r}, {dest!r}) but every use of "
+                "that image now has alt text; remove the exemption."
+            )
     return errors
 
 
@@ -846,18 +969,23 @@ def main(argv: list[str] | None = None) -> int:
             guides = build_site(out)
             errors = (
                 check_guides(guides)
+                + check_images()
                 + check_site_links(out, guides)
                 + check_repo_urls(out)
             )
             if errors:
                 report(errors)
                 return 1
-            print(f"OK: {len(guides)} user guides render with all links resolving.")
+            print(
+                f"OK: {len(guides)} user guides render with all links resolving "
+                "and every image has alt text."
+            )
             return 0
 
     guides = build_site(args.out)
     errors = (
         check_guides(guides)
+        + check_images()
         + check_site_links(args.out, guides)
         + check_repo_urls(args.out)
     )

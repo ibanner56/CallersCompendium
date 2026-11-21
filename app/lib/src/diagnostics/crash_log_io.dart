@@ -1,8 +1,13 @@
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../data/backup_io.dart' show shareFilesViaSheet;
+import '../data/file_dialog_labels.dart';
+import '../data/picker_extensions.dart';
 
 /// Delivers the exported diagnostics [contents] to the user as a file named
 /// [suggestedFileName]. Returns `true` if it was saved/shared, or `false` if
@@ -16,9 +21,11 @@ typedef LogSaver =
 bool Function() isDesktopPlatformForLog = () =>
     Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
-const _logTypeGroup = XTypeGroup(
-  label: 'Diagnostics log',
-  extensions: ['log', 'txt'],
+/// The file-type filter behind the diagnostics-log save dialog.
+@visibleForTesting
+XTypeGroup crashLogTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: FileDialogLabels.current.fileDialogTypeDiagnosticsLog,
+  extensions: pickerExtensions(['log', 'txt'], isLinux),
   uniformTypeIdentifiers: ['public.plain-text'],
   mimeTypes: ['text/plain'],
 );
@@ -38,8 +45,9 @@ String diagnosticsLogFileName([DateTime? now]) {
 ///
 /// On desktop this is a "save a file" action (native Save As via
 /// `file_selector`); on mobile it is a "share to another app" action (temp file
-/// + OS share sheet via `share_plus`). Mirrors `saveBackupToFile`, including the
-/// defensive `create(recursive: true)` before the mobile temp-file write.
+/// + OS share sheet via `share_plus`, `false` if the sheet is dismissed).
+/// Mirrors `saveBackupToFile`, including the defensive `create(recursive: true)`
+/// before the mobile temp-file write.
 Future<bool> saveDiagnosticsLog(
   String contents,
   String suggestedFileName,
@@ -47,7 +55,7 @@ Future<bool> saveDiagnosticsLog(
   if (isDesktopPlatformForLog()) {
     final location = await getSaveLocation(
       suggestedName: suggestedFileName,
-      acceptedTypeGroups: const [_logTypeGroup],
+      acceptedTypeGroups: [crashLogTypeGroup()],
     );
     if (location == null) return false;
     await File(location.path).writeAsString(contents);
@@ -58,12 +66,13 @@ Future<bool> saveDiagnosticsLog(
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await file.writeAsString(contents);
-  await SharePlus.instance.share(
+  final result = await shareFilesViaSheet(
     ShareParams(
       files: [XFile(file.path, mimeType: 'text/plain')],
       fileNameOverrides: [suggestedFileName],
       subject: suggestedFileName,
     ),
   );
-  return true;
+  // Same rule as `saveBackupToFile`: only a dismissed sheet is "not exported".
+  return result.status != ShareResultStatus.dismissed;
 }

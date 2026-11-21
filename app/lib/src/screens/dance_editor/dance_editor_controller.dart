@@ -1,20 +1,31 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/compendium_core.dart'
+    as core
+    show offeredFormationShapes;
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/widgets.dart';
 
+import '../../data/editor_draft_shutdown_scope.dart';
 import '../../data/display_defaults.dart';
+import '../../data/validation_issue_labels.dart'
+    show incompleteFigureValidationCode, otherFormFiguresValidationCode;
+import '../../diagnostics/error_log.dart';
+import '../../editor/draft_save_health.dart';
 import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/free_text_composer_controller.dart';
+import '../../editor/pending_move_text_controller.dart';
+import '../../editor/user_figure_draft.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
+import 'choice_option.dart';
 import 'link_draft.dart';
 import 'source_citation_draft.dart';
 
-/// Result of an inline [DanceEditorController.addChoiceOption] attempt, so the
-/// editor UI can report why an add did nothing.
-enum AddChoiceResult { added, empty, duplicate, notFound }
+export 'choice_option.dart' show AddChoiceResult;
 
 /// Owns the dance editor's mutable working draft, its bounded [EditorUndoStack],
 /// and the debounced undo/autosave machinery.
@@ -32,34 +43,65 @@ class DanceEditorController extends ChangeNotifier {
   DanceEditorController({
     required CompendiumRepositories repositories,
     required this.danceId,
-    required Dialect dialect,
+    required DialectsByForm dialects,
     this.initialTitle,
+    this._debounce = const Duration(milliseconds: 500),
   }) : _repos = repositories,
-       _activeDialect = dialect,
-       titleController = LingoTextEditingController(dialect: dialect),
-       hookController = LingoTextEditingController(dialect: dialect),
-       notesController = LingoTextEditingController(dialect: dialect),
-       walkthroughController = LingoTextEditingController(dialect: dialect),
-       phraseController = LingoTextEditingController(dialect: dialect),
-       formationDetailController = LingoTextEditingController(dialect: dialect),
-       tuneController = LingoTextEditingController(dialect: dialect);
+       _dialects = dialects,
+       // A new dance starts as contra until [load] reads its form.
+       _activeDialect = dialects.forForm(DanceForm.contra),
+       titleController = _lingo(dialects),
+       hookController = _lingo(dialects),
+       notesController = _lingo(dialects),
+       walkthroughController = _lingo(dialects),
+       phraseController = _lingo(dialects),
+       formationDetailController = _lingo(dialects),
+       meterController = _lingo(dialects),
+       musicalKeyController = _lingo(dialects),
+       tuneController = _lingo(dialects),
+       _draftKey = danceId == null
+           ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
+           : danceEditorDraftKey(danceId) {
+    freeTextComposer.addListener(_notify);
+    pendingMoveText.addListener(_notify);
+    _openDraftKeys.add(_draftKey);
+  }
+
+  static LingoTextEditingController _lingo(DialectsByForm dialects) =>
+      LingoTextEditingController(dialect: dialects.forForm(DanceForm.contra));
 
   final CompendiumRepositories _repos;
+
+  /// How long an edit must sit idle before the undo snapshot is pushed and the
+  /// autosave draft is written. Tests inject a short one.
+  final Duration _debounce;
   final String? danceId;
+
+  /// The dialect of every dance form. The editor shows the dance in its own
+  /// form's ([_activeDialect]), and follows the form when it changes
+  /// (ADR-006 §9.1, point 1).
+  DialectsByForm _dialects;
+
+  /// The dialect of the dance's form, which the text on screen is in.
   Dialect _activeDialect;
+
+  /// The dialect of the dance's form, which the text on screen is in.
+  Dialect get dialect => _activeDialect;
 
   /// A title to seed a **new** dance's title field with (issue #881's
   /// "create a dance from this" program-slot action). Ignored when
   /// [danceId] is non-null (editing an existing dance never reseeds its
   /// title). Applied in [load]'s new-dance branch, in the same position as
-  /// the figures-template seed, so a restored autosave draft still overrides
-  /// it — the seed is a starting point, not a guaranteed final value.
+  /// the figures-template seed. A seeded dance is the slot's own, so [load]
+  /// offers it no other new dance's draft to restore (AUTH-10).
   final String? initialTitle;
 
   /// Renders canonical stored note text back into the active dialect for
   /// editing. Only [FigureRenderer.renderFreeText] (roles-only, case-preserving)
   /// is used, so the taxonomy is irrelevant here — any instance works.
-  static final FigureRenderer _noteRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _noteRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   /// Renders a canonical stored figure note into the active dialect so the
   /// editor shows the caller's own terms rather than canonical role tokens.
@@ -89,28 +131,105 @@ class DanceEditorController extends ChangeNotifier {
   String _canonicalizeNote(String typed) =>
       canonicalizeText(typed.trim(), _activeDialect);
 
-  /// Renders every [FigureDraft.note] in [drafts] (recursing into structural
+  /// Renders every [FigureDraft.note] (and custom figures' `params['text']`,
+  /// and groups' [FigureDraft.containerTitle]) in [drafts] (recursing into structural
   /// container children) from canonical storage into the active
   /// dialect via [_renderNote], so `draft.note` holds active-dialect text while
   /// being edited. Called once, right after each site that seeds `figureDrafts`
   /// via [FigureDraft.fromFigure] (issue #715 — figure notes were previously
   /// outside the canonicalization chokepoint entirely).
-  void _renderNotesRecursively(Iterable<FigureDraft> drafts) {
+  void _renderDraftTextRecursively(Iterable<FigureDraft> drafts) {
     for (final draft in drafts) {
       draft.note = _renderNote(draft.note);
-      if (draft.meanwhileSides case final sides?) {
-        _renderNotesRecursively(sides);
+      // Custom figure text is stored canonical like notes (DIA-02). A use of
+      // one of the user's own figures (#1023) keeps its line as stored: it is
+      // shown rendered from the figure, and a changed line would detach it.
+      final text = draft.params['text'];
+      if (draft.move == customMove &&
+          text is String &&
+          text.isNotEmpty &&
+          !isUserFigureDraft(draft)) {
+        draft.params['text'] = _renderNote(text);
       }
-      if (draft.modifierFigures case final children?) {
-        _renderNotesRecursively(children);
+      // A group's title is saved through the same chokepoint as a note, so it
+      // is shown back in the active dialect the same way.
+      if (draft.isContainerDraft && draft.containerTitle.isNotEmpty) {
+        draft.containerTitle = _renderNote(draft.containerTitle);
+      }
+      if (draft.containerChildren case final children?) {
+        _renderDraftTextRecursively(children);
       }
     }
+  }
+
+  /// [drafts] with their note, custom-figure text and group title rewritten from [from]
+  /// into [to], the same text [_renderDraftTextRecursively] renders and Save
+  /// canonicalizes (AUTH-17). Canonicalizing against the dialect the text was
+  /// written in, rather than the one active at Save, is what keeps a custom
+  /// dialect's role words from being stored literally.
+  static List<FigureDraftSnapshot> _convertDraftText(
+    List<FigureDraftSnapshot> drafts, {
+    required Dialect from,
+    required Dialect to,
+  }) {
+    String convert(String text) =>
+        _noteRenderer.renderFreeText(canonicalizeText(text, from), to);
+
+    void convertAll(Iterable<FigureDraft> drafts) {
+      for (final draft in drafts) {
+        draft.note = convert(draft.note);
+        final text = draft.params['text'];
+        if (draft.move == customMove &&
+            text is String &&
+            text.isNotEmpty &&
+            !isUserFigureDraft(draft)) {
+          draft.params['text'] = convert(text);
+        }
+        if (draft.isContainerDraft && draft.containerTitle.isNotEmpty) {
+          draft.containerTitle = convert(draft.containerTitle);
+        }
+        if (draft.containerChildren case final children?) {
+          convertAll(children);
+        }
+      }
+    }
+
+    final converted = [for (final d in drafts) d.toDraft()];
+    convertAll(converted);
+    return [for (final d in converted) FigureDraftSnapshot.fromDraft(d)];
+  }
+
+  /// Whether text written in [a] reads the same in [b]: the conversion reads
+  /// only role terms.
+  static bool _sameRoles(Dialect a, Dialect b) => mapEquals(a.roles, b.roles);
+
+  /// The figure drafts [s] holds, with their text in the active dialect.
+  /// Text written in the active dialect's own role terms is kept as typed.
+  List<FigureDraft> _draftsInActiveDialect(EditorSnapshot s) {
+    final from = s.textDialect;
+    final snapshots = from == null || _sameRoles(from, _activeDialect)
+        ? s.figureDrafts
+        : _convertDraftText(s.figureDrafts, from: from, to: _activeDialect);
+    return [for (final d in snapshots) d.toDraft()];
   }
 
   bool _disposed = false;
 
   // ---- Prose (lingo-styled) text controllers ----
   final LingoTextEditingController titleController;
+
+  /// Focus node for the title field, so the screen can request focus on a new
+  /// dance once the form has built (the field's own `autofocus` loses to the
+  /// screen's shortcut `Focus(autofocus: true)`, which claims focus on the
+  /// spinner frame).
+  final FocusNode titleFocusNode = FocusNode(debugLabel: 'dance-title');
+
+  /// The phrase-structure field's focus. An English dance's named structure
+  /// hides the field, but not while the caller is typing in it, so a
+  /// structure that becomes named mid-entry (`A:2*8*2`, before `+ B:…`) can
+  /// still be finished; leaving the field then hides it.
+  late final FocusNode phraseFocusNode = FocusNode(debugLabel: 'dance-phrase')
+    ..addListener(_notify);
   final LingoTextEditingController hookController;
   final LingoTextEditingController notesController;
 
@@ -119,7 +238,17 @@ class DanceEditorController extends ChangeNotifier {
   final LingoTextEditingController walkthroughController;
   final LingoTextEditingController phraseController;
   final LingoTextEditingController formationDetailController;
+
+  /// Editors for the tune's written meter and key ([Dance.meter],
+  /// [Dance.musicalKey]): free text, ADR-006 §12.1 F3.
+  final LingoTextEditingController meterController;
+  final LingoTextEditingController musicalKeyController;
   final LingoTextEditingController tuneController;
+
+  /// The user's Move defaults (DD.3), by move id, which a typed line's rows
+  /// take for what it leaves unstated, as picking a move takes them (AUTH-7).
+  /// The screen sets them once it has read them; empty until then.
+  Map<String, Map<String, Object?>> moveParamDefaults = const {};
 
   /// Custom text/number field editors, keyed by field id. Text fields get lingo
   /// styling; number fields carry the same controller type but never match a
@@ -135,6 +264,8 @@ class DanceEditorController extends ChangeNotifier {
     walkthroughController,
     phraseController,
     formationDetailController,
+    meterController,
+    musicalKeyController,
     tuneController,
     ...customTextControllers.values,
   ];
@@ -151,8 +282,26 @@ class DanceEditorController extends ChangeNotifier {
   int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
+  bool _improper = false;
+  PartialDate? _interpretedOn;
 
   DanceForm get form => _form;
+
+  /// The taxonomy this dance's figures are entered and checked with: its
+  /// form's (ADR-006 §12.1, F6). It follows a change of form at once.
+  Taxonomy get taxonomy => shippedTaxonomies.forForm(_form);
+
+  /// The shapes the formation field offers: the dance form's own
+  /// ([offeredFormationShapes]), plus the dance's current shape when that is
+  /// not one of them, such as an ECD dance imported with a contra shape, so
+  /// the field still shows it and saving keeps it.
+  List<FormationShape> get offeredFormationShapes {
+    final offered = core.offeredFormationShapes(_form);
+    return offered.contains(_formationShape)
+        ? offered
+        : [_formationShape, ...offered];
+  }
+
   FormationShape get formationShape => _formationShape;
   Progression get progression => _progression;
   DanceStatus get status => _status;
@@ -165,8 +314,38 @@ class DanceEditorController extends ChangeNotifier {
   PartialDate? get composedOn => _composedOn;
   PartialDate? get revisedOn => _revisedOn;
 
+  /// Whether the dance starts improper ([Formation.improper]). Offered, and
+  /// saved, only for a form that records it apart from its shape
+  /// ([formHasImproperFlag]): ECD (ADR-006 §12.1, F2).
+  bool get improper => _improper;
+
+  /// Whether this dance's form records proper or improper with a checkbox.
+  bool get offersImproper => formHasImproperFlag(_form);
+
+  /// When the dance was interpreted ([Dance.interpretedOn]).
+  PartialDate? get interpretedOn => _interpretedOn;
+
+  /// Keys for the Composed and Interpreted in fields, which move between
+  /// More details and the top of the form when the form changes
+  /// ([showsCreditsUpFront]): a global key carries a half-entered date (a
+  /// month picked before its year) across the move instead of losing it.
+  final GlobalKey composedOnFieldKey = GlobalKey(debugLabel: 'composed-on');
+  final GlobalKey interpretedOnFieldKey = GlobalKey(
+    debugLabel: 'interpreted-on',
+  );
+
+  /// Whether the interpretation credits (Interpreted by, Interpreted in) and
+  /// the Composed date are shown up front, beside the authors, rather than
+  /// in More details: for ECD, where most dances credit both an original and
+  /// an interpreter (ADR-006 §9.2, point 7).
+  bool get showsCreditsUpFront => _form == DanceForm.ecd;
+
   // ---- Multi-value draft lists ----
   final List<String> authorIds = [];
+
+  /// Ordered ids of the people who interpreted the dance
+  /// ([Dance.interpreterIds]), from the same people list as [authorIds].
+  final List<String> interpreterIds = [];
   final List<String> tagIds = [];
   final Map<String, Tag> stagedTags = {};
   final List<String> tunes = [];
@@ -179,10 +358,189 @@ class DanceEditorController extends ChangeNotifier {
 
   final List<FigureDraft> figureDrafts = [];
 
-  List<Figure> get _figures => [
-    for (final draft in figureDrafts)
-      ?draft.toFigure(canonicalizeNote: _canonicalizeNote),
-  ];
+  /// Whether the dance this editor opened held a transcription that could not
+  /// be decoded (#1347).
+  bool _loadedUnreadableFigures = false;
+
+  /// Whether the dance this editor opened held a tune list that could not be
+  /// decoded (#1347).
+  bool _loadedUnreadableTunes = false;
+
+  /// Whether a save must leave the stored tune list untouched — true while the
+  /// editor opened an undecodable one and the user has typed no tune of their
+  /// own. Same reasoning as [_preserveStoredFigures], and keyed on the content
+  /// rather than on any placeholder for the same reason.
+  bool get _preserveStoredTunes => _loadedUnreadableTunes && tunes.isEmpty;
+
+  /// Whether this editor opened a dance whose stored figures could not be
+  /// decoded, for the notice the form shows above the figure list (#1347).
+  bool get openedWithUnreadableFigures => _loadedUnreadableFigures;
+
+  /// Whether this editor opened a dance whose stored tunes could not be
+  /// decoded.
+  bool get openedWithUnreadableTunes => _loadedUnreadableTunes;
+
+  /// Whether a save must leave the stored transcription **untouched**.
+  ///
+  /// True exactly when the editor opened an undecodable transcription and the
+  /// user has not authored figures of their own. In that state the figure list
+  /// on screen is empty because nothing could be read, not because the dance
+  /// has no figures — so writing it back would replace the user's stored
+  /// transcription with nothing, on a save they made to change a title or a
+  /// tag. Passing `figures: null` to `copyWith` carries the original
+  /// [FigureSource] through whole instead.
+  ///
+  /// Once the user authors a figure they have written a transcription and
+  /// replacing the old one is the correct, intended outcome.
+  ///
+  /// Keyed on [_figures], **not** on `figureDrafts`. Pressing "Add figure"
+  /// appends a placeholder draft whose `toFigure()` still returns null, so
+  /// `figureDrafts` becomes non-empty while nothing has been authored yet. A
+  /// condition on the draft list therefore stopped preserving the stored bytes
+  /// the instant the button was pressed, and a subsequent save of an unrelated
+  /// field wrote an empty transcription over them — the exact loss this guard
+  /// exists to prevent, defeated by a placeholder.
+  bool get _preserveStoredFigures =>
+      _loadedUnreadableFigures && _figures.isEmpty;
+
+  /// The figures the draft builds: every row's, with each compound
+  /// placeholder expanded (#709). Read by the warnings and by [buildDance], so
+  /// no placeholder reaches stored dance data.
+  ///
+  /// Each use of one of the user's own figures (#1023) is re-rendered from
+  /// the figure as it is now, so the dance stores its current wording as the
+  /// line every build shows.
+  List<Figure> get _figures => refreshUserFigureUses(
+    [
+      for (final draft in figureDrafts)
+        ...draft.toFigures(
+          resolveCompound: resolveCompound,
+          canonicalizeNote: _canonicalizeNote,
+        ),
+    ],
+    _userFigureCatalog,
+    deleted: _deletedUserFigureIds,
+  );
+
+  /// The figures the draft would save now, compound placeholders expanded.
+  List<Figure> get builtFigures => _figures;
+
+  // ---- The user's own compound figures (#709) ----
+
+  StreamSubscription<List<UserGlossaryEntry>>? _glossarySubscription;
+
+  /// Every compound the user has that this build can expand, by entry id.
+  Map<String, ({UserGlossaryEntry entry, CompoundDefinition definition})>
+  _compounds = const {};
+
+  /// The user's own figures (#1023), live: what a row's use renders from.
+  UserFigureCatalog _userFigureCatalog = UserFigureCatalog.empty;
+
+  /// The user's own figures a row can be turned into: those that decode and
+  /// are for this dance's form (#1023, maintainer decision 8), by name.
+  List<UserGlossaryEntry> get userFigureEntries => [
+    for (final view in _userFigureCatalog.figures)
+      if (view.definition?.form == _form.name) ?_userFigureEntries[view.id],
+  ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+  Map<String, UserGlossaryEntry> _userFigureEntries = const {};
+
+  /// The user's figures deleted, as [refreshCompounds] last read: a use of
+  /// one still in the draft is saved as plain text (#1023).
+  Set<String> _deletedUserFigureIds = const {};
+
+  /// The compounds a row can be turned into, by name: those for this dance's
+  /// form (#1023, maintainer decision 8; a compound naming none is contra).
+  /// Empty until [load].
+  List<UserGlossaryEntry> get compoundEntries => [
+    for (final c in _compounds.values)
+      if (c.definition.form == _form.name) c.entry,
+  ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+  /// The compound [id] as it is now, or null when it is gone or no longer
+  /// decodes. Whether Custom Figures is on is not consulted: a placeholder
+  /// already in the draft still expands with it off (#709 decision 4).
+  CompoundDefinition? resolveCompound(String id) => _compounds[id]?.definition;
+
+  /// Re-reads the user's compounds, so a dance built next uses each one as it
+  /// is in storage now rather than as the last watch event left it. The save
+  /// awaits this before [buildDance].
+  Future<void> refreshCompounds() async {
+    final live = await _repos.userGlossary.listAll();
+    final all = await _repos.userGlossary.listAll(includeDeleted: true);
+    final liveIds = {for (final entry in live) entry.id};
+    _deletedUserFigureIds = {
+      for (final entry in all)
+        if (entry.kind == UserGlossaryEntryKind.customFigure &&
+            !liveIds.contains(entry.id))
+          entry.id,
+    };
+    _setCompounds(live);
+  }
+
+  void _setCompounds(List<UserGlossaryEntry> entries) {
+    _compounds = {
+      for (final entry in entries)
+        if (entry.kind == UserGlossaryEntryKind.compound)
+          if (decodeCompoundDefinition(entry.payload, shippedTaxonomies.anyForm)
+              case final definition?)
+            entry.id: (entry: entry, definition: definition),
+    };
+    _userFigureCatalog = UserFigureCatalog.fromEntries(entries);
+    _userFigureEntries = {
+      for (final entry in entries)
+        if (entry.kind == UserGlossaryEntryKind.customFigure) entry.id: entry,
+    };
+    _refreshPlaceholderBeats();
+  }
+
+  /// Brings each placeholder's beat count up to date with its expansion, for
+  /// the phrase labels, the beat total and a fallback. A placeholder that
+  /// cannot expand keeps its last count.
+  void _refreshPlaceholderBeats() {
+    for (final draft in figureDrafts) {
+      final compound = draft.compound;
+      if (compound == null) continue;
+      if (expandPlaceholder(compound, resolveCompound) case final expanded?) {
+        compound.beats = CompoundDefinition.beatsOf(
+          expanded,
+          shippedTaxonomies.anyForm,
+        );
+      }
+    }
+  }
+
+  /// Whether any row is a compound placeholder, so the save must re-read the
+  /// user's compounds before building the dance.
+  bool get hasCompoundPlaceholders =>
+      figureDrafts.any((d) => d.isCompoundPlaceholder);
+
+  /// Whether any row, or any side within one, uses one of the user's own
+  /// figures (#1023), so the save must re-read them: one deleted since the
+  /// editor last heard is then saved as plain text.
+  bool get hasUserFigureUses => _anyUserFigureUse(figureDrafts);
+
+  static bool _anyUserFigureUse(Iterable<FigureDraft> drafts) => drafts.any(
+    (d) =>
+        isUserFigureDraft(d) ||
+        _anyUserFigureUse(d.containerChildren ?? const []),
+  );
+
+  void _watchCompounds() {
+    _glossarySubscription = _repos.userGlossary.watchAll().listen(
+      (entries) {
+        if (_disposed) return;
+        _setCompounds(entries);
+        recomputeWarnings();
+        _notify();
+      },
+      onError: (Object error, StackTrace stackTrace) => logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_controller.watch.compounds',
+      ),
+    );
+  }
 
   PhraseStructure _phraseStructure = PhraseStructure.standard;
   PhraseStructure get phraseStructure => _phraseStructure;
@@ -249,25 +607,201 @@ class DanceEditorController extends ChangeNotifier {
   /// guard (`PopScope`) so backing out of a dirty editor prompts before
   /// discarding. Reset on a successful save.
   bool _dirty = false;
-  bool get dirty => _dirty;
 
-  String get draftKey => '$kDanceEditorDraftKeyPrefix${danceId ?? 'new'}';
+  /// Whether leaving now would lose work: an unsaved edit, a line typed into
+  /// the free-text composer and not yet added ([freeTextComposer]), or a move
+  /// name or shorthand typed into a Move box and not yet applied
+  /// ([pendingMoveText]). Neither is in the figure drafts or the autosave
+  /// draft.
+  bool get dirty =>
+      _dirty ||
+      freeTextComposer.hasPendingLine ||
+      pendingMoveText.hasPendingText;
+
+  /// The figure list's free-text composer (#419), so a line still in its box
+  /// counts as unsaved ([dirty]) and Save can add it first.
+  final freeTextComposer = FreeTextComposerController();
+
+  /// The figure list's Move boxes (AUTH-1), so a move name or shorthand typed
+  /// into one and not yet applied counts as unsaved ([dirty]) and Save can
+  /// apply it first.
+  final pendingMoveText = PendingMoveTextController();
+
+  /// The settings key this editor autosaves under: the dance's own, or for a
+  /// new dance one made for this editor (AUTH-10), so two new dances never
+  /// share a draft. Restoring another new dance's draft adopts its key.
+  String get draftKey => _draftKey;
+  String _draftKey;
+
+  /// The draft keys of the editors open in this process, and of the drafts
+  /// they are offering, so a new-dance editor never offers, or discards, a
+  /// draft another editor is writing or may take up.
+  static final Set<String> _openDraftKeys = {};
 
   /// A decoded draft snapshot waiting to be restored or discarded.
   /// Set by [load] when a draft exists; cleared by the restore flow.
   EditorSnapshot? _pendingDraft;
   EditorSnapshot? get pendingDraft => _pendingDraft;
 
+  /// The key [pendingDraft] was read from, which [discardPendingDraft]
+  /// removes and [applyRestoredDraft] adopts.
+  String? _pendingDraftKey;
+
+  /// Whether [pendingDraft] is the draft of a different new dance, left by an
+  /// earlier editor, rather than of the dance this editor opened.
+  bool get pendingDraftIsAnotherNewDance =>
+      _pendingDraftKey != null && _pendingDraftKey != _draftKey;
+
+  /// Whether the dance has been saved since [draft] was edited from it, so
+  /// restoring the draft would replace those changes (AUTH-10). False when
+  /// that cannot be told: a new dance, or a draft written before drafts
+  /// recorded the version they were edited from.
+  bool danceChangedSince(EditorSnapshot draft) {
+    final base = draft.baseUpdatedAt;
+    final current = _original?.updatedAt;
+    return base != null && current != null && !base.isAtSameMomentAs(current);
+  }
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }
 
-  /// Pushes the new active dialect into every lingo prose controller.
-  void updateDialect(Dialect newDialect) {
+  /// Pushes the new active dialect into every lingo prose controller, and
+  /// re-renders the figure notes and custom-figure text into it, so the text
+  /// on screen, and what Save canonicalizes, stay in the dialect Save reads
+  /// them in (AUTH-17). Undo entries record their own dialect and are
+  /// converted when applied.
+  void updateDialects(DialectsByForm dialects) {
+    _dialects = dialects;
+    _showInDialect(_targetDialect);
+  }
+
+  /// Fits the sequences in [drafts] to this dance's form. Only an English
+  /// dance's sequence may state a span of its own, with steps that carry no
+  /// timing (ADR-006 §5.5); in any other form a sequence counts its steps,
+  /// so a span is dropped and an untimed step takes its move's default
+  /// count, as a step picked there would. Undo brings the span back.
+  void _fitSequenceTimingToForm(List<FigureDraft> drafts) {
+    if (_form == DanceForm.ecd) return;
+    for (final draft in drafts) {
+      final children = draft.containerChildren;
+      if (children == null) continue;
+      if (draft.isSequenceGroup) draft.setSequenceSpan(null);
+      _fitSequenceTimingToForm(children);
+    }
+  }
+
+  /// Named phrases are for English dances only (Hudson, 20 November 2026):
+  /// in any other form the phrases keep their lengths and lose their names,
+  /// so they are labeled A1 A2 B1 B2 again. Undo brings the names back.
+  void _fitPhrasesToForm() {
+    if (offersNamedPhrases) return;
+    final structure = typedPhraseStructure;
+    if (structure == null || !structure.isNamed) return;
+    phraseController.text = structure.components
+        .map((c) => '${c.phraseCount}*${c.bars}*${c.beatsPerBar}')
+        .join(' + ');
+  }
+
+  /// Shows the dance in its form's dialect, after [_form] changed.
+  void _followForm() => _showInDialect(_targetDialect);
+
+  /// Author names by id, so the editor can tell when the dance's
+  /// choreographer asked for larks and robins ([dialectForDance]). The screen
+  /// keeps it current through [setAuthorNames].
+  Map<String, String> _authorNames = const {};
+
+  /// The dialect [form]'s dance titled [title] by the authors [authors] is
+  /// shown in: the form's dialect, with lark and robin for the roles when
+  /// the dance's choreographer asked for them ([dialectForDance]).
+  Dialect _dialectFor(
+    DanceForm form, {
+    required String title,
+    required Iterable<String> authors,
+  }) => dialectForDance(
+    _dialects.forForm(form),
+    title: title,
+    authorNames: [
+      for (final id in authors)
+        if (_authorNames[id] case final String name) name,
+    ],
+  );
+
+  /// The dialect the dance as now edited is shown in ([_dialectFor]).
+  Dialect get _targetDialect =>
+      _dialectFor(_form, title: titleController.text, authors: authorIds);
+
+  /// Replaces the author names [_dialectFor] reads, and shows the dance in
+  /// the dialect they call for ([refreshDialect]).
+  void setAuthorNames(Map<String, String> names) {
+    _authorNames = names;
+    refreshDialect();
+  }
+
+  /// Shows the dance in the dialect its title and authors now call for: the
+  /// form's own, or lark and robin when its choreographer asked for them
+  /// ([dialectForDance]). Converts the figure drafts' role words, as a
+  /// dialect change does, and notifies when the dialect changed.
+  void refreshDialect() {
+    final next = _targetDialect;
+    if (next == _activeDialect) return;
+    _showInDialect(next);
+    _notify();
+  }
+
+  void _showInDialect(Dialect newDialect) {
+    if (identical(newDialect, _activeDialect)) return;
+    final previous = _activeDialect;
     _activeDialect = newDialect;
     for (final c in _proseLingoControllers) {
       c.updateDialect(newDialect);
     }
+    if (_sameRoles(previous, newDialect) || figureDrafts.isEmpty) return;
+    final current = [
+      for (final d in figureDrafts) FigureDraftSnapshot.fromDraft(d),
+    ];
+    final converted = _convertDraftText(
+      current,
+      from: previous,
+      to: newDialect,
+    );
+    // A row whose text is replaced loses its caret position, so leave the rows
+    // alone when no text changes, as for a dance whose notes name no roles.
+    if (_sameDraftText(current, converted)) return;
+    figureDrafts
+      ..clear()
+      ..addAll(converted.map((d) => d.toDraft()));
+    _notify();
+  }
+
+  static bool _sameDraftText(
+    List<FigureDraftSnapshot> a,
+    List<FigureDraftSnapshot> b,
+  ) {
+    for (var i = 0; i < a.length; i++) {
+      final x = a[i];
+      final y = b[i];
+      if (x.note != y.note ||
+          x.params['text'] != y.params['text'] ||
+          x.params[containerTitleKey] != y.params[containerTitleKey]) {
+        return false;
+      }
+      if (!_sameDraftText(
+            x.meanwhileSides ?? const [],
+            y.meanwhileSides ?? const [],
+          ) ||
+          !_sameDraftText(
+            x.modifierFigures ?? const [],
+            y.modifierFigures ?? const [],
+          ) ||
+          !_sameDraftText(
+            x.sequenceFigures ?? const [],
+            y.sequenceFigures ?? const [],
+          )) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // -------------------------------------------------------------------------
@@ -278,12 +812,30 @@ class DanceEditorController extends ChangeNotifier {
   /// custom-field controllers from [fieldDefs], recomputes warnings, detects a
   /// pending autosave draft, and pushes the initial undo entry. Throwing
   /// propagates to the caller, which surfaces the load error.
+  ///
+  /// [freeTextEntry] is the "Free-text entry" setting: with it on, a new dance
+  /// with no saved starting template begins with no figures (#1177).
   Future<void> load({
     required Dance? dance,
     required List<CustomFieldDef> fieldDefs,
+    bool freeTextEntry = false,
   }) async {
     this.fieldDefs = fieldDefs;
     _difficultyLevels = await _repos.difficultyLevels.listAll();
+    // The dance still opens when the user's compounds cannot be read, with
+    // none offered; a save re-reads them and reports a failure there.
+    try {
+      await refreshCompounds();
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_controller.load.compounds',
+      );
+    }
+    if (!_disposed) {
+      _watchCompounds();
+    }
 
     if (dance != null) {
       _original = dance;
@@ -293,7 +845,11 @@ class DanceEditorController extends ChangeNotifier {
       walkthroughController.text = dance.walkthrough;
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
+      meterController.text = dance.meter;
+      musicalKeyController.text = dance.musicalKey;
+      _improper = dance.formation.improper;
       _form = dance.form;
+      _followForm();
       _formationShape = dance.formation.shape;
       _progression = dance.progression;
       _status = dance.status;
@@ -309,9 +865,19 @@ class DanceEditorController extends ChangeNotifier {
       _rating = dance.rating;
       _composedOn = dance.composedOn;
       _revisedOn = dance.revisedOn;
+      _interpretedOn = dance.interpretedOn;
       authorIds.addAll(dance.authorIds);
+      interpreterIds.addAll(dance.interpreterIds);
       tagIds.addAll(dance.tagIds);
-      tunes.addAll(dance.tunes);
+      switch (dance.tunesSource) {
+        case DecodedTunes(:final tunes):
+          this.tunes.addAll(tunes);
+        // Nothing can be seeded from a list that could not be decoded.
+        // Remembering it is what stops the save below writing the empty draft
+        // list over the stored text — see [_preserveStoredTunes].
+        case UnreadableTunes():
+          _loadedUnreadableTunes = true;
+      }
       for (final link in dance.links) {
         links.add(LinkDraft.fromLink(link));
       }
@@ -321,8 +887,17 @@ class DanceEditorController extends ChangeNotifier {
       for (final value in dance.customFields) {
         customValues[value.fieldId] = value.value;
       }
-      figureDrafts.addAll(dance.figures.map(FigureDraft.fromFigure));
-      _renderNotesRecursively(figureDrafts);
+      switch (dance.figuresSource) {
+        case DecodedFigures(:final figures):
+          figureDrafts.addAll(figures.map(FigureDraft.fromFigure));
+          _fitSequenceTimingToForm(figureDrafts);
+        // Nothing can be seeded from a transcription that cannot be decoded.
+        // Remembering it here is what stops the save below from writing the
+        // empty draft list over the stored bytes — see [_preserveStoredFigures].
+        case UnreadableFigures():
+          _loadedUnreadableFigures = true;
+      }
+      _renderDraftTextRecursively(figureDrafts);
     } else {
       // New dance (ROADMAP DD.1): seed the initial metadata from the saved
       // dance-authoring defaults. Each read is independently guarded so a
@@ -330,27 +905,35 @@ class DanceEditorController extends ChangeNotifier {
       // rather than failing the editor load.
 
       // Seed the title from the program-slot "create a dance from this" flow
-      // (issue #881), if one was provided. This runs BEFORE the draft-restore
-      // check below (like the figures template further down), so a restored
-      // autosave draft still overrides it — the seed is a starting point the
-      // user reviews and can edit, never a guaranteed final value.
+      // (issue #881), if one was provided — a starting point the user reviews
+      // and can edit, never a guaranteed final value. The draft-restore check
+      // below offers a seeded dance no other new dance's draft (AUTH-10).
       final seedTitle = initialTitle;
       if (seedTitle != null && seedTitle.isNotEmpty) {
         titleController.text = seedTitle;
       }
       try {
-        _form = danceFormFromStored(
-          await _repos.settings.get(kDefaultDanceFormKey),
+        _form = resolveNewDanceForm(
+          defaultFormStored: await _repos.settings.get(kDefaultDanceFormKey),
+          lastUsedStored: await _repos.settings.get(kLastUsedDanceFormKey),
         );
       } catch (_) {
         // diagnostics: silent — DanceForm default read failed; falls back to hardcoded contra.
       }
+      _followForm();
       try {
         _formationShape = formationShapeFromStored(
           await _repos.settings.get(kDefaultDanceFormationShapeKey),
         );
       } catch (_) {
         // diagnostics: silent — FormationShape default read failed; falls back to hardcoded dupleImproper.
+      }
+      // The default shape is chosen from contra's list, so a new dance of
+      // another form whose list lacks it starts on that form's first shape
+      // (duple minor for ECD) rather than one the form does not use.
+      final formShapes = core.offeredFormationShapes(_form);
+      if (!formShapes.contains(_formationShape)) {
+        _formationShape = formShapes.first;
       }
       try {
         _progression = progressionFromStored(
@@ -365,27 +948,34 @@ class DanceEditorController extends ChangeNotifier {
         );
         // Empty ⇒ leave the historical standard 4×16 (blank controller).
         if (raw.isNotEmpty) phraseController.text = raw;
+        // A default with named phrases names them in English dances only.
+        _fitPhrasesToForm();
       } catch (_) {
         // diagnostics: silent — phrase structure default read failed; falls back to hardcoded standard.
       }
       // Seed the starting figures from the saved template (ROADMAP DD.2).
-      // Unset ⇒ the default `stand_still × 8`; a read/decode failure also
-      // falls back to the default rather than failing the editor load. This
+      // Unset ⇒ the default `stand_still × 8`, or no figures with Free-text
+      // entry on (#1177); a read/decode failure also falls back to that
+      // default rather than failing the editor load. This
       // runs BEFORE the draft-restore check + initial undo snapshot below, so
       // the first render shows the template, the initial undo entry captures
       // it, and a restored autosaved draft still overrides it.
       try {
         final template = danceFiguresTemplateFromStored(
           await _repos.settings.get(kDefaultDanceFiguresTemplateKey),
+          freeTextEntry: freeTextEntry,
         );
         figureDrafts.addAll(template.map(FigureDraft.fromFigure));
       } catch (_) {
-        // diagnostics: silent — figures template read/decode failed; falls back to default stand_still × 8.
+        // diagnostics: silent — figures template read/decode failed; falls back to the unset-template default.
         figureDrafts.addAll(
-          defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
+          danceFiguresTemplateFromStored(
+            null,
+            freeTextEntry: freeTextEntry,
+          ).map(FigureDraft.fromFigure),
         );
       }
-      _renderNotesRecursively(figureDrafts);
+      _renderDraftTextRecursively(figureDrafts);
     }
 
     // Seed text controllers for custom text/number fields.
@@ -393,7 +983,7 @@ class DanceEditorController extends ChangeNotifier {
       if (def.type == CustomFieldType.text ||
           def.type == CustomFieldType.number) {
         customTextControllers[def.id] = LingoTextEditingController(
-          text: customValues[def.id]?.toString() ?? '',
+          text: _customFieldText(customValues[def.id]),
           dialect: _activeDialect,
         );
       }
@@ -402,17 +992,47 @@ class DanceEditorController extends ChangeNotifier {
     recomputeWarnings();
 
     // Check for an autosaved draft and stage it for a restore/discard prompt.
-    if (!_disposed && await _repos.settings.contains(draftKey)) {
-      final raw = await _repos.settings.get(draftKey);
+    // A new dance's own key is new, so what it can find is a draft another
+    // new-dance editor left: offered as that dance, never as this one. A new
+    // dance started from a program slot is a particular dance, and offers
+    // none.
+    final seeded = initialTitle?.isNotEmpty ?? false;
+    final candidates = dance != null || danceId != null
+        ? [draftKey]
+        : seeded || _disposed
+        ? const <String>[]
+        : [
+            for (final key in await _repos.settings.keysWithPrefix(
+              kDanceEditorDraftKeyPrefix,
+            ))
+              if (isNewDanceEditorDraftKey(key) &&
+                  !_openDraftKeys.contains(key))
+                key,
+          ];
+    for (final key in candidates) {
+      if (_disposed || !await _repos.settings.contains(key)) continue;
+      final raw = await _repos.settings.get(key);
       EditorSnapshot? draftSnapshot;
       try {
         draftSnapshot = decodeDraft(raw, levels: _difficultyLevels);
       } catch (_) {
         // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
-        await _repos.settings.remove(draftKey, permanent: true);
+        await _repos.settings.remove(key, permanent: true);
       }
-      if (draftSnapshot != null && !_disposed) {
+      // Another editor may have taken it up during the reads above.
+      if (draftSnapshot == null || _disposed) continue;
+      if (key != _draftKey && _openDraftKeys.contains(key)) continue;
+      // Of several abandoned new dances, offer the most recent; the rest wait
+      // for the next new dance. One with no save time is the oldest.
+      final pendingSavedAt = _pendingDraft?.savedAt;
+      final savedAt = draftSnapshot.savedAt;
+      if (_pendingDraft == null ||
+          (savedAt != null &&
+              (pendingSavedAt == null || savedAt.isAfter(pendingSavedAt)))) {
+        _releaseOfferedDraftKey();
         _pendingDraft = draftSnapshot;
+        _pendingDraftKey = key;
+        _openDraftKeys.add(key);
       }
     }
 
@@ -428,14 +1048,110 @@ class DanceEditorController extends ChangeNotifier {
   // Draft restore
   // -------------------------------------------------------------------------
 
+  /// Gives back the key of another new dance's draft this editor offered and
+  /// did not take up, so a later editor can offer it again.
+  void _releaseOfferedDraftKey() {
+    if (_pendingDraftKey case final key? when key != _draftKey) {
+      _openDraftKeys.remove(key);
+    }
+  }
+
   /// Clears the pending draft marker (called once the restore prompt is shown).
+  /// [discardPendingDraft] and [applyRestoredDraft] still act on the draft's
+  /// key.
   void clearPendingDraft() {
     _pendingDraft = null;
   }
 
+  /// [draft]'s authors, interpreters and tags as they stand now, for a draft
+  /// restored in a later session: each id through the merge aliases to the
+  /// person or tag it
+  /// became, in the order one merge leaves a stored dance
+  /// ([mergedReferenceOrder]), and those no longer live dropped; a tag staged
+  /// in the draft stays. Several merges made at different times can come back
+  /// in another order than the stored dance's, since `id_aliases` does not
+  /// record when each happened. Between the session that saved
+  /// the draft and this one, the Authors or Tags manager may have merged or
+  /// deleted one, and saving the draft as written would credit a deleted row,
+  /// which the dance then hides.
+  /// [replaceAuthors] does this for a draft that is open during the merge.
+  Future<EditorSnapshot> withLiveReferences(EditorSnapshot draft) async {
+    Future<List<String>> live(
+      List<String> ids,
+      SyncRecordKind kind,
+      Future<bool> Function(String id) isLive,
+    ) async {
+      final survivorOf = <String, String>{};
+      for (final id in ids) {
+        try {
+          final current = await _repos.syncLocal.resolveAlias(
+            kind: kind,
+            recordId: id,
+          );
+          if (current != id) survivorOf[id] = current;
+        } catch (error, stackTrace) {
+          // A cyclic alias: keep the id as written, and let liveness decide.
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'dance_editor_controller.withLiveReferences',
+          );
+        }
+      }
+      final out = <String>[];
+      for (final id in mergedReferenceOrder(ids, survivorOf)) {
+        if (await isLive(id)) out.add(id);
+      }
+      return out;
+    }
+
+    Future<bool> personIsLive(String id) async =>
+        await _repos.choreographers.getById(id) != null;
+    final authors = await live(
+      draft.authorIds,
+      SyncRecordKind.choreographer,
+      personIsLive,
+    );
+    // Interpreters come from the same people list, and a merge or delete
+    // rewrites their credits as it does an author's.
+    final interpreters = await live(
+      draft.interpreterIds,
+      SyncRecordKind.choreographer,
+      personIsLive,
+    );
+    // A staged tag exists only in the draft until Save creates it.
+    final staged = {for (final tag in draft.stagedTags) tag.id};
+    final tags = await live(
+      draft.tagIds,
+      SyncRecordKind.tag,
+      (id) async =>
+          staged.contains(id) || await _repos.tags.getById(id) != null,
+    );
+    if (listEquals(authors, draft.authorIds) &&
+        listEquals(interpreters, draft.interpreterIds) &&
+        listEquals(tags, draft.tagIds)) {
+      return draft;
+    }
+    return draft.copyWith(
+      authorIds: authors,
+      interpreterIds: interpreters,
+      tagIds: tags,
+    );
+  }
+
   /// Applies a restored draft snapshot and resets the undo stack so the restored
   /// state IS the initial undo floor (the user cannot "undo the restore").
+  ///
+  /// Restoring another new dance's draft continues that dance: this editor
+  /// autosaves under its key from now on, so the draft is replaced rather
+  /// than left behind, and cleared when the dance is saved.
   void applyRestoredDraft(EditorSnapshot draft) {
+    if (_pendingDraftKey case final key? when key != _draftKey) {
+      _openDraftKeys.remove(_draftKey);
+      _draftKey = key;
+      _openDraftKeys.add(key);
+    }
+    _pendingDraftKey = null;
     _applyingSnapshot = true;
     try {
       applySnapshot(draft);
@@ -451,7 +1167,10 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Discards a pending autosave draft from storage.
   Future<void> discardPendingDraft() async {
-    await _repos.settings.remove(draftKey, permanent: true);
+    final key = _pendingDraftKey ?? draftKey;
+    await _repos.settings.remove(key, permanent: true);
+    _releaseOfferedDraftKey();
+    _pendingDraftKey = null;
   }
 
   // -------------------------------------------------------------------------
@@ -461,18 +1180,138 @@ class DanceEditorController extends ChangeNotifier {
   /// Recomputes the non-blocking phrase warnings from the current figures and
   /// phrase-structure text. Invalid phrase structure is surfaced by the field
   /// validator instead, so here it just leaves the last good warnings.
+  ///
+  /// Rows Save would leave out (AUTH-2) are read from the drafts, not the
+  /// figures they build, which no longer hold them, and are listed whatever
+  /// the phrase structure.
+  ///
+  /// Every warning numbers rows as the list shows them ("Figure 2 of 5"). A
+  /// phrase warning counts built figures, which leave out those rows and
+  /// expand a compound into several, so its position is mapped back to the
+  /// row that built the figure.
   void recomputeWarnings() {
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
+      final issues = <ValidationIssue>[];
+      final figures = _figures;
+      deriveSections(figures, _phraseStructure, issues: issues);
+      for (final (index, figure) in figures.indexed) {
+        _flagSequenceSpans(figure, index + 1, issues);
+      }
+      final rowOfFigure = [
+        for (final (row, draft) in figureDrafts.indexed)
+          for (final _ in draft.toFigures(resolveCompound: resolveCompound))
+            row + 1,
+      ];
+      _phraseWarnings = [
+        for (final issue in issues) _numberedByRow(issue, rowOfFigure),
+      ];
     } on FormatException {
       // diagnostics: silent — invalid phrase structure is surfaced by the
       // field validator instead (see the method doc); here it just leaves the
-      // last good warnings rather than clearing them.
-      return;
+      // last good phrase warnings rather than clearing them.
     }
-    final issues = <ValidationIssue>[];
-    deriveSections(_figures, _phraseStructure, issues: issues);
-    _warnings = issues;
+    _warnings = [
+      for (final (index, draft) in figureDrafts.indexed)
+        if (draft.isIncomplete)
+          ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: incompleteFigureValidationCode,
+            message:
+                'figure ${index + 1} is incomplete and is not saved', // i18n-ignore: internal diagnostic, never shown
+            data: {'position': index + 1},
+          ),
+      ..._phraseWarnings,
+      ?_otherFormFiguresWarning(),
+    ];
+  }
+
+  /// Adds an English sequence's span issue ([ecdSequenceSpanIssue]) for
+  /// [figure], the dance's figure at [position], and any sequence inside it.
+  void _flagSequenceSpans(
+    Figure figure,
+    int position,
+    List<ValidationIssue> issues,
+  ) {
+    if (ecdSequenceSpanIssue(figure, _form) case final issue?) {
+      issues.add(
+        ValidationIssue(
+          severity: issue.severity,
+          code: issue.code,
+          message: issue.message,
+          data: {...issue.data, 'position': position},
+        ),
+      );
+    }
+    if (!figure.isContainer) return;
+    for (final child in figure.subFigures) {
+      _flagSequenceSpans(child, position, issues);
+    }
+  }
+
+  /// A warning when the dance holds figures of another form than its own,
+  /// such as English figures in a dance changed to contra: they are kept and
+  /// shown as they are, but this form's picker does not offer them, and the
+  /// other form's checks do not apply. Null when every figure is the form's
+  /// own (a form with no figures of its own uses contra's), or a custom or
+  /// structural one, which every form shares.
+  ValidationIssue? _otherFormFiguresWarning() {
+    final ownForm = shippedTaxonomies.ownTaxonomy(_form) == null
+        ? shippedTaxonomies.base.form
+        : _form;
+    final counts = <DanceForm, int>{};
+    void visit(Figure figure) {
+      if (figure.isContainer) {
+        figure.subFigures.forEach(visit);
+        return;
+      }
+      final move = figure.move;
+      if (move == customMove ||
+          shippedTaxonomies.anyForm.resolve(move) == null) {
+        return;
+      }
+      final form = shippedTaxonomies.formOfMoveId(move);
+      if (form != ownForm) counts[form] = (counts[form] ?? 0) + 1;
+    }
+
+    _figures.forEach(visit);
+    if (counts.isEmpty) return null;
+    final (form, count) = counts.entries
+        .map((e) => (e.key, e.value))
+        .reduce((a, b) => b.$2 > a.$2 ? b : a);
+    return ValidationIssue(
+      severity: ValidationSeverity.warning,
+      code: otherFormFiguresValidationCode,
+      message:
+          '$count figures are ${form.name} figures in a ${_form.name} dance', // i18n-ignore: internal diagnostic, never shown
+      data: {
+        'count': count,
+        'figureForm': form.name,
+        'danceForm': _form.name,
+        'pickerForm': ownForm.name,
+      },
+    );
+  }
+
+  /// The phrase warnings from the last phrase structure that parsed.
+  List<ValidationIssue> _phraseWarnings = const [];
+
+  /// [issue], with a built figure's 1-based `position` replaced by the row
+  /// that built it, from [rowOfFigure]. An issue with no position is kept.
+  static ValidationIssue _numberedByRow(
+    ValidationIssue issue,
+    List<int> rowOfFigure,
+  ) {
+    final position = issue.data['position'];
+    if (position is! int || position < 1 || position > rowOfFigure.length) {
+      return issue;
+    }
+    return ValidationIssue(
+      severity: issue.severity,
+      code: issue.code,
+      message: issue.message,
+      data: {...issue.data, 'position': rowOfFigure[position - 1]},
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -487,8 +1326,11 @@ class DanceEditorController extends ChangeNotifier {
     walkthrough: walkthroughController.text,
     phrase: phraseController.text,
     formationDetail: formationDetailController.text,
+    meter: meterController.text,
+    musicalKey: musicalKeyController.text,
     form: _form,
     formationShape: _formationShape,
+    improper: _improper,
     progression: _progression,
     status: _status,
     level: _level,
@@ -497,7 +1339,9 @@ class DanceEditorController extends ChangeNotifier {
     rating: _rating,
     composedOn: _composedOn,
     revisedOn: _revisedOn,
+    interpretedOn: _interpretedOn,
     authorIds: List.unmodifiable(authorIds),
+    interpreterIds: List.unmodifiable(interpreterIds),
     tagIds: List.unmodifiable(tagIds),
     tunes: List.unmodifiable(tunes),
     links: List.unmodifiable(
@@ -530,6 +1374,7 @@ class DanceEditorController extends ChangeNotifier {
     figureDrafts: List.unmodifiable(
       figureDrafts.map(FigureDraftSnapshot.fromDraft),
     ),
+    textDialect: _activeDialect,
   );
 
   /// Restores working state from [s], resyncing all text controllers.
@@ -537,6 +1382,21 @@ class DanceEditorController extends ChangeNotifier {
   /// Must be called inside an [_applyingSnapshot] guard so [pushUndoNow]
   /// is suppressed during the apply.
   void applySnapshot(EditorSnapshot s) {
+    // The snapshot's dance may be of another form: show it in that form's
+    // dialect. Its figure text is converted into that dialect below
+    // ([_draftsInActiveDialect]), so the drafts on screen, about to be
+    // replaced, are not converted first.
+    final formDialect = _dialectFor(
+      s.form,
+      title: s.title,
+      authors: s.authorIds,
+    );
+    if (formDialect != _activeDialect) {
+      _activeDialect = formDialect;
+      for (final c in _proseLingoControllers) {
+        c.updateDialect(formDialect);
+      }
+    }
     // Resync text controllers (guarded: don't clobber identical text).
     if (titleController.text != s.title) titleController.text = s.title;
     if (hookController.text != s.hook) hookController.text = s.hook;
@@ -548,10 +1408,15 @@ class DanceEditorController extends ChangeNotifier {
     if (formationDetailController.text != s.formationDetail) {
       formationDetailController.text = s.formationDetail;
     }
+    if (meterController.text != s.meter) meterController.text = s.meter;
+    if (musicalKeyController.text != s.musicalKey) {
+      musicalKeyController.text = s.musicalKey;
+    }
 
     // Enum fields.
     _form = s.form;
     _formationShape = s.formationShape;
+    _improper = s.improper;
     _progression = s.progression;
     _status = s.status;
     _level = s.level;
@@ -560,11 +1425,15 @@ class DanceEditorController extends ChangeNotifier {
     _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
+    _interpretedOn = s.interpretedOn;
 
     // Multi-value lists.
     authorIds
       ..clear()
       ..addAll(s.authorIds);
+    interpreterIds
+      ..clear()
+      ..addAll(s.interpreterIds);
     tagIds
       ..clear()
       ..addAll(s.tagIds);
@@ -601,7 +1470,7 @@ class DanceEditorController extends ChangeNotifier {
       if (def.type == CustomFieldType.text ||
           def.type == CustomFieldType.number) {
         final controller = customTextControllers[def.id];
-        final newText = customValues[def.id]?.toString() ?? '';
+        final newText = _customFieldText(customValues[def.id]);
         if (controller != null && controller.text != newText) {
           controller.text = newText;
         }
@@ -612,7 +1481,11 @@ class DanceEditorController extends ChangeNotifier {
     // and the FigureListEditor rebuilds cleanly.
     figureDrafts
       ..clear()
-      ..addAll(s.figureDrafts.map((d) => d.toDraft()));
+      ..addAll(_draftsInActiveDialect(s));
+    _fitSequenceTimingToForm(figureDrafts);
+    // A restored or undone placeholder carries the count it had then; the
+    // compound may have changed since (#709).
+    _refreshPlaceholderBeats();
 
     recomputeWarnings();
   }
@@ -631,11 +1504,11 @@ class DanceEditorController extends ChangeNotifier {
     }
   }
 
-  /// Debounces undo pushes for rapid text-field edits (500 ms).
+  /// Debounces undo pushes for rapid text-field edits (500 ms by default).
   void scheduleUndoPush() {
     if (_applyingSnapshot || !_loaded) return;
     _undoTimer?.cancel();
-    _undoTimer = Timer(const Duration(milliseconds: 500), () {
+    _undoTimer = Timer(_debounce, () {
       if (!_disposed && !_applyingSnapshot && _loaded) {
         _undoStack.push(captureSnapshot());
         _notify(); // Refresh canUndo/canRedo button states.
@@ -643,7 +1516,20 @@ class DanceEditorController extends ChangeNotifier {
     });
   }
 
+  /// Pushes a text edit still waiting out [scheduleUndoPush]'s debounce, so
+  /// an undo or redo made within that window starts from what is on screen.
+  /// Cancelling it instead would lose the typing and step back one entry too
+  /// far.
+  void _flushPendingUndoPush() {
+    if (!(_undoTimer?.isActive ?? false)) return;
+    pushUndoNow();
+    // The cancelled timer would have refreshed canUndo/canRedo, and a redo
+    // this push empties returns before its own notify.
+    _notify();
+  }
+
   void undo() {
+    _flushPendingUndoPush();
     if (!_undoStack.canUndo) return;
     _autosaveTimer?.cancel();
     _undoTimer?.cancel();
@@ -658,6 +1544,9 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   void redo() {
+    // A pending edit is newer than anything to redo; pushing it clears the
+    // redo tail, so the redo does nothing rather than overwrite the typing.
+    _flushPendingUndoPush();
     if (!_undoStack.canRedo) return;
     _autosaveTimer?.cancel();
     _undoTimer?.cancel();
@@ -675,11 +1564,36 @@ class DanceEditorController extends ChangeNotifier {
   // Autosave
   // -------------------------------------------------------------------------
 
-  /// Debounces autosave writes (500 ms after last change).
+  /// Debounces autosave writes (500 ms by default, after the last change).
   void scheduleAutosave() {
     _markDirty();
     _autosaveTimer?.cancel();
-    _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
+    _autosaveTimer = Timer(_debounce, _saveDraft);
+  }
+
+  /// Writes the draft the autosave debounce is waiting to write, now, for the
+  /// app being paused or hidden (PLAT-19). Unlike [prepareShutdownFlush] this
+  /// is not final: later edits schedule autosave as usual. A no-op when no
+  /// autosave is pending.
+  Future<void> flushPendingAutosave() {
+    final timer = _autosaveTimer;
+    if (timer == null || !timer.isActive) return Future<void>.value();
+    timer.cancel();
+    return _saveDraft();
+  }
+
+  /// Cancels the pending debounce and queues one immutable final snapshot
+  /// synchronously, before shutdown begins awaiting any editor operation.
+  EditorDraftShutdownOperation prepareShutdownFlush() {
+    _autosaveTimer?.cancel();
+    if (!_loaded || _disposed || !_dirty) {
+      return () async {};
+    }
+    final future = _saveDraft(
+      preparedSnapshot: captureSnapshot(),
+      surfaceErrors: true,
+    );
+    return () => future;
   }
 
   /// Flags the editor as having unsaved changes. Called from the shared
@@ -692,26 +1606,64 @@ class DanceEditorController extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveDraft() {
+  final DraftSaveHealth _draftHealth = DraftSaveHealth();
+
+  /// Whether the last autosave write failed, so the editor shows its
+  /// "Draft not saved" marker.
+  bool get draftSaveFailed => _draftHealth.failed;
+
+  Future<void> _saveDraft({
+    EditorSnapshot? preparedSnapshot,
+    bool surfaceErrors = false,
+  }) {
     if (!_loaded || _disposed) return Future<void>.value();
     final generation = _draftGeneration;
+    final captured = preparedSnapshot ?? captureSnapshot();
+    // Stamped with the dialect its text is in (AUTH-17), so a restore under
+    // another converts it, and with the time and the dance version it was
+    // edited from (AUTH-10).
+    final snapshot = captured.copyWith(
+      textDialect: captured.textDialect ?? _activeDialect,
+      savedAt: DateTime.now().toUtc(),
+      baseUpdatedAt: _original?.updatedAt,
+    );
+    final key = draftKey;
     // Chain onto the tail (rather than racing a fresh write) so overlapping
     // autosaves never write concurrently, and so the tail always reflects
     // every write scheduled so far.
-    final future = _saveQueueTail.then((_) => _writeDraft(generation));
+    final future = _saveQueueTail.then(
+      (_) =>
+          _writeDraft(generation, key, snapshot, surfaceErrors: surfaceErrors),
+    );
     _saveQueueTail = future;
     return future;
   }
 
-  Future<void> _writeDraft(int generation) async {
+  Future<void> _writeDraft(
+    int generation,
+    String key,
+    EditorSnapshot snapshot, {
+    required bool surfaceErrors,
+  }) async {
     try {
       // A clearDraft() ran since this save was scheduled — it will (or did)
       // remove the draft itself, so skip the write rather than race it.
       if (generation != _draftGeneration) return;
-      final encoded = encodeDraft(captureSnapshot());
-      await _repos.settings.set(draftKey, encoded);
-    } catch (_) {
-      // diagnostics: silent — draft write failure; must never stall editing or permanently block later autosaves.
+      await _repos.settings.set(key, encodeDraft(snapshot));
+      if (_draftHealth.recordSuccess() && !_disposed) _notify();
+    } catch (error, stackTrace) {
+      // Logged once per session and shown as a marker, never thrown: it must
+      // not stall editing or permanently block later autosaves (FAIL-8).
+      if (_draftHealth.claimFirstLog()) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'dance_editor_controller._writeDraft',
+        );
+      }
+      final changed = _draftHealth.recordFailure();
+      if (changed && !_disposed) _notify();
+      if (surfaceErrors) Error.throwWithStackTrace(error, stackTrace);
     }
   }
 
@@ -774,7 +1726,12 @@ class DanceEditorController extends ChangeNotifier {
     final formation = Formation(
       _formationShape,
       detail: formationDetail.isEmpty ? null : formationDetail,
+      // A form without the checkbox stores proper: `Dance` clears the flag
+      // for it anyway, and the draft keeps it, so switching back restores it.
+      improper: offersImproper && _improper,
     );
+    final meter = meterController.text.trim();
+    final musicalKey = musicalKeyController.text.trim();
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];
     final customFields = collectCustomFields();
@@ -783,6 +1740,11 @@ class DanceEditorController extends ChangeNotifier {
       return original.copyWith(
         title: titleController.text.trim(),
         authorIds: List.of(authorIds),
+        interpreterIds: List.of(interpreterIds),
+        interpretedOn: _interpretedOn,
+        clearInterpretedOn: _interpretedOn == null,
+        meter: meter,
+        musicalKey: musicalKey,
         form: _form,
         formation: formation,
         progression: _progression,
@@ -801,12 +1763,12 @@ class DanceEditorController extends ChangeNotifier {
         clearComposedOn: _composedOn == null,
         revisedOn: _revisedOn,
         clearRevisedOn: _revisedOn == null,
-        tunes: List.of(tunes),
+        tunes: _preserveStoredTunes ? null : List.of(tunes),
         customFields: customFields,
         tagIds: List.of(tagIds),
         links: linkList,
         sourceCitations: citationList,
-        figures: _figures,
+        figures: _preserveStoredFigures ? null : _figures,
         updatedAt: now,
       );
     }
@@ -814,6 +1776,10 @@ class DanceEditorController extends ChangeNotifier {
       id: uuidV4(),
       title: titleController.text.trim(),
       authorIds: List.of(authorIds),
+      interpreterIds: List.of(interpreterIds),
+      interpretedOn: _interpretedOn,
+      meter: meter,
+      musicalKey: musicalKey,
       form: _form,
       formation: formation,
       progression: _progression,
@@ -845,6 +1811,24 @@ class DanceEditorController extends ChangeNotifier {
 
   void setForm(DanceForm value) {
     _form = value;
+    _followForm();
+    _fitSequenceTimingToForm(figureDrafts);
+    _fitPhrasesToForm();
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setImproper(bool value) {
+    _improper = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setInterpretedOn(PartialDate? value) {
+    _interpretedOn = value;
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -922,6 +1906,94 @@ class DanceEditorController extends ChangeNotifier {
 
   void removeAuthor(String id) {
     authorIds.remove(id);
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  /// Credits [to] wherever the draft, or any step of its undo history,
+  /// credits one of [from]: the people a merge combined into [to], as authors
+  /// or as interpreters. The order comes out as the merge leaves the stored
+  /// dance (`rewriteLocalReferences`, one merged-away person at a time in id
+  /// order): a list already crediting [to] keeps [to] where it is and drops
+  /// the merged-away credit; otherwise the first merged-away credit takes
+  /// [to]'s name in its position.
+  ///
+  /// Not an edit of the draft, so it pushes no undo step: the merge has its
+  /// own Undo, and undoing the draft must not bring back a merged-away id.
+  /// Returns what [restoreAuthors] needs to put it all back when that Undo
+  /// runs.
+  AuthorReplacement replaceAuthors(Set<String> from, String to) {
+    final survivorOf = {
+      for (final id in from)
+        if (id != to) id: to,
+    };
+    List<String> replaced(List<String> ids) =>
+        mergedReferenceOrder(ids, survivorOf);
+
+    final history = Map<EditorSnapshot, EditorSnapshot>.identity();
+    _undoStack.mapAll((snapshot) {
+      final mapped = snapshot.copyWith(
+        authorIds: replaced(snapshot.authorIds),
+        interpreterIds: replaced(snapshot.interpreterIds),
+      );
+      history[mapped] = snapshot;
+      return mapped;
+    });
+    final replacement = AuthorReplacement._(
+      (List.of(authorIds), replaced(authorIds)),
+      (List.of(interpreterIds), replaced(interpreterIds)),
+      history,
+    );
+    final changed =
+        !listEquals(replacement._authors.$2, authorIds) ||
+        !listEquals(replacement._interpreters.$2, interpreterIds);
+    if (!changed) return replacement;
+    authorIds
+      ..clear()
+      ..addAll(replacement._authors.$2);
+    interpreterIds
+      ..clear()
+      ..addAll(replacement._interpreters.$2);
+    // The merge rewrote the stored dance the same way, so this alone is no
+    // unsaved edit. A draft already holding one is re-saved, so a restored
+    // draft does not bring the merged-away id back.
+    if (_dirty) scheduleAutosave();
+    _notify();
+    return replacement;
+  }
+
+  /// Undoes [replacement], for the Undo of the merge that made it: the
+  /// draft's authors and interpreters each come back while they still read as
+  /// the merge left them, and so does each undo step [replaceAuthors]
+  /// rewrote. An edit made since is newer, and stays.
+  void restoreAuthors(AuthorReplacement replacement) {
+    _undoStack.mapAll((snapshot) => replacement._history[snapshot] ?? snapshot);
+    bool restore(List<String> draft, (List<String>, List<String>) change) {
+      final (before, after) = change;
+      if (!listEquals(draft, after) || listEquals(draft, before)) return false;
+      draft
+        ..clear()
+        ..addAll(before);
+      return true;
+    }
+
+    final authorsBack = restore(authorIds, replacement._authors);
+    final interpretersBack = restore(interpreterIds, replacement._interpreters);
+    if (!authorsBack && !interpretersBack) return;
+    if (_dirty) scheduleAutosave();
+    _notify();
+  }
+
+  void addInterpreter(String id) {
+    interpreterIds.add(id);
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void removeInterpreter(String id) {
+    interpreterIds.remove(id);
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -1048,29 +2120,13 @@ class DanceEditorController extends ChangeNotifier {
     final def = fieldDefs[index];
     if (def.type != CustomFieldType.choice) return AddChoiceResult.notFound;
 
-    final normalized = normalizeChoiceOption(raw);
-    if (normalized == null) return AddChoiceResult.empty;
-    final existing = def.choices ?? const <String>[];
-    if (existing.contains(normalized)) return AddChoiceResult.duplicate;
-
-    final updated = CustomFieldDef(
-      id: def.id,
-      key: def.key,
-      label: def.label,
-      type: def.type,
-      choices: [...existing, normalized],
-      showInList: def.showInList,
-      searchable: def.searchable,
-    );
-    // Safe discard: `updated` is built from `def.id` (an already-persisted row),
-    // not a fresh UUID. Tombstone adoption requires a minting caller; it cannot
-    // fire here, so the returned id is always identical to updated.id.
-    // ignore: unused_result
-    await _repos.customFieldDefs.upsert(updated);
+    final outcome = await addChoiceOptionToDef(_repos, def, raw);
+    final updated = outcome.def;
+    if (updated == null) return outcome.result;
     if (_disposed) return AddChoiceResult.added;
 
     fieldDefs = [for (final d in fieldDefs) d.id == fieldId ? updated : d];
-    customValues[fieldId] = normalized;
+    customValues[fieldId] = outcome.option!;
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -1108,8 +2164,9 @@ class DanceEditorController extends ChangeNotifier {
       sides.add(FigureDraft());
     }
     final group = FigureDraft(meanwhileSides: sides);
-    group.params['beats'] = sides.first.beats;
-    _renderNotesRecursively([group]);
+    group.params['beats'] = 0;
+    group.syncContainerBeats();
+    _renderDraftTextRecursively([group]);
     figureDrafts.add(group);
     recomputeWarnings();
     pushUndoNow();
@@ -1138,8 +2195,22 @@ class DanceEditorController extends ChangeNotifier {
       children.add(FigureDraft());
     }
     final group = FigureDraft(modifierFigures: children);
-    group.params['beats'] = children.first.beats;
-    _renderNotesRecursively([group]);
+    group.params['beats'] = 0;
+    group.syncContainerBeats();
+    _renderDraftTextRecursively([group]);
+    figureDrafts.add(group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return group.id;
+  }
+
+  /// Inserts a sequence draft with two blank steps. Unlike a meanwhile or
+  /// modifier, a sequence has no Defaults preference to seed it from.
+  Future<String?> addSequence() async {
+    if (_disposed) return null;
+    final group = FigureDraft(sequenceFigures: [FigureDraft(), FigureDraft()]);
     figureDrafts.add(group);
     recomputeWarnings();
     pushUndoNow();
@@ -1151,20 +2222,183 @@ class DanceEditorController extends ChangeNotifier {
   /// Inserts the figure(s) parsed from one free-text entry line at the end of
   /// the list (issue #419, opt-in "Free-text entry"). Each parsed [Figure] —
   /// a matched taxonomy figure or an unparsed [CustomOrigin.importGap] custom —
-  /// is seeded into an editable [FigureDraft] via [FigureDraft.fromFigure],
-  /// which preserves its custom origin so parser-gap customs keep the #398
-  /// marker and stay reparse-eligible. A single line may yield more than one
-  /// figure (a `;`-compound). Rows are left collapsed. No-op on an empty list.
+  /// is seeded into an editable [FigureDraft] via
+  /// [FigureDraft.fromFreeTextFigure], which preserves its custom origin so
+  /// parser-gap customs keep the #398 marker and stay reparse-eligible, and
+  /// fills in the derived default beats (#1820). A single line may yield more
+  /// than one figure (a `;`-compound). Rows are left collapsed. No-op on an
+  /// empty list.
   int insertFreeTextFigures(List<Figure> figures) {
     if (figures.isEmpty) return 0;
-    final inserted = figures.map(FigureDraft.fromFigure).toList();
+    final inserted = [
+      for (final figure in figures)
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          taxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
+    ];
     figureDrafts.addAll(inserted);
-    _renderNotesRecursively(inserted);
+    _renderDraftTextRecursively(inserted);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
     return inserted.length;
+  }
+
+  /// Replaces the row [draft] with the figure(s) parsed from a line typed into
+  /// its Move box (#1177, opt-in "Free-text entry"), in its place. The rows are
+  /// built as [insertFreeTextFigures] builds them, so parser-gap customs keep
+  /// the #398 marker and stay reparse-eligible, and they keep what [draft] had
+  /// beside its move ([FigureDraft.carryRowExtras]). Returns the number of rows
+  /// inserted; 0 (an empty list, or [draft] no longer in the list) changes
+  /// nothing.
+  int replaceWithFreeTextFigures(FigureDraft draft, List<Figure> figures) {
+    final index = figureDrafts.indexOf(draft);
+    if (figures.isEmpty || index == -1) return 0;
+    final inserted = [
+      for (final figure in figures)
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          taxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
+    ];
+    figureDrafts.replaceRange(index, index + 1, inserted);
+    _renderDraftTextRecursively(inserted);
+    FigureDraft.carryRowExtras(draft, inserted);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return inserted.length;
+  }
+
+  /// Puts the shorthand rows [drafts] at the end of the list, or in place of
+  /// [replacing] (#1847) when that row is still in the list, keeping what it
+  /// had beside its move ([FigureDraft.carryRowExtras]). Returns false, changing
+  /// nothing, when [replacing] was given but is gone or [drafts] is empty.
+  bool placeShorthandDrafts(
+    List<FigureDraft> drafts, {
+    FigureDraft? replacing,
+  }) {
+    if (drafts.isEmpty) return false;
+    if (replacing == null) {
+      figureDrafts.addAll(drafts);
+    } else {
+      final index = figureDrafts.indexOf(replacing);
+      if (index == -1) return false;
+      figureDrafts.replaceRange(index, index + 1, drafts);
+      FigureDraft.carryRowExtras(replacing, drafts);
+    }
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return true;
+  }
+
+  /// The rows for [figures] parsed from one `;` clause of a shorthand line
+  /// (#1866), built as [insertFreeTextFigures] builds them but not inserted:
+  /// the caller places them with the line's other clauses through
+  /// [placeShorthandDrafts], all or none.
+  List<FigureDraft> draftsForFreeTextFigures(List<Figure> figures) {
+    final drafts = [
+      for (final figure in figures)
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          taxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
+    ];
+    _renderDraftTextRecursively(drafts);
+    return drafts;
+  }
+
+  /// Appends a row for the compound [shorthand] stands for, with its values
+  /// (#709), when that compound can be expanded with them; otherwise inserts
+  /// nothing and returns false, so the line is parsed as usual. With
+  /// [replacing] (#1847, a line typed into that row's Move box) the row takes
+  /// that row's place instead, and the old row is gone.
+  bool insertCompoundShorthand(
+    CompoundShorthand shorthand, {
+    FigureDraft? replacing,
+  }) {
+    final draft = compoundShorthandDraft(shorthand);
+    return draft != null && placeShorthandDrafts([draft], replacing: replacing);
+  }
+
+  /// The row [insertCompoundShorthand] inserts, or null when the compound
+  /// cannot be expanded with the shorthand's values. Inserts nothing.
+  FigureDraft? compoundShorthandDraft(CompoundShorthand shorthand) {
+    final compound = CompoundPlaceholder(
+      id: shorthand.compoundId,
+      name:
+          _compounds[shorthand.compoundId]?.entry.name ??
+          shorthand.compoundName,
+      args: {...shorthand.args},
+    );
+    final expanded = expandPlaceholder(compound, resolveCompound);
+    if (expanded == null) return null;
+    compound.beats = CompoundDefinition.beatsOf(
+      expanded,
+      shippedTaxonomies.anyForm,
+    );
+    return FigureDraft(compound: compound);
+  }
+
+  /// Appends a use of the new figure [shorthand] stands for, with its values
+  /// and beats (#1023), when that figure is here and renders with them;
+  /// otherwise inserts nothing and returns false, so the line is parsed as
+  /// usual. Like a compound shorthand, it is not held to the dance's form:
+  /// typing the token is choosing the figure. With [replacing] (#1847) the row
+  /// takes that row's place instead of being appended. A [beats] count typed
+  /// with the token (`16 zm`, #1861) is the use's beats in place of the
+  /// shorthand's own.
+  bool insertUserFigureShorthand(
+    UserFigureShorthand shorthand, {
+    FigureDraft? replacing,
+    int? beats,
+  }) {
+    final draft = userFigureShorthandDraft(shorthand, beats: beats);
+    return draft != null && placeShorthandDrafts([draft], replacing: replacing);
+  }
+
+  /// The row [insertUserFigureShorthand] inserts, or null when the figure is
+  /// gone or no longer renders with the shorthand's values. Inserts nothing.
+  FigureDraft? userFigureShorthandDraft(
+    UserFigureShorthand shorthand, {
+    int? beats,
+  }) {
+    final entry = _userFigureEntries[shorthand.figureId];
+    final definition = _userFigureCatalog[shorthand.figureId]?.definition;
+    if (entry == null || definition == null) return null;
+    final draft = FigureDraft();
+    if (!selectUserFigure(draft, entry.id, [entry])) return null;
+    draft.params
+      ..clear()
+      ..addAll(
+        userFigureDraftParams(
+          entry,
+          definition,
+          args: {...shorthand.args},
+          beats: beats ?? shorthand.beats,
+        ),
+      );
+    // Beats the shorthand or the line set count as chosen; without them the
+    // row has the figure's default beats, as picking the figure gives it.
+    draft.beatsTouched = (beats ?? shorthand.beats) != null;
+    // Values the figure no longer accepts would show only the stored line.
+    final renders =
+        FigureRenderer(
+          shippedTaxonomies.anyForm,
+          userFigures: _userFigureCatalog,
+        ).renderUserFigureCanonical(
+          Figure(move: customMove, params: draft.params),
+        ) !=
+        null;
+    return renders ? draft : null;
   }
 
   void deleteFigure(FigureDraft draft) {
@@ -1203,82 +2437,71 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Merges [draft] (a top-level figure row) with the row immediately after
   /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
-  /// concurrent sides, seeded with the first side's beats (the user edits the
-  /// shared count afterward). Existing modifier groups may be nested as
-  /// concurrent sides, but only when they contain no further container.
-  void groupFigureWithNext(FigureDraft draft) {
-    final index = figureDrafts.indexOf(draft);
-    if (index == -1 || index >= figureDrafts.length - 1) return;
-    final first = figureDrafts[index];
-    final second = figureDrafts[index + 1];
-    if (!first.canNestInContainer(modifierParent: false) ||
-        !second.canNestInContainer(modifierParent: false)) {
-      return;
-    }
-    final group = FigureDraft(meanwhileSides: [first, second]);
-    group.params['beats'] = first.beats;
-    group.beatsTouched = first.beatsTouched;
-    figureDrafts
-      ..removeAt(index + 1)
-      ..removeAt(index)
-      ..insert(index, group);
-    recomputeWarnings();
-    pushUndoNow();
-    scheduleAutosave();
-    _notify();
-  }
+  /// concurrent sides, and the group's shared count follows them, the longer
+  /// side's, until the user types one ([FigureDraft.syncContainerBeats]).
+  /// Existing modifier or sequence groups may be nested as concurrent sides,
+  /// but only when they contain no further container.
+  void groupFigureWithNext(FigureDraft draft) =>
+      _groupWithNext(draft, meanwhileMove);
 
   /// Groups a top-level figure with the following row as an ordered modifier
-  /// container. Existing meanwhile groups may be nested as ordered children
-  /// when they contain no further container.
-  void groupFigureWithNextAsModifier(FigureDraft draft) {
+  /// container. Existing meanwhile or sequence groups may be nested as ordered
+  /// children when they contain no further container.
+  void groupFigureWithNextAsModifier(FigureDraft draft) =>
+      _groupWithNext(draft, modifierMove);
+
+  /// Groups a top-level figure with the following row as a sequence, when
+  /// their counts together fit in one phrase. Existing meanwhile or modifier
+  /// groups may be nested as steps when they contain no further container.
+  void groupFigureWithNextAsSequence(FigureDraft draft) =>
+      _groupWithNext(draft, sequenceMove);
+
+  void _groupWithNext(FigureDraft draft, String kind) {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || index >= figureDrafts.length - 1) return;
     final first = figureDrafts[index];
     final second = figureDrafts[index + 1];
-    if (!first.canNestInContainer(modifierParent: true) ||
-        !second.canNestInContainer(modifierParent: true)) {
+    if (!FigureDraft.canGroup(
+      kind,
+      first,
+      second,
+      sequenceBeatLimit: sequenceBeatLimit,
+    )) {
       return;
     }
-    final group = FigureDraft(modifierFigures: [first, second]);
-    group.params['beats'] = first.beats;
-    group.beatsTouched = first.beatsTouched;
     figureDrafts
       ..removeAt(index + 1)
       ..removeAt(index)
-      ..insert(index, group);
+      ..insert(index, FigureDraft.group(kind, first, second));
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
   }
 
-  void convertContainerToMeanwhile(FigureDraft draft) {
-    final index = figureDrafts.indexOf(draft);
-    if (index == -1 || !draft.isModifierGroup) return;
-    final children = draft.modifierFigures;
-    if (children == null || children.any((child) => child.isContainerDraft)) {
-      return;
-    }
-    draft
-      ..meanwhileSides = children
-      ..modifierFigures = null;
-    recomputeWarnings();
-    pushUndoNow();
-    scheduleAutosave();
-    _notify();
-  }
+  /// The most beats a sequence may hold: one phrase of this dance
+  /// ([PhraseStructure.longestPhraseBeats]).
+  int get sequenceBeatLimit => _phraseStructure.longestPhraseBeats;
 
-  void convertContainerToModifier(FigureDraft draft) {
+  void convertContainerToMeanwhile(FigureDraft draft) =>
+      _convertContainer(draft, meanwhileMove);
+
+  void convertContainerToModifier(FigureDraft draft) =>
+      _convertContainer(draft, modifierMove);
+
+  void convertContainerToSequence(FigureDraft draft) =>
+      _convertContainer(draft, sequenceMove);
+
+  void _convertContainer(FigureDraft draft, String kind) {
     final index = figureDrafts.indexOf(draft);
-    if (index == -1 || !draft.isMeanwhileGroup) return;
-    final children = draft.meanwhileSides;
-    if (children == null || children.any((child) => child.isContainerDraft)) {
+    if (index == -1 ||
+        !draft.canConvertContainerTo(
+          kind,
+          sequenceBeatLimit: sequenceBeatLimit,
+        )) {
       return;
     }
-    draft
-      ..modifierFigures = children
-      ..meanwhileSides = null;
+    draft.convertContainerTo(kind);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -1289,9 +2512,11 @@ class DanceEditorController extends ChangeNotifier {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || !draft.isContainerDraft) return;
     final children = List<FigureDraft>.of(
-      draft.meanwhileSides ?? draft.modifierFigures ?? const <FigureDraft>[],
+      draft.containerChildren ?? const <FigureDraft>[],
     );
     if (children.length < 2) return;
+    // A step that leaves a span takes its default count (ADR-006 §5.5).
+    draft.timeUntimedSteps();
     figureDrafts
       ..removeAt(index)
       ..insertAll(index, children);
@@ -1313,6 +2538,8 @@ class DanceEditorController extends ChangeNotifier {
   ) {
     final index = figureDrafts.indexOf(groupDraft);
     if (index == -1) return;
+    // A step that leaves a span takes its default count (ADR-006 §5.5).
+    remainingSide.timeIfUntimed();
     figureDrafts[index] = remainingSide;
     recomputeWarnings();
     pushUndoNow();
@@ -1339,6 +2566,74 @@ class DanceEditorController extends ChangeNotifier {
     scheduleAutosave();
   }
 
+  /// Whether the editor offers named phrases (A, B, C): English dances only
+  /// (Hudson, 20 November 2026).
+  bool get offersNamedPhrases => _form == DanceForm.ecd;
+
+  /// The phrase structure as the field now reads, or null while it holds
+  /// text that does not parse.
+  PhraseStructure? get typedPhraseStructure {
+    try {
+      return PhraseStructure.parse(phraseController.text);
+    } on FormatException {
+      // diagnostics: silent — the field's own validator shows why.
+      return null;
+    }
+  }
+
+  /// The beats in a bar the Meter states, or null when it states none.
+  int? get statedBeatsPerBar {
+    final perBar = ecdBeatsPerBar(meterController.text);
+    return perBar.stated ? perBar.beatsPerBar : null;
+  }
+
+  /// Sets the phrase structure text, as the named phrases write it. A
+  /// [typed] change (a bar count, or the meter) is debounced into one undo
+  /// step with the typing around it; any other is its own undo step.
+  void setPhraseStructureText(String raw, {bool typed = true}) {
+    if (phraseController.text == raw) return;
+    phraseController.text = raw;
+    if (typed) {
+      onPhraseChanged();
+      return;
+    }
+    recomputeWarnings();
+    pushUndoNow();
+    _notify();
+    scheduleAutosave();
+  }
+
+  /// The Meter field changed. Named phrases count their bars by it (Hudson,
+  /// 19 November 2026: "the meter is the rule"), so a meter that states its
+  /// beats in a bar rewrites them in each named phrase, keeping its bars.
+  void onMeterChanged() {
+    final perBar = statedBeatsPerBar;
+    final phrases = typedPhraseStructure?.namedPhrases;
+    if (offersNamedPhrases &&
+        perBar != null &&
+        phrases != null &&
+        phrases.any((p) => p.beatsPerBar != perBar)) {
+      try {
+        setPhraseStructureText(
+          PhraseStructure.named([
+            for (final p in phrases)
+              NamedPhrase(
+                name: p.name,
+                plays: p.plays,
+                bars: p.bars,
+                beatsPerBar: perBar,
+              ),
+          ]).raw,
+        );
+        return;
+      } on FormatException {
+        // diagnostics: silent — the bars in this meter are past the bounds;
+        // the structure keeps its old beats and the meter its text.
+      }
+    }
+    onTextEdited();
+  }
+
   /// The phrase-structure field changed.
   void onPhraseChanged() {
     recomputeWarnings();
@@ -1357,14 +2652,21 @@ class DanceEditorController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _releaseOfferedDraftKey();
+    _openDraftKeys.remove(_draftKey);
+    unawaited(_glossarySubscription?.cancel());
     _undoTimer?.cancel();
     _autosaveTimer?.cancel();
     titleController.dispose();
+    titleFocusNode.dispose();
+    phraseFocusNode.dispose();
     hookController.dispose();
     notesController.dispose();
     walkthroughController.dispose();
     phraseController.dispose();
     formationDetailController.dispose();
+    meterController.dispose();
+    musicalKeyController.dispose();
     tuneController.dispose();
     for (final c in customTextControllers.values) {
       c.dispose();
@@ -1375,6 +2677,59 @@ class DanceEditorController extends ChangeNotifier {
     for (final c in sourceCitations) {
       c.dispose();
     }
+    freeTextComposer.dispose();
+    pendingMoveText.dispose();
     super.dispose();
   }
+}
+
+/// What [DanceEditorController.replaceAuthors] changed, for
+/// [DanceEditorController.restoreAuthors]. Opaque.
+final class AuthorReplacement {
+  AuthorReplacement._(this._authors, this._interpreters, this._history);
+
+  /// The draft's authors before and after the merge.
+  final (List<String>, List<String>) _authors;
+
+  /// The draft's interpreters before and after the merge.
+  final (List<String>, List<String>) _interpreters;
+
+  /// Each rewritten undo step, by identity, to the step it replaced.
+  final Map<EditorSnapshot, EditorSnapshot> _history;
+}
+
+/// A custom text or number field's box text for its stored [value]: a whole
+/// number reads "3", as the dance's own screens show it, not "3.0".
+String _customFieldText(Object? value) => switch (value) {
+  null => '',
+  final num number => customNumberText(number),
+  _ => value.toString(),
+};
+
+/// [ids] with each merged-away id in [survivorOf] replaced by its survivor, in
+/// the order a merge leaves a stored dance's join rows
+/// (`rewriteLocalReferences`, one merged-away id at a time in id order): a
+/// list already holding the survivor keeps it where it is and drops the
+/// merged-away id; otherwise the first merged-away id takes the survivor's
+/// name in its position. Shared by an open editor's merge
+/// ([DanceEditorController.replaceAuthors]) and a restored draft
+/// ([DanceEditorController.withLiveReferences]), so the two cannot disagree.
+List<String> mergedReferenceOrder(
+  List<String> ids,
+  Map<String, String> survivorOf,
+) {
+  final out = List<String>.of(ids);
+  final losers = survivorOf.keys.toList()..sort();
+  for (final loser in losers) {
+    final survivor = survivorOf[loser]!;
+    final at = out.indexOf(loser);
+    if (at < 0) continue;
+    if (out.contains(survivor)) {
+      out.removeAt(at);
+    } else {
+      out[at] = survivor;
+    }
+    out.remove(loser);
+  }
+  return out;
 }

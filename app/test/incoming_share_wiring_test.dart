@@ -1,42 +1,45 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/main.dart';
-import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/data/incoming_file_channel.dart';
-import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
-import 'support/test_repositories.dart';
-
-/// A [WindowService] whose restore does nothing (no real window under test).
-class _NoopWindowService extends WindowService {
-  _NoopWindowService(super.settings);
-  @override
-  Future<void> initialize() async {}
-  @override
-  void dispose() {}
-}
+import 'support/noop_sync_transport.dart';
+import 'support/sync_test_network.dart';
+import 'support/full_app_harness.dart';
 
 /// A fake [IncomingFileChannel] that delivers a caller-chosen cold-start file
 /// path and/or shared URL — no real platform channel is touched.
 class _FakeIncomingFileChannel extends IncomingFileChannel {
-  _FakeIncomingFileChannel({this.initialPath, this.initialSharedUrl});
+  _FakeIncomingFileChannel({
+    this.initialPath,
+    this.initialSharedUrl,
+    this.initialFileOwned = false,
+    this.initialFileFuture,
+  });
 
   final String? initialPath;
   final String? initialSharedUrl;
-  final StreamController<String> _controller =
-      StreamController<String>.broadcast();
+  final bool initialFileOwned;
+  final Future<IncomingFile?>? initialFileFuture;
+  final StreamController<IncomingFile> _controller =
+      StreamController<IncomingFile>.broadcast();
   final StreamController<String> _urlController =
       StreamController<String>.broadcast();
 
@@ -44,13 +47,19 @@ class _FakeIncomingFileChannel extends IncomingFileChannel {
   void start() {}
 
   @override
-  Stream<String> get files => _controller.stream;
+  Stream<IncomingFile> get files => _controller.stream;
 
   @override
   Stream<String> get urls => _urlController.stream;
 
   @override
-  Future<String?> initialFile() async => initialPath;
+  Future<IncomingFile?> initialFile() async {
+    final initialFileFuture = this.initialFileFuture;
+    if (initialFileFuture != null) return initialFileFuture;
+    return initialPath == null
+        ? null
+        : IncomingFile(path: initialPath!, appOwned: initialFileOwned);
+  }
 
   @override
   Future<String?> initialUrl() async => initialSharedUrl;
@@ -96,12 +105,6 @@ String _validBundleJson() => encodeArchive(
   ),
 );
 
-AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
-  addTearDown(appData.close);
-  return appData;
-}
-
 /// An in-memory byte reader so intake runs without real file I/O — a real disk
 /// read would be started inside the test's faked-time zone and never complete.
 ArchiveByteReader _readerFor(String contents) =>
@@ -123,12 +126,11 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
-
+      final appData = openTestAppData();
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialPath: '/shared/bundle.json',
           ),
@@ -143,10 +145,92 @@ void main() {
       // The untrusted bundle lands on the review/consent screen — never the old
       // auto-open ProgramSummaryScreen — and NOTHING is written yet.
       expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('import-review-list')), findsOneWidget);
       expect(await appData.repositories.programs.listAll(), isEmpty);
       expect(await appData.repositories.dances.listAll(), isEmpty);
     },
   );
+
+  testWidgets('shared bundle commit waits for an in-flight sync pass', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = openTestAppData();
+    final firstPassStarted = Completer<void>();
+    final firstPassGate = Completer<void>();
+    var factoryCalls = 0;
+
+    Future<SyncCoordinator?> factory(
+      CompendiumRepositories repositories,
+    ) async {
+      factoryCalls++;
+      final isFirstCoordinator = factoryCalls == 1;
+      return SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({SyncStoreResult? initialStore}) async {
+          if (isFirstCoordinator) {
+            if (!firstPassStarted.isCompleted) {
+              firstPassStarted.complete();
+            }
+            await firstPassGate.future;
+          }
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+    }
+
+    await appData.repositories.settings.set(kSyncEnabledKey, true);
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialPath: '/shared/bundle.json',
+        ),
+        incomingFileReader: _readerFor(_validBundleJson()),
+        syncCoordinatorFactory: factory,
+        syncNetworkClassifier: const UnmeteredSyncNetwork(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await firstPassStarted.future;
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ImportReviewScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pump();
+
+    expect(
+      await appData.repositories.dances.listAll(),
+      isEmpty,
+      reason: 'shared import must not write while sync is still in flight',
+    );
+    expect(
+      await appData.repositories.programs.listAll(),
+      isEmpty,
+      reason: 'shared import must not write while sync is still in flight',
+    );
+
+    firstPassGate.complete();
+    await tester.pumpAndSettle();
+
+    expect(
+      (await appData.repositories.dances.listAll()).map((dance) => dance.title),
+      contains('Simplicity Swing'),
+    );
+    expect(
+      (await appData.repositories.programs.listAll()).map(
+        (program) => program.title,
+      ),
+      contains('Shared Spring Fling'),
+    );
+    expect(factoryCalls, greaterThanOrEqualTo(2));
+  });
 
   testWidgets('a malformed shared file is rejected with a snackbar', (
     tester,
@@ -154,12 +238,12 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         incomingFileChannel: _FakeIncomingFileChannel(
           initialPath: '/shared/bundle.json',
         ),
@@ -174,18 +258,463 @@ void main() {
   });
 
   testWidgets(
+    'a file native refused as too large shows the tooLarge snackbar without '
+    'reading or deleting anything',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final readPaths = <String>[];
+      final deletedPaths = <String>[];
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialFileFuture: Future.value(
+              const IncomingFile.rejected(IncomingFileRejection.tooLarge),
+            ),
+          ),
+          incomingFileReader: (path) async {
+            readPaths.add(path);
+            return Uint8List(0);
+          },
+          incomingFileDeleter: (path) async => deletedPaths.add(path),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+      expect(
+        find.text(AppLocalizationsEn().archiveIntakeRejectedTooLarge),
+        findsOneWidget,
+      );
+      expect(readPaths, isEmpty);
+      expect(deletedPaths, isEmpty);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'desktop opens while a review is showing wait, and only the latest '
+    'opens after that review closes',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const platformChannel = MethodChannel(IncomingFileChannel.channelName);
+      messenger.setMockMethodCallHandler(platformChannel, (_) async => null);
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(platformChannel, null),
+      );
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync('desktop-coalesce-');
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      File share(String name) =>
+          File('${tempDir.path}/$name')..writeAsStringSync(_validBundleJson());
+      final first = share('first.ccshare');
+      final second = share('second.ccshare');
+      final third = share('third.ccshare');
+      final readPaths = <String>[];
+      final channel = IncomingFileChannel();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: channel,
+          incomingFileReader: (path) async {
+            readPaths.add(path);
+            return Uint8List.fromList(utf8.encode(_validBundleJson()));
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Future<void> open(File file) async {
+        await tester.runAsync(() async {
+          channel.openDesktopPath(file.path);
+          await channel.desktopOpensSettled;
+        });
+        await tester.pumpAndSettle();
+      }
+
+      await open(first);
+      await open(second);
+      await open(third);
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(readPaths, [first.path]);
+
+      Navigator.of(tester.element(find.byType(ImportReviewScreen))).pop();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(readPaths, [first.path, third.path]);
+    },
+  );
+
+  testWidgets(
+    'a desktop open the app will not read shows the unreadable snackbar '
+    'without reading anything',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final readPaths = <String>[];
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialFileFuture: Future.value(
+              const IncomingFile.rejected(IncomingFileRejection.unreadable),
+            ),
+          ),
+          incomingFileReader: (path) async {
+            readPaths.add(path);
+            return Uint8List(0);
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppLocalizationsEn().archiveIntakeRejectedUnreadable),
+        findsOneWidget,
+      );
+      expect(readPaths, isEmpty);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    },
+  );
+
+  testWidgets('a rejected shared file removes its staging copy', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = openTestAppData();
+    final tempDir = Directory.systemTemp.createTempSync(
+      'incoming-share-guard-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final stagedFile = File('${tempDir.path}/bundle.json');
+    stagedFile.writeAsStringSync('this is not a compendium archive');
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialPath: stagedFile.path,
+          initialFileOwned: true,
+        ),
+        incomingFileReader: _readerFor('this is not a compendium archive'),
+        incomingFileDeleter: (path) async {
+          File(path).deleteSync();
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+    expect(stagedFile.existsSync(), isFalse);
+  });
+
+  testWidgets(
+    'an accepted shared file stays staged until its review route is dismissed',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-dismiss-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync(_validBundleJson());
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: stagedFile.path,
+            initialFileOwned: true,
+          ),
+          incomingFileReader: _readerFor(_validBundleJson()),
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(stagedFile.existsSync(), isTrue);
+
+      // Leaving mid-review asks first; the file is cleaned once it is dismissed.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(stagedFile.existsSync(), isTrue);
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  testWidgets(
+    'an owned shared file is cleaned when disposed with its review route open',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-route-dispose-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync(_validBundleJson());
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: stagedFile.path,
+            initialFileOwned: true,
+          ),
+          incomingFileReader: _readerFor(_validBundleJson()),
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(stagedFile.existsSync(), isTrue);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  // PLAT-3: a second launch on Windows or Linux forwards a double-clicked
+  // file over the unauthenticated single-instance channel. It must land on
+  // import review like any other shared file, commit nothing, and leave the
+  // user's file where it was.
+  testWidgets(
+    'a desktop open delivered while running opens import review, commits '
+    'nothing and keeps the file',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync('desktop-open-');
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final shared = File('${tempDir.path}/Spring Fling.ccshare')
+        ..writeAsStringSync(_validBundleJson());
+      // Windows and Linux have no native side; answer the cold-start pull with
+      // no file, as there, so the app counts itself ready.
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const platformChannel = MethodChannel(IncomingFileChannel.channelName);
+      messenger.setMockMethodCallHandler(platformChannel, (_) async => null);
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(platformChannel, null),
+      );
+      final channel = IncomingFileChannel();
+      var deletionCalled = false;
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: channel,
+          incomingFileReader: _readerFor(_validBundleJson()),
+          incomingFileDeleter: (path) async => deletionCalled = true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewScreen), findsNothing);
+
+      // The path check stats the real file, so run it outside fake time.
+      await tester.runAsync(() async {
+        channel.openDesktopPath(shared.path);
+        await channel.desktopOpensSettled;
+      });
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(await appData.repositories.programs.listAll(), isEmpty);
+      expect(await appData.repositories.dances.listAll(), isEmpty);
+      expect(deletionCalled, isFalse);
+      expect(shared.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets('an unowned shared path is never deleted by intake cleanup', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = openTestAppData();
+    final tempDir = Directory.systemTemp.createTempSync(
+      'incoming-share-unowned-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final stagedFile = File('${tempDir.path}/bundle.json');
+    stagedFile.writeAsStringSync('this is not a compendium archive');
+    var deletionCalled = false;
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialPath: stagedFile.path,
+        ),
+        incomingFileReader: _readerFor('this is not a compendium archive'),
+        incomingFileDeleter: (path) async {
+          deletionCalled = true;
+          File(path).deleteSync();
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+    expect(deletionCalled, isFalse);
+    expect(stagedFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+    'an owned shared file is cleaned when the widget is disposed during validation',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-dispose-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync('this is not a compendium archive');
+      final readStarted = Completer<void>();
+      final pendingRead = Completer<Uint8List>();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: stagedFile.path,
+            initialFileOwned: true,
+          ),
+          incomingFileReader: (_) {
+            if (!readStarted.isCompleted) readStarted.complete();
+            return pendingRead.future;
+          },
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(readStarted.isCompleted, isTrue);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      pendingRead.complete(
+        Uint8List.fromList(utf8.encode('this is not a compendium archive')),
+      );
+      await tester.pump();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  testWidgets(
+    'an owned cold-start file is cleaned when initial delivery finishes after disposal',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-initial-dispose-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync('this is not a compendium archive');
+      final initialFile = Completer<IncomingFile?>();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialFileFuture: initialFile.future,
+          ),
+          incomingFileReader: _readerFor('this is not a compendium archive'),
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      initialFile.complete(IncomingFile(path: stagedFile.path, appOwned: true));
+      await tester.pump();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  testWidgets(
     'issue #343: a shared ContraDB program URL opens the import screen '
     'pre-filled and auto-fetching',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'https://contradb.com/programs/33',
           ),
@@ -209,12 +738,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl:
                 'A Lovely Contra Program\nhttps://contradb.com/programs/33',
@@ -241,11 +770,11 @@ void main() {
         'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10600&format=JSON',
         'https://contradb.com/dances/1',
       ]) {
-        final appData = _openAppData();
+        final appData = openTestAppData();
         await tester.pumpWidget(
           CompendiumApp(
             appData: appData,
-            windowService: _NoopWindowService(appData.repositories.settings),
+            windowService: NoopWindowService(appData.repositories.settings),
             incomingFileChannel: _FakeIncomingFileChannel(
               initialSharedUrl: sharedUrl,
             ),
@@ -276,12 +805,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'http://evil.com/programs/1',
           ),
@@ -304,12 +833,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'https://contradb.com/dances/not-a-numeric-id',
           ),
@@ -343,12 +872,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'http://evil.com/programs/1',
           ),

@@ -36,6 +36,75 @@ DanceLink _related(
 );
 
 void main() {
+  test(
+    'only the edited dance cancels a pending tombstone, not its co-links',
+    () async {
+      // sync-spec 6.8 cancels a held tombstone on "a deliberate local user
+      // edit". This one function performs two writes that are not alike: the
+      // dance the user actually edited, and every other dance whose reverse
+      // link it back-populated. Cancelling for the second kind would reverse a
+      // peer's deletion of a record the user never opened, which ADR-004 ranks
+      // as the worst outcome in this design. Issue #1356.
+      final repos = openTestRepositories();
+      final held = DateTime.utc(2025, 6, 15, 12);
+
+      await repos.dances.create(_dance(id: 'target'));
+      await repos.dances.create(_dance(id: 'source'));
+
+      // Hold a tombstone for each dance. `_hasCitation` counts a program slot
+      // as a citation, so both stay live locally with the deletion deferred.
+      await repos.programs.create(
+        Program(
+          id: 'citing-program',
+          title: 'Citing program',
+          slots: [
+            ProgramSlot(id: 'slot-source', position: 0, danceId: 'source'),
+            ProgramSlot(id: 'slot-target', position: 1, danceId: 'target'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      final storage = CompendiumSyncStorage(repos);
+      for (final id in const ['source', 'target']) {
+        final dance = (await repos.dances.getById(id))!;
+        await const SyncApplyEngine().apply(
+          candidates: [
+            SyncMergeCandidate(
+              blob: SyncRecordBlob(
+                kind: SyncRecordKind.dance,
+                id: id,
+                updatedAt: held,
+                deletedAt: held,
+                existenceAt: held,
+                body: syncBodyForEntity(SyncRecordKind.dance, dance),
+              ),
+            ),
+          ],
+          storage: storage,
+        );
+      }
+      expect(await repos.syncLocal.listPendingDeletions(), hasLength(2));
+
+      // The user edits `source`, which back-populates a reverse link onto
+      // `target` without anyone opening it.
+      await saveDanceWithRelatedLinks(
+        repos,
+        dance: _dance(id: 'source', links: [_related('source-link', 'target')]),
+        original: _dance(id: 'source'),
+      );
+
+      final remaining = await repos.syncLocal.listPendingDeletions();
+      expect(
+        remaining.map((row) => row.recordId),
+        ['target'],
+        reason:
+            'the edited dance releases its hold; the co-linked dance, whose '
+            'write this function generated, must keep its own',
+      );
+    },
+  );
+
   test('adds a reciprocal link when saving a new relation', () async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'target'));
@@ -715,6 +784,171 @@ void main() {
       ),
       isTrue,
     );
+  });
+
+  group('duplicateDanceWithRelatedLinks', () {
+    String suffix(String title) => '$title (copy)';
+
+    test('writes the titled copy once and links it both ways', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'other', title: 'Other'));
+      await repos.dances.create(
+        _dance(
+          id: 'source',
+          title: 'Source',
+          links: [_related('l1', 'other', label: 'Cousin')],
+        ),
+      );
+      // The old create-then-rename path first wrote the copy under the
+      // original's title. Refusing that write proves the copy goes in with its
+      // own title the first time, so no failure can leave an exact-title twin.
+      await repos.db.customStatement(
+        'CREATE TRIGGER refuse_twin BEFORE INSERT ON dances '
+        "WHEN NEW.id = 'copy' AND NEW.title = 'Source' "
+        "BEGIN SELECT RAISE(ABORT, 'copy written under the original title'); END",
+      );
+
+      final copy = await duplicateDanceWithRelatedLinks(
+        repos,
+        id: 'source',
+        newId: 'copy',
+        now: DateTime.utc(2026, 2, 1),
+        copyTitle: suffix,
+      );
+
+      expect(copy.title, 'Source (copy)');
+      final titles = [for (final d in await repos.dances.listAll()) d.title]
+        ..sort();
+      // No exact-title twin of the original.
+      expect(titles, ['Other', 'Source', 'Source (copy)']);
+      // The copy's relation has its reverse link on the other dance.
+      final other = (await repos.dances.getById('other'))!;
+      expect(other.links.where((l) => l.targetDanceId == 'copy'), hasLength(1));
+      expect(
+        (await repos.dances.getById('copy'))!.links.single.targetDanceId,
+        'other',
+      );
+    });
+
+    test('a copy of a group member joins the transitive group', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'b'));
+      await repos.dances.create(_dance(id: 'c'));
+      await repos.dances.create(_dance(id: 'a'));
+      // Build the group a-b-c through the editor-save path.
+      final a = (await repos.dances.getById('a'))!;
+      await saveDanceWithRelatedLinks(
+        repos,
+        original: a,
+        dance: a.copyWith(
+          links: [
+            _related('ab', 'b', transitive: true),
+            _related('ac', 'c', transitive: true),
+          ],
+          updatedAt: DateTime.utc(2026, 1, 2),
+        ),
+      );
+
+      await duplicateDanceWithRelatedLinks(
+        repos,
+        id: 'a',
+        newId: 'a2',
+        now: DateTime.utc(2026, 2, 1),
+        copyTitle: suffix,
+      );
+
+      for (final id in const ['a', 'b', 'c', 'a2']) {
+        final dance = (await repos.dances.getById(id))!;
+        final others = {'a', 'b', 'c', 'a2'}..remove(id);
+        final linked = {
+          for (final l in dance.links.where((l) => l.transitive))
+            l.targetDanceId,
+        };
+        expect(linked, others, reason: '$id should be linked to the group');
+      }
+    });
+
+    test('a link to a trashed dance is left off the copy', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'gone'));
+      await repos.dances.create(
+        _dance(id: 'source', links: [_related('l1', 'gone')]),
+      );
+      await repos.dances.softDelete('gone', at: DateTime.utc(2026, 1, 5));
+
+      final copy = await duplicateDanceWithRelatedLinks(
+        repos,
+        id: 'source',
+        newId: 'copy',
+        now: DateTime.utc(2026, 2, 1),
+        copyTitle: suffix,
+      );
+
+      expect(copy.links, isEmpty);
+      expect(await repos.dances.getById('copy'), isNotNull);
+    });
+
+    test(
+      'a member of a group too large to reconcile is still copied',
+      () async {
+        final repos = openTestRepositories();
+        final ids = [
+          for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) 'g$i',
+        ];
+        for (final id in ids) {
+          await repos.dances.create(_dance(id: id));
+        }
+        // One hub linked transitively to every other member: 101 in all.
+        await repos.dances.update(
+          (await repos.dances.getById('g0'))!.copyWith(
+            links: [
+              for (final id in ids.skip(1))
+                _related('l-$id', id, transitive: true),
+            ],
+            updatedAt: DateTime.utc(2026, 1, 2),
+          ),
+        );
+
+        final copy = await duplicateDanceWithRelatedLinks(
+          repos,
+          id: 'g0',
+          newId: 'copy',
+          now: DateTime.utc(2026, 2, 1),
+          copyTitle: suffix,
+        );
+
+        expect(copy.links, hasLength(ids.length - 1));
+        expect(copy.links.any((l) => l.transitive), isFalse);
+        expect(await repos.dances.getById('copy'), isNotNull);
+      },
+    );
+
+    test('a failure part-way leaves no copy behind', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'other'));
+      await repos.dances.create(
+        _dance(id: 'source', links: [_related('l1', 'other')]),
+      );
+      // The reverse link on `other` is written after the copy itself.
+      await repos.db.customStatement(
+        'CREATE TRIGGER fail_other_update BEFORE UPDATE ON dances '
+        "WHEN NEW.id = 'other' "
+        "BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END",
+      );
+
+      await expectLater(
+        duplicateDanceWithRelatedLinks(
+          repos,
+          id: 'source',
+          newId: 'copy',
+          now: DateTime.utc(2026, 2, 1),
+          copyTitle: suffix,
+        ),
+        throwsA(anything),
+      );
+
+      expect(await repos.dances.getById('copy'), isNull);
+    });
   });
 }
 

@@ -7,6 +7,8 @@ import '../model/difficulty_level.dart';
 import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
+import '../model/tunes_source.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
 import '../model/program.dart';
@@ -18,8 +20,10 @@ import '../model/venue.dart';
 import '../util/argb.dart';
 import '../util/text_sanitizer.dart';
 import 'archive_entity_codec.dart';
+import 'archive_user_figures.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
+import '../taxonomy/user_figure_use.dart';
 
 /// Canonical JSON (de)serialization for a [CompendiumArchive] — the versioned
 /// backup/exchange format (`docs/design/imports.md` §"Generic JSON (6.6)").
@@ -36,7 +40,9 @@ import 'figure_codec.dart';
 /// treated as the current version, and a newer `schemaVersion` is read on a
 /// best-effort basis with a warning rather than an error. Recoverable problems
 /// never throw: a malformed entity is skipped and recorded as an
-/// [ArchiveError] while the rest of the archive still loads.
+/// [ArchiveError] while the rest of the archive still loads. Content-validation
+/// [ArgumentError]s are normalized at the per-entity boundary; unrelated Dart
+/// [Error]s still surface.
 
 // ---------------------------------------------------------------------------
 // Encoding
@@ -74,13 +80,18 @@ Map<String, Object?> archiveToJson(
     for (final f in archive.customFields)
       if (mode == ArchiveSerializationMode.share && !f.shareable) f.id,
   };
+  // Share mode never writes `deletedTags`, so they must not raise the stamp.
+  final requiredVersion = requiredSchemaVersion(
+    archive,
+    includeDeletedTags: mode == ArchiveSerializationMode.backup,
+  );
   return {
     // Stamp at least the version the content requires so an older reader warns
     // rather than silently dropping fields, while honoring an explicitly
     // higher requested version.
-    'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
+    'schemaVersion': archive.schemaVersion > requiredVersion
         ? archive.schemaVersion
-        : requiredSchemaVersion(archive),
+        : requiredVersion,
     'exportedAt': archiveIso(archive.exportedAt),
     'choreographers': [
       for (final c in _sortedById(archive.choreographers, (c) => c.id))
@@ -94,6 +105,18 @@ Map<String, Object?> archiveToJson(
       for (final t in _sortedById(archive.tags, (t) => t.id))
         archiveTagToJson(t),
     ],
+    // Tombstoned tags and their retained dance joins are a full-backup concern
+    // only: a shared archive must not reveal what the owner deleted.
+    if (mode == ArchiveSerializationMode.backup &&
+        archive.deletedTags.isNotEmpty)
+      'deletedTags': [
+        for (final d in _sortedById(archive.deletedTags, (d) => d.tag.id))
+          {
+            ...archiveTagToJson(d.tag),
+            'deletedAt': archiveIso(d.deletedAt),
+            'danceIds': [...d.danceIds]..sort(),
+          },
+      ],
     // Difficulty levels are an ordered vocabulary, not an unordered entity
     // collection: position (and then id from repository reads) defines display
     // order, so preserve the caller's supplied sequence.
@@ -125,6 +148,16 @@ Map<String, Object?> archiveToJson(
       'venues': [
         for (final v in _sortedById(archive.venues, (v) => v.id))
           archiveVenueToJson(v),
+      ],
+    // The user's own new figures the dances use (#1023): shared so the
+    // receiver can add them. A backup carries the whole glossary in its own
+    // section, so this is share mode only. Omitted when empty, and never a
+    // version bump (see `archiveSchemaVersion`).
+    if (mode == ArchiveSerializationMode.share &&
+        archive.userFigures.isNotEmpty)
+      'userFigures': [
+        for (final f in _sortedById(archive.userFigures, (f) => f.id))
+          archiveUserFigureToJson(f),
       ],
   };
 }
@@ -234,6 +267,18 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     warnings,
     dropped,
   );
+  final deletedTags = _decodeList(
+    root['deletedTags'],
+    'deletedTag',
+    (m) => ArchivedDeletedTag(
+      tag: _tagFromJson(m),
+      deletedAt: _dt(m, 'deletedAt'),
+      danceIds: _stringList(m, 'danceIds'),
+    ),
+    errors,
+    warnings,
+    dropped,
+  );
   final customFields = _decodeList(
     root['customFields'],
     'customField',
@@ -310,6 +355,17 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     dropped,
   );
 
+  // Never an error: a figure that can't be read leaves its uses as the lines
+  // they carry, so the dances still import.
+  final userFigures = decodeArchiveUserFigures(
+    root['userFigures'],
+    warnings,
+    usedIds: userFigureIdsUsedBy([
+      for (final dance in clampedDances)
+        if (dance.figuresSource case DecodedFigures(:final figures)) ...figures,
+    ]),
+  );
+
   return ArchiveReadResult(
     archive: CompendiumArchive(
       schemaVersion: schemaVersion,
@@ -322,6 +378,8 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
       tags: tags,
       venues: venues,
       difficultyLevels: difficultyLevels,
+      deletedTags: deletedTags,
+      userFigures: userFigures,
     ),
     errors: errors,
     warnings: warnings,
@@ -483,7 +541,11 @@ List<T> _decodeList<T>(
     }
     final map = entry.cast<String, Object?>();
     try {
-      result.add(decode(map));
+      try {
+        result.add(decode(map));
+      } on ArgumentError catch (e) {
+        throw ArchiveContentValidationException(e);
+      }
     } on _UnknownEnumValueException catch (e) {
       // Forward-compatible skip: a newer app version wrote an enum value this
       // build doesn't recognize. Drop just this entity rather than recording an
@@ -496,10 +558,19 @@ List<T> _decodeList<T>(
       final ref = '$entityType${id == null ? '' : ' ($id)'}';
       droppedEntities.add(ref);
       warnings.add('$ref skipped: $e');
+    } on ArchiveContentValidationException catch (e) {
+      errors.add(
+        ArchiveError(
+          kind: ArchiveErrorKind.read,
+          entityType: entityType,
+          entityId: map['id'] is String ? map['id'] as String : null,
+          message: 'could not be read: ${e.cause}',
+          cause: e.cause,
+        ),
+      );
     } on Exception catch (e) {
-      // Catch only Exceptions (the decode helpers throw FormatException for
-      // malformed input): Dart Errors signal genuine bugs and should surface
-      // during development rather than being recorded as data-quality errors.
+      // Other Exceptions, such as FormatException from malformed input, are
+      // recorded as data-quality errors. Unrelated Dart Errors still surface.
       errors.add(
         ArchiveError(
           kind: ArchiveErrorKind.read,
@@ -554,10 +625,8 @@ CustomFieldDef _customFieldDefFromJson(Map<String, Object?> m) {
   // now stripped) are dropped so they can't smuggle a blank option in.
   final choices = _clampChoices(_stringListOrNull(m, 'choices'));
   // A choice field with no usable options can't be constructed (the model
-  // requires ≥1). Rather than let the constructor throw an `ArgumentError` — a
-  // Dart Error that `_decodeList` deliberately doesn't catch, which would abort
-  // the whole restore — raise a `FormatException` so just this one field is
-  // skipped and recorded, keeping the import partial-failure tolerant.
+  // requires ≥1). Raise a FormatException here so the diagnostic is specific
+  // and this one field is skipped and recorded.
   if (type == CustomFieldType.choice && (choices == null || choices.isEmpty)) {
     throw const FormatException('choice field has no usable options');
   }
@@ -604,7 +673,15 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
     'progression',
   ),
   phraseStructure: _strOr(m, 'phraseStructure', ''),
-  figures: _figuresFromJson(m['figures']),
+  // A v5 archive carries the undecodable transcription verbatim in
+  // `figuresRaw`; reconstruct the case rather than the empty `figures` array
+  // that accompanies it. An older archive has no such key and is unaffected.
+  figuresSource: m['figuresRaw'] is String
+      ? UnreadableFigures(m['figuresRaw']! as String)
+      : null,
+  figures: m['figuresRaw'] is String
+      ? const []
+      : _figuresFromJson(m['figures']),
   hook: _strOr(m, 'hook', ''),
   callingNotes: _strOr(m, 'callingNotes', ''),
   // Soft length bound (OWASP): the walkthrough is untrusted long free text from
@@ -616,6 +693,9 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
     _strOr(m, 'walkthrough', ''),
     kMaxWalkthroughLength,
   ),
+  // Short untrusted labels: clamped like the walkthrough, never rejected.
+  meter: _clampLength(_strOr(m, 'meter', ''), kMaxMusicLabelLength),
+  musicalKey: _clampLength(_strOr(m, 'musicalKey', ''), kMaxMusicLabelLength),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],
@@ -626,7 +706,12 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   mixedLevel: _boolOr(m, 'mixedLevel', false),
   mixer: _boolOr(m, 'mixer', false),
   rating: _intOrNull(m, 'rating'),
-  tunes: _stringList(m, 'tunes'),
+  // A v6 archive carries an undecodable tune list verbatim in `tunesRaw`;
+  // reconstruct the case rather than the empty `tunes` array beside it.
+  tunesSource: m['tunesRaw'] is String
+      ? UnreadableTunes(m['tunesRaw']! as String)
+      : null,
+  tunes: m['tunesRaw'] is String ? const [] : _stringList(m, 'tunes'),
   customFields: _customFieldValuesFromJson(m['customFields']),
   tagIds: _stringList(m, 'tagIds'),
   links: _danceLinksFromJson(m['links']),
@@ -635,6 +720,8 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
       ? null
       : _provenanceFromJson(_asMap(m['provenance'], 'provenance')),
   composedOn: _partialDateOrNull(m, 'composedOn'),
+  interpreterIds: _stringList(m, 'interpreterIds'),
+  interpretedOn: _partialDateOrNull(m, 'interpretedOn'),
   revisedOn: _partialDateOrNull(m, 'revisedOn'),
   createdAt: _dt(m, 'createdAt'),
   updatedAt: _dt(m, 'updatedAt'),
@@ -660,6 +747,7 @@ Formation _formationFromJson(Object? raw) {
   return Formation(
     _enumByName(FormationShape.values, _str(m, 'shape'), 'shape'),
     detail: _strOrNull(m, 'detail'),
+    improper: _boolOr(m, 'improper', false),
   );
 }
 
@@ -681,11 +769,11 @@ List<Figure> _figuresFromJson(Object? raw) {
 /// spoofing characters (issue #444). The structural `move` key and non-string
 /// params (e.g. numeric `beats`) are left untouched.
 ///
-/// For a structural container (`meanwhile` or `modifier`) this **recurses** into
+/// For a structural container (any of [containerMoves]) this **recurses** into
 /// each nested child in `params['figures']` so a nested child cannot smuggle
 /// unsanitized free text past the one-level scrub, and enforces the structural
 /// caps defensively against untrusted recursive input (OWASP): the child count
-/// is clamped to [kMaxMeanwhileSides] and recursion is bounded by
+/// is clamped to the kind's [maxContainerChildren] and recursion is bounded by
 /// [kMaxContainerDepth], with any pathologically deep remainder dropped.
 /// Parse-never-fails: it clamps/scrubs, it never throws.
 Map<String, Object?> _sanitizeFigureJson(
@@ -714,20 +802,38 @@ Map<String, Object?> _sanitizeFigureJson(
             ? sanitizeImportedText(entry.value as String)
             : entry.value,
     };
+    // A use of a figure of your own (#1023) carries its arguments one level
+    // down: scrub their text too, and keep only scalar values.
+    final args = sanitizedParams[userFigureArgsKey];
+    if (out['move'] == customMove && args is Map) {
+      sanitizedParams[userFigureArgsKey] = <String, Object?>{
+        for (final entry in args.entries)
+          if (entry.value == null ||
+              entry.value is num ||
+              entry.value is bool ||
+              entry.value is String)
+            entry.key.toString(): entry.value is String
+                ? sanitizeImportedText(
+                    entry.value as String,
+                    allowLineBreaks: false,
+                  )
+                : entry.value,
+      };
+    }
     // Recurse into nested structural children (untrusted recursive structure):
     // scrub each child's free text, cap the child count, and bound depth so a
     // deeply-nested payload cannot exhaust the stack. `figures` is reserved for
-    // the two structural container moves; a future taxonomy move that happens
-    // to use a `figures` param must not be rewritten.
+    // the structural container moves; a future taxonomy move that happens to
+    // use a `figures` param must not be rewritten.
     final sides = sanitizedParams['figures'];
     final move = out['move'];
-    if ((move == meanwhileMove || move == modifierMove) && sides is List) {
+    if (move is String && isContainerMove(move) && sides is List) {
       if (depth >= kMaxContainerDepth) {
         sanitizedParams['figures'] = const <Object?>[];
       } else {
         final scrubbed = <Object?>[];
         for (final side in sides) {
-          if (scrubbed.length >= kMaxMeanwhileSides) break;
+          if (scrubbed.length >= maxContainerChildren(move)) break;
           if (side is Map) {
             scrubbed.add(
               _sanitizeFigureJson(side.cast<String, Object?>(), depth + 1),
@@ -833,6 +939,12 @@ Program _programFromJson(Map<String, Object?> m) => Program(
     'status',
   ),
   hideAlternates: _boolOr(m, 'hideAlternates', false),
+  // Not clamped: the dialect library imposes no name cap, so truncating would
+  // rewrite a valid reference into a different name (and could split a
+  // surrogate pair, which canonical sync JSON rejects).
+  dialectName: _strOrNull(m, 'dialectName'),
+  payMinorUnits: _payMinorUnitsOrNull(m),
+  payCurrency: _payCurrencyOrNull(m),
   slots: _programSlotsFromJson(m['slots']),
   provenance: m['provenance'] == null
       ? null
@@ -840,6 +952,7 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   createdAt: _dt(m, 'createdAt'),
   updatedAt: _dt(m, 'updatedAt'),
   deletedAt: _dtOrNull(m, 'deletedAt'),
+  archivedAt: _dtOrNull(m, 'archivedAt'),
 );
 
 List<ProgramSlot> _programSlotsFromJson(Object? raw) {
@@ -878,10 +991,9 @@ List<ProgramSlot> _programSlotsFromJson(Object? raw) {
 /// is type-checked (`_str`/`_strOrNull` throw a [FormatException] for a
 /// non-string value); a missing/extra field is tolerated (nullable fields
 /// default to null, unknown keys are ignored). The blank-name case is rejected
-/// *here* with a [FormatException] — which [_decodeList] records as a per-entity
-/// [ArchiveError] and skips — rather than letting the [Venue] constructor's
-/// `ArgumentError` (a Dart `Error`, not an `Exception`) escape [_decodeList] and
-/// abort the whole import.
+/// *here* with a [FormatException] so [_decodeList] records a specific
+/// per-entity [ArchiveError] and skips it. Other constructor validation
+/// [ArgumentError]s are normalized by [_decodeList] at the archive boundary.
 Venue _venueFromJson(Map<String, Object?> m) {
   final name = _str(m, 'name');
   if (name.trim().isEmpty) {
@@ -956,6 +1068,32 @@ String _clampLength(String value, int max) =>
 int _int(Map<String, Object?> m, String key) {
   final v = m[key];
   if (v is! int) throw FormatException('missing or non-integer "$key"');
+  return v;
+}
+
+/// `payMinorUnits`, which must be a non-negative integer and present only
+/// together with `payCurrency` (the [Program] invariant), so a body that breaks
+/// it is rejected as malformed rather than reaching the constructor.
+int? _payMinorUnitsOrNull(Map<String, Object?> m) {
+  final v = _intOrNull(m, 'payMinorUnits');
+  if (v != null && v < 0) {
+    throw const FormatException('"payMinorUnits" must not be negative');
+  }
+  if ((v == null) != (m['payCurrency'] == null)) {
+    throw const FormatException(
+      '"payMinorUnits" and "payCurrency" must appear together',
+    );
+  }
+  return v;
+}
+
+String? _payCurrencyOrNull(Map<String, Object?> m) {
+  final v = _strOrNull(m, 'payCurrency');
+  if (v != null && !Program.isValidPayCurrency(v)) {
+    throw const FormatException(
+      '"payCurrency" must be three uppercase letters (ISO 4217)',
+    );
+  }
   return v;
 }
 

@@ -28,6 +28,17 @@ const String kDefaultCollectionSortKey = 'default_collection_sort';
 /// its historical default (`title`).
 const String kDefaultProgramSortKey = 'default_program_sort';
 
+/// Keys holding the direction of a **fixed** default sort, mirroring
+/// [kDefaultCollectionSortKey] / [kDefaultProgramSortKey] (issue #1841). Stored
+/// as the `SortDirection` enum's stable `.name`, read through
+/// [sortDirectionFromName]. Absent/invalid ⇒ the sort's natural direction, so an
+/// untouched install behaves as it did before the key existed and nothing is
+/// written on upgrade. Ignored while the default is [kLastUsedSortSentinel],
+/// which seeds its direction from the `kLastUsed*SortDirectionKey` keys below.
+const String kDefaultCollectionSortDirectionKey =
+    'default_collection_sort_direction';
+const String kDefaultProgramSortDirectionKey = 'default_program_sort_direction';
+
 /// The sentinel value stored under [kDefaultCollectionSortKey] /
 /// [kDefaultProgramSortKey] to mean "seed the list from its own last-used sort
 /// (key + direction), not a fixed one" (issue #895) — never a member of
@@ -62,8 +73,8 @@ const String kLastUsedProgramSortDirectionKey =
 ///
 /// Equality/hashCode deliberately ignore [sort] when [isLastUsed] is true, so
 /// every "Last used" entry compares equal regardless of its incidental
-/// fallback value — required for `DropdownButton<SortDefaultSetting<T>>` to
-/// highlight the right item by `==`, since the fallback passed to
+/// fallback value — required for the Settings ▸ Defaults sort dropdown to find
+/// the chosen entry by `==`, since the fallback passed to
 /// [SortDefaultSetting.lastUsed] need not be identical at every call site.
 class SortDefaultSetting<T> {
   const SortDefaultSetting.concrete(this.sort) : isLastUsed = false;
@@ -138,6 +149,54 @@ const String kDefaultProgramCallerKey = 'default_program_caller';
 /// Free text; prefills a NEW program's band in the program editor. Absent or
 /// empty ⇒ no prefill (the field opens blank).
 const String kDefaultProgramBandKey = 'default_program_band';
+
+/// Key used to persist the tags applied to dances imported on their own
+/// (issue #1476). A JSON-encoded list of tag **names**, read through
+/// [tryDecodeDefaultImportTagNames]. Names rather than ids because a tag's name
+/// is its natural key: merge-restore adoption and sync reconciliation can
+/// re-identify a tag under a different id but keep its name, and neither
+/// rewrites settings values. A user's rename, merge or delete of a tag in the
+/// Tags manager does: `tag_edits.dart` rewrites this value in the same
+/// `repos.transaction` as the edit, and its Undo puts it back
+/// (`docs/design/tags-and-people.md`, "The import-tags setting"). Core's
+/// `ReferenceEditRepository` does not, because the key is the app's.
+/// Absent, empty or unreadable ⇒ no tags are added. Names with no live tag are
+/// ignored at import time (see `resolveDefaultImportTagIds`): a tag deleted by
+/// any other path, such as a sync pass, can still leave one behind.
+const String kDefaultImportTagNamesKey = 'default_import_tag_names';
+
+/// Upper bound on [kDefaultImportTagNamesKey] entries; a restored backup is not
+/// trusted to carry a sane count.
+const int kMaxDefaultImportTags = 50;
+
+/// Encodes default import tag names for [kDefaultImportTagNamesKey]: blanks and
+/// duplicates dropped, order kept, capped at [kMaxDefaultImportTags].
+String encodeDefaultImportTagNames(Iterable<String> names) =>
+    jsonEncode(_cleanTagNames(names).take(kMaxDefaultImportTags).toList());
+
+/// Decodes a stored [kDefaultImportTagNamesKey] value, returning `null` for
+/// anything that is not a JSON list of non-blank strings within
+/// [kMaxDefaultImportTags]. Callers treat `null` as "no default tags".
+List<String>? tryDecodeDefaultImportTagNames(Object? stored) {
+  if (stored is! String) return null;
+  try {
+    final decoded = jsonDecode(stored);
+    if (decoded is! List || decoded.length > kMaxDefaultImportTags) return null;
+    if (decoded.any((e) => e is! String || e.trim().isEmpty)) return null;
+    return _cleanTagNames(decoded.cast<String>()).toList();
+  } catch (_) {
+    // diagnostics: silent — malformed settings data returns null.
+    return null;
+  }
+}
+
+Iterable<String> _cleanTagNames(Iterable<String> names) sync* {
+  final seen = <String>{};
+  for (final name in names) {
+    final trimmed = name.trim();
+    if (trimmed.isNotEmpty && seen.add(trimmed)) yield trimmed;
+  }
+}
 
 /// Key used to persist the semantic slot template for manually created
 /// programs. Generated slot ids and positions are intentionally omitted.
@@ -299,9 +358,38 @@ Future<void> initializeCanonicalFigureTextGate(
 }
 
 /// Key used to persist the default dance FORM for new dances (ROADMAP DD.1).
-/// Stored as the [DanceForm] enum's stable `.name`. Absent/invalid ⇒
-/// [DanceForm.contra] (the historical new-dance default).
+/// Stored as the [DanceForm] enum's stable `.name`, or
+/// [kDefaultDanceFormLastUsed] for "the form of the last new dance" (ADR-006
+/// §12.2, S2). Absent/invalid ⇒ [DanceForm.contra] (the historical new-dance
+/// default). Synced, like every new-dance default.
 const String kDefaultDanceFormKey = 'default_dance_form';
+
+/// The [kDefaultDanceFormKey] value meaning "the form of the last dance
+/// created" ([kLastUsedDanceFormKey]). An older build reads it as an unknown
+/// name, so as contra.
+const String kDefaultDanceFormLastUsed = 'lastUsed';
+
+/// Key holding the form of the last dance the user created in the dance
+/// editor, as the [DanceForm]'s `.name`: what a new dance starts as while the
+/// default form is [kDefaultDanceFormLastUsed]. Synced with the setting it
+/// serves, so "last used" means the last on any of the user's devices.
+const String kLastUsedDanceFormKey = 'last_used_dance_form';
+
+/// The default-form setting as stored: a fixed [DanceForm], or `null` for
+/// [kDefaultDanceFormLastUsed]. Anything else reads as [DanceForm.contra], as
+/// [danceFormFromStored] does.
+DanceForm? defaultDanceFormSettingFromStored(Object? stored) =>
+    stored == kDefaultDanceFormLastUsed ? null : danceFormFromStored(stored);
+
+/// The form a new dance starts as: the default-form setting, or, when it is
+/// "last used", the form of the last dance created ([kLastUsedDanceFormKey]),
+/// which is contra until there is one.
+DanceForm resolveNewDanceForm({
+  required Object? defaultFormStored,
+  required Object? lastUsedStored,
+}) =>
+    defaultDanceFormSettingFromStored(defaultFormStored) ??
+    danceFormFromStored(lastUsedStored);
 
 /// Key used to persist the default formation SHAPE for new dances (ROADMAP
 /// DD.1). Stored as the [FormationShape] enum's stable `.name`. Absent/invalid
@@ -370,7 +458,9 @@ String dancePhraseStructureRawFromStored(Object? stored) {
 /// Key used to persist the default starting-figures TEMPLATE for new dances
 /// (ROADMAP DD.2). Stored as a `figures_json` string (the same shape a dance's
 /// figures use — see [encodeFigures]/[decodeFigures]). Absent/non-string/empty/
-/// invalid ⇒ [defaultNewDanceFigureTemplate] (ContraDB's `stand_still × 8`).
+/// invalid ⇒ [defaultNewDanceFigureTemplate] (ContraDB's `stand_still × 8`), or
+/// no figures when Free-text entry is on (#1177); see
+/// [danceFiguresTemplateFromStored].
 const String kDefaultDanceFiguresTemplateKey = 'default_dance_figures_template';
 
 /// Key used to persist the default side figures for a newly inserted meanwhile
@@ -384,8 +474,8 @@ const String kDefaultMeanwhileSideFiguresKey = 'default_meanwhile_side_figures';
 const String kDefaultModifierFiguresKey = 'default_modifier_figures';
 
 /// The default figure list a blank NEW dance begins with when the user hasn't
-/// configured a template (ROADMAP DD.2). Matches ContraDB's new-dance template:
-/// EIGHT `stand_still` figures, each of 8 beats.
+/// configured a template and Free-text entry is off (ROADMAP DD.2). Matches
+/// ContraDB's new-dance template: EIGHT `stand_still` figures, each of 8 beats.
 ///
 /// Returns a fresh list on each call so callers can safely map it into mutable
 /// drafts without sharing state.
@@ -403,10 +493,16 @@ List<Figure> defaultNewDanceFigureTemplate() => [
 /// Resolves a persisted settings value into the starting-figures template.
 ///
 /// A valid `figures_json` string is decoded verbatim — including `'[]'`, which
-/// yields an intentional EMPTY template. `null`, a non-string, or an
-/// unparseable/garbage string falls back to [defaultNewDanceFigureTemplate],
-/// preserving ContraDB parity for users who never touch the setting.
-List<Figure> danceFiguresTemplateFromStored(Object? stored) {
+/// yields an intentional EMPTY template — whatever [freeTextEntry] says. `null`,
+/// a non-string, or an unparseable/garbage string falls back to
+/// [defaultNewDanceFigureTemplate], preserving ContraDB parity for users who
+/// never touch the setting — unless [freeTextEntry] is on, when it falls back
+/// to no figures: rows are added by typing them, and placeholders would only
+/// have to be deleted first (#1177, decision D2).
+List<Figure> danceFiguresTemplateFromStored(
+  Object? stored, {
+  bool freeTextEntry = false,
+}) {
   if (stored is String) {
     try {
       return decodeFigures(
@@ -416,7 +512,7 @@ List<Figure> danceFiguresTemplateFromStored(Object? stored) {
       // diagnostics: silent — empty/malformed JSON falls back to the default template
     }
   }
-  return defaultNewDanceFigureTemplate();
+  return freeTextEntry ? <Figure>[] : defaultNewDanceFigureTemplate();
 }
 
 /// The safe fallback for a newly inserted meanwhile when no valid side
@@ -437,12 +533,7 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
       final raw = jsonDecode(stored);
       if (raw is! List ||
           raw.length > kMaxMeanwhileSides ||
-          raw.any(
-            (entry) =>
-                entry is! Map ||
-                entry['move'] == meanwhileMove ||
-                entry['move'] == modifierMove,
-          )) {
+          raw.any((entry) => entry is! Map || isContainerMove(entry['move']))) {
         return defaultMeanwhileSideFigures();
       }
       final figures = decodeFigures(stored);
@@ -480,12 +571,7 @@ List<Figure> modifierFiguresFromStored(Object? stored) {
       final raw = jsonDecode(stored);
       if (raw is! List ||
           raw.length > kMaxModifierFigures ||
-          raw.any(
-            (entry) =>
-                entry is! Map ||
-                entry['move'] == meanwhileMove ||
-                entry['move'] == modifierMove,
-          )) {
+          raw.any((entry) => entry is! Map || isContainerMove(entry['move']))) {
         return defaultModifierFigures();
       }
       final figures = decodeFigures(stored);

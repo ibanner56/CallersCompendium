@@ -6,10 +6,13 @@
 ///
 /// The key, enum, and resolver below are Flutter-free pure functions so they
 /// can be unit-tested directly. Only [formatEventDate] touches Flutter, and only
-/// for the `system` default, where it defers to [MaterialLocalizations].
+/// for the `system` default, where it follows the device's region.
 library;
 
+import 'dart:ui' show Locale, PlatformDispatcher;
+
 import 'package:flutter/material.dart' show MaterialLocalizations;
+import 'package:intl/intl.dart' show DateFormat, Intl;
 
 import '../../l10n/app_localizations.dart';
 import 'custom_date_pattern.dart';
@@ -30,7 +33,8 @@ const String kDateFormatCustomPatternKey = 'date_format_custom';
 
 /// How program event dates render on screen.
 enum DateFormatPref {
-  /// Defer to the platform locale via [MaterialLocalizations.formatMediumDate].
+  /// Follow the device's region: its numeric date (see
+  /// [formatEventDate]).
   system('system'),
 
   /// ISO-like year-month-day, e.g. `2026-07-15`.
@@ -180,25 +184,168 @@ MonthNames monthNamesFromL10n(AppLocalizations l10n) => MonthNames(
   ],
 );
 
+/// The shipped date-symbol locale that sets the numeric date order for a
+/// country, for countries with no regional variant of their own.
+///
+/// `intl` carries no region data, so this cannot be derived from its locale
+/// list (a "country code equals language code" rule picks Belarusian for
+/// Belgium). It is a small table, limited to countries with one dominant date
+/// convention; multilingual ones with differing orders (BE, LU) and those with
+/// exactly one shipped variant of their own (GB, AU, MX, CH, …) are left to
+/// [resolveDateLocale]'s other rules. A drift test checks every value is a
+/// locale `intl` ships and no key is dead, i.e. covered by a single shipped
+/// `_<CC>` variant.
+const Map<String, String> kRegionDateLocales = {
+  'DK': 'da',
+  'SE': 'sv',
+  'NO': 'nb',
+  'FI': 'fi',
+  'IS': 'is',
+  'NL': 'nl',
+  'DE': 'de',
+  'AT': 'de',
+  'FR': 'fr',
+  'IT': 'it',
+  'ES': 'es',
+  'PL': 'pl',
+  'CZ': 'cs',
+  'SK': 'sk',
+  'HU': 'hu',
+  'RO': 'ro',
+  'BG': 'bg',
+  'GR': 'el',
+  'HR': 'hr',
+  'SI': 'sl',
+  'EE': 'et',
+  'LV': 'lv',
+  'LT': 'lt',
+  'TR': 'tr',
+  'RU': 'ru',
+  'UA': 'uk',
+  'BR': 'pt',
+  'JP': 'ja',
+  'KR': 'ko',
+  'CN': 'zh',
+  'IL': 'he',
+  'AR': 'es',
+  'CL': 'es',
+  'CO': 'es',
+  'PE': 'es',
+  'MY': 'ms',
+  'ID': 'id',
+  'TH': 'th',
+  'VN': 'vi',
+  // Countries with several shipped variants, which the single-variant rule
+  // skips: the US (`en_US`, `es_US`) and Canada (`en_CA`, `fr_CA`, which share
+  // one numeric order).
+  'US': 'en_US',
+  'CA': 'en_CA',
+};
+
+/// The `intl` date-symbol locale whose numeric date order [locale] should use,
+/// or `null` when `intl` has none for it.
+///
+/// Prefers the device's own language and region together (`en_GB`, `fr_CA`).
+/// When `intl` has no set for that pair and the match falls to the bare
+/// language (`en_DK` → `en`, which would read US order in Denmark), the
+/// region is looked up instead: the single shipped `<language>_<CC>` variant
+/// for that country (`en_MX` → `es_MX`), else [kRegionDateLocales]. A country
+/// in neither keeps the language's default. Requires date symbols to be
+/// registered (see [formatEventDate]).
+String? resolveDateLocale(Locale locale) {
+  final tag = locale.toLanguageTag().replaceAll('-', '_');
+  final matched = Intl.verifiedLocale(
+    tag,
+    DateFormat.localeExists,
+    onFailure: (_) => '',
+  );
+  if (matched == null || matched.isEmpty) return null;
+  final country = locale.countryCode;
+  if (country == null || country.isEmpty) return matched;
+  final suffix = '_${country.toUpperCase()}';
+  // A region-bearing match (`en_GB`) already honours the country.
+  if (matched.toUpperCase().endsWith(suffix)) return matched;
+  final regional = DateFormat.allLocalesWithSymbols()
+      .where((l) => l.toUpperCase().endsWith(suffix))
+      .toList();
+  if (regional.length == 1) return regional.single;
+  final fromTable = kRegionDateLocales[country.toUpperCase()];
+  if (fromTable != null && DateFormat.localeExists(fromTable)) {
+    return fromTable;
+  }
+  return matched;
+}
+
 /// Formats a program event [date] for on-screen display per [setting].
 ///
-/// For [DateFormatPref.system] (and any invalid custom pattern) this defers to
-/// the platform locale via [material] (`formatMediumDate`). For the fixed tokens
-/// and a valid custom pattern it uses a dependency-free zero-padded pattern (no
-/// `intl`); written-out month tokens (`MMM`/`MMMM`) render localized month names
-/// built from [l10n].
+/// For [DateFormatPref.system] (and any invalid custom pattern) this follows the
+/// **device's region** (`PlatformDispatcher.locale`, or [platformLocale] when
+/// given), not the app language: an English-UI caller on a phone in Denmark
+/// reads `15.7.2026`, whether the phone's language is Danish or English. It
+/// uses that region's numeric date (`yMd`, see [resolveDateLocale]), which
+/// carries the year (Material's abbreviated medium date omits it, so a
+/// printed set list from last season would read like this season's) and has no
+/// month names, so the app language and the device's can never mix in one date.
+///
+/// A country with no regional date set, and not in [kRegionDateLocales]
+/// (multilingual ones such as Belgium), uses the device language's default.
+///
+/// Date symbols for any locale Flutter ships are registered the first time a
+/// `GlobalMaterialLocalizations` loads, not only the app's, so the region need
+/// not match the app language. A tag `intl` cannot resolve falls back to
+/// [material]'s `formatShortDate` (the app language's date).
+///
+/// For the fixed tokens and a valid custom pattern it uses a dependency-free
+/// zero-padded pattern; written-out month tokens (`MMM`/`MMMM`) render
+/// localized month names built from [l10n].
 String formatEventDate(
   DateTime date,
   DateFormatSetting setting,
   MaterialLocalizations material,
-  AppLocalizations l10n,
-) {
+  AppLocalizations l10n, {
+  Locale? platformLocale,
+}) {
   final fixed = formatDatePattern(
     date,
     setting,
     monthNames: monthNamesFromL10n(l10n),
   );
-  return fixed ?? material.formatMediumDate(date);
+  if (fixed != null) return fixed;
+  final region = resolveDateLocale(
+    platformLocale ?? PlatformDispatcher.instance.locale,
+  );
+  if (region == null) return material.formatShortDate(date);
+  return DateFormat.yMd(region).format(date);
+}
+
+/// Formats a moment for on-screen display: the date as [formatEventDate]
+/// shows it under [setting], then the time of day.
+///
+/// For records the app stamps itself (when a version was last changed, when sync
+/// last ran, when a draft was saved), where the date alone does not say which of
+/// two edits is later. The date follows the Regional setting and, under the
+/// system default, the device's region, so a person who chose `2026-07-15`
+/// reads that here too, not a month name in the app's language. The time stays
+/// in the app's language: the hour and minute carry no words, and the AM/PM
+/// marker of a region's own language would put a second language in an English
+/// line.
+String formatEventDateTime(
+  DateTime when,
+  DateFormatSetting setting,
+  MaterialLocalizations material,
+  AppLocalizations l10n, {
+  Locale? platformLocale,
+}) {
+  final local = when.toLocal();
+  final date = formatEventDate(
+    local,
+    setting,
+    material,
+    l10n,
+    platformLocale: platformLocale,
+  );
+  final time = DateFormat.jm(l10n.localeName).format(local);
+  return '$date $time';
 }
 
 /// Returns the fixed zero-padded pattern for [date] under [setting], or `null`
@@ -245,10 +392,10 @@ const String kFirstDayOfWeekKey = 'first_day_of_week';
 
 /// Which day the week starts on in date UIs the app renders itself.
 ///
-/// NOTE: Flutter's [showDatePicker] derives its first day of week from the
-/// active locale and offers no per-call override, so this preference cannot
-/// change the system calendar picker. It applies only to date surfaces the app
-/// draws directly. See `docs/dev/localization.md`.
+/// NOTE: the date picker ([showAppDatePicker], Flutter's `DatePickerDialog`)
+/// takes its first day of week from the active locale, and the app does not
+/// override it, so this preference does not change the picker. It applies only
+/// to date surfaces the app draws directly. See `docs/dev/localization.md`.
 enum FirstDayOfWeekPref {
   /// Defer to the platform locale (via `MaterialLocalizations`).
   system('system'),

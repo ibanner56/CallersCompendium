@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../export/share_file.dart';
+import '../theme/app_motion.dart';
 
 /// The delivery choices offered for a canonical JSON export.
 enum JsonExportChoice { save, copy, share }
@@ -29,7 +31,11 @@ Future<JsonExportChoice?> showJsonExportChoiceDialog(BuildContext context) =>
             TextButton(
               onPressed: () =>
                   Navigator.of(context).pop(JsonExportChoice.share),
-              child: Text(l10n.exportJsonShare),
+              child: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportJsonSaveAs
+                    : l10n.exportJsonShare,
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -38,4 +44,5 @@ Future<JsonExportChoice?> showJsonExportChoiceDialog(BuildContext context) =>
           ],
         );
       },
+      animationStyle: AppMotion.styleFor(context),
     );

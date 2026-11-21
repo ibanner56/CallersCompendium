@@ -2,21 +2,32 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/perform_text_scale.dart';
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_card.dart';
+import 'perform_elapsed_clock.dart';
+import 'perform_exit.dart';
+import 'perform_full_screen.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
-    show kAutoSizePerformKey, kShowIndividualPerformTimerKey;
+    show
+        kAutoSizePerformDefault,
+        kAutoSizePerformKey,
+        kConfirmPerformExitDefault,
+        kShowIndividualPerformTimerKey;
+import '../theme/app_breakpoints.dart';
 
-/// Full-screen, large-print performance view for a single [Dance]
+/// Full-screen, large-print Perform mode for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
 /// detail screen and exits back to it.
 ///
@@ -24,9 +35,9 @@ import 'settings_screen.dart'
 /// view and the program-mode Perform view render identically. Text size is
 /// controlled in-view via [PerformSizeControls] with a large default and no
 /// practical upper bound (a sensible lower bound is enforced). The active
-/// dialect is applied via [ActiveDialectScope], with the same canonical ⇄
-/// dialect toggle as the detail screen (hidden when the active dialect is
-/// already [Dialect.canonical]).
+/// dialect is applied via [ActiveDialectScope]; canonical wording is one of the
+/// choices in the dialect quick-switch, so Perform has no separate canonical
+/// toggle.
 class PerformDanceScreen extends StatefulWidget {
   const PerformDanceScreen({
     super.key,
@@ -49,7 +60,7 @@ class PerformDanceScreen extends StatefulWidget {
 }
 
 class _PerformDanceScreenState extends State<PerformDanceScreen>
-    with WidgetsBindingObserver, PerformWakelockMixin {
+    with WidgetsBindingObserver, PerformWakelockMixin, PerformFullScreenMixin {
   /// Manual large-print text scale, applied when auto-size is off. Persisted
   /// across sessions (issue #449) and restored on entry so a caller's chosen
   /// size survives app relaunch instead of resetting to the default.
@@ -59,7 +70,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// General setting (on by default) in [didChangeDependencies]; mutable in-view
   /// via the auto-fit toggle and the A-/A+ controls without writing back to the
   /// global setting.
-  bool _autoSize = true;
+  bool _autoSize = kAutoSizePerformDefault;
 
   /// Guards the one-shot settings load in [didChangeDependencies] (auto-size
   /// plus the persisted Perform a11y prefs) so it runs exactly once.
@@ -79,11 +90,17 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// in-view, the async restore must not clobber that fresh choice.
   bool _textScaleUserSet = false;
   bool _stageModeUserSet = false;
-  bool _canonicalUserSet = false;
 
   /// Individual Perform timing is display-only and starts only after the
   /// persisted visibility preference has resolved. `null` is the loading state.
+  ///
+  /// The readout derives from [_clock], which measures elapsed time rather
+  /// than counting timer ticks (post-audit integrity-6), so time spent
+  /// suspended in the background or asleep still counts. [_timer] only
+  /// refreshes [_elapsed] about once a second, and [didChangeAppLifecycleState]
+  /// refreshes it as soon as the app resumes.
   bool? _showIndividualPerformTimer;
+  PerformElapsedClock? _clock;
   Timer? _timer;
   ValueNotifier<int>? _elapsed;
   bool _paused = false;
@@ -91,12 +108,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
   /// Persisted across sessions (issue #449) and restored on entry.
   bool _stageMode = true;
-
-  /// When `true` figures render canonical role/move tokens; otherwise the
-  /// user's active dialect. The toggle is hidden when the active dialect is
-  /// already canonical (toggling would be a no-op). Persisted across sessions
-  /// (issue #449) and restored on entry.
-  bool _canonicalView = false;
 
   /// Whether the on-demand walkthrough overlay is currently shown (issue #370).
   /// Session-scoped and default OFF — the walkthrough must never cover the
@@ -106,6 +117,36 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   void _toggleWalkthrough() {
     setState(() => _showWalkthrough = !_showWalkthrough);
+    // Opened from the app bar with the keyboard, focus would stay on the
+    // toolbar button, outside the body that handles the scroll keys. Bring it
+    // back so the arrow and Page keys reach the card or the walkthrough.
+    _bodyFocus.requestFocus();
+  }
+
+  /// The body's focus, which the arrow and Page keys are handled under.
+  final FocusNode _bodyFocus = FocusNode(debugLabel: 'perform-dance-body');
+
+  /// Scroll position of the card when it overflows (auto-size off, or a dance
+  /// too long to fit even at the smallest auto-size), driven by the arrow and
+  /// Page keys. Unlike program Perform, there is no next slot to move on to,
+  /// so the keys only scroll (PLAT-10).
+  final ScrollController _cardScroll = ScrollController(
+    keepScrollOffset: false,
+  );
+
+  /// The open walkthrough overlay's scroll position, for the same keys while
+  /// it is showing.
+  final ScrollController _walkthroughScroll = ScrollController();
+
+  /// ↓/↑ and Page Down/Page Up. With the walkthrough open they read it
+  /// (arrows a short step, Page keys most of a viewport); otherwise they
+  /// scroll the card. Both stop at the ends.
+  void _scrollKey(int direction, {bool page = false}) {
+    if (_showWalkthrough && _hasWalkthrough) {
+      scrollPerformBy(_walkthroughScroll, direction, step: page ? null : 64.0);
+    } else {
+      scrollPerformBy(_cardScroll, direction);
+    }
   }
 
   /// Whether the current dance has a non-empty walkthrough to show. The toggle
@@ -124,12 +165,17 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         .then((v) {
           // Don't clobber an in-view choice the user made before the read resolved.
           if (!mounted || _autoSizeUserSet) return;
-          final enabled = v is bool ? v : true;
+          final enabled = v is bool ? v : kAutoSizePerformDefault;
           if (enabled != _autoSize) setState(() => _autoSize = enabled);
         })
         .catchError((_) {
           // diagnostics: silent — auto-size pref read failed; keeps on-by-default value.
         });
+    loadConfirmPerformExit(context).then((value) {
+      if (mounted && value != _confirmExit) {
+        setState(() => _confirmExit = value);
+      }
+    });
     settings
         .get(kShowIndividualPerformTimerKey)
         .then(_resolveIndividualTimerPreference)
@@ -146,7 +192,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           setState(() {
             if (!_textScaleUserSet) _textScale = prefs.textScale;
             if (!_stageModeUserSet) _stageMode = prefs.stageMode;
-            if (!_canonicalUserSet) _canonicalView = prefs.canonicalView;
           });
         })
         .catchError((_) {
@@ -162,18 +207,43 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   }
 
   void _startIndividualTimer() {
-    if (_timer != null) return;
-    final elapsed = _elapsed = ValueNotifier<int>(0);
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _paused) return;
-      elapsed.value++;
-    });
+    if (_clock != null) return;
+    _clock = PerformElapsedClock(paused: _paused);
+    _elapsed = ValueNotifier<int>(0);
+    _refreshElapsed();
+  }
+
+  /// Re-reads [_clock] into [_elapsed] and schedules the next refresh for when
+  /// the displayed second turns over. No timer is kept while paused.
+  void _refreshElapsed() {
+    final clock = _clock;
+    final elapsed = _elapsed;
+    if (clock == null || elapsed == null) return;
+    _timer?.cancel();
+    _timer = null;
+    elapsed.value = clock.seconds;
+    if (clock.isRunning) {
+      _timer = Timer(clock.untilNextSecond, () {
+        if (mounted) _refreshElapsed();
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Timers may not have fired while the app was away; show the full
+    // interval now rather than at the next refresh.
+    if (state == AppLifecycleState.resumed && mounted) _refreshElapsed();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _elapsed?.dispose();
+    _cardScroll.dispose();
+    _walkthroughScroll.dispose();
+    _bodyFocus.dispose();
     super.dispose();
   }
 
@@ -193,15 +263,11 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         ); // diagnostics: silent — stage-mode persist failed; best-effort.
   }
 
-  void _persistCanonicalView() {
-    _a11yPrefs
-        ?.saveCanonicalView(_canonicalView)
-        .catchError(
-          (_) {},
-        ); // diagnostics: silent — canonical-view persist failed; best-effort.
-  }
-
-  void _toggleIndividualTimerPause() => setState(() => _paused = !_paused);
+  void _toggleIndividualTimerPause() => setState(() {
+    _paused = !_paused;
+    _paused ? _clock?.pause() : _clock?.resume();
+    _refreshElapsed();
+  });
 
   void _decreaseTextSize() {
     setState(() {
@@ -229,18 +295,21 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   Future<void> _openMetronomeSheet() {
     return showModalBottomSheet<void>(
-      context: context,
+      context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
   /// Guards leaving Perform (issue #612, sibling of #434). A single stray tap
   /// on the close control — or a system back / predictive-back gesture — must
-  /// not drop the caller out mid-dance, so we require a deliberate
+  /// not drop the caller out mid-dance, so by default we require a deliberate
   /// confirmation first. Mirrors [PerformProgramScreen]'s guard exactly,
-  /// reusing the same dialog keys and l10n strings so the two Perform
-  /// surfaces stay consistent.
+  /// sharing [showPerformExitDialog] so the two Perform surfaces stay
+  /// consistent. The caller can turn the confirmation off in Settings
+  /// ([_confirmExit]); the close control and Back then
+  /// leave at once.
   ///
   /// [_exitDialogShowing] prevents re-entrancy: without it, rapid taps on the
   /// close button (or repeated back gestures while the dialog is up) could
@@ -250,36 +319,39 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// permanently blocked even if the dialog throws.
   bool _exitDialogShowing = false;
 
+  /// Whether leaving asks first. Starts at the default (ask) and is replaced
+  /// by the stored setting once it loads, so an exit attempted before the
+  /// read resolves is still guarded.
+  bool _confirmExit = kConfirmPerformExitDefault;
+
+  /// Keys the Scaffold, which sits below [PerformStageTheme]: its context is
+  /// the one dialogs and sheets are opened from, so they render in the stage
+  /// theme rather than the app theme.
+  final GlobalKey _stageKey = GlobalKey(debugLabel: 'perform-dance-stage');
+
+  /// A context inside the stage theme, for [showDialog] and
+  /// [showModalBottomSheet]; falls back to this State's context before the
+  /// first build.
+  BuildContext get _stageContext => _stageKey.currentContext ?? context;
+
   Future<void> _confirmAndExit() async {
+    final navigator = Navigator.of(context);
+    if (!_confirmExit) {
+      // A direct pop (not `maybePop`) so it bypasses the PopScope in
+      // [_guardExit] rather than re-entering this method.
+      navigator.pop();
+      return;
+    }
     if (_exitDialogShowing) return;
     _exitDialogShowing = true;
     try {
-      final l10n = AppLocalizations.of(context);
-      final navigator = Navigator.of(context);
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          key: const ValueKey('perform-exit-dialog'),
-          title: Text(l10n.performExitTitle),
-          content: Text(l10n.performExitBody),
-          actions: [
-            TextButton(
-              key: const ValueKey('perform-exit-cancel'),
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(l10n.performExitCancel),
-            ),
-            FilledButton(
-              key: const ValueKey('perform-exit-confirm'),
-              autofocus: true,
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(l10n.performExitConfirm),
-            ),
-          ],
-        ),
+      final confirmed = await showPerformExitDialog(
+        _stageContext,
+        body: AppLocalizations.of(context).performDanceExitBody,
       );
       // A direct pop (not `maybePop`) so it bypasses the PopScope in
       // [_guardExit] rather than re-triggering the confirmation.
-      if (confirmed == true) navigator.pop();
+      if (confirmed) navigator.pop();
     } finally {
       _exitDialogShowing = false;
     }
@@ -287,10 +359,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   /// Wraps the Perform scaffold so an implicit pop (system back /
   /// predictive-back gesture) is intercepted and routed through the same
-  /// [_confirmAndExit] confirmation as the close control (issue #612).
+  /// [_confirmAndExit] confirmation as the close control (issue #612), while
+  /// the confirmation is on.
   Widget _guardExit({required Widget child}) {
     return PopScope(
-      canPop: false,
+      // With the confirmation turned off, Perform pops like any route, so
+      // gesture-driven back (the iOS edge swipe, which a non-poppable route
+      // disables) leaves at once too.
+      canPop: !_confirmExit,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _confirmAndExit();
@@ -366,23 +442,28 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => _buildContent(
-        context,
-        // Collapse the AppBar's secondary actions into an overflow menu on
-        // narrow widths (issue #433). LayoutBuilder reflects the actual
-        // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
-        // in widget tests).
-        wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+    return buildPerformFullScreenShortcuts(
+      child: LayoutBuilder(
+        builder: (context, constraints) => _buildContent(
+          context,
+          // Collapse the AppBar's secondary actions into an overflow menu on
+          // narrow widths (issue #433). LayoutBuilder reflects the actual
+          // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
+          // in widget tests).
+          wide: constraints.maxWidth >= AppBreakpoints.compact,
+        ),
       ),
     );
   }
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final activeDialect = ActiveDialectScope.of(context);
-    final isCanonicalDialect = activeDialect == Dialect.canonical;
-    final dialect = _canonicalView ? Dialect.canonical : activeDialect;
+    // Lark and robin when the dance's choreographer asked for them.
+    final dialect = dialectForDance(
+      ActiveDialectScope.of(context).forDance(widget.dance),
+      title: widget.dance.title,
+      authorNames: widget.authorNames,
+    );
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -392,6 +473,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         enabled: _stageMode,
         child: _guardExit(
           child: Scaffold(
+            key: _stageKey,
             appBar: AppBar(
               leading: IconButton(
                 key: const ValueKey('exit-perform'),
@@ -406,7 +488,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               // The stage-mode toggle and per-gig dialect quick-switch stay inline.
               actions: buildPerformAppBarActions(
                 wide: wide,
-                leadingPrimary: const DialectQuickSwitch(),
+                leadingPrimary: DialectQuickSwitch(form: widget.dance.form),
                 secondaryInline: [
                   if (_hasWalkthrough)
                     IconButton(
@@ -423,6 +505,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                     icon: const Icon(Icons.av_timer),
                     onPressed: _openMetronomeSheet,
                   ),
+                  ...performFullScreenInlineActions,
                   PerformSizeControls(
                     canDecrease: canDecrease,
                     onDecrease: _decreaseTextSize,
@@ -435,17 +518,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                       _autoSize = value;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformDialectToggle(
-                      canonical: _canonicalView,
-                      onChanged: (value) {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = value;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 overflowActions: [
                   if (_hasWalkthrough)
@@ -464,6 +536,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                     label: l10n.performTapTempo,
                     onSelected: _openMetronomeSheet,
                   ),
+                  ...performFullScreenMenuActions,
                   PerformMenuAction(
                     menuKey: const ValueKey('decrease-text-size-menu'),
                     icon: Icons.text_decrease,
@@ -487,20 +560,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                       _autoSize = !_autoSize;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformMenuAction(
-                      menuKey: const ValueKey('perform-dialect-toggle-menu'),
-                      icon: Icons.groups,
-                      label: l10n.performShowCanonicalTerms,
-                      toggledOn: _canonicalView,
-                      onSelected: () {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = !_canonicalView;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 trailingPrimary: PerformStageToggle(
                   stageOn: _stageMode,
@@ -514,31 +573,59 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                 ),
               ),
             ),
-            body: SafeArea(
-              child: Stack(
-                children: [
-                  PerformCard(
-                    dance: widget.dance,
-                    renderer: widget.renderer,
-                    dialect: dialect,
-                    textScale: _textScale,
-                    autoSize: _autoSize,
-                    authorNames: widget.authorNames,
-                    difficultyLevel: widget.difficultyLevel,
-                  ),
-                  // The walkthrough overlay is a sibling of the card — never a
-                  // child routed through its `_FitToHeight` measurement — so
-                  // showing it can't shrink or compete with the notation (#370).
-                  if (_showWalkthrough && _hasWalkthrough)
-                    Positioned.fill(
-                      child: PerformWalkthroughOverlay(
-                        walkthrough: widget.dance.walkthrough,
+            // Holds focus inside the view, so its keys (full screen and
+            // Escape, from [buildPerformFullScreenShortcuts]) work before the
+            // caller has clicked anything.
+            // The arrow and Page keys scroll the card, or the walkthrough while
+            // it is open. ←/→ are consumed then, as in program Perform, so the
+            // framework's default scroll action never meets two scroll views.
+            body: CallbackShortcuts(
+              bindings: <ShortcutActivator, VoidCallback>{
+                const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                    _scrollKey(1),
+                const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                    _scrollKey(-1),
+                const SingleActivator(LogicalKeyboardKey.pageDown): () =>
+                    _scrollKey(1, page: true),
+                const SingleActivator(LogicalKeyboardKey.pageUp): () =>
+                    _scrollKey(-1, page: true),
+                if (_showWalkthrough && _hasWalkthrough) ...{
+                  const SingleActivator(LogicalKeyboardKey.arrowRight): () {},
+                  const SingleActivator(LogicalKeyboardKey.arrowLeft): () {},
+                },
+              },
+              child: Focus(
+                focusNode: _bodyFocus,
+                autofocus: true,
+                child: SafeArea(
+                  child: Stack(
+                    children: [
+                      PerformCard(
+                        dance: widget.dance,
                         renderer: widget.renderer,
                         dialect: dialect,
-                        onClose: _toggleWalkthrough,
+                        textScale: _textScale,
+                        autoSize: _autoSize,
+                        authorNames: widget.authorNames,
+                        difficultyLevel: widget.difficultyLevel,
+                        scrollController: _cardScroll,
                       ),
-                    ),
-                ],
+                      // The walkthrough overlay is a sibling of the card — never a
+                      // child routed through its `_FitToHeight` measurement — so
+                      // showing it can't shrink or compete with the notation (#370).
+                      if (_showWalkthrough && _hasWalkthrough)
+                        Positioned.fill(
+                          child: PerformWalkthroughOverlay(
+                            walkthrough: widget.dance.walkthrough,
+                            renderer: widget.renderer,
+                            dialect: dialect,
+                            onClose: _toggleWalkthrough,
+                            scrollController: _walkthroughScroll,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
             bottomNavigationBar: _showIndividualPerformTimer == true

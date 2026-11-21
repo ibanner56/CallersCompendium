@@ -124,6 +124,12 @@ abstract class AppLocalizations {
   /// **'Added a modifier container.'**
   String get danceEditorAddedModifierAnnouncement;
 
+  /// Screen-reader announcement after the Add menu inserts a new, empty sequence container (figures danced one after another on one line).
+  ///
+  /// In en, this message translates to:
+  /// **'Added a sequence container.'**
+  String get danceEditorAddedSequenceAnnouncement;
+
   /// Bottom/rail navigation label for the dance collection destination.
   ///
   /// In en, this message translates to:
@@ -166,6 +172,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get navSettings;
 
+  /// Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show glossary is on).
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get navGlossary;
+
   /// Bottom/rail navigation label for the in-app user guide destination.
   ///
   /// In en, this message translates to:
@@ -190,10 +202,64 @@ abstract class AppLocalizations {
   /// **'Search ({hint})'**
   String navSearchTooltip(String hint);
 
-  /// Accessibility label on the startup loading spinner shown while the collection database is being prepared.
+  /// Title of the File menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Follow the platform's usual name for this menu.
   ///
   /// In en, this message translates to:
-  /// **'Preparing your collection'**
+  /// **'File'**
+  String get menuFile;
+
+  /// File menu item that opens the new-dance editor in the Collection (Command-N). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English.
+  ///
+  /// In en, this message translates to:
+  /// **'New Dance'**
+  String get menuNewDance;
+
+  /// File menu item that starts a dance import in the Collection. Shown only on macOS, in the app's menu bar (PlatformMenuBar). The trailing ellipsis means the item asks for more before it acts; keep it.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Dances…'**
+  String get menuImportDances;
+
+  /// File menu item that leaves the current page, like the back button (Command-W). Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get menuClose;
+
+  /// App menu item that opens Settings (Command-comma). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Use the name macOS itself uses for this item; keep the trailing ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings…'**
+  String get menuSettings;
+
+  /// Title of the View menu in the macOS menu bar; it holds the system's Enter Full Screen item. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get menuView;
+
+  /// Title of the Window menu in the macOS menu bar; it holds the system's Minimize and Zoom items. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Window'**
+  String get menuWindow;
+
+  /// Title of the Help menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get menuHelp;
+
+  /// Help menu item that opens the in-app User Guide. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English.
+  ///
+  /// In en, this message translates to:
+  /// **'User Guide'**
+  String get menuUserGuide;
+
+  /// Accessibility label on the startup loading spinner shown while the library database is being prepared.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your library'**
   String get appBootstrapPreparing;
 
   /// Accessibility label on the startup progress indicator shown while the search index is being rebuilt after a migration.
@@ -208,22 +274,110 @@ abstract class AppLocalizations {
   /// **'Rebuilding search index… {percent}%'**
   String appBootstrapRebuildingIndexProgress(int percent);
 
-  /// Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button.
+  /// Error message shown on the startup screen when preparing the library fails; accompanied by a Try again button.
   ///
   /// In en, this message translates to:
-  /// **'Could not prepare the collection.'**
+  /// **'Couldn\'t prepare your library. Try again.'**
   String get appBootstrapError;
 
-  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered.
+  /// Button on the startup error screen that copies the error type, its stack trace (scrubbed of file paths) and, on the terminal startup screens, their typed details such as version numbers (never the error message) to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
+  /// **'Copy details'**
+  String get appBootstrapCopyDetails;
+
+  /// Label of the startup error screen's Copy details button after the details were copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get appBootstrapCopiedDetails;
+
+  /// Hint on the startup error screen that the failure was recorded in the on-device diagnostics (crash) log.
+  ///
+  /// In en, this message translates to:
+  /// **'Details were also written to the diagnostics log in the app\'s support folder.'**
+  String get appBootstrapLogHint;
+
+  /// Button on the terminal startup screens (newer data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the Releases page'**
+  String get appBootstrapReleasesLink;
+
+  /// Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.'**
+  String migrationDowngradeVersions(int fileVersion, int appVersion);
+
+  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Try again is offered; the app has to be updated and reopened.
+  ///
+  /// In en, this message translates to:
+  /// **'This data was created by a newer version of Caller\'s Compendium. Update the app, then reopen it.'**
   String get migrationDowngradeMessage;
 
-  /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
+  /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Try again is offered.
   ///
   /// In en, this message translates to:
-  /// **'Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
+  /// **'Caller\'s Compendium didn\'t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
+  String get migrationRelocationBothExist;
+
+  /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Try again is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium didn\'t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
+  String get migrationRelocationMultipleLegacy;
+
+  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Try again is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
+  String get migrationRelocationFailed;
+
+  /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Try again is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.'**
+  String get migrationRelocationLegacyUnreachable;
+
+  /// Heading above the list of database copies on the terminal startup screen shown when saved data was found in more than one place. Each line below it names a folder, the copy's size and its last-changed date and time.
+  ///
+  /// In en, this message translates to:
+  /// **'Each copy\'s size and when it last changed (the larger, more recently changed copy is usually your library):'**
+  String get migrationRelocationCopiesHeading;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the app's current data folder. Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'New location'**
+  String get migrationRelocationCopyNewLocation;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the user's Documents folder, which earlier versions used. Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents folder'**
+  String get migrationRelocationCopyDocuments;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: another app data folder an earlier version used (on Windows, the Roaming folder). Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier app data folder'**
+  String get migrationRelocationCopyEarlierAppFolder;
+
+  /// One line per database copy on the terminal startup screen shown when saved data was found in more than one place, so the user can tell which copy is their library. {location} is the folder name (for example 'Documents folder'), {kilobytes} the copy's size in kilobytes, {date} its last-changed date and time. 'KB' is the kilobyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{location}: {kilobytes} KB, last changed {date}'**
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  );
+
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before making changes to your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
   String migrationSnapshotAbortedMessage(String cause);
 
   /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the device is low on storage. Embedded into the snapshot-failure copy.
@@ -235,34 +389,52 @@ abstract class AppLocalizations {
   /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the backups folder is not writable. Embedded into the snapshot-failure copy.
   ///
   /// In en, this message translates to:
-  /// **'The automatic backups folder could not be written to.'**
+  /// **'Couldn\'t write to the automatic backups folder.'**
   String get migrationSnapshotCauseUnwritableBackupsDir;
 
-  /// Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed.
+  /// Plain-language sentences naming the cause of a failed automatic backup and its remedy: another program (for example a database viewer) has the app's data file open and is reading it, so a copy would be missing recent changes. Appended to the 'backup failed' message of the reset flow. Must tell the user to close the other program, not to free space. Say "app", not "program": in this app a program is a dance set list.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t back up your data'**
+  /// **'Another app has your library open, so a backup made now would miss your latest changes. Close any other app that has your library open, then try again.'**
+  String get migrationSnapshotCauseDatabaseInUse;
+
+  /// Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup, shown when the backup failed because another program has the app's data file open. Keep the wording true for both an upgrade and a repair. The remedy is closing the other program, not freeing space. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller\'s Compendium to try again.'**
+  String get migrationSnapshotInUseConsentBody;
+
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Try again is offered: the user reopens the app. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium didn\'t start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller\'s Compendium — or reopen it and choose to continue without a backup.'**
+  String get migrationSnapshotInUseAbortedMessage;
+
+  /// Title of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup after the automatic backup failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t back up your data'**
   String get migrationSnapshotConsentTitle;
 
-  /// Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
+  /// Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup. Keep the wording true for both. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
-  /// **'Before upgrading your saved data to a new format, Caller’s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn’t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
+  /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. That backup couldn\'t be created this time.{cause}\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
   String migrationSnapshotConsentBody(String cause);
 
-  /// Button that safely aborts startup rather than upgrading saved data without a recoverable backup.
+  /// Button that safely aborts startup rather than changing saved data without a recoverable backup.
   ///
   /// In en, this message translates to:
   /// **'Quit'**
   String get migrationSnapshotConsentQuit;
 
-  /// Button that proceeds with the data upgrade even though no recoverable backup could be made.
+  /// Button that proceeds with the change to saved data (a schema upgrade or a one-time data repair) even though no recoverable backup could be made.
   ///
   /// In en, this message translates to:
   /// **'Proceed without a backup'**
   String get migrationSnapshotConsentProceed;
 
-  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry.
+  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Try again.
   ///
   /// In en, this message translates to:
   /// **'This data is from a version too old to open'**
@@ -274,16 +446,28 @@ abstract class AppLocalizations {
   /// **'Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
   String migrationBelowFloorBody(String bridgeTag);
 
+  /// Primary button on the below-floor recovery screen that opens the release page for the version that can update the old data. {bridgeTag} is that release's tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Get {bridgeTag}'**
+  String migrationBelowFloorGetBridge(String bridgeTag);
+
+  /// Label above the two reset buttons on the below-floor recovery screen, which abandon the old data instead of recovering it.
+  ///
+  /// In en, this message translates to:
+  /// **'Start fresh instead'**
+  String get migrationBelowFloorStartFresh;
+
   /// Button label on the below-floor recovery screen that first writes a backup of the current database, then resets it to a fresh state. The reset is only performed if the backup succeeds.
   ///
   /// In en, this message translates to:
-  /// **'Back Up + Reset'**
+  /// **'Back up + reset'**
   String get migrationBelowFloorBackUpAndReset;
 
   /// Button label on the below-floor recovery screen that resets the database to a fresh state without making a backup first. Unrecoverable.
   ///
   /// In en, this message translates to:
-  /// **'Reset Only'**
+  /// **'Reset only'**
   String get migrationBelowFloorResetOnly;
 
   /// Title of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed when this dialog is shown.
@@ -295,37 +479,43 @@ abstract class AppLocalizations {
   /// Body of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed.
   ///
   /// In en, this message translates to:
-  /// **'The backup could not be written, so your data has not been reset.'**
+  /// **'Couldn\'t write the backup, so your data hasn\'t been reset. Free up some space, then try again.'**
   String get migrationBelowFloorBackupFailedBody;
 
-  /// Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back Up + Reset and Reset Only). Used after a successful backup to ask the user to confirm the wipe.
+  /// Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back up + reset and Reset only). Used after a successful backup to ask the user to confirm the wipe.
   ///
   /// In en, this message translates to:
   /// **'Reset app data?'**
   String get migrationBelowFloorResetConfirmTitle;
 
-  /// Body of the confirmation dialog shown before a Back Up + Reset action once the backup has been written successfully.
+  /// Body of the confirmation dialog shown before a Back up + reset action once the backup has been written successfully.
   ///
   /// In en, this message translates to:
   /// **'A backup has been saved. Resetting will replace your current data with a fresh, empty database.'**
   String get migrationBelowFloorResetConfirmBody;
 
-  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.
+  /// Confirm button of the reset dialog on the below-floor recovery screen, shown after a backup has been saved. Plain "Reset", not the "Back up + reset" button that opened the flow: the backup is already done.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get migrationBelowFloorResetConfirmAction;
+
+  /// Line shown in the Back up + reset confirmation dialog to tell the user where the backup file was written.
   ///
   /// In en, this message translates to:
   /// **'Backup saved to: {backupPath}'**
   String migrationBelowFloorBackupSavedAt(String backupPath);
 
-  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).
+  /// Line shown in the Back up + reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).
   ///
   /// In en, this message translates to:
   /// **'Diagnostic log saved to: {logPath}'**
   String migrationBelowFloorDiagnosticLogSavedAt(String logPath);
 
-  /// Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
+  /// Body of the confirmation dialog shown before a Reset only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
   ///
   /// In en, this message translates to:
-  /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.'**
+  /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This can\'t be undone.'**
   String get migrationBelowFloorResetOnlyConfirmBody;
 
   /// Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact.
@@ -337,7 +527,7 @@ abstract class AppLocalizations {
   /// Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry.
   ///
   /// In en, this message translates to:
-  /// **'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.'**
+  /// **'Couldn\'t delete the database file. Your data hasn\'t been changed. Try closing other apps that may be using the file, then try again.'**
   String get migrationBelowFloorWipeFailedBody;
 
   /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
@@ -349,14 +539,56 @@ abstract class AppLocalizations {
   /// Body of the confirm-before-delete dialog. {itemLabel} is the untrusted user-entered name of the item being deleted (a dance or program title), rendered as plain text between typographic quotes.
   ///
   /// In en, this message translates to:
-  /// **'“{itemLabel}” will be deleted. You can undo this.'**
+  /// **'\"{itemLabel}\" will be deleted. You can undo this.'**
   String confirmDeleteBody(String itemLabel);
 
-  /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
+  /// Body of the confirm-before-delete dialog when several selected dances are deleted at once from Collection's selection mode (shown only when the 'Confirm before delete' setting is on). {count} includes selected dances the current search hides.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance will be deleted. You can undo this.} other{{count} dances will be deleted. You can undo this.}}'**
+  String confirmDeleteDancesBody(int count);
+
+  /// Body of the confirm-before-delete dialog for a batch delete from Collection's selection mode when some selected dances are hidden by the current search or filters. {count} is every selected dance; {notShown} (at least 1) is how many of them the list does not show.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance will be deleted. Your search hides it. You can undo this.} other{{count} dances will be deleted, {notShown} of them hidden by your search. You can undo this.}}'**
+  String confirmDeleteDancesNotShownBody(int count, int notShown);
+
+  /// Body of the confirm-before-delete dialog for a program when deleting it would remove it from the calling history of {count} dances (shown only when the 'Confirm before delete' setting is on and {count} is at least 1). {itemLabel} is the untrusted user-entered program title, rendered as plain text between typographic quotes. {count} is how many distinct dances list this program in their calling history under the current history settings.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{itemLabel}\" will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.'**
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count);
+
+  /// Error under the colour dialog's Hex field when Apply is pressed while the field holds something that is not a six-digit hex colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter six hex digits, like #804020.'**
+  String get colorEditHexInvalid;
+
+  /// Field label for the hexadecimal color input in the shared color-picker dialog.
   ///
   /// In en, this message translates to:
   /// **'Hex'**
   String get colorEditHexLabel;
+
+  /// Screen-reader name of the red channel slider in the shared color-picker dialog (the visual label is the single letter R).
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorEditChannelRed;
+
+  /// Screen-reader name of the green channel slider in the shared color-picker dialog (the visual label is the single letter G).
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorEditChannelGreen;
+
+  /// Screen-reader name of the blue channel slider in the shared color-picker dialog (the visual label is the single letter B).
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorEditChannelBlue;
 
   /// Title of the Settings screen (sidebar header on wide layouts, app bar on narrow).
   ///
@@ -376,7 +608,7 @@ abstract class AppLocalizations {
   /// **'Program'**
   String get settingsProgramTitle;
 
-  /// Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs.
+  /// Settings section navigation title (sidebar/app bar) for visual appearance: theme, colors, easter eggs.
   ///
   /// In en, this message translates to:
   /// **'Appearance'**
@@ -412,11 +644,1841 @@ abstract class AppLocalizations {
   /// **'Experimental'**
   String get settingsExperimentalTitle;
 
+  /// Header of the expandable Developer options section in Experimental settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer options'**
+  String get settingsDeveloperOptionsHeader;
+
+  /// Title of the row that resets the database to a clean install.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset database'**
+  String get settingsDeveloperResetTitle;
+
+  /// Subtitle of the reset database row.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything on this device and start over, as on a fresh install.'**
+  String get settingsDeveloperResetSubtitle;
+
+  /// Title of the confirmation dialog for resetting the database.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the database?'**
+  String get settingsDeveloperResetConfirmTitle;
+
+  /// Body of the reset database confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your whole library on this device (every dance, program, setting and note) and restarts the app as if it had just been installed. This can\'t be undone.'**
+  String get settingsDeveloperResetConfirmBody;
+
+  /// Extra paragraph in the reset confirmation shown only while the device is connected to a sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is connected to a Device Sync store. It will first remove itself from the store so it isn\'t left behind as an orphaned device. Anything it has not yet synced to your other devices is lost.'**
+  String get settingsDeveloperResetConfirmSyncNote;
+
+  /// Checkbox label that must be ticked before the reset can be confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand this can\'t be undone, and I\'ve already taken a backup if I want one.'**
+  String get settingsDeveloperResetConfirmCheckbox;
+
+  /// Label of the destructive confirm button of the reset dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset database'**
+  String get settingsDeveloperResetConfirmAction;
+
+  /// Snackbar shown when leaving the sync store before a reset fails; the database is untouched and the device stays connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove this device from the sync store, so nothing was reset. Check your connection and try again.'**
+  String get settingsDeveloperResetLeaveFailed;
+
+  /// Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reset the database. If this device was connected to a sync store, it has already left it.'**
+  String get settingsDeveloperResetFailed;
+
   /// Placeholder text explaining that the Experimental settings section will contain features still in development.
   ///
   /// In en, this message translates to:
   /// **'New features may appear here while they are still in development.'**
   String get settingsExperimentalPlaceholder;
+
+  /// App bar title of the Glossary screen, a read-only reference of the app's built-in dance figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get glossaryTitle;
+
+  /// Hint text in the Glossary screen's search field, which filters the list of dance figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Search figures'**
+  String get glossarySearchHint;
+
+  /// Shown in the Glossary when no dance figure matches the search text.
+  ///
+  /// In en, this message translates to:
+  /// **'No figures match \"{query}\".'**
+  String glossaryNoMatches(String query);
+
+  /// Shown in the empty detail pane of the wide Glossary layout before a figure is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a figure to see its definition.'**
+  String get glossarySelectPrompt;
+
+  /// Button on a built-in figure's Glossary page that opens the editor on a new figure of the user's own, copied from it (#1023). The built-in figure is not changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy to Custom Figures'**
+  String get glossaryCopyAsOwnFigure;
+
+  /// Shown on one of the user's own figures that was copied from a built-in figure; {name} is that figure's name. The copy is independent of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied from {name}'**
+  String glossaryCustomCopiedFrom(String name);
+
+  /// Title of the opt-in step, after a Caller's Companion file is imported, that offers the file's own glossary terms for the user's Glossary (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Terms in this file'**
+  String get importCcTermsTitle;
+
+  /// Explains the Caller's Companion terms step (#1023). A term is a glossary word with an explanation and no figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Caller\'s Companion file has terms of its own. Choose which to add to your Glossary as terms. Each one\'s description starts as its definition: edit a term to change either, or its name.'**
+  String get importCcTermsIntro;
+
+  /// Shown on a Caller's Companion term (#1023) whose name is already taken in the app or the user's Glossary, or by an earlier term in the same file; it can't be added under that name.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure, shorthand or term already has this name. Rename it to add it, or leave it out.'**
+  String get importCcTermsNameTaken;
+
+  /// Shown on a Caller's Companion term (#1023) that has no definition, which every Glossary entry needs.
+  ///
+  /// In en, this message translates to:
+  /// **'It has no definition. Edit it to give it one and add it.'**
+  String get importCcTermsNeedsDefinition;
+
+  /// Shown on a Caller's Companion term (#1023) that has a definition but, after an edit, no name or no description; every Glossary entry needs all three.
+  ///
+  /// In en, this message translates to:
+  /// **'It needs a name, a definition and a description. Edit it to fill them in and add it.'**
+  String get importCcTermsIncomplete;
+
+  /// Shown on a Caller's Companion term (#1023) whose name or text is longer than a Glossary entry can be, so it can't be added as it is.
+  ///
+  /// In en, this message translates to:
+  /// **'It is longer than a Glossary entry can be. Edit it to shorten it and add it.'**
+  String get importCcTermsTooLong;
+
+  /// Title of the dialog that edits a Caller's Companion term's name, definition and description before it is added to the Glossary (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit term'**
+  String get importCcTermsEditTitle;
+
+  /// Screen-reader label of the Edit button on one Caller's Companion term (#1023); {name} is the term.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {name}'**
+  String importCcTermsEditLabel(String name);
+
+  /// Leaves the Caller's Companion terms step without adding any terms (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importCcTermsSkip;
+
+  /// Adds the ticked Caller's Companion terms to the Glossary (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Add terms} =1{Add 1 term} other{Add {count} terms}}'**
+  String importCcTermsConfirm(int count);
+
+  /// Snackbar after Caller's Companion terms are added to the Glossary (#1023), with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 term to your Glossary.} other{Added {count} terms to your Glossary.}}'**
+  String importCcTermsAdded(int count);
+
+  /// Shown when some Caller's Companion terms (#1023) were refused by the Glossary's size limits or failed to save.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 term couldn\'t be added: it\'s too long, or your Glossary is full.} other{{count} terms couldn\'t be added: they\'re too long, or your Glossary is full.}}'**
+  String importCcTermsFailed(int count);
+
+  /// Where one of the user's glossary terms comes from, as it was written (#1023): a Caller's Companion term's source, such as a book and its author.
+  ///
+  /// In en, this message translates to:
+  /// **'Source: {source}'**
+  String glossaryTermSource(String source);
+
+  /// On one of the user's own figures (#1023) whose name a figure that came with a later version of the app now has; {name} is that figure's name. The user chooses: rename theirs, or switch to the app's.
+  ///
+  /// In en, this message translates to:
+  /// **'The app now has its own figure called {name}. Rename yours, or switch your dances to the app\'s figure and remove yours.'**
+  String glossaryCustomShippedNameBody(String name);
+
+  /// Button on one of the user's own figures whose name a figure of the app's now has (#1023): opens the editor to rename theirs.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename mine'**
+  String get glossaryCustomRenameMine;
+
+  /// Button on one of the user's own figures whose name a figure of the app's now has (#1023): opens a screen that maps the user's figure onto the app's, then switches the dances using it to the app's figure and removes the user's.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the app\'s figure'**
+  String get glossaryCustomSwitchToShipped;
+
+  /// Title of the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to {name}'**
+  String userFigureSwitchTitle(String name);
+
+  /// Explains the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure. 'Options' are the values the user named for an option parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which of {name}\'s parameters each of your figure\'s parameters becomes, and which of its values each of your options becomes. Every one must be chosen before you can switch.'**
+  String userFigureSwitchIntro(String name);
+
+  /// Label of the menu choosing which of the app's figure's parameters one of the user's parameters becomes (#1023); {param} is the user's parameter name.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {param} becomes'**
+  String userFigureSwitchParam(String param);
+
+  /// Label of the menu choosing which of the app's values one of the user's choice values becomes (#1023); {choice} is the user's value.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {choice} becomes'**
+  String userFigureSwitchChoice(String choice);
+
+  /// Shown when one of the user's parameters (#1023) has no parameter in the app's figure it can become (for a choice, none that takes words; for any other kind, none of the same kind that takes all its values, or a plain number for places), so the switch can't be made; {name} is the app's figure, {param} the user's parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has nothing your {param} can become. Remove it from your figure first, or rename yours instead.'**
+  String userFigureSwitchNoTarget(String name, String param);
+
+  /// Shown when every parameter of the app's figure that one of the user's parameters (#1023) could map to is already chosen for another of the user's parameters; two can't share one. {name} is the app's figure, {param} the user's parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Each of {name}\'s parameters your {param} could become is already chosen for another of yours. Choose differently there first.'**
+  String userFigureSwitchAllTaken(String name, String param);
+
+  /// Button that switches the user's figure to the app's figure of the same name (#1023), after a confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get userFigureSwitchAction;
+
+  /// Title of the dialog confirming the switch from one of the user's own figures to the app's figure of the same name (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to {name}?'**
+  String userFigureSwitchConfirmTitle(String name);
+
+  /// Body of the dialog confirming the switch to the app's figure {name} (#1023), with how many dances use the user's figure.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dance in your collection uses your figure. It\'s removed from your Glossary.} =1{1 dance uses your figure, and will use {name} instead. Yours is removed from your Glossary.} other{{count} dances use your figure, and will use {name} instead. Yours is removed from your Glossary.}}'**
+  String userFigureSwitchConfirmUses(int count, String name);
+
+  /// Added to the dialog confirming a switch to the app's figure (#1023) when the user's default figure lists in Settings use their figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your default figures use it too, and switch the same way.'**
+  String get userFigureSwitchConfirmDefaults;
+
+  /// Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Its shorthand will insert {name}.} other{Its {count} shorthands will insert {name}.}}'**
+  String userFigureSwitchConfirmShorthands(int count, String name);
+
+  /// Shown when a switch to the app's figure (#1023) is refused because the user's figure changed since the mapping was chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was switched: your figure changed or is gone. Open it again to switch.'**
+  String get userFigureSwitchFailed;
+
+  /// Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure.
+  ///
+  /// In en, this message translates to:
+  /// **'No definition yet.'**
+  String get glossaryNoDefinition;
+
+  /// Shown on a Glossary figure that is a named variant of another figure (for example, see saw is a variant of do-si-do).
+  ///
+  /// In en, this message translates to:
+  /// **'A variant of {figure}.'**
+  String glossaryVariantOf(String figure);
+
+  /// A Glossary figure name followed by what tells it apart from a figure with the same name, e.g. the values a variant fixes: 'pull by (neighbors)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({detail})'**
+  String glossaryNameWithDetail(String name, String detail);
+
+  /// Heading above an example of how a figure is written, on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get glossaryExample;
+
+  /// Heading above the list of a figure's adjustable details (such as hand or direction), on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Parameters'**
+  String get glossaryParameters;
+
+  /// Heading above other names for a figure, on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Also known as'**
+  String get glossaryAlsoKnownAs;
+
+  /// Header of the Glossary group in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary and Custom Figures'**
+  String get settingsExperimentalGlossaryHeader;
+
+  /// Title of the switch that adds the Glossary destination to the app's navigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Show glossary'**
+  String get settingsExperimentalShowGlossaryTitle;
+
+  /// Subtitle of the Show glossary switch in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds a Glossary of the built-in figures to the navigation, between Programs and Settings.'**
+  String get settingsExperimentalShowGlossarySubtitle;
+
+  /// Header of the Device Sync group in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync'**
+  String get settingsSyncHeader;
+
+  /// Explains that Device Sync is opt-in and makes no network calls while off.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your library in step across your own devices. Device Sync is off until you turn it on, and nothing is sent anywhere while it is off.'**
+  String get settingsSyncIntro;
+
+  /// Title of the switch that enables Device Sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Device Sync'**
+  String get settingsSyncEnableTitle;
+
+  /// Subtitle of the Device Sync enable switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Turning this on does not send anything until you connect a store.'**
+  String get settingsSyncEnableSubtitle;
+
+  /// Title of the switch limiting automatic sync to unmetered connections.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync only on Wi-Fi'**
+  String get settingsSyncWifiOnlyTitle;
+
+  /// Subtitle of the sync-only-on-Wi-Fi switch.
+  ///
+  /// In en, this message translates to:
+  /// **'On by default. On a mobile-data connection sync waits until you are on Wi-Fi.'**
+  String get settingsSyncWifiOnlySubtitle;
+
+  /// Title of the switch that stops this device from uploading an imported dance that nothing else it publishes currently references.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip unused imported dances'**
+  String get settingsSyncExcludeImportsTitle;
+
+  /// Subtitle of the exclude-imports switch: off by default, upload-only, dances referenced by a program or a dance link are exempt, and BOTH sync_exclude_imports consequences spec §6.1 requires be surfaced at the setting rather than discovered — turning it on deletes nothing already synced, and turning it off republishes what was skipped. Must state both directions.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Cuts what this device uploads if you have a large imported collection; a dance used in a program or linked from another dance is always included. Nothing is removed from your other devices, and turning it off uploads the skipped dances again.'**
+  String get settingsSyncExcludeImportsSubtitle;
+
+  /// Header of the Device Sync status group.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get settingsSyncStatusHeader;
+
+  /// Label of the status-surface row that shows the sync phrase this device is connected with, so it can be entered on another device.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sync phrase'**
+  String get settingsSyncIdTitle;
+
+  /// Accessibility label for the sync-phrase row while the phrase is hidden; the row itself shows bullets.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden'**
+  String get settingsSyncIdMasked;
+
+  /// Tooltip of the button that reveals the hidden sync phrase on the status surface.
+  ///
+  /// In en, this message translates to:
+  /// **'Show sync phrase'**
+  String get settingsSyncIdShow;
+
+  /// Tooltip of the button that hides the revealed sync phrase on the status surface.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide sync phrase'**
+  String get settingsSyncIdHide;
+
+  /// Tooltip of the button that copies the sync phrase to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy sync phrase'**
+  String get settingsSyncIdCopy;
+
+  /// Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives — its address — so do not write 'unlock', 'key', 'access', 'credential' or 'password'. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync phrase copied. Anyone who has it can open your shared library, so paste it only on a device you own.'**
+  String get settingsSyncIdCopied;
+
+  /// Caution under the sync-phrase row: what it is for, and what having it lets anyone do (spec §6.14 item 2, §8). Must name deletion and the store-wide wipe as well as reading and changing — this is the same disclosure the pairing flow makes, on the surface that shows the phrase itself, and the two must not drift. Keep the same framing as the pairing disclosures: the phrase is where the library is, not a password guarding it. Describe behaviour only; say nothing about how the value is classified internally.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter this on your other device to connect it. It is where your shared library lives, so anyone who has it can open that library: read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. Moving to a different phrase means moving every device to it.'**
+  String get settingsSyncIdCaution;
+
+  /// Status shown when Device Sync is on but no sync store is connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected to a store yet.'**
+  String get settingsSyncStatusNotPaired;
+
+  /// Status shown when a store is connected but no sync has completed on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. Not synced yet.'**
+  String get settingsSyncStatusNeverSynced;
+
+  /// Status line naming the time of the last completed sync; {when} is a localized date and time.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced {when}'**
+  String settingsSyncStatusLastSynced(String when);
+
+  /// Status line naming the Device Sync server this device is paired with, shown when it is the default one. ADR-004 requires the endpoint to be shown un-abstracted as a URL in Settings whether or not it is the default, so this must render the full address and not a host name.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing with {url}'**
+  String settingsSyncEndpointStatus(String url);
+
+  /// Status line shown when this device is paired with a server other than the default Device Sync server (spec §8: a custom endpoint must be shown prominently). Renders the full URL, not a host name.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing with a custom server: {url}'**
+  String settingsSyncCustomEndpointStatus(String url);
+
+  /// Report of the duplicate dances a fresh attach merged (spec, W8). ADR-004 names this count as the mitigation for silent merge, so it is shown after EVERY fresh attach — pairing, a confirmed replacement and a stale-epoch auto-join alike — not only in the pairing dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {Found and merged {count} duplicate dance.} other {Found and merged {count} duplicate dances.}}'**
+  String settingsSyncMergedDuplicates(int count);
+
+  /// Status shown while a sync is running.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get settingsSyncStatusSyncing;
+
+  /// Status shown when the most recent sync attempt did not complete. The time of the last successful sync, if any, is shown separately below this line.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync failed.'**
+  String get settingsSyncStatusFailed;
+
+  /// Shown in the Device Sync section when the app failed to read its stored Device Sync settings. At startup, Device Sync stays off for that launch although the saved setting may say on. After restoring a backup, the app keeps the Device Sync state it had before the restore (which may be on), so what is shown may not match the restored settings. In both cases the user must be told rather than left to assume the screen is current. Not a sync failure: nothing was sent or lost.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.'**
+  String get settingsSyncStatusSettingsUnreadable;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the sync server.'**
+  String get settingsSyncFailureUnreachable;
+
+  /// What the user can do about settingsSyncFailureUnreachable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Check that this device is online. If you run your own server, check that it\'s running and that its address is right.'**
+  String get settingsSyncFailureUnreachableAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a request did not finish within the transport deadline.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server took too long to answer.'**
+  String get settingsSyncFailureTimedOut;
+
+  /// What the user can do about settingsSyncFailureTimedOut, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'A slow or unsteady connection is the usual cause. Try again when the connection is stronger.'**
+  String get settingsSyncFailureTimedOutAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered with a 5xx status: a fault on the server's side.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server ran into a problem of its own.'**
+  String get settingsSyncFailureServerError;
+
+  /// What the user can do about settingsSyncFailureServerError, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is wrong with this device or your library. Wait a while and try again. If it keeps happening, let whoever runs the server know, and quote the details shown here.'**
+  String get settingsSyncFailureServerErrorAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 429 Too Many Requests.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server asked this device to slow down.'**
+  String get settingsSyncFailureRateLimited;
+
+  /// What the user can do about settingsSyncFailureRateLimited, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'It has had too many requests in a short time. Wait a few minutes before trying again.'**
+  String get settingsSyncFailureRateLimitedAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507, which can mean this store is over its quota or, on newer servers, that the whole server is low on storage; the app can't tell which, so the sentence must be true of both and must not blame the user's store. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server can\'t store more right now.'**
+  String get settingsSyncFailureStoreFull;
+
+  /// What the user can do about settingsSyncFailureStoreFull, shown right after it. It covers both a per-store quota and a server that is low on disk space. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances can cut what this device uploads. If you run your own server, raise its storage limit or free up disk space.'**
+  String get settingsSyncFailureStoreFullAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 413 Payload Too Large. 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Something this device tried to upload is larger than the sync server accepts.'**
+  String get settingsSyncFailureTooLarge;
+
+  /// What the user can do about settingsSyncFailureTooLarge, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'If you have a large imported collection, turning on Skip unused imported dances may bring it under the limit. If you run your own server, check its upload size limit.'**
+  String get settingsSyncFailureTooLargeAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 400, 415 or 422: it refused the request as invalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server refused what this device sent.'**
+  String get settingsSyncFailureRejected;
+
+  /// What the user can do about settingsSyncFailureRejected when this device uses the project's own sync server: the app is ahead of the server, nothing is lost, and nothing needs doing on the device. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'This version of the app is newer than the sync server. Your changes are saved here and will sync once the server is updated.'**
+  String get settingsSyncFailureRejectedAdviceDefaultServer;
+
+  /// What the user can do about settingsSyncFailureRejected when this device uses a sync server the user chose (self-hosted): the server needs updating. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Update your sync server to match this version of the app.'**
+  String get settingsSyncFailureRejectedAdviceCustomServer;
+
+  /// Calm Device Sync status line after a sync attempt that failed for a reason that clears by itself (no connection, a timeout, a server fault, or a request to slow down). The app retries on its own, so this is not shown as an error. Also the snackbar text when the toolbar Sync now button hits such a failure. Must not say when the next try is.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to sync. Your changes are saved here.'**
+  String get settingsSyncStatusWaiting;
+
+  /// Warning on the Device Sync status surface when the store has used 80% or more of the space or record count the sync server allows. 'Store' is the shared place devices sync through, as elsewhere in Device Sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sync store is almost full.'**
+  String get settingsSyncQuotaNearlyFull;
+
+  /// Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip unused imported dances'**
+  String get settingsSyncQuotaExcludeImports;
+
+  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device. The last sentence is a warning, not advice to wait: this device still holds its own older copy of those records, and an edit here gives that copy a newer date, so for most records it replaces the other device's version everywhere (spec §6.3 step 4, newer edit wins). 'may' is deliberate: for the few settings that hold a whole collection (dialects, themes, shorthand sets, walkthrough snippets) the app asks instead.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}. Editing them here before you update may discard the other device\'s changes to them.'**
+  String settingsSyncNoticeNewerVersionItems(String items);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance} other{{count} dances}}'**
+  String settingsSyncNoticeCountDance(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many programs are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program} other{{count} programs}}'**
+  String settingsSyncNoticeCountProgram(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 author} other{{count} authors}}'**
+  String settingsSyncNoticeCountChoreographer(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 tag} other{{count} tags}}'**
+  String settingsSyncNoticeCountTag(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many custom fields are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 custom field} other{{count} custom fields}}'**
+  String settingsSyncNoticeCountCustomField(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many difficulty levels are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 difficulty level} other{{count} difficulty levels}}'**
+  String settingsSyncNoticeCountDifficulty(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many published sources are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 published source} other{{count} published sources}}'**
+  String settingsSyncNoticeCountPublishedSource(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many venues are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 venue} other{{count} venues}}'**
+  String settingsSyncNoticeCountVenue(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many settings are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
+  String settingsSyncNoticeCountSetting(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's own figures (compound figures they defined in the Glossary) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of your own figures} other{{count} of your own figures}}'**
+  String settingsSyncNoticeCountGlossaryEntry(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's notes on built-in Glossary figures (one note per figure) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{your notes on 1 figure} other{your notes on {count} figures}}'**
+  String settingsSyncNoticeCountFigureNote(int count);
+
+  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know. The last sentence carries the same hedged warning as settingsSyncNoticeNewerVersionItems: editing here, before updating, a record the newer device changed may replace that device's version. 'it' is the other device.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, may discard its changes.'**
+  String get settingsSyncNoticeNewerVersionUncounted;
+
+  /// Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example "3 programs, 1 setting".
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for a newer version of the app: {items}. These still sync, with details this version can\'t show. Update the app on this device to see them.'**
+  String settingsSyncNoticeKeptNewerItems(String items);
+
+  /// Tooltip of the button on a Device Sync problem that copies a short code describing it (for example SYNC-STORE-FULL), so the user can paste it into a message asking for help. Nothing is sent anywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy details'**
+  String get settingsSyncCopyDetails;
+
+  /// Snackbar confirming the short Device Sync problem code was copied to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Details copied.'**
+  String get settingsSyncDetailsCopied;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 401 or 403.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server didn\'t accept this device\'s sync phrase.'**
+  String get settingsSyncFailureAccessDenied;
+
+  /// What the user can do about settingsSyncFailureAccessDenied, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Check the phrase against the one on your other device, and check that the server address is right.'**
+  String get settingsSyncFailureAccessDeniedAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when an unexpected status, a redirect the app will not follow, or a malformed or oversized response body.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server sent a reply this app couldn\'t use.'**
+  String get settingsSyncFailureUnexpectedResponse;
+
+  /// What the user can do about settingsSyncFailureUnexpectedResponse, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'If you run your own server, check its address and that it\'s a version this app supports. Otherwise, update the app and try again later.'**
+  String get settingsSyncFailureUnexpectedResponseAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a first connection to a store needs every peer's manifest and at least one could not be read. 'Other devices' is the exact title of the settingsSyncDevicesTitle row.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read what one of your other devices last shared.'**
+  String get settingsSyncFailurePeerUnavailable;
+
+  /// What the user can do about settingsSyncFailurePeerUnavailable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to a store needs the latest list from every device on it. Open the app on your other devices and let them sync, then try again. If a device is gone for good, remove it under Other devices.'**
+  String get settingsSyncFailurePeerUnavailableAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a failure inside the app rather than on the network. 'Diagnostics' is the exact title of the settingsDiagnosticsTitle section.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing stopped because of a problem inside the app.'**
+  String get settingsSyncFailureInternal;
+
+  /// What the user can do about settingsSyncFailureInternal, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a problem with your connection or the server. Try again. If it keeps happening, export the log from Settings ▸ Diagnostics and include it when you report the problem.'**
+  String get settingsSyncFailureInternalAdvice;
+
+  /// Part of the technical details line under a Device Sync failure, naming the step that failed so the user can describe the problem. The select values are internal identifiers and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{step, select, lookup{Stopped while looking up the store.} download{Stopped while downloading from your other devices.} upload{Stopped while uploading this device\'s changes.} publish{Stopped while publishing this device\'s changes.} createStore{Stopped while creating the store.} other{Stopped partway through.}}'**
+  String settingsSyncFailureStep(String step);
+
+  /// Part of the technical details line under a Device Sync failure: the HTTP status code the server answered with, for the user to quote when reporting the problem.
+  ///
+  /// In en, this message translates to:
+  /// **'Server status code: {code}.'**
+  String settingsSyncFailureStatusCode(int code);
+
+  /// Technical details line under a Device Sync failure. {details} is settingsSyncFailureStep and/or settingsSyncFailureStatusCode joined by a space.
+  ///
+  /// In en, this message translates to:
+  /// **'Details: {details}'**
+  String settingsSyncFailureDetails(String details);
+
+  /// Snackbar shown when the toolbar Sync now button on the Collection or Programs page ran a pass that did not complete. {explanation} is the failure reason and advice (settingsSyncFailure* strings) or a status line such as settingsSyncStatusStoreUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync didn\'t finish. {explanation}'**
+  String commonSyncFailed(String explanation);
+
+  /// Second line of a Device Sync notice listing the records it is about, so the user knows which ones to look at. {records} is a list of settingsSyncNoticeRecordNamed / settingsSyncNoticeRecordNotHere / kind labels joined by settingsSyncNoticeListSeparator, optionally ending with settingsSyncNoticeAffectedMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Affects: {records}'**
+  String settingsSyncNoticeAffected(String records);
+
+  /// Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example "3 programs, 1 setting"). Include any spacing your language uses.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get settingsSyncNoticeListSeparator;
+
+  /// One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as "Dance") and its title or name as stored on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} \"{name}\"'**
+  String settingsSyncNoticeRecordNamed(String kind, String name);
+
+  /// One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as "Dance".
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} not on this device'**
+  String settingsSyncNoticeRecordNotHere(String kind);
+
+  /// Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} \"{name}\" (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name);
+
+  /// Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} not on this device (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind);
+
+  /// Ends the settingsSyncNoticeAffected list when it names only the first few records.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{and {count} more}}'**
+  String settingsSyncNoticeAffectedMore(int count);
+
+  /// Line on a Device Sync notice saying how many other devices the records it is about came from.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{From 1 other device.} other{From {count} other devices.}}'**
+  String settingsSyncNoticeFromDevices(int count);
+
+  /// Shown on the Other devices screen when the device list could not be loaded and the reason is known. {explanation} is a settingsSyncFailure* reason and its advice.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the device list. {explanation}'**
+  String settingsSyncDevicesFailedBecause(String explanation);
+
+  /// Joins a Device Sync action failure (settingsSyncDeviceRemoveFailed or settingsSyncWipeFailed) with the reason it failed (a settingsSyncFailure* reason). Reorder if your language puts the reason first.
+  ///
+  /// In en, this message translates to:
+  /// **'{message} {explanation}'**
+  String settingsSyncAdminFailedBecause(String message, String explanation);
+
+  /// Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'This store was replaced by another device since your last sync. The next sync will join the new one.'**
+  String get settingsSyncStatusStaleStore;
+
+  /// Status shown when the last sync attempt found that a store this device had previously used no longer exists. Per spec §6.14 item 6 this must not claim a specific cause the server did not give; the replacement dialog asks the user what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'This store may have expired from inactivity or been removed.'**
+  String get settingsSyncStatusStoreUnavailable;
+
+  /// Status shown when the stored sync phrase has never matched a store (the server answered not-found and this device never used the store before). Distinct from the expired-or-removed case: nothing existed to expire.
+  ///
+  /// In en, this message translates to:
+  /// **'No store has this sync phrase. Check it against your other device.'**
+  String get settingsSyncStatusStoreNotFound;
+
+  /// Status shown after the user declined to replace a store that had gone missing. Per spec §6.3 step 1 declining leaves sync configured but paused; a manual 'Sync now' reopens the replacement decision. Automatic syncs do nothing while paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync is paused because the store this device used no longer exists. Tap Sync now to decide again.'**
+  String get settingsSyncStatusPaused;
+
+  /// Non-blocking notice for an equal-updatedAt conflict (spec §6.3) that the conflict choice does not cover: two dances that share a title, which Sync decisions lists, or two tombstones, which an edit settles. Ordinary ties go to the conflict choice instead and raise no notice. Needs no dismissal and blocks nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Some items were changed on two devices at the same moment and still differ. If they\'re listed under Sync decisions, choose there; otherwise edit one of them to settle it.'**
+  String get settingsSyncNoticeDivergence;
+
+  /// Title of the conflict choice (sync-spec §6.3): a dialog on wide windows, a bottom sheet on phones, listing items changed on more than one device whose versions only the user can choose between.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which version to keep'**
+  String get syncConflictTitle;
+
+  /// Intro under the conflict choice title. Must reassure: nothing is lost before the user chooses, and nothing is chosen for them.
+  ///
+  /// In en, this message translates to:
+  /// **'These were changed on more than one device, and the app can\'t tell which change should win. Both versions are kept until you choose.'**
+  String get syncConflictIntro;
+
+  /// Option label for keeping this device's version of an item in the conflict choice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get syncConflictThisDevice;
+
+  /// Option label for keeping the other device's version when only one other version is on offer. Devices are never named, by design.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device'**
+  String get syncConflictOtherDevice;
+
+  /// Option label when more than one other version is on offer; {number} tells them apart. Devices are never named, by design.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device ({number})'**
+  String syncConflictOtherDeviceNumbered(int number);
+
+  /// Selects this device's version for every item in the conflict choice; the user still confirms with the apply button.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep all from this device'**
+  String get syncConflictKeepAllThisDevice;
+
+  /// Selects the other device's version for every item, offered only when each item has exactly one other version; the user still confirms.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep all from the other device'**
+  String get syncConflictKeepAllOtherDevice;
+
+  /// Button that saves the chosen versions. Each chosen version then reaches the other devices as an ordinary newer edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep selected'**
+  String get syncConflictApply;
+
+  /// Closes the conflict choice without changing anything; the items stay listed until decided.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get syncConflictDecideLater;
+
+  /// Button on one item in the conflict choice that opens the full comparison of its versions. Shown when several items are listed; a single item shows the comparison directly.
+  ///
+  /// In en, this message translates to:
+  /// **'Show differences'**
+  String get syncConflictShowDifferences;
+
+  /// Second line under a version in the conflict choice: when that version was last changed. Shown only when the versions were changed at different times.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed {when}'**
+  String syncConflictChangedAt(String when);
+
+  /// Heading in the comparison listing entries (dialects, shorthands, a program's dances…) that only this device's version has.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on this device'**
+  String get syncConflictOnlyHereHeader;
+
+  /// Heading in the comparison listing entries that only the other device's version has.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on the other device'**
+  String get syncConflictOnlyThereHeader;
+
+  /// Heading in the comparison listing entries both versions have but with different contents.
+  ///
+  /// In en, this message translates to:
+  /// **'Different on each device'**
+  String get syncConflictDifferentHeader;
+
+  /// Note at the end of a collection comparison: how many entries are identical in both versions.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more is the same on both} other{{count} more are the same on both}}'**
+  String syncConflictSameCount(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries only this device has. Joined with the other parts by " · ".
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 only on this device} other{{count} only on this device}}'**
+  String syncConflictSummaryOnlyHere(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries only the other device has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 only on the other device} other{{count} only on the other device}}'**
+  String syncConflictSummaryOnlyThere(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries both have with different contents.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 different} other{{count} different}}'**
+  String syncConflictSummaryChanged(int count);
+
+  /// One-line summary of a conflicted dance, program or other item: the names of the fields that differ, e.g. "Figures, Calling notes".
+  ///
+  /// In en, this message translates to:
+  /// **'Differs in: {fields}'**
+  String syncConflictDiffersInFields(String fields);
+
+  /// Heading in the comparison when more than one other version is on offer; {version} is e.g. "Another device (2)".
+  ///
+  /// In en, this message translates to:
+  /// **'Compared with {version}'**
+  String syncConflictComparedWith(String version);
+
+  /// Shown in the comparison when the versions differ only in fields that are never shown here.
+  ///
+  /// In en, this message translates to:
+  /// **'These versions differ only in details this view doesn\'t show.'**
+  String get syncConflictNothingToShow;
+
+  /// Shown in the comparison when either version's figures cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures can\'t be compared here.'**
+  String get syncConflictFiguresUnreadable;
+
+  /// Shown in a program comparison when both versions list the same dances but in a different order.
+  ///
+  /// In en, this message translates to:
+  /// **'The same dances, in a different order.'**
+  String get syncConflictSlotsReordered;
+
+  /// Shown in a program comparison when both versions list the same dances but slot details differ.
+  ///
+  /// In en, this message translates to:
+  /// **'The same dances, with different details such as timings or alternates.'**
+  String get syncConflictSlotsDetailsDiffer;
+
+  /// Shown in the comparison in place of a name for something a version refers to that this device doesn't have (a tag, choreographer or dance).
+  ///
+  /// In en, this message translates to:
+  /// **'Not on this device'**
+  String get syncConflictUnknownItem;
+
+  /// One version's value in the comparison, e.g. "This device: Dark". {device} is "This device" or "Another device".
+  ///
+  /// In en, this message translates to:
+  /// **'{device}: {value}'**
+  String syncConflictVersionLine(String device, String value);
+
+  /// A name and its value in the comparison, e.g. "Source book: Zesty Contras" for a custom field, or "My dialect: Move substitutions" for a part of a dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String syncConflictFieldValue(String field, String value);
+
+  /// Label for the name field of a choreographer, tag or venue in the comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get syncConflictFieldName;
+
+  /// Third option for a list such as dialects or shorthands that both devices changed: keep every entry from both instead of one device's whole list.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine both'**
+  String get syncConflictCombineBoth;
+
+  /// Subtitle of Combine both: how many entries the combined list would hold.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Keeps the 1 item from both devices} other{Keeps all {count} items from both devices}}'**
+  String syncConflictCombineSummary(int count);
+
+  /// Subtitle of a disabled Combine both: the combined list would be longer than the app keeps, so some entries would be lost.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t combine: together these would be {count}, and this list holds at most {limit}.'**
+  String syncConflictCombineOverLimit(int count, int limit);
+
+  /// Shown under Combine both when some entries exist on both devices with different contents; the user picks a version of each before saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Both devices changed these. For each, choose which to keep:'**
+  String get syncConflictCombinePickEach;
+
+  /// Shown when Combine both was chosen for something that cannot be combined.
+  ///
+  /// In en, this message translates to:
+  /// **'These can\'t be combined, so nothing was changed.'**
+  String get syncConflictCombineUnavailable;
+
+  /// Shown when saving a combination failed because it would exceed the list's limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Together these would be more than this list can hold, so nothing was changed.'**
+  String get syncConflictCombineOverLimitError;
+
+  /// Snackbar after saving conflict choices; its action reopens them to choose again.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choices are saved.'**
+  String get syncConflictSaved;
+
+  /// Snackbar action after saving conflict choices: reopens those items with the versions you chose between. Nothing changes until you choose again and save.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get syncConflictUndo;
+
+  /// Intro of the conflict choice when reopened by Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose again between the versions you had. Nothing changes until you save.'**
+  String get syncConflictReconsiderIntro;
+
+  /// Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device).
+  ///
+  /// In en, this message translates to:
+  /// **'Something newer arrived after you chose, so nothing was changed.'**
+  String get syncConflictUndoChanged;
+
+  /// Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line.
+  ///
+  /// In en, this message translates to:
+  /// **'Origin'**
+  String get syncConflictFieldProvenance;
+
+  /// Label for a tag's color in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get syncConflictFieldColour;
+
+  /// Label for whether a custom theme is light or dark, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark'**
+  String get syncConflictThemeBrightness;
+
+  /// A figure's own walkthrough text, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'walkthrough: {text}'**
+  String syncConflictFigureWalkthrough(String text);
+
+  /// A figure's own calling wording, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'wording: {text}'**
+  String syncConflictFigureWording(String text);
+
+  /// A figure in the conflict comparison whose words are the same on both versions but whose other saved details differ.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} (other details differ)'**
+  String syncConflictFigureDetailsDiffer(String figure);
+
+  /// Marks a link that joins the related-dance group, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'in the related-dance group'**
+  String get syncConflictLinkInGroup;
+
+  /// Shown for a version of a setting that has no value.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get syncConflictValueNotSet;
+
+  /// Shown for a version of an on/off setting that is on.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get syncConflictValueOn;
+
+  /// Shown for a version of an on/off setting that is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get syncConflictValueOff;
+
+  /// Summary of a version of a setting whose value is a collection whose entries have no names.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{None} =1{1 item} other{{count} items}}'**
+  String syncConflictValueItems(int count);
+
+  /// Summary of a version of a collection setting: the first few entry names, then how many more there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String syncConflictValueNamesAndMore(String names, int count);
+
+  /// Shown in the conflict choice when no item is waiting for a choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing needs choosing right now.'**
+  String get syncConflictNone;
+
+  /// Shown when a choice could not be stamped later than every version without leaving this device's clock window: the fix is this device's clock.
+  ///
+  /// In en, this message translates to:
+  /// **'This device\'s date and time look wrong, so your choice couldn\'t be saved. Correct the date and time, then try again.'**
+  String get syncConflictClockWrong;
+
+  /// Shown when saving a conflict choice failed for an unexpected reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choice couldn\'t be saved. Try again.'**
+  String get syncConflictFailed;
+
+  /// Name of the synced setting that records which custom theme is active, shown when the user must choose between two versions of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme in use'**
+  String get syncSettingActiveCustomTheme;
+
+  /// Name of the synced setting that records which dialect is active, shown when the user must choose between two versions of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialect in use'**
+  String get syncSettingActiveDialect;
+
+  /// Name of the synced setting that remembers the last sort chosen on the Collection page.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort (last used)'**
+  String get syncSettingLastCollectionSort;
+
+  /// Name of the synced setting that remembers the last sort direction chosen on the Collection page.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort direction (last used)'**
+  String get syncSettingLastCollectionSortDirection;
+
+  /// Name of the synced setting that remembers the last sort chosen on the Programs page.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort (last used)'**
+  String get syncSettingLastProgramSort;
+
+  /// Name of the synced setting that remembers the last sort direction chosen on the Programs page.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort direction (last used)'**
+  String get syncSettingLastProgramSortDirection;
+
+  /// Name of the synced setting holding the direction the Collection list opens in when a fixed default sort is chosen in Settings > Defaults (issue #1841). Distinct from the last-used direction.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort direction (default)'**
+  String get syncSettingDefaultCollectionSortDirection;
+
+  /// Name of the synced setting holding the direction the Programs list opens in when a fixed default sort is chosen in Settings > Defaults (issue #1841). Distinct from the last-used direction.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort direction (default)'**
+  String get syncSettingDefaultProgramSortDirection;
+
+  /// Name of the setting that turns on the dark stage theme in Perform, as a Device Sync conflict names it. It stays on each device now; a conflict over it can only be one queued by an older version of the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage theme in Perform mode'**
+  String get syncSettingPerformStageTheme;
+
+  /// Subtitle of the Device Sync entry that opens the conflict choice; shown only while at least one item is waiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}'**
+  String settingsSyncConflictsSubtitle(int count);
+
+  /// Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Try again button, so a failed check is not mistaken for there being no conflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for conflicts. Try again.'**
+  String get settingsSyncConflictsCheckFailed;
+
+  /// Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}'**
+  String commonSyncNowConflictsTooltip(int count);
+
+  /// Non-blocking notice for spec §6.4: a record created locally and never observed by any peer must be reported rather than resolved out of existence. Informational — the record is safe and no action is required.
+  ///
+  /// In en, this message translates to:
+  /// **'Something created on this device would have been removed by another device that had never seen it. It was kept here instead.'**
+  String get settingsSyncNoticeKeptLocalCreation;
+
+  /// Non-blocking notice for a record on THIS device left quarantined after peer-only timestamp repair and withheld from publication along with its dependents. Deliberately distinct from the skipped-record notice, which is about records received from another device: nothing was received here, so the remedy is this device's clock rather than another device's app version. The two share a report code and are told apart by whether the report carries a peer id.
+  ///
+  /// In en, this message translates to:
+  /// **'Some items on this device have a date the app can\'t trust, so they aren\'t being sent to your other devices. Check this device\'s date and time, then edit one of the items to give it a fresh date.'**
+  String get settingsSyncNoticeQuarantinedLocal;
+
+  /// Non-blocking notice for a dance on THIS device whose stored figures or tunes cannot be decoded, which is withheld from publication (spec §6.9). Every clause has to stay literally true of the behaviour. 'on this device' — the fault is a local row and no peer is involved, which is why this is NOT the skipped-record notice; that one tells the user to check another device's app version, which is the wrong device and the wrong remedy. 'figures or tunes' — both stored columns raise this, so naming only figures would be false for half the cases. 'aren't being sent' — the record is withheld from every publish and match path, so no peer's readable copy is overwritten. 'Nothing has been deleted' — the stored text is kept verbatim, and editing anything else about the dance does not replace it. The closing clause is the only remedy there is: unlike the quarantine notice no clock is involved and no later sync clears it, so this copy must not send the user to a settings screen. Do not name the collection row's badge text here — it is a separate string and the two would drift apart.
+  ///
+  /// In en, this message translates to:
+  /// **'Some dances on this device have saved figures or tunes the app can\'t read, so they aren\'t being sent to your other devices. Nothing has been deleted — open one and enter its figures or tunes again to include it.'**
+  String get settingsSyncNoticeWithheldUnreadable;
+
+  /// Non-blocking notice covering every condition that leaves one INBOUND record unusable: malformed or non-canonical body, a non-shareable field, a missing or mismatched blob, an unresolved reference, or a quarantined implausible timestamp on a record received from a peer. Grouped deliberately — the spec requires the report not be a per-record prompt. A local record quarantined on this device uses settingsSyncNoticeQuarantinedLocal instead.
+  ///
+  /// In en, this message translates to:
+  /// **'Some records from another device couldn\'t be used and were skipped. Check that your other devices are running the same app version, then sync again.'**
+  String get settingsSyncNoticeSkippedRecord;
+
+  /// Non-blocking notice raised when every peer timestamp observed in a pass sat outside this device's clock window, which indicates a wrong clock rather than a bad record.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device\'s clock looks far off from this one\'s. Check the date and time on your devices — sync uses them to decide which edit is newer.'**
+  String get settingsSyncNoticeClock;
+
+  /// Non-blocking notice for an inbound update held back because the local row changed while the pass was preparing it. Self-resolving: the copy must not send the user to fix anything.
+  ///
+  /// In en, this message translates to:
+  /// **'An update from another device arrived while you were editing the same record, so it wasn\'t applied. The next sync picks it up.'**
+  String get settingsSyncNoticeDeferredInbound;
+
+  /// Needs-you Device Sync notice, one per other device: that device has synced at least twice since this one shared some changes and still doesn't have them. The two usual causes are named: that device runs an older app version that refuses them, or this device's clock is far ahead so the other device refuses them as dated in the future. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. Says the user's work is safe on this device before what to check.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Device {tag} is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.} other{Device {tag} is syncing but isn\'t taking {count} changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.}}'**
+  String settingsSyncNoticePeerNotTaking(int count, String tag);
+
+  /// Informational Device Sync notice, one per other device: this device is holding back new kinds of data (for example custom compound figures) because that device runs an app version that couldn't read them. Holding back loses nothing. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. 'Other devices' is the screen's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Some new kinds of data on this device will start syncing once device {tag} is updated to the latest version of the app, or removed from Other devices. They\'re safe here.'**
+  String settingsSyncNoticeAwaitingDevice(String tag);
+
+  /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by color alone.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs you'**
+  String get settingsSyncNoticeNeedsYou;
+
+  /// Button on the settingsSyncNoticePeerNotTaking notice that opens the Other devices screen (settingsSyncDevicesScreenTitle), where the device it names is listed by the same tag.
+  ///
+  /// In en, this message translates to:
+  /// **'See other devices'**
+  String get settingsSyncNoticeSeeDevices;
+
+  /// Disclosure that sync does not replace a file backup. Spec §6.14 item 3 requires it wherever the UI reports success, so it is shown both on the Device Sync status surface and in the dialog shown when pairing completes; a third success report would need it too.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.'**
+  String get settingsSyncNotBackup;
+
+  /// Warning that the sync store is approaching its 30-day disuse expiry.
+  ///
+  /// In en, this message translates to:
+  /// **'This store has not synced for a while and will be removed after 30 days without use. Open the app on a connected device and sync to keep it.'**
+  String get settingsSyncExpiryWarning;
+
+  /// Title of the button that starts a manual sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get settingsSyncNowTitle;
+
+  /// Status-surface action that detaches this device from its Device Sync store (spec: detach). Forgets the sync phrase on this device; afterwards the app may remove this device's entry from the store if the other devices already have everything it shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect this device'**
+  String get settingsSyncDisconnectTitle;
+
+  /// Subtitle under the Device Sync disconnect action. Must not say the store is unchanged: disconnecting may remove this device's entry from it (settingsSyncDisconnectConfirmBody).
+  ///
+  /// In en, this message translates to:
+  /// **'Stop syncing here. Your library stays as it is, here and on your other devices.'**
+  String get settingsSyncDisconnectSubtitle;
+
+  /// Title of the confirmation dialog before detaching this device from its Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect this device?'**
+  String get settingsSyncDisconnectConfirmTitle;
+
+  /// Body of the Device Sync disconnect confirmation: keeps the library, removes this device's entry from the store only when the other devices already have everything from it (otherwise it stays under Other devices, the exact title of settingsSyncDevicesTitle), and needs the phrase to reconnect (spec §6.14 item 2: no recovery).
+  ///
+  /// In en, this message translates to:
+  /// **'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and so do your other devices. Disconnecting removes this device from the sync store if your other devices already have everything from it. If they don\'t, it stays listed under Other devices until you remove it there. To reconnect later you\'ll need the phrase, so make sure you have it.'**
+  String get settingsSyncDisconnectConfirmBody;
+
+  /// Confirm button of the Device Sync disconnect dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get settingsSyncDisconnectConfirmAction;
+
+  /// Snackbar shown when detaching from the Device Sync store fails; the device stays attached.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t disconnect this device. It is still connected; try again.'**
+  String get settingsSyncDisconnectFailed;
+
+  /// Status-surface action opening the list of the other devices connected to this Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices'**
+  String get settingsSyncDevicesTitle;
+
+  /// Subtitle under the Device Sync other-devices action.
+  ///
+  /// In en, this message translates to:
+  /// **'See what else is connected to this store, and remove a device you no longer use.'**
+  String get settingsSyncDevicesSubtitle;
+
+  /// App bar title of the screen listing the other devices in the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices'**
+  String get settingsSyncDevicesScreenTitle;
+
+  /// Explains that the Device Sync device list shows each device by a short tag of the random identifier that device made up for itself (a new one at every connection), never a name; that this device is not listed but its own tag is shown below (settingsSyncDevicesThisDevice); and that removal is reversible by re-pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Each device makes up its own random identifier, and a new one every time it connects, so devices are shown here by a short tag from that identifier rather than by name. This device isn\'t in the list; its own tag is below, so you can find it on your other devices. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.'**
+  String get settingsSyncDevicesCaution;
+
+  /// Line on the Other devices screen giving this device's own short tag, so the user can tell which entry is this device when looking at the list on another device.
+  ///
+  /// In en, this message translates to:
+  /// **'This device: {tag}'**
+  String settingsSyncDevicesThisDevice(String tag);
+
+  /// Title of one entry on the Other devices screen. {tag} is a short, random, case-sensitive tag cut from the device's identifier; never a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Device {tag}'**
+  String settingsSyncDeviceTag(String tag);
+
+  /// Line under a device on the Other devices screen: that device last published its list of changes today. Rounded to the day on purpose; never a time.
+  ///
+  /// In en, this message translates to:
+  /// **'Last shared changes today'**
+  String get settingsSyncDeviceLastSharedToday;
+
+  /// Line under a device on the Other devices screen: how many calendar days ago that device last published its list of changes, from 1 to 13.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last shared changes yesterday} other{Last shared changes {count} days ago}}'**
+  String settingsSyncDeviceLastSharedDays(int count);
+
+  /// Line under a device on the Other devices screen: roughly how many weeks ago that device last published its list of changes, used from two weeks on.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last shared changes about a week ago} other{Last shared changes about {count} weeks ago}}'**
+  String settingsSyncDeviceLastSharedWeeks(int count);
+
+  /// Line under a device on the Other devices screen when that device doesn't yet have some of this device's changes, usually because it hasn't been opened since. Calm status, not a warning.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}'**
+  String settingsSyncDeviceWaiting(int count);
+
+  /// Heading of the empty state on the sync devices screen when no other device is connected to the store.
+  ///
+  /// In en, this message translates to:
+  /// **'No other devices yet'**
+  String get settingsSyncDevicesEmptyTitle;
+
+  /// Body of the empty state on the sync devices screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices connected to this store will appear here.'**
+  String get settingsSyncDevicesEmptyBody;
+
+  /// Error state when the Device Sync store listing could not be fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the device list. Check your connection and try again.'**
+  String get settingsSyncDevicesFailed;
+
+  /// Error state when the Device Sync store itself has gone (404) while listing its devices.
+  ///
+  /// In en, this message translates to:
+  /// **'This store is no longer on the server, so there are no devices to show.'**
+  String get settingsSyncDevicesStoreMissing;
+
+  /// Button that re-fetches the Device Sync device list after a failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get settingsSyncDevicesRetry;
+
+  /// Tooltip of the button that removes one other device from the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this device'**
+  String get settingsSyncDeviceRemoveTooltip;
+
+  /// Title of the confirmation dialog before removing another device from the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this device?'**
+  String get settingsSyncDeviceRemoveTitle;
+
+  /// Body of the remove-device confirmation. Removal deletes that device's manifest: it frees the device slot at once, but does not disconnect or block the device, and a still-running device republishes on its next pass (sync_coordinator.dart, putManifest at the end of every pass). Must not imply the removed device stops syncing.
+  ///
+  /// In en, this message translates to:
+  /// **'The store drops this device\'s list of what it shared and frees the place it was using. Nothing is deleted from that device, and nothing is deleted from yours. This is for a device that\'s genuinely gone: removing one doesn\'t disconnect it, so a device that\'s still running will publish its list again the next time it syncs, and any device can reconnect with the sync phrase.'**
+  String get settingsSyncDeviceRemoveBody;
+
+  /// Confirm button of the Device Sync remove-device dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsSyncDeviceRemoveAction;
+
+  /// Snackbar shown when removing another device from the Device Sync store fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove that device. It is still connected; try again.'**
+  String get settingsSyncDeviceRemoveFailed;
+
+  /// Status-surface action that deletes the whole Device Sync store from the server (spec: wipe).
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect all devices and delete the store'**
+  String get settingsSyncWipeTitle;
+
+  /// Subtitle under the Device Sync wipe action, stating that it is irreversible and affects every device.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove everything this store holds, for every device at once. This can\'t be undone.'**
+  String get settingsSyncWipeSubtitle;
+
+  /// Title of the confirmation dialog before wiping the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this store from the server?'**
+  String get settingsSyncWipeConfirmTitle;
+
+  /// Body of the Device Sync wipe confirmation: irreversible, affects every device, keeps local libraries, detaches this device, and is the only thing that removes the store's contents at once (spec §5.3). Moving every device to a new phrase is the complementary step (spec §6.14 item 2): neither is presented as the whole answer. The phrase is the store's address, not a password or credential: do not use 'leaked', 'stolen', 'compromised' or account vocabulary.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything the store holds is deleted from the server, for every device at once. This can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store\'s address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.'**
+  String get settingsSyncWipeConfirmBody;
+
+  /// Confirm button of the Device Sync wipe dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the store'**
+  String get settingsSyncWipeConfirmAction;
+
+  /// Snackbar shown when the wipe did not report success. Deliberately does NOT claim nothing changed: the request may have timed out after the server had already processed the DELETE, so the store's state is unknown here.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the store, or couldn\'t confirm it was deleted. This device is still connected. Check your other devices before trying again.'**
+  String get settingsSyncWipeFailed;
+
+  /// Body of the dialog for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete.
+  ///
+  /// In en, this message translates to:
+  /// **'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.'**
+  String get settingsSyncWipeDetachFailed;
+
+  /// Title of the dialog for SyncAdminOutcome.wipedButStillAttached; the body is settingsSyncWipeDetachFailed. Must not read as a failure to delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Store deleted, this device still connected'**
+  String get settingsSyncWipeDetachFailedTitle;
+
+  /// Message shown when a manual sync is attempted on a metered connection, pointing at the Wi-Fi-only setting.
+  ///
+  /// In en, this message translates to:
+  /// **'You are on a mobile-data connection and Sync only on Wi-Fi is on. Turn that setting off below to sync now.'**
+  String get settingsSyncMeteredRouted;
+
+  /// Message shown when a manual sync is attempted with no network connection.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection right now. Sync will run at the next opportunity.'**
+  String get settingsSyncOffline;
+
+  /// Message shown when a manual sync is attempted with no store connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a store before syncing.'**
+  String get settingsSyncNotPairedNow;
+
+  /// Tooltip of the toolbar button on the Collection, Programs and Glossary pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get commonSyncNowTooltip;
+
+  /// Snackbar shown when the toolbar Sync now button is tapped on a metered connection. Unlike settingsSyncMeteredRouted it must not say the setting is 'below': the button lives outside Settings, so nothing is below it.
+  ///
+  /// In en, this message translates to:
+  /// **'You are on a mobile-data connection and Sync only on Wi-Fi is on. Turn that setting off in Settings to sync now.'**
+  String get commonSyncMeteredBlocked;
+
+  /// Title of the button that opens Device Sync pairing when no store is connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get settingsSyncConnectTitle;
+
+  /// App bar title of the Device Sync pairing screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Device Sync'**
+  String get settingsSyncPairingTitle;
+
+  /// Heading of the create-vs-connect choice step of pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this the first device, or are you adding another?'**
+  String get settingsSyncPairingChooseHeading;
+
+  /// Title of the button to create a new sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new store'**
+  String get settingsSyncPairingCreateTitle;
+
+  /// Subtitle explaining the create option.
+  ///
+  /// In en, this message translates to:
+  /// **'Start fresh. You\'ll get a phrase to read to your other devices.'**
+  String get settingsSyncPairingCreateSubtitle;
+
+  /// Title of the button to connect to a store created on another device.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to an existing store'**
+  String get settingsSyncPairingConnectTitle;
+
+  /// Subtitle explaining the connect option.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the phrase shown on the device you already set up.'**
+  String get settingsSyncPairingConnectSubtitle;
+
+  /// Label above the generated sync ID shown during create.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sync phrase'**
+  String get settingsSyncPairingYourPhrase;
+
+  /// Helper text under the sync-phrase field when creating a store, saying the phrase can be replaced with the user's own.
+  ///
+  /// In en, this message translates to:
+  /// **'Four words separated by hyphens. Keep the generated phrase or type your own.'**
+  String get settingsSyncPairingYourPhraseHelper;
+
+  /// Button to generate a new random sync ID before creating the store.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a different phrase'**
+  String get settingsSyncPairingRegenerate;
+
+  /// Heading of the warning attached to the offer to replace the generated sync phrase with the user's own (ADR-004: the user may replace it 'behind a clear warning that it must not contain personal information').
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t put personal information in the phrase'**
+  String get settingsSyncPairingPersonalInfoTitle;
+
+  /// Body of the personal-information warning on the create path. Always shown while creating, not only once the generated phrase has been edited: a warning that appears after the user has already typed their name into the field has arrived too late, and ADR-004 places it behind the offer to replace rather than after the replacement. Advisory only; it never blocks creation.
+  ///
+  /// In en, this message translates to:
+  /// **'If you type your own phrase, keep names, addresses, birthdays and anything else about you out of it. The phrase goes to the server with every request, and it gets read aloud or typed on each device you connect, so treat it like something written on the outside of a box rather than anywhere to put private details.'**
+  String get settingsSyncPairingPersonalInfoBody;
+
+  /// Heading of the advisory warning shown when a user-chosen sync phrase scores below the reference strength (spec §8). Advisory only; it never blocks.
+  ///
+  /// In en, this message translates to:
+  /// **'This phrase may be easy to guess'**
+  String get settingsSyncPairingWeakPhraseTitle;
+
+  /// Body of the advisory weak-phrase warning shown while creating a store with a user-chosen phrase (spec §8: warn, never block).
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone who guesses it can read and change everything you sync. A generated phrase is much harder to guess. You can use this one anyway.'**
+  String get settingsSyncPairingWeakPhraseBody;
+
+  /// Text field label for entering an existing sync ID to connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync phrase'**
+  String get settingsSyncPairingEnterPhrase;
+
+  /// Placeholder text in the sync-phrase entry field showing its shape.
+  ///
+  /// In en, this message translates to:
+  /// **'word-word-word-word'**
+  String get settingsSyncPairingEnterPhraseHint;
+
+  /// Text field label for the Device Sync server address, pre-filled with the default server during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get settingsSyncPairingEndpointLabel;
+
+  /// Helper text under the Device Sync server field during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this as it is unless you run your own sync server.'**
+  String get settingsSyncPairingEndpointHelper;
+
+  /// Error shown when the entered sync ID fails structural validation.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a complete sync phrase.'**
+  String get settingsSyncPairingInvalidPhrase;
+
+  /// Error shown when the entered Device Sync server address fails validation (must be https, or http only for localhost/127.0.0.1; no username, query or fragment).
+  ///
+  /// In en, this message translates to:
+  /// **'That isn\'t a valid server address. Use an https:// address with no username, ? or # part (plain http:// works only for localhost or 127.0.0.1).'**
+  String get settingsSyncPairingInvalidEndpoint;
+
+  /// Error shown when connecting to a sync ID that has no store (404).
+  ///
+  /// In en, this message translates to:
+  /// **'No store has that phrase. Check it against the other device and try again.'**
+  String get settingsSyncPairingNotFound;
+
+  /// Error shown when creating a store whose ID is already taken (409).
+  ///
+  /// In en, this message translates to:
+  /// **'That phrase is already in use by another store. Generate a different one.'**
+  String get settingsSyncPairingAlreadyInUse;
+
+  /// Heading of the warning shown during pairing when the server address is not the default Device Sync server (spec §8).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom server: {host}'**
+  String settingsSyncPairingCustomEndpointTitle(String host);
+
+  /// Body of the custom-server warning shown during pairing (spec §8: a custom endpoint is a deliberate trust decision).
+  ///
+  /// In en, this message translates to:
+  /// **'This is not the default Device Sync server. Whoever runs it can read, change and delete everything you sync, so only use a server you trust.'**
+  String get settingsSyncPairingCustomEndpointBody;
+
+  /// Heading of the sharing-not-collaboration disclosure shown during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing is not collaboration'**
+  String get settingsSyncPairingSharingTitle;
+
+  /// Body text of the sharing-not-collaboration disclosure (spec §6.14 item 1).
+  ///
+  /// In en, this message translates to:
+  /// **'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.'**
+  String get settingsSyncPairingSharingBody;
+
+  /// Heading of the pairing disclosure shown when this version syncs data earlier app versions cannot read (#709): earlier versions may be unable to connect, and that data waits until every device is updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Every device needs an up-to-date app'**
+  String get settingsSyncPairingNewerDataTitle;
+
+  /// Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated.
+  ///
+  /// In en, this message translates to:
+  /// **'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things aren\'t sent to your other devices.'**
+  String get settingsSyncPairingNewerDataBody;
+
+  /// Heading of the disclosure spec §8 requires, shown on both pairing paths. The phrase names WHERE the shared library is, so an address framing is the accurate one; do not write 'access', 'key', 'account' or 'password' here.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone with this phrase can open your library'**
+  String get settingsSyncPairingBearerTitle;
+
+  /// Body of the §8 disclosure. Every fact here is required and none may be softened: read everything, change or delete anything on every connected device, delete the whole store, and no way to narrow what a phrase permits — ADR-004 states the write and wipe case as explicitly as the read case because it is the one that destroys data. Frame it as somewhere the library lives rather than a secret guarding it: that is what makes the absence of revocation intuitive, since somewhere you have told people about cannot be un-told. Describe behaviour only; say nothing about how the value is classified internally.
+  ///
+  /// In en, this message translates to:
+  /// **'The phrase is where your shared library lives, not a password in front of it — there is nothing to sign in to. Anyone you give it to, and anyone who simply comes by it, can open that library from their own device: read everything you sync, change or delete any of it everywhere it has reached, and delete the whole thing from the server. There is no version of a phrase that does less.'**
+  String get settingsSyncPairingBearerBody;
+
+  /// Heading of the no-recovery/no-undo disclosure shown during pairing. Avoid 'recovered'/'revoked', which imply an account that could reset or withdraw something; the point is that nothing anywhere else records the phrase and sharing it cannot be undone. Key name says 'Credential' for historical reasons — do not let it pull the copy back towards password framing.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no copy of this phrase, and no taking it back'**
+  String get settingsSyncPairingCredentialTitle;
+
+  /// Body of the no-recovery/no-undo disclosure (spec §6.14 item 2). Must NOT say moving every device to a new phrase is the only fix once someone else has the phrase: that was true before Device Sync could delete the store, and it leaves the old store readable by whoever kept the old phrase. Wipe is the only in-band remedy that acts at once (spec §5.3); the two are complementary, not alternatives. Avoid 'password reset' and any other account vocabulary — the phrase is where the library is, not a secret in front of it. Key name says 'Credential' for historical reasons; do not follow it.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing else anywhere knows this phrase, so if you lose it the library at that address stays where it is and no one can reach it again. Telling someone the phrase also can\'t be untold. Moving your devices to a new phrase only starts a second library somewhere else: the first one is still there, and anyone who kept the old phrase can still open and change it. Deleting the store is the only thing that takes it away at once.'**
+  String get settingsSyncPairingCredentialBody;
+
+  /// Heading of the pre-connection backup offer shown during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up your library first?'**
+  String get settingsSyncPairingBackupOfferTitle;
+
+  /// Body text explaining the backup offer is optional and not part of connecting.
+  ///
+  /// In en, this message translates to:
+  /// **'This is optional and only for your own safekeeping — connecting itself does not back anything up.'**
+  String get settingsSyncPairingBackupOfferBody;
+
+  /// Button that exports a backup during the pairing backup offer.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up now'**
+  String get settingsSyncPairingBackupOfferAccept;
+
+  /// Button that declines the pairing backup offer and continues.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get settingsSyncPairingBackupOfferSkip;
+
+  /// Button that proceeds from the pairing disclosures/backup step to the create-or-connect network request.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get settingsSyncPairingContinue;
+
+  /// Title of the dialog shown after pairing completes successfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get settingsSyncPairingComplete;
+
+  /// Body of the pairing-complete dialog when the first sync pass ran and completed. Must NOT say the first sync is running: SyncController.completePairing awaits the pass before this dialog is shown, so by the time the user reads it the pass has already finished, failed, or never started.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected, and the first sync has finished.'**
+  String get settingsSyncPairingCompleteBody;
+
+  /// Body of the pairing-complete dialog when the first sync pass ran and ended at any status other than completed. Pairing itself succeeded — the phrase and server are persisted — so the title still reports a connection; only the pass failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected, but the first sync didn\'t finish. It will try again on its own.'**
+  String get settingsSyncPairingCompleteFailed;
+
+  /// Body of the pairing-complete dialog when the §6.12 gate suppressed the first pass as metered. Names the setting responsible, because that is the one thing the user can act on.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected. The first sync is waiting for Wi-Fi, because Sync only on Wi-Fi is on.'**
+  String get settingsSyncPairingCompleteMetered;
+
+  /// Body of the pairing-complete dialog when the §6.12 gate suppressed the first pass because there is no connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected. The first sync will run once you\'re back online.'**
+  String get settingsSyncPairingCompleteOffline;
+
+  /// Body of the pairing-complete dialog when the first pass did not run for a reason that is neither metered nor offline — the trigger answered disabled or notPaired, which happens when the coordinator could not be built after pairing. Claims only that nothing has run yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected. The first sync hasn\'t run yet; it will run the next time this device syncs.'**
+  String get settingsSyncPairingCompletePending;
+
+  /// Title of the dialog shown when a previously used sync store is missing. States the fact; the three choices are the dialog's buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'This store is no longer there'**
+  String get settingsSyncReplacementTitle;
+
+  /// Body of the missing-previously-used-collection dialog (spec §6.14 item 6): explains the collection may have expired or been removed, without asserting which. Then explains the two ways on: a new phrase (the primary button, settingsSyncReplacementNewPhrase), which leaves this store's address; and Reconnect (settingsSyncReplacementConfirm), which re-creates a store at the same address, or joins it if another device holding the phrase already re-created it. The phrase is the store's address, not a password or credential: do not use 'leaked', 'stolen', 'compromised' or account vocabulary.
+  ///
+  /// In en, this message translates to:
+  /// **'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. To stop using this store\'s address, set up a new phrase: this device disconnects, and you then create a new store or connect to one you\'ve set up on another device. Do this on each of your devices. Reconnect instead creates a new store at the same address, with the same phrase, and sends your whole library there; if another device has already done that, this device joins that store.'**
+  String get settingsSyncReplacementBody;
+
+  /// Second button of the missing-store dialog: re-creates the store at the same address (same phrase) and re-syncs from scratch. Must match the word 'Reconnect' used in settingsSyncReplacementBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get settingsSyncReplacementConfirm;
+
+  /// Primary button of the missing-store dialog: disconnects this device from the missing store's phrase and opens the Connect flow, where the user creates a new store or connects to one another device already set up. Creates nothing at the old address. 'Set up a new phrase' in settingsSyncReplacementBody refers to this button.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up with a new phrase'**
+  String get settingsSyncReplacementNewPhrase;
+
+  /// Button that cancels replacement; makes no network call and leaves the decision available later.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get settingsSyncReplacementCancel;
+
+  /// Line added to the missing-previously-used-store dialog when the previous confirmation failed, so a dialog that reappears explains itself rather than looking like it was ignored.
+  ///
+  /// In en, this message translates to:
+  /// **'The last attempt to reconnect did not go through. You can try again, or choose Not now and decide later.'**
+  String get settingsSyncReplacementFailed;
 
   /// Settings section navigation title (sidebar/app bar) for app version, license, and help links.
   ///
@@ -429,12 +2491,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System default'**
   String get commonSystemDefault;
-
-  /// Trailing badge on a settings control whose feature is not available yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get commonComingSoon;
 
   /// Label of the Settings section that groups app-language and regional-format preferences.
   ///
@@ -580,10 +2636,10 @@ abstract class AppLocalizations {
   /// **'License'**
   String get settingsAboutLicenseHeader;
 
-  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Explanatory paragraph about the app's AGPL-3.0-only license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
+  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
   String get settingsAboutLicenseBody;
 
   /// Title of the tile that opens the app's source-code repository.
@@ -601,19 +2657,19 @@ abstract class AppLocalizations {
   /// Paragraph introducing the bundled fonts. 'SIL Open Font License 1.1' is a proper noun kept verbatim; “View licenses” refers to the tile of the same name.
   ///
   /// In en, this message translates to:
-  /// **'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.'**
+  /// **'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under \"View licenses\" below.'**
   String get settingsAboutFontsBody;
 
   /// Attribution subtitle for the Fraunces typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings'**
+  /// **'SIL Open Font License 1.1 · © The Fraunces Project Authors — display and headings'**
   String get settingsAboutFontFrauncesSubtitle;
 
   /// Attribution subtitle for the Atkinson Hyperlegible typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform'**
+  /// **'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI and Perform mode'**
   String get settingsAboutFontAtkinsonSubtitle;
 
   /// Attribution subtitle for the Roboto typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
@@ -643,7 +2699,7 @@ abstract class AppLocalizations {
   /// Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
+  /// **'Dance data draws on The Caller\'s Box (Chris Page and Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
   String get settingsAboutDanceDataBody;
 
   /// About section header for the full open-source license texts entry.
@@ -664,25 +2720,30 @@ abstract class AppLocalizations {
   /// **'Full open-source license texts, including the bundled fonts.'**
   String get settingsAboutViewLicensesSubtitle;
 
-  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'© The Caller’s Compendium contributors. Licensed under AGPL-3.0.'**
+  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.'**
   String get settingsAboutLegalese;
+
+  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally.
+  ///
+  /// In en, this message translates to:
+  /// **'Your caller\'s box, in the palm of your hand'**
+  String get settingsAboutTagline;
 
   /// Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Version {version}, “{codename}”'**
+  /// **'Version {version}, \"{codename}\"'**
   String settingsAboutVersion(String version, String codename);
 
-  /// One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  /// One-line footer at the bottom of the About section combining the app name, release codename, and license identifier. The version is deliberately not repeated here: it is shown once, in the About header. The app name, codename, and license are proper nouns / identifiers kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'{appName} · Version {version}, “{codename}” · {license}'**
+  /// **'{appName} · \"{codename}\" · {license}'**
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   );
@@ -716,6 +2777,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No update found. You\'re on version {version}.'**
   String settingsUpdatesStatusNoUpdate(String version);
+
+  /// Status line after a manual check that could not read the update information (offline, unreachable, or unverifiable). Says nothing about whether an update exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates right now. You\'re on version {version}.'**
+  String settingsUpdatesStatusCouldNotCheck(String version);
+
+  /// Status line after a manual check that found genuine update information in a format this version cannot read, which means a newer release exists. Releases page is the GitHub releases page of the project.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version is available from the Releases page.'**
+  String get settingsUpdatesStatusNewerFormat;
 
   /// Status line after a check that found a newer version.
   ///
@@ -759,6 +2832,12 @@ abstract class AppLocalizations {
   /// **'Check for a newer version in the background when the app starts. Off by default.'**
   String get settingsUpdatesAutoSubtitle;
 
+  /// Subtitle of the automatic-background-check toggle on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update, so the check only looks for an end-of-support date.
+  ///
+  /// In en, this message translates to:
+  /// **'Look for an end-of-support date for this version in the background when the app starts. Off by default.'**
+  String get settingsUpdatesAutoStoreSubtitle;
+
   /// Privacy/behaviour paragraph reassuring the user how the update check and assisted download work.
   ///
   /// In en, this message translates to:
@@ -789,10 +2868,10 @@ abstract class AppLocalizations {
   /// **'Verifying download'**
   String get settingsUpdatesVerifyingTitle;
 
-  /// Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim.
+  /// Subtitle shown while the app checks that the downloaded update is complete and unchanged (a checksum comparison, described in plain words).
   ///
   /// In en, this message translates to:
-  /// **'Checking the sha256 integrity of the download…'**
+  /// **'Checking that the download is complete and unchanged…'**
   String get settingsUpdatesVerifyingSubtitle;
 
   /// Title of the assisted-download tile while handing the verified update to the OS installer.
@@ -837,6 +2916,30 @@ abstract class AppLocalizations {
   /// **'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.'**
   String get settingsUpdatesMacosReadySubtitle;
 
+  /// Title of the row in Settings > Updates, in place of the Check for updates action, on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates come from your app store'**
+  String get settingsUpdatesStoreTitle;
+
+  /// Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action. It still looks for an end-of-support date.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.'**
+  String get settingsUpdatesStoreSubtitle;
+
+  /// Title of the Settings > Updates row shown when a newer version is found on a portable copy (the Windows zip or the Linux tar.gz). Tapping it opens the release page.
+  ///
+  /// In en, this message translates to:
+  /// **'Portable copy: download the new archive'**
+  String get settingsUpdatesPortableTitle;
+
+  /// Subtitle of the portable-copy row in Settings > Updates. zip is the Windows archive and tar.gz the Linux one; both are file formats, not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy runs from an unpacked archive, so the app can\'t install the update for you. Download the new zip or tar.gz from the release and unpack it.'**
+  String get settingsUpdatesPortableSubtitle;
+
   /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
   ///
   /// In en, this message translates to:
@@ -846,7 +2949,7 @@ abstract class AppLocalizations {
   /// Fallback error message when an assisted download fails without a more specific reason. The raw error is logged, not shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'The update could not be downloaded.'**
+  /// **'Couldn\'t download the update. Try again.'**
   String get settingsUpdatesDownloadError;
 
   /// Subtitle of the idle assisted-download tile describing the download → verify → install flow.
@@ -860,6 +2963,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dialects'**
   String get settingsDialectHeader;
+
+  /// Helper text above the dance-type selector in Settings › Dialect. The selector's segments are the dance-type names (Contra, English, Square); the list below it shows only the chosen type's dialects.
+  ///
+  /// In en, this message translates to:
+  /// **'Each dance type has its own dialects. Choose a type to see and set up its dialects.'**
+  String get settingsDialectFormHelper;
 
   /// Settings subsection header for canonical dance-detail text and figure-entry preferences.
   ///
@@ -939,17 +3048,11 @@ abstract class AppLocalizations {
   /// **'Duplicate to customize'**
   String get settingsDialectDuplicateToCustomize;
 
-  /// Title of the confirm-delete dialog for a custom dialect.
+  /// Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).
   ///
   /// In en, this message translates to:
-  /// **'Delete dialect?'**
-  String get settingsDialectDeleteTitle;
-
-  /// Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).
-  ///
-  /// In en, this message translates to:
-  /// **'“{name}” will be permanently removed.'**
-  String settingsDialectDeleteConfirmBody(String name);
+  /// **'\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.'**
+  String settingsDialectEditConflictSnack(String name);
 
   /// Tooltip for the per-dialect actions menu button.
   ///
@@ -969,17 +3072,725 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get settingsDialectNameLabel;
 
-  /// Section header above the built-in theme gallery in Appearance settings.
+  /// Section header above the theme row in Appearance settings, the title of that row (the theme in use is shown under it), and the title of the Theme screen it opens.
   ///
   /// In en, this message translates to:
   /// **'Theme'**
   String get settingsAppearanceThemeHeader;
 
-  /// Section header above the user's saved custom themes in Appearance settings.
+  /// Heading above the user's saved custom themes on the Theme screen. Also names the custom-themes setting in sync conflict lists.
   ///
   /// In en, this message translates to:
   /// **'Custom themes'**
   String get settingsAppearanceCustomThemesHeader;
+
+  /// Section heading above the "System" themes on the Theme screen (Settings > Appearance > Theme).
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appThemeGroupSystem;
+
+  /// Section heading above the "Default" themes on the Theme screen (Settings > Appearance > Theme).
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get appThemeGroupDefault;
+
+  /// Section heading above the "Light" themes on the Theme screen (Settings > Appearance > Theme).
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appThemeGroupLight;
+
+  /// Section heading above the "Dark" themes on the Theme screen (Settings > Appearance > Theme).
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appThemeGroupDark;
+
+  /// Hint in the search box at the top of the Theme screen. Themes can be found by name or by color and character words.
+  ///
+  /// In en, this message translates to:
+  /// **'Search themes…'**
+  String get themeScreenSearchHint;
+
+  /// Tooltip for the button that clears the Theme screen search box.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get themeScreenClearSearchTooltip;
+
+  /// Shown on the Theme screen when no theme matches the search.
+  ///
+  /// In en, this message translates to:
+  /// **'No themes match your search.'**
+  String get themeScreenNoMatches;
+
+  /// Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme'**
+  String get themeScreenNewCustomTheme;
+
+  /// What a screen reader says for the floating "Custom theme" button on the Theme screen. Keep the visible button text (themeScreenNewCustomTheme) inside it, so voice control can still find the button by what it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom theme'**
+  String get themeScreenNewCustomThemeSemantic;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as red. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'red, crimson, scarlet, coral'**
+  String get appThemeKeywordRed;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as orange. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'orange, amber, copper'**
+  String get appThemeKeywordOrange;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as yellow. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'yellow, gold, mustard'**
+  String get appThemeKeywordYellow;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as green. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'green, sage, olive, forest'**
+  String get appThemeKeywordGreen;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as teal or cyan. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'teal, cyan, turquoise, aqua, mint'**
+  String get appThemeKeywordTeal;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as blue. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'blue, navy, azure, sky'**
+  String get appThemeKeywordBlue;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as purple. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'purple, violet, lilac, lavender, mauve'**
+  String get appThemeKeywordPurple;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pink. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'pink, magenta, rose, fuchsia'**
+  String get appThemeKeywordPink;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as brown or cream. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'brown, beige, tan, cream, sepia'**
+  String get appThemeKeywordBrown;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as grey. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'grey, gray, charcoal, slate, silver'**
+  String get appThemeKeywordGrey;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as warm. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'warm, cozy, earthy'**
+  String get appThemeKeywordWarm;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as cool. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'cool, cold, icy, arctic, frosty'**
+  String get appThemeKeywordCool;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pastel. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'pastel, soft, candy'**
+  String get appThemeKeywordPastel;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as vivid. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'vivid, saturated, neon, bold'**
+  String get appThemeKeywordVivid;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as muted. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'muted, subdued, calm, gentle'**
+  String get appThemeKeywordMuted;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as retro. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'retro, vintage, classic'**
+  String get appThemeKeywordRetro;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as accessible (high-contrast). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'accessible, legible, readable, contrast'**
+  String get appThemeKeywordAccessible;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as automatic (following the device setting). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'automatic, auto, device, follow'**
+  String get appThemeKeywordAutomatic;
+
+  /// Name of the built-in "System" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appThemeLabelSystem;
+
+  /// Name of the built-in "Light" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appThemeLabelLight;
+
+  /// Name of the built-in "Dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appThemeLabelDark;
+
+  /// Name of the built-in "Soft dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft dark'**
+  String get appThemeLabelSoftDark;
+
+  /// Name of the built-in "High contrast" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast'**
+  String get appThemeLabelHighContrast;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Match the device light/dark setting'**
+  String get appThemeDescriptionSystem;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm light palette'**
+  String get appThemeDescriptionLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm dark palette'**
+  String get appThemeDescriptionDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm dark on a softer, lighter canvas'**
+  String get appThemeDescriptionSoftDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum contrast for dim rooms and low vision'**
+  String get appThemeDescriptionHighContrast;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Crisp cool-neutral canvas with vivid jewel tones'**
+  String get appThemeDescriptionBlulocoLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'One Dark Pro, the popular editor theme'**
+  String get appThemeDescriptionOneDarkPro;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'One Monokai — Monokai syntax on charcoal'**
+  String get appThemeDescriptionMonokai;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The original deep teal Noctis night'**
+  String get appThemeDescriptionNoctis;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub\'s clean neutral light'**
+  String get appThemeDescriptionGithubLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft pastel light, community favorite'**
+  String get appThemeDescriptionCatppuccinLatte;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm retro cream and earth tones'**
+  String get appThemeDescriptionGruvboxLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle green, easy on the eyes'**
+  String get appThemeDescriptionEverforestLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted rose and iris on warm paper'**
+  String get appThemeDescriptionRosePineDawn;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Bright, minimal light with amber accents'**
+  String get appThemeDescriptionAyuLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Crisp indigo daylight, Tokyo Night\'s day'**
+  String get appThemeDescriptionTokyoNightLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool arctic snow-storm neutrals'**
+  String get appThemeDescriptionNordLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm sumi-e paper with ink accents'**
+  String get appThemeDescriptionKanagawaLotus;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The classic purple-on-charcoal favorite'**
+  String get appThemeDescriptionDracula;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool arctic blues, understated'**
+  String get appThemeDescriptionNord;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon indigo city-at-night palette'**
+  String get appThemeDescriptionTokyoNight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm retro amber on charcoal'**
+  String get appThemeDescriptionGruvboxDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cozy pastel dark, community favorite'**
+  String get appThemeDescriptionCatppuccinMocha;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub\'s neutral dark'**
+  String get appThemeDescriptionGithubDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft forest green, low fatigue'**
+  String get appThemeDescriptionEverforestDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted rose and iris in the dark'**
+  String get appThemeDescriptionRosePine;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Smooth slate with amber accents'**
+  String get appThemeDescriptionAyuMirage;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Playful dark pastel, pink-forward'**
+  String get appThemeDescriptionCutiePro;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Unapologetic hot pink on berry'**
+  String get appThemeDescriptionPinkAsHeck;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Modern muted sage, teal and rose'**
+  String get appThemeDescriptionVitesseLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The classic low-contrast warm gray'**
+  String get appThemeDescriptionZenburn;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold gold on deep indigo'**
+  String get appThemeDescriptionShadesOfPurple;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Lighter blue-gray pastel Catppuccin'**
+  String get appThemeDescriptionCatppuccinFrappe;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Glowing neon on retro purple'**
+  String get appThemeDescriptionSynthwave84;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle lilac Noctis daylight'**
+  String get appThemeDescriptionNoctisLilac;
+
+  /// Heading of the "Primary" group of color roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get themeEditorGroupPrimary;
+
+  /// Heading of the "Secondary" group of color roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get themeEditorGroupSecondary;
+
+  /// Heading of the "Tertiary" group of color roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary'**
+  String get themeEditorGroupTertiary;
+
+  /// Heading of the "Error" group of color roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get themeEditorGroupError;
+
+  /// Heading of the "Surface & text" group of color roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Surface & text'**
+  String get themeEditorGroupSurfaceText;
+
+  /// Heading of the "Surface containers" group of color roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Surface containers'**
+  String get themeEditorGroupSurfaceContainers;
+
+  /// Heading of the "Outline & effects" group of color roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline & effects'**
+  String get themeEditorGroupOutlineEffects;
+
+  /// Label of the "Primary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get themeEditorRolePrimary;
+
+  /// Label of the "On primary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On primary'**
+  String get themeEditorRoleOnPrimary;
+
+  /// Label of the "Primary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Primary container'**
+  String get themeEditorRolePrimaryContainer;
+
+  /// Label of the "On primary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On primary container'**
+  String get themeEditorRoleOnPrimaryContainer;
+
+  /// Label of the "Secondary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get themeEditorRoleSecondary;
+
+  /// Label of the "On secondary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On secondary'**
+  String get themeEditorRoleOnSecondary;
+
+  /// Label of the "Secondary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary container'**
+  String get themeEditorRoleSecondaryContainer;
+
+  /// Label of the "On secondary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On secondary container'**
+  String get themeEditorRoleOnSecondaryContainer;
+
+  /// Label of the "Tertiary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary'**
+  String get themeEditorRoleTertiary;
+
+  /// Label of the "On tertiary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On tertiary'**
+  String get themeEditorRoleOnTertiary;
+
+  /// Label of the "Tertiary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary container'**
+  String get themeEditorRoleTertiaryContainer;
+
+  /// Label of the "On tertiary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On tertiary container'**
+  String get themeEditorRoleOnTertiaryContainer;
+
+  /// Label of the "Error" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get themeEditorRoleError;
+
+  /// Label of the "On error" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On error'**
+  String get themeEditorRoleOnError;
+
+  /// Label of the "Error container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Error container'**
+  String get themeEditorRoleErrorContainer;
+
+  /// Label of the "On error container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On error container'**
+  String get themeEditorRoleOnErrorContainer;
+
+  /// Label of the "Surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Surface'**
+  String get themeEditorRoleSurface;
+
+  /// Label of the "On surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On surface'**
+  String get themeEditorRoleOnSurface;
+
+  /// Label of the "On surface variant" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On surface variant'**
+  String get themeEditorRoleOnSurfaceVariant;
+
+  /// Label of the "Inverse surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Inverse surface'**
+  String get themeEditorRoleInverseSurface;
+
+  /// Label of the "On inverse surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On inverse surface'**
+  String get themeEditorRoleOnInverseSurface;
+
+  /// Label of the "Inverse primary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Inverse primary'**
+  String get themeEditorRoleInversePrimary;
+
+  /// Label of the "Container lowest" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container lowest'**
+  String get themeEditorRoleSurfaceContainerLowest;
+
+  /// Label of the "Container low" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container low'**
+  String get themeEditorRoleSurfaceContainerLow;
+
+  /// Label of the "Container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container'**
+  String get themeEditorRoleSurfaceContainer;
+
+  /// Label of the "Container high" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container high'**
+  String get themeEditorRoleSurfaceContainerHigh;
+
+  /// Label of the "Container highest" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container highest'**
+  String get themeEditorRoleSurfaceContainerHighest;
+
+  /// Label of the "Outline" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Outline'**
+  String get themeEditorRoleOutline;
+
+  /// Label of the "Outline variant" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Outline variant'**
+  String get themeEditorRoleOutlineVariant;
+
+  /// Label of the "Surface tint" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Surface tint'**
+  String get themeEditorRoleSurfaceTint;
+
+  /// Label of the "Shadow" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Shadow'**
+  String get themeEditorRoleShadow;
+
+  /// Label of the "Scrim" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Scrim'**
+  String get themeEditorRoleScrim;
+
+  /// Label of the live WCAG contrast badge for the "Text on primary" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on primary'**
+  String get themeEditorPairOnPrimary;
+
+  /// Label of the live WCAG contrast badge for the "Text on primary container" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on primary container'**
+  String get themeEditorPairOnPrimaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on secondary" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on secondary'**
+  String get themeEditorPairOnSecondary;
+
+  /// Label of the live WCAG contrast badge for the "Text on secondary container" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on secondary container'**
+  String get themeEditorPairOnSecondaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on tertiary" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on tertiary'**
+  String get themeEditorPairOnTertiary;
+
+  /// Label of the live WCAG contrast badge for the "Text on tertiary container" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on tertiary container'**
+  String get themeEditorPairOnTertiaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on error" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on error'**
+  String get themeEditorPairOnError;
+
+  /// Label of the live WCAG contrast badge for the "Text on error container" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on error container'**
+  String get themeEditorPairOnErrorContainer;
+
+  /// Label of the live WCAG contrast badge for the "Body text on surface" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Body text on surface'**
+  String get themeEditorPairOnSurface;
+
+  /// Label of the live WCAG contrast badge for the "Secondary text on surface" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary text on surface'**
+  String get themeEditorPairOnSurfaceVariant;
+
+  /// Label of the live WCAG contrast badge for the "Text on inverse surface" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on inverse surface'**
+  String get themeEditorPairOnInverseSurface;
+
+  /// Label of the live WCAG contrast badge for the "Outline on surface" color pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline on surface'**
+  String get themeEditorPairOutline;
 
   /// Section header for playful optional visual features in Appearance settings.
   ///
@@ -993,46 +3804,46 @@ abstract class AppLocalizations {
   /// **'Set lists'**
   String get settingsAppearanceSetListsHeader;
 
-  /// Section header for the formation-colour customisation entry in Appearance settings.
+  /// Section header for the formation-color customisation entry in Appearance settings.
   ///
   /// In en, this message translates to:
-  /// **'Formation colours'**
+  /// **'Formation colors'**
   String get settingsAppearanceFormationColoursHeader;
 
-  /// Toggle title: tint a dance's view when its title names a colour.
+  /// Toggle title: tint a dance's view when its title names a color.
   ///
   /// In en, this message translates to:
-  /// **'Colour-named dances tint the theme'**
+  /// **'Color-named dances tint the theme'**
   String get settingsAppearanceColourDanceTitle;
 
-  /// Explanation for the colour-named-dances tinting toggle.
+  /// Explanation for the color-named-dances tinting toggle.
   ///
   /// In en, this message translates to:
-  /// **'A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.'**
+  /// **'A playful surprise: when you open a dance whose title names a color — like Baby Rose or Blue Boy — its view is tinted that color. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.'**
   String get settingsAppearanceColourDanceSubtitle;
 
   /// Toggle title: tint set-list rows by formation family.
   ///
   /// In en, this message translates to:
-  /// **'Colour-code set-list rows'**
+  /// **'Color-code set-list rows'**
   String get settingsAppearanceSetListColorTitle;
 
-  /// Explanation for the set-list colour-coding toggle.
+  /// Explanation for the set-list color-coding toggle.
   ///
   /// In en, this message translates to:
-  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own color, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without color.'**
   String get settingsAppearanceSetListColorSubtitle;
 
-  /// List-tile title opening the formation-colour customisation screen.
+  /// List-tile title opening the formation-color customisation screen.
   ///
   /// In en, this message translates to:
-  /// **'Formation label colours'**
+  /// **'Formation label colors'**
   String get settingsAppearanceFormationColoursTitle;
 
-  /// Explanation for the formation-colour customisation entry.
+  /// Explanation for the formation-color customisation entry.
   ///
   /// In en, this message translates to:
-  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.'**
+  /// **'Highlight individual formations in your own colors — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.'**
   String get settingsAppearanceFormationColoursSubtitle;
 
   /// Label shown on the currently-selected theme card in the gallery.
@@ -1044,7 +3855,7 @@ abstract class AppLocalizations {
   /// Sample heading text shown in a theme preview swatch.
   ///
   /// In en, this message translates to:
-  /// **'Aa Preview'**
+  /// **'Aa preview'**
   String get settingsAppearancePreviewHeading;
 
   /// Sample body text shown in a theme preview swatch.
@@ -1053,35 +3864,11 @@ abstract class AppLocalizations {
   /// **'Body text sample'**
   String get settingsAppearancePreviewBody;
 
-  /// Button that starts creating a new custom theme from the active theme.
-  ///
-  /// In en, this message translates to:
-  /// **'New custom theme'**
-  String get settingsAppearanceNewThemeButton;
-
   /// Default name a brand-new custom theme is seeded with before the user renames it.
   ///
   /// In en, this message translates to:
   /// **'My theme'**
   String get settingsAppearanceNewThemeDefaultName;
-
-  /// Helper text shown when the user has no saved custom themes yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy the current theme and tune any color. Custom themes are saved on this device.'**
-  String get settingsAppearanceCustomThemesEmpty;
-
-  /// Title of the confirm-delete dialog for a custom theme.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete theme?'**
-  String get settingsAppearanceDeleteThemeTitle;
-
-  /// Body of the confirm-delete dialog for a custom theme.
-  ///
-  /// In en, this message translates to:
-  /// **'“{name}” will be permanently removed.'**
-  String settingsAppearanceDeleteThemeBody(String name);
 
   /// Screen-reader label for a saved custom-theme card.
   ///
@@ -1131,24 +3918,6 @@ abstract class AppLocalizations {
   /// **'Add a dance'**
   String get settingsDefaultsStartingProgramPickerTitle;
 
-  /// Button to add a dance to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Dance'**
-  String get settingsDefaultsStartingProgramAddDance;
-
-  /// Button to add a text note to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Note'**
-  String get settingsDefaultsStartingProgramAddText;
-
-  /// Tooltip for adding a break to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Add break'**
-  String get settingsDefaultsStartingProgramAddBreak;
-
   /// Input label for a new text note in the starting program template.
   ///
   /// In en, this message translates to:
@@ -1173,11 +3942,41 @@ abstract class AppLocalizations {
   /// **'Move down'**
   String get settingsDefaultsStartingProgramMoveDown;
 
-  /// Fallback label for a starting-program dance reference no longer in the collection.
+  /// Fallback label for a starting-program dance reference that is no longer in the collection.
   ///
   /// In en, this message translates to:
-  /// **'Unavailable dance ({id})'**
-  String settingsDefaultsStartingProgramUnavailableDance(String id);
+  /// **'This dance is no longer available'**
+  String get settingsDefaultsStartingProgramUnavailableDance;
+
+  /// Snackbar in Settings > Defaults > Difficulty levels when a level's name is cleared or left blank. The raw exception is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'A difficulty level needs a name.'**
+  String get settingsDefaultsDifficultyLevelEmpty;
+
+  /// Snackbar when a difficulty level is added or renamed to a name another level already has (compared ignoring case). {label} is the name the person typed, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A level named \"{label}\" already exists.'**
+  String settingsDefaultsDifficultyLevelDuplicate(String label);
+
+  /// Snackbar when deleting a difficulty level that live dances still use; dances in Recently deleted don't count. {label} is the level's display name, never its id; {count} is the number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance uses {label}. Change it first.} other{{count} dances use {label}. Change them first.}}'**
+  String settingsDefaultsDifficultyLevelInUse(String label, int count);
+
+  /// Generic fallback snackbar when adding, renaming, deleting or reordering a difficulty level fails for a reason with no specific message. The raw exception is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the difficulty levels. Try again.'**
+  String get settingsDefaultsDifficultyLevelActionFailed;
+
+  /// Snackbar after a difficulty level is deleted from Settings > Defaults, shown with an Undo action. {label} is the level's display name, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {label}.'**
+  String settingsDefaultsDifficultyLevelDeleted(String label);
 
   /// Text-field label for the default band prefilled into new programs.
   ///
@@ -1220,6 +4019,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How the Programs list is sorted when you open it. You can still change the sort while browsing.'**
   String get settingsDefaultsProgramSortSubtitle;
+
+  /// Explanation shown under the Collection and Programs default sort-order pickers while Last used is selected (issue #1841). Replaces the fixed-sort explanation, and tells the user that Last used remembers direction as well as sort.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens with the sort and direction you last used.'**
+  String get settingsDefaultsSortLastUsedSubtitle;
+
+  /// Segment of the default sort-direction toggle in Settings > Defaults (issue #1841): the list opens sorted ascending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get settingsDefaultsSortAscending;
+
+  /// Segment of the default sort-direction toggle in Settings > Defaults (issue #1841): the list opens sorted descending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get settingsDefaultsSortDescending;
 
   /// Toggle title: open dances in canonical terms rather than the active dialect.
   ///
@@ -1293,6 +4110,120 @@ abstract class AppLocalizations {
   /// **'Custom fields'**
   String get settingsDefaultsCollectionCardCustomFields;
 
+  /// Section header for the preference that chooses which non-figures dance fields appear when a program/dance is shared, copied, or exported to PDF (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Shared dance fields'**
+  String get settingsDefaultsShareFieldsHeader;
+
+  /// Subtitle describing the share-fields checkboxes (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which details appear when you share, copy, or export a program or dance. Tunes, the hook, and sources are hidden until you turn them on; everything else is shown by default.'**
+  String get settingsDefaultsShareFieldsSubtitle;
+
+  /// Label for the Authors share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get settingsDefaultsShareFieldsAuthors;
+
+  /// Label for the Formation share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get settingsDefaultsShareFieldsFormation;
+
+  /// Label for the Level share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get settingsDefaultsShareFieldsLevel;
+
+  /// Label for the Mixer-flag share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get settingsDefaultsShareFieldsMixer;
+
+  /// Label for the Status share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get settingsDefaultsShareFieldsStatus;
+
+  /// Label for the Phrase-structure share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase'**
+  String get settingsDefaultsShareFieldsPhraseStructure;
+
+  /// Label for the Calling-notes share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get settingsDefaultsShareFieldsCallingNotes;
+
+  /// Label for the Walkthrough share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get settingsDefaultsShareFieldsWalkthrough;
+
+  /// Label for the Tunes share-field toggle (#1434). Defaults off, like Hook and Sources: no renderer emitted tunes before this preference existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get settingsDefaultsShareFieldsTunes;
+
+  /// Label for the Hook share-field toggle (OUT-6). Defaults off, like Tunes: no export carried the hook before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get settingsDefaultsShareFieldsHook;
+
+  /// Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsDefaultsShareFieldsSources;
+
+  /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
+  ///
+  /// In en, this message translates to:
+  /// **'Collection filters'**
+  String get settingsDefaultsCollectionFiltersHeader;
+
+  /// Subtitle describing the filter-visibility checkboxes (#1419).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.'**
+  String get settingsDefaultsCollectionFiltersSubtitle;
+
+  /// Section header for defaults applied to dances imported on their own.
+  ///
+  /// In en, this message translates to:
+  /// **'Import defaults'**
+  String get settingsDefaultsImportHeader;
+
+  /// Title of the Import defaults setting that picks the tags added to newly imported dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags for imported dances'**
+  String get settingsDefaultsImportTagsTitle;
+
+  /// Explains which imports the default import tags apply to and which they skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program\'s slots while importing a program are not tagged.'**
+  String get settingsDefaultsImportTagsSubtitle;
+
+  /// Shown in place of the tag chips when the user has no tags.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no tags yet. Add one to a dance in the editor, then pick it here.'**
+  String get settingsDefaultsImportTagsEmpty;
+
   /// Section header for defaults applied when authoring a new dance.
   ///
   /// In en, this message translates to:
@@ -1308,7 +4239,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
   ///
   /// In en, this message translates to:
-  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.'**
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything the app can\'t read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
   /// Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689).
@@ -1320,7 +4251,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail).
   ///
   /// In en, this message translates to:
-  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is never changed automatically.'**
+  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is only changed automatically when you switch a balance option on or off, which adds or removes 4 beats.'**
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle;
 
   /// Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420).
@@ -1341,17 +4272,23 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 shorthand defined.} other{{count} shorthands defined.}}'**
   String settingsDefaultsFigureShorthandsCountSubtitle(int count);
 
-  /// Title of the default dance-form picker.
+  /// Title of the default dance-type picker.
   ///
   /// In en, this message translates to:
-  /// **'Form'**
+  /// **'Type'**
   String get settingsDefaultsFormTitle;
 
-  /// Explanation for the default dance-form picker.
+  /// Explanation for the default dance-type picker.
   ///
   /// In en, this message translates to:
-  /// **'The dance form a new dance starts as. You can still change it per dance.'**
+  /// **'The dance type a new dance starts as. You can still change it per dance.'**
   String get settingsDefaultsFormSubtitle;
+
+  /// Option in the default dance-type picker: a new dance starts as the type of the last dance the user created.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get settingsDefaultsFormLastUsed;
 
   /// Title of the default dance-formation picker.
   ///
@@ -1398,7 +4335,7 @@ abstract class AppLocalizations {
   /// Explanation for the starting-figures default.
   ///
   /// In en, this message translates to:
-  /// **'The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.'**
+  /// **'The figures a new dance starts with. Defaults to eight stand stills (8 beats each), or to none while free-text entry is on; clear it for a blank new dance. Editable per dance.'**
   String get settingsDefaultsStartingFiguresSubtitle;
 
   /// Sub-heading for per-move default parameter overrides.
@@ -1406,6 +4343,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move defaults'**
   String get settingsDefaultsMoveDefaultsTitle;
+
+  /// Heading, under Move defaults in Settings, of the list of the user's own new figures (#1023), each linking to the figure where its defaults are set.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Figures defaults'**
+  String get settingsDefaultsUserFiguresTitle;
+
+  /// Explains the list of the user's own new figures under Move defaults (#1023): a figure's defaults are part of the figure, so choosing one opens it to edit them.
+  ///
+  /// In en, this message translates to:
+  /// **'Each of your figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.'**
+  String get settingsDefaultsUserFiguresSubtitle;
 
   /// Explanation for per-move default parameter overrides.
   ///
@@ -1428,7 +4377,7 @@ abstract class AppLocalizations {
   /// Shown on a move-default card when the move no longer exists in the taxonomy.
   ///
   /// In en, this message translates to:
-  /// **'This move is no longer in the taxonomy.'**
+  /// **'This move is no longer available.'**
   String get settingsDefaultsMoveGone;
 
   /// Shown on a move-default card when the move has no parameters to override.
@@ -1437,16 +4386,16 @@ abstract class AppLocalizations {
   /// **'This move has no parameters to default.'**
   String get settingsDefaultsMoveNoParams;
 
-  /// App-bar title of the per-formation label-colour settings screen.
+  /// App-bar title of the per-formation label-color settings screen.
   ///
   /// In en, this message translates to:
-  /// **'Formation colours'**
+  /// **'Formation colors'**
   String get settingsFormationColoursTitle;
 
-  /// Intro paragraph explaining per-formation label colours.
+  /// Intro paragraph explaining per-formation label colors.
   ///
   /// In en, this message translates to:
-  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
+  /// **'Give a formation its own color to highlight its label on dance cards, dance detail, and the Perform header, and to color its set-list rows (mixers keep the mixer color). Only the formations you customize are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without color.'**
   String get settingsFormationColoursIntro;
 
   /// Section header above the list of formation shapes.
@@ -1455,100 +4404,368 @@ abstract class AppLocalizations {
   /// **'Formations'**
   String get settingsFormationColoursListHeader;
 
-  /// Subtitle shown when a formation has a custom label colour set.
+  /// Subtitle shown when a formation has a custom label color set.
   ///
   /// In en, this message translates to:
-  /// **'Custom colour'**
+  /// **'Custom color'**
   String get settingsFormationColoursCustom;
 
-  /// Subtitle shown when a formation uses its family-default label colour.
+  /// Subtitle shown when a formation uses its family-default label color.
   ///
   /// In en, this message translates to:
   /// **'Family default'**
   String get settingsFormationColoursFamilyDefault;
 
-  /// Tooltip on the button that resets one formation's custom colour.
+  /// Tooltip on the button that resets one formation's custom color.
   ///
   /// In en, this message translates to:
   /// **'Reset {label} to the family default'**
   String settingsFormationColoursResetTooltip(String label);
 
-  /// Section header for the tag-colour customisation entry in Appearance settings.
+  /// Section header for the tag-color customisation entry in Appearance settings.
   ///
   /// In en, this message translates to:
-  /// **'Tag colours'**
+  /// **'Tag colors'**
   String get settingsAppearanceTagColoursHeader;
 
-  /// List-tile title opening the tag-colour customisation screen.
+  /// List-tile title opening the tag-color customisation screen.
   ///
   /// In en, this message translates to:
-  /// **'Tag colours'**
+  /// **'Tag colors'**
   String get settingsAppearanceTagColoursTitle;
 
-  /// Explanation for the tag-colour customisation entry.
+  /// Explanation for the tag-color customisation entry.
   ///
   /// In en, this message translates to:
-  /// **'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.'**
+  /// **'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.'**
   String get settingsAppearanceTagColoursSubtitle;
 
-  /// App-bar title of the per-tag colour settings screen.
+  /// Heading of the empty state on the tag manager.
   ///
   /// In en, this message translates to:
-  /// **'Tag colours'**
-  String get settingsTagColoursTitle;
+  /// **'No tags yet'**
+  String get settingsTagColoursEmptyTitle;
 
-  /// Intro paragraph explaining per-tag colours.
+  /// Body of the empty state on the tag manager; says where tags come from.
   ///
   /// In en, this message translates to:
-  /// **'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.'**
-  String get settingsTagColoursIntro;
+  /// **'Add a tag to a dance and it will appear here.'**
+  String get settingsTagColoursEmptyBody;
 
-  /// Section header above the list of tags.
+  /// Snack-bar message shown when saving or clearing a tag color fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that color. Try again.'**
+  String get settingsTagColoursSaveError;
+
+  /// Shown on the tag-color screen when the tag list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your tags. Nothing was changed. Try again.'**
+  String get settingsTagColoursLoadError;
+
+  /// App-bar title of the Tags manager, where tags are renamed, merged, colored and deleted.
   ///
   /// In en, this message translates to:
   /// **'Tags'**
-  String get settingsTagColoursListHeader;
+  String get tagManagerTitle;
 
-  /// Shown on the tag-colour screen when the collection has no tags.
+  /// Hint in the Tags manager's search field.
   ///
   /// In en, this message translates to:
-  /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
-  String get settingsTagColoursEmpty;
+  /// **'Search tags'**
+  String get tagManagerSearchHint;
 
-  /// Subtitle shown when a tag has a custom colour set.
+  /// Label of the name field in the Tags manager's rename dialog.
   ///
   /// In en, this message translates to:
-  /// **'Custom colour'**
-  String get settingsTagColoursCustom;
+  /// **'Tag name'**
+  String get tagManagerNameLabel;
 
-  /// Subtitle shown when a tag has no colour assigned.
+  /// Tags manager row action, in the ⋮ menu and the row sheet: leaves Settings and adds this tag to the Collection's filter (other filters and already selected tags are kept).
   ///
   /// In en, this message translates to:
-  /// **'No colour'**
-  String get settingsTagColoursNoColour;
+  /// **'Show dances'**
+  String get tagManagerShowDances;
 
-  /// Tooltip on the button that clears one tag's colour.
+  /// Tags manager action: opens the color picker for a tag.
   ///
   /// In en, this message translates to:
-  /// **'Remove {label}\'s colour'**
-  String settingsTagColoursResetTooltip(String label);
+  /// **'Color…'**
+  String get tagManagerColour;
 
-  /// Snack-bar message shown when saving or clearing a tag colour fails.
+  /// Tags manager action, offered only for a tag with a color: removes the color.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save that colour. Please try again.'**
-  String get settingsTagColoursSaveError;
+  /// **'Remove color'**
+  String get tagManagerRemoveColour;
 
-  /// Shown on the tag-colour screen when the tag list fails to load.
+  /// Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load your tags.'**
-  String get settingsTagColoursLoadError;
+  /// **'{count, plural, =0{Deleted \"{name}\"} =1{Deleted \"{name}\" from 1 dance} other{Deleted \"{name}\" from {count} dances}}'**
+  String tagManagerDeletedSnack(String name, int count);
 
-  /// General settings section header for collection-library preferences.
+  /// Snackbar after renaming a tag in the Tags manager, with an Undo action.
   ///
   /// In en, this message translates to:
-  /// **'Library'**
+  /// **'Renamed \"{from}\" to \"{to}\"'**
+  String tagManagerRenamedSnack(String from, String to);
+
+  /// Snackbar after merging one tag into another in the Tags manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged \"{from}\" into \"{into}\"'**
+  String tagManagerMergedSnack(String from, String into);
+
+  /// Snackbar after a rename merged three or more tags into one (case variants of the same name), with an Undo action. The count includes the tag merged into.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined {count} tags into \"{into}\"'**
+  String tagManagerMergedSeveralSnack(int count, String into);
+
+  /// App-bar title of the Authors manager, where the authors credited on dances are renamed, merged, edited and deleted. User-facing text says “author”, never “choreographer” (decision D-3).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get authorManagerTitle;
+
+  /// Hint in the Authors manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search authors'**
+  String get authorManagerSearchHint;
+
+  /// Label of the name field in the Authors manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Author name'**
+  String get authorManagerNameLabel;
+
+  /// Heading of the empty state on the author manager.
+  ///
+  /// In en, this message translates to:
+  /// **'No authors yet'**
+  String get authorManagerEmptyTitle;
+
+  /// Body of the empty state on the author manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors you credit on a dance appear here.'**
+  String get authorManagerEmptyBody;
+
+  /// Shown in the Authors manager when the author list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your authors. Nothing was changed. Try again.'**
+  String get authorManagerLoadError;
+
+  /// Snackbar after a rename merged three or more authors into one (case variants of the same name), with an Undo action. The count includes the author merged into.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined {count} authors into \"{into}\"'**
+  String authorManagerMergedSeveralSnack(int count, String into);
+
+  /// App-bar title of the Sources manager, where the published sources dances cite (books, websites) are renamed, merged, edited and deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get sourceManagerTitle;
+
+  /// Hint in the Sources manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search sources'**
+  String get sourceManagerSearchHint;
+
+  /// Label of the title field in the Sources manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Source title'**
+  String get sourceManagerTitleLabel;
+
+  /// Heading of the empty state on the source manager.
+  ///
+  /// In en, this message translates to:
+  /// **'No sources yet'**
+  String get sourceManagerEmptyTitle;
+
+  /// Body of the empty state on the source manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Books and websites you cite on a dance appear here.'**
+  String get sourceManagerEmptyBody;
+
+  /// Shown in the Sources manager when the source list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your sources. Nothing was changed. Try again.'**
+  String get sourceManagerLoadError;
+
+  /// Tooltip of the button that clears the search field in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get libraryManagerClearSearch;
+
+  /// Filter chip in the Tags, Authors and Sources managers: shows only entries no dance uses.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used'**
+  String get libraryManagerNotUsed;
+
+  /// Tooltip of the sort menu in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get libraryManagerSortTooltip;
+
+  /// Sort choice in the Tags, Authors and Sources managers: alphabetical.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get libraryManagerSortByName;
+
+  /// Sort choice in the Tags, Authors and Sources managers: most-used first.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get libraryManagerSortByDanceCount;
+
+  /// Shown in the Tags, Authors and Sources managers when the search or filter leaves no entries.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing matches your search.'**
+  String get libraryManagerNoMatches;
+
+  /// Row subtitle in the Tags, Authors and Sources managers: how many dances in the collection use the entry. Dances in Recently deleted are not counted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Not used} =1{1 dance} other{{count} dances}}'**
+  String libraryManagerDanceCount(int count);
+
+  /// Tooltip of the ⋮ menu on a row of the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {name}'**
+  String libraryManagerActionsTooltip(String name);
+
+  /// Action and dialog button in the Tags, Authors and Sources managers: renames the entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get libraryManagerRename;
+
+  /// Title of the rename dialog in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{name}\"'**
+  String libraryManagerRenameTitle(String name);
+
+  /// Action in the Tags, Authors and Sources managers: opens a picker of the entry to merge this one into.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge into…'**
+  String get libraryManagerMergeInto;
+
+  /// Title of the picker that chooses which entry to merge this one into.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge \"{name}\" into…'**
+  String libraryManagerMergePickerTitle(String name);
+
+  /// Title of the dialog shown when a rename in the Tags, Authors or Sources manager picks a name another entry already has.
+  ///
+  /// In en, this message translates to:
+  /// **'Name already in use'**
+  String get libraryManagerMergeOfferTitle;
+
+  /// Body of the dialog shown when a rename picks a name another entry already has. Merging keeps one entry; it can be undone.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{existing}\" already exists. Merge \"{from}\" into it?'**
+  String libraryManagerMergeOfferOne(String existing, String from);
+
+  /// Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{existing}\" already exists. Merge \"{from}\" into it and call it \"{name}\"?'**
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  );
+
+  /// Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.
+  ///
+  /// In en, this message translates to:
+  /// **'More than one entry is already called \"{name}\". Choose the one to merge \"{from}\" into; the others are merged into it too.'**
+  String libraryManagerMergeOfferSeveral(String name, String from);
+
+  /// Primary button of the merge dialog in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get libraryManagerMerge;
+
+  /// Snackbar when Undo of a rename, merge or delete in the Tags, Authors or Sources manager cannot give a name back, because another entry has taken it since.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo: \"{name}\" is now used by another entry.'**
+  String libraryManagerUndoConflict(String name);
+
+  /// Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that change. Try again.'**
+  String get libraryManagerEditFailed;
+
+  /// Authors and Sources manager action: opens the entry's details (website, notes and so on) for editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit details…'**
+  String get libraryManagerEditDetails;
+
+  /// Snackbar after renaming an author or a source in its manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed \"{from}\" to \"{to}\"'**
+  String libraryManagerRenamedSnack(String from, String to);
+
+  /// Snackbar after merging one author or source into another, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged \"{from}\" into \"{into}\"'**
+  String libraryManagerMergedSnack(String from, String into);
+
+  /// Snackbar after deleting an author or source no dance uses, with an Undo action. An entry a dance uses cannot be deleted, only merged.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted \"{name}\"'**
+  String libraryManagerDeletedSnack(String name);
+
+  /// Title of the dialog asking before a merge that will drop details, because both entries hold different values for them. Its body lists the dropped details.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge \"{from}\" into \"{into}\"?'**
+  String libraryManagerMergeConfirmTitle(String from, String into);
+
+  /// Heading of the list, in a merge dialog, of the details the merge discards. Empty details are filled from the other entry instead; only conflicting values are dropped.
+  ///
+  /// In en, this message translates to:
+  /// **'These details differ. The merged entry keeps its own, and these are dropped:'**
+  String get libraryManagerMergeDropsHeading;
+
+  /// One line of the list of details a merge drops: the field's label, then the dropped value.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String libraryManagerMergeDroppedLine(String field, String value);
+
+  /// General settings section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances'**
   String get settingsGeneralLibraryHeader;
 
   /// Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'.
@@ -1560,7 +4777,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text.
   ///
   /// In en, this message translates to:
-  /// **'When on, the dance list alphabetizes titles ignoring a leading “the”, “a”, or “an” — so “The Nice Combination” files under N. Turn off to sort by the literal title.'**
+  /// **'When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.'**
   String get settingsGeneralSortIgnoreArticlesSubtitle;
 
   /// General settings section header for venue-related preferences.
@@ -1578,7 +4795,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining what reusable venue records do and that switching modes preserves existing venue data.
   ///
   /// In en, this message translates to:
-  /// **'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program’s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.'**
+  /// **'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program\'s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.'**
   String get settingsGeneralVenueEntityModeSubtitle;
 
   /// Title of the General settings row that opens the reusable venue manager.
@@ -1599,6 +4816,36 @@ abstract class AppLocalizations {
   /// **'Programs'**
   String get settingsGeneralProgramsHeader;
 
+  /// Settings section header for the options that shape a shared set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing'**
+  String get settingsSharingHeader;
+
+  /// Title of the toggle that includes the program title when a set list is shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Include program title when sharing a set list'**
+  String get settingsSharingTitleTitle;
+
+  /// Title of the toggle that includes the caller and band when a set list is shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Include caller and band when sharing a set list'**
+  String get settingsSharingCallerBandTitle;
+
+  /// Title of the toggle that includes the date and venue when a set list is shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Include date and venue when sharing a set list'**
+  String get settingsSharingDateVenueTitle;
+
+  /// Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to sharing or copying the set list. Sharing the whole program as a .ccshare or JSON file always includes everything.'**
+  String get settingsSharingSubtitle;
+
   /// Title of the General settings toggle controlling the programming matrix's same-figure collision check (issue #962).
   ///
   /// In en, this message translates to:
@@ -1608,7 +4855,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores.
   ///
   /// In en, this message translates to:
-  /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.'**
+  /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don\'t overlap.'**
   String get settingsGeneralMatrixExactCollisionSubtitle;
 
   /// Title of the Program settings toggle that commits valid program-editor changes automatically.
@@ -1761,24 +5008,6 @@ abstract class AppLocalizations {
   /// **'Delete parameterized column'**
   String get settingsMatrixColumnsParameterizedDelete;
 
-  /// Title of the delete-parameterized-column confirmation dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete parameterized column?'**
-  String get settingsMatrixColumnsParameterizedDeleteTitle;
-
-  /// Warning shown before deleting a parameterized column.
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the column and its matching rules from the matrix. This cannot be undone.'**
-  String get settingsMatrixColumnsParameterizedDeleteBody;
-
-  /// Confirm button for deleting a parameterized column.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete column'**
-  String get settingsMatrixColumnsParameterizedDeleteConfirm;
-
   /// Button that opens the editor for adding a compound matrix column.
   ///
   /// In en, this message translates to:
@@ -1857,28 +5086,10 @@ abstract class AppLocalizations {
   /// **'Delete compound column'**
   String get settingsMatrixColumnsCompoundDelete;
 
-  /// Title of the delete-compound-column confirmation dialog.
+  /// Settings ▸ Program section header over the Perform mode preferences (auto-size cards).
   ///
   /// In en, this message translates to:
-  /// **'Delete compound column?'**
-  String get settingsMatrixColumnsCompoundDeleteTitle;
-
-  /// Warning shown before deleting a compound column.
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the column and its matching sequence from the matrix. This cannot be undone.'**
-  String get settingsMatrixColumnsCompoundDeleteBody;
-
-  /// Confirm button for deleting a compound column.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete column'**
-  String get settingsMatrixColumnsCompoundDeleteConfirm;
-
-  /// General settings section header for performance-mode display preferences.
-  ///
-  /// In en, this message translates to:
-  /// **'Performance'**
+  /// **'Perform mode'**
   String get settingsGeneralPerformanceHeader;
 
   /// Title of the General settings toggle that automatically sizes Perform screen cards.
@@ -1890,13 +5101,13 @@ abstract class AppLocalizations {
   /// Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls.
   ///
   /// In en, this message translates to:
-  /// **'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.'**
+  /// **'Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.'**
   String get settingsGeneralAutoSizePerformSubtitle;
 
   /// Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program.
   ///
   /// In en, this message translates to:
-  /// **'Show timer for individual Perform'**
+  /// **'Show timer when performing one dance'**
   String get settingsShowIndividualPerformTimerTitle;
 
   /// Subtitle explaining the default-on individual Perform elapsed-timer toggle.
@@ -1905,16 +5116,28 @@ abstract class AppLocalizations {
   /// **'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.'**
   String get settingsShowIndividualPerformTimerSubtitle;
 
+  /// Title of the Program settings toggle that makes the Perform close button and system Back ask before leaving Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm before leaving Perform mode'**
+  String get settingsConfirmPerformExitTitle;
+
+  /// Subtitle of the Program settings toggle that makes leaving Perform ask for confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask before the close button or Back takes you out of Perform mode. Turn this off to leave in one tap; Perform mode for a program keeps your place either way.'**
+  String get settingsConfirmPerformExitSubtitle;
+
   /// Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform.
   ///
   /// In en, this message translates to:
-  /// **'Show caller notes in program Perform'**
+  /// **'Show caller notes when performing a program'**
   String get settingsShowProgramSlotCallerNotesTitle;
 
   /// Subtitle explaining the program Perform caller-note display toggle.
   ///
   /// In en, this message translates to:
-  /// **'Show non-empty per-slot caller notes above the dance title in program Perform.'**
+  /// **'Show non-empty per-slot caller notes above the dance title when you perform a program.'**
   String get settingsShowProgramSlotCallerNotesSubtitle;
 
   /// General settings section header for calling-history preferences.
@@ -1926,14 +5149,104 @@ abstract class AppLocalizations {
   /// Title of the General settings toggle that limits dance calling history to program slots marked performed.
   ///
   /// In en, this message translates to:
-  /// **'Require “mark performed” for calling history'**
+  /// **'Require \"mark performed\" for calling history'**
   String get settingsGeneralRequirePerformedForHistoryTitle;
 
   /// Subtitle explaining the require-mark-performed calling history toggle.
   ///
   /// In en, this message translates to:
-  /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
+  /// **'Decides what counts as called. When on, only slots marked performed count anywhere calling history is read: the history list, called ×N, the Called filter and the Last called sort. When off, a slot counts as soon as its program contains the dance. Overrides the four settings below.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
+
+  /// Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show mark-performed toggles'**
+  String get settingsGeneralShowPerformedTogglesTitle;
+
+  /// Subtitle explaining the show mark-performed toggles setting.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, each dance in a program\'s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
+  String get settingsGeneralShowPerformedTogglesSubtitle;
+
+  /// Title of the setting that makes Mark all performed also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all performed sets the status'**
+  String get settingsGeneralMarkAllSetsStatusTitle;
+
+  /// Subtitle explaining the Mark all performed sets the status setting.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, Mark all performed also sets the program status to Performed, and Undo puts both back. When off, the status stays as it was.'**
+  String get settingsGeneralMarkAllSetsStatusSubtitle;
+
+  /// Title of the calling-history settings toggle that leaves programs with no event date out of calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'Require an event date for calling history'**
+  String get settingsGeneralRequireEventDateForHistoryTitle;
+
+  /// Subtitle explaining the require-an-event-date calling history toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Decides what counts as called. When on, a program with no event date counts nowhere calling history is read until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date. Overrides the four settings below.'**
+  String get settingsGeneralRequireEventDateForHistorySubtitle;
+
+  /// Header above the settings that change only how calling history is dated and ordered, never what counts as called.
+  ///
+  /// In en, this message translates to:
+  /// **'Recency and history order'**
+  String get settingsTrackingHeader;
+
+  /// Title of the toggle that makes the Called filter time windows count only programs with an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Recency only counts dated programs'**
+  String get settingsRecencyRequireEventDateTitle;
+
+  /// Subtitle of the recency-requires-event-date toggle. States it never changes the counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the Called filter\'s time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when its slot was marked performed, else by when it was last edited.'**
+  String get settingsRecencyRequireEventDateSubtitle;
+
+  /// Title of the toggle that makes the Called filter time windows count only slots marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recency only counts slots marked performed'**
+  String get settingsRecencyRequirePerformedTitle;
+
+  /// Subtitle of the recency-requires-performed toggle. States it never changes the counts and that it follows the global require-performed setting until set.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the Called filter\'s time windows, never the counts. When on, a slot not marked performed falls in no window, though it still counts as called. Until you set this yourself, it follows the require-performed setting above.'**
+  String get settingsRecencyRequirePerformedSubtitle;
+
+  /// Title of the toggle that makes the history order and Last called sort ignore programs with no event date.
+  ///
+  /// In en, this message translates to:
+  /// **'History order and Last called ignore undated programs'**
+  String get settingsHistoryOrderIgnoreUndatedTitle;
+
+  /// Subtitle of the history-order-ignores-undated toggle. States it never changes the counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when its slot was marked performed, else by when it was last edited.'**
+  String get settingsHistoryOrderIgnoreUndatedSubtitle;
+
+  /// Title of the toggle that makes the history order and Last called sort ignore slots not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'History order and Last called ignore slots not marked performed'**
+  String get settingsHistoryOrderIgnoreUnperformedTitle;
+
+  /// Subtitle of the history-order-ignores-unperformed toggle. States it never changes the counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a slot not marked performed is listed after the others and gives no Last called date. When off, it is ordered by its program\'s date.'**
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle;
 
   /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
   ///
@@ -1956,7 +5269,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the repeated-venue calling-history setting.
   ///
   /// In en, this message translates to:
-  /// **'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.'**
+  /// **'Show the top venues where a dance was called more than once. Choose Don\'t show to hide this summary.'**
   String get settingsProgramVenueCallCountSubtitle;
 
   /// Dropdown option for the number of repeated venues shown in calling history.
@@ -1964,6 +5277,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
   String settingsProgramVenueCallCountOption(num count);
+
+  /// Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Capitalize figures'**
+  String get settingsGeneralCapitalizeFiguresTitle;
+
+  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
+  String get settingsGeneralCapitalizeFiguresSubtitle;
+
+  /// Settings › General › Library entry that opens the Tags manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsGeneralLibraryTagsTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Tags manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge, color and delete your tags.'**
+  String get settingsGeneralLibraryTagsSubtitle;
+
+  /// Title of the Settings › General › Library entry that opens the Authors manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get settingsGeneralLibraryAuthorsTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Authors manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge and delete authors, and edit their details.'**
+  String get settingsGeneralLibraryAuthorsSubtitle;
+
+  /// Title of the Settings › General › Library entry that opens the Sources manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsGeneralLibrarySourcesTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Sources manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge and delete sources, and edit their details.'**
+  String get settingsGeneralLibrarySourcesSubtitle;
 
   /// General settings section header for accessibility preferences.
   ///
@@ -2016,25 +5377,49 @@ abstract class AppLocalizations {
   /// Subtitle explaining the confirm-before-delete toggle.
   ///
   /// In en, this message translates to:
-  /// **'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.'**
+  /// **'Ask before deleting anything you can undo. Deletes that can\'t be undone always ask first.'**
   String get settingsGeneralConfirmBeforeDeleteSubtitle;
+
+  /// Title of the setting for how long the Undo prompt (the snackbar offering Undo after a delete or change) stays on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo prompt'**
+  String get settingsGeneralUndoPromptTitle;
+
+  /// Subtitle of the Undo prompt duration setting.
+  ///
+  /// In en, this message translates to:
+  /// **'How long Undo stays on screen after you delete or change something. It also stays while you point at it or move to it with the keyboard.'**
+  String get settingsGeneralUndoPromptSubtitle;
+
+  /// Undo prompt duration dropdown option: a number of seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds, plural, =1{1 second} other{{seconds} seconds}}'**
+  String settingsGeneralUndoPromptSeconds(int seconds);
+
+  /// Undo prompt duration dropdown option: the prompt has no time limit and stays until the user closes it or a new prompt replaces it.
+  ///
+  /// In en, this message translates to:
+  /// **'Until I close it'**
+  String get settingsGeneralUndoPromptUntilClosed;
 
   /// General settings section header for deleted-item retention preferences.
   ///
   /// In en, this message translates to:
-  /// **'Deleted items'**
+  /// **'Recently deleted'**
   String get settingsGeneralDeletedItemsHeader;
 
-  /// Title of the General settings row that controls how long deleted dances are retained.
+  /// Title of the General settings row that controls how long deleted dances and programs are retained.
   ///
   /// In en, this message translates to:
-  /// **'Keep deleted dances for'**
+  /// **'Keep recently deleted items for'**
   String get settingsGeneralSoftDeleteRetentionTitle;
 
   /// Subtitle explaining the deleted-dance retention duration setting.
   ///
   /// In en, this message translates to:
-  /// **'Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
+  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. With Device Sync this applies on all your devices: a shared item is cleared everywhere, leaving only a small deletion record. Never keeps them until you purge manually.'**
   String get settingsGeneralSoftDeleteRetentionSubtitle;
 
   /// Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.
@@ -2048,6 +5433,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Never'**
   String get settingsGeneralSoftDeleteRetentionNever;
+
+  /// General settings row title that opens persisted sync conflict decisions.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync decisions'**
+  String get syncReviewSettingsTitle;
+
+  /// General settings row subtitle explaining the persisted sync decision queue.
+  ///
+  /// In en, this message translates to:
+  /// **'Decide how conflicts between your devices are resolved when sync cannot settle them on its own.'**
+  String get syncReviewSettingsSubtitle;
+
+  /// App-bar title for the persisted sync decision screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync decisions'**
+  String get syncReviewTitle;
+
+  /// Semantics label for the sync decision screen loading indicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading sync decisions'**
+  String get syncReviewLoading;
+
+  /// Empty state shown when the persisted sync decision queue has no rows.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no sync decisions waiting for you.'**
+  String get syncReviewEmpty;
+
+  /// Introductory copy above persisted sync decision rows.
+  ///
+  /// In en, this message translates to:
+  /// **'These items need a decision before a change from another device can be applied.'**
+  String get syncReviewIntro;
+
+  /// Error state shown when loading the persisted sync decision queue fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the sync decisions. Try again.'**
+  String get syncReviewLoadFailed;
+
+  /// Snackbar shown after a sync decision is applied successfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync decision applied.'**
+  String get syncReviewResolved;
+
+  /// Generic snackbar shown when a sync decision fails for an unexpected reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t apply that sync decision. The item was kept, so you can try again.'**
+  String get syncReviewActionFailed;
+
+  /// Kind label for a choreographer sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get syncReviewKindChoreographer;
+
+  /// Kind label for a tag sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get syncReviewKindTag;
+
+  /// Kind label for a custom-field sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom field'**
+  String get syncReviewKindCustomField;
+
+  /// Kind label for a difficulty-level sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty level'**
+  String get syncReviewKindDifficulty;
+
+  /// Kind label for a dance sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get syncReviewKindDance;
+
+  /// Kind label for a program sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get syncReviewKindProgram;
+
+  /// Kind label for a published-source sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Published source'**
+  String get syncReviewKindPublishedSource;
+
+  /// Kind label for a venue sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get syncReviewKindVenue;
+
+  /// Kind label for a setting sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Setting'**
+  String get syncReviewKindSetting;
+
+  /// Kind label for a sync decision about one of the user's own figures: a compound figure they defined in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure'**
+  String get syncReviewKindGlossaryEntry;
+
+  /// Kind label for a sync decision about the user's notes on one built-in Glossary figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on a figure'**
+  String get syncReviewKindFigureNote;
+
+  /// Heading of a sync conflict about the user's notes on one built-in Glossary figure. {figure} is the figure's name as the Glossary shows it, such as 'swing' or 'right shoulder round'.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on {figure}'**
+  String syncConflictFigureNoteTitle(String figure);
+
+  /// Safe identity line for the local record in a sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device: {id}'**
+  String syncReviewLocalRecord(String id);
+
+  /// Safe identity line for the peer candidate in a sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'From the other device: {identity}'**
+  String syncReviewPeerRecord(String identity);
+
+  /// Reason shown for the W14-supported baseline-absence tombstone decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device deleted a matching item that this device created.'**
+  String get syncReviewTombstoneReason;
+
+  /// Reason shown when fresh attach finds live dances with matching titles but different choreography.
+  ///
+  /// In en, this message translates to:
+  /// **'Live dances have the same title but different choreography.'**
+  String get syncReviewDanceAmbiguityReason;
+
+  /// Reason shown for a sync-spec 6.6 step-1 natural-key rename collision between two records that both already exist on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device renamed this record to a name a different record here already uses.'**
+  String get syncReviewRenameCollisionReason;
+
+  /// Confirmation dialog title shown before merging two choreographer records held only on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge these authors?'**
+  String get syncReviewMergeDiscardsContactsTitle;
+
+  /// Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device and will be lost. This can\'t be undone.'**
+  String get syncReviewMergeDiscardsContactsBody;
+
+  /// Failure message shown when a step-1 rename collision is merged while the record holding the colliding name is a tombstone; keep both remains available.
+  ///
+  /// In en, this message translates to:
+  /// **'The other record was deleted, so these two cannot be merged. Use Keep both to give it a different name.'**
+  String get syncReviewCounterpartDeleted;
+
+  /// Reason/status shown for persisted sync conflicts outside the W14 action contract.
+  ///
+  /// In en, this message translates to:
+  /// **'This sync conflict is retained for now; no safe action is available here.'**
+  String get syncReviewUnsupportedReason;
+
+  /// Explanation shown instead of mutating actions for unsupported persisted sync conflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this item for now; a later sync or app update may be able to handle it.'**
+  String get syncReviewUnsupportedAction;
+
+  /// Button that applies the peer tombstone to a supported sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get syncReviewMergeAction;
+
+  /// Button that keeps both records by renaming the local record before applying the peer tombstone.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep both'**
+  String get syncReviewKeepBothAction;
+
+  /// Dialog title shown before the keep-both sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a new local name'**
+  String get syncReviewKeepBothTitle;
+
+  /// Text-field label for the distinct natural-key value required by keep-both.
+  ///
+  /// In en, this message translates to:
+  /// **'New local name'**
+  String get syncReviewNewNameLabel;
+
+  /// Validation message shown when keep-both receives an empty name.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name.'**
+  String get syncReviewNameRequired;
+
+  /// Validation or action error shown when the keep-both name is unchanged or occupied.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a different name.'**
+  String get syncReviewNameNotDistinct;
+
+  /// Action error shown when a persisted sync candidate fails integrity validation.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved change from another device is not valid, so it was kept.'**
+  String get syncReviewCandidateInvalid;
+
+  /// Action error shown when a persisted sync candidate or target changed.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved change from another device is no longer current, so it was kept.'**
+  String get syncReviewCandidateChanged;
+
+  /// Action error shown when a supported sync decision's local target disappeared.
+  ///
+  /// In en, this message translates to:
+  /// **'The local record is no longer available, so the decision was kept.'**
+  String get syncReviewTargetMissing;
+
+  /// Action error shown when a persisted sync decision would duplicate an existing target.
+  ///
+  /// In en, this message translates to:
+  /// **'The item from the other device is already here, so the decision was kept.'**
+  String get syncReviewCandidateAlreadyPresent;
 
   /// General settings section header for import actions.
   ///
@@ -2070,13 +5701,13 @@ abstract class AppLocalizations {
   /// Title of the General settings row that re-parses imported custom-only figures.
   ///
   /// In en, this message translates to:
-  /// **'Re-check custom figures'**
+  /// **'Re-check unrecognized figures'**
   String get settingsGeneralReparseCustomFiguresTitle;
 
   /// Subtitle explaining the re-check custom figures action.
   ///
   /// In en, this message translates to:
-  /// **'Re-parse imported dances whose figures were kept as custom only because they could not be recognised at import time. Improved parsing upgrades them in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
+  /// **'Re-check imported dances whose figures were kept as unrecognized figures only because they couldn\'t be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
   String get settingsGeneralReparseCustomFiguresSubtitle;
 
   /// Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows.
@@ -2084,6 +5715,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Re-check…'**
   String get settingsGeneralReparseCustomFiguresAction;
+
+  /// Settings row title for the opt-in migration of English country dances stored with contra moves (ADR-006 F5).
+  ///
+  /// In en, this message translates to:
+  /// **'Convert English dances'**
+  String get settingsGeneralEcdMigrationTitle;
+
+  /// Settings row subtitle explaining the English-dance conversion.
+  ///
+  /// In en, this message translates to:
+  /// **'English country dances stored before the app knew English figures still use contra moves. Convert the moves that mean the same in English dancing, re-read unrecognized figures, and give each dance its English formation. You choose the dances and confirm before anything changes.'**
+  String get settingsGeneralEcdMigrationSubtitle;
+
+  /// Button that opens the English-dance conversion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert…'**
+  String get settingsGeneralEcdMigrationAction;
 
   /// General settings section header for backup and restore actions.
   ///
@@ -2100,20 +5749,26 @@ abstract class AppLocalizations {
   /// Snackbar shown when backup export fails. The raw exception is logged separately, not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export a backup.'**
+  /// **'Couldn\'t export a backup. Your data is unchanged. Try again.'**
   String get backupExportFailed;
 
   /// Snackbar shown when a backup is refused because its SHA-256 integrity checksum did not verify (issue #536): the file is corrupt or was altered after export, so the restore does not run and data is unchanged.
   ///
   /// In en, this message translates to:
-  /// **'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was cancelled and your data is unchanged.'**
+  /// **'This backup failed its safety check, so it may be damaged or was changed after it was exported. The restore was canceled and your data is unchanged.'**
   String get backupRestoreIntegrityFailed;
 
   /// Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data.
   ///
   /// In en, this message translates to:
-  /// **'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.'**
+  /// **'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was canceled. Your data is unchanged.'**
   String get backupRestoreIncompatibleVersion;
+
+  /// Snackbar shown when a replace restore is refused because the backup file has no app section (an older, hand-edited or incomplete file), so restoring it would clear preferences, themes and dialects it never described. Existing data is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was canceled and your data is unchanged.'**
+  String get backupRestoreMissingAppSection;
 
   /// Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged.
   ///
@@ -2136,19 +5791,19 @@ abstract class AppLocalizations {
   /// Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t restore the backup.'**
+  /// **'Couldn\'t restore the backup. Try again.'**
   String get backupRestoreFailed;
 
   /// Snackbar shown when a backup restore committed the core content (dances/programs) successfully but the separate settings-apply step failed (issue #608). Reassures the user their restored content is intact and points to the retry action. Never contains raw error text.
   ///
   /// In en, this message translates to:
-  /// **'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.'**
+  /// **'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can try applying them again.'**
   String get backupRestoreSettingsFailed;
 
   /// Action button on the settings-restore-failed snackbar that re-applies only the settings portion of the backup. Keep short (a SnackBar action label).
   ///
   /// In en, this message translates to:
-  /// **'Retry settings'**
+  /// **'Try again'**
   String get backupRestoreSettingsRetryAction;
 
   /// Snackbar confirming a successful retry of the settings-apply step after an earlier settings-restore failure.
@@ -2166,7 +5821,7 @@ abstract class AppLocalizations {
   /// Subtitle for the General settings row that exports a complete app backup.
   ///
   /// In en, this message translates to:
-  /// **'Save your entire collection, programs, custom fields, dialects, themes, and settings to a single JSON file you can keep safe or move to another device.'**
+  /// **'Save your entire library to a single JSON file you can keep safe or move to another device. It holds your dances, programs, custom fields, dialects, themes and settings.'**
   String get backupExportSubtitle;
 
   /// Button label that starts exporting a backup. Distinct from exportTooltip, which is a tooltip elsewhere.
@@ -2184,7 +5839,7 @@ abstract class AppLocalizations {
   /// Subtitle for the General settings row that restores from a backup file.
   ///
   /// In en, this message translates to:
-  /// **'Replace everything currently in the app with the contents of a backup file. This cannot be undone.'**
+  /// **'Replace everything currently in the app with the contents of a backup file. This can\'t be undone.'**
   String get backupRestoreSubtitle;
 
   /// Button label that starts the restore-from-backup flow.
@@ -2235,17 +5890,47 @@ abstract class AppLocalizations {
   /// **'It\'s been a while since your last backup — consider exporting one now.'**
   String get backupOverdueHint;
 
+  /// Text of the once-per-launch banner on the main screen shown when the user's chosen backup reminder cadence says a backup is overdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Your backup is overdue. Export one now to keep your library safe.'**
+  String get backupReminderBannerText;
+
+  /// Banner action that exports a backup immediately, from the overdue-backup reminder banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Export backup'**
+  String get backupReminderBannerExport;
+
+  /// Banner action that dismisses the overdue-backup reminder banner for this launch.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get backupReminderBannerNotNow;
+
   /// Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data.
   ///
   /// In en, this message translates to:
-  /// **'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.'**
+  /// **'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This can\'t be undone.'**
   String get backupRestoreDialogBody;
+
+  /// Shown in the restore-from-backup dialog only while this device is paired with a Device Sync store. Restored records are stamped at the backup's creation time, so anything changed since on a synced device wins at the next sync and comes back here.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is connected to Device Sync. Anything Device Sync carries that was changed after this backup was made, on any device you sync with, comes back from that device at the next sync, including changes made here and already synced. Everything else takes the backup\'s version.'**
+  String get backupRestoreDialogSyncNote;
 
   /// Button label in the restore-from-backup dialog that opens a file chooser.
   ///
   /// In en, this message translates to:
   /// **'Choose file…'**
   String get backupChooseFileAction;
+
+  /// Snackbar shown in the restore-from-backup dialog when the chosen file could not be read for a reason other than being too large or not a valid backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that file. Choose it again, or pick another file.'**
+  String get backupChooseFileFailed;
 
   /// Text field label in the restore-from-backup dialog for pasting raw backup JSON.
   ///
@@ -2259,6 +5944,60 @@ abstract class AppLocalizations {
   /// **'Replace all data'**
   String get backupReplaceAllDataAction;
 
+  /// Summary of the backup file chosen in the restore-from-backup dialog, shown instead of pasting the file into the text box: when it was made, how many dances and programs it holds, and its size in megabytes. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup from {date}: {dances, plural, one {{dances} dance} other {{dances} dances}}, {programs, plural, one {{programs} program} other {{programs} programs}}, {size} MB'**
+  String backupFileSummary(String date, int dances, int programs, String size);
+
+  /// Summary shown in the restore-from-backup dialog for a chosen file that could not be read as a backup (not valid, or failed its integrity check). The Replace button stays enabled; the restore itself explains the refusal and leaves data unchanged. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'This file doesn\'t look like a readable backup ({size} MB). Replacing will tell you why if it can\'t be restored.'**
+  String backupFileUnreadable(String size);
+
+  /// Button in the restore-from-backup dialog that forgets the chosen backup file so another file can be chosen or text pasted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get backupFileClearAction;
+
+  /// Snackbar shown in the restore-from-backup dialog when the chosen file is larger than the size limit; the file was not read and data is unchanged. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to be a Caller\'s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.'**
+  String backupFileTooLarge(String sizeMb, String limitMb);
+
+  /// Snackbar shown when exporting a backup is refused because the encoded backup would exceed the size limit that restore can read; nothing is saved. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.'**
+  String backupExportTooLarge(String sizeMb, String limitMb);
+
+  /// Snackbar shown on macOS when saving a backup over an existing backup file is refused because the disk does not have room for the new one; the existing file is left as it was. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'There isn\'t enough free space to replace this backup ({neededMb} MB needed; {freeMb} MB free), so nothing was saved. Your earlier backup is unchanged.'**
+  String backupExportDiskFull(String neededMb, String freeMb);
+
+  /// Text in the progress dialog shown while a backup is being built and saved. No percentage is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your backup…'**
+  String get backupExportInProgress;
+
+  /// Text in the restore progress dialog while the backup is being read, before the count of restored items is known.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the backup…'**
+  String get backupRestorePreparing;
+
+  /// Text in the restore progress dialog: how many items (dances, tags, programs and so on) have been restored out of the total.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring {done} of {total}…'**
+  String backupRestoreProgress(int done, int total);
+
   /// Snackbar shown when the user tries to export diagnostics but the local diagnostics log is empty.
   ///
   /// In en, this message translates to:
@@ -2268,7 +6007,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when a scrubbed diagnostics export cannot safely gather redaction terms, so no file is saved.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Please try again, or use full detail deliberately.'**
+  /// **'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Try again, or use full detail deliberately.'**
   String get diagnosticsScrubbedExportUnavailable;
 
   /// Snackbar confirming the diagnostics log was exported.
@@ -2277,17 +6016,23 @@ abstract class AppLocalizations {
   /// **'Diagnostics log exported.'**
   String get diagnosticsLogExported;
 
-  /// Snackbar shown when the diagnostics export/share flow is cancelled.
+  /// Snackbar shown when the diagnostics export/share flow is canceled.
   ///
   /// In en, this message translates to:
-  /// **'Export cancelled.'**
+  /// **'Export canceled.'**
   String get diagnosticsExportCancelled;
 
   /// Snackbar shown when diagnostics log export fails. Details are not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export the diagnostics log.'**
+  /// **'Couldn\'t export the diagnostics log. Try again.'**
   String get diagnosticsExportFailed;
+
+  /// Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clear the diagnostics log. Try again.'**
+  String get diagnosticsClearFailed;
 
   /// Title of the confirmation dialog for clearing the local diagnostics log.
   ///
@@ -2298,7 +6043,7 @@ abstract class AppLocalizations {
   /// Body of the confirmation dialog for clearing the local diagnostics log.
   ///
   /// In en, this message translates to:
-  /// **'This permanently deletes the local crash log from this device. This cannot be undone.'**
+  /// **'This permanently deletes the local crash log from this device. This can\'t be undone.'**
   String get diagnosticsClearLogBody;
 
   /// Button label that confirms clearing the local diagnostics log.
@@ -2406,13 +6151,13 @@ abstract class AppLocalizations {
   /// Title shown in the friendly crash fallback widget when a subtree fails to build.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong here'**
+  /// **'Couldn\'t show this part of the app'**
   String get crashFallbackTitle;
 
   /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
   ///
   /// In en, this message translates to:
-  /// **'This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.'**
+  /// **'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.'**
   String get crashFallbackBody;
 
   /// Button label in the crash fallback widget after copying error details to the clipboard.
@@ -2433,6 +6178,30 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// Title of the prompt shown when the user leaves an editor (Back, a tap outside a sheet) with unsaved changes. Shared by the editors that have no editor-specific wording: shorthands, themes, venues and custom fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get commonDiscardChangesTitle;
+
+  /// Body of the shared 'Discard changes?' prompt shown when leaving an editor with unsaved changes.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes.'**
+  String get commonDiscardChangesBody;
+
+  /// Button in the shared 'Discard changes?' prompt that closes the prompt and returns to the editor, keeping the unsaved changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get commonKeepEditing;
+
+  /// Button in the shared 'Discard changes?' prompt that leaves the editor and throws the unsaved changes away.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get commonDiscard;
+
   /// Generic confirm button that proceeds with the current action. Used wherever a dialog needs a neutral forward-motion label that is not specific to any one workflow.
   ///
   /// In en, this message translates to:
@@ -2445,11 +6214,11 @@ abstract class AppLocalizations {
   /// **'Undo'**
   String get commonUndo;
 
-  /// Button that re-attempts a failed load.
+  /// Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string.
   ///
   /// In en, this message translates to:
-  /// **'Retry'**
-  String get commonRetry;
+  /// **'Couldn\'t undo that. Check the result, then try again.'**
+  String get commonUndoFailed;
 
   /// Generic destructive action label for removing a single item (row menu, swipe action).
   ///
@@ -2487,7 +6256,7 @@ abstract class AppLocalizations {
   /// **'OK'**
   String get commonOk;
 
-  /// Confirm button in the shared colour-picker dialog that applies the chosen colour.
+  /// Confirm button in the shared color-picker dialog that applies the chosen color.
   ///
   /// In en, this message translates to:
   /// **'Apply'**
@@ -2613,6 +6382,12 @@ abstract class AppLocalizations {
   /// **'Improper'**
   String get commonFormationDupleImproper;
 
+  /// Formation shape value: improper formation already progressed.
+  ///
+  /// In en, this message translates to:
+  /// **'Progressed improper'**
+  String get commonFormationProgressedImproper;
+
   /// Formation shape value: improper formation with reverse progression.
   ///
   /// In en, this message translates to:
@@ -2715,6 +6490,84 @@ abstract class AppLocalizations {
   /// **'{shape} — {detail}'**
   String commonFormationWithDetail(String shape, String detail);
 
+  /// Formation shape value (English country dance): a longways set danced in minor sets of two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple minor'**
+  String get commonFormationDupleMinor;
+
+  /// Formation shape value (English country dance): a longways set of exactly three couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-couple longways'**
+  String get commonFormationThreeCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Four-couple longways'**
+  String get commonFormationFourCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly five couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Five-couple longways'**
+  String get commonFormationFiveCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly six couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Six-couple longways'**
+  String get commonFormationSixCoupleLongways;
+
+  /// Formation shape value (English country dance): dancers in a circle.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle'**
+  String get commonFormationCircle;
+
+  /// Formation shape value (English country dance): a square set of four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get commonFormationSquare;
+
+  /// Formation shape value (English country dance): a set of exactly two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-couple set'**
+  String get commonFormationTwoCoupleSet;
+
+  /// An English country dance formation that starts improper (first couple crossed over). {shape} is a localized formation shape name, such as 'Duple minor'.
+  ///
+  /// In en, this message translates to:
+  /// **'{shape}, improper'**
+  String commonFormationImproperFlag(String shape);
+
+  /// Label for a dance's written meter (time signature) as free text, for example 3/2 or 6/8.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get danceEditorMeterLabel;
+
+  /// Label for the musical key of a dance's tune as free text, for example G minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get danceEditorMusicalKeyLabel;
+
+  /// Hint in the dance editor's meter field: an example of a written meter.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 3/2'**
+  String get danceEditorMeterHint;
+
+  /// Hint in the dance editor's key field: an example of a musical key.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. G minor'**
+  String get danceEditorMusicalKeyHint;
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:
@@ -2727,22 +6580,28 @@ abstract class AppLocalizations {
   /// **'Mixer'**
   String get commonMixer;
 
-  /// Tooltip on a tag chip that filters the collection to dances carrying that tag.
+  /// Tooltip on a tag chip (a Collection row, or a dance's detail page). Tapping it adds the tag to the Collection's Tags filter and keeps the rest of the search; from a detail page it also switches to the Collection.
   ///
   /// In en, this message translates to:
-  /// **'Show dances tagged “{tagName}”'**
+  /// **'Add \"{tagName}\" to the Collection filters'**
   String commonShowDancesTaggedTooltip(String tagName);
 
-  /// Snackbar confirming a dance was soft-deleted, quoting its title.
+  /// Snackbar confirming that an item was deleted, quoting its name or title. Used for dances and for other named items: dialects, custom themes, custom fields, custom figures, walkthrough snippets and shorthand tokens.
   ///
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String commonDeletedSnack(String title);
 
+  /// Second paragraph of every confirmation for a delete that cannot be undone (there is no Undo and nothing in Recently deleted). The one wording for irreversibility across the app.
+  ///
+  /// In en, this message translates to:
+  /// **'This can\'t be undone.'**
+  String get commonCantBeUndone;
+
   /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  /// **'Couldn\'t recognize this call — kept exactly as written as an unrecognized figure.'**
   String get importGapMessage;
 
   /// Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped).
@@ -2754,7 +6613,7 @@ abstract class AppLocalizations {
   /// Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments.
   ///
   /// In en, this message translates to:
-  /// **'Unrecognized figure. Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  /// **'Unrecognized figure. Kept exactly as written.'**
   String get importGapSemanticLabel;
 
   /// App-bar title of the Collection screen (phone layout).
@@ -2768,12 +6627,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New dance'**
   String get collectionNewDance;
-
-  /// Tooltip for the app-bar search button, noting its keyboard shortcut.
-  ///
-  /// In en, this message translates to:
-  /// **'Search (Ctrl/Cmd-K)'**
-  String get collectionSearchTooltip;
 
   /// Tooltip for the app-bar button that enters multi-select (batch) mode.
   ///
@@ -2877,6 +6730,16 @@ abstract class AppLocalizations {
   /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}'**
   String collectionGroupSectionSemantics(String label, int count);
 
+  /// Accessibility label announced for a category section header while selecting dances; it names the checkbox that selects the section's rows. {label} is the section name, {count} the number of dances in it and {selected} how many of them are selected.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}, {selected} selected'**
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  );
+
   /// Tooltip for the button that leaves multi-select (batch) mode.
   ///
   /// In en, this message translates to:
@@ -2888,6 +6751,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} selected'**
   String collectionSelectedCount(int count);
+
+  /// Tooltip and menu label for the selection-bar action that selects every dance in the current results. {count} is the number of dances in the results.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all {count}'**
+  String collectionSelectAllTooltip(int count);
+
+  /// Tooltip and menu label for the selection-bar action that clears the selection of every dance in the current results, shown when they are all selected. {count} is the number of dances in the results.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all {count}'**
+  String collectionDeselectAllTooltip(int count);
+
+  /// Added after the result count while selecting, when some selected dances are hidden by the current search or filters: how many are selected in all, and how many of those the list does not show.
+  ///
+  /// In en, this message translates to:
+  /// **'{selected} selected ({hidden} not shown)'**
+  String collectionSelectionNotShown(int selected, int hidden);
+
+  /// Button beside the result count that drops the selected dances the current search or filters hide, keeping the ones on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect those not shown'**
+  String get collectionDeselectNotShown;
 
   /// Batch action (tooltip and dialog title) for adding tags to the selected dances.
   ///
@@ -2918,18 +6805,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
-
-  /// Hint text of the collection picker search field, listing what is searched.
-  ///
-  /// In en, this message translates to:
-  /// **'Search titles, figures, notes…'**
-  String get collectionPickerSearchFieldHint;
-
-  /// Hint text of the collection picker when its online search is limited to titles.
-  ///
-  /// In en, this message translates to:
-  /// **'Search online dances by title…'**
-  String get collectionPickerOnlineSearchFieldHint;
 
   /// Label for the local collection search scope selector.
   ///
@@ -2970,7 +6845,7 @@ abstract class AppLocalizations {
   /// Message shown when the collection fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the collection.'**
+  /// **'Couldn\'t load the collection. Nothing was changed. Try again.'**
   String get collectionLoadError;
 
   /// Snackbar confirming a dance was duplicated, quoting the copy's title.
@@ -2979,11 +6854,35 @@ abstract class AppLocalizations {
   /// **'Duplicated as \"{title}\".'**
   String collectionDuplicatedSnack(String title);
 
-  /// Empty-state message shown in the results area when the collection has no dances.
+  /// Body of the empty-Collection state, under the title; says how to add the first dance.
   ///
   /// In en, this message translates to:
-  /// **'Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.'**
-  String get collectionEmpty;
+  /// **'Add or import a dance to get started — or turn on Online search above to import from an online source.'**
+  String get collectionEmptyBody;
+
+  /// Title of the empty-Collection state.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection is empty'**
+  String get collectionEmptyTitle;
+
+  /// Title of the card shown while the sample dance is the only dance in the Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring your dances in'**
+  String get collectionImportCardTitle;
+
+  /// Body of the card shown while the sample dance is the only dance in the Collection; points at Import dances and New dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.'**
+  String get collectionImportCardBody;
+
+  /// Button on the card shown while the sample dance is the only dance in the Collection; opens the catalog of signed published collections.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse published collections'**
+  String get collectionBrowsePublishedCollections;
 
   /// Title of the facet filters panel when no filters are active.
   ///
@@ -2991,7 +6890,7 @@ abstract class AppLocalizations {
   /// **'Filters'**
   String get collectionFiltersTitle;
 
-  /// Title of the facet filters panel, noting how many filters are active.
+  /// What screen readers hear for the Collection's Filters button while filters are active; the button itself shows the shorter searchToolActiveCount form ("Filters · 3").
   ///
   /// In en, this message translates to:
   /// **'Filters ({count} active)'**
@@ -3003,7 +6902,7 @@ abstract class AppLocalizations {
   /// **'By phrase'**
   String get collectionByPhraseTitle;
 
-  /// Title of the by-phrase filter panel, noting how many phrase constraints are active.
+  /// What screen readers hear for the Collection's By phrase button while phrase constraints are active; the button itself shows the shorter searchToolActiveCount form ("By phrase · 2").
   ///
   /// In en, this message translates to:
   /// **'By phrase ({count} active)'**
@@ -3015,17 +6914,17 @@ abstract class AppLocalizations {
   /// **'Advanced'**
   String get collectionAdvancedTitle;
 
-  /// Toggle that enables the boolean advanced-query builder.
+  /// Label of the Advanced search-tool button (Collection and the program builder's dance picker) while an advanced figure query is turned on and has at least one condition, so the user can see it is still narrowing the results after its panel closes. Shown in full, like the short "Filters · 3" count on the Filters button.
   ///
   /// In en, this message translates to:
-  /// **'Use advanced query'**
-  String get collectionUseAdvancedQuery;
+  /// **'Advanced (on)'**
+  String get collectionAdvancedActive;
 
-  /// Subtitle explaining what the advanced-query builder does.
+  /// Short label of a search-tool button (Filters, By phrase) in the Collection and the program builder's dance picker while that tool is narrowing the results, e.g. "Filters · 3". Kept short so the row of tool buttons fits on one line; screen readers hear the longer "Filters (3 active)" form instead. {tool} is the tool's own name.
   ///
   /// In en, this message translates to:
-  /// **'Combine figures and sequences with all / any / none groups.'**
-  String get collectionUseAdvancedQuerySubtitle;
+  /// **'{tool} · {count}'**
+  String searchToolActiveCount(String tool, int count);
 
   /// Result count of local dances matching the current query.
   ///
@@ -3036,7 +6935,7 @@ abstract class AppLocalizations {
   /// Message shown when the local search fails.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong running the search.'**
+  /// **'Couldn\'t run the search. Nothing was changed. Try again.'**
   String get collectionSearchError;
 
   /// Empty-state message when the local search returns no dances.
@@ -3087,6 +6986,12 @@ abstract class AppLocalizations {
   /// **'Set rating'**
   String get collectionSetRating;
 
+  /// Batch action (menu item and dialog title) for setting the lifecycle status (active, deprecated, broken, draft, variation) on the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Set status'**
+  String get collectionSetStatus;
+
   /// Batch action (menu item and dialog title) for adding tunes to the selected dances (additive; never removes).
   ///
   /// In en, this message translates to:
@@ -3117,6 +7022,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Cleared rating on 1 dance} other{Cleared rating on {count} dances}}'**
   String collectionBatchRatingCleared(int count);
 
+  /// Announcement/snackbar confirming a status was set on the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Set status on 1 dance} other{Set status on {count} dances}}'**
+  String collectionBatchStatusSet(int count);
+
   /// Announcement/snackbar confirming tunes were added to the given number of dances.
   ///
   /// In en, this message translates to:
@@ -3140,6 +7051,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Cleared field on 1 dance} other{Cleared field on {count} dances}}'**
   String collectionBatchCustomFieldCleared(int count);
+
+  /// Snackbar confirming the selected dances were moved to Recently deleted by Collection's batch Delete; it carries an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}'**
+  String collectionBatchDeleted(int count);
+
+  /// Screen-reader announcement after Collection's batch Delete. Names Recently deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently deleted.} other{Deleted {count} dances. Restore them from Recently deleted.}}'**
+  String collectionBatchDeletedAnnouncement(int count);
 
   /// Accessible label for the per-row selection checkbox in batch mode.
   ///
@@ -3219,6 +7142,90 @@ abstract class AppLocalizations {
   /// **'Not called'**
   String get collectionFacetNotCalled;
 
+  /// Hint under the Calling history filter's venue and time-window choices while neither or both of Called and Not called is selected: the choices are kept but do nothing until exactly one is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies with Called or Not called'**
+  String get collectionFacetHistoryInert;
+
+  /// Label of the venue choice in the Calling history filter: only calls at the chosen venue count.
+  ///
+  /// In en, this message translates to:
+  /// **'At venue'**
+  String get collectionFacetVenue;
+
+  /// Venue choice in the Calling history filter when no venue is chosen, and the list entry that clears the choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Any venue'**
+  String get collectionFacetVenueAny;
+
+  /// Placeholder name for a venue in the Calling history filter whose record is gone and whose programs have no typed venue text.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed venue'**
+  String get collectionFacetVenueUnnamed;
+
+  /// Tooltip of the button that clears the venue chosen in the Calling history filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear venue'**
+  String get collectionFacetVenueClear;
+
+  /// Title of the list of venues, each with a counted call, that the Calling history filter offers.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get collectionFacetVenueSheetTitle;
+
+  /// Under a venue in the Calling history filter's venue list: how many programs at that venue have a counted call.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program} other{{count} programs}}'**
+  String collectionFacetVenuePrograms(int count);
+
+  /// Marks a venue in the Calling history filter's venue list that is only typed text on its programs, not a saved venue. A typed Grange and a saved Grange are separate venues until the old programs are linked.
+  ///
+  /// In en, this message translates to:
+  /// **'typed'**
+  String get collectionFacetVenueTyped;
+
+  /// Label of the time-window choices in the Calling history filter (Within 1 month, Within 3 months, and so on).
+  ///
+  /// In en, this message translates to:
+  /// **'Within'**
+  String get collectionFacetWithin;
+
+  /// Time-window choice in the Calling history filter that sets no window, shown with Called: calls at any time count.
+  ///
+  /// In en, this message translates to:
+  /// **'Any time'**
+  String get collectionFacetWithinAnyTime;
+
+  /// Time-window choice in the Calling history filter that sets no window, shown with Not called: dances that have never been called.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get collectionFacetWithinNever;
+
+  /// Time-window choice in the Calling history filter: calls in the last {count} calendar months, counted back from today.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month} other{{count} months}}'**
+  String collectionFacetWithinMonths(int count);
+
+  /// Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count.
+  ///
+  /// In en, this message translates to:
+  /// **'Since a date…'**
+  String get collectionFacetWithinSince;
+
+  /// Time-window choice in the Calling history filter once a date is chosen; {date} is that date in the user's date format.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String collectionFacetWithinSinceDate(String date);
+
   /// Filter section heading for the difficulty level facet.
   ///
   /// In en, this message translates to:
@@ -3243,6 +7250,54 @@ abstract class AppLocalizations {
   /// **'Tags'**
   String get collectionFacetTags;
 
+  /// Filter chip in the tags facet selecting dances that have no tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Untagged'**
+  String get collectionFacetUntagged;
+
+  /// Screen-reader label for the choice under the Tags filter, shown once two or more tags are selected, between requiring all of them and any of them.
+  ///
+  /// In en, this message translates to:
+  /// **'Match tags'**
+  String get collectionFacetTagsMatchLabel;
+
+  /// Segment of the Tags filter's match choice: a dance must carry every selected tag. The default when a second tag is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'All tags'**
+  String get collectionFacetTagsMatchAll;
+
+  /// Tooltip for the 'All tags' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have every selected tag'**
+  String get collectionFacetTagsMatchAllTooltip;
+
+  /// Segment of the Tags filter's match choice: a dance needs only one of the selected tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Any tag'**
+  String get collectionFacetTagsMatchAny;
+
+  /// Tooltip for the 'Any tag' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have at least one selected tag'**
+  String get collectionFacetTagsMatchAnyTooltip;
+
+  /// Filter section heading for the meter facet: the time signature a dance's tune is in, such as 6/8 or 3/2.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get collectionFacetMeter;
+
+  /// Filter section heading for the musical key facet: the key a dance's tune is in, such as D minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get collectionFacetMusicalKey;
+
   /// Filter section heading for the cited-source facet.
   ///
   /// In en, this message translates to:
@@ -3260,6 +7315,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No filters available for this collection yet.'**
   String get collectionFacetNone;
+
+  /// Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by.
+  ///
+  /// In en, this message translates to:
+  /// **'All filters are hidden. You can show them again in Settings ▸ Defaults.'**
+  String get collectionFacetAllHidden;
 
   /// Button that clears all active facet filters.
   ///
@@ -3279,6 +7340,30 @@ abstract class AppLocalizations {
   /// **'Search authors…'**
   String get collectionFacetAuthorSearchHint;
 
+  /// Filter section heading for the tunes facet. A dance matches only if it has every tune entered here.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get collectionFacetTunes;
+
+  /// Hint text of the tunes-filter field, which suggests tunes already in the collection and also accepts free text.
+  ///
+  /// In en, this message translates to:
+  /// **'Search or add a tune…'**
+  String get collectionFacetTunesSearchHint;
+
+  /// Option in the tunes-filter dropdown that adds the typed text as a filter value, whether or not any dance has that exact tune.
+  ///
+  /// In en, this message translates to:
+  /// **'Add \"{name}\"'**
+  String collectionFacetAddTune(String name);
+
+  /// Tooltip on a tunes-filter chip that removes that value from the filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}'**
+  String collectionFacetRemoveTune(String name);
+
   /// Text custom-field filter operator: substring match.
   ///
   /// In en, this message translates to:
@@ -3296,6 +7381,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter by {label}…'**
   String collectionFacetTextHint(String label);
+
+  /// Tooltip of the clear (×) button inside a text custom-field filter input; empties that one field's filter text.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filter'**
+  String get collectionFacetTextClearTooltip;
 
   /// Number custom-field filter operator: equal to (symbol).
   ///
@@ -3447,7 +7538,43 @@ abstract class AppLocalizations {
   /// **'Has figure'**
   String get collectionQueryHasFigure;
 
-  /// Advanced-query 'add' menu item: a two-figure ordered sequence condition.
+  /// Advanced-query condition type / row label: the dance carries a given tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Has tag'**
+  String get collectionQueryHasTag;
+
+  /// The Has tag entry of the Advanced query Add menu while an online source without tags is searched: shown greyed out, naming the source, instead of being offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Has tag (not available on {source})'**
+  String collectionQueryHasTagUnavailable(String source);
+
+  /// Toggle on an Advanced-query figure row: the row asks for any figure at all instead of a chosen move, so a sequence can read swing, then anything. Matches every figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Any figure'**
+  String get collectionQueryAnyFigure;
+
+  /// Accessibility label of the tag dropdown on an Advanced-query 'Has tag' row.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get collectionQueryTagLabel;
+
+  /// Placeholder shown on an Advanced-query 'Has tag' row before a tag is picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a tag'**
+  String get collectionQueryTagHint;
+
+  /// Tooltip of the button that removes an Advanced-query 'Has tag' row.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tag'**
+  String get collectionQueryRemoveTag;
+
+  /// Advanced-query 'add' menu item: a two-figure sequence condition in which the second figure immediately follows the first.
   ///
   /// In en, this message translates to:
   /// **'Sequence (then)'**
@@ -3471,7 +7598,7 @@ abstract class AppLocalizations {
   /// **'Remove figure'**
   String get collectionQueryRemoveFigure;
 
-  /// Label for the earlier figure of a 'then' sequence condition.
+  /// Label for the first figure of a 'then' sequence condition: the figure the next one must immediately follow.
   ///
   /// In en, this message translates to:
   /// **'First'**
@@ -3483,11 +7610,11 @@ abstract class AppLocalizations {
   /// **'then'**
   String get collectionQueryThenConnector;
 
-  /// Label for the later figure of a 'then' sequence condition.
+  /// Label for the figure that must come immediately after the first one in a 'then' sequence condition (the dance counts as a loop, so the first figure follows the last).
   ///
   /// In en, this message translates to:
-  /// **'Later'**
-  String get collectionQueryThenLater;
+  /// **'Next'**
+  String get collectionQueryThenNext;
 
   /// Tooltip for the button that removes a 'then' sequence condition.
   ///
@@ -3597,16 +7724,10 @@ abstract class AppLocalizations {
   /// **'Create tag'**
   String get collectionCreateTagButton;
 
-  /// Snackbar shown when creating a tag fails.
+  /// Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not create tag. Try again.'**
-  String get collectionCreateTagError;
-
-  /// Snackbar shown when applying a batch tag operation fails.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not apply batch changes. Try again.'**
+  /// **'Couldn\'t apply the batch changes. Try again.'**
   String get collectionBatchApplyError;
 
   /// Confirm button of the batch add-tags dialog.
@@ -3638,6 +7759,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set'**
   String get collectionBatchRatingConfirm;
+
+  /// Confirm button of the batch set-status dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get collectionBatchStatusConfirm;
 
   /// Label of the text field for typing a tune to add in the batch add-tunes dialog.
   ///
@@ -3729,6 +7856,72 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat} other{{beats} beats}}'**
   String danceFigureBeats(int beats);
 
+  /// A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).
+  ///
+  /// In en, this message translates to:
+  /// **'{halfBars, plural, =1{{bars} bar} =2{{bars} bar} other{{bars} bars}}'**
+  String danceFigureBars(String bars, int halfBars);
+
+  /// Label of a figure's length field in the dance editor for an English country dance, which is timed in bars rather than beats.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars'**
+  String get danceEditorBarsLabel;
+
+  /// Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'.
+  ///
+  /// In en, this message translates to:
+  /// **'No timing of its own'**
+  String get danceEditorStepUntimed;
+
+  /// Error under a bars field in the dance editor when the text is not a number of whole or half bars within range.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter whole or half bars, up to {max}'**
+  String danceEditorBarsRangeError(int max);
+
+  /// Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole bars only, with {beatsPerBar} beats to the bar'**
+  String danceEditorHalfBarRefused(int beatsPerBar);
+
+  /// Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars for all'**
+  String get danceEditorSequenceSpanLabel;
+
+  /// Help under the empty 'Bars for all' field of a sequence in an English country dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to add up the steps\' bars, or give the bars the whole sequence takes, as in \"A, B and C in bars 1–4\".'**
+  String get danceEditorSequenceSpanEmptyHelp;
+
+  /// Help under the filled 'Bars for all' field of a sequence in an English country dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps share these bars, and each may leave its own bars empty.'**
+  String get danceEditorSequenceSpanHelp;
+
+  /// Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps take {steps}, but the sequence takes {span}.'**
+  String danceEditorSequenceSpanMismatch(String steps, String span);
+
+  /// Warning in a sequence of an English country dance whose timed steps already fill its bars, leaving none for its untimed steps. {steps} and {span} are lengths such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps with bars of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
+  String danceEditorSequenceSpanNoRoom(String steps, String span);
+
+  /// Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'This sequence is {length}, longer than one phrase ({limit}).'**
+  String danceEditorSequenceOverPhraseTimed(String length, String limit);
+
   /// Word inserted into a figure row's accessible label when the figure carries the progression.
   ///
   /// In en, this message translates to:
@@ -3752,6 +7945,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dance not found.'**
   String get danceNotFound;
+
+  /// Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Try again button.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this dance. Nothing was changed. Try again.'**
+  String get danceLoadError;
 
   /// Label of the floating action button that opens the dance editor.
   ///
@@ -3777,6 +7976,42 @@ abstract class AppLocalizations {
   /// **'More actions'**
   String get danceMoreActions;
 
+  /// Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate, Archive and Delete on the program builder's and summary's narrow toolbars.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get programsMoreActions;
+
+  /// Screen-reader label for the Only / Includes choice beside the programs list's type chips: whether a chip keeps programs of only that type mix, or every program that includes that type.
+  ///
+  /// In en, this message translates to:
+  /// **'Match types'**
+  String get programsFormMatchLabel;
+
+  /// Programs list type filter: segment that keeps only programs whose dances are of exactly the chosen type(s), e.g. Contra leaves out a program that also has English dances. Keep very short; it sits beside the type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Only'**
+  String get programsFormMatchOnly;
+
+  /// Tooltip for the programsFormMatchOnly segment of the programs list type filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs of only the chosen types'**
+  String get programsFormMatchOnlyTooltip;
+
+  /// Programs list type filter: segment that keeps every program that has the chosen type, e.g. Contra also lists a program with both contra and English dances. In this mode each chip is a single type. Keep very short; it sits beside the type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes'**
+  String get programsFormMatchIncludes;
+
+  /// Tooltip for the programsFormMatchIncludes segment of the programs list type filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs that have the chosen type'**
+  String get programsFormMatchIncludesTooltip;
+
   /// Heading of the figures section on the dance detail screen.
   ///
   /// In en, this message translates to:
@@ -3794,6 +8029,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Walkthrough'**
   String get danceSectionWalkthrough;
+
+  /// Shown on the dance detail screen in place of the figure table when the stored figures_json could not be decoded (#1347). States the fact only; the reassurance is in @danceUnreadableReassurance below. Must not imply the dance or its figures were deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'These figures can\'t be read.'**
+  String get danceFiguresUnreadable;
+
+  /// Shown on the dance detail screen in place of the tune list when the stored tunes_json could not be decoded (#1347). Same constraints as @danceFiguresUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'These tunes can\'t be read.'**
+  String get danceTunesUnreadable;
+
+  /// Explanation shown under @danceFiguresUnreadable or @danceTunesUnreadable. Every clause must stay literally true of the behaviour: the row is intact, the stored text is written back verbatim, and an edit to another field preserves it. Do not claim the app will recover or repair the content, and do not mention syncing -- such a dance is withheld from Device Sync, which this string deliberately does not promise either way.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been deleted. What was saved is kept exactly as it is, and editing anything else about this dance will not replace it.'**
+  String get danceUnreadableReassurance;
+
+  /// Shown in the dance editor above the figure list when the opened dance's stored figures could not be decoded (#1347). The final clause is literally the save rule: the editor preserves the stored text while the author has entered no figures, and replaces it once they have.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures yourself.'**
+  String get danceEditorFiguresUnreadable;
+
+  /// Shown in the dance editor above the tunes field when the opened dance's stored tunes could not be decoded (#1347). Same save rule as @danceEditorFiguresUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved tunes can\'t be read, so they are not shown here. They are kept as they are unless you add tunes of your own.'**
+  String get danceEditorTunesUnreadable;
+
+  /// Short badge on a Collection list row whose dance holds figures or tunes that could not be decoded (#1347). Kept to two or three words; the detail screen carries the explanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t be read'**
+  String get danceListUnreadableBadge;
 
   /// Heading of the tunes section on the dance detail screen.
   ///
@@ -3840,7 +8111,7 @@ abstract class AppLocalizations {
   /// Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the calling history.'**
+  /// **'Couldn\'t load the calling history. Nothing was changed. Try again.'**
   String get danceCallingHistoryError;
 
   /// Repeated-venue calling-history summary item.
@@ -3860,6 +8131,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Canonical'**
   String get danceCanonicalToggleLabel;
+
+  /// Note on a dance's detail page when the dance is shown with the role terms 'larks' and 'robins' instead of the role terms of the user's dialect, because its author asked that it only be called with those terms. 'larks' and 'robins' are the role terms the dance is shown with, which stay in English in the dance, so keep them as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect\'s role terms are not used here.'**
+  String get danceRoleTermsOverrideNote;
 
   /// Provenance line prefix naming where the dance came from.
   ///
@@ -4009,6 +8286,64 @@ abstract class AppLocalizations {
     String details,
   );
 
+  /// Marker in an add-to-program sheet row's subtitle: the program already holds this dance once, as a main slot or an alternate.
+  ///
+  /// In en, this message translates to:
+  /// **'In this program'**
+  String get programsDanceInThisProgram;
+
+  /// Marker in an add-to-program sheet row's subtitle: the program already holds this dance more than once (main slots and alternates both count).
+  ///
+  /// In en, this message translates to:
+  /// **'In this program ×{count}'**
+  String programsDanceInThisProgramCount(int count);
+
+  /// Title of the dialog the add-to-program sheet shows before adding a dance a program already holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in this program'**
+  String get programsAddAgainTitle;
+
+  /// Body of the dialog the add-to-program sheet shows before adding a dance a program already holds. The count includes alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{\"{danceTitle}\" is already in \"{programTitle}\". Add it again?} other{\"{danceTitle}\" is already in \"{programTitle}\" {count} times. Add it again?}}'**
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  );
+
+  /// Primary button of the add-to-program sheet's already-in-this-program dialog: adds the dance a second time.
+  ///
+  /// In en, this message translates to:
+  /// **'Add again'**
+  String get programsAddAgain;
+
+  /// Hint of the search field in the add-to-program sheet, shown when there are many programs. Matches a program's title or venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Search programs'**
+  String get programsAddToProgramSearchHint;
+
+  /// Tooltip of the button that empties the add-to-program sheet's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get programsAddToProgramSearchClear;
+
+  /// Shown in the add-to-program sheet when a search matches no program.
+  ///
+  /// In en, this message translates to:
+  /// **'No programs match your search.'**
+  String get programsAddToProgramNoMatches;
+
+  /// Row in the add-to-program sheet that expands the programs already marked Performed, which are collapsed beneath the open ones. The count is the number of Performed programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Performed ({count})'**
+  String programsAddToProgramPerformedGroup(int count);
+
   /// Confirmation snackbar after appending a dance to an existing program.
   ///
   /// In en, this message translates to:
@@ -4063,12 +8398,6 @@ abstract class AppLocalizations {
   /// **'This program no longer exists.'**
   String get programsNoLongerExists;
 
-  /// Fallback title used for an untitled program when opening the Perform view from an unsaved draft.
-  ///
-  /// In en, this message translates to:
-  /// **'Program'**
-  String get programsFallbackTitle;
-
   /// Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages.
   ///
   /// In en, this message translates to:
@@ -4105,6 +8434,24 @@ abstract class AppLocalizations {
   /// **'Marked all dances performed.'**
   String get programsMarkedAllPerformed;
 
+  /// Confirmation (snackbar and screen-reader announcement) after Mark all performed, shown instead of programsMarkedAllPerformed when the program has an alternate dance that was left unmarked. Mark all performed never marks alternates, because an alternate counts as called only once the caller marks it.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed except alternates. Mark an alternate yourself if you called it.'**
+  String get programsMarkedAllPerformedExceptAlternates;
+
+  /// Confirmation (snackbar and screen-reader announcement) after Mark all performed marked every dance and also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed and set the status to Performed.'**
+  String get programsMarkedAllPerformedSetStatus;
+
+  /// Confirmation after Mark all performed marked every dance except alternates and also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed except alternates, and set the status to Performed. Mark an alternate yourself if you called it.'**
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus;
+
   /// Snackbar confirming the program was saved, quoting its title.
   ///
   /// In en, this message translates to:
@@ -4114,19 +8461,19 @@ abstract class AppLocalizations {
   /// Snackbar shown when saving the program fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not save the program.'**
+  /// **'Couldn\'t save the program. Your changes are still here. Try again.'**
   String get programsSaveError;
 
   /// Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved.
   ///
   /// In en, this message translates to:
-  /// **'Could not undo marking; performed marks remain saved.'**
+  /// **'Couldn\'t undo that. The performed marks are still saved.'**
   String get programsUndoPerformedError;
 
   /// Snackbar shown when bulk performed Undo is saved but the editor cannot refresh afterward.
   ///
   /// In en, this message translates to:
-  /// **'Undo was saved, but the editor could not refresh.'**
+  /// **'Undo was saved, but the editor couldn\'t refresh. Reopen the program to see it.'**
   String get programsUndoRefreshError;
 
   /// Snackbar confirming a program was duplicated, quoting the copy's title.
@@ -4140,6 +8487,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String programsDeletedSnack(String title);
+
+  /// Action that archives a program: hides it from the Programs list without deleting it. Shown in a program row's ⋮ menu, and as a toolbar button tooltip (or ⋮ menu item on narrow screens) on the program summary and the program builder.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get programsArchive;
+
+  /// Action that reverses Archive on an archived program, so it shows in the Programs list again. Shown in the same places as programsArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get programsUnarchive;
+
+  /// Snackbar confirming a program was archived, quoting its title. Paired with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" archived.'**
+  String programsArchivedSnack(String title);
+
+  /// Snackbar confirming an archived program was unarchived and is back in the Programs list, quoting its title.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" unarchived.'**
+  String programsUnarchivedSnack(String title);
+
+  /// Label marking a program as archived: the chip on its row in the Programs list and on its summary, and the field name when Sync compares two versions of a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get programsArchivedLabel;
+
+  /// Programs list ⋮ menu item (and empty-state button) that also lists archived programs, alongside the others.
+  ///
+  /// In en, this message translates to:
+  /// **'Show archived'**
+  String get programsShowArchived;
+
+  /// Programs list ⋮ menu item, shown while archived programs are listed, that hides them again.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide archived'**
+  String get programsHideArchived;
+
+  /// Title of the empty state when every program is archived: on the Programs list while archived programs are hidden, and in the add-to-program sheet, which never offers archived programs.
+  ///
+  /// In en, this message translates to:
+  /// **'No programs to show'**
+  String get programsAllArchivedTitle;
+
+  /// Body of the empty state when every program is archived. On the Programs list (while archived programs are hidden) it is followed by Show archived and New program buttons; in the add-to-program sheet it sits below the pinned New program row.
+  ///
+  /// In en, this message translates to:
+  /// **'All your programs are archived.'**
+  String get programsAllArchivedBody;
 
   /// Title of the confirm dialog shown when leaving the program editor with unsaved changes.
   ///
@@ -4176,6 +8577,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You have an unsaved draft for this program. Would you like to restore it?'**
   String get programsDraftBody;
+
+  /// Dialog body when the caller starts a new program and a draft of a different new program, never saved, is waiting from an earlier session. Restoring continues that program; discarding deletes it.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new program, \"{title}\". Would you like to restore it instead of starting a new one?'**
+  String programsDraftAnotherNewProgramBody(String title);
+
+  /// Dialog body when the caller starts a new program and an untitled draft of a different new program, never saved, is waiting from an earlier session.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?'**
+  String get programsDraftAnotherNewProgramUntitledBody;
 
   /// Button that restores the autosaved program draft into the editor.
   ///
@@ -4219,12 +8632,6 @@ abstract class AppLocalizations {
   /// **'Mark all performed'**
   String get programsMarkAllPerformedTooltip;
 
-  /// Label of the save button when the program has unsaved changes; the asterisk marks the dirty state.
-  ///
-  /// In en, this message translates to:
-  /// **'Save *'**
-  String get programsSaveDirty;
-
   /// Generic Save button label.
   ///
   /// In en, this message translates to:
@@ -4240,20 +8647,50 @@ abstract class AppLocalizations {
   /// Message shown in the program editor when the program fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the program.'**
+  /// **'Couldn\'t load the program. Nothing was changed. Try again.'**
   String get programsLoadError;
 
-  /// Placeholder row title in the programming matrix for a slot whose referenced dance was deleted.
+  /// Shown on the program editor when an Undo could not be recovered or the program could not be reloaded afterwards. It makes no claim about what was saved, and offers no retry; the user goes back.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reload the program after that undo. Go back and reopen it to see its current state.'**
+  String get programsUndoRecoveryFailed;
+
+  /// Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found.
   ///
   /// In en, this message translates to:
   /// **'(deleted dance)'**
   String get programsDeletedDanceFallback;
+
+  /// Action on a program slot whose dance is in Recently deleted, in the program builder's slot menu and as the tooltip of the program summary's Restore button. Restores the dance to the collection, as Recently deleted's own Restore does. Not offered in Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from Recently deleted'**
+  String get programsRestoreDeletedDance;
+
+  /// Snackbar when restoring a program slot's dance from Recently deleted fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore \"{title}\". It\'s still in Recently deleted.'**
+  String programsRestoreDeletedDanceError(String title);
+
+  /// Shown in place of a dance's title in a program slot, in Perform and in program exports when the dance was permanently deleted on another device: its title and content are gone, so there is nothing else to show.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted dance'**
+  String get programsBlankedDanceTitle;
 
   /// Section heading above the list of program slots in the editor.
   ///
   /// In en, this message translates to:
   /// **'Slots'**
   String get programsSlotsLabel;
+
+  /// One-line helper under the Slots heading in the program editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Each slot is one place in your set list: a dance, a note or a break.'**
+  String get programsSlotsHelper;
 
   /// Button that opens the dance picker to add a dance slot to the program.
   ///
@@ -4264,7 +8701,7 @@ abstract class AppLocalizations {
   /// Button that adds a free-text note or break slot to the program.
   ///
   /// In en, this message translates to:
-  /// **'Add note / waltz'**
+  /// **'Add note or break'**
   String get programsAddNoteBreakButton;
 
   /// Button that inserts a break slot into the program.
@@ -4285,7 +8722,7 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get commonClose;
 
-  /// No description provided for @viewDetails.
+  /// Label for the action that opens a dance's details: the tooltip on details buttons in the program editor and the collection picker, and the title of the matching menu item.
   ///
   /// In en, this message translates to:
   /// **'View details'**
@@ -4366,7 +8803,7 @@ abstract class AppLocalizations {
   /// Shown in the program editor's enriched (picker) venue mode when the program has legacy free-text but no linked venue yet; invites linking while assuring the typed text is preserved.
   ///
   /// In en, this message translates to:
-  /// **'Previously entered venue: “{venueText}”. Link a saved venue below to use reusable details — your typed venue is kept.'**
+  /// **'Previously entered venue: \"{venueText}\". Link a saved venue below to use reusable details — your typed venue is kept.'**
   String programsVenueLegacyTextHint(String venueText);
 
   /// Field label for the program's band in the editor.
@@ -4411,11 +8848,47 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get programsNotesLabel;
 
+  /// Field label for the amount the caller is paid for the program, in the program editor's More details section.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get programsPayLabel;
+
+  /// Hint text for the program pay amount field: an example amount.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 250.00'**
+  String get programsPayHint;
+
+  /// Label of the currency selector next to the program pay amount field.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get programsPayCurrencyLabel;
+
+  /// Validation error shown under the program pay amount field when the text is not a valid amount for the selected currency.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount like 250 or 250.50 in this currency.'**
+  String get programsPayInvalid;
+
   /// Field label for the program status dropdown in the editor.
   ///
   /// In en, this message translates to:
   /// **'Status'**
   String get programsStatusFieldLabel;
+
+  /// Helper text under the program status dropdown when Mark all performed does not set the status.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.'**
+  String get programsStatusHelper;
+
+  /// Helper text under the program status dropdown when the Mark all performed sets the status setting is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.'**
+  String get programsStatusHelperMarkAllSetsStatus;
 
   /// Title of the toggle that hides alternate (ALT) slots from the exported set list.
   ///
@@ -4428,6 +8901,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.'**
   String get programsHideAlternatesSubtitle;
+
+  /// Label of the program editor field that picks the dialect Perform uses for this program.
+  ///
+  /// In en, this message translates to:
+  /// **'Perform dialect'**
+  String get programsDialectFieldLabel;
+
+  /// Dropdown option that clears the program's dialect so Perform follows the app dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Use app dialect'**
+  String get programsDialectUseApp;
+
+  /// Dropdown entry for a stored dialect name that no longer matches any dialect in the library (renamed, deleted or not synced here yet). {name} is the stored dialect name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (unavailable)'**
+  String programsDialectUnavailable(String name);
+
+  /// Helper text under the program dialect field: where the dialect applies.
+  ///
+  /// In en, this message translates to:
+  /// **'Used only in this program\'s Perform mode. The editor, summary and exports keep the app dialect.'**
+  String get programsDialectHelper;
 
   /// Count of non-blocking validation warnings shown on the program editor's warnings card.
   ///
@@ -4465,6 +8962,18 @@ abstract class AppLocalizations {
   /// **'Programs'**
   String get programsTitle;
 
+  /// Tooltip of the narrow-layout Programs list's app-bar search button, which searches programs only (not dances); also the screen-reader label of that search's dismiss barrier.
+  ///
+  /// In en, this message translates to:
+  /// **'Search programs'**
+  String get programsSearchTooltip;
+
+  /// Placeholder hint in the search field opened from the narrow-layout Programs list, which lists programs only.
+  ///
+  /// In en, this message translates to:
+  /// **'Search programs…'**
+  String get programsSearchHint;
+
   /// Programs list sort option: order alphabetically by program title.
   ///
   /// In en, this message translates to:
@@ -4492,7 +9001,7 @@ abstract class AppLocalizations {
   /// Error message shown when the Programs list fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load your programs.'**
+  /// **'Couldn\'t load your programs. Nothing was changed. Try again.'**
   String get programsListLoadError;
 
   /// Body of the empty state on the Programs list, shown when the user has no programs.
@@ -4549,10 +9058,16 @@ abstract class AppLocalizations {
   /// **'Level: {level}'**
   String programsSummaryLevel(String level);
 
-  /// Heading of the program's set list, with the number of slots.
+  /// Summary row showing what the caller is paid for the program: the amount followed by its ISO 4217 currency code.
   ///
   /// In en, this message translates to:
-  /// **'Set list ({count})'**
+  /// **'Pay: {amount}'**
+  String programsSummaryPay(String amount);
+
+  /// Heading of the program's set list, with how many dances the program is planned for (alternates and the break are not counted).
+  ///
+  /// In en, this message translates to:
+  /// **'Set list ({count, plural, =1{1 dance} other{{count} dances}})'**
   String programsSetListHeader(int count);
 
   /// Empty state shown under the set list heading when a program has no slots.
@@ -4603,11 +9118,11 @@ abstract class AppLocalizations {
   /// **'Performed'**
   String get programsPerformed;
 
-  /// Count of slots in a program, shown on the Programs list tile subtitle.
+  /// How many dances a program is planned for (alternates and the break are not counted), shown on the Programs list tile, the add-to-program sheet and the program builder's slot heading.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 slot} other{{count} slots}}'**
-  String programsSlotCount(int count);
+  /// **'{count, plural, =1{1 dance} other{{count} dances}}'**
+  String programsDanceCount(int count);
 
   /// Fallback title for a free-text program slot that has no text yet.
   ///
@@ -4615,17 +9130,17 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get programsSlotNoteFallback;
 
-  /// Empty state shown in the program slot list editor when a program has no slots.
+  /// Heading of the empty state in the program slot list editor when a program has no slots.
   ///
   /// In en, this message translates to:
-  /// **'No slots yet. Add a dance or a note to get started.'**
-  String get programsSlotEditorEmpty;
+  /// **'No slots yet'**
+  String get programsSlotEditorEmptyTitle;
 
-  /// Accessibility announcement after a cut slot is pasted into a new position.
+  /// Body of the empty state in the program slot list editor; says how to add the first slot.
   ///
   /// In en, this message translates to:
-  /// **'Slot moved.'**
-  String get programsSlotMoved;
+  /// **'Add a dance or a note to get started.'**
+  String get programsSlotEditorEmptyBody;
 
   /// Accessibility announcement after a slot is moved up one position.
   ///
@@ -4638,30 +9153,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot moved down.'**
   String get programsSlotMovedDown;
-
-  /// Banner shown while a program slot is cut, prompting the user to paste it.
-  ///
-  /// In en, this message translates to:
-  /// **'\"{name}\" is cut — tap Paste to place it.'**
-  String programsSlotCutBanner(String name);
-
-  /// Accessible label for the paste affordance shown before the first program slot.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste before first slot'**
-  String get programsPasteBeforeFirst;
-
-  /// Accessible label for the paste affordance shown after a given program slot.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste after {title}'**
-  String programsPasteAfter(String title);
-
-  /// Label for the compact paste button shown between slots during a cut.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste here'**
-  String get programsPasteHere;
 
   /// Accessibility announcement after a slot is changed from alternate to primary.
   ///
@@ -4681,6 +9172,54 @@ abstract class AppLocalizations {
   /// **'Marked performed.'**
   String get programsMarkedPerformed;
 
+  /// Screen-reader label of a program-view dance row's mark-performed toggle when the dance is marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: performed'**
+  String programsSummaryPerformedToggleOn(String title);
+
+  /// Screen-reader label of a program-view dance row's mark-performed toggle when the dance is not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: not performed'**
+  String programsSummaryPerformedToggleOff(String title);
+
+  /// Tooltip of a program-view dance row's mark-performed toggle while the dance is not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark {title} performed'**
+  String programsSummaryMarkPerformedTooltip(String title);
+
+  /// Tooltip of a program-view dance row's mark-performed toggle while the dance is marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear performed mark on {title}'**
+  String programsSummaryClearPerformedTooltip(String title);
+
+  /// Undo snackbar shown after a dance row's toggle marks it performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked {title} performed.'**
+  String programsSummaryMarkedPerformedSnack(String title);
+
+  /// Undo snackbar shown after a dance row's toggle clears its performed mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared the performed mark on {title}.'**
+  String programsSummaryClearedPerformedSnack(String title);
+
+  /// Snackbar shown when a program-view dance row's mark-performed toggle could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the performed mark. Try again.'**
+  String get programsSummaryPerformedToggleError;
+
+  /// Snackbar shown when undoing a single dance row's performed mark fails, for instance because the program was edited in the meantime.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo that change to the performed mark. Try again.'**
+  String get programsSummaryUndoPerformedToggleError;
+
   /// Accessibility announcement after a slot's performed mark is cleared.
   ///
   /// In en, this message translates to:
@@ -4692,6 +9231,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Removed {name}.'**
   String programsRemovedSlot(String name);
+
+  /// Accessibility announcement appended after a primary slot is removed or moved, naming its first alternate, which becomes the primary in its place.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} takes its place.'**
+  String programsAlternatePromoted(String name);
 
   /// Ordinal marker shown for an alternate slot instead of a running-order number.
   ///
@@ -4717,7 +9262,7 @@ abstract class AppLocalizations {
   /// **'Move {title} down'**
   String programsMoveSlotDown(String title);
 
-  /// Tooltip for the button that cuts a program slot for repositioning.
+  /// Tooltip for the button that removes a program slot. The wording says Cut, matching the scissors icon.
   ///
   /// In en, this message translates to:
   /// **'Cut {title}'**
@@ -4770,12 +9315,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Created {title} and linked this slot to it.'**
   String programsCreatedDanceFromNoteAnnounce(String title);
-
-  /// Overflow menu item to remove a slot from the program.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove slot'**
-  String get programsRemoveSlotMenu;
 
   /// Validation error when a free-text program slot is left empty.
   ///
@@ -4933,18 +9472,6 @@ abstract class AppLocalizations {
   /// **'Show presence glyphs'**
   String get programsMatrixHidePhrasesSemantic;
 
-  /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
-  ///
-  /// In en, this message translates to:
-  /// **'{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}'**
-  String programsMatrixRowHeaderSemantic(String title, String alt, String half);
-
-  /// Short program-half badge label (1st or 2nd half).
-  ///
-  /// In en, this message translates to:
-  /// **'{half, select, first{1st} other{2nd}}'**
-  String programsMatrixHalfShort(String half);
-
   /// Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.
   ///
   /// In en, this message translates to:
@@ -4995,16 +9522,6 @@ abstract class AppLocalizations {
     String collision,
     String debut,
     String first,
-  );
-
-  /// Dance name with its alternate-dance and program-half qualifiers, used by the compact matrix dance chip's screen-reader label.
-  ///
-  /// In en, this message translates to:
-  /// **'{alt, select, yes{{half, select, first{{title} (alternate dance, first half)} second{{title} (alternate dance, second half)} other{{title} (alternate dance)}}} other{{half, select, first{{title} (first half)} second{{title} (second half)} other{{title}}}}}'**
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
   );
 
   /// Screen-reader label for a compact-matrix move header, stating how many of the program's dances use the move.
@@ -5088,7 +9605,7 @@ abstract class AppLocalizations {
   /// Body of the matrix empty state explaining the matrix populates as dances gain structured figures.
   ///
   /// In en, this message translates to:
-  /// **'The matrix fills in automatically as the program’s dances gain structured figures.'**
+  /// **'The matrix fills in automatically as the program\'s dances gain structured figures.'**
   String get programsMatrixEmptyBody;
 
   /// App bar title for the single-dance Perform (large-print performance) view.
@@ -5100,7 +9617,7 @@ abstract class AppLocalizations {
   /// Tooltip on the button that closes the Perform view and returns to the previous screen.
   ///
   /// In en, this message translates to:
-  /// **'Exit performance view'**
+  /// **'Exit Perform mode'**
   String get performExitTooltip;
 
   /// Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program.
@@ -5112,8 +9629,14 @@ abstract class AppLocalizations {
   /// Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry.
   ///
   /// In en, this message translates to:
-  /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
+  /// **'Leave Perform mode? Your place and the running clock are kept, so you can resume where you left off.'**
   String get performExitBody;
+
+  /// Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody).
+  ///
+  /// In en, this message translates to:
+  /// **'Leave Perform mode? Performing a single dance doesn\'t keep your place, so the next time starts fresh.'**
+  String get performDanceExitBody;
 
   /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
   ///
@@ -5307,6 +9830,18 @@ abstract class AppLocalizations {
   /// **'Slot {current} of {total}'**
   String performSlotPosition(int current, int total);
 
+  /// Short visible label in the program Perform footer, shown before the clock that times the whole program (the evening). Keep it to one short word; the footer is narrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get performProgramClockLabel;
+
+  /// Short visible label in the program Perform footer, shown before the clock that times the current slot (dance). Keep it to one short word, matching the word used in 'Slot {current} of {total}'.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get performSlotClockLabel;
+
   /// Screen-reader announcement when swapping to show a different alternate slot.
   ///
   /// In en, this message translates to:
@@ -5318,6 +9853,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Adjustment undone'**
   String get performAdjustmentUndone;
+
+  /// Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t undo: the program has changed since.'**
+  String get performUndoNoLongerAvailable;
+
+  /// Snackbar shown in Perform when saving a live program adjustment found that the program had been changed elsewhere (for example by Device Sync) since Perform opened it. The adjustment was saved on top of that change instead of overwriting it, and Perform now shows the updated program.
+  ///
+  /// In en, this message translates to:
+  /// **'This program had changed elsewhere since Perform mode opened. Perform mode now shows the latest version, with your change.'**
+  String get performProgramChangedElsewhere;
 
   /// Snackbar message shown after applying a live program adjustment.
   ///
@@ -5373,10 +9920,10 @@ abstract class AppLocalizations {
   /// **'Pause timers'**
   String get performPauseTimers;
 
-  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.
+  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, manual walkthrough-end mark (with how far it ran from plan), walkthrough-transition and over-plan cues, and paused state.
   ///
   /// In en, this message translates to:
-  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
+  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{manual, select, yes{, walkthrough ended at {actual}{direction, select, over{, {delta} over plan} under{, {delta} under plan} other{, on plan}}} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
   String performTimingSemantic(
     String programTime,
     String slotTime,
@@ -5387,6 +9934,10 @@ abstract class AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   );
 
   /// Screen-reader label for the individual Perform elapsed-timer line.
@@ -5400,6 +9951,28 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'planned {planned} min ({walkthrough}:{dance})'**
   String performPlannedSplit(int planned, int walkthrough, int dance);
+
+  /// Tooltip and screen-reader label of the icon-only dance-start toggle in program Perform while the walkthrough has not been marked as ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough done — start the dance'**
+  String get performDanceStartUnused;
+
+  /// Tooltip and screen-reader label of the icon-only dance-start toggle once the caller has marked the walkthrough as ended; tapping again clears the mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance started — tap to undo'**
+  String get performDanceStartUsed;
+
+  /// Visible readout shown after a manual walkthrough-end mark: the slot time at which the walkthrough ended, and in parentheses how far that ran over or under the planned walkthrough minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'walkthrough {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (on plan)}}'**
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  );
 
   /// Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed.
   ///
@@ -5437,6 +10010,12 @@ abstract class AppLocalizations {
   /// **'Show walkthrough'**
   String get performShowWalkthrough;
 
+  /// Tooltip, overflow-menu label and accessible name for the desktop Perform toggle that takes the window full screen and back (PLAT-9). Shown as selected while the window is full screen. The keyboard shortcut is F11, or Ctrl-Cmd-F on macOS.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get performFullScreen;
+
   /// Empty-state text shown in the perform-mode walkthrough overlay when the current dance has no walkthrough written.
   ///
   /// In en, this message translates to:
@@ -5461,7 +10040,7 @@ abstract class AppLocalizations {
   /// **'Increase text size'**
   String get performIncreaseTextSize;
 
-  /// Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms.
+  /// Names the synced setting behind a former Perform toggle that showed canonical (non-dialect) figure terms, in sync-conflict and sync-notice lists. This version no longer shows the toggle; devices on older versions still write the setting.
   ///
   /// In en, this message translates to:
   /// **'Show canonical terms'**
@@ -5547,7 +10126,7 @@ abstract class AppLocalizations {
   /// **'Change'**
   String get commonChange;
 
-  /// Generic button to retry an action after an error (distinct from commonRetry 'Retry').
+  /// Button label that repeats a failed action.
   ///
   /// In en, this message translates to:
   /// **'Try again'**
@@ -5570,6 +10149,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share dance file'**
   String get exportShareDanceBundle;
+
+  /// Export-menu item shown instead of 'Share dance file' on Linux, where the OS share sheet cannot carry files: save the dance and its referenced metadata as a .ccshare file through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save dance file…'**
+  String get exportSaveDanceBundle;
 
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
@@ -5598,13 +10183,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when sharing a dance fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this dance'**
+  /// **'Couldn\'t share this dance. Your dance is unchanged. Try again.'**
   String get exportShareDanceError;
 
   /// Snackbar shown when exporting/printing a dance PDF fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export this dance'**
+  /// **'Couldn\'t export this dance. Your dance is unchanged. Try again.'**
   String get exportDanceError;
 
   /// Program export-menu item: share the set list as plain text.
@@ -5616,8 +10201,14 @@ abstract class AppLocalizations {
   /// Program export-menu item: share a bundle file containing the program and its dances.
   ///
   /// In en, this message translates to:
-  /// **'Share (program + dances)'**
+  /// **'Share program and dances'**
   String get exportShareProgramBundle;
+
+  /// Program export-menu item shown instead of 'Share (program + dances)' on Linux, where the OS share sheet cannot carry files: save a bundle file containing the program and its dances through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save program file…'**
+  String get exportSaveProgramBundle;
 
   /// Program export-menu item: copy the set list text to the clipboard.
   ///
@@ -5667,6 +10258,12 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get exportJsonShare;
 
+  /// JSON export delivery-choice button shown instead of 'Share' on Linux, where the OS share sheet cannot carry files: it saves the file through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as…'**
+  String get exportJsonSaveAs;
+
   /// JSON export delivery-choice button that produces no output.
   ///
   /// In en, this message translates to:
@@ -5700,37 +10297,37 @@ abstract class AppLocalizations {
   /// Snackbar shown when saving a JSON export fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save this JSON file.'**
+  /// **'Couldn\'t save this JSON file. Try again.'**
   String get exportJsonSaveError;
 
   /// Snackbar shown when copying a JSON export fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t copy this JSON.'**
+  /// **'Couldn\'t copy this JSON. Try again.'**
   String get exportJsonCopyError;
 
   /// Snackbar shown when sharing a JSON export fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this JSON file.'**
+  /// **'Couldn\'t share this JSON file. Try again.'**
   String get exportJsonShareError;
 
   /// Snackbar shown when sharing a set list fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this set list'**
+  /// **'Couldn\'t share this set list. Try again.'**
   String get exportShareSetListError;
 
   /// Snackbar shown when sharing a program bundle fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this program'**
+  /// **'Couldn\'t share this program. Your program is unchanged. Try again.'**
   String get exportShareProgramError;
 
   /// Snackbar shown when exporting/printing a set list PDF fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export this set list'**
+  /// **'Couldn\'t export this set list. Try again.'**
   String get exportSetListError;
 
   /// Title of the dialog that asks whether to include full dance-card figures in a set-list text share, copy, or PDF export (issue #853).
@@ -5817,6 +10414,30 @@ abstract class AppLocalizations {
   /// **'Walkthrough'**
   String get exportLabelWalkthrough;
 
+  /// Section heading for the suggested tune list on an exported dance card (plain text and PDF), issue #1434.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get exportLabelTunes;
+
+  /// Label before the hook text on an exported dance card (plain text and PDF), shown only when the Hook share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get exportLabelHook;
+
+  /// Section heading for the published-source citations on an exported dance card (plain text and PDF), shown only when the Sources share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get exportLabelSources;
+
+  /// Author-names suffix appended to a numbered set-list slot line, e.g. "1. Waltz Quadrille — by Jane Smith" (issue #1434).
+  ///
+  /// In en, this message translates to:
+  /// **'by {names}'**
+  String exportSlotAuthorSuffix(String names);
+
   /// Beat-count suffix for a figure on an exported dance card, e.g. '16 beats' or '1 beat'.
   ///
   /// In en, this message translates to:
@@ -5865,12 +10486,6 @@ abstract class AppLocalizations {
   /// **'guest'**
   String get exportLabelGuest;
 
-  /// Marker shown in brackets after a set-list slot that has been performed, e.g. '[performed]'.
-  ///
-  /// In en, this message translates to:
-  /// **'performed'**
-  String get exportLabelPerformed;
-
   /// Placeholder used on an exported set list when a slot's dance title can't be resolved.
   ///
   /// In en, this message translates to:
@@ -5882,6 +10497,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} min'**
   String exportMinutesLabel(int count);
+
+  /// Page footer on every exported PDF (dance card, set list, programming matrix), e.g. 'Page 2 of 3'.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {pages}'**
+  String exportPageOfPages(int page, int pages);
 
   /// Heading for the venue detail block on an exported set-list PDF.
   ///
@@ -5934,7 +10555,7 @@ abstract class AppLocalizations {
   /// Empty-state line on the programming-matrix PDF when no dances have structured figures yet.
   ///
   /// In en, this message translates to:
-  /// **'No structured figures yet — the matrix fills in automatically as the program’s dances gain structured figures.'**
+  /// **'No structured figures yet — the matrix fills in automatically as the program\'s dances gain structured figures.'**
   String get exportMatrixEmptyState;
 
   /// Legend entry on the programming-matrix PDF for the star marker: the first dance in the program to use a move.
@@ -6039,12 +10660,6 @@ abstract class AppLocalizations {
   /// **'Search {source}'**
   String onlineSearchFieldLabel(String source);
 
-  /// Hint text for the online search field.
-  ///
-  /// In en, this message translates to:
-  /// **'Search online dances by title or author…'**
-  String get onlineSearchFieldHint;
-
   /// Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented.
   ///
   /// In en, this message translates to:
@@ -6056,6 +10671,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 online result} other{{count} online results}}'**
   String onlineResultCount(int count);
+
+  /// Count of online search results shown above the results list while more may remain to be loaded: the source returns its results a page at a time, this search filled the latest page, and the next page loads when the list is scrolled to its end. Replaces the plain count in that case.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} online results. There may be more: scroll down to load them.'**
+  String onlineResultCountCapped(int count);
+
+  /// Count of online search results shown above the results list when the source reports how many results matched in all and that is more than has been loaded so far; the rest load as the list is scrolled to its end. Replaces the plain count in that case.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} of {total} online results. Scroll down to load more.'**
+  String onlineResultCountOfTotal(int count, int total);
+
+  /// Count of online search results shown above the results list when the source reports a total larger than what has been loaded, but no more will load by scrolling: paging ended without reaching the total, or a page failed and only the Try again button loads more. The same as the scroll form, without its hint to scroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} of {total} online results.'**
+  String onlineResultCountOfTotalStopped(int count, int total);
+
+  /// Count of online search results shown above the results list when the source gave no total, a full page was loaded so more may exist, but a later page failed and only the Try again button loads more. The same as the scroll form, without its hint to scroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} online results. There may be more.'**
+  String onlineResultCountMaybeMore(int count);
+
+  /// Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is not exactly the one the Advanced panel describes (usually broader, narrower under None of). Follows the count after a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Some Advanced conditions don\'t exist on ContraDB and were left out.'**
+  String get onlineAdvancedPartlyApplied;
 
   /// Empty-query hint for online sources that support by-phrase figure criteria.
   ///
@@ -6090,19 +10735,19 @@ abstract class AppLocalizations {
   /// Snackbar/inline error shown when loading a dance preview from an online source fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load that dance from {source}.'**
+  /// **'Couldn\'t load that dance from {source}. Try again.'**
   String onlineLoadError(String source);
 
   /// Snackbar shown when directly importing an online dance fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t import that dance.'**
+  /// **'Couldn\'t import that dance. Try again.'**
   String get onlineImportError;
 
   /// Inline error shown when an online search fails unexpectedly. {source} is the online source's proper name (e.g. “The Caller's Box” / “ContraDB”), not translated.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t search {source}. Please try again.'**
+  /// **'Couldn\'t search {source}. Try again.'**
   String onlineSearchFailed(String source);
 
   /// Snackbar confirming an online dance was imported. The title is an untrusted external value rendered as plain text.
@@ -6110,6 +10755,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Imported \"{title}\".'**
   String onlineImportCreated(String title);
+
+  /// Snackbar confirming an online import was written over a dance the user already had, after they chose Same dance (update existing). Nothing new was added, so it does not say Imported. The title is an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated \"{title}\" with the online version.'**
+  String onlineImportUpdated(String title);
+
+  /// Snackbar shown when the user taps Undo on an online import, but the dance was edited after the import, so undoing would throw those edits away and nothing was undone (INTAKE-5). The title is the dance's title, an untrusted value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" has changed since you imported it, so Undo left it as it is.'**
+  String onlineImportUndoKeptChanged(String title);
 
   /// Snackbar shown when the online dance being imported was already in the collection. The title is an untrusted external value rendered as plain text.
   ///
@@ -6120,7 +10777,7 @@ abstract class AppLocalizations {
   /// Body text in the resolution dialog shown when a confident title+author match with differing figures is found during a single-dance online import (issue #797). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'This dance\'s title and caller match \"{existingTitle}\", but its figures are different. How do you want to import it?'**
+  /// **'This dance\'s title and author match \"{existingTitle}\", but its figures are different. How do you want to import it?'**
   String onlineImportVariationDialogBody(String existingTitle);
 
   /// Button label in the issue #797 resolution dialog: import the incoming dance as a new, distinct dance (variation of the matched one).
@@ -6135,22 +10792,22 @@ abstract class AppLocalizations {
   /// **'Same dance (update existing)'**
   String get onlineImportVariationDialogActionLink;
 
-  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves only id and createdAt from the existing dance; every other field — figures, callingNotes, tagIds, rating, customFields, tunes, links, sourceCitations, hook, title, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
+  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Likewise its rating is kept whenever the incoming draft carries none (online drafts carry none). Every other field — title, figures, callingNotes, tagIds, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.'**
+  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.'**
   String onlineImportVariationDialogLinkWarning(String existingTitle);
 
-  /// Title of the resolution dialog shown when a confident title+author match with identical figures is found from a different source during a single-dance online import (issue #811).
+  /// Title of the resolution dialog shown during a single-dance online import when a confident title+author match with identical figures is already in the collection, from a different source (issue #811) or entered by hand (INTAKE-5).
   ///
   /// In en, this message translates to:
   /// **'You already have this dance'**
   String get onlineImportCrossSourceDuplicateDialogTitle;
 
-  /// Body text in the issue #811 resolution dialog for a cross-source duplicate with canonically identical figures (same moves and order; beats and notes may differ). existingTitle is an untrusted local value rendered as plain text.
+  /// Body text in the resolution dialog for a duplicate with canonically identical figures (same moves and order; beats and notes may differ), shown when the existing dance came from a different source (issue #811) or was entered by hand (INTAKE-5), so it names no source. existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your collection already has \"{existingTitle}\" from a different source. Both versions have the same sequence of moves.'**
+  /// **'Your collection already has \"{existingTitle}\". Both versions have the same sequence of moves.'**
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle);
 
   /// Action button in the cross-source duplicate dialog (#811) that lets the user import the dance anyway, creating a second copy alongside the existing one.
@@ -6158,6 +10815,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import a second copy'**
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate;
+
+  /// Title of the dialog shown during a single-dance online import when the collection has dances whose title, ignoring punctuation and a trailing bracketed note such as {variant}, matches the incoming one and that share its choreographer (issue #1907). Nothing has been imported yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this a dance you already have?'**
+  String get onlineImportPossibleMatchDialogTitle;
+
+  /// Body of the possible-match dialog (issue #1907), above a list of the existing dances to choose from. incomingTitle is the online dance's title, an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{incomingTitle}\" may be a dance you already have under another title. Choose the dance to replace with this version, or import this one as a new dance.'**
+  String onlineImportPossibleMatchDialogBody(String incomingTitle);
+
+  /// Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it as onlineImportVariationDialogLinkWarning describes for a single named dance. The title is named first because here it is certain to change: the two titles are written differently.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance you choose will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.'**
+  String get onlineImportPossibleMatchDialogLinkWarning;
+
+  /// Note shown where an import would otherwise offer to replace an existing dance (the single-dance online import dialogs and the import review rows) when the incoming record carries no figures, for example a Caller's Box dance whose choreographer has not allowed its figures to be shared. Replacing would erase the dance's saved figures, so only importing it as a new dance (or, where offered, a variation) is available.
+  ///
+  /// In en, this message translates to:
+  /// **'This record has no figures, so it can\'t replace one of your dances. It can still be imported as a new dance.'**
+  String get importFigurelessCannotReplace;
+
+  /// Button in the possible-match dialog (issue #1907): none of the listed dances is this one, so import it as a new dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Import as a new dance'**
+  String get onlineImportPossibleMatchDialogActionNew;
 
   /// Attribution line under an online result row sourced from The Caller's Box.
   ///
@@ -6222,7 +10909,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when writing an imported program to the collection fails. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save the imported program.'**
+  /// **'Couldn\'t save the imported program. Try again.'**
   String get importProgramCreateError;
 
   /// Snackbar summarising a committed program import. The title is an untrusted external value rendered as plain text.
@@ -6288,7 +10975,7 @@ abstract class AppLocalizations {
   /// Error shown when the ContraDB program index fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the ContraDB program list.'**
+  /// **'Couldn\'t load the ContraDB program list. Nothing was imported. Try again.'**
   String get importContraDbListError;
 
   /// Prompt shown in the ContraDB search results area before the user has typed a query.
@@ -6303,7 +10990,7 @@ abstract class AppLocalizations {
   /// **'No matching programs.'**
   String get importContraDbNoMatches;
 
-  /// Firm badge on a ContraDB program search/preview row that was already imported into the local collection (matched by its ContraDB program id). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1).
+  /// Firm badge on a ContraDB program search/preview row that was already imported into the local collection (matched by its ContraDB program id). Accompanied by an icon so color is never the only signal (WCAG 1.4.1).
   ///
   /// In en, this message translates to:
   /// **'Imported'**
@@ -6321,7 +11008,7 @@ abstract class AppLocalizations {
   /// **'Already imported from ContraDB'**
   String get importContraDbMarkerImportedTooltipNoDate;
 
-  /// Softer badge on a ContraDB program search/preview row whose title matches an existing local program, but with no ContraDB id linking them (a weaker, title-only 'maybe you imported this' hint). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1).
+  /// Softer badge on a ContraDB program search/preview row whose title matches an existing local program, but with no ContraDB id linking them (a weaker, title-only 'maybe you imported this' hint). Accompanied by an icon so color is never the only signal (WCAG 1.4.1).
   ///
   /// In en, this message translates to:
   /// **'Possibly imported'**
@@ -6342,7 +11029,7 @@ abstract class AppLocalizations {
   /// Error shown when fetching a ContraDB program fails with an unexpected (non-curated) exception. The raw exception is logged (debugPrint), never shown, to avoid leaking internals (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t fetch that program.'**
+  /// **'Couldn\'t fetch that program. Try again.'**
   String get importContraDbFetchGenericError;
 
   /// Prompt shown in the preview area before a ContraDB program has been fetched.
@@ -6360,8 +11047,26 @@ abstract class AppLocalizations {
   /// Snackbar shown when resolving a ContraDB program's activities before commit fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t import the ContraDB program.'**
+  /// **'Couldn\'t import the ContraDB program. Try again.'**
   String get importContraDbResolveError;
+
+  /// Progress line while a ContraDB program's dances are imported one at a time, beside a Cancel button.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing dance {done} of {total}…'**
+  String importContraDbProgramProgress(int done, int total);
+
+  /// Snackbar shown when importing a ContraDB program stops because ContraDB or The Caller's Box could not be reached. No program is created and any dances already imported are removed again.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the online archives, so nothing was imported. Try again once you\'re online.'**
+  String get importContraDbProgramConnectionFailed;
+
+  /// Snackbar shown when the user cancels a ContraDB program import part-way through. No program is created and any dances already imported are removed again.
+  ///
+  /// In en, this message translates to:
+  /// **'Import canceled — nothing was added.'**
+  String get importContraDbProgramCancelled;
 
   /// Summary of a fetched ContraDB program's activities shown above the preview list.
   ///
@@ -6414,7 +11119,7 @@ abstract class AppLocalizations {
   /// Error shown when the local collection fails to load in the title-list import screen.
   ///
   /// In en, this message translates to:
-  /// **'Could not load your collection.'**
+  /// **'Couldn\'t load your collection. Nothing was changed. Try again.'**
   String get importCollectionLoadError;
 
   /// Label for the multi-line field where the user pastes dance titles.
@@ -6426,7 +11131,7 @@ abstract class AppLocalizations {
   /// Hint for the multi-line dance-titles field.
   ///
   /// In en, this message translates to:
-  /// **'Paste one dance title per line.\nUnrecognised lines are kept as notes.'**
+  /// **'Paste one dance title per line.\nUnrecognized lines are kept as notes.'**
   String get importTitleListDancesHint;
 
   /// Prompt shown before any dance titles have been pasted.
@@ -6474,7 +11179,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when resolving unmatched title-list lines online fails. Deliberately does not name a source (issue #943: the resolver tries The Caller's Box then ContraDB). The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t search online.'**
+  /// **'Couldn\'t search online. Try again.'**
   String get importPlaintextSearchError;
 
   /// Count of slots in the title-list import preview.
@@ -6495,11 +11200,41 @@ abstract class AppLocalizations {
   /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} online{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
   String importPlaintextResolvedLinked(int linked, int remaining);
 
+  /// Snackbar shown when the program title list's online lookup stopped because an online source could not be reached. Says that the rest were not checked, rather than that no matches exist. Does not name a source (it tries The Caller's Box then ContraDB).
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles after a connection failure{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}} Try the rest again once you\'re online.'**
+  String importPlaintextResolveConnectionFailed(int linked);
+
+  /// Snackbar shown when the user cancels the program title list's online lookup part-way through.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}}'**
+  String importPlaintextResolveCancelled(int linked);
+
   /// Tooltip on the close button of the embedded import review screen.
   ///
   /// In en, this message translates to:
   /// **'Close import'**
   String get importReviewClose;
+
+  /// Title of the dialog shown when the user leaves the import review screen before importing.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this import?'**
+  String get importReviewDiscardTitle;
+
+  /// Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it.
+  ///
+  /// In en, this message translates to:
+  /// **'If you leave now, the list you are reviewing and the choices you made on it are discarded.'**
+  String get importReviewDiscardBody;
+
+  /// Button that stays on the import review screen instead of discarding the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep reviewing'**
+  String get importReviewKeepReviewing;
 
   /// Label above the import-source dropdown when more than one source is available.
   ///
@@ -6524,6 +11259,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'a Caller\'s Compendium JSON file'**
   String get importSourceLabelGenericJson;
+
+  /// Name of the .json filter in the native backup save/restore file dialogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup (JSON)'**
+  String get fileDialogTypeBackupJson;
+
+  /// Name of the share-file filter (.ccshare / .json) in the native import file dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Compendium share'**
+  String get fileDialogTypeCompendiumShare;
+
+  /// Name of the Caller's Companion .USR filter in the native import file dialog. Product and file-type names; not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Companion .USR'**
+  String get fileDialogTypeCompanionUsr;
+
+  /// Name of the diagnostics-log filter in the native save dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics log'**
+  String get fileDialogTypeDiagnosticsLog;
+
+  /// Name of the update-installer filter (.dmg / .zip) in the macOS native save dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium update'**
+  String get fileDialogTypeMacosUpdate;
 
   /// Name of The Caller's Box online import source (a proper noun), shown in the import-source dropdown and headings.
   ///
@@ -6590,6 +11355,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Searching {done} of {total}…'**
   String importReviewTitleListProgress(int done, int total);
+
+  /// Progress line beside the spinner while an import is being written, as dances written so far over the total to write.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} / {total}'**
+  String importReviewCommitProgress(int done, int total);
 
   /// Heading of the review summary banner, naming how many titles were pasted.
   ///
@@ -6693,6 +11464,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach The Caller\'s Box for this title.'**
   String get importTitleListReasonFetchError;
 
+  /// Reason under a not-found row: the online lookup could not reach The Caller's Box (offline, timed out, or the search page answered with an error status). Shown for the title whose lookup failed and for every later title that was then skipped without a request; accompanied by the batch banner. The raw error is never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach The Caller\'s Box — check your connection.'**
+  String get importTitleListReasonConnectionFailed;
+
+  /// Banner above the title-list review groups when a connection failure ended the online lookups early, so the remaining titles were not searched.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles after a connection failure. The titles already in your collection are listed; try the rest once you\'re online.'**
+  String get importTitleListConnectionBanner;
+
   /// Reason under a not-found row: the pasted line exceeded the per-title length cap, so it was reported rather than turned into a search query.
   ///
   /// In en, this message translates to:
@@ -6717,11 +11500,11 @@ abstract class AppLocalizations {
   /// **'Not found: {count}'**
   String importReviewSummaryNotFound(int count);
 
-  /// Error shown when a chosen import file exceeds the maximum allowed size.
+  /// Error shown when a chosen import file exceeds the maximum allowed size. Names the limit that applies to the chosen source and says what to do next.
   ///
   /// In en, this message translates to:
-  /// **'That file is too large to import.'**
-  String get importErrorFileTooLarge;
+  /// **'That file is larger than the {megabytes} MB limit. Choose a smaller file and try again.'**
+  String importErrorFileTooLarge(int megabytes);
 
   /// Rejection shown when a shared/AirDropped archive file exceeds the size cap. Generic; never echoes the path or size.
   ///
@@ -6732,7 +11515,7 @@ abstract class AppLocalizations {
   /// Rejection shown when a shared archive file could not be read from disk at all. Generic; never echoes the path or the underlying OS error.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t read the shared file.'**
+  /// **'Couldn\'t read the shared file. Try again, or ask the sender to share it again.'**
   String get archiveIntakeRejectedUnreadable;
 
   /// Rejection shown when a shared archive file contained no bytes.
@@ -6747,17 +11530,17 @@ abstract class AppLocalizations {
   /// **'That file isn\'t a Caller\'s Compendium share file.'**
   String get archiveIntakeRejectedNotArchive;
 
-  /// Rejection shown when a shared archive was written by a newer app version than this build understands.
-  ///
-  /// In en, this message translates to:
-  /// **'That file was made by a newer version of the app. Please update to import it.'**
-  String get archiveIntakeRejectedNewerVersion;
-
   /// Rejection shown when a shared archive decoded successfully but carried neither dances nor programs.
   ///
   /// In en, this message translates to:
   /// **'That file didn\'t contain any dances or programs.'**
   String get archiveIntakeRejectedNoContent;
+
+  /// Snackbar shown when a full backup file is opened with the app (Open with, AirDrop, or a tap in Files) instead of being restored. Names the Settings path to Restore from a backup.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is a backup, not a share file. To bring it into this device, go to Settings ▸ General and choose Restore from a backup.'**
+  String get archiveIntakeRejectedBackup;
 
   /// Error shown when an import URL does not use the https scheme.
   ///
@@ -6768,7 +11551,7 @@ abstract class AppLocalizations {
   /// Error shown when an import URL resolves to a blocked or private network location (SSRF guard). Never echoes the URL.
   ///
   /// In en, this message translates to:
-  /// **'That URL points to a network location that cannot be imported from.'**
+  /// **'That URL points to a network location the app can\'t import from. Check the URL and try again.'**
   String get importErrorBlockedHost;
 
   /// Error shown when the entered import URL is not a valid http/https URL.
@@ -6786,7 +11569,7 @@ abstract class AppLocalizations {
   /// Error shown when fetching an import URL exceeded the redirect limit.
   ///
   /// In en, this message translates to:
-  /// **'That URL redirected too many times.'**
+  /// **'That URL redirected too many times. Open it in a browser to find its final address, then use that instead.'**
   String get importErrorTooManyRedirects;
 
   /// Error shown when a fetched import response exceeded the maximum allowed size.
@@ -6816,13 +11599,25 @@ abstract class AppLocalizations {
   /// Error shown when an import URL returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'The server responded with HTTP {status}.'**
+  /// **'The server sent an unexpected response (code {status}). Check the URL and try again.'**
   String importErrorHttpStatus(int status);
+
+  /// Error shown when a generic import URL returned HTTP 404. Deliberately omits the status code; says what to check.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was found at that address. Check the URL, then try again.'**
+  String get importErrorHttpNotFound;
+
+  /// Error shown when a generic import URL returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'That server is busy or having trouble. Try again in a minute.'**
+  String get importErrorHttpBusy;
 
   /// Error shown when an import URL returned an empty body.
   ///
   /// In en, this message translates to:
-  /// **'The URL returned an empty response.'**
+  /// **'The URL returned an empty response. Check that the link points to the data you want to import, then try again.'**
   String get importErrorEmptyResponse;
 
   /// Error shown when the Caller's Box dance URL/id field is empty.
@@ -6867,22 +11662,40 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach The Caller\'s Box. Check your connection, then try again.'**
   String get importErrorCallersBoxUnreachable;
 
+  /// Error shown when fetching a dance from The Caller's Box (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box didn\'t respond within {seconds}s. Check your connection, then try again.'**
+  String importErrorCallersBoxTimeout(int seconds);
+
   /// Error shown when The Caller's Box returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box responded with HTTP {status}.'**
+  /// **'The Caller\'s Box sent an unexpected response (code {status}). Try again in a minute.'**
   String importErrorCallersBoxHttpStatus(int status);
 
-  /// Error shown when a Caller's Box search returned no page content.
+  /// Error shown when The Caller's Box returned HTTP 404 for the id or link the user entered. Deliberately omits the status code.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box returned an empty page.'**
+  /// **'The Caller\'s Box has no dance with that id. Check the number or link, then try again.'**
+  String get importErrorCallersBoxHttpNotFound;
+
+  /// Error shown when The Caller's Box returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box is busy right now. Try again in a minute.'**
+  String get importErrorCallersBoxHttpBusy;
+
+  /// Error shown when The Caller's Box returned no page content, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box returned an empty page. Try again in a minute.'**
   String get importErrorCallersBoxEmptyPage;
 
   /// Error shown when a Caller's Box fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box returned no importable dance.'**
+  /// **'The Caller\'s Box returned no importable dance. Check the id or link, then try again.'**
   String get importErrorCallersBoxNoDance;
 
   /// Error shown when committing a Caller's Box dance failed. Generic by design; underlying error detail is not shown.
@@ -6902,6 +11715,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ContraDB Figure searches use a complete move name, such as \"box circulate\".'**
   String get importErrorContraDbUnsupportedFigure;
+
+  /// Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure section, a move ContraDB has no exact match for, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure sections, moves ContraDB has no exact match for, and other conditions to search ContraDB.'**
+  String get importErrorContraDbUnsupportedAdvanced;
 
   /// Error shown when the ContraDB dance URL/id field is empty.
   ///
@@ -6957,22 +11776,40 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach ContraDB. Check your connection, then try again.'**
   String get importErrorContraDbUnreachable;
 
+  /// Error shown when fetching a dance from ContraDB (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB didn\'t respond within {seconds}s. Check your connection, then try again.'**
+  String importErrorContraDbTimeout(int seconds);
+
   /// Error shown when ContraDB returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB responded with HTTP {status}.'**
+  /// **'ContraDB sent an unexpected response (code {status}). Try again in a minute.'**
   String importErrorContraDbHttpStatus(int status);
 
-  /// Error shown when ContraDB returned an empty body.
+  /// Error shown when ContraDB returned HTTP 404 for the id or link the user entered. Deliberately omits the status code.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB returned an empty response.'**
+  /// **'ContraDB has no dance with that id. Check the number or link, then try again.'**
+  String get importErrorContraDbHttpNotFound;
+
+  /// Error shown when ContraDB returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB is busy right now. Try again in a minute.'**
+  String get importErrorContraDbHttpBusy;
+
+  /// Error shown when ContraDB returned an empty body, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB returned an empty response. Try again in a minute.'**
   String get importErrorContraDbEmptyResponse;
 
   /// Error shown when a ContraDB fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB returned no importable dance.'**
+  /// **'ContraDB returned no importable dance. Check the id or link, then try again.'**
   String get importErrorContraDbNoDance;
 
   /// Error shown when committing a ContraDB dance failed. Generic by design; underlying error detail is not shown.
@@ -6992,6 +11829,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skipped an empty slot in a program.'**
   String get importIssueProgramEmptySlot;
+
+  /// Import note: a Caller's Companion set slot pointed at a dance that is no longer in the file (deleted in Caller's Companion), so the slot was left out of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'A program referenced a dance deleted in Caller\'s Companion; left that slot out.'**
+  String get importIssueProgramDeletedDance;
 
   /// Import note: a program slot pointed at a dance that wasn't part of the import; the slot was preserved as free text.
   ///
@@ -7017,6 +11860,66 @@ abstract class AppLocalizations {
   /// **'The shared file reported a warning while decoding.'**
   String get importIssueArchiveReadWarning;
 
+  /// Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file.
+  ///
+  /// In en, this message translates to:
+  /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
+  String get importIssueArchiveNewerSchema;
+
+  /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Your custom field \"{label}\" has a different type or other choices in this file, so the file\'s values for it go into the field with the key \"{key}\" instead, which is added if you don\'t have it yet. Your field is unchanged.'**
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key);
+
+  /// Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named and no difference is claimed (the file's text is never shown). The values go into a field under a numbered key.
+  ///
+  /// In en, this message translates to:
+  /// **'A custom field in this file couldn\'t use its key, which is already taken, so its values go into a field with a numbered key instead.'**
+  String get importIssueArchiveCustomFieldKeyConflictGeneric;
+
+  /// Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file.
+  ///
+  /// In en, this message translates to:
+  /// **'This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.'**
+  String get importIssueUsrFileTruncated;
+
+  /// Import review warning: the .USR Phrase table (where figures live) couldn't be read, so figures came from the Dance rows, which are usually empty.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures couldn\'t be read from this file, so dances may arrive without figures. Check the original file, or re-export it from Caller\'s Companion.'**
+  String get importIssueUsrFiguresFromDanceRows;
+
+  /// Import review warning: some .USR Phrase rows had no matching dance (or no dance id), so their figures were skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Some figures couldn\'t be matched to a dance and were left out. Check that your dances arrived complete, or copy the file again from the original.'**
+  String get importIssueUsrPhraseGroupsOrphaned;
+
+  /// Import review warning: .USR figure lines over the safe length were dropped; everything else was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Some very long figure lines were left out. The rest of each dance was imported.'**
+  String get importIssueUsrLinesDropped;
+
+  /// Import review warning: the .USR Set or SetItem table was missing, so programs (or their items) were not imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs couldn\'t be fully read from this file, so some may be missing or arrive without their dances. Check them after importing.'**
+  String get importIssueUsrSetsSkipped;
+
+  /// Import review warning: .USR Dance_Related rows with a missing or self-referential dance id were skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Some related-dance links in this file were invalid and were skipped.'**
+  String get importIssueUsrRelatedRowsSkipped;
+
+  /// Import review warning: .USR Term rows (the user's own glossary terms) were skipped, because a field was longer than a glossary entry can be or the Term table's term column could not be found (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Some of this file\'s glossary terms were too long to keep, or couldn\'t be read, and were left out.'**
+  String get importIssueUsrTermsSkipped;
+
   /// Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise.
   ///
   /// In en, this message translates to:
@@ -7026,7 +11929,7 @@ abstract class AppLocalizations {
   /// Import note: a formation/start-type string couldn't be classified to a known formation and was kept as detail on the 'other' formation.
   ///
   /// In en, this message translates to:
-  /// **'A formation couldn\'t be recognized; kept as a detail on “other”.'**
+  /// **'A formation couldn\'t be recognized; kept as a detail on \"other\".'**
   String get importIssueFormationUnclassified;
 
   /// Import note: a phrase-structure string couldn't be parsed and a default was substituted.
@@ -7038,13 +11941,13 @@ abstract class AppLocalizations {
   /// Import note: a progression value wasn't a standard tier and was recorded as 'other'.
   ///
   /// In en, this message translates to:
-  /// **'A progression wasn\'t recognized; recorded as “other”.'**
+  /// **'A progression wasn\'t recognized; recorded as \"other\".'**
   String get importIssueProgressionUnmapped;
 
   /// Import note: the source served only metadata (no figures), so the dance was imported as a metadata-only stub.
   ///
   /// In en, this message translates to:
-  /// **'This dance is available as metadata only (no figures); imported as a stub.'**
+  /// **'Only the dance\'s details were available (no figures), so it was imported without figures.'**
   String get importIssueMetadataOnlyStub;
 
   /// Import note: an ambiguous numeric date was interpreted month-first (US ordering); the user should verify. {field} is the localized date-field name (composed/revised).
@@ -7089,11 +11992,23 @@ abstract class AppLocalizations {
   /// **'A level wasn\'t recognized; left unspecified.'**
   String get importIssueUnmappedLevel;
 
+  /// Import note: a Caller's Companion dance had several levels checked, so a level named after them is added to the user's difficulty levels. {level} is that name, built from Caller's Companion's own level words.
+  ///
+  /// In en, this message translates to:
+  /// **'The level \"{level}\" is added to your difficulty levels.'**
+  String importIssueNewLevel(String level);
+
   /// Import note: a progression string wasn't recognized and defaulted to single progression.
   ///
   /// In en, this message translates to:
   /// **'A progression wasn\'t recognized; defaulted to single.'**
   String get importIssueUnmappedProgression;
+
+  /// Import note: an English dance's figure lines count in bars ("1-4 partners set"), but its music states no meter, so bars were counted as 2 beats each.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.'**
+  String get importIssueBarsMeterUnstated;
 
   /// Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes.
   ///
@@ -7106,6 +12021,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The {field} date couldn\'t be read; left unset.'**
   String importIssueUnparsedDate(String field);
+
+  /// Import note: a Caller's Companion user-defined field's label could not be used as-is for its custom-field key (it shares a key with another field on the dance, or has no letters or digits), so a derived key was used. The label is kept as the field's name.
+  ///
+  /// In en, this message translates to:
+  /// **'A Caller\'s Companion field\'s key was adjusted to keep it valid and unique; its name is kept.'**
+  String get importIssueCcUserFieldKeyAdjusted;
+
+  /// Import note: a Caller's Companion user-defined field had no name (its UserDefined_N_Name was blank), so a generic name such as "User field 2" was used for the custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'A Caller\'s Companion field had no name, so it was given a generic one.'**
+  String get importIssueCcUserFieldLabelMissing;
 
   /// Import note: a rating value couldn't be parsed and was left unrated.
   ///
@@ -7128,37 +12055,37 @@ abstract class AppLocalizations {
   /// Import note: an imported page had no figures table, so a metadata-only stub was created.
   ///
   /// In en, this message translates to:
-  /// **'The page had no figures; imported as a metadata-only stub.'**
+  /// **'The page had no figures, so the dance was imported without figures.'**
   String get importIssueNoFiguresTable;
 
   /// Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure.
   ///
   /// In en, this message translates to:
-  /// **'A figure couldn\'t be matched to a known move; imported as custom.'**
+  /// **'A figure couldn\'t be matched to a known move; imported as an unrecognized figure.'**
   String get importIssueMoveFallback;
 
   /// Import note: the figure at the given 1-based position couldn't be mapped to the taxonomy and was imported as a custom figure. {position} is the app's own figure index.
   ///
   /// In en, this message translates to:
-  /// **'Figure {position} couldn\'t be matched to a known move; imported as custom.'**
+  /// **'Figure {position} couldn\'t be matched to a known move; imported as an unrecognized figure.'**
   String importIssueMoveFallbackAt(int position);
 
   /// Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used.
   ///
   /// In en, this message translates to:
-  /// **'A figure parameter couldn\'t be mapped; a taxonomy default was used.'**
+  /// **'One of a figure\'s settings couldn\'t be matched, so its default value was used.'**
   String get importIssueParamUnmapped;
 
   /// Import note: a figure's value for the named taxonomy parameter couldn't be converted, so the taxonomy default was used. {param} is a taxonomy parameter name (a safe internal identifier, e.g. “hand”), not untrusted external text.
   ///
   /// In en, this message translates to:
-  /// **'The {param} parameter couldn\'t be converted; a taxonomy default was used.'**
+  /// **'The {param} setting couldn\'t be converted, so its default value was used.'**
   String importIssueParamValueUnmapped(String param);
 
   /// Import note: a figure supplied more positional parameter values than the taxonomy maps; the surplus was ignored. Both values are the app's own counts.
   ///
   /// In en, this message translates to:
-  /// **'A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.'**
+  /// **'A figure had {provided} settings but only {mapped} could be matched; the extras were ignored.'**
   String importIssueParamCountUnmapped(int provided, int mapped);
 
   /// Import note: a Caller's Companion related-dance relationship referenced a dance that wasn't part of this import (not imported this session, or an unresolved/orphan id), so the link was skipped rather than created dangling.
@@ -7166,6 +12093,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A related-dance link pointed at a dance that wasn\'t imported; the link was skipped.'**
   String get importIssueRelatedDanceUnresolved;
+
+  /// Import note shown on the kept record when a source produced two records with the same stable id in a single import batch; the later copy was dropped so only one dance is created under that id. Generic on purpose: never echoes the raw id or title.
+  ///
+  /// In en, this message translates to:
+  /// **'The source listed this dance twice in one import; the repeated copy was left out.'**
+  String get importIssueDuplicateExternalIdInBatch;
 
   /// Lowercase name of the 'composed' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorComposedLabel term.
   ///
@@ -7184,6 +12117,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This record couldn\'t be found.'**
   String get importRecordErrorDiscover;
+
+  /// Import review: the file or pasted text was empty (ImportErrorCode.emptyFile). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'That file or text is empty. Choose a file that has content, or paste the text again.'**
+  String get importRecordErrorEmptyFile;
+
+  /// Import review: the content was not valid JSON (ImportErrorCode.notJson). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a JSON file. Choose the .json file the source exported, or paste its JSON again.'**
+  String get importRecordErrorNotJson;
+
+  /// Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a share file. Choose a .json or .ccshare file exported from this app.'**
+  String get importRecordErrorNotCompendiumArchive;
+
+  /// Import review: the content is not a Caller's Box dance export (ImportErrorCode.notCallersBoxDance). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Box dance. Check that you copied a dance from The Caller\'s Box, then try again.'**
+  String get importRecordErrorNotCallersBoxDance;
+
+  /// Import review: the content is not a ContraDB dance export or page (ImportErrorCode.notContraDbDance). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a ContraDB dance. Check that you copied a dance page from ContraDB, then try again.'**
+  String get importRecordErrorNotContraDbDance;
+
+  /// Import review: the file is not a readable Caller's Companion .USR database (ImportErrorCode.notUsrDatabase). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Companion data file (.USR). In Caller\'s Companion, find the .USR file in its data folder.'**
+  String get importRecordErrorNotUsrDatabase;
+
+  /// Import review: the file exceeds the import size or structure limits (ImportErrorCode.fileTooLarge). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to import. Choose a smaller file, or split it into parts.'**
+  String get importRecordErrorFileTooLarge;
+
+  /// Import review: the Caller's Box response contained no dance (ImportErrorCode.noDanceAtId). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'No dance was found there. Check the Caller\'s Box dance id or link, then try again.'**
+  String get importRecordErrorNoDanceAtId;
 
   /// Import review: a per-record error at the fetch stage. Generic; raw error detail is not shown (CWE-209).
   ///
@@ -7212,7 +12193,7 @@ abstract class AppLocalizations {
   /// Explanatory text for the Caller's Companion .USR file import.
   ///
   /// In en, this message translates to:
-  /// **'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.'**
+  /// **'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your library until you review and confirm.'**
   String get importReviewUsrSubtitle;
 
   /// Button to pick a Caller's Companion .USR file.
@@ -7221,11 +12202,11 @@ abstract class AppLocalizations {
   /// **'Choose .USR file…'**
   String get importReviewChooseUsr;
 
-  /// Confirmation that a binary import file was picked, showing its size.
+  /// Confirmation that a binary import file was picked.
   ///
   /// In en, this message translates to:
-  /// **'File ready ({bytes} bytes).'**
-  String importReviewFileReady(int bytes);
+  /// **'File ready.'**
+  String get importReviewFileReady;
 
   /// Explanatory text for a text/URL import source.
   ///
@@ -7287,7 +12268,7 @@ abstract class AppLocalizations {
   /// **'{importable} of {total} will be imported'**
   String importReviewWillImport(int importable, int total);
 
-  /// Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) carries programs. Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.
+  /// Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) or a Caller's Companion .USR file carries programs (.USR sets). Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.
   ///
   /// In en, this message translates to:
   /// **'Also includes {count, plural, =1{1 program} other{{count} programs}}.'**
@@ -7298,6 +12279,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t read the import'**
   String get importReviewCouldNotRead;
+
+  /// Body text shown when planning the import threw an unexpected error. Generic; the error text is never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read this import. Nothing was added. Try again; if it keeps happening, the file may be damaged.'**
+  String get importReviewPlanFailedBody;
 
   /// Title shown when the import payload parsed but contained no dances.
   ///
@@ -7323,6 +12310,12 @@ abstract class AppLocalizations {
   /// **'Imported'**
   String get importReviewImported;
 
+  /// Per-row button on the import review screen. It imports that one dance into the collection immediately (outside the batch Undo) and opens it in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Import and edit'**
+  String get importReviewImportAndEdit;
+
   /// Quality chip showing how many of a dance's figures parsed as structured.
   ///
   /// In en, this message translates to:
@@ -7332,7 +12325,7 @@ abstract class AppLocalizations {
   /// Quality chip label when a dance's figures are fully custom (unstructured).
   ///
   /// In en, this message translates to:
-  /// **'Custom'**
+  /// **'Unrecognized'**
   String get importReviewCustom;
 
   /// Per-record option: import this record as a brand-new dance.
@@ -7340,6 +12333,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New dance'**
   String get importReviewOptionNewDance;
+
+  /// Label above the bulk controls in the import review that set every dance already in the collection (a re-import match) to the same choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Set all matched dances to:'**
+  String get importReviewBulkSetAllLabel;
+
+  /// Bulk control: set every matched dance to re-import onto its existing local dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import'**
+  String get importReviewBulkReimport;
+
+  /// Bulk control: set every matched dance to skip, keeping the local dances as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importReviewBulkSkip;
+
+  /// Bulk button: set every row marked as a possible match (importReviewPossibleMatch) to skip. Rows whose only matches are under another title (importReviewPossibleTitleMatch) are left alone.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip all possible matches'**
+  String get importReviewBulkSkipAmbiguous;
 
   /// Per-record option: skip this record (do not import it).
   ///
@@ -7353,6 +12370,18 @@ abstract class AppLocalizations {
   /// **'Re-import onto \"{title}\"'**
   String importReviewOptionReimport(String title);
 
+  /// Checkbox under a record set to Re-import, off by default. When ticked, the re-import also takes the imported title and author credit; otherwise it replaces only the figures, formation and progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Also update title and credit'**
+  String get importReviewReimportTitleAndCredit;
+
+  /// Explanation under the Also update title and credit checkbox; screen readers read it with the checkbox. The title is the existing local dance's title, an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Takes this file\'s title and author credit for \"{title}\". Your rating, tags, notes and links stay as they are.'**
+  String importReviewReimportTitleAndCreditHint(String title);
+
   /// Per-record option: import this record as a new dance even though a match exists.
   ///
   /// In en, this message translates to:
@@ -7365,17 +12394,41 @@ abstract class AppLocalizations {
   /// **'Possible match — choose how to import:'**
   String get importReviewPossibleMatch;
 
-  /// Per-record option: link to a candidate existing dance with a match percentage. The title is an untrusted local value rendered as plain text.
+  /// Prompt above the options for a record whose title, ignoring punctuation and a trailing bracketed note such as {variant} or (Imp Var), equals that of an existing dance by the same choreographer. These are only offered; nothing is applied unless the user chooses it.
   ///
   /// In en, this message translates to:
-  /// **'Link to \"{title}\" ({percent}% match)'**
+  /// **'Possibly a dance you already have, under another title — choose how to import:'**
+  String get importReviewPossibleTitleMatch;
+
+  /// Per-record option: treat this record as the same dance as an existing dance whose title is written differently (for example A-1 Reel {variant} against A1 Reel (Imp Var)) but has the same choreographer. The existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Same dance under another title — replace \"{title}\" with this version'**
+  String importReviewOptionPossibleTitle(String title);
+
+  /// Per-record option: treat this record as the same dance as a candidate existing dance, with a match percentage. The existing dance keeps its identity but its content is replaced by the imported version, so the label says so. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Same dance — replace \"{title}\" with this version ({percent}% match)'**
   String importReviewOptionLink(String title, int percent);
 
-  /// Pre-commit warning stating how many existing local dances a commit will overwrite.
+  /// Pre-commit warning stating how many existing local dances a commit will overwrite: those of records set to Same dance (replace). A re-import does not overwrite a dance and is counted by importReviewReimportWarning instead.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 existing dance will be overwritten} other{{count} existing dances will be overwritten}}'**
   String importReviewOverwriteWarning(int count);
+
+  /// Pre-commit warning stating how many existing local dances a commit will re-import onto. A re-import replaces only their choreography, which takes the dance form with it (an English dance re-imported as contra becomes contra).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Re-import replaces the figures, formation and progression of 1 existing dance, and can change its dance form. Its rating, tags and notes stay.} other{Re-import replaces the figures, formation and progression of {count} existing dances, and can change their dance form. Their ratings, tags and notes stay.}}'**
+  String importReviewReimportWarning(int count);
+
+  /// Second sentence of the re-import warning: how many of those re-imports have Also update title and credit ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of them also takes the file\'s title and credit.} other{{count} of them also take the file\'s title and credit.}}'**
+  String importReviewReimportTitleWarning(int count);
 
   /// Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.
   ///
@@ -7394,12 +12447,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{This import contains 1 item — more than expected for a normal share.} other{This import contains {count} items — more than expected for a normal share.}}'**
   String sharedImportSoftCapWarning(int count);
-
-  /// Transient snackbar message shown after a shared bundle is imported, alongside an Undo action.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}'**
-  String sharedImportComplete(int count);
 
   /// Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.
   ///
@@ -7449,6 +12496,12 @@ abstract class AppLocalizations {
   /// **'Programs: {count}'**
   String importReviewSummaryPrograms(int count);
 
+  /// Import result summary line for a shared file: how many of the sender's own figures were added to the Glossary or replaced the user's version.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures added to or updated in your Glossary: {count}'**
+  String importReviewSummaryFigures(int count);
+
   /// Import result detail: how many imported programs updated an existing one.
   ///
   /// In en, this message translates to:
@@ -7458,19 +12511,25 @@ abstract class AppLocalizations {
   /// Import result heading listing program-level notes.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}'**
+  /// **'{count, plural, =1{{count} program note:} other{{count} program notes:}}'**
   String importReviewProgramNotes(int count);
+
+  /// Import result heading listing notes about the imported dances, such as a related-dance link that was left out because the related dance was not imported. {count} is how many notes follow.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note:} other{{count} notes:}}'**
+  String importReviewNotes(int count);
 
   /// Import result heading listing records that failed to import.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{{count} record(s) failed to import:} other{{count} record(s) failed to import:}}'**
+  /// **'{count, plural, =1{{count} record failed to import:} other{{count} records failed to import:}}'**
   String importReviewRecordsFailed(int count);
 
   /// Heading above the list of records that could not be parsed from the import batch.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{{count} record(s) couldn\'t be read (the rest can still be imported):} other{{count} record(s) couldn\'t be read (the rest can still be imported):}}'**
+  /// **'{count, plural, =1{{count} record couldn\'t be read (the rest can still be imported):} other{{count} records couldn\'t be read (the rest can still be imported):}}'**
   String importReviewBatchErrors(int count);
 
   /// Fallback name for an imported program with no title.
@@ -7494,14 +12553,86 @@ abstract class AppLocalizations {
   /// Snackbar shown when committing a single record so it can be edited fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t import that dance to edit.'**
+  /// **'Couldn\'t import that dance to edit. Try again.'**
   String get importReviewEditError;
+
+  /// Title of the question asked once per Caller's Companion .USR file before it is read: whether its dances are English country dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Are these English country dances?'**
+  String get importUsrEnglishTitle;
+
+  /// Body of the English-dances question for a Caller's Companion .USR file. 'Contra' is the Type value the other app shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Companion often lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts. Square dances stay squares.'**
+  String get importUsrEnglishBody;
+
+  /// Answer: the file's dances are read by the Type each one has in the file.
+  ///
+  /// In en, this message translates to:
+  /// **'No, read their types'**
+  String get importUsrEnglishNo;
+
+  /// Answer: every dance in the file except squares is read as an English country dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, English dances'**
+  String get importUsrEnglishYes;
+
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Same dance (replace), because the matched dance is replaced immediately. A row set to Re-import uses importReviewEditReimportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the existing dance now?'**
+  String get importReviewEditOverwriteTitle;
+
+  /// Body of the Import and edit overwrite confirmation. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.'**
+  String importReviewEditOverwriteBody(String title);
+
+  /// Confirm button of the dialog that asks before Import and edit writes onto an existing dance in the collection. Names the action: the existing dance's content is replaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get importReviewEditOverwriteConfirm;
+
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import onto the existing dance now?'**
+  String get importReviewEditReimportTitle;
+
+  /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit off. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces the figures, formation and progression of \"{title}\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.'**
+  String importReviewEditReimportBody(String title);
+
+  /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit ticked. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces the figures, formation, progression, title and credit of \"{title}\" in your collection immediately, and can change its dance form. The batch Undo will not restore them.'**
+  String importReviewEditReimportTitleAndCreditBody(String title);
 
   /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t complete the import.'**
+  /// **'Couldn\'t complete the import. Try again.'**
   String get importReviewImportError;
+
+  /// Snackbar on the import screen when the chosen file can't be read as UTF-8 text: a binary file that isn't a share file, or text saved in another encoding. Nothing was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that file: it isn\'t a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.'**
+  String get importFileNotText;
+
+  /// Snackbar on the import screen when the chosen file could not be read from disk (locked by another app, on a disconnected drive, or refused by the file system). Nothing was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that file. Another app may be using it, or it may be on a drive that isn\'t connected.'**
+  String get importFileUnreadable;
 
   /// Heading of the inline figure-diff block shown when a confidently-matched candidate's figures differ from the incoming record (issue #686). The title is an untrusted local value rendered as plain text.
   ///
@@ -7512,7 +12643,7 @@ abstract class AppLocalizations {
   /// Explanatory body text under the issue #686 variation-diff heading. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'This dance\'s title and caller match \"{title}\", but its figures are different. Review how they differ, then choose how to import it.'**
+  /// **'This dance\'s title and author match \"{title}\", but its figures are different. Review how they differ, then choose how to import it.'**
   String importReviewVariationBody(String title);
 
   /// Per-record option: import this record as a new, distinct dance and (optionally) link it back to the matched dance as a related dance (issue #686). The title is an untrusted local value rendered as plain text.
@@ -7521,10 +12652,10 @@ abstract class AppLocalizations {
   /// **'Import as a variation of \"{title}\"'**
   String importReviewOptionVariation(String title);
 
-  /// Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option). The title is an untrusted local value rendered as plain text.
+  /// Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option): the existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Same dance as \"{title}\" (link/update)'**
+  /// **'Same dance — replace \"{title}\" with this version'**
   String importReviewOptionSameDance(String title);
 
   /// Checkbox label controlling whether choosing "import as a variation" also creates a symmetric relatedDance link back to the matched dance (issue #686). Defaults on. The title is an untrusted local value rendered as plain text.
@@ -7560,7 +12691,7 @@ abstract class AppLocalizations {
   /// Required dance/source title field label; the asterisk marks the field as required.
   ///
   /// In en, this message translates to:
-  /// **'Title *'**
+  /// **'Title'**
   String get danceEditorTitleRequiredLabel;
 
   /// Validation error shown when a required title field is blank.
@@ -7574,6 +12705,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authors'**
   String get danceEditorAuthorsLabel;
+
+  /// Field label for the dance type (contra, English, square) picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get danceEditorFormLabel;
 
   /// Field label for the dance formation picker.
   ///
@@ -7599,6 +12736,78 @@ abstract class AppLocalizations {
   /// **'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2'**
   String get danceEditorPhraseStructureHint;
 
+  /// Button in an English dance's editor that starts naming the tune's phrases A, B and C, each with its bars and whether it plays once or twice. It starts from the dance's current phrase structure.
+  ///
+  /// In en, this message translates to:
+  /// **'Name the phrases'**
+  String get danceEditorPhrasesNameThem;
+
+  /// Heading above an English dance's named phrases (A, B, C), one row each.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrases'**
+  String get danceEditorPhrasesTitle;
+
+  /// Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
+  String get danceEditorPhrasesHelp;
+
+  /// Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used.
+  ///
+  /// In en, this message translates to:
+  /// **'Add phrase'**
+  String get danceEditorPhrasesAdd;
+
+  /// Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  String danceEditorPhrasesInvalid(int max);
+
+  /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars in {name}'**
+  String danceEditorPhraseBarsLabel(String name);
+
+  /// Short error under one named phrase's Bars field in an English dance when its bar count is empty, zero or too large: the bars it may have.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseBarsRange(int max);
+
+  /// Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase name'**
+  String get danceEditorPhraseNameLabel;
+
+  /// Screen-reader label of the Once/Twice choice for one named phrase of an English dance's tune. The name is A, B or C.
+  ///
+  /// In en, this message translates to:
+  /// **'How often {name} plays'**
+  String danceEditorPhrasePlaysLabel(String name);
+
+  /// Choice for a named phrase of an English dance's tune: it plays once (labeled A).
+  ///
+  /// In en, this message translates to:
+  /// **'Once'**
+  String get danceEditorPhrasePlaysOnce;
+
+  /// Choice for a named phrase of an English dance's tune: it plays twice, its repeat straight after it (labeled A1 and A2).
+  ///
+  /// In en, this message translates to:
+  /// **'Twice'**
+  String get danceEditorPhrasePlaysTwice;
+
+  /// Tooltip of the button that removes one named phrase from an English dance's phrases. The name is A, B or C.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove phrase {name}'**
+  String danceEditorPhraseRemove(String name);
+
   /// Section heading for the editable figure list in the dance editor.
   ///
   /// In en, this message translates to:
@@ -7608,8 +12817,14 @@ abstract class AppLocalizations {
   /// Helper text above the figure list explaining type-ahead figure entry.
   ///
   /// In en, this message translates to:
-  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.'**
+  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can\'t read becomes an unrecognized figure.'**
   String get danceEditorFiguresHelp;
+
+  /// Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Any text the app can\'t read becomes an unrecognized figure.'**
+  String get danceEditorFiguresHelpFreeText;
 
   /// Section heading for the dance notes fields.
   ///
@@ -7634,6 +12849,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One-line \"why call this\"'**
   String get danceEditorHookHint;
+
+  /// Helper text under the Hook field in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Why you would call this dance, in one line. It can appear on calling cards and in what you share.'**
+  String get danceEditorHookHelper;
 
   /// Text field label for the dedicated per-dance walkthrough (step-by-step description), distinct from the shorter calling notes.
   ///
@@ -7670,6 +12891,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Customize wording for this dance'**
   String get danceEditorAddWordingOverride;
+
+  /// Label for the optional title of a meanwhile, modifier or sequence group of figures in the dance editor: a name callers know the group by, such as Flutterwheel.
+  ///
+  /// In en, this message translates to:
+  /// **'Group title (optional)'**
+  String get danceEditorGroupTitleLabel;
+
+  /// Helper text under the group title field: the title is shown in front of the group's figures as 'Title - figures'. Flutterwheel is the name of a contra dance figure; keep it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'A name for the whole group, such as Flutterwheel. It is shown before the group\'s figures, followed by a dash.'**
+  String get danceEditorGroupTitleHelper;
 
   /// Label for the per-figure display wording override field.
   ///
@@ -7773,29 +13006,23 @@ abstract class AppLocalizations {
   /// **'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.'**
   String get settingsWalkthroughSnippetsDescription;
 
-  /// Empty-state text on the walkthrough-snippet library editor when the library is empty (#411).
+  /// Heading of the empty state on the walkthrough-snippet library editor.
   ///
   /// In en, this message translates to:
-  /// **'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.'**
-  String get settingsWalkthroughSnippetsEmpty;
+  /// **'No saved snippets yet'**
+  String get settingsWalkthroughSnippetsEmptyTitle;
+
+  /// Body of the empty state on the walkthrough-snippet library editor; says where snippets come from.
+  ///
+  /// In en, this message translates to:
+  /// **'Add walkthrough step descriptions while editing a dance\'s figures.'**
+  String get settingsWalkthroughSnippetsEmptyBody;
 
   /// Count of saved walkthrough snippets (#411).
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 snippet} other{{count} snippets}}'**
   String settingsWalkthroughSnippetsCount(int count);
-
-  /// Title of the confirmation before deleting a saved walkthrough snippet (#411).
-  ///
-  /// In en, this message translates to:
-  /// **'Delete snippet?'**
-  String get settingsWalkthroughSnippetDeleteTitle;
-
-  /// Body of the confirmation before deleting a saved walkthrough snippet (#411).
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.'**
-  String get settingsWalkthroughSnippetDeleteBody;
 
   /// Title of the dialog for editing a saved walkthrough snippet's text (#411).
   ///
@@ -7827,6 +13054,18 @@ abstract class AppLocalizations {
   /// **'Dancers change partners each time through'**
   String get danceEditorMixerSubtitle;
 
+  /// Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts improper'**
+  String get danceEditorImproperLabel;
+
+  /// Subtitle of the 'Starts improper' checkbox in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unchecked for a dance that starts proper.'**
+  String get danceEditorImproperSubtitle;
+
   /// Label for the partial date when the dance was composed.
   ///
   /// In en, this message translates to:
@@ -7838,6 +13077,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When the dance was composed (year, or add month/day)'**
   String get danceEditorComposedHelper;
+
+  /// Field label for the people who interpreted the dance: reconstructed it from its original publication, as English country dances often are. Drawn from the same people list as the authors.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by'**
+  String get danceEditorInterpretedByLabel;
+
+  /// Label for the partial date (a year, or a fuller date) when the dance was interpreted, like the Composed date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get danceEditorInterpretedOnLabel;
+
+  /// Helper text for the interpreted-date field, like the composed-date field's helper.
+  ///
+  /// In en, this message translates to:
+  /// **'When the dance was interpreted (year, or add month/day)'**
+  String get danceEditorInterpretedOnHelper;
 
   /// Label for the partial date when the dance was last revised.
   ///
@@ -8127,11 +13384,88 @@ abstract class AppLocalizations {
   /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
   String validationPhraseBeatMismatch(int actual, int expected);
 
+  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
+  ///
+  /// In en, this message translates to:
+  /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
+  String validationSequenceExceedsPhrase(int position, int actual, int limit);
+
+  /// Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.'**
+  String validationSequenceSpanMismatch(int position, int actual, int expected);
+
+  /// Warning shown in the dance editor for an English country dance, timed in bars, when the figures' total doesn't match the phrase structure. {actual} and {expected} are counts with their unit, such as '30 bars' or '32 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures total {actual}; the phrase structure expects {expected}.'**
+  String validationPhraseCountMismatch(String actual, String expected);
+
+  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than one phrase. {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'A sequence in figure {position} is {actual}, longer than one phrase ({limit}).'**
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  );
+
+  /// Editor warning for an English country dance, timed in bars, whose sequence's timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it; {actual} and {expected} are counts with their unit, such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The timed steps of the sequence in figure {position} take {actual}, leaving none of its {expected} for the rest.'**
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  );
+
+  /// Editor warning for an English country dance, timed in bars, whose sequence's steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it; {actual} and {expected} are counts with their unit, such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps of the sequence in figure {position} take {actual}; the sequence takes {expected}.'**
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  );
+
+  /// Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.
+  ///
+  /// In en, this message translates to:
+  /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
+  String validationSequenceSpanNoRoom(int position, int actual, int expected);
+
+  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).
+  ///
+  /// In en, this message translates to:
+  /// **'This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.'**
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  );
+
+  /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} is not complete, so Save leaves it out.'**
+  String validationIncompleteFigure(int position);
+
   /// Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds).
   ///
   /// In en, this message translates to:
   /// **'That phrase structure isn\'t valid.'**
   String get validationPhraseInvalid;
+
+  /// Field error under the dance editor's phrase-structure input when a dance that isn't an English country dance is given named phrases such as A:2*8*2. A:, B: and C: are written as typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase names (A:, B:, C:) are for English dances only.'**
+  String get validationPhraseNamedEnglishOnly;
 
   /// Program-editor warning: an alternate program slot appears with no primary slot before it. {position} is the slot's 1-based position.
   ///
@@ -8142,24 +13476,30 @@ abstract class AppLocalizations {
   /// Program-editor warning: an alternate program slot (identified by its user-entered text) appears with no primary slot before it. {text} is user-entered content rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'The alternate at position {position} (“{text}”) has no preceding primary slot.'**
+  /// **'The alternate at position {position} (\"{text}\") has no preceding primary slot.'**
   String validationOrphanedAltNamed(int position, String text);
 
   /// Dialect-editor validation error: a role/move term maps to an empty substitution. {term} is the user-entered source term rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'The substitution for “{term}” is empty.'**
+  /// **'The substitution for \"{term}\" is empty.'**
   String validationEmptySubstitution(String term);
 
   /// Dialect-editor validation error: two source terms map to the same substitution, so reversing the dialect would be ambiguous. All three values are user-entered dialect terms rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'“{source}” and “{existing}” both map to “{substitution}” — reversal would be ambiguous.'**
+  /// **'\"{source}\" and \"{existing}\" both map to \"{substitution}\" — reversal would be ambiguous.'**
   String validationDialectCollision(
     String source,
     String existing,
     String substitution,
   );
+
+  /// Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.'**
+  String validationGenderedRoleTerm(String word);
 
   /// Generic fallback shown when a validation finding has no specific localized message. Deliberately non-leaking; specific detail (if any) appears only in debug builds.
   ///
@@ -8314,8 +13654,20 @@ abstract class AppLocalizations {
   /// Clean snackbar shown when saving a dance fails; the raw exception is logged instead of shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save the dance.'**
+  /// **'Couldn\'t save the dance. Your changes are still here. Try again.'**
   String get danceEditorSaveError;
+
+  /// Snackbar shown when renaming a choreographer to a name another choreographer already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'An author named \"{name}\" already exists. The name wasn\'t changed.'**
+  String danceEditorChoreographerDuplicate(String name);
+
+  /// Snackbar shown when CREATING a choreographer whose name a live choreographer already holds. Distinct from danceEditorChoreographerDuplicate, which is the rename case and says the name was not changed: here nothing was created and the existing author is untouched, so the user should select it instead. A safety net -- the author picker normally suppresses the create option for a name that already exists (issue #1348). The raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'An author named \"{name}\" already exists. The new author wasn\'t created — pick the existing one instead.'**
+  String danceEditorChoreographerCreateDuplicate(String name);
 
   /// Fallback dance title used when deleting a dance whose original title is unavailable.
   ///
@@ -8334,6 +13686,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You have an unsaved draft for this dance. Would you like to restore it?'**
   String get danceEditorUnsavedDraftMessage;
+
+  /// Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new dance, \"{title}\". Would you like to restore it instead of starting a new one?'**
+  String danceEditorUnsavedNewDanceDraftMessage(String title);
+
+  /// Dialog body when the caller starts a new dance and an untitled draft of a different new dance, never saved, is waiting from an earlier session.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?'**
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage;
+
+  /// Line in the restore-draft dialog giving when the autosave draft was last written, so the caller can judge how old it is.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft saved {when}.'**
+  String danceEditorUnsavedDraftSavedAt(String when);
+
+  /// Warning in the restore-draft dialog when the saved dance was edited elsewhere (a bulk tag, a rating, a sync, a re-check) after the draft was written; restoring overwrites those later changes.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance has been changed since the draft was saved. Restoring the draft replaces those changes.'**
+  String get danceEditorUnsavedDraftChangedSince;
 
   /// Button label for discarding a draft or unsaved changes.
   ///
@@ -8383,17 +13759,23 @@ abstract class AppLocalizations {
   /// **'Redo'**
   String get danceEditorRedoLabel;
 
+  /// Tooltip and screen-reader label for the marker in the dance and program editor bars when the editor cannot write its autosave draft (for example, the disk is full). Clears itself once a draft write succeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft not saved — your latest changes are not being kept yet'**
+  String get editorDraftNotSaved;
+
   /// Tooltip for the undo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Undo (Ctrl+Z)'**
-  String get danceEditorUndoShortcutTooltip;
+  /// **'{platform, select, apple{Undo (⌘Z)} other{Undo (Ctrl+Z)}}'**
+  String danceEditorUndoShortcutTooltip(String platform);
 
   /// Tooltip for the redo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Redo (Ctrl+Shift+Z)'**
-  String get danceEditorRedoShortcutTooltip;
+  /// **'{platform, select, apple{Redo (⇧⌘Z)} other{Redo (Ctrl+Shift+Z)}}'**
+  String danceEditorRedoShortcutTooltip(String platform);
 
   /// Tooltip for the app-bar action that deletes the current dance.
   ///
@@ -8404,13 +13786,13 @@ abstract class AppLocalizations {
   /// Message shown when the dance editor fails to load a dance.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the dance.'**
+  /// **'Couldn\'t load the dance. Nothing was changed. Try again.'**
   String get danceEditorLoadError;
 
   /// Dialog title for editing shared choreographer/contact details.
   ///
   /// In en, this message translates to:
-  /// **'Choreographer details'**
+  /// **'Author details'**
   String get danceEditorChoreographerDetailsTitle;
 
   /// Introductory copy explaining shared and private choreographer details.
@@ -8422,7 +13804,7 @@ abstract class AppLocalizations {
   /// Required name field label; the asterisk marks the field as required.
   ///
   /// In en, this message translates to:
-  /// **'Name *'**
+  /// **'Name'**
   String get danceEditorNameRequiredLabel;
 
   /// Validation error shown when a required name field is blank.
@@ -8527,11 +13909,35 @@ abstract class AppLocalizations {
   /// **'Type a figure and press Enter to add it.'**
   String get danceEditorTypeFigureAnnouncement;
 
-  /// Screen-reader announcement after adding figure(s) from free-text entry.
+  /// Screen-reader announcement after adding figure(s) from free-text entry. Spoken only: the visible line under the box is danceEditorFreeTextFiguresAddedConfirmation, because this one names the Escape key.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}'**
   String danceEditorFreeTextFiguresAddedAnnouncement(int count);
+
+  /// Visible line under the free-text figure box after adding figure(s). "Finish adding" is the button under the box (danceEditorFreeTextFinish) that closes it; keep the wording in step with that button's label.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 figure. Type another, or choose Finish adding when you\'re done.} other{Added {count} figures. Type another, or choose Finish adding when you\'re done.}}'**
+  String danceEditorFreeTextFiguresAddedConfirmation(int count);
+
+  /// Button under the free-text figure box. It means 'I have finished entering figures': it adds any line still in the box, as Enter would, and then closes the box. It must not read as finishing the one figure being typed (an earlier 'Done' label did, and callers lost the line they had typed).
+  ///
+  /// In en, this message translates to:
+  /// **'Finish adding'**
+  String get danceEditorFreeTextFinish;
+
+  /// Screen-reader announcement when Finish adding (danceEditorFreeTextFinish) adds the line still in the free-text figure box and closes the box.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 figure.} other{Added {count} figures.}}'**
+  String danceEditorFreeTextFinishedAnnouncement(int count);
+
+  /// Screen-reader announcement after a line typed into an existing figure's move field (with free-text entry on) replaced that figure with the figure(s) parsed from it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Figure replaced.} other{Figure replaced with {count} figures.}}'**
+  String danceEditorFreeTextRowReplacedAnnouncement(int count);
 
   /// Screen-reader announcement after deleting a figure row.
   ///
@@ -8587,6 +13993,12 @@ abstract class AppLocalizations {
   /// **'Add modifier'**
   String get danceEditorAddModifier;
 
+  /// Menu item label for adding an empty sequence container: two or more figures danced one after another and shown on one line, such as "balance and swing".
+  ///
+  /// In en, this message translates to:
+  /// **'Add sequence'**
+  String get danceEditorAddSequence;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
@@ -8602,7 +14014,7 @@ abstract class AppLocalizations {
   /// Helper text for free-text figure entry.
   ///
   /// In en, this message translates to:
-  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.'**
+  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can\'t read is kept as an unrecognized figure.'**
   String get danceEditorTypeFigureHelper;
 
   /// Button label for a paste destination in the figure list.
@@ -8620,7 +14032,7 @@ abstract class AppLocalizations {
   /// Fallback display name for a custom figure with no text.
   ///
   /// In en, this message translates to:
-  /// **'Custom figure'**
+  /// **'Unrecognized figure'**
   String get danceEditorCustomFigureName;
 
   /// Collapsed-row text for an empty figure draft.
@@ -8634,6 +14046,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'empty figure, choose a move'**
   String get danceEditorEmptyFigureSemantic;
+
+  /// Collapsed summary of a figure row that is one of the user's own custom figures, not yet expanded: its name and the value it gives each parameter, comma-separated.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {values}'**
+  String danceEditorCompoundSummary(String name, String values);
+
+  /// Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.
+  ///
+  /// In en, this message translates to:
+  /// **'{summary}, your figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
+  String danceEditorCompoundSemantic(String summary, String unavailable);
+
+  /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Becomes {count, plural, =1{1 figure} other{{count} figures}} ({beats, plural, =1{1 beat} other{{beats} beats}}) when the dance is saved.'**
+  String danceEditorCompoundExpandsTo(int count, int beats);
+
+  /// Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.'**
+  String get danceEditorCompoundUnavailable;
+
+  /// Shown on a dance's figure row (AUTH-2) that saving would leave out because it is not complete: a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, a group holding such a group, or a row with no move that holds something other than a note. Matches the Warnings entry validationIncompleteFigure. 'Save' is the editor's Save button (commonSave).
+  ///
+  /// In en, this message translates to:
+  /// **'Not complete, so Save leaves it out.'**
+  String get danceEditorIncompleteFigure;
 
   /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
   ///
@@ -8682,6 +14124,30 @@ abstract class AppLocalizations {
   /// **'Move down'**
   String get danceEditorMoveDown;
 
+  /// Tooltip and screen-reader label for the button that moves one item of a reorderable settings list up a position, the keyboard and switch alternative to dragging.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {name} up'**
+  String commonMoveItemUp(String name);
+
+  /// Tooltip and screen-reader label for the button that moves one item of a reorderable settings list down a position, the keyboard and switch alternative to dragging.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {name} down'**
+  String commonMoveItemDown(String name);
+
+  /// Screen-reader announcement after the move-up or move-down button of a reorderable settings list has moved an item, saying where it now is; positions count from 1.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} moved to position {position} of {count}'**
+  String commonMovedItemPosition(String name, int position, int count);
+
+  /// Badge and screen-reader text on a figure row that has been cut and is waiting to be pasted somewhere else; says the row's state, where danceEditorCut is the menu action that puts it there.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut'**
+  String get danceEditorFigureCutState;
+
   /// Menu item label for cutting a figure row before pasting it elsewhere.
   ///
   /// In en, this message translates to:
@@ -8712,6 +14178,12 @@ abstract class AppLocalizations {
   /// **'Group with next as modifier'**
   String get danceEditorGroupWithNextAsModifier;
 
+  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Group with next as sequence'**
+  String get danceEditorGroupWithNextAsSequence;
+
   /// Menu item label for converting a flat modifier group into a meanwhile group.
   ///
   /// In en, this message translates to:
@@ -8723,6 +14195,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Convert to modifier'**
   String get danceEditorConvertToModifier;
+
+  /// Menu item label for converting a meanwhile or modifier group into a sequence group, whose figures are danced in order.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to sequence'**
+  String get danceEditorConvertToSequence;
 
   /// Menu item label for replacing a meanwhile group with its child figures.
   ///
@@ -8736,13 +14214,85 @@ abstract class AppLocalizations {
   /// **'Ungroup modifier'**
   String get danceEditorUngroupModifier;
 
+  /// Menu item label for replacing a sequence group with its child figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup sequence'**
+  String get danceEditorUngroupSequence;
+
+  /// Lower-case entry in the move picker that turns the current figure into the first figure of a sequence group (figures danced one after another, shown on one line). Shown beside move names, so it reads like one; the English word also always matches what the user types.
+  ///
+  /// In en, this message translates to:
+  /// **'sequence'**
+  String get danceEditorSequenceOptionLabel;
+
+  /// Visible heading for a sequence group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{Sequence ({count} figures)}}'**
+  String danceEditorSequenceGroupLabel(int count);
+
+  /// Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.'**
+  String danceEditorSequenceGroupSemantic(int count, int beats);
+
+  /// Read-only line in a sequence group's editor giving the sum of its figures' beats. Unlike a meanwhile or modifier, a sequence has no shared beats field: each figure edits its own.
+  ///
+  /// In en, this message translates to:
+  /// **'{beats, plural, =1{1 beat in total} other{{beats} beats in total}}'**
+  String danceEditorSequenceTotalBeats(int beats);
+
+  /// Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'This sequence is {beats} beats, longer than one phrase ({limit} beats).'**
+  String danceEditorSequenceOverPhrase(int beats, int limit);
+
+  /// Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.
+  ///
+  /// In en, this message translates to:
+  /// **'These figures fill one phrase ({limit} beats).'**
+  String danceEditorSequencePhraseFull(int limit);
+
+  /// Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of {max} figures in a sequence.'**
+  String danceEditorSequenceStepsCapReached(int max);
+
+  /// Compact heading for one figure within a sequence group's editor, numbered in dance order.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number}'**
+  String danceEditorSequenceStepLabel(int number);
+
+  /// Screen-reader label identifying one figure's position within a sequence group.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number} of {total} in sequence.'**
+  String danceEditorSequenceStepSemantic(int number, int total);
+
+  /// Button label that adds another figure to the end of a sequence group.
+  ///
+  /// In en, this message translates to:
+  /// **'Add next figure'**
+  String get danceEditorAddSequenceStep;
+
+  /// Icon button tooltip/semantics for removing one figure from a sequence group. Removing down to one figure collapses the group back to a plain figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this figure'**
+  String get danceEditorRemoveSequenceStep;
+
   /// Visible heading for a modifier group's expanded editor.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, other{Modifier ({count} figures)}}'**
   String danceEditorModifierGroupLabel(num count);
 
-  /// Accessibility label for a modifier group.
+  /// Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.
   ///
   /// In en, this message translates to:
   /// **'Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.'**
@@ -8841,7 +14391,7 @@ abstract class AppLocalizations {
   /// Read-only explanation for a figure whose move id is not in the active taxonomy.
   ///
   /// In en, this message translates to:
-  /// **'Unrecognized move \"{move}\" — not in this version\'s taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.'**
+  /// **'Unrecognized move \"{move}\": this version of the app doesn\'t know it. It is shown read-only so its data is preserved, and it will edit normally again if the move becomes known. You can still reorder or delete it.'**
   String danceEditorUnrecognizedMoveReadOnly(String move);
 
   /// Button label that collapses additional figure parameter editors.
@@ -8877,13 +14427,13 @@ abstract class AppLocalizations {
   /// Text field label for editing a custom figure description.
   ///
   /// In en, this message translates to:
-  /// **'Custom figure text'**
+  /// **'Unrecognized figure text'**
   String get danceEditorCustomFigureTextLabel;
 
   /// Helper text explaining lingo-aware styling in a custom figure text field.
   ///
   /// In en, this message translates to:
-  /// **'Move names dotted·underline, role terms underlined, discouraged terms struck through'**
+  /// **'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough'**
   String get danceEditorLingoStylingHelper;
 
   /// Summary of total figure beats versus the phrase-structure expectation.
@@ -8910,7 +14460,7 @@ abstract class AppLocalizations {
   /// **'Less'**
   String get danceEditorLessTooltip;
 
-  /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state.
+  /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper, by the choice dropdowns whose parameter admits the unstated state, and as the placeholder of an empty places field that admits it (a circle's or star's places).
   ///
   /// In en, this message translates to:
   /// **'not stated'**
@@ -8922,11 +14472,23 @@ abstract class AppLocalizations {
   /// **'backing up'**
   String get figureParamFacingStarBackingUp;
 
+  /// Hint in a figure parameter's dropdown when its stored value is no longer one it accepts and must be replaced: one of the user's own figures (#709) was changed after the value was chosen, or gained a parameter. Lowercase, like the 'not stated' hint.
+  ///
+  /// In en, this message translates to:
+  /// **'choose a value'**
+  String get danceEditorParamChooseValue;
+
   /// Tooltip for the button that clears a figure parameter back to the unstated state.
   ///
   /// In en, this message translates to:
   /// **'Clear (not stated)'**
   String get danceEditorParamClearTooltip;
+
+  /// Error shown under an integer figure parameter field (beats, places) while its text is empty, not a whole number, or outside the allowed range; the draft keeps its last valid value meanwhile. A circle's or star's places field may be left empty, which means not stated and shows no error.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from {min} to {max}'**
+  String danceEditorIntParamRangeError(int min, int max);
 
   /// Tooltip for incrementing a numeric figure parameter.
   ///
@@ -8939,6 +14501,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{{formatted} turn} other{{formatted} turns}}'**
   String danceEditorTurnCount(num count, String formatted);
+
+  /// The amount of a figure 8 or poussette whose fraction is 'other amount', shown in the figure parameter editor: how many times through the figure, e.g. 1.5×.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount}×'**
+  String danceEditorFractionAmountValue(String amount);
+
+  /// The fraction value of a figure 8 or poussette that none of quarter, half, three quarter or full states; its amount is stated separately. Shown in search filters and wherever the value is named on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'other amount'**
+  String get figureParamFractionOther;
+
+  /// The same fraction value as figureParamFractionOther, as a choice in the dance editor's fraction menu: picking it shows a field for the amount, hence the ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'other amount…'**
+  String get figureParamFractionOtherPick;
 
   /// Generic 'Back' affordance shared across screens.
   ///
@@ -8997,14 +14577,188 @@ abstract class AppLocalizations {
   /// Fallback update-banner error shown when the assisted download fails and no specific message is available.
   ///
   /// In en, this message translates to:
-  /// **'The update could not be downloaded.'**
+  /// **'Couldn\'t download the update. Try again.'**
   String get updateBannerDownloadFailed;
 
-  /// Update banner message when a newer version is available (idle/cancelled state).
+  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t choose a place to download the update. Try again, or use \"View release\".'**
+  String get updateDownloadFailureDestination;
+
+  /// macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Something is already at that location. Choose another name or folder, or use \"View release\".'**
+  String get updateDownloadFailureDestinationOccupied;
+
+  /// Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. "View release" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t finish the download, and the incomplete file was deleted. Try again, or use \"View release\".'**
+  String get updateDownloadFailureIncomplete;
+
+  /// Assisted-download error shown when the download URL was refused because its host is not on the allowed list. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'The update download was refused because it pointed at an unexpected location. Use \"View release\" to download it manually.'**
+  String get updateDownloadFailureRefusedHost;
+
+  /// Assisted-download error shown when the download failed for a network or other transport reason. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download the update. Check your connection and try again, or use \"View release\".'**
+  String get updateDownloadFailureUnreachable;
+
+  /// Update download error shown when the server answered with an error status (for example 404 or 5xx).
+  ///
+  /// In en, this message translates to:
+  /// **'The update server couldn\'t provide the file. Try again later, or use \"View release\".'**
+  String get updateDownloadFailureServerError;
+
+  /// Update download error shown when writing the downloaded file failed because the disk is full.
+  ///
+  /// In en, this message translates to:
+  /// **'There isn\'t enough free disk space to save the update. Free up some space and try again, or use \"View release\".'**
+  String get updateDownloadFailureDiskFull;
+
+  /// Update download error shown when the downloaded file could not be created or written because of permissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the update because the download location isn\'t writable. Check its permissions and try again, or use \"View release\".'**
+  String get updateDownloadFailureUnwritable;
+
+  /// Assisted-download error shown when the downloaded file did not match the manifest's checksum, so the file was deleted. Keep the wording plain; do not name the hash algorithm. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'The downloaded update failed its security check and was deleted. Try again, or use \"View release\" to download it manually.'**
+  String get updateDownloadFailureChecksumMismatch;
+
+  /// Assisted-download error shown when the verified installer or disk image could not be handed to the operating system. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'The update was downloaded and verified, but couldn\'t be opened automatically. Use \"View release\" to finish installing.'**
+  String get updateDownloadFailureHandoffFailed;
+
+  /// Assisted-download error shown when an unexpected error interrupted the install step. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t install the update. Try again, or use \"View release\" to download it manually.'**
+  String get updateDownloadFailureInstallFailed;
+
+  /// Dismissible banner shown once at launch when the database integrity check itself threw an error, so the data's health is unknown. "Settings ▸ Diagnostics" must match the translated navigation labels.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t finish checking your data this time, so it couldn\'t be verified. If problems continue, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.'**
+  String get startupIntegrityCheckIncomplete;
+
+  /// Dismissible banner shown once at launch when the database integrity check ran and reported a problem. The app still opens; the failure is advisory.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data failed its safety check and may be damaged. Consider restoring from a backup.'**
+  String get startupIntegrityCheckFailed;
+
+  /// Title of the on-launch dialog offering to convert non-English dances tagged "ECD" to the English Country Dance form. "ECD" is the same abbreviation used in commonDanceFormEcd and stays as-is.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert ECD dances?'**
+  String get startupEcdConvertTitle;
+
+  /// Body of the on-launch ECD-convert dialog, asking to convert every dance tagged "ECD" (case-insensitive) that is not already the English Country Dance form. "ECD" stays as-is, matching the tag name the app looks for.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to convert all non-English dances in your collection with the tag \"ECD\" to English dances?'**
+  String get startupEcdConvertMessage;
+
+  /// Checkbox on the on-launch ECD-convert dialog that opts out of seeing the prompt on future launches, regardless of whether Convert or Not now is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t show this again'**
+  String get startupEcdConvertDontShowAgain;
+
+  /// Button on the on-launch ECD-convert dialog that declines the conversion for this launch.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get startupEcdConvertDecline;
+
+  /// Button on the on-launch ECD-convert dialog that confirms converting the matching dances to the English Country Dance form.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert'**
+  String get startupEcdConvertConfirm;
+
+  /// Snackbar confirming how many dances the on-launch ECD-convert prompt converted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Converted 1 dance to English (ECD).} other{Converted {count} dances to English (ECD).}}'**
+  String startupEcdConvertSnackbar(int count);
+
+  /// Snackbar after Undo on the ECD-convert snackbar: how many converted dances got their form and "ECD" tag back. A dance whose type or tags changed since the conversion is left alone, so this can be fewer than were converted, or none.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dances were changed back: each one\'s type or tags have changed since.} one{Changed 1 dance back.} other{Changed {count} dances back.}}'**
+  String startupEcdConvertUndoneSnackbar(int count);
+
+  /// Shown over the app while it closes: open editors' drafts are being saved and a running sync is given a few seconds to finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing…'**
+  String get appClosingMessage;
+
+  /// Update banner message when a newer version is available (idle/canceled state).
   ///
   /// In en, this message translates to:
   /// **'A newer version of {appName} ({version}) is available.'**
   String updateBannerAvailable(String appName, String version);
+
+  /// Update banner message on a portable copy (the Windows zip or the Linux tar.gz) when a newer version is available. The app can't install it, so the message sends the user to the release page. zip and tar.gz are file formats, not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version of {appName} ({version}) is available. This is a portable copy, so download the new zip or tar.gz from the release.'**
+  String updateBannerPortable(String appName, String version);
+
+  /// End-of-support notice (banner and Settings ▸ Updates) before the announced end-of-life date. {date} is already formatted per the user's date-format setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Support for this version of {appName} ({version}) ends on {date}. Update to a later version before then.'**
+  String retirementNoticeUpcoming(String appName, String version, String date);
+
+  /// End-of-support notice (banner and Settings ▸ Updates) on or after the announced end-of-life date. {date} is already formatted per the user's date-format setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Support for this version of {appName} ({version}) ended on {date}. Update to a later version now.'**
+  String retirementNoticePast(String appName, String version, String date);
+
+  /// End-of-support banner action that opens the page for the newer release (or the list of releases).
+  ///
+  /// In en, this message translates to:
+  /// **'Get update'**
+  String get retirementBannerGetUpdate;
+
+  /// End-of-support banner action that hides the banner until the app is next launched.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get retirementBannerLater;
+
+  /// macOS-only app-wide banner shown when the app's bundle is on a read-only volume: opened from inside the mounted .dmg, or from the temporary read-only location Gatekeeper makes for a quarantined app ('app translocation'), which is suspected (not reproduced) to happen to an app that is already in Applications too. Because of that second case the text must say the app 'may' not be installed rather than assert it, must not promise that moving it fixes the notice, and tells an already-installed user they can dismiss it. 'Applications' is the macOS folder name; use the localized Finder name. 'Finder' is the macOS file manager and keeps its name.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} may not be installed. It is running from the downloaded disk image or archive, or from a temporary read-only location that macOS set up for it. Quit it, drag or copy it into your Applications folder in Finder, then open it from there. If it is already in your Applications folder, you can dismiss this notice.'**
+  String installLocationBannerMessage(String appName);
+
+  /// Action on the not-installed banner that hides it until the app is next launched.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get installLocationBannerDismiss;
+
+  /// Settings ▸ Updates tile title shown when this version has an announced end-of-life date.
+  ///
+  /// In en, this message translates to:
+  /// **'End of support'**
+  String get settingsUpdatesRetirementTitle;
 
   /// Update banner action that opens the release notes web page.
   ///
@@ -9096,19 +14850,37 @@ abstract class AppLocalizations {
   /// **'Programs'**
   String get commandPaletteGroupPrograms;
 
+  /// Screen-reader announcement when the arrow keys move the command-palette highlight: the result's name (title, and its kind or form), then its position among the results shown.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {index} of {count}'**
+  String commandPaletteHighlightedResult(String name, int index, int count);
+
+  /// Command-palette result count, shown under the search field and announced as a live region whenever the filter changes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 result} other{{count} results}}'**
+  String commandPaletteResultCount(int count);
+
+  /// Command-palette result count when more titles match than the palette lists (it shows at most a fixed number per group).
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {shown} of {total} results'**
+  String commandPaletteResultCountCapped(int shown, int total);
+
   /// Label for the search field in the collection picker (adding a dance to a program).
   ///
   /// In en, this message translates to:
-  /// **'Find a dance to add'**
+  /// **'Find a dance'**
   String get collectionPickerSearchLabel;
 
-  /// Collection-picker Filters section header; shows the number of active filters when any are set.
+  /// The dance picker's Filters button: its plain name (count 0), and what screen readers hear while filters are active; the button itself then shows the shorter searchToolActiveCount form ("Filters · 3").
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =0{Filters} other{Filters ({count} active)}}'**
   String collectionPickerFilters(int count);
 
-  /// Collection-picker By-phrase section header; shows the number of active phrase conditions when any are set.
+  /// The dance picker's By phrase button: its plain name (count 0), and what screen readers hear while phrase conditions are active; the button itself then shows the shorter searchToolActiveCount form ("By phrase · 2").
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =0{By phrase} other{By phrase ({count} active)}}'**
@@ -9119,18 +14891,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Advanced'**
   String get collectionPickerAdvanced;
-
-  /// Collection-picker toggle enabling the advanced structured query builder.
-  ///
-  /// In en, this message translates to:
-  /// **'Use advanced query'**
-  String get collectionPickerUseAdvancedQuery;
-
-  /// Helper text describing the advanced query builder in the collection picker.
-  ///
-  /// In en, this message translates to:
-  /// **'Combine figures and sequences with all / any / none groups.'**
-  String get collectionPickerAdvancedQueryHelp;
 
   /// Screen-reader label for the button that adds a dance to the program.
   ///
@@ -9189,7 +14949,7 @@ abstract class AppLocalizations {
   /// Message shown when the bundled user-guide content fails to load.
   ///
   /// In en, this message translates to:
-  /// **'The user guide could not be loaded.'**
+  /// **'Couldn\'t load the user guide. Try again.'**
   String get userGuideLoadError;
 
   /// Action that opens the user guide on the web when local content is unavailable.
@@ -9197,6 +14957,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the guide online'**
   String get userGuideOpenOnline;
+
+  /// One-line notice at the top of every user-guide page when the app language is not English: the bundled guide is only written in English (PLAT-13).
+  ///
+  /// In en, this message translates to:
+  /// **'The guide is in English.'**
+  String get userGuideEnglishOnly;
 
   /// App-bar title for the figure-shorthand mappings manager.
   ///
@@ -9216,29 +14982,101 @@ abstract class AppLocalizations {
   /// **'New shorthand'**
   String get shorthandMappingsNew;
 
-  /// Empty state when the user has no figure-shorthand mappings.
+  /// Heading of the empty state on the shorthand list.
   ///
   /// In en, this message translates to:
-  /// **'No shorthands yet.'**
-  String get shorthandMappingsEmpty;
+  /// **'No shorthands yet'**
+  String get shorthandMappingsEmptyTitle;
 
-  /// Title of the confirm-delete dialog for a figure-shorthand mapping.
+  /// Body of the empty state on the shorthand list; names the New shorthand button.
   ///
   /// In en, this message translates to:
-  /// **'Delete shorthand?'**
-  String get shorthandMappingsDeleteTitle;
+  /// **'Choose New shorthand to add one.'**
+  String get shorthandMappingsEmptyBody;
 
-  /// Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.
+  /// Snackbar shown when the user tries to add a figure shorthand but already has the maximum number the app keeps; {max} is that maximum.
   ///
   /// In en, this message translates to:
-  /// **'“{token}” will be permanently removed.'**
-  String shorthandMappingsDeleteBody(String token);
+  /// **'You have reached the limit of {max} figure shorthands. Delete one to add another.'**
+  String shorthandMappingsLimitReached(int max);
 
   /// Tooltip for the per-row overflow menu in the shorthand manager.
   ///
   /// In en, this message translates to:
   /// **'Shorthand actions'**
   String get shorthandMappingsActionsTooltip;
+
+  /// Heading of the list of shorthands for the user's own figures on the shorthands screen (compound shorthands, #709, and shorthands for new figures, #1023), and the name of the compound shorthands' setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthands for your own figures'**
+  String get shorthandsCompoundTitle;
+
+  /// The name of the setting holding the shorthands for the user's own new figures (#1023), in sync notices and the sync conflict view. A new figure is one with its own wording, as opposed to a combination of built-in figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthands for new figures'**
+  String get shorthandsUserFigureSyncLabel;
+
+  /// Explains the compound shorthands section.
+  ///
+  /// In en, this message translates to:
+  /// **'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.'**
+  String get shorthandsCompoundIntro;
+
+  /// Button that creates a compound shorthand.
+  ///
+  /// In en, this message translates to:
+  /// **'New shorthand for one of your figures'**
+  String get shorthandsCompoundNew;
+
+  /// Shown when there are no compound shorthands.
+  ///
+  /// In en, this message translates to:
+  /// **'No shorthands for your own figures yet.'**
+  String get shorthandsCompoundEmpty;
+
+  /// Shown under a compound shorthand whose figure can no longer be expanded with its values.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t be used: its figure has been deleted or changed, or doesn\'t accept these values. Typing it is read as an ordinary line.'**
+  String get shorthandsCompoundUnavailable;
+
+  /// Shown under a compound shorthand whose token a figure shorthand also has (possible when two devices each add one before syncing); the figure shorthand is used.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used: a figure shorthand has the same text.'**
+  String get shorthandsCompoundShadowed;
+
+  /// Shown under a shorthand for one of the user's new figures (#1023) whose token a shorthand for one of their combinations also has (possible when two devices each add one before syncing); the combination's shorthand is used. A combination is a user's figure made of built-in figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used: a shorthand for a combination has the same text.'**
+  String get shorthandsUserFigureShadowedByCompound;
+
+  /// Label of the field choosing which of the user's own figures a compound shorthand stands for.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure'**
+  String get compoundShorthandEditorFigureLabel;
+
+  /// Error when saving a compound shorthand without choosing a figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one of your figures.'**
+  String get compoundShorthandEditorNoFigure;
+
+  /// Shown in the compound shorthand editor when the user has no usable custom figures.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no custom figures yet. Add one in the Glossary first.'**
+  String get compoundShorthandEditorNoCompounds;
+
+  /// Error when saving a compound shorthand whose values the chosen figure does not accept.
+  ///
+  /// In en, this message translates to:
+  /// **'These values don\'t fit this figure. Choose others.'**
+  String get compoundShorthandEditorInvalidValues;
 
   /// App-bar title when creating a new figure-shorthand mapping.
   ///
@@ -9263,6 +15101,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.'**
   String get shorthandEditorTokenHelper;
+
+  /// Warning (not an error; saving is still allowed) under the shorthand-token field when the token, typed as a free-text line, already reads as a figure; {token} is the user's token, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Typing \"{token}\" already adds a figure on its own. If you save this shorthand, typing it will insert what you set here instead. You can still save it.'**
+  String shorthandEditorTokenShadowsFigure(String token);
 
   /// Section header for the figures a shorthand expands to.
   ///
@@ -9293,6 +15137,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Another shorthand already uses \"{token}\" (shorthands are matched case-insensitively).'**
   String shorthandEditorErrorDuplicate(String token);
+
+  /// Validation error when a figure shorthand's token is taken by a shorthand for one of the user's own figures, which the screen hides while the Custom Figures setting is off; {token} is the user's token.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{token}\" is already a shorthand for one of your own figures. Those are listed here while Custom Figures is on.'**
+  String shorthandEditorErrorDuplicateHidden(String token);
 
   /// Validation error when no target figures have been added to a shorthand.
   ///
@@ -9339,7 +15189,7 @@ abstract class AppLocalizations {
   /// Explanation shown for a skipped, conflicting shorthand candidate; {token} is the user's token, rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'A shorthand named “{token}” already exists, so this button was left as-is.'**
+  /// **'A shorthand named \"{token}\" already exists, so this button was left as-is.'**
   String importShorthandSeedConflictNote(String token);
 
   /// Button that declines seeding any shorthands and closes the step.
@@ -9354,11 +15204,107 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Seed shorthands} =1{Seed 1 shorthand} other{Seed {count} shorthands}}'**
   String importShorthandSeedConfirm(int count);
 
+  /// Title of the step, after a shared file is imported, that offers the new figures of the sender's own (#1023) that its dances use.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures in this file'**
+  String get importUserFiguresTitle;
+
+  /// Intro on the shared-figures step. A use of a figure the recipient doesn't add reads as the line stored with it.
+  ///
+  /// In en, this message translates to:
+  /// **'The dances you imported use figures the sender made. Choose what to add to your Glossary. A dance whose figure you don\'t add shows the line it was shared with.'**
+  String get importUserFiguresIntro;
+
+  /// Section header on the shared-figures step: figures this device has none of.
+  ///
+  /// In en, this message translates to:
+  /// **'New to you'**
+  String get importUserFiguresNewHeader;
+
+  /// Section header on the shared-figures step: figures this device has, with different content.
+  ///
+  /// In en, this message translates to:
+  /// **'Different from yours'**
+  String get importUserFiguresDiffersHeader;
+
+  /// Section header on the shared-figures step: figures whose id is taken here by another kind of entry, or by a figure the user deleted, so they are added under a new id.
+  ///
+  /// In en, this message translates to:
+  /// **'Added as a copy'**
+  String get importUserFiguresCopyHeader;
+
+  /// Note under each figure in the 'Added as a copy' section.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has used its id before, so it is added under a new one. The dances you imported use the copy.'**
+  String get importUserFiguresCopyNote;
+
+  /// Section header on the shared-figures step: figures this device already has, unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your Glossary'**
+  String get importUserFiguresSameHeader;
+
+  /// Note under a shared figure whose name clashes with a move, a dialect's name, a shorthand or another entry on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Its name is already taken here, so your Glossary will mark it Rename needed.'**
+  String get importUserFiguresNameTaken;
+
+  /// Choice for a shared figure that differs from the user's own: keep the user's version.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep mine'**
+  String get importUserFiguresKeepMine;
+
+  /// Choice for a shared figure that differs from the user's own: replace it with the sender's version. The user's notes on it are kept.
+  ///
+  /// In en, this message translates to:
+  /// **'Use theirs'**
+  String get importUserFiguresUseTheirs;
+
+  /// Button on the shared-figures step that adds nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importUserFiguresSkip;
+
+  /// Confirm button on the shared-figures step; {count} is how many figures it adds or replaces.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Done} =1{Apply 1 change} other{Apply {count} changes}}'**
+  String importUserFiguresConfirm(int count);
+
+  /// Line in the import result after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Couldn\'t save 1 figure to your Glossary.} other{Couldn\'t save {count} figures to your Glossary.}}'**
+  String importUserFiguresFailed(int count);
+
   /// Snackbar shown after shorthands are seeded; {count} is how many were added.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Seeded 1 shorthand} other{Seeded {count} shorthands}}'**
   String importShorthandSeedComplete(int count);
+
+  /// Note on the shorthand-seeding step: {count} call buttons in the file were left out because their text does not read as figures.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 call button was left out because its text does not read as figures.} other{{count} call buttons were left out because their text does not read as figures.}}'**
+  String importShorthandSeedUnreadableNote(int count);
+
+  /// Hint on the shorthand-seeding step when fewer shorthand slots are free than there are candidates; {free} is the free slots, {max} the limit.
+  ///
+  /// In en, this message translates to:
+  /// **'{free, plural, =0{Your shorthand list is full ({max}), so none of these can be added.} =1{There is room for 1 more shorthand (limit {max}). Only the first one you leave selected will be added.} other{There is room for {free} more shorthands (limit {max}). Only the first {free} you leave selected will be added.}}'**
+  String importShorthandSeedRoomHint(int free, int max);
+
+  /// Second line of the snackbar after seeding hit the shorthand limit; {skipped} is how many chosen shorthands were not added, {max} the limit.
+  ///
+  /// In en, this message translates to:
+  /// **'{skipped, plural, =1{1 shorthand was not added because the list is full (limit {max}). Delete one to add another.} other{{skipped} shorthands were not added because the list is full (limit {max}). Delete one to add another.}}'**
+  String importShorthandSeedLimitSkipped(int skipped, int max);
 
   /// App-bar title for the theme editor.
   ///
@@ -9372,13 +15318,13 @@ abstract class AppLocalizations {
   /// **'Theme name'**
   String get themeEditorNameLabel;
 
-  /// Status shown when every checked colour pair meets WCAG AA contrast.
+  /// Status shown when every checked color pair meets WCAG AA contrast.
   ///
   /// In en, this message translates to:
   /// **'All checked pairs pass WCAG AA contrast.'**
   String get themeEditorContrastAllPass;
 
-  /// Warning shown when one or more colour pairs fall below WCAG AA contrast.
+  /// Warning shown when one or more color pairs fall below WCAG AA contrast.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.} other{{count} contrast pairs below WCAG AA. You can still save, but some text may be hard to read.}}'**
@@ -9399,7 +15345,7 @@ abstract class AppLocalizations {
   /// Heading of the live theme-preview card ('Aa' is a font specimen).
   ///
   /// In en, this message translates to:
-  /// **'Aa Preview'**
+  /// **'Aa preview'**
   String get themeEditorPreviewHeading;
 
   /// Sample body-text line in the theme preview.
@@ -9408,25 +15354,25 @@ abstract class AppLocalizations {
   /// **'Body text sample'**
   String get themeEditorBodySample;
 
-  /// Label for the primary colour swatch.
+  /// Label for the primary color swatch.
   ///
   /// In en, this message translates to:
   /// **'Primary'**
   String get themeEditorSwatchPrimary;
 
-  /// Label for the secondary colour swatch.
+  /// Label for the secondary color swatch.
   ///
   /// In en, this message translates to:
   /// **'Secondary'**
   String get themeEditorSwatchSecondary;
 
-  /// Label for the tertiary colour swatch.
+  /// Label for the tertiary color swatch.
   ///
   /// In en, this message translates to:
   /// **'Tertiary'**
   String get themeEditorSwatchTertiary;
 
-  /// Label for the error colour swatch.
+  /// Label for the error color swatch.
   ///
   /// In en, this message translates to:
   /// **'Error'**
@@ -9435,13 +15381,13 @@ abstract class AppLocalizations {
   /// Title of the confirm dialog before re-parsing custom figures.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade custom figures?'**
+  /// **'Upgrade unrecognized figures?'**
   String get reparseConfirmTitle;
 
   /// Body of the confirm dialog before upgrading custom figures.
   ///
   /// In en, this message translates to:
-  /// **'This will re-parse {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.'**
+  /// **'This will re-check {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognize a known move.'**
   String reparseConfirmBody(int figureCount, int danceCount);
 
   /// Confirm-dialog action that performs the custom-figure upgrade.
@@ -9453,7 +15399,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when the custom-figure upgrade fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not upgrade figures. Please try again.'**
+  /// **'Couldn\'t upgrade the figures. Try again.'**
   String get reparseFailed;
 
   /// Snackbar shown when an upgrade run changed nothing.
@@ -9465,19 +15411,19 @@ abstract class AppLocalizations {
   /// Snackbar confirming how many dances had custom figures upgraded.
   ///
   /// In en, this message translates to:
-  /// **'Upgraded custom figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
+  /// **'Upgraded unrecognized figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
   String reparseUpgradedSnack(int danceCount);
 
   /// App-bar title for the re-check custom figures screen.
   ///
   /// In en, this message translates to:
-  /// **'Re-check custom figures'**
+  /// **'Re-check unrecognized figures'**
   String get reparseScreenTitle;
 
   /// Intro paragraph on the re-check custom figures screen.
   ///
   /// In en, this message translates to:
-  /// **'Improved figure parsing can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.'**
+  /// **'Improved figure recognition can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.'**
   String reparseIntro(int figureCount, int danceCount);
 
   /// Per-dance preview label showing how many figures would be upgraded.
@@ -9501,32 +15447,110 @@ abstract class AppLocalizations {
   /// Body of the empty state when no custom figures can be upgraded.
   ///
   /// In en, this message translates to:
-  /// **'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure parsing.'**
+  /// **'None of your unrecognized figures from imports can be recognized as a known move right now. Check back after a future update improves figure recognition.'**
   String get reparseEmptyBody;
 
   /// Title of the error state when scanning for upgradable figures fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not check your figures'**
+  /// **'Couldn\'t check your figures'**
   String get reparseErrorTitle;
 
   /// Body of the error state when scanning for upgradable figures fails.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong while scanning your collection. Nothing was changed. You can try again.'**
+  /// **'Couldn\'t scan your collection. Nothing was changed. Try again.'**
   String get reparseErrorBody;
 
-  /// Title of the confirm-delete dialog for a custom field.
+  /// App-bar title of the English-dance conversion screen.
   ///
   /// In en, this message translates to:
-  /// **'Delete custom field'**
-  String get customFieldsDeleteTitle;
+  /// **'Convert English dances'**
+  String get ecdMigrationScreenTitle;
 
-  /// Body of the confirm-delete dialog; {label} is the field's display label, rendered as plain text.
+  /// Intro paragraph on the English-dance conversion screen.
   ///
   /// In en, this message translates to:
-  /// **'Delete \"{label}\"? This cannot be undone.'**
-  String customFieldsDeleteBody(String label);
+  /// **'{danceCount, plural, =1{1 English dance still uses} other{{danceCount} English dances still use}} contra moves, unrecognized figures or a contra formation. Choose the dances to convert, then confirm. A move with no clear English meaning stays as it is.'**
+  String ecdMigrationIntro(int danceCount);
+
+  /// Per-dance line: how many contra moves would become English figures.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move to convert} other{{count} moves to convert}}'**
+  String ecdMigrationPreviewMoves(int count);
+
+  /// Per-dance line: how many unrecognized figures the English parser would now read.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 unrecognized figure now read} other{{count} unrecognized figures now read}}'**
+  String ecdMigrationPreviewLines(int count);
+
+  /// Per-dance line: the dance's formation would take its English shape (for example duple proper becomes duple minor).
+  ///
+  /// In en, this message translates to:
+  /// **'English formation'**
+  String get ecdMigrationPreviewShape;
+
+  /// Primary button that converts the chosen English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert {danceCount, plural, =1{1 dance} other{{danceCount} dances}}'**
+  String ecdMigrationConvertButton(int danceCount);
+
+  /// Title of the confirm dialog before converting English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert these English dances?'**
+  String get ecdMigrationConfirmTitle;
+
+  /// Body of the confirm dialog before converting English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'This changes the figures and formation of {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Tags, ratings, notes and everything else are kept. This can\'t be undone, so you may want to back up first.'**
+  String ecdMigrationConfirmBody(int danceCount);
+
+  /// Confirm-dialog action that converts the English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert'**
+  String get ecdMigrationConfirmAction;
+
+  /// Snackbar confirming how many English dances were converted.
+  ///
+  /// In en, this message translates to:
+  /// **'Converted {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
+  String ecdMigrationDoneSnack(int danceCount);
+
+  /// Snackbar shown when a conversion run changed nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to convert.'**
+  String get ecdMigrationNothingSnack;
+
+  /// Snackbar shown when the English-dance conversion fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t convert the dances. Nothing was changed. Try again.'**
+  String get ecdMigrationFailed;
+
+  /// Empty-state title when no English dance needs converting.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to convert'**
+  String get ecdMigrationEmptyTitle;
+
+  /// Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone).
+  ///
+  /// In en, this message translates to:
+  /// **'None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.'**
+  String get ecdMigrationEmptyBody;
+
+  /// Error-state title when scanning English dances fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check your English dances'**
+  String get ecdMigrationErrorTitle;
 
   /// Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.
   ///
@@ -9534,11 +15558,23 @@ abstract class AppLocalizations {
   /// **'Can\'t delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.'**
   String customFieldsDeleteInUse(String label, int count);
 
-  /// Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.
+  /// Snackbar when deleting a custom field failed for a reason other than it still being in use. The raw error is logged, never shown (CWE-209). {label} is plain text.
   ///
   /// In en, this message translates to:
-  /// **'Can\'t delete \"{label}\": still used by some dances. Remove the value from all dances first.'**
-  String customFieldsDeleteInUseUnknown(String label);
+  /// **'Couldn\'t delete \"{label}\". Try again.'**
+  String customFieldsDeleteFailed(String label);
+
+  /// Snackbar shown when saving a custom field with a key another definition already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {key} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A field with the key \"{key}\" already exists. The key wasn\'t changed.'**
+  String customFieldsKeyDuplicate(String key);
+
+  /// Snackbar shown when CREATING a custom field whose key a live definition already holds. Distinct from customFieldsKeyDuplicate, which is the rename case and says the key was not changed: here no field was created at all and the existing definition is untouched. The write is refused rather than failing opaquely (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {key} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A field with the key \"{key}\" already exists. The new field wasn\'t created.'**
+  String customFieldsKeyDuplicateNew(String key);
 
   /// App-bar title for the custom-fields manager.
   ///
@@ -9555,14 +15591,20 @@ abstract class AppLocalizations {
   /// Error shown when the custom-field definitions fail to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load custom fields.'**
+  /// **'Couldn\'t load custom fields. Nothing was changed. Try again.'**
   String get customFieldsLoadError;
 
-  /// Empty state when no custom fields are defined.
+  /// Heading of the empty state on the custom fields list.
   ///
   /// In en, this message translates to:
-  /// **'No custom fields yet.\nTap + to define one.'**
-  String get customFieldsEmpty;
+  /// **'No custom fields yet'**
+  String get customFieldsEmptyTitle;
+
+  /// Body of the empty state on the custom fields list; names the New field button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New field to add one.'**
+  String get customFieldsEmptyBody;
 
   /// Subtitle chip indicating a custom field is shown in the dance list.
   ///
@@ -9591,7 +15633,7 @@ abstract class AppLocalizations {
   /// Custom-field type: yes/no boolean.
   ///
   /// In en, this message translates to:
-  /// **'Boolean'**
+  /// **'Yes/No'**
   String get customFieldsTypeBoolean;
 
   /// Custom-field type: single choice from a list.
@@ -9627,7 +15669,7 @@ abstract class AppLocalizations {
   /// Label for the custom-field display-label input (required).
   ///
   /// In en, this message translates to:
-  /// **'Label *'**
+  /// **'Label'**
   String get customFieldsLabelLabel;
 
   /// Validation error when the custom-field label is empty.
@@ -9639,13 +15681,13 @@ abstract class AppLocalizations {
   /// Label for the custom-field machine-key input (required).
   ///
   /// In en, this message translates to:
-  /// **'Key *'**
+  /// **'Key'**
   String get customFieldsKeyLabel;
 
-  /// Helper text describing the machine-key format.
+  /// Helper text under the Key field of a custom field: what the key is (a short, permanent ID) and which characters it may use.
   ///
   /// In en, this message translates to:
-  /// **'Stable machine key (letters, digits, underscores; must start with a letter or underscore)'**
+  /// **'A short ID for this field. Letters, digits and underscores only; must start with a letter or underscore. Can\'t be changed once the field is used on dances.'**
   String get customFieldsKeyHelper;
 
   /// Helper text when the machine key can't be edited because the field is in use.
@@ -9665,6 +15707,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Key must start with a letter or underscore and contain only letters, digits, and underscores'**
   String get customFieldsKeyInvalid;
+
+  /// Snackbar shown if the custom field editor is asked to save a definition the model rejects. Normally the form validators catch this first. The sheet stays open.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the field. Check its key and choices, then try again.'**
+  String get customFieldsSaveFailed;
 
   /// Label for the custom-field type picker.
   ///
@@ -9690,16 +15738,22 @@ abstract class AppLocalizations {
   /// **'Display this field value in the dance list tile'**
   String get customFieldsShowInListSubtitle;
 
-  /// Subtitle for the 'Searchable' toggle.
+  /// Subtitle for the 'Searchable' toggle. Turning it off hides the field from both the Filters panel and the search bar's text search (a private note stays unfindable).
   ///
   /// In en, this message translates to:
-  /// **'Expose this field as a filter in the search panel'**
+  /// **'Offer this field in the Filters panel, and let the search bar find its values'**
   String get customFieldsSearchableSubtitle;
+
+  /// Subtitle for the 'Searchable' toggle on a yes/no field. A yes/no value is never found by the search bar, only by its filter, so this omits the search-bar half of customFieldsSearchableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer this field in the Filters panel'**
+  String get customFieldsSearchableSubtitleYesNo;
 
   /// Section label for the list of choices on a choice-type field (required).
   ///
   /// In en, this message translates to:
-  /// **'Choices *'**
+  /// **'Choices'**
   String get customFieldsChoicesLabel;
 
   /// Tooltip/message for a choice value that is in use and can't be removed.
@@ -9840,18 +15894,6 @@ abstract class AppLocalizations {
   /// **'Plural'**
   String get dialectEditorPlural;
 
-  /// Collapsed header/empty state for the move-substitutions section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add move substitutions'**
-  String get dialectEditorMoveSubsAdd;
-
-  /// Header showing how many move substitutions are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 move substitution} other{{count} move substitutions}}'**
-  String dialectEditorMoveSubsCount(int count);
-
   /// Hint for a move-substitution input; %S is a literal handedness token the user types.
   ///
   /// In en, this message translates to:
@@ -9863,18 +15905,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a move…'**
   String get dialectEditorAddMove;
-
-  /// Collapsed header/empty state for the dancer-substitutions section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add dancer substitutions'**
-  String get dialectEditorDancerSubsAdd;
-
-  /// Header showing how many dancer substitutions are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 dancer substitution} other{{count} dancer substitutions}}'**
-  String dialectEditorDancerSubsCount(int count);
 
   /// Hint for a dancer-substitution input.
   ///
@@ -9963,8 +15993,14 @@ abstract class AppLocalizations {
   /// App-bar title for the recently-deleted (trash) screen.
   ///
   /// In en, this message translates to:
-  /// **'Recently Deleted'**
+  /// **'Recently deleted'**
   String get recentlyDeletedTitle;
+
+  /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Try again button. Reassures the user that a failed load does not mean their deleted items are gone.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your recently deleted items. Nothing has been removed. Try again.'**
+  String get recentlyDeletedLoadError;
 
   /// Title of the confirm permanent-delete dialog.
   ///
@@ -9975,7 +16011,7 @@ abstract class AppLocalizations {
   /// Body of the confirm permanent-delete dialog; {title} is the item title, plain text.
   ///
   /// In en, this message translates to:
-  /// **'\"{title}\" will be deleted immediately and cannot be recovered.'**
+  /// **'\"{title}\" will be deleted now.'**
   String recentlyDeletedDeleteBody(String title);
 
   /// Action/tooltip that permanently deletes a recently-deleted item.
@@ -9989,6 +16025,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" permanently deleted.'**
   String recentlyDeletedDeletedSnack(String title);
+
+  /// Snackbar after a permanent delete of an item Device Sync has already shared: its content is erased, but a small deletion record stays so other devices delete it too. {title} is the item title, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" permanently deleted. A small deletion record is kept so your other devices delete it too.'**
+  String recentlyDeletedDeletedSyncedSnack(String title);
 
   /// Label for the button that restores a recently-deleted item.
   ///
@@ -10029,19 +16071,31 @@ abstract class AppLocalizations {
   /// Empty state for recently-deleted dances when there is no retention window.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted dances are kept here until you remove them.'**
+  /// **'No recently deleted dances. Deleted dances are kept here until you remove them.'**
   String get recentlyDeletedEmptyDancesKept;
+
+  /// Title of the empty Recently deleted lists (dances and programs).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing deleted'**
+  String get recentlyDeletedEmptyTitle;
 
   /// Empty state for recently-deleted dances with a retention window of {days} days.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted dances appear here for {days} days before being removed.'**
+  /// **'No recently deleted dances. Deleted dances appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyDancesRetention(int days);
+
+  /// Empty state for recently-deleted programs when there is no retention window.
+  ///
+  /// In en, this message translates to:
+  /// **'No recently deleted programs. Deleted programs are kept here until you remove them.'**
+  String get recentlyDeletedEmptyProgramsKept;
 
   /// Empty state for recently-deleted programs with a retention window of {days} days.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted programs appear here for {days} days before being removed.'**
+  /// **'No recently deleted programs. Deleted programs appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyProgramsRetention(int days);
 
   /// Snackbar confirming a dance was restored; {title} is plain text.
@@ -10065,7 +16119,7 @@ abstract class AppLocalizations {
   /// Error shown when the reusable venue records fail to load (venue manager and venue picker).
   ///
   /// In en, this message translates to:
-  /// **'Could not load venues.'**
+  /// **'Couldn\'t load venues. Nothing was changed. Try again.'**
   String get venueLoadError;
 
   /// App bar title of the venue manager screen (Settings ▸ Venues).
@@ -10086,11 +16140,17 @@ abstract class AppLocalizations {
   /// **'Clear search'**
   String get venueManagerClearSearchTooltip;
 
-  /// Empty state for the venue manager when no venues exist yet.
+  /// Body of the empty Venues state, under the title; the add button sits right below it.
   ///
   /// In en, this message translates to:
-  /// **'No venues yet. Add one with the button below, or from a program when reusable venues are turned on.'**
-  String get venueManagerEmpty;
+  /// **'Add one here, or from a program when reusable venues are turned on.'**
+  String get venueManagerEmptyBody;
+
+  /// Title of the empty Venues list.
+  ///
+  /// In en, this message translates to:
+  /// **'No venues yet'**
+  String get venueManagerEmptyTitle;
 
   /// Shown in the venue manager when a search yields no matching venues.
   ///
@@ -10098,28 +16158,46 @@ abstract class AppLocalizations {
   /// **'No venues match your search.'**
   String get venueManagerNoMatches;
 
-  /// Title of the confirmation dialog for permanently deleting a venue.
+  /// Title of the dialog offering to link programs that have a venue typed in as text to a venue record with the same name (GIG-7).
   ///
   /// In en, this message translates to:
-  /// **'Delete venue?'**
-  String get venueManagerDeleteTitle;
+  /// **'Link earlier programs?'**
+  String get venueLinkOfferTitle;
 
-  /// Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).
+  /// Body of the dialog offering to link typed-venue programs to a venue record (GIG-7). One line per venue follows it.
   ///
   /// In en, this message translates to:
-  /// **'Permanently delete “{name}”? This can’t be undone.'**
-  String venueManagerDeleteBody(String name);
+  /// **'Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.'**
+  String get venueLinkOfferBody;
 
-  /// Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).
+  /// One line of the link-programs-to-venue offer: the venue record's name and how many programs would be linked to it.
   ///
   /// In en, this message translates to:
-  /// **'Deleted “{name}”'**
-  String venueManagerDeletedSnack(String name);
+  /// **'\"{name}\": {count, plural, =1{1 program} other{{count} programs}}'**
+  String venueLinkOfferRow(String name, int count);
+
+  /// Button that links the offered programs to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get venueLinkOfferConfirm;
+
+  /// Button that declines the link-programs-to-venue offer. The answer is not remembered.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get venueLinkOfferDecline;
+
+  /// Snackbar after programs were linked to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Linked 1 program.} other{Linked {count} programs.}}'**
+  String venueLinkOfferDone(int count);
 
   /// Snackbar shown when a venue can't be deleted because a program still links to it; {name} is the venue's name (plain text).
   ///
   /// In en, this message translates to:
-  /// **'Can’t delete “{name}” while it’s still linked to a program. Change or remove its venue on those programs first.'**
+  /// **'Can\'t delete \"{name}\" while it\'s still linked to a program. Change or remove its venue on those programs first.'**
   String venueManagerDeleteBlocked(String name);
 
   /// Tooltip for the delete button on a venue row; {name} is the venue's name (plain text).
@@ -10134,16 +16212,28 @@ abstract class AppLocalizations {
   /// **'Edit venue'**
   String get venueEditTitle;
 
+  /// Shown in the venue editor sheet when saving the venue fails. The sheet stays open with every field as the user left it.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the venue. Your changes are still here. Try again.'**
+  String get venueEditorSaveError;
+
   /// Explanatory note at the top of the venue editor sheet: a venue record is shared across programs.
   ///
   /// In en, this message translates to:
   /// **'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.'**
   String get venueEditorSharedNote;
 
+  /// Persistent hint in the venue editor sheet, shown while Device Sync is on and this venue's address/contact fields are all empty (spec §6.13): names the fields that never sync, and warns that Notes is different because it does sync.
+  ///
+  /// In en, this message translates to:
+  /// **'This venue\'s address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you\'d rather keep them private to this device.'**
+  String get venueEditorPartialSyncHint;
+
   /// Required venue name field label; the asterisk marks the field as required.
   ///
   /// In en, this message translates to:
-  /// **'Name *'**
+  /// **'Name'**
   String get venueEditorNameLabel;
 
   /// Validation error shown when the venue name field is blank.
@@ -10233,7 +16323,7 @@ abstract class AppLocalizations {
   /// Venue generic-schedule field label, with an example of a recurring schedule.
   ///
   /// In en, this message translates to:
-  /// **'Schedule (e.g. “2nd Saturdays”)'**
+  /// **'Schedule (e.g. \"2nd Saturdays\")'**
   String get venueEditorScheduleLabel;
 
   /// Venue price field label.
@@ -10335,7 +16425,7 @@ abstract class AppLocalizations {
   /// Inline-create option in the venue picker; {name} is the text the user typed (plain text).
   ///
   /// In en, this message translates to:
-  /// **'Add new venue “{name}”'**
+  /// **'Add new venue \"{name}\"'**
   String venuePickerCreateOption(String name);
 
   /// Action label for replacing one saved dance's choreography from another source.
@@ -10344,17 +16434,29 @@ abstract class AppLocalizations {
   /// **'Re-import choreography'**
   String get danceReimport;
 
-  /// Source option for choosing a Callers Compendium JSON file for re-import.
+  /// Source option for choosing a Caller's Compendium JSON file for re-import.
   ///
   /// In en, this message translates to:
-  /// **'Callers Compendium JSON'**
+  /// **'Caller\'s Compendium JSON'**
   String get danceReimportJson;
 
-  /// Message shown when an online re-import search finds no dances.
+  /// Source option, and the title of its dialog, for re-importing one saved dance from a pasted Caller's Box or ContraDB dance link or dance ID number.
   ///
   /// In en, this message translates to:
-  /// **'No matching dances were found. Choose another source or try again later.'**
+  /// **'Link or ID'**
+  String get danceReimportLinkOrId;
+
+  /// Message shown when an online re-import search by the dance's title finds no dances. "Link or ID" refers to the re-import option of that name.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching dances were found. Try a link or ID, choose another source, or try again later.'**
   String get danceReimportNoResults;
+
+  /// Shown when an online re-import source sends a dance without any figures (for example, The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced.
+  ///
+  /// In en, this message translates to:
+  /// **'That source didn\'t provide this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.'**
+  String get danceReimportFiguresUnavailable;
 
   /// Title of the dialog where the user selects an online dance to re-import.
   ///
@@ -10377,8 +16479,14 @@ abstract class AppLocalizations {
   /// Error shown when a re-import source cannot be loaded.
   ///
   /// In en, this message translates to:
-  /// **'Could not load a dance from that source. Please try again.'**
+  /// **'Couldn\'t load a dance from that source. Your dance wasn\'t changed. Try again.'**
   String get danceReimportSourceFailed;
+
+  /// Snackbar when applying a re-import to a dance fails; the write is one transaction, so the dance is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the dance from that source. Your dance wasn\'t changed. Try again.'**
+  String get danceReimportApplyFailed;
 
   /// Confirmation shown after saved dance choreography is re-imported.
   ///
@@ -10422,11 +16530,29 @@ abstract class AppLocalizations {
   /// **'Loading published collections…'**
   String get publishedCollectionsLoading;
 
-  /// Non-leaking error shown when the signed catalog cannot be fetched or verified.
+  /// Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check other than an unrecognized catalog signature.
   ///
   /// In en, this message translates to:
   /// **'Published collections are temporarily unavailable.'**
   String get publishedCollectionsUnavailable;
+
+  /// Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, or that a network (for example a captive portal) replaced the signature file, so the wording does not claim any one cause.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t verify the published collections, so nothing was loaded. If this keeps happening, update the app.'**
+  String get publishedCollectionsUnverified;
+
+  /// Error shown when the signed published-collection catalog or an archive could not be fetched because the network is unreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the published collections. Check your connection and try again.'**
+  String get publishedCollectionsOffline;
+
+  /// Error shown when the published-collection catalog uses a format newer than this app can read.
+  ///
+  /// In en, this message translates to:
+  /// **'These published collections need a newer app version. Update the app to see them.'**
+  String get publishedCollectionsNeedsNewerApp;
 
   /// Action that begins importing one signed published collection.
   ///
@@ -10500,6 +16626,12 @@ abstract class AppLocalizations {
   /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
   String get dialectEditorMoveWordingsConditionalHelp;
 
+  /// Helper text explaining that a leading ! forces a move wording slot to display. The example placeholder is a sample slot such as {!hand}.
+  ///
+  /// In en, this message translates to:
+  /// **'Some slots are left out when they add nothing, such as a chain\'s hand when the role already implies it. Put a ! in front of a slot, like {example}, to always show it.'**
+  String dialectEditorMoveWordingsForceHelp(String example);
+
   /// Header for a move's parameter-dependent wording templates.
   ///
   /// In en, this message translates to:
@@ -10541,18 +16673,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Single file'**
   String get dialectEditorMoveWordingBranchSingleFile;
-
-  /// Collapsed header/empty state for the move wording template section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add move wording templates'**
-  String get dialectEditorMoveWordingsAdd;
-
-  /// Header showing how many move wording templates are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 move wording template} other{{count} move wording templates}}'**
-  String dialectEditorMoveWordingsCount(int count);
 
   /// Placeholder for the dropdown that adds a move wording template.
   ///
@@ -10596,6 +16716,30 @@ abstract class AppLocalizations {
   /// **'This template omits available slots: {slots}'**
   String dialectEditorMoveWordingMissingSlots(String slots);
 
+  /// Label of a dialect's name or wording for one of the user's own new figures (#1023) when that figure is not on this device (deleted, or not yet synced here).
+  ///
+  /// In en, this message translates to:
+  /// **'One of your figures, not on this device'**
+  String get dialectEditorUserFigureGone;
+
+  /// Hint in the field where a dialect gives one of the user's own new figures (#1023) a name of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'What this dialect calls your figure'**
+  String get dialectEditorUserFigureNameHint;
+
+  /// Shown under a dialect's name for one of the user's own new figures (#1023) when it holds %S, which only a built-in move with a side can fill. Keep %S exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure has no side for %S to fill, so it keeps its own name.'**
+  String get dialectEditorUserFigureNameSide;
+
+  /// Shown under a dialect's wording for one of the user's own new figures (#1023) when the wording uses slots the figure doesn't have: the figure then keeps its own wording. {slots} is a comma-separated list such as '{gone}, {other}'.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure has no {slots}, so it reads with its own wording until you remove them.'**
+  String dialectEditorUserFigureWordingUnknownSlots(String slots);
+
   /// Notice shown when a move wording template omits optional placeholders.
   ///
   /// In en, this message translates to:
@@ -10637,6 +16781,1661 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?'**
   String dialectEditorMoveWordingConfirmBody(String figures);
+
+  /// Title of the switch that turns on the user's own figures (#709).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Figures'**
+  String get settingsExperimentalShowCustomFiguresTitle;
+
+  /// Subtitle of the Custom Figures switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets you add and edit your own figures, and offers them when you edit a dance. It doesn\'t need the Glossary. Turning this off hides them; it doesn\'t delete them.'**
+  String get settingsExperimentalShowCustomFiguresSubtitle;
+
+  /// Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Figures'**
+  String get settingsExperimentalCustomFiguresManageTitle;
+
+  /// Subtitle of the row that opens the Custom Figures screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Add, edit and delete your own figures.'**
+  String get settingsExperimentalCustomFiguresManageSubtitle;
+
+  /// App bar title of the Custom Figures screen, which lists the user's own figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Figures'**
+  String get customFiguresTitle;
+
+  /// Shown on the Custom Figures screen when the user has no figures of their own yet.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t made any custom figures yet. Choose + to add one.'**
+  String get customFiguresEmpty;
+
+  /// Title of the empty Custom figures list.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom figures yet'**
+  String get customFiguresEmptyTitle;
+
+  /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure; also the label of the Custom Figures screen's button while that screen is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your figure'**
+  String get glossaryAddCustomFigure;
+
+  /// Label of the floating button on the Custom Figures screen that opens the editor for a new figure of the user's own. Keep it short: it is one line at the bottom of a phone screen, beside a + icon.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your figure'**
+  String get customFiguresNewFigure;
+
+  /// Chip marking one of the user's own figures in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get glossaryCustomMarker;
+
+  /// Short label on a custom figure whose figures or parameters are no longer valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs repair'**
+  String get glossaryCustomNeedsRepair;
+
+  /// Explains the Needs repair label on a custom figure's detail page.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure can\'t be used as it is: one of its figures or parameters is no longer valid. Edit it to repair it.'**
+  String get glossaryCustomNeedsRepairBody;
+
+  /// Short label on a custom figure whose name another figure or shorthand already uses.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename needed'**
+  String get glossaryCustomRenameNeeded;
+
+  /// Explains the Rename needed label on a custom figure's detail page.
+  ///
+  /// In en, this message translates to:
+  /// **'Another figure or shorthand already has this name. Rename this one so the two can be told apart.'**
+  String get glossaryCustomRenameNeededBody;
+
+  /// Short label on a custom glossary entry made by a newer version of the app, which this version can show but not edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Newer version'**
+  String get glossaryCustomUnsupported;
+
+  /// Explains the Newer version label on a custom glossary entry.
+  ///
+  /// In en, this message translates to:
+  /// **'This entry was made with a newer version of the app. Update the app here to edit or use it.'**
+  String get glossaryCustomUnsupportedBody;
+
+  /// Title of the folded panel listing the figures a custom figure becomes when a dance is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Expands to ({beats} beats)'**
+  String glossaryCustomExpandsTo(int beats);
+
+  /// Shown in place of a custom figure's details once it has been deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure has been deleted.'**
+  String get glossaryCustomGone;
+
+  /// Title of the dialog confirming that a custom figure is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"?'**
+  String glossaryCustomDeleteTitle(String name);
+
+  /// Body of the dialog confirming that a custom figure is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s removed from your Glossary. Dances you\'ve already saved with it keep their figures.'**
+  String get glossaryCustomDeleteBody;
+
+  /// Heading of the user's own notes on a Glossary figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes'**
+  String get glossaryNotes;
+
+  /// Shown under Your notes on a Glossary figure that has none.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet.'**
+  String get glossaryNotesEmpty;
+
+  /// Button that opens the editor for the user's notes on a built-in figure that has none.
+  ///
+  /// In en, this message translates to:
+  /// **'Add notes'**
+  String get glossaryNotesAdd;
+
+  /// Button that opens the editor for the user's existing notes on a built-in figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit notes'**
+  String get glossaryNotesEdit;
+
+  /// Title of the dialog where the user edits their notes on a built-in figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes'**
+  String get glossaryNotesEditTitle;
+
+  /// Hint text of the notes field on a built-in figure.
+  ///
+  /// In en, this message translates to:
+  /// **'How you call it, what to watch for…'**
+  String get glossaryNotesHint;
+
+  /// Shown when the user's notes on a built-in figure in the Glossary are over the length that can be stored.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes are too long to save. Shorten them and try again.'**
+  String get glossaryNotesTooLong;
+
+  /// Shown when saving one of the user's own figures, or their notes on a built-in figure, is refused because the whole Glossary (all their figures and notes together) is at its size limit. The text of the item being saved is not the problem.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Glossary has reached its size limit, so this couldn\'t be saved. Make room by deleting or shortening other figures or notes, then try again.'**
+  String get glossaryOverBudget;
+
+  /// Title of the editor for a new custom figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your figure'**
+  String get compoundEditorTitleNew;
+
+  /// Title of the editor for an existing custom figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit figure'**
+  String get compoundEditorTitleEdit;
+
+  /// Label of a custom figure's name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get compoundEditorName;
+
+  /// Label of a custom figure's one-sentence definition field.
+  ///
+  /// In en, this message translates to:
+  /// **'Definition'**
+  String get compoundEditorDefinition;
+
+  /// Helper text of a custom figure's definition field.
+  ///
+  /// In en, this message translates to:
+  /// **'One sentence, shown in the Glossary list.'**
+  String get compoundEditorDefinitionHelper;
+
+  /// Label of a custom figure's optional "More details" field, which holds its longer description.
+  ///
+  /// In en, this message translates to:
+  /// **'More details'**
+  String get compoundEditorDescription;
+
+  /// Label of a custom figure's optional keywords field, which search also finds it by.
+  ///
+  /// In en, this message translates to:
+  /// **'Other names'**
+  String get compoundEditorKeywords;
+
+  /// Helper text of a custom figure's keywords field.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Separate them with commas.'**
+  String get compoundEditorKeywordsHelper;
+
+  /// Label of a custom figure's optional notes field.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get compoundEditorNotes;
+
+  /// Helper text of an optional field in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional.'**
+  String get compoundEditorOptional;
+
+  /// Error under an empty required field in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get compoundEditorFieldRequired;
+
+  /// Error shown when saving a custom figure with a required field empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Give the figure a name and a definition.'**
+  String get compoundEditorRequired;
+
+  /// Heading of the custom figure editor's parameters, the values asked for each time the figure is used.
+  ///
+  /// In en, this message translates to:
+  /// **'Parameters'**
+  String get compoundEditorParams;
+
+  /// Help text under the Parameters heading of the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'What you choose each time you use the figure, such as who and which hand.'**
+  String get compoundEditorParamsHelp;
+
+  /// Label of a parameter's name field in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Parameter name'**
+  String get compoundEditorParamName;
+
+  /// Label of a parameter's kind dropdown in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get compoundEditorParamKind;
+
+  /// Button that adds a parameter in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Add parameter'**
+  String get compoundEditorAddParam;
+
+  /// Tooltip of the button that removes a parameter in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove parameter'**
+  String get compoundEditorRemoveParam;
+
+  /// Error shown when saving a custom figure with an unnamed or repeated parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each parameter a different name.'**
+  String get compoundEditorParamNames;
+
+  /// Heading of the figures a custom figure expands into.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures'**
+  String get compoundEditorFigures;
+
+  /// Help text under the Figures heading of the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures it becomes when you save a dance, in order.'**
+  String get compoundEditorFiguresHelp;
+
+  /// Heading of the section where a figure's settings are tied to the custom figure's parameters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled in by parameters'**
+  String get compoundEditorBindings;
+
+  /// Help text under the Filled in by parameters heading.
+  ///
+  /// In en, this message translates to:
+  /// **'For each figure, choose which settings come from a parameter. The others stay as you set them.'**
+  String get compoundEditorBindingsHelp;
+
+  /// Heading of one figure's card in the Filled in by parameters section.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number}: {figure}'**
+  String compoundEditorFigureN(int number, String figure);
+
+  /// Dropdown choice that leaves a figure's setting as it is rather than taking it from a parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'As set in the figure'**
+  String get compoundBindingFixed;
+
+  /// Dropdown choice that fills a figure's setting with the opposite of a parameter's value (left for right).
+  ///
+  /// In en, this message translates to:
+  /// **'Opposite of {param}'**
+  String compoundBindingOpposite(String param);
+
+  /// A dropdown choice that cannot be picked, with why.
+  ///
+  /// In en, this message translates to:
+  /// **'{option} (unavailable: {reason})'**
+  String compoundBindingUnavailable(String option, String reason);
+
+  /// Why a parameter cannot fill a setting: it is unnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'it has no name yet'**
+  String get compoundBindingNoName;
+
+  /// Why a parameter cannot fill a setting: their kinds differ.
+  ///
+  /// In en, this message translates to:
+  /// **'its kind is {paramKind}; this setting\'s is {slotKind}'**
+  String compoundBindingWrongKind(String paramKind, String slotKind);
+
+  /// Why a parameter's opposite cannot fill a setting.
+  ///
+  /// In en, this message translates to:
+  /// **'this kind has no opposite'**
+  String get compoundBindingNoOpposite;
+
+  /// Why a parameter cannot fill a setting: no value is allowed in all of them.
+  ///
+  /// In en, this message translates to:
+  /// **'no value fits every setting it fills'**
+  String get compoundBindingNoSharedValues;
+
+  /// Error shown when saving a custom figure under a name already in use.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" is already the name of a figure or shorthand. Choose another name.'**
+  String compoundEditorNameTaken(String name);
+
+  /// Error shown when saving a term under a name one of the user's own figures already has, while Custom Figures is off and that figure is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.'**
+  String compoundEditorNameTakenHidden(String name);
+
+  /// Error shown when saving a figure under a name one of the user's own terms already has, while Show glossary is off and that term is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.'**
+  String compoundEditorNameTakenHiddenTerm(String name);
+
+  /// Error shown when saving a custom figure with no figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one figure.'**
+  String get compoundEditorNoFigures;
+
+  /// Error shown when a parameter fills settings that have no value in common.
+  ///
+  /// In en, this message translates to:
+  /// **'No value of {param} fits every setting it fills.'**
+  String compoundEditorEmptyDomain(String param);
+
+  /// Error shown when a custom figure is over its size limits.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure has more figures or parameters than it can hold.'**
+  String get compoundEditorTooLarge;
+
+  /// Error shown when saving a custom figure where a later edit (a figure's move, a parameter's kind) left a setting bound to a parameter that cannot fill it. 'Filled in by parameters' is the section heading (compoundEditorBindings).
+  ///
+  /// In en, this message translates to:
+  /// **'A figure\'s setting is filled by a parameter that no longer fits it. Check Filled in by parameters.'**
+  String get compoundEditorBindingInvalid;
+
+  /// Error shown when a custom figure's parts don't validate.
+  ///
+  /// In en, this message translates to:
+  /// **'One of the figures isn\'t complete or valid yet.'**
+  String get compoundEditorInvalidFigures;
+
+  /// Error shown when saving a combination whose figures belong to another dance type than the one picked for it, for example after its type was changed from English to Contra. {figureForm} and {entryForm} are dance type names such as 'Contra' or 'English (ECD)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}, not {entryForm}. Change the dance type back, or remove {count, plural, =1{it} other{them}}.'**
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  );
+
+  /// Error shown when a custom figure's text is over its length limit.
+  ///
+  /// In en, this message translates to:
+  /// **'One of the fields is too long.'**
+  String get compoundEditorTooLong;
+
+  /// Title of the dialog warning that a declared parameter fills no figure's setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Some parameters aren\'t used'**
+  String get compoundEditorUnusedTitle;
+
+  /// Body of the unused-parameter warning.
+  ///
+  /// In en, this message translates to:
+  /// **'{params} doesn\'t fill any figure\'s settings, so choosing it will change nothing.'**
+  String compoundEditorUnusedBody(String params);
+
+  /// Unused-parameter dialog button that returns to the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to editor'**
+  String get compoundEditorUnusedBack;
+
+  /// Unused-parameter dialog button that saves despite the warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get compoundEditorUnusedSave;
+
+  /// Heading of the choice, for a new entry in the user's own glossary, between a combination of built-in figures, a figure of its own, and a term with no figure.
+  ///
+  /// In en, this message translates to:
+  /// **'What it is'**
+  String get glossaryEntryKindHeading;
+
+  /// Explains the choice between a combination, a new figure and a term.
+  ///
+  /// In en, this message translates to:
+  /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.'**
+  String get glossaryEntryKindHelp;
+
+  /// Explains the choice between a combination and a new figure, where a term is not offered (adding from the Custom Figures screen).
+  ///
+  /// In en, this message translates to:
+  /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.'**
+  String get glossaryEntryKindHelpFiguresOnly;
+
+  /// Choice for an entry that expands into built-in figures (a compound).
+  ///
+  /// In en, this message translates to:
+  /// **'Combination'**
+  String get glossaryEntryKindCombination;
+
+  /// Choice for an entry that is a figure of its own, with the user's own wording.
+  ///
+  /// In en, this message translates to:
+  /// **'New figure'**
+  String get glossaryEntryKindNewFigure;
+
+  /// Choice for an entry that is a term the user defines, with no figure. Maintainer's copy: terms are "Terms".
+  ///
+  /// In en, this message translates to:
+  /// **'Term'**
+  String get glossaryEntryKindTerm;
+
+  /// Tooltip of the Glossary's add button while Custom Figures is off, when it adds only a term (an entry with no figure).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a term'**
+  String get glossaryAddTerm;
+
+  /// Title of the editor for a new term in the user's own glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'New term'**
+  String get glossaryTermTitleNew;
+
+  /// Button on a term in the user's own glossary that gives it a figure, turning it into a new figure with its own wording. It cannot be turned back.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it a figure'**
+  String get glossaryTermMakeFigure;
+
+  /// Title of the editor that gives a term a figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it a figure'**
+  String get glossaryTermMakeFigureTitle;
+
+  /// Label of the dance form an entry in the user's own glossary is offered in.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance form'**
+  String get glossaryEntryFormLabel;
+
+  /// Helper text of the dance form choice.
+  ///
+  /// In en, this message translates to:
+  /// **'The kind of dance it\'s for.'**
+  String get glossaryEntryFormHelper;
+
+  /// Shown when a parameter of a new figure has a name that can't be used.
+  ///
+  /// In en, this message translates to:
+  /// **'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, another parameter\'s opposite, such as otherHand, or a word conditions are built from: if, then, else, not, and, or, is.'**
+  String get userFigureEditorParamNames;
+
+  /// Label of one choice of a parameter of a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Choice {number}'**
+  String userFigureEditorChoiceLabel(int number);
+
+  /// Button that adds a choice to a parameter of a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Add choice'**
+  String get userFigureEditorAddChoice;
+
+  /// Tooltip of the button that removes a choice from a parameter of a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove choice'**
+  String get userFigureEditorRemoveChoice;
+
+  /// Label of a parameter's default value in the editor for a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get userFigureEditorDefault;
+
+  /// Option for a parameter of a new figure that has no default value.
+  ///
+  /// In en, this message translates to:
+  /// **'No default'**
+  String get userFigureEditorNoDefault;
+
+  /// Default of an on/off parameter of a new figure that is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get userFigureEditorFlagOff;
+
+  /// Label of the words an on/off parameter of a new figure adds to its wording when on.
+  ///
+  /// In en, this message translates to:
+  /// **'Wording when on'**
+  String get userFigureEditorFlagLabel;
+
+  /// Helper text of an on/off parameter's wording.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown in the wording when this is on, such as \"with a flourish\".'**
+  String get userFigureEditorFlagLabelHelper;
+
+  /// Heading and label of a new figure's wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Wording'**
+  String get userFigureEditorWording;
+
+  /// Explains a new figure's wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'How the figure reads in a dance. Put a parameter in braces, like {example}; a part in square brackets is left out when its parameters are empty.'**
+  String userFigureEditorWordingHelp(String example);
+
+  /// Lists the slots a new figure's wording may use.
+  ///
+  /// In en, this message translates to:
+  /// **'You can use: {slots}'**
+  String userFigureEditorWordingSlots(String slots);
+
+  /// Label of the beats a new figure takes unless a dance says otherwise.
+  ///
+  /// In en, this message translates to:
+  /// **'Default beats'**
+  String get userFigureEditorDefaultBeats;
+
+  /// Helper text of a new figure's default beats.
+  ///
+  /// In en, this message translates to:
+  /// **'A dance can change them each time it uses the figure.'**
+  String get userFigureEditorDefaultBeatsHelper;
+
+  /// Shows how a new figure reads with its default values.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads as: {text}'**
+  String userFigureEditorPreview(String text);
+
+  /// Shown in place of the preview while a new figure's wording can't be rendered.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the wording to see how it reads.'**
+  String get userFigureEditorPreviewUnavailable;
+
+  /// Shown when a new figure's wording template is badly formed.
+  ///
+  /// In en, this message translates to:
+  /// **'The wording isn\'t complete: check its braces and square brackets.'**
+  String get userFigureEditorBadWording;
+
+  /// Shown when a new figure's wording names a slot it doesn't have.
+  ///
+  /// In en, this message translates to:
+  /// **'The wording uses {slot}, which isn\'t one of this figure\'s parameters.'**
+  String userFigureEditorUnknownSlot(String slot);
+
+  /// Shown when a choice parameter of a new figure has no usable choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Give {param} at least one choice, each with a different name.'**
+  String userFigureEditorBadChoices(String param);
+
+  /// Shown when a new figure's default beats are out of range.
+  ///
+  /// In en, this message translates to:
+  /// **'Default beats must be from 0 to 64.'**
+  String get userFigureEditorBadBeats;
+
+  /// Body of the dialog asking about parameters a new figure's wording leaves out.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the wording, so choosing them changes nothing: {params}.'**
+  String userFigureEditorUnusedBody(String params);
+
+  /// Heading of a new figure's wording on its Glossary page.
+  ///
+  /// In en, this message translates to:
+  /// **'Wording'**
+  String get glossaryCustomWording;
+
+  /// Heading of how a new figure reads with its default values, on its Glossary page.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get glossaryCustomExample;
+
+  /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when dances in the Trash use it: they are not changed, and keep the line each last stored.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance in Recently deleted uses it, and keeps the line it last stored.} other{{count} dances in Recently deleted use it, and keep the lines they last stored.}}'**
+  String glossaryCustomDeleteTrash(int count);
+
+  /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when the default figures for new dances, meanwhile sides or modifiers (Settings, Defaults) use it.
+  ///
+  /// In en, this message translates to:
+  /// **'Your default figures in Settings use it, and keep its current wording as plain text.'**
+  String get glossaryCustomDeleteDefaults;
+
+  /// Added to the dialog confirming that one of the user's own figures, a combination or a new figure, is deleted, when the user has shorthands for it: the shorthands are kept, and once the figure is gone, typing one is read as an ordinary free-text line.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Your shorthand for it stays, and typing it will be read as an ordinary line.} other{Your {count} shorthands for it stay, and typing them will be read as ordinary lines.}}'**
+  String glossaryCustomDeleteShorthands(int count);
+
+  /// Body of the dialog confirming that a new figure is deleted, with how many dances use it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dance in your collection uses it. It\'s removed from your Glossary.} =1{1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.}}'**
+  String glossaryCustomDeleteUses(int count);
+
+  /// Shown on a dance editor row that uses one of the user's own figures when the figure is deleted or can no longer be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure isn\'t available, so this row keeps the wording it has.'**
+  String get danceEditorUserFigureUnavailable;
+
+  /// Body of the dialog confirming that unsaved changes to a custom figure are discarded.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this figure.'**
+  String get compoundEditorDiscardBody;
+
+  /// A custom figure's parameter, with its kind, in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'{param} ({kind})'**
+  String compoundParamWithKind(String param, String kind);
+
+  /// The kind of a custom figure's parameter: dancers. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'dancers'**
+  String get compoundParamKindDancers;
+
+  /// The kind of a custom figure's parameter: pair of dancers. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'pair of dancers'**
+  String get compoundParamKindDancerPair;
+
+  /// The kind of a custom figure's parameter: hand. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'hand'**
+  String get compoundParamKindHand;
+
+  /// The kind of a custom figure's parameter: shoulder. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'shoulder'**
+  String get compoundParamKindShoulder;
+
+  /// The kind of a custom figure's parameter: turning direction. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'turning direction'**
+  String get compoundParamKindSpin;
+
+  /// The kind of a custom figure's parameter: direction. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'direction'**
+  String get compoundParamKindDirection;
+
+  /// The kind of a custom figure's parameter: fraction. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'fraction'**
+  String get compoundParamKindFraction;
+
+  /// The kind of a custom figure's parameter: amount of turn. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'amount of turn'**
+  String get compoundParamKindRotation;
+
+  /// The kind of a custom figure's parameter: places. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'places'**
+  String get compoundParamKindPlaces;
+
+  /// The kind of a custom figure's parameter: a plain whole number with no unit word (unlike places). Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'number'**
+  String get compoundParamKindNumber;
+
+  /// The kind of a custom figure's parameter: beats. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'beats'**
+  String get compoundParamKindBeats;
+
+  /// The kind of a custom figure's parameter: on or off. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'on or off'**
+  String get compoundParamKindFlag;
+
+  /// The kind of a custom figure's parameter: option. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'option'**
+  String get compoundParamKindChoice;
+
+  /// The kind of a custom figure's parameter: text. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'text'**
+  String get compoundParamKindText;
+
+  /// Help under a wording template's field: how to write a condition.
+  ///
+  /// In en, this message translates to:
+  /// **'To word it differently in some cases, use square brackets with if, then and else, like {example}'**
+  String wordingConditionsHelp(String example);
+
+  /// Help under a wording template's field: the names a condition may test.
+  ///
+  /// In en, this message translates to:
+  /// **'A condition can test: {names}'**
+  String wordingConditionsNames(String names);
+
+  /// A wording template opens a square bracket and never closes it.
+  ///
+  /// In en, this message translates to:
+  /// **'A \"[\" isn\'t closed: \"{context}\". Add \"]\" where that part ends.'**
+  String wordingIssueUnclosedGroup(String context);
+
+  /// A wording template closes a square bracket it never opened.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s a \"]\" with no \"[\" before it, near \"{context}\". Remove it, or add \"[\" where that part starts.'**
+  String wordingIssueStrayCloseBracket(String context);
+
+  /// A wording template opens a brace and never closes it. brace and closeBrace are the brace characters.
+  ///
+  /// In en, this message translates to:
+  /// **'The \"{brace}\" in \"{context}\" isn\'t closed. Add \"{closeBrace}\" after the name, like {example}.'**
+  String wordingIssueUnclosedSlot(
+    String brace,
+    String closeBrace,
+    String context,
+    String example,
+  );
+
+  /// A wording template closes a brace it never opened. brace and closeBrace are the brace characters.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s a \"{closeBrace}\" with no \"{brace}\" before it, near \"{context}\". Remove it, or add \"{brace}\" before the name.'**
+  String wordingIssueStrayCloseBrace(
+    String brace,
+    String closeBrace,
+    String context,
+  );
+
+  /// A wording template's braces hold something other than one name.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" isn\'t a slot: put just one name in braces, like {fix}.'**
+  String wordingIssueBadSlot(String found, String fix);
+
+  /// A wording template puts a condition in braces instead of square brackets. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Braces hold one name, not a condition: \"{found}\". To show wording only in some cases, use square brackets: {fix}'**
+  String wordingIssueConditionInBraces(String found, String fix);
+
+  /// A wording template is over the length it may be saved at.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording is too long to save: as saved, it\'s over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.'**
+  String wordingIssueTooLongStored(String max);
+
+  /// A condition is missing after a word that needs one. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After \"{word}\", write what to test, for example \"{example}\".'**
+  String wordingIssueMissingCondition(String word, String example);
+
+  /// A condition is not followed by then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After the condition \"{condition}\", write \"then\" and the wording to show in that case.'**
+  String wordingIssueMissingThen(String condition);
+
+  /// A condition is followed by a colon instead of then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write \"then\" instead of \":\" after \"{condition}\".'**
+  String wordingIssueColonForThen(String condition);
+
+  /// A condition tests a name the figure doesn't have.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" isn\'t something this wording can test. You can test: {names}.'**
+  String wordingIssueUnknownName(String found, String names);
+
+  /// A condition tests a name the figure doesn't have, with the closest name it does.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" isn\'t something this wording can test. Did you mean \"{suggestion}\"? You can test: {names}.'**
+  String wordingIssueUnknownNameSuggest(
+    String found,
+    String suggestion,
+    String names,
+  );
+
+  /// The word after if, at the start of square brackets, is not a name the figure has. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Square brackets that start with \"if\" hold a condition, and \"{found}\" isn\'t something this wording can test. You can test: {names}.'**
+  String wordingIssueUnknownNameAfterIf(String found, String names);
+
+  /// The word after if, at the start of square brackets, is not a name the figure has, with the closest one it does. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Square brackets that start with \"if\" hold a condition, and \"{found}\" isn\'t something this wording can test. Did you mean \"{suggestion}\"? You can test: {names}.'**
+  String wordingIssueUnknownNameAfterIfSuggest(
+    String found,
+    String suggestion,
+    String names,
+  );
+
+  /// A condition names what it tests in braces.
+  ///
+  /// In en, this message translates to:
+  /// **'In a condition, write the name without braces: \"{name}\", not \"{found}\".'**
+  String wordingIssueNameInBraces(String name, String found);
+
+  /// A condition uses isn't, which the wording language doesn't accept. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write \"is not\" instead of \"{found}\": \"{fix}\".'**
+  String wordingIssueIsntForIsNot(String found, String fix);
+
+  /// A condition uses a symbol such as = or && instead of the word for it. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write \"{word}\" instead of \"{found}\": \"{fix}\".'**
+  String wordingIssueSymbolForWord(String word, String found, String fix);
+
+  /// A condition puts a value in quotation marks.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave out the quotation marks: \"{fix}\".'**
+  String wordingIssueQuotedValue(String fix);
+
+  /// A condition compares a name with a value it can't have.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" isn\'t one of the values {name} can have. {name} can be: {values}.'**
+  String wordingIssueUnknownValue(String found, String name, String values);
+
+  /// A condition compares a name with a value it can't have, with the closest value it can.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" isn\'t one of the values {name} can have. Did you mean \"{suggestion}\"? {name} can be: {values}.'**
+  String wordingIssueUnknownValueSuggest(
+    String found,
+    String name,
+    String suggestion,
+    String values,
+  );
+
+  /// A condition is missing the value it compares with.
+  ///
+  /// In en, this message translates to:
+  /// **'After \"{before}\", write a value {name} can have, like \"{example}\". {name} can be: {values}.'**
+  String wordingIssueExpectedValue(
+    String before,
+    String name,
+    String example,
+    String values,
+  );
+
+  /// A condition lists values after is in without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Put the values after \"is in\" in parentheses: \"{fix}\".'**
+  String wordingIssueListNeedsParens(String fix);
+
+  /// A condition uses a phrase such as one of instead of is in. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write \"{word}\" instead of \"{found}\": \"{fix}\".'**
+  String wordingIssueOneOfForIsIn(String word, String found, String fix);
+
+  /// A condition's list of values is empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'The parentheses after \"is in\" are empty. List at least one value, like \"{example}\".'**
+  String wordingIssueEmptyList(String example);
+
+  /// A condition opens a parenthesis and never closes it.
+  ///
+  /// In en, this message translates to:
+  /// **'A \"(\" isn\'t closed: \"{context}\". Add \")\" after \"{before}\".'**
+  String wordingIssueUnclosedParen(String context, String before);
+
+  /// A condition closes a parenthesis it never opened.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s a \")\" with no \"(\" before it, near \"{context}\". Remove it, or add the \"(\" where it starts.'**
+  String wordingIssueStrayCloseParen(String context);
+
+  /// A condition has empty parentheses.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s nothing between \"(\" and \")\". Put a condition inside, or remove them.'**
+  String get wordingIssueEmptyParens;
+
+  /// A word follows a complete condition where only and, or or then may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After \"{before}\", write \"and\", \"or\" or \"then\": \"{found}\" can\'t go there.'**
+  String wordingIssueExpectedConnective(String before, String found);
+
+  /// A word follows a complete condition inside parentheses where only and, or or a closing parenthesis may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After \"{before}\", write \"and\", \"or\" or \")\": \"{found}\" can\'t go there.'**
+  String wordingIssueExpectedConnectiveInParens(String before, String found);
+
+  /// A condition names two values one after the other. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After \"{before}\", write \"and\", \"or\" or \"then\". To test for more than one value, list them: \"{fix}\".'**
+  String wordingIssueExpectedConnectiveList(String before, String fix);
+
+  /// Two values in a list are not separated by a comma.
+  ///
+  /// In en, this message translates to:
+  /// **'In the list \"{before}\", put a comma before \"{found}\", or end the list with \")\".'**
+  String wordingIssueExpectedListSeparator(String before, String found);
+
+  /// A condition mixes and and or without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" mixes \"and\" and \"or\", so it isn\'t clear which goes first. Add parentheses: \"{fixA}\" or \"{fixB}\".'**
+  String wordingIssueMixedAndOr(String found, String fixA, String fixB);
+
+  /// A condition compares a switch with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is either on or off, so it isn\'t compared with a value. Write \"if {name}\" for on, or \"if not {name}\" for off.'**
+  String wordingIssueFlagCompare(String name);
+
+  /// A condition compares free text, or a slot that is only text, with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} can only be tested for whether it\'s filled in. Write \"{name} is empty\", \"{name} is not empty\", or just \"{name}\".'**
+  String wordingIssuePresenceOnly(String name);
+
+  /// A condition uses a number comparison on something that isn't a number. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} isn\'t a number, so it can\'t be \"{op}\" something. Use \"{name} is …\" or \"{name} is in (…)\".'**
+  String wordingIssueNotANumber(String name, String op);
+
+  /// A condition is missing the number it compares with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After \"{op}\", write a number, like {example}: \"{found}\" isn\'t one.'**
+  String wordingIssueExpectedNumber(String op, String example, String found);
+
+  /// A condition compares with a number outside what the name can be.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} goes from {min} to {max}, so {found} is out of range.'**
+  String wordingIssueNumberOutOfRange(
+    String name,
+    String min,
+    String max,
+    String found,
+  );
+
+  /// A condition compares a whole-number name with a fraction.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} counts in whole numbers, so {found} can\'t be one of its values.'**
+  String wordingIssueNumberNotWhole(String name, String found);
+
+  /// A condition compares an amount of turn with a value that isn't a whole number of quarter turns.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so {found} can\'t be one of its values.'**
+  String wordingIssueNumberNotQuarter(String name, String found);
+
+  /// A condition writes is not before a number comparison. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write \"{fix}\" instead of \"{found}\".'**
+  String wordingIssueNegatedComparison(String fix, String found);
+
+  /// A condition's words have two readings. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" can be read two ways: \"{readingA}\" or \"{readingB}\". Write the one you mean.'**
+  String wordingIssueAmbiguous(String found, String readingA, String readingB);
+
+  /// A conditional part has two else words. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'This part already has an \"else\", so a second can\'t follow it. If \"else\" is part of the wording here, put those words in their own square brackets, like \"[everyone else]\".'**
+  String get wordingIssueSecondElse;
+
+  /// Warning: else follows a word it may have been meant to go with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'\"else\" here starts the wording for every other case. If you meant the words \"{phrase}\", put them in their own square brackets: \"[{phrase}]\".'**
+  String wordingIssueElseAfterWord(String phrase);
+
+  /// Warning: a branch uses a word like otherwise where else may have been meant. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" shows as wording here. To give wording for every other case, write \"else\".'**
+  String wordingIssueOtherwiseWord(String found);
+
+  /// Warning: a condition tests is empty on a name that has a choice called empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name} is empty\" tests whether {name} has no value, not for its choice \"empty\". To test for that choice, write \"{fix}\".'**
+  String wordingIssueEmptyMeansNoValue(String name, String fix);
+
+  /// A condition writes a second value after and/or instead of a second test. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{found}\" after \"{word}\" is a value, not something to test. Say what you\'re testing again, \"{fixA}\", or list the values: \"{fixB}\".'**
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  );
+
+  /// A condition is written in a wording whose figure is not on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording can\'t test anything here: the figure it belongs to isn\'t on this device, or this version of the app doesn\'t know it, so its conditions can\'t be checked. Change it on a device that has the figure, or remove the condition.'**
+  String get wordingIssueNothingToTest;
+
+  /// Typed wording far longer than any template that can be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording is too long to read: it\'s over {max} characters as typed. Shorten it.'**
+  String wordingIssueTooLongTyped(String max);
+
+  /// A wording nests brackets or parentheses deeper than allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording puts too many square brackets or parentheses inside each other: at most {max} can be nested. Take some out.'**
+  String wordingIssueTooDeep(String max);
+
+  /// A condition nests not deeper than allowed. The word not is the wording language's own: keep it in English.
+  ///
+  /// In en, this message translates to:
+  /// **'This condition puts too many \"not\"s inside each other: at most {max}. Take some out: two \"not\"s in a row cancel out.'**
+  String wordingIssueTooManyNots(String max);
+
+  /// Experimental settings section heading for printing dances as small calling cards (index cards a caller holds while calling). Also names the setting in a Device Sync conflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling cards'**
+  String get settingsCallingCardsHeader;
+
+  /// Switch title: offer calling-card printing in the Export menus.
+  ///
+  /// In en, this message translates to:
+  /// **'Print calling cards'**
+  String get settingsCallingCardsEnableTitle;
+
+  /// Subtitle of the calling-cards switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Print calling card to a dance\'s Export menu, and Print calling cards to a program\'s: one small card per dance, laid out the way you choose below.'**
+  String get settingsCallingCardsEnableSubtitle;
+
+  /// Row title: the size of paper each calling card prints on.
+  ///
+  /// In en, this message translates to:
+  /// **'Card size'**
+  String get settingsCallingCardsSizeTitle;
+
+  /// A calling-card size choice: a standard index card. size is a measurement such as 3 × 5 in.
+  ///
+  /// In en, this message translates to:
+  /// **'Index card, {size}'**
+  String settingsCallingCardsSizeIndexCard(String size);
+
+  /// A calling-card size choice: an ISO paper size. name is the paper name (A6), size its measurement (105 × 148 mm).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({size})'**
+  String settingsCallingCardsSizeIsoA(String name, String size);
+
+  /// A card measurement in inches, short side first.
+  ///
+  /// In en, this message translates to:
+  /// **'{width} × {height} in'**
+  String settingsCallingCardsSizeInches(String width, String height);
+
+  /// A card measurement in millimeters, short side first.
+  ///
+  /// In en, this message translates to:
+  /// **'{width} × {height} mm'**
+  String settingsCallingCardsSizeMillimetres(String width, String height);
+
+  /// A calling-card size choice: enter your own width and height.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom size'**
+  String get settingsCallingCardsSizeCustom;
+
+  /// Text field label: custom card width.
+  ///
+  /// In en, this message translates to:
+  /// **'Width'**
+  String get settingsCallingCardsWidthLabel;
+
+  /// Text field label: custom card height.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get settingsCallingCardsHeightLabel;
+
+  /// Unit choice for a custom card size.
+  ///
+  /// In en, this message translates to:
+  /// **'Inches'**
+  String get settingsCallingCardsUnitInches;
+
+  /// Unit choice for a custom card size.
+  ///
+  /// In en, this message translates to:
+  /// **'Millimeters'**
+  String get settingsCallingCardsUnitMillimetres;
+
+  /// Error under the custom card size fields when a side is out of range or not a number.
+  ///
+  /// In en, this message translates to:
+  /// **'Each side must be from 1 to 14 inches (26 to 355 mm).'**
+  String get settingsCallingCardsSizeInvalid;
+
+  /// Switch title: print calling cards with the long side across.
+  ///
+  /// In en, this message translates to:
+  /// **'Landscape'**
+  String get settingsCallingCardsLandscapeTitle;
+
+  /// Subtitle of the calling-card Landscape switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Print with the long side across the top.'**
+  String get settingsCallingCardsLandscapeSubtitle;
+
+  /// Row that opens the calling-card layout editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Card layout'**
+  String get settingsCallingCardsLayoutTitle;
+
+  /// Subtitle of the row that opens the calling-card layout editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what goes on each card, and where.'**
+  String get settingsCallingCardsLayoutSubtitle;
+
+  /// Title of the screen where the user edits the calling-card layout text.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling card layout'**
+  String get callingCardEditorTitle;
+
+  /// Label of the text field holding the calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get callingCardEditorFieldLabel;
+
+  /// Helper text under the calling-card layout field.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes are saved as you type.'**
+  String get callingCardEditorAutosaveHint;
+
+  /// Button: replace the calling-card layout with the default one.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to default'**
+  String get callingCardEditorReset;
+
+  /// Title of the dialog confirming a reset of the calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the layout?'**
+  String get callingCardEditorResetConfirmTitle;
+
+  /// Body of the dialog confirming a reset of the calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Your layout is replaced with the default one.'**
+  String get callingCardEditorResetConfirmBody;
+
+  /// Snack bar after an example layout replaced the user's; offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout replaced.'**
+  String get callingCardEditorReplaced;
+
+  /// Heading over the live preview of a calling card.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get callingCardEditorPreviewTitle;
+
+  /// Caption under the calling-card preview. size is the card measurement, such as 3 × 5 in.
+  ///
+  /// In en, this message translates to:
+  /// **'A sample dance on a {size} card.'**
+  String callingCardEditorPreviewCaption(String size);
+
+  /// Shown in place of the calling-card preview when it could not be rendered.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t draw the preview. Try again.'**
+  String get callingCardEditorPreviewError;
+
+  /// Under the calling-card preview: the card's content was scaled down to fit.
+  ///
+  /// In en, this message translates to:
+  /// **'The text shrinks to {percent}% to fit this card.'**
+  String callingCardEditorPreviewShrunk(int percent);
+
+  /// Under the calling-card preview: the content is too long for the card even when shrunk. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'This card doesn\'t fit even at half size, so its bottom is cut off. Take a block out, or add lines= to a long one.'**
+  String get callingCardEditorPreviewOverflow;
+
+  /// Heading over the list of problems in the calling-card layout. Those lines are left off the card.
+  ///
+  /// In en, this message translates to:
+  /// **'Lines that couldn\'t be read'**
+  String get callingCardEditorIssuesTitle;
+
+  /// Layout problem: the first word of a part of a line is not a block name. name is what was written.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: \"{name}\" isn\'t a block. The blocks are listed under How to write a layout.'**
+  String callingCardIssueUnknownBlock(int line, String name);
+
+  /// Layout problem: an option the block does not take. name is what was written.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: this block has no \"{name}\" option.'**
+  String callingCardIssueUnknownOption(int line, String name);
+
+  /// Layout problem: an option was given a value it does not accept. option is the option name (size), value what was written (huge).
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: \"{value}\" doesn\'t work for {option}.'**
+  String callingCardIssueBadValue(int line, String option, String value);
+
+  /// Layout problem: an opening double quote with no closing one.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: a quotation mark is never closed, so the whole line is skipped.'**
+  String callingCardIssueUnclosedQuote(int line);
+
+  /// Layout problem: a text block with nothing to print. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: text needs words in quotes, like text \"Called by me\".'**
+  String callingCardIssueMissingText(int line);
+
+  /// Layout problem: the card block shares a line with other blocks. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: card sets up the whole card, so it needs a line of its own.'**
+  String callingCardIssueCardNotAlone(int line);
+
+  /// Layout problem: a | separator with nothing before or after it.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: there\'s nothing on one side of a |.'**
+  String callingCardIssueEmptyBlock(int line);
+
+  /// Heading of the in-editor help for the calling-card layout language.
+  ///
+  /// In en, this message translates to:
+  /// **'How to write a layout'**
+  String get callingCardHelpTitle;
+
+  /// Help: how the layout text is read.
+  ///
+  /// In en, this message translates to:
+  /// **'Each line is one row of the card, from top to bottom. Start the line with a block\'s name, then add any options. Put | between blocks to place them side by side. A line starting with # is a note to yourself and isn\'t printed.'**
+  String get callingCardHelpIntro;
+
+  /// Help: what gates a block, and what happens when a card is too full.
+  ///
+  /// In en, this message translates to:
+  /// **'A block prints only what the dance has, and only fields turned on under Settings ▸ Defaults ▸ Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.'**
+  String get callingCardHelpFields;
+
+  /// Help: the block and option names below can be tapped to insert them.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a name to add it to your layout.'**
+  String get callingCardHelpTapToInsert;
+
+  /// Help heading: the list of things a layout line can print.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocks'**
+  String get callingCardHelpBlocksTitle;
+
+  /// Help heading: the list of options a block can take.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get callingCardHelpOptionsTitle;
+
+  /// Help heading: ready-made layouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Examples'**
+  String get callingCardHelpExamplesTitle;
+
+  /// Button: replace the user's layout with this example.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this layout'**
+  String get callingCardHelpExampleUse;
+
+  /// Help: what the title block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s title.'**
+  String get callingCardHelpBlockTitle;
+
+  /// Help: what the authors block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Who wrote the dance.'**
+  String get callingCardHelpBlockAuthors;
+
+  /// Help: what the formation block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The formation, such as Improper or Becket.'**
+  String get callingCardHelpBlockFormation;
+
+  /// Help: what the level block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s level.'**
+  String get callingCardHelpBlockLevel;
+
+  /// Help: what the meta block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation, level, mixer, status and phrase on one line, each with its label.'**
+  String get callingCardHelpBlockMeta;
+
+  /// Help: what the figures block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures, grouped by phrase (A1, A2, B1, B2), with their counts: beats, or bars for an English dance.'**
+  String get callingCardHelpBlockFigures;
+
+  /// Help: what the notes block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Your calling notes.'**
+  String get callingCardHelpBlockNotes;
+
+  /// Help: what the walkthrough block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The walkthrough.'**
+  String get callingCardHelpBlockWalkthrough;
+
+  /// Help: what the hook block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s hook.'**
+  String get callingCardHelpBlockHook;
+
+  /// Help: what the tunes block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested tunes.'**
+  String get callingCardHelpBlockTunes;
+
+  /// Help: what the sources block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Published sources.'**
+  String get callingCardHelpBlockSources;
+
+  /// Help: what the program block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The program\'s title, when you print a program.'**
+  String get callingCardHelpBlockProgram;
+
+  /// Help: what the number block prints. Alternate is the export label for an alternate dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s place in the program (1, 2, 3, or Alternate), when you print a program.'**
+  String get callingCardHelpBlockNumber;
+
+  /// Help: what the text block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Words of your own, in quotes.'**
+  String get callingCardHelpBlockText;
+
+  /// Help: what the rule block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'A line across the card.'**
+  String get callingCardHelpBlockRule;
+
+  /// Help: what the space block does.
+  ///
+  /// In en, this message translates to:
+  /// **'A gap, in points (72 to an inch).'**
+  String get callingCardHelpBlockSpace;
+
+  /// Help: what the card line does. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings for the whole card: margin is the space around the edge, in points.'**
+  String get callingCardHelpBlockCard;
+
+  /// Help: the size option.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size, in points.'**
+  String get callingCardHelpOptionSize;
+
+  /// Help: the bold and italic options.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold or slanted text.'**
+  String get callingCardHelpOptionStyle;
+
+  /// Help: the left, center and right options.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the text sits in its space.'**
+  String get callingCardHelpOptionAlign;
+
+  /// Help: the color option.
+  ///
+  /// In en, this message translates to:
+  /// **'Text or line color, as a hex code.'**
+  String get callingCardHelpOptionColor;
+
+  /// Help: the lines option.
+  ///
+  /// In en, this message translates to:
+  /// **'Print at most this many lines of a long block.'**
+  String get callingCardHelpOptionLines;
+
+  /// Help: the label option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Words in front of the text. label=\"\" prints none.'**
+  String get callingCardHelpOptionLabel;
+
+  /// Help: the width option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'In a row, a block with width=2 takes twice the room of one with width=1.'**
+  String get callingCardHelpOptionWidth;
+
+  /// Help: the figures block's on/off options.
+  ///
+  /// In en, this message translates to:
+  /// **'For figures: leave out the counts, the figures\' own notes, the phrase names, or the lines between phrases.'**
+  String get callingCardHelpOptionFigures;
+
+  /// Help: the thickness option.
+  ///
+  /// In en, this message translates to:
+  /// **'How thick a rule is, in points.'**
+  String get callingCardHelpOptionThickness;
+
+  /// Name of the default example calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get callingCardExampleClassic;
+
+  /// Name of an example calling-card layout with large text.
+  ///
+  /// In en, this message translates to:
+  /// **'Big print'**
+  String get callingCardExampleBigPrint;
+
+  /// Name of an example calling-card layout numbered for printing a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Program night'**
+  String get callingCardExampleProgram;
+
+  /// Name of an example calling-card layout with the walkthrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Teaching card'**
+  String get callingCardExampleTeaching;
+
+  /// Title of the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample contra'**
+  String get callingCardSampleTitle;
+
+  /// Author name of the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'A. Caller'**
+  String get callingCardSampleAuthor;
+
+  /// Calling notes of the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide left along the line to progress.'**
+  String get callingCardSampleNotes;
+
+  /// A figure note on the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold on for the whole turn.'**
+  String get callingCardSampleFigureNote;
+
+  /// Program title the calling-card preview shows for the program block.
+  ///
+  /// In en, this message translates to:
+  /// **'Friday night dance'**
+  String get callingCardSampleProgram;
+
+  /// Export-menu item: print this dance as a small calling card.
+  ///
+  /// In en, this message translates to:
+  /// **'Print calling card'**
+  String get exportPrintCallingCard;
+
+  /// Export-menu item: print every dance in the program as a small calling card.
+  ///
+  /// In en, this message translates to:
+  /// **'Print calling cards'**
+  String get exportPrintCallingCards;
+
+  /// Snack bar after printing calling cards when some were too long for the card even when shrunk.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card didn\'t fit and is cut off at the bottom.} other{{count} cards didn\'t fit and are cut off at the bottom.}}'**
+  String exportCallingCardsCutOff(int count);
+
+  /// Help: the figures block's highlight option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray.'**
+  String get callingCardHelpOptionHighlight;
+
+  /// Switch title: print calling cards on ordinary paper, several to a page, instead of one per card-sized page.
+  ///
+  /// In en, this message translates to:
+  /// **'Several cards to a page'**
+  String get settingsCallingCardsSheetsTitle;
+
+  /// Subtitle of the several-cards-to-a-page switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on ordinary paper, as many cards to a page as fit, with marks to cut along. The paper is the one you choose when you print.'**
+  String get settingsCallingCardsSheetsSubtitle;
+
+  /// Snack bar after printing calling cards several to a page when the card size does not fit on the chosen paper.
+  ///
+  /// In en, this message translates to:
+  /// **'These cards are bigger than the paper, so each was printed smaller, one to a page.'**
+  String get exportCallingCardsBiggerThanPaper;
 }
 
 class _AppLocalizationsDelegate

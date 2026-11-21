@@ -23,8 +23,11 @@ step-by-step does not prevent on its own.
 - **Release-preparation identity is part of the process.** Use
   `docs(release): prepare vX.Y.Z` for stable releases and
   `docs(release): prepare vX.Y.Z-beta` for beta releases in both the
-  preparation commit subject and pull request title; #937 is the in-repo
-  precedent (`docs(release): prepare v0.1.0-beta.7`). Do not substitute
+  preparation commit subject and pull request title, with X.Y.Z equal to
+  `app/pubspec.yaml`'s version (`docs(release): prepare v0.10.0-beta` for the
+  `v0.10.0-beta` tag). When the PR changes the pubspec version, CI checks the
+  PR title only (`tools/ci/check_release_pr_title.py`); a stable promotion of an
+  existing beta changes no version and is not checked. Do not substitute
   `chore(release)` unless a maintainer explicitly overrides the convention,
   including when the preparation changes version literals, issue-template
   metadata, or generated changelogs.
@@ -43,6 +46,15 @@ step-by-step does not prevent on its own.
   that the channel manifest *and* its detached signature are both live and that
   the signature verifies. A manifest without its signature makes the in-app
   updater fail closed and stop offering updates silently.
+- **Rotating the manifest signing key** is staged through the pinned key set
+  (`kUpdateManifestPublicKeys`: current + next). Never switch
+  `UPDATE_SIGNING_KEY` to a key that is not already pinned in a widely
+  installed release; the procedure is
+  [releasing.md → Key rotation](../releasing.md#key-rotation).
+- **Rotating the published-collection signing key** works the same way through
+  `kPublishedCollectionPublicKeys`, but the signer is Compendium Analect's
+  `ANALECT_SIGNING_KEY_B64`; the procedure is
+  [releasing.md → Published-collection key rotation](../releasing.md#published-collection-key-rotation).
 - **Release identity is deliberately narrow.** Record beta status and `X.Y.Z`;
   only `vX.Y.Z-beta` and `vX.Y.Z` are valid. A beta establishes the shared
   section, and stable refreshes both signed update channels while beta refreshes

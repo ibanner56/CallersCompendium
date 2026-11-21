@@ -1,17 +1,21 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/settings_keys.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
+import 'package:compendium_app/src/screens/dance_editor/dance_editor_form.dart';
 import 'package:compendium_app/src/screens/dance_editor/name_picker.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
@@ -20,7 +24,9 @@ import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import 'support/test_repositories.dart';
+import 'support/new_dance_draft.dart';
 import 'support/l10n_harness.dart';
+import 'figures_support.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -28,6 +34,7 @@ Dance _dance({
   required String id,
   String title = 'Original',
   List<Figure> figures = const [],
+  DanceForm form = DanceForm.contra,
   List<String> authorIds = const [],
   List<String> tagIds = const [],
   List<DanceLink> links = const [],
@@ -40,6 +47,7 @@ Dance _dance({
   id: id,
   title: title,
   figures: figures,
+  form: form,
   authorIds: authorIds,
   tagIds: tagIds,
   links: links,
@@ -60,6 +68,7 @@ Future<void> _pumpEditor(
   String? danceId,
   ThemeData? theme,
   Size surfaceSize = const Size(1200, 3200),
+  Dialect? activeDialect,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
   // field, #370) lays out without the trailing controls falling beyond a
@@ -67,7 +76,7 @@ Future<void> _pumpEditor(
   // under-scroll the last element in widget tests.
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+  final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
@@ -160,7 +169,9 @@ Future<void> _expandMoreDetails(WidgetTester tester) async {
 /// value-encoded `ValueKey`, which only proved the parent passed that value
 /// down. Going through the field's state proves the field is showing it.
 T? _dropdownValue<T>(WidgetTester tester) => tester
-    .state<FormFieldState<T>>(find.byType(DropdownButtonFormField<T>))
+    .state<FormFieldState<T>>(
+      find.byWidgetPredicate((w) => w is AppDropdownField<T>),
+    )
     .value;
 
 void main() {
@@ -175,6 +186,24 @@ void main() {
 
     expect(find.text('Title is required'), findsOneWidget);
     expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  testWidgets('the Hook field explains itself with a line of helper text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    final helper = find.descendant(
+      of: find.byKey(const ValueKey('hook-field')),
+      matching: find.textContaining('Why you would call this dance'),
+    );
+    await tester.scrollUntilVisible(
+      helper,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(helper, findsOneWidget);
   });
 
   testWidgets('new dance: save creates a dance', (tester) async {
@@ -217,6 +246,267 @@ void main() {
     expect(saved!.title, 'Renamed');
     // createdAt preserved from the original.
     expect(saved.createdAt, _now);
+  });
+
+  group("Rachel Fifer's dances keep larks and robins in the editor", () {
+    final notedFigure = Figure(
+      move: 'allemande',
+      params: const {'beats': 8},
+      note: 'role1s go first',
+    );
+
+    String noteOf(WidgetTester tester) => tester
+        .widget<DanceEditorForm>(find.byType(DanceEditorForm))
+        .controller
+        .figureDrafts
+        .first
+        .note;
+
+    Future<void> addRae(WidgetTester tester) async {
+      await tester.enterText(find.byKey(const ValueKey('author-input')), 'Rae');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-option-c1')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('adding and removing her as an author converts the drafts, and '
+        'Save stores canonical role words', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Rae Fifer'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Gene Hubert'),
+      );
+      await repos.dances.create(
+        _dance(id: 'd1', authorIds: ['c2'], figures: [notedFigure]),
+      );
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        activeDialect: Dialect.leadsFollows,
+      );
+      expect(noteOf(tester), 'leads go first');
+
+      await addRae(tester);
+      expect(noteOf(tester), 'larks go first');
+
+      tester
+          .widget<InputChip>(find.byKey(const ValueKey('author-chip-c1')))
+          .onDeleted!();
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'leads go first');
+
+      await addRae(tester);
+      expect(noteOf(tester), 'larks go first');
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.authorIds, ['c2', 'c1']);
+      expect(
+        (saved.figuresSource as DecodedFigures).figures.first.note,
+        'role1s go first',
+      );
+    });
+
+    testWidgets('a title that names one of her dances converts the drafts '
+        'when no author is named', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', figures: [notedFigure]));
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        activeDialect: Dialect.leadsFollows,
+      );
+      expect(noteOf(tester), 'leads go first');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Renewed Joy',
+      );
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'larks go first');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Renewed',
+      );
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'leads go first');
+    });
+  });
+
+  group('renaming an author onto a taken name (T3)', () {
+    // `c1` sorts first, so it is the id a merge keeps (sync-spec §6.6).
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Pat Smith', website: 'pat.example'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Sam Jones'),
+      );
+      await repos.dances.create(_dance(id: 'd1', authorIds: ['c2']));
+      return repos;
+    }
+
+    Future<void> renameC2(
+      WidgetTester tester, {
+      required String name,
+      String? website,
+    }) async {
+      await tester.tap(find.byKey(const ValueKey('author-chip-c2')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('choreographer-name-field')),
+        name,
+      );
+      if (website != null) {
+        await tester.enterText(
+          find.byKey(const ValueKey('choreographer-website-field')),
+          website,
+        );
+      }
+      await tester.tap(find.byKey(const ValueKey('choreographer-save')));
+      await tester.pumpAndSettle();
+    }
+
+    String? chipLabel(WidgetTester tester, String id) =>
+        (tester.widget<InputChip>(find.byKey(ValueKey('author-chip-$id'))).label
+                as Text)
+            .data;
+
+    testWidgets('offers a merge, and Keep editing saves nothing and re-opens '
+        'the details with the typed name', (tester) async {
+      final repos = await seed();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith');
+
+      expect(find.byKey(const ValueKey('library-merge-offer')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('choreographer-duplicate-snackbar')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('library-merge-offer-keep-editing')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const ValueKey('choreographer-name-field')),
+            )
+            .controller!
+            .text,
+        'Pat Smith',
+      );
+      await tester.tap(find.byKey(const ValueKey('choreographer-cancel')));
+      await tester.pumpAndSettle();
+
+      // Issue #1348: nothing was written, so the chip still reads the stored
+      // name, not the one that was typed.
+      expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
+      expect(chipLabel(tester, 'c2'), 'Sam Jones');
+    });
+
+    testWidgets('Merge lists the detail it drops, leaves one author, credits '
+        'it in the draft, and Undo puts both back', (tester) async {
+      final repos = await seed();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith', website: 'sam.example');
+
+      expect(find.textContaining('sam.example'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
+      await tester.pumpAndSettle();
+
+      expect(await repos.choreographers.getById('c2'), isNull);
+      expect(
+        (await repos.choreographers.getById('c1'))!.website,
+        'pat.example',
+      );
+      expect((await repos.dances.getById('d1'))!.authorIds, ['c1']);
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsNothing);
+      expect(chipLabel(tester, 'c1'), 'Pat Smith');
+
+      await tester.tap(
+        find.byKey(const ValueKey('dance-editor-author-merge-undo')),
+      );
+      await tester.pumpAndSettle();
+
+      expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
+      expect((await repos.dances.getById('d1'))!.authorIds, ['c2']);
+      expect(chipLabel(tester, 'c2'), 'Sam Jones');
+      expect(find.byKey(const ValueKey('author-chip-c1')), findsNothing);
+    });
+
+    testWidgets('Undo of a merge of two authors the dance both credits '
+        'puts both credits back in the draft', (tester) async {
+      final repos = await seed();
+      await repos.dances.update(_dance(id: 'd1', authorIds: ['c2', 'c1']));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith');
+      await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('dance-editor-author-merge-undo')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('author-chip-c1')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect((await repos.dances.getById('d1'))!.authorIds, ['c2', 'c1']);
+    });
+
+    testWidgets('a name only a deleted author holds is taken, with the '
+        "dialog's other details, and no merge offer", (tester) async {
+      final repos = await seed();
+      // `c1` is credited nowhere, so it can be deleted.
+      final _ = await repos.references.deleteUnused(ReferenceKind.author, 'c1');
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith', website: 'sam.example');
+
+      expect(find.byKey(const ValueKey('library-merge-offer')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('choreographer-duplicate-snackbar')),
+        findsNothing,
+      );
+      final renamed = await repos.choreographers.getById('c2');
+      expect(renamed!.name, 'Pat Smith');
+      expect(renamed.website, 'sam.example');
+      expect(chipLabel(tester, 'c2'), 'Pat Smith');
+    });
+
+    testWidgets('after a merge, Save credits the merged author', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith');
+      await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.authorIds, ['c1']);
+    });
   });
 
   testWidgets('walkthrough round-trips on save', (tester) async {
@@ -280,6 +570,49 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     expect(saved!.mixer, isTrue);
+  });
+
+  testWidgets('Type and Formation carry floating labels, not headings', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    for (final key in const ['form-field', 'formation-field']) {
+      final decorator = find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(InputDecorator),
+      );
+      expect(
+        tester.widget<InputDecorator>(decorator).decoration.labelText,
+        isNotNull,
+        reason: key,
+      );
+    }
+    // Each label is drawn once (in the field), not also as a heading.
+    expect(find.text('Type'), findsOneWidget);
+    expect(find.text('Formation'), findsOneWidget);
+  });
+
+  testWidgets('type: changing an existing contra dance to square persists '
+      '(issue #1418)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+    // Picked by the same label the Collection filter and tile use.
+    await tester.tap(find.byKey(const ValueKey('form-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Square').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.form, DanceForm.square);
   });
 
   testWidgets('selecting Unspecified clears an existing level', (tester) async {
@@ -577,6 +910,53 @@ void main() {
     expect(dance.authorIds.single, choreographers.single.id);
   });
 
+  testWidgets('new dance focuses the title field after load', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos, danceId: null);
+
+    final titleEditable = find.descendant(
+      of: find.byKey(const ValueKey('title-field')),
+      matching: find.byType(EditableText),
+    );
+    final editable = tester.widget<EditableText>(titleEditable);
+    expect(editable.focusNode.hasPrimaryFocus, isTrue);
+
+    // Typing with no tap or finder-based enterText lands in the title: the
+    // simulated IME reaches whichever field holds focus.
+    tester.testTextInput.enterText('p');
+    await tester.pump();
+    expect(editable.controller.text, 'p');
+  });
+
+  testWidgets('existing dance keeps focus inside the editor after load', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // The outer shortcut Focus must own focus so Ctrl-Z/Ctrl-Y fire without a
+    // tap; the title is not stolen for an existing dance.
+    final primary = FocusManager.instance.primaryFocus;
+    expect(primary, isNotNull);
+    expect(
+      find.descendant(
+        of: find.byType(Scaffold).first,
+        matching: find.byKey(const ValueKey('title-field')),
+      ),
+      findsOneWidget,
+    );
+    final scaffoldContext = tester.element(find.byType(Scaffold).first);
+    expect(Focus.of(scaffoldContext).hasPrimaryFocus, isTrue);
+    final titleEditable = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('title-field')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(titleEditable.focusNode.hasPrimaryFocus, isFalse);
+  });
+
   testWidgets('author chip opens details dialog and saves shared edits', (
     tester,
   ) async {
@@ -599,7 +979,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('author-chip-c1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choreographer details'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('choreographer-name-field')),
       'Gene H.',
@@ -640,7 +1020,7 @@ void main() {
     expect(find.widgetWithText(InputChip, 'flowy'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('tag-chip-t1')));
     await tester.pumpAndSettle();
-    expect(find.text('Choreographer details'), findsNothing);
+    expect(find.text('Author details'), findsNothing);
   });
 
   testWidgets(
@@ -758,6 +1138,86 @@ void main() {
     expect(await repos.tags.listAll(), isEmpty);
   });
 
+  testWidgets(
+    'a draft-cleanup failure after a committed new-dance save is not reported '
+    'as a failed save and cannot be retried into a duplicate',
+    (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _FailingDraftRemoveSettingsRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Committed dance',
+      );
+      // Let the debounced autosave write the draft that cleanup must remove.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(await newDanceDraft(repos), isNotNull);
+
+      settings.removeFailuresRemaining = 1000;
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      // The fault fired (a test whose fault never fires proves nothing) and
+      // cleanup was retried a bounded number of times, not once and not forever.
+      expect(settings.draftRemoveCalls, 3);
+      // The dance committed exactly once and the save is not reported failed.
+      expect(await repos.dances.listAll(), hasLength(1));
+      expect(
+        find.text(
+          "Couldn't save the dance. Your changes are still here. Try again.",
+        ),
+        findsNothing,
+      );
+      // The editor closed back to the launching route, so there is no editor
+      // left on which to press Save again and mint a second dance.
+      expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-dance')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a transient draft-cleanup failure after a committed save is retried and '
+    'the draft is removed',
+    (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _FailingDraftRemoveSettingsRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Committed dance',
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(await newDanceDraft(repos), isNotNull);
+
+      settings.removeFailuresRemaining = 1;
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      expect(settings.draftRemoveCalls, 2);
+      expect(await newDanceDraft(repos), isNull);
+      expect(await repos.dances.listAll(), hasLength(1));
+      expect(
+        find.text(
+          "Couldn't save the dance. Your changes are still here. Try again.",
+        ),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
+    },
+  );
+
   testWidgets('an empty tag entry does not add a chip or corrupt state', (
     tester,
   ) async {
@@ -861,6 +1321,55 @@ void main() {
       );
       expect(field.controller!.text, isEmpty);
       expect(field.focusNode!.hasFocus, isTrue);
+    },
+  );
+
+  testWidgets(
+    'a refused author create reports it instead of failing silently',
+    (tester) async {
+      // The safety net for a future divergence between `NamePicker`'s match and
+      // the repository's lookup. Before #1410 the two disagreed on canonically
+      // equivalent input, `_createChoreographer` did not catch, and the throw
+      // landed in an unawaited `async` callback: no author, no message.
+      final db = openWidgetTestDatabase();
+      final refusing = _RefusingChoreographerRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        choreographers: refusing,
+      );
+      await _pumpEditor(tester, repos, danceId: null);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-input')),
+        'Gene Hubert',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('author-option-create:Gene Hubert')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(refusing.fired, isTrue, reason: 'the create really was attempted');
+      expect(
+        find.byKey(const ValueKey('choreographer-create-duplicate-snackbar')),
+        findsOneWidget,
+      );
+      // The creation wording, not the rename one: nothing was created, and the
+      // user's next step is to pick the existing author.
+      expect(
+        find.textContaining("The new author wasn't created"),
+        findsOneWidget,
+      );
+      // Nothing attached, and the typed name is still there to act on.
+      expect(find.byType(InputChip), findsNothing);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('author-input')))
+            .controller
+            ?.text,
+        'Gene Hubert',
+      );
     },
   );
 
@@ -1181,6 +1690,15 @@ void main() {
 
   testWidgets('Collection New dance FAB opens the editor', (tester) async {
     final repos = openTestRepositories();
+    // A dance of the user's own: the floating New waits for a list.
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Petronella',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
     await tester.binding.setSurfaceSize(const Size(1200, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -1241,8 +1759,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final dance = (await repos.dances.listAll()).single;
-    expect(dance.figures, hasLength(1));
-    final figure = dance.figures.single;
+    expect(figuresOf(dance), hasLength(1));
+    final figure = figuresOf(dance).single;
     expect(figure.move, 'swing');
     expect(figure.params['who'], 'partners');
     expect(figure.params['beats'], 8);
@@ -1277,8 +1795,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final dance = (await repos.dances.listAll()).single;
-    expect(dance.figures.single.isCustom, isTrue);
-    expect(dance.figures.single.params['text'], 'scoop them up');
+    expect(figuresOf(dance).single.isCustom, isTrue);
+    expect(figuresOf(dance).single.params['text'], 'scoop them up');
   });
 
   testWidgets('editing an existing figure round-trips', (tester) async {
@@ -1303,7 +1821,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.figures.single.params['beats'], 16);
+    expect(figuresOf(saved!).single.params['beats'], 16);
   });
 
   testWidgets('deleting a figure removes it on save', (tester) async {
@@ -1324,8 +1842,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.figures, hasLength(1));
-    expect(saved.figures.single.move, 'balance');
+    expect(figuresOf(saved!), hasLength(1));
+    expect(figuresOf(saved).single.move, 'balance');
   });
 
   // ── Related dances subsection ─────────────────────────────────────────────
@@ -1862,6 +2380,61 @@ void main() {
       expect((progressionY - ratingY).abs(), lessThan(24));
     });
 
+    testWidgets('dropdown values read at the same weight as typed values', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final bodyLarge = Theme.of(
+        tester.element(find.byKey(const ValueKey('title-field'))),
+      ).textTheme.bodyLarge!;
+      // The text each dropdown's closed field shows.
+      final values = tester
+          .widgetList<EditableText>(
+            find.descendant(
+              of: find.byWidgetPredicate(
+                (w) => w.runtimeType.toString().startsWith('AppDropdownField<'),
+              ),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .toList();
+      expect(values, isNotEmpty);
+      for (final value in values) {
+        expect(value.style.fontWeight, bodyLarge.fontWeight);
+        expect(value.style.fontSize, bodyLarge.fontSize);
+      }
+    });
+
+    testWidgets('the five rating stars stay on one line at a phone width', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        surfaceSize: const Size(390, 3200),
+      );
+      await tester.tap(find.byKey(const ValueKey('rating-star-3')));
+      await tester.pumpAndSettle();
+
+      final tops = [
+        for (var star = 1; star <= 5; star++)
+          tester.getTopLeft(find.byKey(ValueKey('rating-star-$star'))).dy,
+      ];
+      expect(tops.toSet(), hasLength(1), reason: 'stars wrapped: $tops');
+      // Clear (shown once rated) joins them on the same line.
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('rating-clear'))).dy,
+        tops.first,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('More details is collapsed by default and expands on tap', (
       tester,
     ) async {
@@ -1889,7 +2462,7 @@ void main() {
     });
 
     testWidgets(
-      'Form control is absent from the UI but a loaded form round-trips',
+      'editing an unrelated field preserves a loaded non-default type',
       (tester) async {
         final repos = openTestRepositories();
         // Persist a dance whose form is not the default (contra).
@@ -1905,14 +2478,9 @@ void main() {
         await _pumpEditor(tester, repos, danceId: 'd1');
         await _expandMoreDetails(tester);
 
-        // No "Form" field is rendered anywhere in the editor.
-        final formField = find.byWidgetPredicate(
-          (w) =>
-              w.key is ValueKey &&
-              (w.key as ValueKey).value.toString().startsWith('form-field-'),
-        );
-        expect(formField, findsNothing);
-        expect(find.text('Form'), findsNothing);
+        // The Type field opens on the stored value, not the contra default
+        // (issue #1418; it was absent from the editor until then).
+        expect(_dropdownValue<DanceForm>(tester), DanceForm.ecd);
 
         // Editing an unrelated field and saving preserves the form value.
         await tester.enterText(
@@ -1927,6 +2495,499 @@ void main() {
         expect(saved.form, DanceForm.ecd);
       },
     );
+  });
+
+  group('ECD dance fields (ADR-006 §12.1 F2, F3; §9.2 point 7)', () {
+    Future<CompendiumRepositories> withEcdDance() async {
+      final repos = openTestRepositories();
+      for (final (id, name) in [
+        ('playford', 'John Playford'),
+        ('pat', 'Pat Shaw'),
+      ]) {
+        final _ = await repos.choreographers.upsert(
+          Choreographer(id: id, name: name),
+        );
+      }
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Hole in the Wall',
+          form: DanceForm.ecd,
+          authorIds: const ['playford'],
+          interpreterIds: const ['pat'],
+          interpretedOn: PartialDate(1975),
+          composedOn: PartialDate(1695),
+          meter: '3/2',
+          musicalKey: 'D minor',
+          formation: const Formation(FormationShape.dupleMinor, improper: true),
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      return repos;
+    }
+
+    testWidgets('an English dance times its figures in bars of its meter, '
+        'and follows the meter as it is edited', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd2',
+          title: 'Bars Dance',
+          form: DanceForm.ecd,
+          meter: '3/2',
+          formation: const Formation(FormationShape.dupleMinor),
+          figures: [
+            testFigure(move: 'ecd_circle', params: {'beats': 12}),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd2');
+      // The meter is the rule: twelve beats in 3/2 are four bars, though the
+      // phrase structure is the standard one, two beats a bar.
+      expect(find.text('4 bars'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const ValueKey('meter-field')), '2/2');
+      // At once, not only after the autosave debounce rebuilds the form.
+      await tester.pump();
+      expect(find.text('6 bars'), findsOneWidget);
+      await tester.pumpAndSettle();
+    });
+
+    group('named phrases', () {
+      Future<CompendiumRepositories> ecdDance({
+        String meter = '2/2',
+        String phraseStructure = '',
+        DanceForm form = DanceForm.ecd,
+      }) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          Dance(
+            id: 'd3',
+            title: 'Phrased Dance',
+            form: form,
+            meter: meter,
+            phraseStructure: phraseStructure,
+            formation: Formation(
+              form == DanceForm.ecd
+                  ? FormationShape.dupleMinor
+                  : FormationShape.dupleImproper,
+            ),
+            figures: [
+              testFigure(
+                move: form == DanceForm.ecd ? 'ecd_circle' : 'circle',
+                params: {'beats': 8},
+              ),
+            ],
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        return repos;
+      }
+
+      Future<String> savedStructure(
+        WidgetTester tester,
+        CompendiumRepositories repos,
+      ) async {
+        await tester.ensureVisible(find.byKey(const ValueKey('save-dance')));
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+        return (await repos.dances.getById('d3'))!.phraseStructure.raw;
+      }
+
+      Future<void> setBars(WidgetTester tester, int row, String bars) async {
+        await tester.enterText(
+          find.byKey(ValueKey('named-phrase-$row-bars')),
+          bars,
+        );
+        await tester.pump();
+      }
+
+      Future<void> setPlays(WidgetTester tester, int row, String label) async {
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(ValueKey('named-phrase-$row-plays')),
+            matching: find.text(label),
+          ),
+        );
+        await tester.pump();
+      }
+
+      testWidgets('a caller names an A of 4 bars played twice and a B of 8 '
+          'played once', (tester) async {
+        final repos = await ecdDance();
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-start')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-start')));
+        await tester.pump();
+        // The standard structure starts as A and B, each 8 bars twice.
+        expect(find.byKey(const ValueKey('named-phrases')), findsOneWidget);
+        expect(find.byKey(const ValueKey('phrase-field')), findsNothing);
+        await setBars(tester, 0, '4');
+        await setPlays(tester, 1, 'Once');
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+        final saved = (await repos.dances.getById('d3'))!;
+        expect(saved.phraseStructure.labels, ['A1', 'A2', 'B']);
+      });
+
+      testWidgets('naming the phrases is its own undo step, apart from the '
+          'bars typed next', (tester) async {
+        final repos = await ecdDance();
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-start')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-start')));
+        await tester.pump();
+        await setBars(tester, 0, '4');
+        await tester.pump(const Duration(seconds: 1));
+        await tester.ensureVisible(find.byKey(const ValueKey('undo-button')));
+        await tester.tap(find.byKey(const ValueKey('undo-button')));
+        await tester.pump();
+        // The bars go back to 8; the phrases stay named.
+        expect(find.byKey(const ValueKey('named-phrases')), findsOneWidget);
+        expect(
+          tester
+              .widget<TextField>(
+                find.byKey(const ValueKey('named-phrase-0-bars')),
+              )
+              .controller
+              ?.text,
+          '8',
+        );
+      });
+
+      testWidgets('A, B and C each played once', (tester) async {
+        final repos = await ecdDance(phraseStructure: 'A:1*4*2 + B:1*4*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('named-phrase-1-bars')), findsOne);
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-add')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-add')));
+        await tester.pump();
+        // All three names are used, so no more can be added.
+        expect(find.byKey(const ValueKey('named-phrases-add')), findsNothing);
+        expect(
+          await savedStructure(tester, repos),
+          'A:1*4*2 + B:1*4*2 + C:1*8*2',
+        );
+      });
+
+      testWidgets('the meter sets the beats in each named phrase\'s bars', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '3/2',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*3');
+      });
+
+      testWidgets('an empty bar count changes nothing and says why', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setBars(tester, 1, '');
+        expect(
+          find.byKey(const ValueKey('named-phrases-invalid')),
+          findsOneWidget,
+        );
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
+      testWidgets('removing every phrase goes back to the standard structure', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:1*16*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.tap(find.byKey(const ValueKey('named-phrase-0-remove')));
+        await tester.pump();
+        expect(find.byKey(const ValueKey('named-phrases-start')), findsOne);
+        expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+        expect(await savedStructure(tester, repos), '');
+      });
+
+      testWidgets('removing every phrase in 3/2 keeps the meter\'s beats', (
+        tester,
+      ) async {
+        final repos = await ecdDance(meter: '3/2', phraseStructure: 'A:1*16*3');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.tap(find.byKey(const ValueKey('named-phrase-0-remove')));
+        await tester.pump();
+        expect(await savedStructure(tester, repos), '4*8*3');
+      });
+
+      testWidgets('changing the form away from English keeps the phrases\' '
+          'lengths and drops their names', (tester) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.ensureVisible(find.byKey(const ValueKey('form-field')));
+        await tester.tap(find.byKey(const ValueKey('form-field')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Contra').last);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('named-phrases')), findsNothing);
+        expect(await savedStructure(tester, repos), '2*4*2 + 1*8*2');
+      });
+
+      testWidgets('a contra dance is not offered named phrases', (
+        tester,
+      ) async {
+        final repos = await ecdDance(form: DanceForm.contra);
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('named-phrases-start')), findsNothing);
+        expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+      });
+
+      testWidgets('a phrase is renamed from its name field', (tester) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        final name = find.byKey(const ValueKey('named-phrase-1-name'));
+        await tester.ensureVisible(name);
+        await tester.tap(name);
+        await tester.pumpAndSettle();
+        // A is taken by the other row, so only B and C are offered.
+        await tester.tap(find.text('C').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Bars in C'), findsOneWidget);
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + C:1*8*2');
+      });
+
+      testWidgets('a contra dance can\'t save typed phrase names', (
+        tester,
+      ) async {
+        final repos = await ecdDance(form: DanceForm.contra);
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('phrase-field')),
+          'A:2*8*2 + B:2*8*2',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), '');
+        expect(
+          find.text('Phrase names (A:, B:, C:) are for English dances only.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('a default with phrase names gives a new contra dance '
+          'the lengths only', (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultDanceFormKey, DanceForm.contra.name);
+        await repos.settings.set(
+          kDefaultDancePhraseStructureKey,
+          'A:2*8*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos);
+        expect(
+          tester
+              .widget<TextFormField>(find.byKey(const ValueKey('phrase-field')))
+              .controller
+              ?.text,
+          '2*8*2 + 1*8*2',
+        );
+      });
+
+      testWidgets('typing a named structure keeps the field until the caller '
+          'leaves it', (tester) async {
+        final repos = await ecdDance();
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        final field = find.byKey(const ValueKey('phrase-field'));
+        await tester.ensureVisible(field);
+        await tester.tap(field);
+        await tester.pump();
+        // Already named after its first part: the field stays while focused.
+        await tester.enterText(field, 'A:2*8*2');
+        await tester.pump();
+        expect(field, findsOneWidget);
+        await tester.enterText(field, 'A:2*8*2 + B:1*8*2');
+        await tester.pump();
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump();
+        expect(field, findsNothing);
+        expect(find.byKey(const ValueKey('named-phrase-1-bars')), findsOne);
+        expect(await savedStructure(tester, repos), 'A:2*8*2 + B:1*8*2');
+      });
+
+      testWidgets('naming the standard structure in 4/4 keeps its 8 bars', (
+        tester,
+      ) async {
+        final repos = await ecdDance(meter: '4/4');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-start')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-start')));
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*8*4 + B:2*8*4');
+      });
+
+      testWidgets('a bar count past the most allowed is shown on its field', (
+        tester,
+      ) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.text('Bars in A'), findsOneWidget);
+        expect(find.text('Bars in B'), findsOneWidget);
+        await setBars(tester, 1, '1001');
+        expect(find.text('1 to 1000'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('named-phrases-invalid')),
+          findsOneWidget,
+        );
+        await setBars(tester, 1, '1000');
+        expect(find.text('1 to 1000'), findsNothing);
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*1000*2');
+      });
+    });
+
+    testWidgets('an English dance shows its credits, meter, key and the '
+        'improper checkbox up front, and saves edits to them', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // Up front: More details is still collapsed.
+      expect(find.byKey(const ValueKey('mixed-level-field')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('interpreter-chip-pat')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('composed-on-year')), findsOneWidget);
+      expect(find.byKey(const ValueKey('interpreted-on-year')), findsOneWidget);
+      final meter = find.byKey(const ValueKey('meter-field'));
+      final key = find.byKey(const ValueKey('musical-key-field'));
+      expect(tester.widget<TextFormField>(meter).controller?.text, '3/2');
+      expect(tester.widget<TextFormField>(key).controller?.text, 'D minor');
+      final improper = find.byKey(const ValueKey('improper-field'));
+      expect(tester.widget<CheckboxListTile>(improper).value, isTrue);
+
+      await tester.enterText(meter, '9/8');
+      await tester.enterText(key, 'G major');
+      await tester.ensureVisible(improper);
+      await tester.tap(improper);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('interpreted-on-year')),
+        '1976',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.meter, '9/8');
+      expect(saved.musicalKey, 'G major');
+      expect(saved.formation.improper, isFalse);
+      expect(saved.interpretedOn, PartialDate(1976));
+      expect(saved.interpreterIds, ['pat']);
+      expect(saved.authorIds, ['playford']);
+      expect(saved.composedOn, PartialDate(1695));
+    });
+
+    testWidgets('an interpreter is picked from the people list', (
+      tester,
+    ) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('interpreter-input')),
+        'John',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('interpreter-option-playford')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.interpreterIds, ['pat', 'playford']);
+      expect(saved.authorIds, ['playford']);
+    });
+
+    testWidgets('a contra dance keeps them in More details, with no '
+        'improper checkbox', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Original').copyWith(meter: '2/4'),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(find.byKey(const ValueKey('improper-field')), findsNothing);
+      expect(find.byKey(const ValueKey('meter-field')), findsNothing);
+      expect(find.byKey(const ValueKey('interpreter-input')), findsNothing);
+
+      await _expandMoreDetails(tester);
+      expect(find.byKey(const ValueKey('improper-field')), findsNothing);
+      final meter = find.byKey(const ValueKey('meter-field'));
+      expect(tester.widget<TextFormField>(meter).controller?.text, '2/4');
+      expect(find.byKey(const ValueKey('interpreter-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('interpreted-on-year')), findsOneWidget);
+    });
+
+    testWidgets('a date half entered keeps its text when a change of form '
+        'moves the field', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final year = find.byKey(const ValueKey('composed-on-year'));
+      // Not yet a valid year, so the field holds it as text only.
+      await tester.enterText(year, '0');
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const ValueKey('form-field')));
+      await tester.tap(find.byKey(const ValueKey('form-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English (ECD)').last);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<TextField>(year).controller?.text, '0');
+    });
+
+    testWidgets('switching an English dance to contra saves it proper, and '
+        'switching back restores the checkbox', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final form = find.byKey(const ValueKey('form-field'));
+      Future<void> pickForm(String label) async {
+        await tester.tap(form);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label).last);
+        await tester.pumpAndSettle();
+      }
+
+      final improper = find.byKey(const ValueKey('improper-field'));
+      await pickForm('Contra');
+      expect(improper, findsNothing);
+      await pickForm('English (ECD)');
+      expect(tester.widget<CheckboxListTile>(improper).value, isTrue);
+      await pickForm('Contra');
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.form, DanceForm.contra);
+      expect(saved.formation.improper, isFalse);
+      // Meter, key and credits are kept whatever the form.
+      expect(saved.meter, '3/2');
+      expect(saved.interpreterIds, ['pat']);
+    });
   });
 
   group('sectioned layout —', () {
@@ -1980,6 +3041,8 @@ void main() {
       );
       // The seeded formation shows in the formation dropdown.
       expect(_dropdownValue<FormationShape>(tester), FormationShape.longways);
+      // ...and the seeded type shows in the type dropdown (issue #1418).
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),
@@ -2077,6 +3140,52 @@ void main() {
       expect(saved.phraseStructure.raw, '8*8*1');
     });
 
+    testWidgets('"last used" starts a new dance as the last new dance\'s type, '
+        'and only a new dance sets it', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, kDefaultDanceFormLastUsed);
+      await repos.settings.set(kLastUsedDanceFormKey, DanceForm.ecd.name);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Existing',
+          form: DanceForm.square,
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      // Saving an existing dance leaves the last used type alone.
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kLastUsedDanceFormKey), 'ecd');
+
+      await _pumpEditor(tester, repos);
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.ecd);
+    });
+
+    testWidgets('saving a new dance records its type as last used', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
+      await repos.settings.set(kLastUsedDanceFormKey, DanceForm.ecd.name);
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Next Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).singleWhere(
+        (d) => d.title == 'Next Dance',
+      );
+      expect(saved.form, DanceForm.square);
+      expect(await repos.settings.get(kLastUsedDanceFormKey), 'square');
+    });
+
     testWidgets('a restored draft overrides the seeded defaults', (
       tester,
     ) async {
@@ -2131,7 +3240,7 @@ void main() {
       expect(saved.phraseStructure.raw, '2*8*4');
       // The restored draft's (empty) figure list overrides the DD.2 template
       // seed rather than being appended to it.
-      expect(saved.figures, isEmpty);
+      expect(figuresOf(saved), isEmpty);
     });
 
     testWidgets(
@@ -2197,8 +3306,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final saved = (await repos.dances.listAll()).single;
-      expect(saved.figures, hasLength(8));
-      for (final figure in saved.figures) {
+      expect(figuresOf(saved), hasLength(8));
+      for (final figure in figuresOf(saved)) {
         expect(figure.move, 'stand_still');
         expect(figure.params['beats'], 8);
       }
@@ -2231,11 +3340,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final saved = (await repos.dances.listAll()).single;
-      expect(saved.figures, hasLength(2));
-      expect(saved.figures[0].move, 'balance');
-      expect(saved.figures[0].params['beats'], 4);
-      expect(saved.figures[1].move, 'swing');
-      expect(saved.figures[1].params['beats'], 12);
+      expect(figuresOf(saved), hasLength(2));
+      expect(figuresOf(saved)[0].move, 'balance');
+      expect(figuresOf(saved)[0].params['beats'], 4);
+      expect(figuresOf(saved)[1].move, 'swing');
+      expect(figuresOf(saved)[1].params['beats'], 12);
     });
 
     testWidgets(
@@ -2256,7 +3365,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final saved = (await repos.dances.listAll()).single;
-        expect(saved.figures, isEmpty);
+        expect(figuresOf(saved), isEmpty);
       },
     );
 
@@ -2290,8 +3399,625 @@ void main() {
       await tester.pumpAndSettle();
 
       final saved = await repos.dances.getById('d1');
-      expect(saved!.figures, hasLength(1));
-      expect(saved.figures.single.move, 'swing');
+      expect(figuresOf(saved!), hasLength(1));
+      expect(figuresOf(saved).single.move, 'swing');
+    });
+  });
+
+  // #1825: the free-text box is its own semantics boundary with its own label,
+  // the section help fits the active mode, and "Added N figures" is visible.
+  group('free-text box semantics and confirmation (#1825)', () {
+    const fieldKey = ValueKey('figure-free-text-field');
+
+    Future<CompendiumRepositories> reposWith({
+      required bool freeText,
+      bool seeded = false,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, freeText);
+      if (seeded) {
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            figures: [
+              Figure(move: 'stand_still', params: const {'beats': 8}),
+              for (var i = 0; i < 5; i++)
+                Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+      }
+      return repos;
+    }
+
+    Future<void> openComposer(WidgetTester tester) async {
+      await tester.ensureVisible(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> typeAndSubmit(WidgetTester tester, String line) async {
+      await tester.enterText(find.byKey(fieldKey), line);
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the box is labelled "Type a figure" and nothing else (empty '
+        'list)', (tester) async {
+      final handle = tester.ensureSemantics();
+      final repos = await reposWith(freeText: true);
+      await _pumpEditor(tester, repos);
+      await openComposer(tester);
+
+      final data = tester.getSemantics(find.byKey(fieldKey)).getSemanticsData();
+      expect(data.label, 'Type a figure');
+      handle.dispose();
+    });
+
+    testWidgets('the box label excludes the beat total and over-by warning', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      // The seeded dance is over its beat budget, so the total row shows.
+      expect(find.textContaining('Over by'), findsWidgets);
+      await openComposer(tester);
+
+      final label = tester
+          .getSemantics(find.byKey(fieldKey))
+          .getSemanticsData()
+          .label;
+      expect(label, 'Type a figure');
+      expect(label, isNot(contains('Over by')));
+      expect(label, isNot(contains('Total')));
+      expect(label, isNot(contains('Warnings')));
+      handle.dispose();
+    });
+
+    testWidgets('section help describes typed lines in free-text mode and '
+        'moves in structured mode', (tester) async {
+      final freeText = await reposWith(freeText: true);
+      await _pumpEditor(tester, freeText);
+      expect(find.textContaining('typing a whole line'), findsOneWidget);
+      expect(find.textContaining('Type a move'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+      final structured = await reposWith(freeText: false);
+      await _pumpEditor(tester, structured);
+      expect(find.textContaining('Type a move'), findsOneWidget);
+      expect(find.textContaining('typing a whole line'), findsNothing);
+    });
+
+    testWidgets('adding figures shows a visible confirmation that clears on '
+        'the next keystroke', (tester) async {
+      final repos = await reposWith(freeText: true);
+      await _pumpEditor(tester, repos);
+      await openComposer(tester);
+
+      await typeAndSubmit(tester, 'neighbors balance & swing');
+      expect(
+        find.text(
+          "Added 1 figure. Type another, or choose Finish adding when you're "
+          'done.',
+        ),
+        findsOneWidget,
+      );
+      // Touch users have no Escape key; the visible line must not name it.
+      expect(find.textContaining('Escape'), findsNothing);
+
+      await tester.enterText(find.byKey(fieldKey), 'c');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Added 1 figure'), findsNothing);
+    });
+
+    testWidgets('Save adds a line still in the box, as Enter would (AUTH-1)', (
+      tester,
+    ) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+      expect(saved.last.params['who'], 'neighbors');
+    });
+
+    testWidgets('Back with a line still in the box asks before discarding it '
+        '(AUTH-1)', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.byKey(fieldKey), findsOneWidget);
+    });
+
+    testWidgets('a line in the box survives the figure list scrolling out of '
+        'the form', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      // A phone-sized window, so the form's lazy list would drop the figure
+      // list once it is scrolled well past it.
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        surfaceSize: const Size(600, 400),
+      );
+      final form = find
+          .descendant(
+            of: find.byType(ListView).first,
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('figure-add')),
+        200,
+        scrollable: form,
+      );
+      await openComposer(tester);
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      // Unfocused, the field no longer keeps its list child alive.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      await tester.drag(form, const Offset(0, -20000));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey, skipOffstage: false), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+    });
+
+    testWidgets('a line in the box survives the custom-number banner '
+        'appearing above the figures', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f-num',
+          key: 'number',
+          label: 'Number',
+          type: CustomFieldType.number,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+
+      // An invalid number shows the banner as the form's first child, which
+      // shifts every child below it.
+      await _expandMoreDetails(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('custom-f-num')),
+        '1e400',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('custom-field-validation-error')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(fieldKey, skipOffstage: false))
+            .controller!
+            .text,
+        'neighbors balance & swing',
+      );
+
+      await tester.enterText(find.byKey(const ValueKey('custom-f-num')), '5');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+    });
+
+    testWidgets('the visible confirmation reports the count and goes away '
+        'with the box', (tester) async {
+      final repos = await reposWith(freeText: true);
+      await _pumpEditor(tester, repos);
+      await openComposer(tester);
+
+      await typeAndSubmit(tester, 'circle left 3/4; turn alone');
+      expect(find.textContaining('Added 2 figures'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-done')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Added 2 figures'), findsNothing);
+    });
+  });
+
+  testWidgets('a failed Save scrolls back to the custom-number message even '
+      'when the list has let go of it', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'f-num',
+        key: 'number',
+        label: 'Number',
+        type: CustomFieldType.number,
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'long',
+        figures: [
+          for (var i = 0; i < 40; i++)
+            Figure(move: 'balance', params: const {'beats': 4}),
+        ],
+      ),
+    );
+    await _pumpEditor(
+      tester,
+      repos,
+      danceId: 'long',
+      surfaceSize: const Size(600, 500),
+    );
+    await tester.scrollUntilVisible(
+      find.text('More details'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await _expandMoreDetails(tester);
+    await tester.enterText(find.byKey(const ValueKey('custom-f-num')), '1e400');
+    final list = find.byType(ListView).first;
+    await tester.drag(list, const Offset(0, -20000));
+    await tester.pumpAndSettle();
+    final banner = find.byKey(
+      const ValueKey('custom-field-validation-error'),
+      skipOffstage: false,
+    );
+    expect(banner, findsNothing, reason: 'the list has let go of the message');
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final viewport = tester.getRect(list);
+    final rect = tester.getRect(banner);
+    expect(rect.top, greaterThanOrEqualTo(viewport.top));
+    expect(rect.bottom, lessThanOrEqualTo(viewport.bottom));
+  });
+
+  // A failed Save puts each message on its own field. Nothing scrolled to the
+  // first, so on a short window it could sit above the fold.
+  group('a failed Save shows the first invalid field', () {
+    void expectInView(WidgetTester tester, Finder field) {
+      final viewport = tester.getRect(find.byType(ListView).first);
+      final rect = tester.getRect(field);
+      expect(rect.top, greaterThanOrEqualTo(viewport.top));
+      expect(rect.bottom, lessThanOrEqualTo(viewport.bottom));
+    }
+
+    testWidgets(
+      'a missing title scrolls back to the title, above a later one',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos, surfaceSize: const Size(600, 500));
+        // A later field is invalid too: the first one on the page is shown.
+        await tester.enterText(
+          find.byKey(const ValueKey('phrase-field')),
+          'abc',
+        );
+        await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+        await tester.pumpAndSettle();
+        final title = find.byKey(const ValueKey('title-field'));
+        final viewport = tester.getRect(find.byType(ListView).first);
+        expect(
+          tester.getRect(title).top,
+          lessThan(viewport.top),
+          reason: 'the title starts above the fold',
+        );
+
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Title is required'), findsOneWidget);
+        expectInView(tester, title);
+      },
+    );
+  });
+
+  // October behaviour audit, AUTH-1, maintainer decision AUTH-1-move-blur =
+  // (a): a move name typed into a row's Move box without Enter is applied
+  // when the box is left, and anything else is put back. Tapping Save does
+  // not always take focus from the box, so Save and Back settle it too.
+  group('text left in a Move box (AUTH-1)', () {
+    Future<CompendiumRepositories> seeded() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          figures: [
+            Figure(move: 'balance', params: const {'beats': 4}),
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 8},
+            ),
+          ],
+        ),
+      );
+      return repos;
+    }
+
+    Future<void> typeInMoveBox(WidgetTester tester, String text) async {
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-move-input')));
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        text,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<List<Figure>> saveAndRead(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      return figuresOf((await repos.dances.getById('d1'))!);
+    }
+
+    testWidgets('Save applies a move named exactly', (tester) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['star', 'swing']);
+    });
+
+    testWidgets('Save puts back text that only part of a name matches', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'sta');
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['balance', 'swing']);
+    });
+
+    testWidgets('Back with a move name in the box asks before discarding it', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+    });
+
+    testWidgets('Back with text that would be put back leaves without asking', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'sta');
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
+    });
+
+    testWidgets('closing the row applies a move named exactly', (tester) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['star', 'swing']);
+    });
+
+    testWidgets('opening another row applies a move named exactly', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+      await tester.tap(find.byKey(const ValueKey('figure-1-summary')));
+      await tester.pumpAndSettle();
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['star', 'swing']);
+    });
+  });
+
+  // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16): with
+  // Free-text entry on, a new dance starts empty and Enter on unmatched text
+  // in an existing row's Move box runs the free-text parser.
+  group('free-text entry on existing rows and new dances (#1177)', () {
+    Future<CompendiumRepositories> freeTextRepos({bool on = true}) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, on);
+      return repos;
+    }
+
+    Future<void> submitInMoveBox(
+      WidgetTester tester,
+      int index,
+      String line,
+    ) async {
+      await _openFigure(tester, index);
+      await tester.enterText(
+        find.byKey(ValueKey('figure-$index-move-input')),
+        line,
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    Future<List<Figure>> saveAndRead(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      return figuresOf(
+        await repos.dances.getById('d1') ??
+            (await repos.dances.listAll()).single,
+      );
+    }
+
+    Future<void> seedDance(CompendiumRepositories repos) => repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+          Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+        ],
+      ),
+    );
+
+    testWidgets('a new dance with no saved template starts with no figures', (
+      tester,
+    ) async {
+      final repos = await freeTextRepos();
+      await _pumpEditor(tester, repos);
+
+      // The help line describes typed lines, not a whole-text custom.
+      expect(find.textContaining('typing a whole line'), findsOneWidget);
+      expect(find.textContaining('with its default values'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Typed Dance',
+      );
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, isEmpty);
+    });
+
+    testWidgets('a saved starting template still seeds a new dance', (
+      tester,
+    ) async {
+      final repos = await freeTextRepos();
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(move: 'swing', params: const {'who': 'neighbors', 'beats': 8}),
+        ]),
+      );
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Templated',
+      );
+      final saved = await saveAndRead(tester, repos);
+      expect(saved.single.move, 'swing');
+    });
+
+    testWidgets('Enter on a typed line in an existing row replaces the row '
+        'with the parsed figure', (tester) async {
+      final repos = await freeTextRepos();
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 0, 'neighbors balance & swing');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved.map((f) => f.move), ['swing', 'stand_still', 'swing']);
+      expect(saved[0].params['who'], 'neighbors');
+      expect(saved[0].params['prefix'], 'balance');
+      expect(saved[0].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('a line that parses to several figures replaces the row with '
+        'all of them, in place', (tester) async {
+      final repos = await freeTextRepos();
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 1, 'circle left 3/4; turn alone');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved.map((f) => f.move), [
+        'stand_still',
+        'circle',
+        'turn_alone',
+        'swing',
+      ]);
+    });
+
+    testWidgets('an unrecognized line becomes a flagged parser-gap custom', (
+      tester,
+    ) async {
+      final repos = await freeTextRepos();
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 0, 'do a barrel roll into the sunset');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, hasLength(3));
+      expect(saved[0].isCustom, isTrue);
+      // A parser gap, not a stated choice: badged and reparse-eligible.
+      expect(saved[0].customOrigin, CustomOrigin.importGap);
+    });
+
+    testWidgets('with free text off, unmatched text in an existing row still '
+        'makes a stated custom', (tester) async {
+      final repos = await freeTextRepos(on: false);
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 1, 'circle left 3/4; turn alone');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, hasLength(3));
+      expect(saved[1].isCustom, isTrue);
+      expect(saved[1].params['text'], 'circle left 3/4; turn alone');
+      expect(saved[1].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('with free text off, a new dance keeps the stand-still '
+        'template', (tester) async {
+      final repos = await freeTextRepos(on: false);
+      await _pumpEditor(tester, repos);
+      expect(
+        find.textContaining("text the app can't read becomes"),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Seeded',
+      );
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, hasLength(8));
+      expect(saved.every((f) => f.move == 'stand_still'), isTrue);
     });
   });
 
@@ -2327,40 +4053,45 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
 
-      final figure = (await repos.dances.listAll()).single.figures.single;
+      final figure = figuresOf((await repos.dances.listAll()).single).single;
       expect(figure.move, 'circle');
       // Overridden param takes the configured value...
       expect(figure.params['direction'], 'right');
       // ...while non-overridden params keep the taxonomy defaults.
-      expect(figure.params['places'], 4);
+      expect(figure.params['places'], 3);
       expect(figure.params['beats'], 8);
     });
   });
 
-  group('Save FAB + delete (UI consistency pass)', () {
+  group('Save in the top bar + delete (UI consistency pass)', () {
     testWidgets(
-      'Save is a bottom-right FAB that shows a spinner while saving',
+      'Save is the top bar\'s last action, nothing floats over the form, and '
+      'it shows a spinner while saving',
       (tester) async {
         final repos = openTestRepositories();
         await _pumpEditor(tester, repos);
 
-        // The Save affordance is a FloatingActionButton (matching the program
-        // builder), not an AppBar text button.
-        final fab = find.byKey(const ValueKey('save-dance'));
-        expect(fab, findsOneWidget);
-        expect(tester.widget(fab), isA<FloatingActionButton>());
+        // Save is in the top bar, as in every full-screen editor: a floating
+        // Save covered the form's fields.
+        final save = find.byKey(const ValueKey('save-dance'));
+        expect(save, findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(AppBar), matching: save),
+          findsOneWidget,
+        );
+        expect(find.byType(FloatingActionButton), findsNothing);
 
         await tester.enterText(
           find.byKey(const ValueKey('title-field')),
           'Spinner Dance',
         );
-        await tester.tap(fab);
-        // One frame after tapping: `_saving` is true, so the FAB renders a
-        // spinner in place of the save icon (disabled while in flight).
+        await tester.tap(save);
+        // One frame after tapping: `_saving` is true, so Save renders a
+        // spinner in place of its label (disabled while in flight).
         await tester.pump();
         expect(
           find.descendant(
-            of: fab,
+            of: save,
             matching: find.byType(CircularProgressIndicator),
           ),
           findsOneWidget,
@@ -2372,6 +4103,31 @@ void main() {
         expect((await repos.dances.listAll()).single.title, 'Spinner Dance');
       },
     );
+
+    testWidgets('on a phone, Save is the check icon, so the title keeps room '
+        'beside Undo, Redo and Delete', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Editable'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      // MediaQuery reads the view's size, not the test surface's.
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      tester.view.physicalSize =
+          const Size(360, 800) * tester.view.devicePixelRatio;
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpAndSettle();
+
+      final save = find.byKey(const ValueKey('save-dance'));
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: save),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: save, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Save'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets(
       'Delete soft-deletes the dance, pops, and shows an undo snackbar',
@@ -2417,6 +4173,42 @@ void main() {
       expect(find.byKey(const ValueKey('save-dance')), findsOneWidget);
       expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
     });
+
+    testWidgets(
+      'a second tap on Delete while the first write is in flight is ignored',
+      (tester) async {
+        // Re-entrancy guard on `_delete`, mirroring `_saving`. Without it both
+        // taps run to completion: two soft-deletes and two pops, the second of
+        // which lands on the route *under* the editor. Gate `softDelete` so the
+        // window is deterministic.
+        final db = openWidgetTestDatabase();
+        final dances = _GatedDanceRepository(db, contraTaxonomy);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          dances: dances,
+        );
+        await repos.dances.create(_dance(id: 'd1', title: 'Doomed Dance'));
+        await _pumpEditor(tester, repos, danceId: 'd1');
+
+        final delete = find.byKey(const ValueKey('delete-dance'));
+        await tester.tap(delete);
+        await tester.pump();
+        expect(dances.softDeleteCalls, 1);
+        await tester.tap(delete, warnIfMissed: false);
+        await tester.pump();
+
+        dances.release();
+        await tester.pumpAndSettle();
+
+        expect(dances.softDeleteCalls, 1);
+        // Exactly one pop: back on the launcher route, not past it.
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(find.text('open'), findsOneWidget);
+        expect(find.byKey(const ValueKey('deleted-snackbar')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('lingo strikethrough on prose fields', () {
@@ -2760,7 +4552,91 @@ void main() {
         isTrue,
         reason: 'the injected failure must actually have fired',
       );
-      expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Retry reloads the editor from scratch', (tester) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Chase the Squirrel',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+
+      failer.arm();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await tester.pumpAndSettle();
+      expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
+      expect(find.byType(TextFormField), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsNothing,
+      );
+      expect(
+        find.widgetWithText(TextFormField, 'Chase the Squirrel'),
+        findsOneWidget,
+        reason: 'one title field with the stored title, not two',
+      );
+    });
+
+    testWidgets('Retry after a mid-edit stream error keeps the typed draft', (
+      tester,
+    ) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Typed Title',
+      );
+      failer.arm();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      await tester.pumpAndSettle();
+      expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsNothing,
+      );
+      expect(find.text('Typed Title'), findsOneWidget);
     });
 
     testWidgets('a subsequent write recovers the editor after a stream error', (
@@ -2785,7 +4661,10 @@ void main() {
         isTrue,
         reason: 'the injected failure must actually have fired',
       );
-      expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
 
       // A new write triggers reference-data stream re-emission, which
       // now succeeds because failer only failed one select.
@@ -2796,7 +4675,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Could not load the dance.'),
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
         findsNothing,
         reason: 'successful stream emission must clear _loadError',
       );
@@ -2804,6 +4683,77 @@ void main() {
         find.byKey(const ValueKey('save-dance')),
         findsOneWidget,
         reason: 'the editor UI must be restored on recovery',
+      );
+    });
+  });
+
+  group('unreadable stored lists are surfaced in the editor (#1347)', () {
+    // The controller can report an unreadable source while the form omits the
+    // warning, and nothing else in the suite would notice: the editor shows an
+    // empty figure list and an empty tune list, which is exactly what a dance
+    // with neither looks like. The editor is the screen where that confusion is
+    // most costly, because the user is one tap from adding content of their own
+    // and replacing text they were never told existed.
+    testWidgets('both notices are shown when both columns are undecodable', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Corrupt',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+      await repos.db.customStatement(
+        'UPDATE dances SET figures_json = ?, tunes_json = ? WHERE id = ?',
+        ['[{"kind":', '[1,2,3]', 'd1'],
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(
+        find.textContaining("The saved figures can't be read"),
+        findsOneWidget,
+      );
+      // The tunes field lives inside the collapsed "More details" panel, so its
+      // notice is built but offstage until the panel is opened. Expand, then
+      // assert the notice is *onstage*: a `skipOffstage: false` finder would
+      // pass on a build where the notice exists but no user can reach it.
+      await _expandMoreDetails(tester);
+      await tester.ensureVisible(
+        find
+            .textContaining(
+              "The saved tunes can't be read",
+              skipOffstage: false,
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining("The saved tunes can't be read"),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('neither notice is shown for a healthy dance', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Fine',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // `skipOffstage: false` deliberately: the tunes notice lays out below the
+      // fold, so an onstage-only finder would report "absent" for a build that
+      // renders it. This asserts it is not in the tree at all.
+      expect(
+        find.textContaining("can't be read", skipOffstage: false),
+        findsNothing,
       );
     });
   });
@@ -2863,5 +4813,78 @@ class _FailOneChoreographersSelect extends drift.QueryInterceptor {
       throw Exception('injected transient choreographers read failure');
     }
     return executor.runSelect(statement, args);
+  }
+}
+
+/// Refuses every choreographer create the way a live natural-key collision
+/// does, so the editor's safety net can be exercised.
+///
+/// The net is unreachable through the real UI once `NamePicker` and the
+/// repository agree — which is the point of the root-cause fix — so the
+/// collision is injected here rather than staged. That is not an artificial
+/// scenario: the picker's options are a cache snapshot, and a row that arrived
+/// between the snapshot and the tap is exactly the divergence this catches.
+class _RefusingChoreographerRepository extends ChoreographerRepository {
+  _RefusingChoreographerRepository(super.db);
+
+  bool fired = false;
+
+  @override
+  Future<String> upsert(
+    Choreographer c, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) {
+    fired = true;
+    return Future.error(
+      const DuplicateNaturalKeyError(
+        table: 'choreographers',
+        column: 'name',
+        value: 'Gene Hubert',
+        holderId: 'c1',
+      ),
+    );
+  }
+}
+
+/// A [DanceRepository] whose [softDelete] suspends on a gate until [release]
+/// is called, so a test can land a second tap inside the write's window.
+class _GatedDanceRepository extends DanceRepository {
+  _GatedDanceRepository(super.db, super.taxonomy);
+
+  final Completer<void> _gate = Completer<void>();
+  int softDeleteCalls = 0;
+
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<void> softDelete(String id, {required DateTime at}) async {
+    softDeleteCalls++;
+    await _gate.future;
+    await super.softDelete(id, at: at);
+  }
+}
+
+/// Throws from [remove] for a dance-editor draft key while
+/// [removeFailuresRemaining] is positive, then delegates. Counts every draft
+/// removal so a test can prove the injected fault actually fired.
+class _FailingDraftRemoveSettingsRepository extends SettingsRepository {
+  _FailingDraftRemoveSettingsRepository(super.db);
+
+  int removeFailuresRemaining = 0;
+  int draftRemoveCalls = 0;
+
+  @override
+  Future<void> remove(String key, {DateTime? at, bool permanent = false}) {
+    if (key.startsWith(kDanceEditorDraftKeyPrefix)) {
+      draftRemoveCalls++;
+      if (removeFailuresRemaining > 0) {
+        removeFailuresRemaining--;
+        return Future.error(StateError('injected draft remove failure'));
+      }
+    }
+    return super.remove(key, at: at, permanent: permanent);
   }
 }

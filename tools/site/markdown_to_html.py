@@ -39,6 +39,7 @@ Markdown were an untrusted community contribution:
 
 from __future__ import annotations
 
+import bisect
 import html
 import re
 import unicodedata
@@ -159,10 +160,34 @@ class Heading:
     text: str
 
 
+@dataclass(frozen=True)
+class ImageRef:
+    """An image the renderer parsed: what it would emit, and roughly where."""
+
+    alt: str  # exactly what the renderer puts in the ``alt`` attribute
+    dest: str  # the destination as authored
+    # 1-based source line, attributed after the fact (see ``_attribute_lines``):
+    # the line holding the image's closing ``)``. For an image on one line that is
+    # the line it is written on; for one that wraps, it is the last line of the
+    # image, which is the destination's line unless a title wraps onto the next.
+    # The renderer does not track lines, so this is read from the source and, if
+    # that reading ever disagrees with the renderer's, approximated by the first
+    # unfenced line mentioning the destination.
+    line: int
+
+
 @dataclass
 class RenderResult:
     html: str
     headings: list[Heading] = field(default_factory=list)
+    # Every ``![alt](dest)`` the renderer parsed, in document order. This is the
+    # renderer's own answer to "what is an image here": fenced code, code spans,
+    # HTML comments, escapes and every nesting level (quotes, lists, tables,
+    # link labels) are already handled by the code that builds the HTML, so a
+    # checker reads this instead of re-deriving it. Raw HTML ``<img>`` and
+    # reference-style ``![a][r]`` are not images to this renderer (they come out
+    # as literal text) and so are not listed.
+    images: list[ImageRef] = field(default_factory=list)
     # Headings whose slug collides with an earlier one. GitHub silently dedups
     # these with a ``-1`` suffix while the in-app reader keys a map by slug and
     # lets the *last* heading win, so a colliding slug means the same
@@ -200,6 +225,7 @@ class _Context:
         self.headings: list[Heading] = []
         self.duplicate_anchors: list[Heading] = []
         self._seen_anchors: set[str] = set()
+        self.images: list[tuple[str, str]] = []
 
     def anchor_for(self, text: str) -> str:
         """The anchor for ``text``, recording a collision rather than renaming.
@@ -265,6 +291,7 @@ def _inline(text: str, ctx: _Context) -> str:
             if parsed is not None:
                 label, dest, title, end = parsed
                 alt = _plain_text(label).strip()
+                ctx.images.append((alt, dest))
                 image_src = ctx.resolve_image(dest)
                 if image_src is not None:
                     title_attr = (
@@ -835,6 +862,134 @@ def _parse_list(lines: list[str], start: int, ctx: _Context) -> tuple[str, int]:
 # ---------------------------------------------------------------------------
 
 
+_CONTAINER_PREFIX_RE = re.compile(r"^(?:\s*>)*\s*(?:(?:[-*+]|\d{1,9}[.)])\s+)?")
+_BARE_FENCE_RE = re.compile(r"^(`{3,}|~{3,})")
+
+
+def _fenced_lines(lines: list[str]) -> set[int]:
+    """Indices of lines inside (or delimiting) fenced code, at any nesting depth.
+
+    Only used to choose which source line an already-detected image is reported
+    on, never to decide whether something is an image. A fence inside a quote or
+    a list item reaches the renderer with its container stripped, so the container
+    prefix (``>`` markers, indentation, a list marker) is stripped here too.
+    """
+    fenced: set[int] = set()
+    fence_char: Optional[str] = None
+    fence_len = 0
+    for index, line in enumerate(lines):
+        bare = _CONTAINER_PREFIX_RE.sub("", line, count=1)
+        marker = _BARE_FENCE_RE.match(bare)
+        if fence_char is not None:
+            fenced.add(index)
+            if (
+                marker
+                and marker.group(1)[0] == fence_char
+                and len(marker.group(1)) >= fence_len
+                and not bare[len(marker.group(1)) :].strip()
+            ):
+                fence_char = None
+            continue
+        if marker:
+            fenced.add(index)
+            fence_char = marker.group(1)[0]
+            fence_len = len(marker.group(1))
+    return fenced
+
+
+def _scan_images(text: str) -> list[tuple[int, str]]:
+    """``(end, dest)`` of each ``![..](..)`` in ``text``, skipping code and escapes."""
+    found: list[tuple[int, str]] = []
+    i = 0
+    length = len(text)
+    while i < length:
+        char = text[i]
+        if char == "\\" and i + 1 < length and text[i + 1] in _ESCAPABLE:
+            i += 2
+            continue
+        if char == "`":
+            code = _code_span_at(text, i)
+            if code is not None:
+                i = code[1]
+                continue
+        if char == "!" and i + 1 < length and text[i + 1] == "[":
+            parsed = _link_at(text, i + 1)
+            if parsed is not None:
+                found.append((parsed[3], parsed[1]))
+                i = parsed[3]
+                continue
+        i += 1
+    return found
+
+
+def _written_images(lines: list[str], fenced: set[int]) -> list[tuple[int, str]]:
+    """``(line index, dest)`` for each image as written, in document order.
+
+    Reads the source the way the renderer does: each run of consecutive
+    unfenced, non-blank lines is joined and scanned as one piece of text, so an
+    image whose syntax wraps over lines is found whole. Each image is placed on
+    the line holding its closing ``)``: its own line when it is on one line, and
+    otherwise its last line, which is the destination's line unless a title wraps
+    onto the next one.
+    """
+    written: list[tuple[int, str]] = []
+    index = 0
+    total = len(lines)
+    while index < total:
+        if index in fenced or not lines[index].strip():
+            index += 1
+            continue
+        first = index
+        pieces: list[str] = []
+        while index < total and index not in fenced and lines[index].strip():
+            pieces.append(lines[index])
+            index += 1
+        starts = [0]
+        for piece in pieces[:-1]:
+            starts.append(starts[-1] + len(piece) + 1)
+        for end, dest in _scan_images("\n".join(pieces)):
+            written.append((first + bisect.bisect_right(starts, end - 1) - 1, dest))
+    return written
+
+
+def _attribute_lines(lines: list[str], found: list[tuple[str, str]]) -> list[ImageRef]:
+    """Give each image the source line it was written on.
+
+    The renderer parses images out of joined paragraphs and recursive blocks, so
+    it does not know source lines. :func:`_written_images` reads the source the
+    same way and, when it finds exactly the destinations the renderer did, in the
+    same order, the images pair up one to one: that is exact, whatever else the
+    document says about the same files (a fenced example, a code span, a link, a
+    mention in prose, a wrapped image, a later reuse).
+
+    If the two ever disagree, each image falls back to the first unfenced line at
+    or after the previous one that still has an unclaimed occurrence of its
+    destination as text, and failing that to the previous line. Only the reported
+    line depends on this; which images exist comes from the renderer alone.
+    """
+    fenced = _fenced_lines(lines)
+    written = _written_images(lines, fenced)
+    if [dest for _, dest in written] == [dest for _, dest in found]:
+        return [
+            ImageRef(alt=alt, dest=dest, line=line_index + 1)
+            for (alt, dest), (line_index, _) in zip(found, written)
+        ]
+    claimed: dict[int, int] = {}
+    cursor = 0
+    refs: list[ImageRef] = []
+    for alt, dest in found:
+        line_index = cursor
+        if dest:
+            for index in range(cursor, len(lines)):
+                if index not in fenced and lines[index].count(dest) > claimed.get(index, 0):
+                    line_index = index
+                    break
+        claimed[line_index] = claimed.get(line_index, 0) + 1
+        cursor = line_index
+        refs.append(ImageRef(alt=alt, dest=dest, line=line_index + 1))
+    return refs
+
+
 def render(
     markdown: str,
     *,
@@ -851,8 +1006,10 @@ def render(
     ctx = _Context(link_resolver, image_resolver)
     normalized = markdown.replace("\r\n", "\n").replace("\r", "\n")
     lines = _strip_html_comments(normalized.split("\n"))
+    html_out = _parse_blocks(lines, ctx)
     return RenderResult(
-        html=_parse_blocks(lines, ctx),
+        html=html_out,
         headings=ctx.headings,
         duplicate_anchors=ctx.duplicate_anchors,
+        images=_attribute_lines(lines, ctx.images),
     )

@@ -5,11 +5,16 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_log_store.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/sync/sync_controller.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/noop_sync_transport.dart';
+import 'support/sync_test_network.dart';
 import 'support/test_repositories.dart';
 
 // Seeded values that MUST NOT appear in the default (scrubbed) export.
@@ -80,6 +85,13 @@ class _FailingReadCrashLogStore extends CrashLogStore {
   Future<void> clear() async {}
 }
 
+/// A store whose clear always fails, as a log file another program holds open
+/// does on Windows.
+class _FailingClearCrashLogStore extends _InMemoryCrashLogStore {
+  @override
+  Future<void> clear() async => throw StateError('log file is in use');
+}
+
 /// Pumps [SettingsScreen] with the diagnostics seams wired to [store] and opens
 /// the Diagnostics section. [onExport] captures the text handed to the saver.
 Future<void> _pumpDiagnostics(
@@ -87,8 +99,10 @@ Future<void> _pumpDiagnostics(
   required CrashLogStore store,
   required void Function(String contents) onExport,
   Set<String> terms = const {_seededTerm},
+  SyncController? sync,
+  CompendiumRepositories? repositories,
 }) async {
-  final repos = openTestRepositories();
+  final repos = repositories ?? openTestRepositories();
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
   final customThemes = CustomThemesController(repos.settings);
@@ -104,6 +118,8 @@ Future<void> _pumpDiagnostics(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
+      builder: (context, child) =>
+          sync == null ? child! : SyncScope(controller: sync, child: child!),
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(
@@ -138,6 +154,61 @@ void main() {
 
   setUp(() {
     store = _InMemoryCrashLogStore();
+  });
+
+  // Most failed passes are results, not crashes, so they leave nothing in the
+  // crash log; an export that refused to run without one could never carry
+  // the sync section to whoever is helping.
+  testWidgets('a sync failure is exported even with an empty crash log, with '
+      'its section and nothing identifying', (tester) async {
+    final repos = openTestRepositories();
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device',
+      store: CompendiumSyncCoordinatorStore(repos),
+      transport: NoopSyncCoordinatorTransport(),
+      passOperation: ({initialStore}) async => const SyncPassResult(
+        SyncPassStatus.failed,
+        failure: SyncFailure(
+          SyncFailureCause.storeFull,
+          step: SyncFailureStep.upload,
+          statusCode: 507,
+        ),
+      ),
+    );
+    addTearDown(coordinator.dispose);
+    final sync = SyncController(
+      settings: repos.settings,
+      syncLocal: repos.syncLocal,
+      coordinator: () => coordinator,
+      reconfigure: ({bool startPass = true}) async {},
+      classifier: const UnmeteredSyncNetwork(),
+    );
+    addTearDown(sync.dispose);
+    await repos.settings.set(kSyncEnabledKey, true);
+    await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+    await sync.load();
+    await sync.syncNow();
+
+    String? exported;
+    await _pumpDiagnostics(
+      tester,
+      store: store,
+      onExport: (contents) => exported = contents,
+      sync: sync,
+      repositories: repos,
+    );
+    await tester.tap(find.byKey(const ValueKey('diagnostics-export')));
+    await tester.pumpAndSettle();
+
+    expect(exported, isNotNull);
+    expect(exported, contains('Mode: scrubbed'));
+    expect(exported, contains('Records: 0'));
+    expect(
+      exported,
+      contains('Last attempt: failed (SYNC-STORE-FULL upload 507)'),
+    );
+    expect(exported, isNot(contains('horse')));
   });
 
   testWidgets('lists recorded entries', (tester) async {
@@ -180,6 +251,75 @@ void main() {
     expect(find.text('Diagnostics log exported.'), findsOneWidget);
   });
 
+  testWidgets('default export withholds a message whose value is in no term', (
+    tester,
+  ) async {
+    // The value was never persisted (or was purged), so the provider's term
+    // set does not contain it: only withholding the message protects it.
+    const unsavedValue = 'Nonpersisted Jig';
+    await store.append(
+      CrashLogRecord(
+        timestampUtc: DateTime.utc(2026, 3, 2, 1),
+        appVersion: '0.1.0',
+        platform: 'testos 1.0',
+        source: 'dance_editor._save',
+        errorType: 'StateError',
+        errorMessage: 'Saving "$unsavedValue" failed',
+        stack: '#0 save (package:compendium_app/main.dart:10:3)',
+      ),
+    );
+
+    String? exported;
+    await _pumpDiagnostics(
+      tester,
+      store: store,
+      onExport: (contents) => exported = contents,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('diagnostics-export')));
+    await tester.pumpAndSettle();
+
+    expect(exported, isNotNull);
+    final text = exported!;
+    expect(text, contains('Mode: scrubbed'));
+    expect(text, isNot(contains(unsavedValue)));
+    expect(text, contains('StateError'));
+    expect(text, contains('dance_editor._save'));
+  });
+
+  testWidgets('default export keeps a typed failure code and says so', (
+    tester,
+  ) async {
+    // FAIL-10: a timeout must be distinguishable from a 404 in the export we
+    // recommend attaching to a bug report, and the header must not claim the
+    // message was removed.
+    await store.append(
+      CrashLogRecord(
+        timestampUtc: DateTime.utc(2026, 3, 2, 1),
+        appVersion: '0.1.0',
+        platform: 'testos 1.0',
+        source: 'dance_list_screen._importOnline',
+        errorType: 'UrlFetchException',
+        errorMessage: 'UrlFetchException(httpStatus, statusCode: 404)',
+        stack: '',
+      ),
+    );
+
+    String? exported;
+    await _pumpDiagnostics(
+      tester,
+      store: store,
+      onExport: (contents) => exported = contents,
+    );
+    await tester.tap(find.byKey(const ValueKey('diagnostics-export')));
+    await tester.pumpAndSettle();
+
+    final text = exported!;
+    expect(text, contains('UrlFetchException(httpStatus, statusCode: 404)'));
+    expect(text, contains('error messages (except typed'));
+    expect(text, isNot(contains(CrashLogRecord.withheldMessage)));
+  });
+
   testWidgets('full-detail toggle exports the unredacted log', (tester) async {
     await store.append(_seededRecord());
 
@@ -219,6 +359,30 @@ void main() {
 
     expect(await store.readRecords(), isEmpty);
     expect(find.byKey(const ValueKey('diagnostics-empty')), findsOneWidget);
+  });
+
+  testWidgets('a failed clear says so and keeps the entries listed', (
+    tester,
+  ) async {
+    final failing = _FailingClearCrashLogStore();
+    await failing.append(_seededRecord());
+
+    await _pumpDiagnostics(tester, store: failing, onExport: (_) {});
+    await tester.tap(find.byKey(const ValueKey('diagnostics-clear')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('diagnostics-clear-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('diagnostics-clear-failed')),
+      findsOneWidget,
+    );
+    expect(
+      find.text("Couldn't clear the diagnostics log. Try again."),
+      findsOneWidget,
+    );
+    expect(find.text('Diagnostics log cleared.'), findsNothing);
+    expect(find.byKey(const ValueKey('diagnostics-entry-0')), findsOneWidget);
   });
 
   testWidgets('shows a load-failure state when the log cannot be read', (

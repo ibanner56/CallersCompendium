@@ -12,12 +12,14 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
 3. **Contra first, forms extensible.** `DanceForm` discriminates now; figure
    taxonomies are per-form so ECD/Squares can add their own later without
    schema surgery.
-4. **Provenance everywhere.** Imported data keeps its raw source payload,
-   external ID, permission/license, and import time.
+4. **Provenance everywhere.** Imported data keeps its source, external ID,
+   permission/license, and import time. (The raw source payload was dropped
+   at schema v21, #781 — see [Provenance](#provenance) below.)
 5. **Soft delete over hard delete** for user-visible entities. The current
-   contract covers all nine syncable kinds: schema v25 (#898) introduced
-   tombstones for the original eight, and schema v34 added them for difficulty
-   levels; see the delete model in [storage.md](storage.md).
+   contract covers all eleven syncable kinds: schema v25 (#898) introduced
+   tombstones for the original eight, schema v34 added them for difficulty
+   levels, and the glossary's two tables were created with them in schema v40
+   (#709); see the delete model in [storage.md](storage.md).
 
 ## Entity overview
 
@@ -48,13 +50,13 @@ erDiagram
 | formation | `Formation` value | see below |
 | mixer | `bool`, default `false` | dancers change partners each time through; a flag orthogonal to `formation` — see below |
 | progression | enum | none/single/double/triple/quadruple/other |
-| phraseStructure | string, default `""` | empty = standard 4×16-beat (A1 A2 B1 B2); otherwise one or more ordered `phrases*bars*beatsPerBar` components, e.g. `6*8*2` or `3*8*2 + 1*4*2`; section labels derive from each component's beat boundaries |
-| figures | ordered `Figure[]` | the transcription; see design/figure-taxonomy.md |
+| phraseStructure | string, default `""` | empty = standard 4×16-beat (A1 A2 B1 B2); otherwise one or more ordered `phrases*bars*beatsPerBar` components, e.g. `6*8*2` or `3*8*2 + 1*4*2`, or named phrases for an English dance, each component prefixed `A:`, `B:` or `C:` (`A:2*4*2 + B:1*8*2`; all named or none, each name once, each played once or twice; labels `A` for once, `A1` `A2` for twice; ADR-006 §9.2 point 8), each number ≤ 1000, ≤ 64 components, ≤ 1000 phrases and ≤ 1,000,000 beats in all (larger values are rejected at parse; an out-of-bounds value already stored loads as the standard structure); section labels derive from each component's beat boundaries |
+| figuresSource | `FigureSource`, a sealed type | the transcription. `DecodedFigures` holds an ordered `Figure[]`; `UnreadableFigures` holds the stored text verbatim when it cannot be decoded (#1347, landed in #1382). Sealed so the second case cannot be read as an empty list by accident, which is the whole point of it. The `Dance` constructor still takes `figures: Figure[]`. See design/figure-taxonomy.md |
 | hook | string | one-line "why call this" description |
 | callingNotes | text | teaching/history notes, dialect-aware free text |
-| status | enum | `active` / `deprecated` / `broken` (mirrors TCB) |
+| status | enum | `active` / `deprecated` / `broken` / `draft` / `variation`. The first three mirror TCB; `draft` and `variation` are app-local additions (#1121) |
 | difficultyLevelId | UUID-like stable ref → DifficultyLevel, nullable | `null` = unspecified; separate from `mixedLevel` |
-| tunes | string[] | suggested music |
+| tunes | string[], derived from `tunesSource` | suggested music. `tunesSource` is a sealed `TunesSource` on the same pattern as `figuresSource`: `DecodedTunes` holds the list, `UnreadableTunes` holds the stored text verbatim when it cannot be decoded (#1347, landed in #1391). The `Dance` constructor still takes `tunes: string[]` |
 | customFields, tags, links, provenance | | see below |
 | createdAt / updatedAt / deletedAt | timestamps | deletedAt = soft delete |
 
@@ -64,7 +66,36 @@ AND-combined, and the per-dance counts stay in lockstep with the detail
 history): *Require "mark performed"* restricts it to performed slots (off by
 default, so the base includes unperformed slots), and *Track calling history for
 all callers* (off + a default caller set) restricts it to programs whose host
-caller matches that default caller (trim + case-insensitive; issue #583).
+caller matches that default caller (trim + case-insensitive; issue #583) or
+whose host caller is unset (#850). Whatever the settings, an alternate slot
+(`isAlt`) counts only once it is marked performed, while a primary counts as
+soon as its program contains the dance (maintainer ruling, 2026-10-28). The
+count, the Called filter, the detail history, venue repeats and the Last-called
+sort share these SQL predicates from `calling_history_scope.dart`; half stats
+apply the same alternate rule in Dart through
+`ProgramSlot.countsTowardCallingHistory`.
+
+A call is dated by its program's `eventDate` when the program has one, else by
+the slot's `performedAt`, else by the program's `updatedAt`
+(`DanceCallingRecord.effectiveDate`, and the same `COALESCE` in the history
+order, last-called and the Last-called sort). `performedAt` is therefore a
+"called" flag whose time matters only for an undated program: marking slots
+days after the event, or past midnight during it, does not move the call, and
+re-dating a program moves its history with no data migration (GIG-2,
+maintainer decision 2026-10-29).
+
+Four performance-tracking settings (`CallingHistoryTracking`, maintainer
+2026-11-05) change only which slots carry a date, never which slots count. The
+history order and Last called give a slot no date when "ignore undated" or
+"ignore not marked performed" is on and the slot fails it
+(`DanceCallingRecord.orderingDate`, `callingHistoryDateSql`): the slot stays in
+the list and in "called ×N", sorts after every dated one, and gives Last called
+nothing. A recency window uses `callingHistoryRecencyDateSql`, which applies the
+same `COALESCE` but only to a slot that is eligible (dated if recency requires
+an event date, performed if it requires performed), so the `updated_at` fallback
+is reachable only with "recency only counts dated programs" off. The two global
+gates (`require_event_date_for_history`, `require_performed_for_history`) still
+decide what counts and override all four.
 
 ### Figure (value object, not a table-per-move)
 ```
@@ -91,7 +122,7 @@ caller matches that default caller (trim + case-insensitive; issue #583).
   orbit]` container (with `orbit` promoted to a first-class move), so the
   simultaneity is recorded structurally rather than as one synthesized move.
   Structural caps: at most `kMaxMeanwhileSides` (**6**) children; a container
-  may contain only one legal opposite-kind container level. Same-kind and
+  may contain containers of the other kinds, one level deep. Same-kind and
   deeper nesting is rejected. Rides
   `figures_json` **additively** (like `customOrigin` / `assumedSubject` /
   `walkthroughOverride`) — **no `figureSchemaVersion` bump**. Because it is one
@@ -99,34 +130,104 @@ caller matches that default caller (trim + case-insensitive; issue #583).
   and the search indexer **flattens** it so each concurrent side stays
   individually matchable (`filterByMove` + FTS). Untrusted on the import path:
   the archive/.ccshare sanitizer recurses into every nested side (scrubbing
-  free text) and enforces the alternating-container depth + child-count caps
+  free text) and enforces the container depth + child-count caps
   defensively (drop invalid nesting, never throw).
 - `modifier` container (#1198): `{move: "modifier", params: {beats: n,
   figures: [<core>, <modifier>, …]}}` — an ordered **composition** figure. The
   first child is the core action and each later child is a modifier rendered
   gerundively; the container's shared `beats` is authoritative for section
   math. Its children use the same recursive codec and remain structurally
-  distinct from the concurrent sides of `meanwhile`.
-- Containers accept 2–6 children and may alternate exactly once:
-  `meanwhile → modifier` or `modifier → meanwhile`. Same-kind nesting and
-  deeper container nesting are rejected by the model and dropped by tolerant
-  decoders; ordinary leaf figures may appear at either level. This bounded
-  rule applies consistently to persistence, archive sanitization, editing, and
-  derived indexing.
+  distinct from the concurrent sides of `meanwhile`. The importers build one
+  from an `A while B` line when `A` is a whole-set core (`long_lines`, `slice`)
+  and `B` a `roll_away` or `give_and_take` (#1415, `whileModifierContainer`).
+  This applies only when no whole-line recognizer already resolves the line
+  and the split is well formed (two non-empty sides). Otherwise the existing
+  reading stands: a ContraDB `while` line splits into a `meanwhile`, a
+  Caller's Box `while` line stays custom, and a degenerate split
+  (`while B`, `A while`) is left unchanged.
+- `sequence` container: `{move: "sequence", params: {beats: n, figures:
+  [<step>, …]}}` — an ordered run of **2–4** figures (`kMaxSequenceFigures`)
+  danced one after another and shown on one line. Ordinary sequence is still
+  the order of the dance's figure list; this container exists so a run can
+  stand where one figure must, most often one side of a `meanwhile` ("ones
+  balance and swing while twos box the gnat, pull by right, and orbit
+  clockwise ½"). As for the other kinds, `params['beats']` is the count
+  section math reads, but the editor keeps it equal to the **sum** of the
+  steps' own counts: a step shows its own Beats field and the container shows
+  only the total. That total must fit **one phrase** of the dance
+  (`PhraseStructure.longestPhraseBeats`, 16 for the standard structure): the
+  editor will not group, convert, ungroup into, or add a step past it. Editing
+  a step already in the sequence (its move or beats) or the phrase structure
+  is not blocked, so `deriveSections` adds a `sequence_exceeds_phrase` warning
+  for any sequence, top-level or nested, that is longer, and the dance can
+  still be saved. A shorthand that expands to a sequence drops an inline count
+  (`bs (20)`), as one expanding to several figures does. One importer builds
+  a sequence: The Caller's Box, for a named compound block whose children all
+  structure (`(8) Neighbor flutterwheel:` over its indented parts), titled
+  with the block's name; see [imports.md](imports.md) §1. ADR-006 §5.4
+  originally proposed no sequence container; it was added for contra on the
+  maintainer's request in the PR that introduced it. ADR-006, accepted in
+  November 2026, adopts it for ECD, with an ECD-only variant whose steps
+  may carry no timing of their own (ADR-006 §5.5). Nothing here implements
+  that yet.
+- Containers accept 2–6 children (2–4 for a `sequence`) and may nest a
+  container of **another** kind exactly once — for example `meanwhile →
+  sequence`, `sequence → modifier` or `modifier → meanwhile`. Same-kind
+  nesting and deeper container nesting are rejected by the model and dropped
+  by tolerant decoders; ordinary leaf figures may appear at either level. This
+  bounded rule applies consistently to persistence, archive sanitization,
+  editing, and derived indexing.
+- **Container title**: any container may carry an optional name in
+  `params['title']` (`containerTitleKey`), read through
+  `Figure.containerTitle`: a caller-meaningful name for the group
+  ("flutterwheel") that every render, canonical included, shows before the
+  group's own line as `"<title> - <rest>"`. It is single-line, at most
+  `kMaxContainerTitleLength` (**80**) UTF-16 units, and normalized
+  (whitespace collapsed, trimmed, clamped, never rejected) by the container
+  factories and the codec; a blank one is not stored. It lives in `params`
+  rather than as a `Figure` field so it is additive for older builds, whose
+  codec and Device Sync carry a container's params through untouched (they
+  keep it without showing it). A `title` param on an ordinary figure is never
+  read as one. When two dances' figures are compared
+  (`figuresCanonicallyIdentical`, `diffFigures`), a top-level sequence counts
+  as its steps, so grouping or naming figures alone never makes a dance a
+  "variation" (the maintainer's decision, made with container titles).
+
+  The editor saves a title through the same role-word canonicalization as a
+  figure's note and a custom figure's text, and shows it back in the reader's
+  dialect. The change that added titles decided this, not the maintainer:
+  a title names choreography, figure-like text that sits on the figure's
+  line, and the Caller's Box importer already stores the names it titles with
+  through `scrubFigureText` ("Open role2s chain to neighbor"), so a typed title
+  and an imported one read alike in every dialect. The alternative, storing a
+  typed title verbatim as dance titles are (#613), was rejected because an
+  imported title would then follow the reader's dialect and a typed one would
+  not. The cost #613 avoids for dance titles is accepted here: a title using
+  a role synonym as an ordinary word, such as "Lady Walpole spin", is stored
+  as "role2 Walpole spin" and reads "robin Walpole spin" under Larks/Robins.
+  The editor's length limit measures a title after that rewrite, so Save
+  never shortens what was typed. It is a name, not choreography, so the figure-diff
+  key (`figureCanonicalKey`) leaves it out, as it does notes.
 - **Display convention** (#594): every human-facing render
   (`FigureRenderer.render`/`renderVerbose`/`renderSummary` — the dance detail
   table, Perform, plain-text export, and PDF export all use these) joins a
   `meanwhile` container's sides with the caller-facing word **"while"**
   ("Larks allemande left 1 while Robins orbit clockwise ½"; 3+ sides chain the
-  same separator). `renderCanonical` is **untouched** — it still joins sides
-  with the structural `meanwhile` move id, so the dedupe/FTS key stays
-  byte-stable. Every surface reads the shared beat count once from
+  same separator). A `sequence` joins its steps as an English list — "A and
+  B", "A, B, and C" — and a step whose stated subject (`who`) repeats the
+  previous step's drops it, so the line reads "ones balance and swing".
+  `renderCanonical` is **untouched** — it still joins sides
+  with the structural `meanwhile` move id (`sequence` for a sequence, every
+  step in full), so the dedupe/FTS key stays byte-stable. A titled container
+  opens every render, `renderCanonical` included, with `"<title> - "`, so its
+  name is searchable; no container stored before titles has one, so no
+  existing index row changes. Every surface reads the shared beat count once from
   `deriveSections`, so the pair never double-counts on screen or in export.
 - Section labels (A1/B2…) are **derived** from cumulative beats +
   phraseStructure, not stored — keeps reordering/beat edits consistent.
 
 ### Formation
-Canonical enum seeded from the TCB vocabulary (duple improper/reverse progression
+Canonical enum seeded from the TCB vocabulary (duple improper/progressed improper/reverse progression
 improper/becket(cw|ccw)/proper/indecent…, triple minor, 3-face-3, 4-face-4,
 circle mixer, Sicilian circle, scatter mixer, longways, triplet, grid, quadruplet,
 other) **plus** an optional free-text `detail`. Enum-with-detail avoids ContraDB's
@@ -151,7 +252,11 @@ exactly as The Caller's Box models it (schema v24, issue #732).
 immutable IDs for Beginner, Intermediate, and Advanced; custom entries receive
 generated UUIDv4 IDs. A dance stores only its selected `difficultyLevelId`, so
 renaming or reordering a vocabulary entry does not rewrite dances. A level
-cannot be deleted while any dance, including a soft-deleted dance, refers to it.
+cannot be deleted while any live dance refers to it; a dance in Recently deleted
+does not count (the maintainer's trash-policy decision, 2026-10-29), and keeps
+its reference to the tombstoned level. A full backup sends such a dance without
+its level; a program share does too for a custom level, while a shipped level
+still resolves through `DifficultyLevel.knownForId` and travels.
 
 ### Choreographer
 `id, name (unique), website?, notes?`. Merge tool needed eventually (imports
@@ -169,6 +274,14 @@ city + stateProv + country), never persisted. A program's free-text
 modes coexist non-destructively: the display/export layer prefers a resolvable
 `venueId`, falling back to the free text. A settings toggle governs the editor's
 entry mode only (free-text field vs. picker); it never rewrites either column.
+Besides the editor's picker (and import and sync, through the ordinary program
+save), the only bulk writer of that link is `ProgramRepository.linkTypedVenues`
+(GIG-7): the user is offered it when records are turned on or a venue is
+created, and it sets `venueId` on live programs whose typed `venue` has the same `VenueKey`, leaving
+the typed text and every trashed program untouched.
+The program editor writes `venueId` only if the person changed it since the editor
+loaded or last saved; otherwise the stored value stands, so a link made while an
+editor was open (this offer, or sync) is not undone by that editor's next save.
 
 ### Program & ProgramSlot
 | Program | ProgramSlot |
@@ -176,14 +289,16 @@ entry mode only (free-text field vs. picker); it never rewrites either column.
 | id, title | id, programId, position |
 | eventDate?, venue?, venueId?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
-| status: draft/final/performed | isAlt: bool (alternate dance, decided at event time) |
+| status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
-| | performedAt? (set when actually called → feeds dance calling history) |
+| | performedAt? (set when marked performed → the "called" flag for dance calling history; its time dates the call only when the program has no eventDate) |
 
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
 a first-class dance-level enum is separate (ROADMAP 4b.1) and a different
-concept. Per-slot, `guestCaller` names a caller other than the host and
+concept. Per-slot, `guestCaller` names who called that slot, usually a caller
+other than the host (a Caller's Companion import keeps the host's name on
+their own slots too when a set has several callers, #1976), and
 `walkthroughMinutes` and `danceMinutes` are optional planned lengths, kept
 structured rather than buried in the free-text `text` note (each is `>= 0`).
 Callers' Companion's legacy `SetItem.Time` total maps to `danceMinutes`; the
@@ -193,13 +308,18 @@ combined planned length is the sum of non-null values.
 alongside the free-text `venue` label; the two persist independently (see Venue
 above) so switching venue-entry modes is lossless.
 
-Duplicate-program = deep copy of slots. The programming matrix is a **view**
+Duplicate-program = deep copy of slots, as a Draft with performed marks, pay
+and event date cleared (a copy is for a different event; LIFE-7). The
+programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
 CC's biggest weakness).
 
 ### CustomFieldDef / CustomFieldValue
 User-defined: `key, label, type (text|number|boolean|choice), choices?,
 showInList, searchable`. Values attach to dances. Typed to keep search sane.
+`searchable` off hides the field's facet *and* keeps its values out of the
+search bar's text index; `boolean` values are never text-indexed (maintainer
+decision search-index (a), 2026-10-29).
 
 ### Tag / DanceTag
 Flat user tags with optional color. (System tags like "verified" not needed
@@ -210,8 +330,9 @@ locally — single-user app.)
 label?`. Covers CC's source area + related dances and TCB's video lists.
 
 ### Provenance
-`danceId, source (callersbox|contradb|callers_companion|manual|json),
-externalId?, importedAt, permission?, license?, sourceVersion?` — drives
+`danceId, source (callersbox|contradb|callersCompanion|manual|json|
+publishedCollection), externalId?, importedAt, permission?, license?,
+sourceVersion?` — drives
 attribution display, honouring permission tiers, and re-import dedupe on
 `(source, externalId)`.
 
@@ -231,7 +352,10 @@ URLs. (Every settings key is classified in
 
 - Dance title non-empty; figures list may be empty (stub/metadata-only import).
 - Figure `move` must exist in the taxonomy for `dance.form` (or be `custom`);
-  `params` must validate against the move's parameter schema.
+  `params` must validate against the move's parameter schema. That taxonomy
+  is `TaxonomyRegistry.forForm(dance.form)`: the form's own taxonomy over
+  contra's, since a move ID with no form prefix is a contra move in a dance
+  of any form (ADR-006 §5.1). Until a form ships its own, it is contra's.
 - Beats ≥ 0; per-phrase overflow is a **warning**, not an error (real dances
   bend phrasing; choreography validation is a later milestone).
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;
@@ -245,9 +369,16 @@ URLs. (Every settings key is classified in
   ux.md §4). A leading/orphaned alt (no preceding primary) is a **non-blocking
   warning** — surfaced by `Program.validate()` (`orphaned_alt`), never a
   construction error, so a program with bad ALT ordering (a reorder bug, an
-  import, a deleted primary) always stays loadable and fixable. `grouped` is
-  total: an orphaned alt renders as its own degenerate group.
-- Deleting a dance (soft) keeps program slots valid; UI shows tombstone.
+  import, or marking the first slot as an alternate) always stays loadable and
+  fixable. The builder does not create one by cutting or moving a primary: its
+  first alternate takes its place (`Program.removeSlotPromotingAlternate`).
+  `grouped` is total: an orphaned alt renders as its own degenerate group.
+- Deleting a dance (soft) keeps program slots valid. While the dance is in
+  Recently deleted every program view shows its title marked as deleted
+  (`resolveDeletedSlotDances` in the app); a dance id that resolves to nothing
+  shows a tombstone. The builder and the summary, not Perform, offer Restore on
+  such a slot (`restoreSlotDanceFromRecentlyDeleted`, the Recently deleted
+  screen's own restore).
 
 ## Explicitly out of v1
 
@@ -281,8 +412,7 @@ flag) toward CC `Author`; privacy-aware, all optional.
 
 **Program / ProgramSlot** — added:
 - `Program`: `band`, `caller`, `dancerLevel` alongside `eventDate`/`venue`/
-  `notes`; optional `timeStart` / running length; `venueId` linking to a
-  reusable [Venue](#venue) (schema v14).
+  `notes`; `venueId` linking to a reusable [Venue](#venue) (schema v14).
 - `ProgramSlot`: structured `caller` (guest) and planned `time`/`length`,
   rather than folding them into the free-text `text` note.
 
@@ -290,7 +420,27 @@ flag) toward CC `Author`; privacy-aware, all optional.
 [Venue](#venue) above) replacing reliance on the free-text `Program.venue`
 string, while keeping that free text as a coexisting fallback.
 
-**New entities (Later milestones — not yet built)** — `GlossaryTerm`
-(term/definition/source). A decision is still open on user-defined quick-entry
-**snippets** (CC "Insert Call" buttons) given our taxonomy type-ahead already
-covers entry speed.
+**UserGlossaryEntry** and **FigureNote** (schema v40, #709) — the user's own
+glossary. A `UserGlossaryEntry` carries a name, definition, description,
+optional keywords and notes, and a kind-specific payload; its `kind` is
+`compound` (a named, parameterised sequence of shipped figures, #709),
+`customFigure` (a figure of the user's own, #1023) or `term` (a word the user
+defines with no figure, the former `GlossaryTerm` idea, #1023). A term's
+payload is its dance `form` and, for one imported from Caller's Companion, its
+`source` citation, plus any keys a newer build stored; a term can be
+given a figure, becoming a `customFigure` under the same id. A `customFigure` payload is a `UserFigureDefinition`
+(`user_figure_definition.dart`): the dance form, a #822 wording template,
+default beats, and the declared parameters, a `choice` parameter's choices
+carrying stable ids beside editable labels. Every kind's payload may name a
+dance `form` (contra when it names none). Every kind's payload carries keys a
+build does not know through an edit. A `FigureNote` is the user's note on one shipped figure.
+Neither is part of a dance; both are carried by backups (`app.glossary`) and by
+Device Sync (once every attached device can read them), not by archives.
+Together they are held to a total size budget when the user writes them
+(`maxUserGlossaryBytes`), which keeps what the user adds from outgrowing a
+backup file; rows that arrive by sync or a restore are exempt. See
+[storage](./storage.md) (schema v40).
+
+**Quick-entry snippets** — the question of user-defined quick-entry
+**snippets** (CC "Insert Call" buttons) is closed: a CC import seeds them as
+`ShorthandMapping`s (#562, `insert_call_shorthands.dart`).

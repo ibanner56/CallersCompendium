@@ -37,12 +37,56 @@ void main() {
     });
   });
 
-  test('rejects colliding normalized object keys without writing', () async {
+  test('keeps colliding normalized object keys and records them', () async {
+    // §4.1 costs the user neither the edit nor a silent discard when a
+    // collision is the only obstacle. Until #1348 this threw
+    // [ShareableJsonKeyCollision] out of `set`
+    // and the save simply failed — while the one-time pass, handed the
+    // identical condition, had always skipped the value and recorded it.
+    final value = {'café': 'first', 'café': 'second'};
+
+    await repo.set('custom_dialects', value);
+
     expect(
-      () => repo.set('custom_dialects', {
-        'café': 'first',
-        'cafe\u0301': 'second',
-      }),
+      await repo.get('custom_dialects'),
+      value,
+      reason:
+          'both entries survive; normalizing key by key would drop whichever '
+          'was written second, which is the silent loss §4.1 skips to avoid',
+    );
+    final skip = await db
+        .customSelect(
+          'SELECT table_name, column_name, record_id FROM normalisation_skips',
+        )
+        .getSingle();
+    expect(skip.data, {
+      'table_name': 'settings',
+      'column_name': 'value_json',
+      'record_id': 'custom_dialects',
+    });
+  });
+
+  test('a kept colliding value is still sanitised', () async {
+    // §4.1 carves out COMPOSITION, not §4.6's sanitiser — which binds every
+    // write path with no carve-out at all. Storing the caller's object verbatim
+    // would let a normalisation collision persist a zero-width space under a
+    // rule that says nothing about invisible characters.
+    await repo.set('custom_dialects', {'café': 'a​b', 'café': 'c​d'});
+
+    expect(await repo.get('custom_dialects'), {'café': 'ab', 'café': 'cd'});
+    expect(
+      (await db.customSelect('SELECT 1 FROM normalisation_skips').get()),
+      hasLength(1),
+    );
+  });
+
+  test('two keys that collide under the sanitiser alone still raise', () async {
+    // Not a normalisation collision: no sanitised form of this object keeps
+    // both entries, so there is nothing for §4.1's carve-out to store.
+    // Raised before the write is scheduled, so the closure form is required:
+    // `set` is not `async`, and a synchronous throw never becomes a Future.
+    expect(
+      () => repo.set('custom_dialects', {'ab': 1, 'a​b': 2}),
       throwsA(isA<ShareableJsonKeyCollision>()),
     );
     expect(await repo.get('custom_dialects'), isNull);
@@ -70,4 +114,45 @@ void main() {
     await repo.set('b', true);
     expect(await repo.all(), {'a': 1, 'b': true});
   });
+
+  test('keysWithPrefix lists exactly the live keys under a prefix', () async {
+    await repo.set('editor_draft:new', 1);
+    await repo.set('editor_draft:new:a', 2);
+    await repo.set('editor_draft:d1', 3);
+    // `_` in the prefix is a LIKE wildcard; this key matches the pattern but
+    // not the prefix.
+    await repo.set('editorXdraft:new:b', 4);
+    await repo.set('editor_draft:new:gone', 5);
+    await repo.remove('editor_draft:new:gone');
+
+    expect((await repo.keysWithPrefix('editor_draft:new'))..sort(), [
+      'editor_draft:new',
+      'editor_draft:new:a',
+    ]);
+  });
+
+  test(
+    'keysWithPrefixNewestFirst orders by the row\'s last write, then key',
+    () async {
+      await repo.set('draft:b', 1, at: DateTime.utc(2026, 1, 2));
+      await repo.set('draft:a', 2, at: DateTime.utc(2026, 1, 1));
+      await repo.set('draft:c', 3, at: DateTime.utc(2026, 1, 3));
+      await repo.set('draft:d', 4, at: DateTime.utc(2026, 1, 3));
+      await repo.set('other:z', 5, at: DateTime.utc(2026, 1, 9));
+      await repo.set('draft:gone', 6, at: DateTime.utc(2026, 1, 9));
+      await repo.remove('draft:gone');
+
+      expect(await repo.keysWithPrefixNewestFirst('draft:'), [
+        'draft:c',
+        'draft:d',
+        'draft:b',
+        'draft:a',
+      ]);
+
+      // A later write moves a key to the front: the order is the latest write,
+      // not the first.
+      await repo.set('draft:a', 7, at: DateTime.utc(2026, 1, 10));
+      expect((await repo.keysWithPrefixNewestFirst('draft:')).first, 'draft:a');
+    },
+  );
 }

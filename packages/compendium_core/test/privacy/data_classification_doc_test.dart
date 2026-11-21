@@ -31,7 +31,11 @@ void main() {
 
   test('the committed catalogue matches the registry', () {
     final file = docFile();
-    final committed = file.readAsStringSync();
+    // Normalize CRLF -> LF so a Windows checkout (Git may convert LF to CRLF in
+    // the working tree) is compared like-for-like against the LF-emitting
+    // renderer. Only line endings are stripped, so real content drift still
+    // fails. See the repository .gitattributes LF policy.
+    final committed = file.readAsStringSync().replaceAll('\r\n', '\n');
 
     expect(
       withRegeneratedCatalogue(committed),

@@ -7,7 +7,8 @@
 /// the update fetcher is **message-safe and silent**: it returns `null` for any
 /// failure (offline, timeout, 404, non-2xx, empty body) so the caller treats a
 /// missing/unavailable manifest as a no-op, never an error dialog (ADR-002 §5).
-/// This matters because the GitHub Pages manifest URL is not live until A11c.
+/// This matters because the GitHub Pages manifest (`beta.json`) can still be
+/// unreachable at any time.
 library;
 
 import 'dart:async';
@@ -46,7 +47,7 @@ typedef UpdateManifestSignatureFetcher =
 ///
 /// Returns the response's **raw bytes** on a 2xx with a non-empty body, or
 /// `null` for a timeout, an unreachable host (offline), a non-2xx status (e.g.
-/// 404 before A11c publishes the page), an empty body, or a body exceeding
+/// 404 if the page is missing), an empty body, or a body exceeding
 /// [kMaxManifestBytes]. Never throws. The body is **streamed** and the read
 /// aborts as soon as the running total exceeds the cap, so an oversized
 /// (misbehaving/compromised) response can never be fully buffered into memory
@@ -78,8 +79,8 @@ Future<List<int>?> fetchUpdateManifest(
     // privacy contract just below; never surfaced as an error.
     return null;
   } on Object {
-    // Any transport failure (offline, DNS, TLS) is a silent no-op per the
-    // privacy contract — never surfaced as an error. A malformed URL is caught
+    // diagnostics: silent — any transport failure (offline, DNS, TLS) is a
+    // silent no-op per the privacy contract, never surfaced as an error. A malformed URL is caught
     // earlier by the Uri.tryParse guard above.
     return null;
   } finally {
@@ -225,8 +226,9 @@ bool _isBlank(List<int> bytes) {
 /// empty body, or a body exceeding [kMaxSignatureBytes]. The body is
 /// **streamed** and the read aborts as soon as the running total exceeds the
 /// cap, so an oversized body is never fully buffered (OWASP A08). Never throws —
-/// a missing signature is a silent no-op the caller turns into "no update"
-/// (fail-closed) rather than an error dialog. The signature is base64 (ASCII),
+/// a missing signature makes the caller fail closed ([UpdateCheckFailure.unauthentic]),
+/// reported by a manual check and silent in the automatic one, never an error
+/// dialog. The signature is base64 (ASCII),
 /// so the bounded bytes are decoded 1:1 to text.
 Future<String?> fetchUpdateManifestSignature(
   UpdateChannel channel, {

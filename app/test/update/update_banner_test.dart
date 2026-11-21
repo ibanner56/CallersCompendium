@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:compendium_app/l10n/app_localizations.dart';
 
 import 'package:compendium_app/src/update/artifact_downloader.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
@@ -53,9 +54,14 @@ UpdateController _controller(
   );
 }
 
-Future<void> _pump(WidgetTester tester, UpdateController controller) async {
+Future<void> _pump(
+  WidgetTester tester,
+  UpdateController controller, {
+  Locale? locale,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       home: Scaffold(
@@ -378,6 +384,62 @@ void main() {
       // "View release" stays available as the fallback, and retry is offered.
       expect(find.byKey(const ValueKey('update-banner-view')), findsOneWidget);
       expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets(
+      'the failure text follows the app language, not English (#1396)',
+      (tester) async {
+        final repos = openTestRepositories();
+        final controller = build(
+          repos,
+          platform: UpdatePlatform.linux,
+          verifier: (file, expected) async => false,
+        );
+        addTearDown(controller.dispose);
+        final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+        final en = await AppLocalizations.delegate.load(const Locale('en'));
+
+        await _pump(tester, controller, locale: const Locale('ja'));
+        await controller.checkNow();
+        await tester.pump();
+        await tester.runAsync(controller.startAssistedDownload);
+        await tester.pump();
+
+        final shown = tester.widget<Text>(
+          find.byKey(const ValueKey('update-banner-error')),
+        );
+        expect(shown.data, ja.updateDownloadFailureChecksumMismatch);
+        expect(shown.data, isNot(en.updateDownloadFailureChecksumMismatch));
+      },
+    );
+
+    testWidgets('a failure re-localizes when the language changes (#1396)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.linux,
+        verifier: (file, expected) async => false,
+      );
+      addTearDown(controller.dispose);
+      final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+      final en = await AppLocalizations.delegate.load(const Locale('en'));
+
+      await _pump(tester, controller, locale: const Locale('en'));
+      await controller.checkNow();
+      await tester.pump();
+      await tester.runAsync(controller.startAssistedDownload);
+      await tester.pump();
+      String? errorText() => tester
+          .widget<Text>(find.byKey(const ValueKey('update-banner-error')))
+          .data;
+      expect(errorText(), en.updateDownloadFailureChecksumMismatch);
+
+      await _pump(tester, controller, locale: const Locale('ja'));
+      await tester.pump();
+
+      expect(errorText(), ja.updateDownloadFailureChecksumMismatch);
     });
 
     testWidgets('a successful flow hands off and shows a completion message', (

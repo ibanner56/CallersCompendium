@@ -1,11 +1,18 @@
+import '../support/announcements.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 
+import '../support/fab_clearance.dart';
+import '../support/fail_once_interceptor.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -15,25 +22,36 @@ import '../support/test_repositories.dart';
 
 Future<void> _pumpScreen(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  bool confirmBeforeDelete = false,
+}) async {
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirm.dispose);
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (_, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (_, child) => ConfirmBeforeDeleteScope(
+        notifier: confirm,
+        child: RepositoriesScope(repositories: repos, child: child!),
+      ),
       home: const CustomFieldsScreen(),
     ),
   );
   await tester.pumpAndSettle();
 }
 
-/// Opens the "New field" form from the screen.
+/// Opens the "New field" form from the screen: the empty message's button
+/// while there are no fields, the floating button once there are.
 Future<void> _openNewForm(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('add-field')));
+  final fab = find.byKey(const ValueKey('add-field'));
+  await tester.tap(
+    fab.evaluate().isEmpty
+        ? find.byKey(const ValueKey('custom-fields-empty-add'))
+        : fab,
+  );
   await tester.pumpAndSettle();
 }
 
@@ -69,7 +87,7 @@ Future<void> _fillAndSave(
     final typeLabel = switch (type) {
       CustomFieldType.text => 'Text',
       CustomFieldType.number => 'Number',
-      CustomFieldType.boolean => 'Boolean',
+      CustomFieldType.boolean => 'Yes/No',
       CustomFieldType.choice => 'Choice',
     };
     await tester.tap(find.text(typeLabel).last);
@@ -155,6 +173,45 @@ void main() {
       expect(saved.first.choices, ['beginner', 'intermediate', 'advanced']);
     });
 
+    testWidgets('choices can be reordered with move buttons, not only by '
+        'dragging', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await _fillAndSave(
+        tester,
+        label: 'Level',
+        key: 'level',
+        type: CustomFieldType.choice,
+        choices: ['beginner', 'intermediate', 'advanced'],
+      );
+      final field = (await repos.customFieldDefs.listAll()).single;
+      expect(field.choices, ['beginner', 'intermediate', 'advanced']);
+
+      await _openEditForm(tester, 'Level');
+      // The ends cannot move past the ends.
+      IconButton button(String choice, String dir) => tester.widget<IconButton>(
+        find.byKey(ValueKey('choice-$choice-move-$dir')),
+      );
+      expect(button('beginner', 'up').onPressed, isNull);
+      expect(button('advanced', 'down').onPressed, isNull);
+
+      final announced = recordAnnouncements();
+      await tester.tap(find.byKey(const ValueKey('choice-beginner-move-down')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('choice-advanced-move-up')));
+      await tester.pumpAndSettle();
+      expect(announced, [
+        'beginner moved to position 2 of 3',
+        'advanced moved to position 2 of 3',
+      ]);
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.customFieldDefs.listAll()).single;
+      expect(saved.choices, ['intermediate', 'advanced', 'beginner']);
+    });
+
     testWidgets('edits a field label without changing type or key', (
       tester,
     ) async {
@@ -178,7 +235,12 @@ void main() {
       expect(find.text('Notes'), findsNothing);
     });
 
-    testWidgets('deletes an unused field after confirmation', (tester) async {
+    testWidgets('refuses a rename onto a key another field holds', (
+      tester,
+    ) async {
+      // Issue #1348: the repository used to keep the old key, raise nothing and
+      // record a normalisation skip. The screen re-reads from the database, so
+      // the un-renamed field simply reappeared with no explanation.
       final repos = openTestRepositories();
       // ignore: unused_result
       await repos.customFieldDefs.upsert(
@@ -189,18 +251,82 @@ void main() {
           type: CustomFieldType.text,
         ),
       );
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'remarks',
+          label: 'Remarks',
+          type: CustomFieldType.text,
+        ),
+      );
       await _pumpScreen(tester, repos);
-      // Tap delete icon.
-      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await _openEditForm(tester, 'Remarks');
+      await tester.enterText(find.byKey(const ValueKey('cf-key')), 'notes');
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
       await tester.pumpAndSettle();
-      // Confirm the dialog.
-      await tester.tap(find.byKey(const ValueKey('delete-confirm')));
-      await tester.pumpAndSettle();
-      expect(find.text('Notes'), findsNothing);
-      expect(await repos.customFieldDefs.listAll(), isEmpty);
+
+      expect(
+        find.byKey(const ValueKey('field-key-duplicate-snackbar')),
+        findsOneWidget,
+      );
+      // Assert the *rename* wording specifically. The create case shows a
+      // different sentence from the same snackbar key, so matching the key
+      // alone would pass with the two branches swapped.
+      expect(find.textContaining("The key wasn't changed"), findsOneWidget);
+      expect((await repos.customFieldDefs.getById('f2'))!.key, 'remarks');
     });
 
-    testWidgets('cancels delete when user dismisses dialog', (tester) async {
+    testWidgets('refuses CREATING a field onto a key a live field holds', (
+      tester,
+    ) async {
+      // The create half of #1348, which that PR's `collidingEdit` ruling did
+      // not reach: `_write` only consults `resolveNaturalKeyCollision` when the
+      // row already exists, so a fresh UUID fell through to the insert and
+      // SQLite refused it with a raw `SqliteException`. This screen catches
+      // `DuplicateNaturalKeyError` only, and the key validator checks format —
+      // never uniqueness — so there was no snackbar, no diagnostic entry and no
+      // field: an action that failed while telling the user nothing.
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('cf-label')),
+        'Second Notes',
+      );
+      await tester.enterText(find.byKey(const ValueKey('cf-key')), 'notes');
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('field-key-duplicate-snackbar')),
+        findsOneWidget,
+      );
+      // The creation wording: nothing was created, and — unlike the rename
+      // case — no key was "not changed", because there was no key to change.
+      expect(
+        find.textContaining("The new field wasn't created"),
+        findsOneWidget,
+      );
+      // The incumbent is untouched and no second definition exists.
+      final defs = await repos.customFieldDefs.listAll();
+      expect(defs, hasLength(1));
+      expect(defs.single.id, 'f1');
+      expect(defs.single.label, 'Notes');
+    });
+
+    testWidgets('deletes an unused field at once, and Undo brings it back', (
+      tester,
+    ) async {
       final repos = openTestRepositories();
       // ignore: unused_result
       await repos.customFieldDefs.upsert(
@@ -214,9 +340,84 @@ void main() {
       await _pumpScreen(tester, repos);
       await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('delete-cancel')));
+      // No dialog: "Confirm before delete" is off by default.
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Notes'), findsNothing);
+      expect(await repos.customFieldDefs.listAll(), isEmpty);
+      expect(find.text('"Notes" deleted.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('custom-field-delete-undo')));
       await tester.pumpAndSettle();
       expect(find.text('Notes'), findsOneWidget);
+      expect(
+        [for (final d in await repos.customFieldDefs.listAll()) d.id],
+        ['f1'],
+      );
+    });
+
+    testWidgets('Undo refuses once a new field has taken the deleted key', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+
+      // A new field with the same key, made while the prompt is up.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'notes',
+          label: 'Remarks',
+          type: CustomFieldType.number,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('custom-field-delete-undo')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('undo-failed-snackbar')),
+        findsOneWidget,
+      );
+      final defs = await repos.customFieldDefs.listAll();
+      expect([for (final d in defs) d.label], ['Remarks']);
+    });
+
+    testWidgets('with Confirm before delete on, Cancel keeps the field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos, confirmBeforeDelete: true);
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.text('Notes'), findsOneWidget);
+      expect(find.text('"Notes" deleted.'), findsNothing);
     });
 
     testWidgets(
@@ -244,8 +445,6 @@ void main() {
         await _pumpScreen(tester, repos);
         await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('delete-confirm')));
-        await tester.pumpAndSettle();
         // Field must still be in the list (not deleted).
         expect(find.text('Notes'), findsOneWidget);
         // Friendly message surfaced via snackbar.
@@ -254,8 +453,76 @@ void main() {
           findsOneWidget,
         );
         expect(find.textContaining("Can't delete"), findsOneWidget);
+        expect(find.textContaining('1 dance.'), findsOneWidget);
       },
     );
+
+    testWidgets('a delete that fails for another reason says so', (
+      tester,
+    ) async {
+      final failer = FailOnceInterceptor(
+        'custom_field_defs',
+        failUpdates: true,
+      );
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+        ),
+        contraTaxonomy,
+      );
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      failer.arm();
+
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+
+      expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+      expect(
+        find.byKey(const ValueKey('delete-failed-snackbar')),
+        findsOneWidget,
+      );
+      expect(find.text('Couldn\'t delete "Notes". Try again.'), findsOneWidget);
+      expect(find.text('Notes'), findsOneWidget);
+    });
+
+    testWidgets('the in-use snackbar pluralises the live dance count', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      for (final id in ['d1', 'd2', 'd3']) {
+        await repos.dances.create(
+          Dance(
+            id: id,
+            title: 'Dance $id',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'n')],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+      }
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('3 dances'), findsOneWidget);
+    });
 
     // ---- form validation ----
 
@@ -354,7 +621,7 @@ void main() {
       await _pumpScreen(tester, repos);
       await _openEditForm(tester, 'Notes');
       // The type dropdown's onChanged should be null (disabled).
-      final dropdown = tester.widget<DropdownButtonFormField<CustomFieldType>>(
+      final dropdown = tester.widget<AppDropdownField<CustomFieldType>>(
         find.byKey(const ValueKey('cf-type')),
       );
       expect(dropdown.onChanged, isNull);
@@ -469,10 +736,9 @@ void main() {
           find.byKey(const ValueKey('cf-key')),
         );
         expect(keyField.enabled, isNot(false));
-        final dropdown = tester
-            .widget<DropdownButtonFormField<CustomFieldType>>(
-              find.byKey(const ValueKey('cf-type')),
-            );
+        final dropdown = tester.widget<AppDropdownField<CustomFieldType>>(
+          find.byKey(const ValueKey('cf-type')),
+        );
         expect(dropdown.onChanged, isNotNull);
       },
     );
@@ -547,8 +813,6 @@ void main() {
         await _pumpScreen(tester, repos);
         await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('delete-confirm')));
-        await tester.pumpAndSettle();
         // Snackbar must say "1 dance" not "1 dances".
         expect(find.textContaining('1 dance'), findsOneWidget);
         expect(find.textContaining('1 dances'), findsNothing);
@@ -596,6 +860,36 @@ void main() {
         );
       },
     );
+
+    testWidgets('a yes/no field\'s Searchable subtitle does not promise the '
+        'search bar', (tester) async {
+      // A yes/no value is never text-indexed (`customFieldIndexesValueText`,
+      // maintainer decision search-index (a)), so its subtitle names the
+      // Filters panel only.
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      String subtitle() =>
+          ((tester
+                      .widget<SwitchListTile>(
+                        find.byKey(const ValueKey('cf-searchable')),
+                      )
+                      .subtitle!)
+                  as Text)
+              .data!;
+      expect(
+        subtitle(),
+        'Offer this field in the Filters panel, and let the search bar find '
+        'its values',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes/No').last);
+      await tester.pumpAndSettle();
+
+      expect(subtitle(), 'Offer this field in the Filters panel');
+    });
 
     testWidgets('shareable toggle defaults to on for new fields', (
       tester,
@@ -660,5 +954,191 @@ void main() {
       final saved = await repos.customFieldDefs.listAll();
       expect(saved.single.shareable, isFalse);
     });
+  });
+
+  // UX2-1e: the form must not close over unsaved changes. A swipe pops the
+  // route directly, past `PopScope`, so the form must not be draggable.
+  group('CustomFieldsScreen form, leaving with unsaved changes', () {
+    const aboveForm = Offset(600, 10);
+    final formTitle = find.text('New custom field');
+
+    testWidgets('the form cannot be dragged and shows no drag handle', (
+      tester,
+    ) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      final sheet = tester.widget<BottomSheet>(find.byType(BottomSheet));
+      expect(sheet.enableDrag, isFalse);
+      expect(sheet.showDragHandle ?? false, isFalse);
+    });
+
+    testWidgets('an untouched form closes on a tap above it', (tester) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.tapAt(aboveForm);
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(formTitle, findsNothing);
+    });
+
+    testWidgets('a typed label asks on a tap above; Keep editing stays', (
+      tester,
+    ) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.enterText(find.byKey(const ValueKey('cf-label')), 'Key');
+      await tester.pump();
+      await tester.tapAt(aboveForm);
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(formTitle, findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('cf-label')),
+          matching: find.text('Key'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a flipped switch asks on Back; Discard creates nothing', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await tester.tap(find.byKey(const ValueKey('cf-show-in-list')));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(formTitle, findsNothing);
+      expect(await repos.customFieldDefs.listAll(), isEmpty);
+    });
+
+    testWidgets('editing a field and putting it back is not a change', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await _fillAndSave(tester, label: 'Key', key: 'key');
+      await _openEditForm(tester, 'Key');
+      await tester.tap(find.byKey(const ValueKey('cf-searchable')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cf-searchable')));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('cf-label')), findsNothing);
+    });
+
+    testWidgets('choices added to a field set back to Text are not a change', (
+      tester,
+    ) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choice').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('choice-input')), 'a');
+      await tester.tap(find.byKey(const ValueKey('add-choice')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Text').last);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(formTitle, findsNothing);
+    });
+
+    testWidgets('a swipe down does not close an edited form', (tester) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.enterText(find.byKey(const ValueKey('cf-label')), 'Key');
+      await tester.pump();
+      await tester.fling(formTitle, const Offset(0, 800), 2000);
+      await tester.pumpAndSettle();
+      expect(formTitle, findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('cf-label')),
+          matching: find.text('Key'),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('CustomFieldsScreen floating New field', () {
+    CustomFieldDef field(int i) {
+      final n = '$i'.padLeft(2, '0');
+      return CustomFieldDef(
+        id: 'f$n',
+        key: 'field_$n',
+        label: 'Field $n',
+        type: CustomFieldType.text,
+      );
+    }
+
+    testWidgets('waits for a list: the empty message carries New field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+
+      expect(
+        find.byKey(const ValueKey('custom-fields-empty-add')),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets('shows once there is a field', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(field(0));
+      await _pumpScreen(tester, repos);
+
+      expect(find.byKey(const ValueKey('add-field')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('custom-fields-empty-add')),
+        findsNothing,
+      );
+    });
+
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last field (${c.name})', (tester) async {
+        final repos = openTestRepositories();
+        for (var i = 0; i < 30; i++) {
+          // ignore: unused_result
+          await repos.customFieldDefs.upsert(field(i));
+        }
+        await _pumpScreen(tester, repos);
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView),
+          lastRow: find.byKey(const ValueKey('field-tile-f29')),
+        );
+      });
+    }
   });
 }

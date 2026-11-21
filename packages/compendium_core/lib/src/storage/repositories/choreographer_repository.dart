@@ -2,9 +2,12 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/choreographer.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
+import '../duplicate_natural_key.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for [Choreographer] rows. "Traditional"/"Unknown" are real rows the
 /// app seeds on first launch, not magic sentinel values — this repository
@@ -22,7 +25,49 @@ class ChoreographerRepository {
   /// Returns the id the choreographer actually occupies — see
   /// `TagRepository.upsert` on natural-key adoption.
   @useResult
-  Future<String> upsert(Choreographer c, {DateTime? at}) {
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  ///
+  /// Throws [DuplicateNaturalKeyError] when the write would rename this
+  /// choreographer onto a name another row already holds, and when it would
+  /// **create** one under a name a *live* row holds. Callers on a user's path
+  /// MUST surface that: it means the write was not saved, and until #1348 the
+  /// old name was kept silently while the editor went on showing the new one.
+  /// See [resolveNaturalKeyCollision] for when the rename case is raised rather
+  /// than §4.1's store-un-normalised carve-out taken, and
+  /// [refuseCreationOntoLiveNaturalKey] for the creation case. A name a
+  /// *tombstone* holds is still adopted, not refused.
+  Future<String> upsert(
+    Choreographer c, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) => _write(c, at: at, fromSync: false, localUserEdit: localUserEdit);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// §6.7 keeps the inbound write off the editor's path. Concretely this
+  /// skips three behaviours that exist for a person editing a record and
+  /// are wrong for a peer's: it does not adopt a tombstoned row's identity
+  /// (identity is reconciliation's decision, and silently relocating the
+  /// record would store it under an id the peer never named), it does not
+  /// take §4.1's collision carve-out when another row holds the incoming value
+  /// (§6.7 refuses the record to reconciliation rather than storing an altered
+  /// copy — or, since #1348, an un-normalised one), and it does not seed
+  /// `existence_at`, which the envelope owns.
+  Future<void> writeFromSync(Choreographer c, {DateTime? at}) async {
+    final _ = await _write(c, at: at, fromSync: true, localUserEdit: false);
+  }
+
+  Future<String> _write(
+    Choreographer c, {
+    required DateTime? at,
+    required bool fromSync,
+    required bool localUserEdit,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       final name = normalizeShareableText(c.name);
@@ -33,13 +78,59 @@ class ChoreographerRepository {
         _db.choreographers,
       )..where((t) => t.id.equals(c.id))).getSingleOrNull();
       final collidingEdit =
-          current != null && incumbent != null && incumbent.id != c.id;
+          !fromSync &&
+          current != null &&
+          incumbent != null &&
+          incumbent.id != c.id;
+      // §4.1's carve-out value, resolved before anything is written: either the
+      // un-normalised form this row keeps, or a throw for a genuine duplicate
+      // (#1348). See [resolveNaturalKeyCollision] for the two questions.
+      final deferredName = collidingEdit
+          ? await resolveNaturalKeyCollision(
+              _db,
+              address: choreographerNameNormalisation,
+              recordId: c.id,
+              storedValue: current.name,
+              incomingValue: c.name,
+              incumbentId: incumbent.id,
+            )
+          : null;
+      if (fromSync && incumbent != null && incumbent.id != c.id) {
+        // Refuse rather than guess: reconciliation owns natural-key
+        // identity, so reaching the writer with the key held by another
+        // row means the record must be reported, not altered to fit.
+        throw StateError(
+          'inbound choreographer "${c.id}" wants a name held by '
+          '"${incumbent.id}"',
+        );
+      }
+      // A creation onto a name another row holds. `current == null` makes
+      // `collidingEdit` false, so the decision above never ran, and a *live*
+      // holder would reach the insert and fail as a raw `SqliteException`. A
+      // tombstoned holder is adopted below instead. Not reachable from the
+      // dance editor today — `name_picker` only offers "create" when nothing
+      // matches case-insensitively — but this repository is public API and the
+      // custom-field twin was reachable.
+      if (!fromSync && current == null && incumbent != null) {
+        refuseCreationOntoLiveNaturalKey(
+          address: choreographerNameNormalisation,
+          normalisedValue: name,
+          incumbentId: incumbent.id,
+          incumbentDeletedAt: incumbent.deletedAt,
+        );
+      }
+      // Keyed on the name actually about to be stored, not on the normalised
+      // target. A carve-out write stores `deferredName`, which usually equals
+      // what the row already held — but need not, so asking whether the stored
+      // bytes change is the question the FTS author text depends on. The old
+      // form asked `!collidingEdit`, which was the same answer only while the
+      // carve-out was incapable of changing the name (#1348).
+      final storedName = deferredName ?? name;
       final authorIndexChanged =
-          (!collidingEdit &&
-              current != null &&
-              (current.name != name || current.deletedAt != null)) ||
+          (current != null &&
+              (current.name != storedName || current.deletedAt != null)) ||
           (current == null && incumbent?.deletedAt != null);
-      final id = collidingEdit
+      final id = (collidingEdit || fromSync)
           ? c.id
           : await adoptTombstonedNaturalKey(
                   _db,
@@ -50,6 +141,7 @@ class ChoreographerRepository {
                   incomingId: c.id,
                   joinTable: _db.danceAuthors,
                   joinColumn: 'choreographer_id',
+                  moreJoinTables: [_db.danceInterpreters],
                 ) ??
                 c.id;
       await _db
@@ -57,9 +149,10 @@ class ChoreographerRepository {
           .insertOnConflictUpdate(
             ChoreographersCompanion.insert(
               id: id,
-              name: collidingEdit
-                  ? current.name
-                  : normalizeShareableText(c.name),
+              // The carve-out stores the *user's* value with NFC deferred, not
+              // the row's previous one. Keeping the old value is what #1348
+              // found: the editor showed a rename the database never took.
+              name: deferredName ?? normalizeShareableText(c.name),
               website: Value(
                 c.website == null ? null : normalizeShareableText(c.website!),
               ),
@@ -73,20 +166,32 @@ class ChoreographerRepository {
             ),
           );
       if (collidingEdit) {
-        await recordNormalisationSkip(
+        await recordNormalisationSkipAt(
           _db,
-          table: 'choreographers',
-          column: 'name',
+          choreographerNameNormalisation,
           recordId: c.id,
         );
       }
-      await applyUpsertExistence(
-        _db,
-        table: _db.choreographers,
-        keyColumn: 'id',
-        key: id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.choreographers,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+        );
+      }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.choreographer,
+          recordId: id,
+          table: _db.choreographers,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
+
       if (authorIndexChanged) {
         await _refreshAuthorIndex(id);
       }
@@ -124,16 +229,29 @@ class ChoreographerRepository {
     return row == null ? null : _toModel(row);
   }
 
-  Future<List<Choreographer>> listAll() async {
-    final rows =
-        await (_db.select(_db.choreographers)
-              ..where((t) => t.deletedAt.isNull())
-              ..orderBy([(t) => OrderingTerm(expression: t.name)]))
-            .get();
+  /// Every live choreographer, by name. With [includeDeleted], soft-deleted
+  /// rows too — see `VenueRepository.listAll` for the one reader that needs it.
+  Future<List<Choreographer>> listAll({bool includeDeleted = false}) async {
+    final query = _db.select(_db.choreographers)
+      ..orderBy([(t) => OrderingTerm(expression: t.name)]);
+    if (!includeDeleted) query.where((t) => t.deletedAt.isNull());
+    final rows = await query.get();
     return rows.map(_toModel).toList();
   }
 
-  /// Throws if [id] is still referenced by any `dance_authors` row — callers
+  /// [listAll]'s live choreographers as a stream, re-emitted after every write
+  /// to `choreographers`: a rename, a details edit, a merge or a delete, made
+  /// here or by a sync pass. The Authors manager lists through it. A single
+  /// `select`, so drift infers the whole read set (see `TagRepository.watchAll`).
+  Stream<List<Choreographer>> watchAll() =>
+      (_db.select(_db.choreographers)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm(expression: t.name)]))
+          .watch()
+          .map((rows) => rows.map(_toModel).toList());
+
+  /// Throws if [id] is still referenced by any `dance_authors` or
+  /// `dance_interpreters` row — callers
   /// should reassign or remove authorship first (deleting a choreographer
   /// silently orphaning credited dances would be a silent data loss bug). The
   /// "still credited?" check and the delete run inside a single transaction
@@ -145,26 +263,91 @@ class ChoreographerRepository {
   /// references, and a tombstone for a still-credited author could not be
   /// applied by a peer anyway.
   ///
-  /// [permanent] hard-deletes instead, for rolling back a just-committed
-  /// import (`ImportPipeline.undo`). A rollback must leave nothing behind: the
-  /// import is being erased, so a tombstone would advertise the deletion of an
-  /// entity that, as far as every other device is concerned, never existed.
-  /// This mirrors `DanceRepository.hardDelete` / `VenueRepository.hardDelete`,
-  /// which are hard deletes on kinds that have had soft delete for far longer.
-  /// The guard applies either way.
+  /// [permanent] removes the row for an unpublished record, for rolling back a
+  /// just-committed import (`ImportPipeline.undo`). A published record is
+  /// tombstoned instead so peers retain deletion evidence. The guard applies
+  /// either way.
+  ///
+  /// [permanent] also **tombstones rather than erases** whenever any
+  /// `dance_authors` row still names this choreographer — the case the live
+  /// guard above lets through because every such dance is itself tombstoned
+  /// (issue #1357). `dance_authors` is `ON DELETE CASCADE`, so erasing here
+  /// would take the tombstoned dance's author credit with it, and restoring
+  /// that dance would bring it back with no author: data loss a rollback has no
+  /// business causing. A tombstone keeps the join row, keeps the choreographer
+  /// out of every live view (which is what `ImportPipeline.undo` needs of it),
+  /// and lets a later restore of both rows show the credit again.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final stillUsed = await (_db.select(
-        _db.danceAuthors,
-      )..where((t) => t.choreographerId.equals(id))).get();
-      if (stillUsed.isNotEmpty) {
+      // Only a *live* dance holds this choreographer back (§3.1: "refuse to
+      // hard-delete an entity still referenced by a live record"). A
+      // soft-deleted dance keeps its `dance_authors` rows — the tombstone
+      // fires no FK cascade — so counting them would block a delete on the
+      // strength of a record that is itself deleted. That regressed import
+      // undo once publication forfeiture started tombstoning published dances
+      // instead of erasing them: the surviving rows made this guard throw, the
+      // caller swallowed it, and the import-created choreographer stayed live.
+      // `CompendiumSyncStorage._hasCitation` counts liveness the same way.
+      // An interpreter credit (`dance_interpreters`) holds the row back
+      // exactly as an author credit does; a dance crediting the person both
+      // ways counts once.
+      final stillUsed =
+          (await _db
+                  .customSelect(
+                    'SELECT COUNT(DISTINCT c.dance_id) AS n FROM ('
+                    'SELECT dance_id FROM dance_authors '
+                    'WHERE choreographer_id = ? '
+                    'UNION ALL SELECT dance_id FROM dance_interpreters '
+                    'WHERE choreographer_id = ?) AS c '
+                    'JOIN dances AS d ON d.id = c.dance_id '
+                    'WHERE d.deleted_at IS NULL',
+                    variables: [Variable<String>(id), Variable<String>(id)],
+                    readsFrom: {
+                      _db.danceAuthors,
+                      _db.danceInterpreters,
+                      _db.dances,
+                    },
+                  )
+                  .getSingle())
+              .read<int>('n');
+      if (stillUsed > 0) {
         throw StateError(
           'cannot delete choreographer "$id": still credited on '
-          '${stillUsed.length} dance(s)',
+          '$stillUsed dance(s)',
         );
       }
       if (permanent) {
+        // Any surviving `dance_authors` row — necessarily a tombstoned dance's,
+        // since a live one threw above — downgrades the erase to a tombstone
+        // rather than cascading that dance's credit away (issue #1357).
+        final creditedBySurvivor =
+            await (_db.select(_db.danceAuthors)
+                      ..where((t) => t.choreographerId.equals(id))
+                      ..limit(1))
+                    .getSingleOrNull() !=
+                null ||
+            await (_db.select(_db.danceInterpreters)
+                      ..where((t) => t.choreographerId.equals(id))
+                      ..limit(1))
+                    .getSingleOrNull() !=
+                null;
+        if (creditedBySurvivor ||
+            await isPublishedSyncRecord(
+              _db,
+              kind: SyncRecordKind.choreographer,
+              recordId: id,
+            )) {
+          await stampExistenceTransition(
+            _db,
+            table: _db.choreographers,
+            keyColumn: 'id',
+            key: id,
+            at: now,
+            deleted: true,
+          );
+          return;
+        }
         await (_db.delete(
           _db.choreographers,
         )..where((t) => t.id.equals(id))).go();
@@ -180,6 +363,33 @@ class ChoreographerRepository {
       );
     });
   }
+
+  /// Explicitly revives a tombstoned choreographer and, by default, cancels
+  /// any pending sync tombstone held for it.
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
+    await stampExistenceTransition(
+      _db,
+      table: _db.choreographers,
+      keyColumn: 'id',
+      key: id,
+      at: at,
+      deleted: false,
+    );
+    if (clearPending) {
+      await clearPendingSyncDeletionForRestore(
+        _db,
+        kind: SyncRecordKind.choreographer,
+        recordId: id,
+        table: _db.choreographers,
+        keyColumn: 'id',
+        at: at,
+      );
+    }
+  });
 
   Choreographer _toModel(ChoreographerRow row) => Choreographer(
     id: row.id,

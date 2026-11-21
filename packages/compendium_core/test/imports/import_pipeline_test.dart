@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_support.dart';
 import 'support/fake_adapter.dart';
 
 String Function() sequentialIds() {
@@ -45,6 +48,7 @@ void main() {
     List<String> authorNames = const [],
     List<String> authorIds = const [],
     String? difficultyLevelLabel,
+    int? rating,
   }) => {
     'id': id,
     'title': title,
@@ -54,10 +58,182 @@ void main() {
     'authorNames': authorNames,
     'authorIds': authorIds,
     'difficultyLevelLabel': ?difficultyLevelLabel,
+    'rating': ?rating,
     'figures': figures,
   };
 
-  group('commit writes provenance transactionally', () {
+  group('plan cooperates with a busy event loop', () {
+    List<Map<String, Object?>> records(int n) => [
+      for (var i = 0; i < n; i++) record('r$i', 'Dance $i'),
+    ];
+
+    test('hands the event loop a turn while parsing a long batch', () async {
+      // A timer fires only when the loop gets a real turn — a chain of
+      // already-complete awaits (microtasks) never lets it. Each parse records
+      // how many timer ticks had happened by then: if planning held the isolate
+      // start to finish they would all read zero.
+      var ticks = 0;
+      final ticksSeenAtParse = <int>[];
+      final adapter = _TickRecordingAdapter(
+        records(40),
+        () => ticks,
+        ticksSeenAtParse,
+      );
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      final batch = await pipeline.plan(
+        adapter,
+        const ImportRequest(),
+        yieldInterval: Duration.zero,
+      );
+
+      expect(batch.records, hasLength(40));
+      expect(ticksSeenAtParse.last, greaterThan(ticksSeenAtParse.first));
+      expect(ticksSeenAtParse.toSet().length, greaterThan(5));
+    });
+
+    test('hands the event loop a turn while deduping a long batch', () async {
+      // The dedupe loop's only await (`_dedupeAuthorNames`) completes as a
+      // microtask when a draft carries author names, so without a real yield it
+      // runs start to finish. Each `verdictFor` records the ticks seen so far.
+      var ticks = 0;
+      final ticksSeenAtDedupe = <int>[];
+      final index = _TickRecordingIndex(
+        [
+          for (var i = 0; i < 2000; i++)
+            DedupeEntry(
+              danceId: 'existing-$i',
+              title: 'Existing Title $i',
+              authorNames: ['Author $i'],
+            ),
+        ],
+        () => ticks,
+        ticksSeenAtDedupe,
+      );
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 200; i++)
+            record(
+              'r$i',
+              'Incoming Dance $i',
+              authorNames: ['Incoming Author $i'],
+            ),
+        ]),
+        const ImportRequest(),
+        index: index,
+        yieldInterval: Duration.zero,
+      );
+
+      expect(batch.records, hasLength(200));
+      expect(ticksSeenAtDedupe, hasLength(200));
+      expect(ticksSeenAtDedupe.last, greaterThan(ticksSeenAtDedupe.first));
+      expect(ticksSeenAtDedupe.toSet().length, greaterThan(5));
+    });
+
+    test('dedupe does not yield with a long interval', () async {
+      var ticks = 0;
+      final seen = <int>[];
+      final index = _TickRecordingIndex(const [], () => ticks, seen);
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 40; i++)
+            record('r$i', 'Dance $i', authorNames: ['A $i']),
+        ]),
+        const ImportRequest(),
+        index: index,
+        yieldInterval: const Duration(hours: 1),
+      );
+
+      expect(seen, hasLength(40));
+      expect(seen.toSet(), {0});
+    });
+
+    test('with a long interval it does not pay for yielding', () async {
+      var ticks = 0;
+      final seen = <int>[];
+      final adapter = _TickRecordingAdapter(records(40), () => ticks, seen);
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      await pipeline.plan(
+        adapter,
+        const ImportRequest(),
+        yieldInterval: const Duration(hours: 1),
+      );
+
+      expect(seen.toSet(), {0}, reason: 'no record was preceded by a yield');
+    });
+
+    test(
+      'reports progress as records are handled, ending at the total',
+      () async {
+        final events = <(int, int)>[];
+        await pipeline.plan(
+          FakeSourceAdapter(records(5)),
+          const ImportRequest(),
+          onProgress: (done, total) => events.add((done, total)),
+        );
+        expect(events.first, (1, 5));
+        expect(events.last, (5, 5));
+        expect([for (final e in events) e.$1], orderedEquals([1, 2, 3, 4, 5]));
+        expect(events.every((e) => e.$2 == 5), isTrue);
+      },
+    );
+
+    test('an empty source reports a single completed progress', () async {
+      final events = <(int, int)>[];
+      await pipeline.plan(
+        FakeSourceAdapter(const []),
+        const ImportRequest(),
+        onProgress: (done, total) => events.add((done, total)),
+      );
+      expect(events, [(0, 0)]);
+    });
+
+    test('yielding does not change the planned result', () async {
+      final input = records(12);
+      final eager = await pipeline.plan(
+        FakeSourceAdapter(input),
+        const ImportRequest(),
+        yieldInterval: Duration.zero,
+      );
+      final steady = await pipeline.plan(
+        FakeSourceAdapter(input),
+        const ImportRequest(),
+        yieldInterval: const Duration(hours: 1),
+      );
+      expect(
+        [for (final r in eager.records) r.draft.dance.title],
+        [for (final r in steady.records) r.draft.dance.title],
+      );
+    });
+  });
+
+  group('commit writes provenance per record', () {
+    test('commit reports progress per record, ending at the total', () async {
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 3; i++) record('p$i', 'Progress Dance $i'),
+        ]),
+        const ImportRequest(),
+      );
+      final events = <(int, int)>[];
+      await pipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        onProgress: (done, total) => events.add((done, total)),
+      );
+      expect(events, [(1, 3), (2, 3), (3, 3), (3, 3)]);
+    });
+
     test('resolves a matching configured custom difficulty label', () async {
       final custom = await difficultyLevels.createCustom(
         label: 'Workshop',
@@ -230,10 +406,164 @@ void main() {
     });
   });
 
+  group('defaultTagIds (issue #1476)', () {
+    late TagRepository tags;
+    late String smooth;
+    late String noCard;
+
+    setUp(() async {
+      tags = TagRepository(db);
+      smooth = await tags.upsert(Tag(id: 'tag-smooth', name: 'Smooth'));
+      noCard = await tags.upsert(Tag(id: 'tag-no-card', name: 'No card'));
+    });
+
+    Future<ImportBatchResult> planOne(String title) => pipeline.plan(
+      FakeSourceAdapter([record('fake-$title', title)]),
+      const ImportRequest(),
+    );
+
+    Future<int> joinRows(String danceId) async =>
+        (await db
+                .customSelect(
+                  'SELECT COUNT(*) AS n FROM dance_tags WHERE dance_id = ?',
+                  variables: [Variable<String>(danceId)],
+                )
+                .getSingle())
+            .read<int>('n');
+
+    test('a created dance receives them, in the given order', () async {
+      final session = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+        defaultTagIds: [noCard, smooth],
+      );
+      final dance = (await dances.getById(session.insertedDanceIds.single))!;
+      expect(dance.tagIds, [noCard, smooth]);
+    });
+
+    test('omitting them leaves the dance untagged (program and archive '
+        'callers rely on this default)', () async {
+      final session = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+      );
+      final dance = (await dances.getById(session.insertedDanceIds.single))!;
+      expect(dance.tagIds, isEmpty);
+    });
+
+    test(
+      'tags the draft already carries are kept, first and not duplicated',
+      () async {
+        final batch = await planOne('Fresh');
+        final plan = batch.records.single;
+        final withOwnTag = ImportBatchResult(
+          records: [
+            ImportRecordPlan(
+              draft: plan.draft.copyWith(
+                dance: plan.draft.dance.copyWith(tagIds: [smooth]),
+              ),
+              verdict: plan.verdict,
+            ),
+          ],
+        );
+        final session = await pipeline.commit(
+          withOwnTag,
+          now: now,
+          newId: nextId,
+          defaultTagIds: [noCard, smooth],
+        );
+        final dance = (await dances.getById(session.insertedDanceIds.single))!;
+        expect(dance.tagIds, [smooth, noCard]);
+      },
+    );
+
+    test('a variation (a new dance) receives them', () async {
+      final seed = await pipeline.commit(
+        await planOne('The Nice Combination'),
+        now: now,
+        newId: nextId,
+      );
+      final existingId = seed.insertedDanceIds.single;
+      final session = await pipeline.commit(
+        await planOne('Nice Combination'),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(existingId)},
+        defaultTagIds: [noCard],
+      );
+      final created = (await dances.getById(session.records.single.danceId!))!;
+      expect(created.tagIds, [noCard]);
+      // The target is only link-edited; it is not a new dance.
+      expect((await dances.getById(existingId))!.tagIds, isEmpty);
+    });
+
+    test('a re-import of an existing dance does not receive them', () async {
+      final first = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+      );
+      final id = first.insertedDanceIds.single;
+      final again = await planOne('Fresh');
+      expect(again.records.single.verdict.isReimport, isTrue);
+      final second = await pipeline.commit(
+        again,
+        now: now,
+        newId: nextId,
+        defaultTagIds: [noCard],
+      );
+      expect(second.insertedDanceIds, isEmpty);
+      expect((await dances.getById(id))!.tagIds, isEmpty);
+    });
+
+    test(
+      'undo removes the new dance and its tag joins, and keeps the tag',
+      () async {
+        final session = await pipeline.commit(
+          await planOne('Fresh'),
+          now: now,
+          newId: nextId,
+          defaultTagIds: [noCard],
+        );
+        final id = session.insertedDanceIds.single;
+        expect(await joinRows(id), 1);
+
+        await pipeline.undo(session);
+
+        expect(await dances.getById(id), isNull);
+        expect(await joinRows(id), 0);
+        expect(await tags.getById(noCard), isNotNull);
+      },
+    );
+
+    test(
+      'an id with no tag row fails that record and leaves no dance behind',
+      () async {
+        final session = await pipeline.commit(
+          await planOne('Fresh'),
+          now: now,
+          newId: nextId,
+          defaultTagIds: ['no-such-tag'],
+        );
+        expect(session.records.single.succeeded, isFalse);
+        expect(await dances.listAll(), isEmpty);
+      },
+    );
+  });
+
   group('re-import by (source, externalId)', () {
     test('updates the same dance + provenance, preserving createdAt', () async {
       final first = FakeSourceAdapter([
-        record('fake-1', 'Original Title', version: 'v1'),
+        record(
+          'fake-1',
+          'Original Title',
+          version: 'v1',
+          figures: [
+            {'beats': 16, 'text': 'old figure'},
+          ],
+        ),
       ]);
       final s1 = await pipeline.commit(
         await pipeline.plan(first, const ImportRequest()),
@@ -243,9 +573,17 @@ void main() {
       final id = s1.insertedDanceIds.single;
       final created = (await dances.getById(id))!.createdAt;
 
-      // Re-fetch the same external record, changed title + version.
+      // Re-fetch the same external record: changed figures, title + version.
       final again = FakeSourceAdapter([
-        record('fake-1', 'Revised Title', version: 'v2'),
+        record(
+          'fake-1',
+          'Revised Title',
+          version: 'v2',
+          figures: [
+            {'beats': 8, 'text': 'new figure'},
+            {'beats': 8, 'text': 'another new figure'},
+          ],
+        ),
       ]);
       final later = DateTime.utc(2026, 8, 1);
       final batch = await pipeline.plan(again, const ImportRequest());
@@ -256,12 +594,93 @@ void main() {
       expect(s2.insertedDanceIds, isEmpty);
 
       final reloaded = (await dances.getById(id))!;
-      expect(reloaded.title, 'Revised Title');
+      expect(figuresOf(reloaded), hasLength(2));
+      // The title is the caller's, not choreography (INTAKE-7).
+      expect(reloaded.title, 'Original Title');
       expect(reloaded.createdAt, created);
+      expect(reloaded.updatedAt, later);
       expect(reloaded.provenance!.sourceVersion, 'v2');
       expect(reloaded.provenance!.importedAt, later);
       // Exactly one dance exists (no duplicate inserted).
       expect((await dances.listAll()).length, 1);
+    });
+
+    test('replaces only the choreography: the caller\'s own fields stay '
+        '(INTAKE-7)', () async {
+      final tagId = await TagRepository(
+        db,
+      ).upsert(Tag(id: 'tag-1', name: 'Favourite'));
+      final first = FakeSourceAdapter([
+        record(
+          'fake-1',
+          'A Dance',
+          authorNames: ['Original Author'],
+          figures: [
+            {'beats': 16, 'text': 'old figure'},
+          ],
+        ),
+      ]);
+      final s1 = await pipeline.commit(
+        await pipeline.plan(first, const ImportRequest()),
+        now: now,
+        newId: nextId,
+        defaultTagIds: [tagId],
+      );
+      final id = s1.insertedDanceIds.single;
+      final imported = (await dances.getById(id))!;
+      final edited = imported.copyWith(
+        callingNotes: 'My notes',
+        walkthrough: 'My walkthrough',
+        rating: 4,
+        status: DanceStatus.broken,
+        links: [
+          DanceLink(
+            id: 'video',
+            kind: LinkKind.video,
+            url: 'https://example.com/video',
+          ),
+        ],
+        updatedAt: DateTime.utc(2026, 7, 20),
+      );
+      await dances.update(edited);
+      final before = (await dances.getById(id))!;
+
+      final later = DateTime.utc(2026, 8, 1);
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([
+            record(
+              'fake-1',
+              'Renamed At The Source',
+              authorNames: ['Someone Else'],
+              figures: [
+                {'beats': 8, 'text': 'new figure'},
+                {'beats': 8, 'text': 'another new figure'},
+              ],
+            ),
+          ]),
+          const ImportRequest(),
+        ),
+        now: later,
+        newId: nextId,
+      );
+      expect(session.records.single.action, CommitAction.reimport);
+
+      final after = (await dances.getById(id))!;
+      expect(figuresOf(after), hasLength(2));
+      expect(after.title, before.title);
+      expect(after.authorIds, before.authorIds);
+      expect(after.callingNotes, 'My notes');
+      expect(after.walkthrough, 'My walkthrough');
+      expect(after.rating, 4);
+      expect(after.status, DanceStatus.broken);
+      expect(after.tagIds, [tagId]);
+      expect(after.links, before.links);
+      // The incoming author is neither credited nor created.
+      expect(session.createdChoreographerIds, isEmpty);
+      expect([
+        for (final c in await choreographers.listAll()) c.name,
+      ], isNot(contains('Someone Else')));
     });
   });
 
@@ -317,6 +736,76 @@ void main() {
       expect(all.single.title, 'Nice Combination');
     });
 
+    // "Same dance — replace" keeps the caller's rating when the incoming
+    // record carries none (share files, Caller's Box), and takes the incoming
+    // one when it has one. Guards the `src.rating ?? keepFrom?.rating` rule in
+    // `_rebuildWithIdentity`: without the fallback the first test sees null.
+    Future<Dance> linkOverRated({int? incomingRating}) async {
+      final existingId = await seedExisting();
+      final rated = (await dances.getById(existingId))!.copyWith(rating: 4);
+      await dances.update(rated);
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination', rating: incomingRating),
+        ]),
+        const ImportRequest(),
+      );
+      final session = await pipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      return (await dances.getById(existingId))!;
+    }
+
+    test('resolution link keeps the existing rating when the incoming record '
+        'carries none', () async {
+      final linked = await linkOverRated();
+      expect(linked.title, 'Nice Combination');
+      expect(linked.rating, 4);
+    });
+
+    test(
+      'resolution link applies an incoming rating over the existing one',
+      () async {
+        final linked = await linkOverRated(incomingRating: 2);
+        expect(linked.rating, 2);
+      },
+    );
+
+    // A source that names no interpreter (every adapter but the native
+    // archive) leaves the linked-over dance's interpreters and their date as
+    // they were, as it does a rating (ADR-006 §9.2).
+    test('resolution link keeps the existing interpreters when the incoming '
+        'record names none', () async {
+      final existingId = await seedExisting();
+      final interpreterId = await choreographers.upsert(
+        Choreographer(id: 'pat', name: 'Pat Shaw'),
+      );
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          interpreterIds: [interpreterId],
+          interpretedOn: PartialDate.parse('1985'),
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.title, 'Nice Combination');
+      expect(linked.interpreterIds, [interpreterId]);
+      expect(linked.interpretedOn, PartialDate.parse('1985'));
+    });
+
     test('resolution duplicate imports a separate new dance', () async {
       await seedExisting();
       final incoming = FakeSourceAdapter([
@@ -332,6 +821,85 @@ void main() {
       expect(session.records.single.action, CommitAction.duplicate);
       expect((await dances.listAll()).length, 2);
     });
+  });
+
+  group('autoResolveAmbiguous', () {
+    test('never links on a title that normalizes to nothing', () async {
+      // '花' and '月' both fold to '' under `normalizeTitle`, and two dances
+      // with no figures have equal choreography fingerprints — so the
+      // exact-normalized-title gate passed on '' == '' and the content check
+      // then linked two unrelated dances. The verdict is hand-built because
+      // fuzzy scoring no longer produces one for empty titles; this guards the
+      // resolver itself against any caller that does.
+      final seeded = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-1', '花')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      final existingId = seeded.insertedDanceIds.single;
+
+      final adapter = FakeSourceAdapter([record('fake-2', '月')]);
+      final discovered = await adapter.discover(const ImportRequest());
+      final draft = adapter.parse(await adapter.fetch(discovered.single));
+      final batch = ImportBatchResult(
+        records: [
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous([
+              DedupeCandidate(danceId: existingId, score: 1.0),
+            ]),
+          ),
+        ],
+      );
+
+      final resolutions = await pipeline.autoResolveAmbiguous(
+        batch,
+        authorNamesOf: (_) => const [],
+      );
+      expect(resolutions[0]?.kind, DedupeResolutionKind.duplicate);
+    });
+
+    for (final (existingTitle, incomingTitle) in [
+      ('Bastringue, La', 'La Bastringue'),
+      ('La Bastringue', 'Bastringue, La'),
+      ('Thanks Les', 'Thanks, Les'),
+    ]) {
+      test('links "$incomingTitle" to "$existingTitle" (#1976)', () async {
+        final seeded = await pipeline.commit(
+          await pipeline.plan(
+            FakeSourceAdapter([record('fake-1', existingTitle)]),
+            const ImportRequest(),
+          ),
+          now: now,
+          newId: nextId,
+        );
+        final existingId = seeded.insertedDanceIds.single;
+
+        final adapter = FakeSourceAdapter([record('fake-2', incomingTitle)]);
+        final discovered = await adapter.discover(const ImportRequest());
+        final draft = adapter.parse(await adapter.fetch(discovered.single));
+        final batch = ImportBatchResult(
+          records: [
+            ImportRecordPlan(
+              draft: draft,
+              verdict: DedupeVerdict.ambiguous([
+                DedupeCandidate(danceId: existingId, score: 1.0),
+              ]),
+            ),
+          ],
+        );
+
+        final resolutions = await pipeline.autoResolveAmbiguous(
+          batch,
+          authorNamesOf: (_) => const [],
+        );
+        expect(resolutions[0]?.kind, DedupeResolutionKind.link);
+        expect(resolutions[0]?.targetDanceId, existingId);
+      });
+    }
   });
 
   group('variation resolution (issue #686)', () {
@@ -470,6 +1038,94 @@ void main() {
       expect(batch.records, isEmpty);
       expect(batch.errors.single.stage, ImportStage.discover);
     });
+
+    test('a second record with the same (source, externalId) in one batch is '
+        'dropped, and the kept record says so', () async {
+      // The dedupe index is a pre-batch snapshot, so both copies were `isNew`
+      // and both were created — two dances with one provenance key, which a
+      // later re-import could then only match one of.
+      final adapter = FakeSourceAdapter([
+        record('dup', 'First Copy'),
+        record('other', 'Other Dance'),
+        record('dup', 'Second Copy'),
+      ]);
+      final batch = await pipeline.plan(adapter, const ImportRequest());
+
+      expect(batch.errors, isEmpty);
+      expect(batch.records.map((r) => r.draft.dance.title), [
+        'First Copy',
+        'Other Dance',
+      ], reason: 'the first occurrence is kept, in discovery order');
+      final kept = batch.records.first.draft;
+      final issue = kept.issues.singleWhere(
+        (i) => i.code == 'duplicate_external_id_in_batch',
+      );
+      expect(issue.severity, ImportIssueSeverity.warning);
+      expect(
+        batch.records[1].draft.issues.map((i) => i.code),
+        isNot(contains('duplicate_external_id_in_batch')),
+      );
+
+      final session = await pipeline.commit(batch, now: now, newId: nextId);
+      expect(session.committedCount, 2);
+      final all = await dances.listAll();
+      expect(
+        all.where((d) => d.provenance?.externalId == 'dup'),
+        hasLength(1),
+        reason: 'one dance per (source, externalId)',
+      );
+    });
+
+    test('two records from different sources that only share a legacy alias '
+        'do not both reimport the same dance', () async {
+      // Pre-namespacing behaviour recorded a bundled dance under its bare
+      // upstream id, regardless of which upstream source it came from — so
+      // a library that received one dance under the old scheme holds a
+      // legacy `(json, "457")` row. A bundle can now contain a *different*
+      // dance from each of two upstream sources that both used id 457; each
+      // independently falls back to that same bare alias, and letting both
+      // reimport would overwrite the one existing dance twice and map two
+      // program slots onto it (row 2's data-loss case).
+      await dances.create(
+        Dance(
+          id: 'existing',
+          title: 'Old Title',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: '457',
+            importedAt: now,
+          ),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      // GenericJsonAdapter's own RawRecord.source is always `json` (the
+      // *receiving* adapter's source); the upstream source only shows up
+      // namespaced into the externalId, which is what these two ids model.
+      final adapter = FakeSourceAdapter(
+        [
+          record('contradb:457', 'Fresh From ContraDB'),
+          record('callersbox:457', 'Fresh From Callers Box'),
+        ],
+        priorExternalIdsById: {
+          'contradb:457': const ['457'],
+          'callersbox:457': const ['457'],
+        },
+      );
+      final batch = await pipeline.plan(adapter, const ImportRequest());
+
+      expect(batch.errors, isEmpty);
+      expect(batch.records, hasLength(2));
+      expect(
+        batch.records.map((r) => r.verdict.kind),
+        everyElement(isNot(DedupeKind.reimport)),
+        reason:
+            'a legacy alias claimed by two distinct current keys in this '
+            'batch must not resolve either of them to a reimport of the '
+            'same existing dance',
+      );
+    });
   });
 
   group('undo', () {
@@ -503,17 +1159,70 @@ void main() {
       );
       final id = s1.insertedDanceIds.single;
 
-      final again = FakeSourceAdapter([record('fake-1', 'After')]);
+      final again = FakeSourceAdapter([
+        record(
+          'fake-1',
+          'After',
+          figures: [
+            {'beats': 16, 'text': 'new figure'},
+          ],
+        ),
+      ]);
       final s2 = await pipeline.commit(
         await pipeline.plan(again, const ImportRequest()),
         now: DateTime.utc(2026, 9, 1),
         newId: nextId,
       );
-      expect((await dances.getById(id))!.title, 'After');
+      expect(figuresOf((await dances.getById(id))!), hasLength(1));
 
       await pipeline.undo(s2);
       final restored = (await dances.getById(id))!;
       expect(restored.title, 'Before');
+      expect(figuresOf(restored), isEmpty);
+      expect(restored.updatedAt, now);
+    });
+
+    test('restores a dance two rows linked to in one batch to its true '
+        'pre-import state, not the intermediate one', () async {
+      final seeded = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-1', 'The Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      final targetId = seeded.insertedDanceIds.single;
+
+      // Two review rows (both fuzzy-ambiguous against the seeded dance), both
+      // resolved "Link to <The Nice Combination>". The prior state captured
+      // for the second link is the first link's result, so a forward-order
+      // restore left the dance at 'Nice Combination'.
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination'),
+          record('fake-3', 'A Nice Combination'),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.map((r) => r.verdict.isAmbiguous), [true, true]);
+      final session = await pipeline.commit(
+        batch,
+        now: DateTime.utc(2026, 9, 1),
+        newId: nextId,
+        resolutions: {
+          0: DedupeResolution.link(targetId),
+          1: DedupeResolution.link(targetId),
+        },
+      );
+      expect(session.records.map((r) => r.action), [
+        CommitAction.link,
+        CommitAction.link,
+      ]);
+      expect((await dances.getById(targetId))!.title, 'A Nice Combination');
+
+      await pipeline.undo(session);
+      expect((await dances.getById(targetId))!.title, 'The Nice Combination');
     });
     group('author name resolution', () {
       Future<List<String>> authorNamesOf(String danceId) async {
@@ -629,8 +1338,7 @@ void main() {
         // brings that author back to life. Undo used to leave it live — the
         // author reappeared permanently after a rolled-back import — and the
         // revival had stamped `existence_at` strictly past the user's deletion,
-        // so once a sync client exists the resurrection would outrank that
-        // deletion on every peer.
+        // so the resurrection would outrank that deletion on every peer.
         //
         // Undo must return it to the state it was in (deleted), NOT erase it:
         // the row predates the import and the user may still restore it.
@@ -864,7 +1572,7 @@ void main() {
         },
       );
 
-      test('reimport replaces the resolved authors', () async {
+      test('reimport keeps the dance\'s authors and creates none', () async {
         final first = FakeSourceAdapter([
           record('fake-1', 'Same', authorNames: ['First Author']),
         ]);
@@ -879,12 +1587,162 @@ void main() {
         final again = FakeSourceAdapter([
           record('fake-1', 'Same', authorNames: ['Second Author']),
         ]);
-        await pipeline.commit(
+        final s2 = await pipeline.commit(
           await pipeline.plan(again, const ImportRequest()),
           now: DateTime.utc(2026, 9, 1),
           newId: nextId,
         );
+        expect(await authorNamesOf(id), ['First Author']);
+        expect(s2.records.single.authorResolutions, isEmpty);
+        expect(s2.createdChoreographerIds, isEmpty);
+        expect([
+          for (final c in await choreographers.listAll()) c.name,
+        ], isNot(contains('Second Author')));
+      });
+
+      /// [batch] with each re-import verdict set to also take the title and
+      /// credit, as the review sets it for a ticked row.
+      ImportBatchResult withTitleAndCredit(ImportBatchResult batch) =>
+          ImportBatchResult(
+            records: [
+              for (final r in batch.records)
+                ImportRecordPlan(
+                  draft: r.draft,
+                  verdict: r.verdict.isReimport
+                      ? DedupeVerdict.reimport(
+                          r.verdict.targetDanceId!,
+                          alsoTitleAndCredit: true,
+                        )
+                      : r.verdict,
+                ),
+            ],
+          );
+
+      test('a re-import that also takes the title and credit resolves the '
+          'incoming authors, and keeps everything else', () async {
+        final first = FakeSourceAdapter([
+          record(
+            'fake-1',
+            'Old Title',
+            authorNames: ['First Author'],
+            figures: [
+              {'beats': 16, 'text': 'old figure'},
+            ],
+          ),
+        ]);
+        final s1 = await pipeline.commit(
+          await pipeline.plan(first, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+        final imported = (await dances.getById(id))!;
+        await dances.update(
+          imported.copyWith(
+            callingNotes: 'My notes',
+            rating: 5,
+            updatedAt: DateTime.utc(2026, 7, 20),
+          ),
+        );
+
+        final s2 = await pipeline.commit(
+          withTitleAndCredit(
+            await pipeline.plan(
+              FakeSourceAdapter([
+                record(
+                  'fake-1',
+                  'Corrected Title',
+                  authorNames: ['Second Author'],
+                  figures: [
+                    {'beats': 8, 'text': 'new figure'},
+                    {'beats': 8, 'text': 'another new figure'},
+                  ],
+                ),
+              ]),
+              const ImportRequest(),
+            ),
+          ),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect(s2.records.single.action, CommitAction.reimport);
+        final after = (await dances.getById(id))!;
+        expect(after.title, 'Corrected Title');
         expect(await authorNamesOf(id), ['Second Author']);
+        expect(figuresOf(after), hasLength(2));
+        expect(after.callingNotes, 'My notes');
+        expect(after.rating, 5);
+        expect(s2.createdChoreographerIds, hasLength(1));
+
+        // Undo puts the title and credit back, and removes the author it made.
+        await pipeline.undo(s2);
+        final restored = (await dances.getById(id))!;
+        expect(restored.title, 'Old Title');
+        expect(await authorNamesOf(id), ['First Author']);
+        expect([
+          for (final c in await choreographers.listAll()) c.name,
+        ], isNot(contains('Second Author')));
+      });
+
+      test('a re-import that also takes the title and credit keeps the '
+          'dance\'s credit when the record carries none', () async {
+        final s1 = await pipeline.commit(
+          await pipeline.plan(
+            FakeSourceAdapter([
+              record('fake-1', 'Same', authorNames: ['First Author']),
+            ]),
+            const ImportRequest(),
+          ),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+
+        await pipeline.commit(
+          withTitleAndCredit(
+            await pipeline.plan(
+              FakeSourceAdapter([record('fake-1', 'Renamed')]),
+              const ImportRequest(),
+            ),
+          ),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect((await dances.getById(id))!.title, 'Renamed');
+        expect(await authorNamesOf(id), ['First Author']);
+      });
+
+      test('a re-import that also takes the title and credit never writes '
+          'author ids it did not resolve', () async {
+        final s1 = await pipeline.commit(
+          await pipeline.plan(
+            FakeSourceAdapter([
+              record('fake-1', 'Same', authorNames: ['First Author']),
+            ]),
+            const ImportRequest(),
+          ),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+
+        // A sender's ids with no names to resolve them by (a shared file whose
+        // choreographer entry is missing) name no choreographer here.
+        final s2 = await pipeline.commit(
+          withTitleAndCredit(
+            await pipeline.plan(
+              FakeSourceAdapter([
+                record('fake-1', 'Renamed', authorIds: ['senders-id']),
+              ]),
+              const ImportRequest(),
+            ),
+          ),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect(s2.records.single.succeeded, isTrue);
+        expect((await dances.getById(id))!.title, 'Renamed');
+        expect(await authorNamesOf(id), ['First Author']);
       });
 
       test('undo removes a choreographer created by the batch', () async {
@@ -1017,4 +1875,273 @@ void main() {
       expect(await countingChoreographers.listAll(), hasLength(2));
     });
   });
+
+  group('a record that fails leaves no dance or author writes', () {
+    late _FailingDanceRepository failing;
+    late ImportPipeline failingPipeline;
+
+    setUp(() {
+      failing = _FailingDanceRepository(db, contraTaxonomy);
+      failingPipeline = ImportPipeline(failing, choreographers);
+    });
+
+    Future<List<String>> liveAuthorNames() async => [
+      for (final c in await choreographers.listAll()) c.name,
+    ];
+
+    // Live and tombstoned rows: tells an erased author from a tombstoned one.
+    Future<List<String>> allAuthorNames() async => [
+      for (final c in await choreographers.listAll(includeDeleted: true))
+        c.name,
+    ];
+
+    Future<String> seedDance(String externalId, String title) async {
+      final s = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([record(externalId, title)]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      return s.insertedDanceIds.single;
+    }
+
+    test('reimport onto a hard-deleted target creates no author', () async {
+      final target = await seedDance('fake-1', 'Original');
+      final batch = await failingPipeline.plan(
+        FakeSourceAdapter([
+          record('fake-1', 'Revised', authorNames: ['Fresh Author']),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.single.verdict.isReimport, isTrue);
+      await dances.hardDelete([target]);
+
+      final session = await failingPipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+      );
+
+      expect(
+        session.records.single.error?.message,
+        contains('no longer exists'),
+      );
+      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+      expect(session.revivedChoreographerIds, isEmpty);
+    });
+
+    test('a throwing create rolls back the new author', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Fresh Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      // Across tombstones too: a created author is erased, not tombstoned —
+      // no peer ever saw it, so a deletion record would advertise nothing.
+      expect(await allAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+    });
+
+    test('a variation whose reciprocal target update throws leaves neither '
+        'the new dance nor its author', () async {
+      final target = await seedDance('fake-1', 'The Nice Combination');
+      final batch = await failingPipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination', authorNames: ['Fresh Author']),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.single.verdict.isAmbiguous, isTrue);
+      // The new dance's create succeeds; only the target's link-back fails.
+      failing.failTitles.add('The Nice Combination');
+
+      final session = await failingPipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(target)},
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect([for (final d in await dances.listAll()) d.id], [target]);
+      expect((await dances.getById(target))!.links, isEmpty);
+      expect(session.insertedDanceIds, isEmpty);
+      expect(session.updatedDancePriorStates, isEmpty);
+      expect(await allAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+    });
+
+    test('a throwing reimport update leaves no author behind', () async {
+      final target = await seedDance('fake-1', 'Original');
+      // A re-import keeps the dance's title, so the write that fails is the
+      // one carrying 'Original'.
+      failing.failTitles.add('Original');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Revised', authorNames: ['Fresh Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      expect((await dances.getById(target))!.title, 'Original');
+    });
+
+    test('a failed record puts a revived author back to tombstoned', () async {
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'old', name: 'Old Hand'));
+      await choreographers.delete('old');
+      expect(await liveAuthorNames(), isNot(contains('Old Hand')));
+
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Old Hand']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect(await liveAuthorNames(), isNot(contains('Old Hand')));
+      // Re-tombstoned, not erased: the row predates the import and stays
+      // restorable.
+      expect(await allAuthorNames(), contains('Old Hand'));
+      expect(session.revivedChoreographerIds, isEmpty);
+    });
+
+    test('a later record may credit the author a failed record rolled back '
+        '(no phantom id left in the batch name map)', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Shared Author']),
+            record('fake-2', 'Survivor', authorNames: ['Shared Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records[0].error, isNotNull);
+      expect(session.records[1].error, isNull);
+      final survivor = (await dances.getById(session.insertedDanceIds.single))!;
+      final authors = await choreographers.listAll();
+      expect(authors.where((c) => c.name == 'Shared Author'), hasLength(1));
+      expect(survivor.authorIds, [authors.single.id]);
+      expect(session.createdChoreographerIds, [authors.single.id]);
+    });
+
+    test('a failed record does not delete an author an earlier record in '
+        'the batch created and credited', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Survivor', authorNames: ['Shared Author']),
+            record('fake-2', 'Doomed', authorNames: ['Shared Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records[1].error, isNotNull);
+      final survivor = (await dances.getById(session.insertedDanceIds.single))!;
+      final authors = await choreographers.listAll();
+      expect(authors.map((c) => c.name), ['Shared Author']);
+      expect(survivor.authorIds, [authors.single.id]);
+      expect(session.createdChoreographerIds, [authors.single.id]);
+    });
+  });
+}
+
+/// A [FakeSourceAdapter] that notes, at each `parse`, how many event-loop timer
+/// ticks had elapsed — so a test can tell whether planning ever yielded.
+class _TickRecordingAdapter extends FakeSourceAdapter {
+  _TickRecordingAdapter(super.records, this._ticks, this._seen);
+
+  final int Function() _ticks;
+  final List<int> _seen;
+
+  @override
+  StructuredDraft parse(RawRecord raw) {
+    _seen.add(_ticks());
+    return super.parse(raw);
+  }
+}
+
+/// A [DedupeIndex] that records how many event-loop ticks had happened at each
+/// `verdictFor` call — the dedupe-side twin of [_TickRecordingAdapter].
+class _TickRecordingIndex extends DedupeIndex {
+  _TickRecordingIndex(super.entries, this._ticks, this._seen);
+
+  final int Function() _ticks;
+  final List<int> _seen;
+
+  @override
+  DedupeVerdict verdictFor({
+    required ProvenanceSource source,
+    String? externalId,
+    Iterable<String> priorExternalIds = const [],
+    required String title,
+    Iterable<String> authorNames = const [],
+    double threshold = DedupeIndex.defaultThreshold,
+  }) {
+    _seen.add(_ticks());
+    return super.verdictFor(
+      source: source,
+      externalId: externalId,
+      priorExternalIds: priorExternalIds,
+      title: title,
+      authorNames: authorNames,
+      threshold: threshold,
+    );
+  }
+}
+
+/// A [DanceRepository] whose `create`/`update` throw for chosen titles, to drive
+/// a failure after the pipeline has already resolved a record's authors.
+class _FailingDanceRepository extends DanceRepository {
+  _FailingDanceRepository(super.db, super.taxonomy);
+
+  final Set<String> failTitles = {};
+
+  @override
+  Future<void> create(Dance dance) {
+    if (failTitles.contains(dance.title)) {
+      throw StateError('injected create failure');
+    }
+    return super.create(dance);
+  }
+
+  @override
+  Future<void> update(Dance dance, {bool localUserEdit = false}) {
+    if (failTitles.contains(dance.title)) {
+      throw StateError('injected update failure');
+    }
+    return super.update(dance, localUserEdit: localUserEdit);
+  }
 }

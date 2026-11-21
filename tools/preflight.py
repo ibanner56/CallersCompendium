@@ -24,6 +24,17 @@ Missing toolchains are visibly skipped by default, so cloud and local sessions
 without FVM still run every applicable Python gate. Pass --require-available
 to make a selected unavailable gate fail instead.
 
+The Dart/Flutter steps hold a machine-wide lock, because their cost is measured
+in gigabytes rather than seconds: on a 16-thread, 16 GB Windows host `app-tests`
+alone peaked at 5.1 GB resident (eight `flutter_tester` processes plus the tool
+and its compiler) and drove system commit to 18.46 GB of an 18.8 GB limit. Two
+preflights at once therefore do not fit, and the failure is not a red gate --
+the second run is killed by whatever reaps processes when the host runs out of
+memory, which reads as an infrastructure flake and buys a retry that fails the
+same way. Runs now queue instead: the lock is taken before the first Dart step
+that will actually run and released at the end, so `--fast` runs and the Python
+gates of a full run never wait for it. Pass --no-lock to opt out.
+
 Exit codes: 0 = every selected step passed or was skipped, 1 = invalid selection
 or a selected step failed / was unavailable under --require-available.
 """
@@ -31,16 +42,38 @@ or a selected step failed / was unavailable under --require-available.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import importlib
+import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Sequence
+from pathlib import Path, PurePath
+from typing import IO, Sequence
 
 ROOT = Path(__file__).resolve().parent.parent
 FAIL_TAIL_LINES = 12
+
+# One lock per machine, not per checkout: the constraint is the host's memory,
+# and the sessions that collide are in *different* worktrees. The per-user temp
+# directory is the right home for it -- every session here runs as the same user,
+# and a lock that vanishes on reboot is a lock that cannot go stale across one.
+TOOLCHAIN_LOCK = Path(tempfile.gettempdir()) / "callers-compendium-preflight.lock"
+LOCK_POLL_SECONDS = 2.0
+
+# Half the cores, capped at 4. `flutter test` otherwise defaults to
+# `numberOfProcessors / 2` test processes -- 8 here -- and each holds a full
+# engine: measured 5.1 GB peak at 8 against 3.3 GB at 4, for 196s against
+# 208-235s over three capped runs. Half a minute is worth 1.8 GB on a host whose
+# spare commit is ~5 GB. CI pins its own concurrency (`-j 4` on the app test
+# wrapper, `--concurrency=4` / `-j 4` on the other test commands, enforced by
+# test_preflight.py), so this cap does not reach it.
+MAX_TEST_JOBS = 4
+TEST_JOBS_ENV = "PREFLIGHT_TEST_JOBS"
 
 
 @dataclass(frozen=True)
@@ -61,8 +94,93 @@ class Step:
     needs_path: Path | None = None
 
 
+def test_jobs(environ: Mapping[str, str], cpu_count: int | None) -> int:
+    """Concurrency for the Flutter test step: see MAX_TEST_JOBS.
+
+    Raises ValueError for an unusable override rather than falling back to the
+    default: a typo in the variable that is there to bound memory should say so,
+    not silently restore the 8-process run it was set to prevent.
+    """
+    override = environ.get(TEST_JOBS_ENV)
+    if override is not None:
+        try:
+            jobs = int(override)
+        except ValueError:
+            raise ValueError(f"{TEST_JOBS_ENV}={override!r} is not an integer") from None
+        if jobs < 1:
+            raise ValueError(f"{TEST_JOBS_ENV}={override!r} must be at least 1")
+        return jobs
+    return max(1, min(MAX_TEST_JOBS, (cpu_count or 2 * MAX_TEST_JOBS) // 2))
+
+
+try:
+    TEST_JOBS = test_jobs(os.environ, os.cpu_count())
+except ValueError as error:
+    sys.exit(f"preflight: {error}")
+
+
+def _lock_exclusive(handle: IO[str]) -> None:
+    """Take a whole-file advisory lock, or raise OSError if another run holds it.
+
+    Both implementations are tied to the open file, so the OS drops the lock when
+    this process exits however it exits -- including the low-memory kill this
+    lock exists to prevent. That is why there is no PID file and no staleness
+    check: a lock that outlives its holder would need one, and this cannot.
+    """
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock(handle: IO[str]) -> None:
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextlib.contextmanager
+def toolchain_lock() -> Iterator[None]:
+    """Serialize the Dart/Flutter steps against every other preflight on the host."""
+    with open(TOOLCHAIN_LOCK, "a+", encoding="utf-8") as handle:
+        announced = False
+        while True:
+            try:
+                _lock_exclusive(handle)
+                break
+            except OSError:
+                if not announced:
+                    print(
+                        f"wait {'toolchain':16} another preflight holds "
+                        f"{TOOLCHAIN_LOCK.name}; queued behind it",
+                        flush=True,
+                    )
+                    announced = True
+                time.sleep(LOCK_POLL_SECONDS)
+        try:
+            yield
+        finally:
+            _unlock(handle)
+
+
 def py(*args: str) -> tuple[str, ...]:
-    return (sys.executable, *args)
+    if not args:
+        return (sys.executable,)
+
+    # Automatically switch separators based on the host OS
+    normalized_script = str(PurePath(args[0]))
+    remaining_args = args[1:]
+
+    return (sys.executable, normalized_script, *remaining_args)
 
 
 def fvm(*args: str) -> tuple[str, ...]:
@@ -80,6 +198,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/test_preflight.py"),),
     ),
     Step(
+        "classify-gate",
+        "the CI path-classification gate's own logic (routes changes to their guards)",
+        (py("tools/ci/test_classify_changes.py"),),
+    ),
+    Step(
         "agent-context",
         "resident agent instructions stay within their byte budget",
         (
@@ -88,14 +211,19 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
-        "device-sync-tracking",
-        "ADR-004 work units, dependencies, evidence, and Project projection",
+        "branch-citations",
+        "docs and code comments cite no git branch but main (the cited record is on main)",
         (
-            py("tools/tracking/test_validate.py"),
-            py("tools/tracking/test_validate_pr.py"),
-            py("tools/tracking/test_sync_project.py"),
-            py("tools/tracking/test_workflow_integration.py"),
-            py("tools/tracking/validate.py"),
+            py("tools/ci/test_check_branch_citations.py"),
+            py("tools/ci/check_branch_citations.py"),
+        ),
+    ),
+    Step(
+        "doc-gate-references",
+        "developer docs cite only tool scripts that exist, and cited gates have tests",
+        (
+            py("tools/ci/test_check_doc_gate_references.py"),
+            py("tools/ci/check_doc_gate_references.py"),
         ),
     ),
     Step(
@@ -109,11 +237,66 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_report_comment_weight.py"),),
     ),
     Step(
+        "core-changelog-advisory",
+        "the core-changelog advisory's own logic (the report itself is PR-only)",
+        (py("tools/ci/test_report_missing_core_changelog.py"),),
+    ),
+    Step(
+        "figure-namesakes-advisory",
+        "the figure-namesake advisory's own logic (the report itself is PR-only)",
+        (py("tools/ci/test_report_figure_namesakes.py"),),
+    ),
+    Step(
         "app-version",
         "the app release-version format and kAppVersion match app/pubspec.yaml",
         (
             py("tools/ci/test_check_app_version.py"),
             py("tools/ci/check_app_version.py"),
+        ),
+    ),
+    Step(
+        "linux-runner",
+        "the Linux build legs run in the ubuntu:22.04 container that sets the documented glibc floor, and check the bundle against it",
+        (
+            py("tools/ci/test_check_linux_build_runner.py"),
+            py("tools/ci/test_check_linux_glibc_floor.py"),
+        ),
+    ),
+    Step(
+        "apple-native-tests",
+        "CI's ios and macos build legs run the native Swift RunnerTests when Apple native code changes",
+        (
+            py("tools/ci/test_check_apple_native_tests.py"),
+            py("tools/ci/check_apple_native_tests.py"),
+        ),
+    ),
+    Step(
+        "android-unit-tests",
+        "ci.yml's Android build leg runs the Kotlin JVM unit tests after the build",
+        (py("tools/ci/test_check_android_unit_tests.py"),),
+    ),
+    Step(
+        "ios-privacy-manifest",
+        "each shipped iOS target's privacy manifest declares the required-reason APIs its code uses",
+        (
+            py("tools/ci/test_check_ios_privacy_manifest.py"),
+            py("tools/ci/check_ios_privacy_manifest.py"),
+        ),
+    ),
+    Step(
+        "android-intents",
+        "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
+        (
+            py("tools/ci/test_check_android_intent_filters.py"),
+            py("tools/ci/check_android_intent_filters.py"),
+        ),
+    ),
+    Step(
+        "windows-company-name",
+        "the Windows CompanyName resource still names the folders v0.8.1 used",
+        (
+            py("tools/ci/test_check_windows_company_name.py"),
+            py("tools/ci/check_windows_company_name.py"),
         ),
     ),
     Step(
@@ -125,6 +308,46 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "l10n-unused",
+        "every ARB key is referenced by app code",
+        (
+            py("tools/ci/test_check_l10n_unused.py"),
+            py("tools/ci/check_l10n_unused.py"),
+        ),
+    ),
+    Step(
+        "arb-quote-style",
+        "app_en.arb uses straight quotes (allow-list burns down)",
+        (
+            py("tools/ci/test_check_arb_quote_style.py"),
+            py("tools/ci/check_arb_quote_style.py"),
+        ),
+    ),
+    Step(
+        "stale-comment-refs",
+        "comment citations resolve to code (count ceiling)",
+        (
+            py("tools/ci/test_check_stale_comment_refs.py"),
+            py("tools/ci/check_stale_comment_refs.py"),
+        ),
+    ),
+    Step(
+        "doc-line-citations",
+        "docs' `file.dart:N` line citations still land on code (count ceiling)",
+        (
+            py("tools/ci/test_check_doc_line_citations.py"),
+            py("tools/ci/check_doc_line_citations.py"),
+        ),
+    ),
+    Step(
+        "kdf-override",
+        "no production code assigns the test-only sync KDF iteration override",
+        (
+            py("tools/ci/test_check_kdf_override_unassigned.py"),
+            py("tools/ci/check_kdf_override_unassigned.py"),
+        ),
+    ),
+    Step(
         "caught-errors",
         "every caught user-facing error reaches the diagnostic log",
         (
@@ -133,11 +356,59 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "hot-path-regexp",
+        "no per-call RegExp( in the import dedupe and figure-parsing hot paths",
+        (
+            py("tools/ci/test_check_hot_path_regexp.py"),
+            py("tools/ci/check_hot_path_regexp.py"),
+        ),
+    ),
+    Step(
+        "export-guard-catches",
+        "export/share/backup files catch Object, not Exception",
+        (
+            py("tools/ci/test_check_export_guard_catches.py"),
+            py("tools/ci/check_export_guard_catches.py"),
+        ),
+    ),
+    Step(
+        "archive-key-versions",
+        "every archive entity key names the version case that stamps it",
+        (
+            py("tools/ci/test_check_archive_key_versions.py"),
+            py("tools/ci/check_archive_key_versions.py"),
+        ),
+    ),
+    Step(
         "settings-reads",
         "raw settings reads filter deleted_at IS NULL",
         (
             py("tools/ci/test_check_settings_marker_reads.py"),
             py("tools/ci/check_settings_marker_reads.py"),
+        ),
+    ),
+    Step(
+        "preference-encode",
+        "live-preference handlers persist exactly their descriptor's encode",
+        (
+            py("tools/ci/test_check_preference_encode.py"),
+            py("tools/ci/check_preference_encode.py"),
+        ),
+    ),
+    Step(
+        "join-columns",
+        "repository joins onto dances carry useColumns or a marker",
+        (
+            py("tools/ci/test_check_join_use_columns.py"),
+            py("tools/ci/check_join_use_columns.py"),
+        ),
+    ),
+    Step(
+        "sync-resolve-alias-loops",
+        "no per-item store.resolveAlias awaited inside a sync loop",
+        (
+            py("tools/ci/test_check_sync_resolve_alias_loops.py"),
+            py("tools/ci/check_sync_resolve_alias_loops.py"),
         ),
     ),
     Step(
@@ -159,15 +430,36 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_version_history.py"),),
     ),
     Step(
+        "version-bump-policy",
+        "the vNext bump gate's own logic (the gate itself is PR-only)",
+        (py("tools/ci/test_check_version_bump_policy.py"),),
+    ),
+    Step(
+        "release-pr-title",
+        "the release-PR title gate's own logic (the gate itself is PR-only)",
+        (py("tools/ci/test_check_release_pr_title.py"),),
+    ),
+    Step(
+        "claude-isolation",
+        "the Claude-workflow isolation gate's own logic (the gate itself is PR-only)",
+        (py("tools/ci/test_check_claude_workflow_isolation.py"),),
+    ),
+    Step(
         "changelog-gate",
         "the CHANGELOG promotion gate's own logic",
         (py("tools/ci/test_check_changelog_promoted.py"),),
     ),
     Step(
         "changelog-structure",
-        "both CHANGELOGs: version sections in order, no category repeated in one",
+        "both CHANGELOGs well-formed, and every pending changelog.d fragment valid",
+        # Mirrors ci.yml's changelog-structure-gate step for step. The fragment
+        # compiler's --check used to run only in CI, so a malformed fragment --
+        # the most common PR shape, since every user-visible change adds one --
+        # passed --fast and failed on the PR.
         (
             py("tools/ci/test_check_changelog_structure.py"),
+            py("tools/release/test_compile_changelog_fragments.py"),
+            py("tools/release/compile_changelog_fragments.py", "--check"),
             py("tools/ci/check_changelog_structure.py"),
         ),
     ),
@@ -197,18 +489,34 @@ STEPS: tuple[Step, ...] = (
         "release-tooling",
         "release identity / SBOM / metadata / notes / Pages publishing",
         (
+            py("tools/release/test_bash.py"),
+            py("tools/release/test_apprun.py"),
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),
+            # Its cmake -P tests are the pdfium-verifier step, which SKIPs without cmake.
+            py("tools/release/test_pdfium_pin.py", "--without-cmake"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
+            py("tools/release/test_deploy_athenaeum.py"),
+            py("tools/release/test_release_windows_crt.py"),
+            py("tools/release/test_linux_desktop_integration.py"),
+            py("tools/release/test_windows_file_association.py"),
+            py("tools/release/test_macos_dmg.py"),
+            py("tools/release/test_resolve_release_codename.py"),
             py("tools/release/test_publish_pages_manifest.py"),
             py("tools/release/test_publish_pages_site.py"),
             py("tools/release/test_check_pages_signature_files.py"),
         ),
-        needs_import="cryptography",
+        needs_import="cryptography.hazmat.primitives.asymmetric.ed25519",
+    ),
+    Step(
+        "pdfium-verifier",
+        "the pdfium pre-download and hash verifier, run under cmake -P",
+        (py("tools/release/test_pdfium_pin.py", "--cmake-only"),),
+        needs_binary="cmake",
     ),
     Step(
         "core-flutter-free-tests",
@@ -219,6 +527,16 @@ STEPS: tuple[Step, ...] = (
         "core-coverage-tests",
         "the Flutter-free core coverage-floor calculation",
         (py("tools/ci/test_check_core_coverage.py"),),
+    ),
+    Step(
+        "app-coverage-tests",
+        "the app coverage-floor calculation and the stale-report cleanup",
+        (py("tools/ci/test_check_app_coverage.py"),),
+    ),
+    Step(
+        "flutter-version-tests",
+        "the .fvmrc-vs-toolchain guard's banner parsing and verdict",
+        (py("tools/ci/test_check_flutter_version.py"),),
     ),
     Step(
         "format",
@@ -243,8 +561,11 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "l10n-drift",
-        "committed localizations match the current ARB-generated output",
-        (fvm_py("tools/ci/check_l10n_drift.py"),),
+        "committed localizations match the ARB-generated output; normalised apostrophes render unchanged",
+        (
+            fvm_py("tools/ci/check_l10n_drift.py"),
+            fvm_py("tools/ci/test_arb_quote_style_gen_l10n.py"),
+        ),
         fast=False,
         needs_binary="fvm",
     ),
@@ -266,7 +587,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "core-tests",
         "compendium_core suite with CI-equivalent LCOV generation",
-        (fvm_py("tools/ci/run_core_tests_with_coverage.py"),),
+        (fvm_py("tools/ci/run_core_tests_with_coverage.py", "-j", str(TEST_JOBS)),),
         fast=False,
         needs_binary="fvm",
     ),
@@ -282,7 +603,7 @@ STEPS: tuple[Step, ...] = (
         "compendium_rubric analyzer and suite",
         (
             fvm("dart", "analyze"),
-            fvm("dart", "test"),
+            fvm("dart", "test", "-j", str(TEST_JOBS)),
         ),
         cwd=ROOT / "packages" / "compendium_rubric",
         fast=False,
@@ -299,8 +620,14 @@ STEPS: tuple[Step, ...] = (
     Step(
         "app-tests",
         "app suite (includes the privacy classification ratchets)",
-        (fvm("flutter", "test"),),
-        cwd=ROOT / "app",
+        (fvm_py("tools/ci/run_app_tests_with_coverage.py", "-j", str(TEST_JOBS)),),
+        fast=False,
+        needs_binary="fvm",
+    ),
+    Step(
+        "app-coverage",
+        "the app's generated-source-excluded line-coverage floor (reads app-tests' report)",
+        (fvm_py("tools/ci/check_app_coverage.py"),),
         fast=False,
         needs_binary="fvm",
     ),
@@ -325,9 +652,19 @@ def _unavailable(step: Step) -> str | None:
         return f"{step.needs_binary} is not on PATH"
     if step.needs_import:
         try:
-            __import__(step.needs_import)
+            importlib.import_module(step.needs_import)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except ImportError:
             return f"python module {step.needs_import!r} is not installed"
+        except BaseException as error:
+            # A broken install can import at the top level and then panic in a
+            # native submodule; pyo3's PanicException derives from
+            # BaseException, so `except Exception` would let it through.
+            return (
+                f"python module {step.needs_import!r} is not importable: "
+                f"{type(error).__name__}"
+            )
     return None
 
 
@@ -377,6 +714,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="fail instead of skipping a selected gate with a missing toolchain",
     )
+    parser.add_argument(
+        "--no-lock",
+        action="store_true",
+        help="run the Dart/Flutter steps without the machine-wide memory lock",
+    )
     args = parser.parse_args(argv)
 
     if args.only:
@@ -404,20 +746,30 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     failures: list[str] = []
     skipped = 0
-    for step in steps:
-        status, detail = run_step(step)
-        if status == "ok":
-            print(f"ok   {step.name:16} {detail}")
-        elif status == "skip":
-            if args.require_available:
-                failures.append(step.name)
-                print(f"FAIL {step.name:16} unavailable: {detail}")
+    with contextlib.ExitStack() as lock:
+        held = args.no_lock
+        for step in steps:
+            # Lazily, and only for a step that will really run: an unavailable
+            # Dart step costs no memory, and a run that took the lock to skip
+            # eleven of them would stall the run that needs it. Held from there
+            # to the end of the run rather than per step, so two runs do not
+            # trade the lock back and forth and pay both their compile costs.
+            if not held and not step.fast and _unavailable(step) is None:
+                lock.enter_context(toolchain_lock())
+                held = True
+            status, detail = run_step(step)
+            if status == "ok":
+                print(f"ok   {step.name:16} {detail}")
+            elif status == "skip":
+                if args.require_available:
+                    failures.append(step.name)
+                    print(f"FAIL {step.name:16} unavailable: {detail}")
+                else:
+                    skipped += 1
+                    print(f"skip {step.name:16} {detail}")
             else:
-                skipped += 1
-                print(f"skip {step.name:16} {detail}")
-        else:
-            failures.append(step.name)
-            print(f"FAIL {step.name:16} {detail}")
+                failures.append(step.name)
+                print(f"FAIL {step.name:16} {detail}")
 
     ran = len(steps) - skipped - len(failures)
     if failures:

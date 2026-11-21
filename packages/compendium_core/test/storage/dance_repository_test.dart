@@ -1,8 +1,10 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import 'fixtures.dart';
 import 'test_database.dart';
+import '../figures_support.dart';
 
 /// Reads the derived `dance_figures.params_json` string for the figure at
 /// [idx] of [danceId]. Used to assert the stored JSON has not drifted from the
@@ -45,6 +47,17 @@ void main() {
       expect(loaded, dance);
     });
 
+    test('round-trips progressed improper formation', () async {
+      final dance = sampleDance().copyWith(
+        formation: const Formation(FormationShape.progressedImproper),
+      );
+      await dances.create(dance);
+
+      final loaded = await dances.getById(dance.id);
+
+      expect(loaded?.formation.shape, FormationShape.progressedImproper);
+    });
+
     test('round-trips reverse progression improper formation', () async {
       final dance = sampleDance().copyWith(
         formation: const Formation(FormationShape.reverseProgressionImproper),
@@ -82,7 +95,7 @@ void main() {
         // move + params verbatim.
         final loaded = await dances.getById(dance.id);
         expect(loaded, dance, reason: 'whole dance round-trips by value');
-        final reloadedUnknown = loaded!.figures[1];
+        final reloadedUnknown = figuresOf(loaded!)[1];
         expect(reloadedUnknown.move, 'a_move_from_the_future');
         expect(reloadedUnknown.params, {
           'beats': 12,
@@ -102,8 +115,8 @@ void main() {
           loaded.copyWith(updatedAt: DateTime.utc(2026, 3, 1)),
         );
         final resaved = await dances.getById(dance.id);
-        expect(resaved!.figures[1].move, 'a_move_from_the_future');
-        expect(resaved.figures[1].params, {
+        expect(figuresOf(resaved!)[1].move, 'a_move_from_the_future');
+        expect(figuresOf(resaved)[1].params, {
           'beats': 12,
           'flavor': 'spicy',
           'who': 'partners',
@@ -132,9 +145,9 @@ void main() {
 
       final loaded = await dances.getById(dance.id);
       expect(loaded, dance, reason: 'whole dance round-trips by value');
-      expect(loaded!.figures[1].customOrigin, CustomOrigin.importGap);
+      expect(figuresOf(loaded!)[1].customOrigin, CustomOrigin.importGap);
       // A user-entered figure stays userEntered.
-      expect(loaded.figures[0].customOrigin, CustomOrigin.userEntered);
+      expect(figuresOf(loaded)[0].customOrigin, CustomOrigin.userEntered);
 
       // Simulate a legacy row whose figures_json predates the discriminator:
       // it must read back as userEntered, never mislabeled as importGap.
@@ -145,7 +158,7 @@ void main() {
         [legacyJson, dance.id],
       );
       final legacy = await dances.getById(dance.id);
-      expect(legacy!.figures.single.customOrigin, CustomOrigin.userEntered);
+      expect(figuresOf(legacy!).single.customOrigin, CustomOrigin.userEntered);
     });
 
     test('round-trips a rating and its cleared (NULL) state', () async {
@@ -356,7 +369,7 @@ void main() {
 
       final loaded = await dances.getById(dance.id);
       expect(loaded!.tagIds, ['t2']);
-      expect(loaded.figures, [Figure(move: 'do_si_do')]);
+      expect(figuresOf(loaded), [Figure(move: 'do_si_do')]);
     });
   });
 
@@ -645,6 +658,28 @@ void main() {
       },
     );
 
+    test('purgeDeleted with onlyIds erases just those past-cutoff dances, '
+        'leaving other expired ones (LIFE-1)', () async {
+      for (final id in ['a', 'b', 'c']) {
+        await dances.create(
+          sampleDance(id: id, deletedAt: DateTime.utc(2026, 1, 1)),
+        );
+      }
+      await dances.create(
+        sampleDance(id: 'recent', deletedAt: DateTime.utc(2026, 3, 30)),
+      );
+      final purged = await dances.purgeDeleted(
+        now: DateTime.utc(2026, 4, 1),
+        onlyIds: ['a', 'recent', 'missing'],
+      );
+      // 'recent' is in the set but inside retention; 'missing' does not exist.
+      expect(purged, 1);
+      expect(await dances.getById('a', includeDeleted: true), isNull);
+      expect(await dances.getById('b', includeDeleted: true), isNotNull);
+      expect(await dances.getById('c', includeDeleted: true), isNotNull);
+      expect(await dances.getById('recent', includeDeleted: true), isNotNull);
+    });
+
     test(
       'purging a dance nulls a referencing program slot (no dangling FK)',
       () async {
@@ -835,6 +870,30 @@ void main() {
 
       final all = await dances.listAll();
       expect(all.single.links, isEmpty);
+    });
+  });
+
+  group('oversized stored phrase structure', () {
+    test('loading tolerates a legacy out-of-bounds value rather than '
+        'throwing (audit finding 12)', () async {
+      // The editor and importer once accepted unbounded counts, so such a row
+      // can already be on disk. Hydration must not let it block the library.
+      await dances.create(sampleDance(id: 'a', title: 'Huge'));
+      await dances.create(sampleDance(id: 'b', title: 'Fine'));
+      await db.customStatement(
+        'UPDATE dances SET phrase_structure = ? WHERE id = ?',
+        ['100000000*1*1', 'a'],
+      );
+
+      final single = await dances.getById('a');
+      expect(single!.phraseStructure, PhraseStructure.standard);
+
+      final all = await dances.listAll();
+      expect(all.map((d) => d.id), containsAll(['a', 'b']));
+      expect(
+        all.firstWhere((d) => d.id == 'a').phraseStructure,
+        PhraseStructure.standard,
+      );
     });
   });
 
@@ -1055,6 +1114,55 @@ void main() {
     });
   });
 
+  group('duplicate (title and transitive links)', () {
+    test('applies newTitle in the one write that creates the copy', () async {
+      await dances.create(sampleDance(id: 'src', title: 'Original'));
+
+      final copy = await dances.duplicate(
+        id: 'src',
+        newId: 'src-copy',
+        now: DateTime.utc(2026, 5, 1),
+        newTitle: 'Original (copy)',
+      );
+
+      expect(copy.title, 'Original (copy)');
+      expect((await dances.getById('src-copy'))!.title, 'Original (copy)');
+      expect((await dances.getById('src'))!.title, 'Original');
+    });
+
+    test('keeps the transitive flag on copied related links', () async {
+      await dances.create(sampleDance(id: 'peer'));
+      await dances.create(
+        sampleDance(
+          id: 'src',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'peer',
+              transitive: true,
+            ),
+            DanceLink(
+              id: 'l2',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'peer',
+            ),
+          ],
+        ),
+      );
+
+      final copy = await dances.duplicate(
+        id: 'src',
+        newId: 'src-copy',
+        now: DateTime.utc(2026, 5, 1),
+      );
+
+      expect(copy.links.map((l) => l.transitive), [true, false]);
+      final loaded = (await dances.getById('src-copy'))!;
+      expect(loaded.links.map((l) => l.transitive), [true, false]);
+    });
+  });
+
   group('full-text search', () {
     test('finds a dance by title token', () async {
       await dances.create(sampleDance(id: 'd1', title: 'Chase the Squirrel'));
@@ -1263,8 +1371,7 @@ void main() {
       for (var i = 0; i < 4; i++) {
         await repo.create(sampleDance(id: 'd$i', title: 'Dance $i'));
       }
-      // Each create() does one per-dance FTS delete; reset so we measure only
-      // the rebuild's writes.
+      // Reset so we measure only the rebuild's writes, not the creates'.
       counter.count = 0;
       await repo.rebuildAllDerived(chunkSize: 2);
       expect(
@@ -1272,6 +1379,67 @@ void main() {
         0,
         reason:
             'rebuild must clear dance_fts in one bulk DELETE, not per dance',
+      );
+    });
+
+    group('per-dance FTS delete on write', () {
+      // Both FTS tables carry `dance_id` UNINDEXED, so each per-dance delete
+      // scans the whole table. Deleting for every dance of a bulk import made
+      // it O(N²); a brand-new dance has nothing to delete.
+      Future<int> ftsRows(CompendiumDatabase db, String id) async {
+        final rows = await db
+            .customSelect(
+              'SELECT count(*) AS c FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable.withString(id)],
+            )
+            .get();
+        return rows.single.read<int>('c');
+      }
+
+      late FtsDeleteByDanceCounter counter;
+      late CompendiumDatabase countingDb;
+      late DanceRepository repo;
+
+      setUp(() {
+        counter = FtsDeleteByDanceCounter();
+        countingDb = openCountingTestDatabase(counter);
+        repo = DanceRepository(countingDb, contraTaxonomy);
+      });
+      tearDown(() => countingDb.close());
+
+      test('creating a new dance issues no FTS delete-by-scan', () async {
+        for (var i = 0; i < 5; i++) {
+          await repo.create(sampleDance(id: 'd$i', title: 'Dance $i'));
+        }
+        expect(counter.count, 0);
+        // ...and every one of them is still indexed exactly once.
+        for (var i = 0; i < 5; i++) {
+          expect(await ftsRows(countingDb, 'd$i'), 1);
+          expect(await repo.searchText('Dance $i'), contains('d$i'));
+        }
+      });
+
+      test('updating an existing dance still replaces its FTS row', () async {
+        await repo.create(sampleDance(id: 'd1', title: 'Original Title'));
+        counter.count = 0;
+        await repo.update(sampleDance(id: 'd1', title: 'Replacement Title'));
+        expect(counter.count, 1, reason: 'an existing dance must be deleted');
+        expect(await ftsRows(countingDb, 'd1'), 1);
+        expect(await repo.searchText('Replacement'), ['d1']);
+        expect(await repo.searchText('Original'), isEmpty);
+      });
+
+      test(
+        'a hard-deleted id can be created again without a stale FTS row',
+        () async {
+          await repo.create(sampleDance(id: 'd1', title: 'First Life'));
+          await repo.hardDelete(['d1']);
+          expect(await ftsRows(countingDb, 'd1'), 0);
+          await repo.create(sampleDance(id: 'd1', title: 'Second Life'));
+          expect(await ftsRows(countingDb, 'd1'), 1);
+          expect(await repo.searchText('Second'), ['d1']);
+          expect(await repo.searchText('First'), isEmpty);
+        },
       );
     });
 

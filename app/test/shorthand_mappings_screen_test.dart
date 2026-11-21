@@ -7,6 +7,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/fab_clearance.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
@@ -40,6 +41,36 @@ Future<void> _pumpManager(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets(
+    'the list preview keeps the balance a shorthand carries (AUTH-15)',
+    (tester) async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      await repos.settings.set(
+        kShorthandMappingsKey,
+        ShorthandMappings([
+          ShorthandMapping(
+            token: 'bp',
+            figures: [Figure(move: 'petronella')],
+          ),
+          ShorthandMapping(
+            token: 'p',
+            figures: [
+              Figure(move: 'petronella', params: {'balance': false}),
+            ],
+          ),
+        ]).toJson(),
+      );
+      await controller.load();
+
+      await _pumpManager(tester, controller);
+
+      expect(find.text('balance & petronella'), findsOneWidget);
+      expect(find.text('petronella'), findsOneWidget);
+    },
+  );
+
   testWidgets('shows the empty state when there are no mappings', (
     tester,
   ) async {
@@ -52,6 +83,34 @@ void main() {
     expect(find.byKey(const ValueKey('shorthand-empty')), findsOneWidget);
     expect(find.byKey(const ValueKey('new-shorthand')), findsOneWidget);
   });
+
+  testWidgets(
+    'at the cap, New shorthand says so instead of opening the editor',
+    (tester) async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      await repos.settings.set(
+        kShorthandMappingsKey,
+        ShorthandMappings([
+          for (var i = 0; i < maxShorthandMappings; i++)
+            ShorthandMapping(token: 't$i', figures: [_swing()]),
+        ]).toJson(),
+      );
+      await controller.load();
+
+      await _pumpManager(tester, controller);
+      await tester.tap(find.byKey(const ValueKey('new-shorthand')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('shorthand-limit-reached')),
+        findsOneWidget,
+      );
+      expect(find.byType(ShorthandMappingEditorScreen), findsNothing);
+      expect(controller.mappings, hasLength(maxShorthandMappings));
+    },
+  );
 
   testWidgets('lists a mapping row with its token and figure summary', (
     tester,
@@ -71,7 +130,9 @@ void main() {
     expect(find.textContaining('swing'), findsOneWidget);
   });
 
-  testWidgets('deleting a mapping removes it from the store', (tester) async {
+  testWidgets('deleting a mapping removes it from the store, with Undo', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     final controller = ShorthandMappingsController(repos.settings);
     addTearDown(controller.dispose);
@@ -83,12 +144,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
-    // Confirm the destructive action.
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-    await tester.pumpAndSettle();
 
+    // No dialog ("Confirm before delete" is off by default): deleted at once.
+    expect(find.byType(AlertDialog), findsNothing);
     expect(controller.mappings, isEmpty);
     expect(find.byKey(const ValueKey('shorthand-empty')), findsOneWidget);
+    expect(find.text('"ns" deleted.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('shorthand-delete-undo')));
+    await tester.pumpAndSettle();
+    expect([for (final m in controller.mappings) m.token], ['ns']);
   });
 
   testWidgets('New shorthand opens the editor', (tester) async {
@@ -103,5 +168,74 @@ void main() {
 
     expect(find.byType(ShorthandMappingEditorScreen), findsOneWidget);
     expect(find.byKey(const ValueKey('shorthand-token-field')), findsOneWidget);
+  });
+
+  group('New shorthand', () {
+    Future<ShorthandMappingsController> withMappings(
+      WidgetTester tester,
+      int count,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      if (count > 0) {
+        await repos.settings.set(
+          kShorthandMappingsKey,
+          ShorthandMappings([
+            for (var i = 0; i < count; i++)
+              ShorthandMapping(
+                token:
+                    'q${String.fromCharCode(97 + i ~/ 26)}'
+                    '${String.fromCharCode(97 + i % 26)}',
+                figures: [Figure(move: 'petronella')],
+              ),
+          ]).toJson(),
+        );
+      }
+      await controller.load();
+      return controller;
+    }
+
+    testWidgets('sits with the empty message until there is a shorthand', (
+      tester,
+    ) async {
+      await _pumpManager(tester, await withMappings(tester, 0));
+
+      final button = find.byKey(const ValueKey('new-shorthand'));
+      expect(button, findsOneWidget);
+      expect(tester.widget(button), isNot(isA<FloatingActionButton>()));
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets('floats once there is a shorthand, and only there', (
+      tester,
+    ) async {
+      await _pumpManager(tester, await withMappings(tester, 1));
+
+      final button = find.byKey(const ValueKey('new-shorthand'));
+      expect(button, findsOneWidget);
+      expect(tester.widget(button), isA<FloatingActionButton>());
+    });
+
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last shorthand (${c.name})', (
+        tester,
+      ) async {
+        await _pumpManager(tester, await withMappings(tester, 30));
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView),
+          lastRow: find.byKey(const ValueKey('shorthand-tile-qbd')),
+        );
+      });
+    }
   });
 }

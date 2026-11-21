@@ -4,10 +4,15 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/export/json_export.dart';
+import 'package:compendium_app/src/export/share_file.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
 import 'support/l10n_harness.dart';
@@ -84,6 +89,8 @@ Future<void> _pumpMenu(
   Dialect? dialect,
   List<String> authorNames = const [],
   String statusLabel = 'Active',
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  Map<String, PublishedSource> sourcesById = const {},
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -99,6 +106,8 @@ Future<void> _pumpMenu(
               formationLabel: 'Duple improper',
               levelLabel: 'Intermediate',
               statusLabel: statusLabel,
+              fields: fields,
+              sourcesById: sourcesById,
             ),
           ],
         ),
@@ -141,6 +150,76 @@ Future<String?> _copyAndReadClipboard(
 }
 
 void main() {
+  // Pin the platform seam: `Platform.isLinux` is true on a Linux runner.
+  final realBundleShareUnsupported = isBundleShareUnsupported;
+  setUp(() => isBundleShareUnsupported = () => false);
+  tearDown(() => isBundleShareUnsupported = realBundleShareUnsupported);
+
+  group('DanceExportMenu on Linux', () {
+    setUp(() => isBundleShareUnsupported = () => true);
+
+    Future<List<String>> pumpAndPick(
+      WidgetTester tester,
+      String item, {
+      JsonExportChoice choice = JsonExportChoice.share,
+    }) async {
+      final saved = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(title: 'Linux dance'),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  shareInvoker: (_) async =>
+                      fail('share_plus cannot carry files on Linux'),
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => choice,
+                    saveInvoker: (json, fileName) async {
+                      saved.add(fileName);
+                      return JsonSaveResult(
+                        path: '/Documents/$fileName',
+                        fileName: fileName,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(item));
+      await tester.pumpAndSettle();
+      return saved;
+    }
+
+    testWidgets('the dance file action saves a file instead of sharing', (
+      tester,
+    ) async {
+      final saved = await pumpAndPick(tester, 'Save dance file…');
+
+      expect(saved, ['Linux_dance.ccshare']);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+
+    testWidgets('JSON › Share saves a file instead of sharing', (tester) async {
+      final saved = await pumpAndPick(tester, 'Export dance as JSON');
+
+      expect(saved, ['Linux_dance.json']);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+  });
+
   group('DanceExportMenu', () {
     testWidgets('is present and labeled in an app bar', (tester) async {
       await _pumpMenu(tester, _dance());
@@ -337,6 +416,171 @@ void main() {
       expect(find.text('Dance copied to clipboard.'), findsOneWidget);
     });
 
+    testWidgets('Copy dance respects a deselected field (issue #1434)', (
+      tester,
+    ) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpMenu(
+        tester,
+        _dance(),
+        authorNames: const ['Carol Ormand'],
+        fields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.authors),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy dance'));
+      await tester.pumpAndSettle();
+
+      expect(clipboardText, isNotNull);
+      expect(clipboardText, contains('Rory O\'More'));
+      expect(clipboardText, isNot(contains('Carol Ormand')));
+    });
+
+    group('hook and sources on the dance card (OUT-6)', () {
+      final cited = Dance(
+        id: 'd1',
+        title: 'Cited Reel',
+        hook: 'Opens with a pass-through.',
+        sourceCitations: [SourceCitation(sourceId: 'src1', page: '12')],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final book = PublishedSource(
+        id: 'src1',
+        title: 'Give-and-Take',
+        author: 'A. Author',
+        year: 1990,
+      );
+
+      Future<String?> copy(
+        WidgetTester tester,
+        Set<DanceShareField> fields,
+      ) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        await _pumpMenu(
+          tester,
+          cited,
+          fields: fields,
+          sourcesById: {'src1': book},
+        );
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy dance'));
+        await tester.pumpAndSettle();
+        return clipboardText;
+      }
+
+      testWidgets('are absent by default', (tester) async {
+        final text = await copy(tester, DanceShareField.allExceptTunes);
+        expect(text, contains('Cited Reel'));
+        expect(text, isNot(contains('Opens with a pass-through.')));
+        expect(text, isNot(contains('Give-and-Take')));
+      });
+
+      testWidgets('appear once selected, with the source resolved', (
+        tester,
+      ) async {
+        final text = await copy(tester, DanceShareField.all);
+        expect(text, contains('Hook: Opens with a pass-through.'));
+        expect(text, contains('Sources:'));
+        expect(text, contains('Give-and-Take — A. Author, 1990 (p. 12)'));
+      });
+    });
+
+    testWidgets('Export / print PDF carries a selected source (OUT-6)', (
+      tester,
+    ) async {
+      // Byte-size differential, as elsewhere in this suite: the two pumps
+      // differ only in whether `sources` is selected. Mutation this catches:
+      // dropping `sourceLines` from the buildDancePdf call in exportPdf.
+      final cited = Dance(
+        id: 'd1',
+        title: 'Cited Reel',
+        sourceCitations: [SourceCitation(sourceId: 'src1', page: '12')],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final book = PublishedSource(
+        id: 'src1',
+        title: 'Give-and-Take, the long-titled collection of contra dances',
+        author: 'A. Author',
+        year: 1990,
+      );
+
+      Future<int> pdfBytes(Set<DanceShareField> fields) async {
+        LayoutCallback? layout;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  DanceExportMenu(
+                    dance: cited,
+                    dialect: Dialect.canonical,
+                    authorNames: const [],
+                    formationLabel: 'Duple improper',
+                    statusLabel: 'Active',
+                    fields: fields,
+                    sourcesById: {'src1': book},
+                    pdfLayouter: ({required name, required onLayout}) async =>
+                        layout = onLayout,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+        return (await layout!(PdfPageFormat.a4)).length;
+      }
+
+      final without = await pdfBytes({DanceShareField.formation});
+      final withSources = await pdfBytes({
+        DanceShareField.formation,
+        DanceShareField.sources,
+      });
+      expect(withSources, greaterThan(without));
+    });
+
     testWidgets('an active dance omits the Status line from the export', (
       tester,
     ) async {
@@ -393,7 +637,12 @@ void main() {
       await tester.tap(find.text('Share dance (text)'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this dance"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't share this dance. Your dance is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('surfaces a SnackBar when a referenced tag is missing', (
@@ -406,7 +655,12 @@ void main() {
       await tester.tap(find.text('Share dance file'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this dance"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't share this dance. Your dance is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('guards JSON export when a referenced tag is missing', (
@@ -441,7 +695,10 @@ void main() {
       await tester.tap(find.text('Export dance as JSON'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this JSON file."), findsOneWidget);
+      expect(
+        find.text("Couldn't share this JSON file. Try again."),
+        findsOneWidget,
+      );
     });
 
     testWidgets('share receives a non-null sharePositionOrigin', (
@@ -510,8 +767,103 @@ void main() {
       await tester.tap(find.text('Export / print PDF'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't export this dance"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't export this dance. Your dance is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
+
+    testWidgets(
+      'surfaces a SnackBar when sharing throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  DanceExportMenu(
+                    dance: _dance(),
+                    dialect: Dialect.canonical,
+                    authorNames: const [],
+                    formationLabel: 'Duple improper',
+                    statusLabel: 'Active',
+                    shareInvoker: (params) async =>
+                        throw StateError('no share target'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share dance (text)'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            "Couldn't share this dance. Your dance is unchanged. Try again.",
+          ),
+          findsOneWidget,
+        );
+        expect(sink.sources, ['dance_export_actions.shareText']);
+      },
+    );
+
+    testWidgets(
+      'surfaces a SnackBar when the PDF export throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  DanceExportMenu(
+                    dance: _dance(),
+                    dialect: Dialect.canonical,
+                    authorNames: const [],
+                    formationLabel: 'Duple improper',
+                    statusLabel: 'Active',
+                    pdfLayouter: ({required name, required onLayout}) async =>
+                        throw StateError('no printer'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            "Couldn't export this dance. Your dance is unchanged. Try again.",
+          ),
+          findsOneWidget,
+        );
+        expect(sink.sources, ['dance_export_actions.exportPdf']);
+      },
+    );
 
     testWidgets('sanitizes the dance title in the PDF print-job name', (
       tester,
@@ -782,4 +1134,13 @@ void main() {
       expect(spy.freeTextCalls, contains('role2s scoop them up'));
     });
   });
+}
+
+/// Records the `source` of every logged caught error.
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) =>
+      sources.add(source);
 }

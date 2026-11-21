@@ -1,12 +1,34 @@
+import '../dialect/canonicalize.dart';
+import '../dialect/dialect.dart';
+import '../dialect/renderer.dart' show FigureRenderer;
+import '../model/enums.dart';
 import '../model/figure.dart';
+import '../model/formation.dart';
+import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
+import '../validation/validation.dart';
+import 'beat_implied_balance.dart';
+import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
+import 'ecd_bars.dart';
+import 'ecd_figure_parser.dart';
+import 'contradb_figure_dialect.dart'
+    show
+        readDisplayedCourtesyTurnWithWhom,
+        readDisplayedHeyForThree,
+        readDisplayedStarburst,
+        readDisplayedTradeTheWave;
 import 'figure_front_end_fan_out.dart';
+import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
+import 'structured_draft.dart';
+import 'typed_figure_names.dart';
 
-/// Longest inline beat count we will read from a free-text line. Bounds the
-/// captured digit run so a hostile/absurd value (`(999999999999)`) can never
-/// overflow an int or drive downstream duration math off the rails — anything
-/// past four digits is treated as ordinary text, not a beat count. Four digits
+/// Longest inline beat count we will parse from a free-text line. Bounds the
+/// digits turned into an int so a hostile/absurd value (`(999999999999)`) can
+/// never overflow one or drive downstream duration math off the rails — a count
+/// past four digits is never parsed: it is not a beat count. Free-text entry
+/// keeps it in the figure's note when the line states no readable count, and in
+/// a custom's typed text otherwise ([_BeatSplit.unread], #1863). Four digits
 /// (≤ 9999) comfortably covers any real contra figure while staying safe.
 const int _maxInlineBeatDigits = 4;
 
@@ -20,25 +42,109 @@ const int _maxInlineBeatDigits = 4;
 /// rather than relying on any UI-side field limit.
 const int maxFreeTextEntryLength = 2000;
 
-/// A leading bare beat count: `16 balance and swing`. The digits must be
+/// The optional unit after a count's digits: `16 beats`, `(8 beat)` (#1826).
+const String _beatsUnit = '(?:\\s*beats?)';
+
+/// A leading beat count: a bare `16 balance and swing`, or a bracketed
+/// `(16) balance and swing` / `[16] balance and swing`, each optionally with a
+/// `beats` unit (`16 beats …`, `(16 beats) …`). A bare count must be
 /// followed by whitespace AND a non-empty remainder, so a fraction/positional
 /// token glued to the digits (`1/2 hey`, `1s cross`) is NOT mistaken for a
-/// count (there is no space after the leading digits in those).
+/// count (there is no space after the leading digits in those). A bracketed
+/// count needs no space (`(16)swing`), as the trailing form needs none.
+/// A count in bars (`4 bars circle left`) is not a beat count: see
+/// [_leadingBars].
 final RegExp _leadingBeats = RegExp(
-  '^(\\d{1,$_maxInlineBeatDigits})\\s+(\\S.*)\$',
+  '^(?:(\\d+)(?:\\s+beats?)?\\s+(?!bars?\\b)'
+  '|[(\\[](\\d+)$_beatsUnit?[)\\]]\\s*)(\\S.*)\$',
+  caseSensitive: false,
 );
 
-/// A trailing parenthesised beat count: `balance and swing (16)`. Only a
-/// digits-only parenthesised group at the very end counts — a trailing prose
-/// annotation (`allemande (once)`) is left untouched because its contents are
-/// not all digits.
+/// A trailing beat count: a bracketed `balance and swing (16)` or `… [16]`, or
+/// one with a `beats` unit, bracketed or not (`… (16 beats)`, `… 16 beats`).
+/// Only digits (and the unit) at the very end count — a trailing prose
+/// annotation (`allemande (once)`) is left untouched, and so is a bare
+/// trailing number with no unit (`neighbors swing 16`), which free text keeps
+/// custom (see `demoteNoteTails`).
 final RegExp _trailingBeats = RegExp(
-  '^(.*\\S)\\s*\\((\\d{1,$_maxInlineBeatDigits})\\)\$',
+  '^(.*\\S)(?:\\s*[(\\[](\\d+)$_beatsUnit?[)\\]]'
+  '|\\s+(\\d+)\\s*beats?)\$',
+  caseSensitive: false,
+);
+
+/// A positive `(N)`/`[N]` group of ANY length at the start or end of a line,
+/// or a count with a `beats` unit there (`(8 beats)`, `16 beats`). The
+/// recogniser tolerates a digits-only group as an annotation and drops it, and
+/// keeps a unit count as a note, so one that [_splitInlineBeats] did not turn
+/// into the beat count (a second count) must keep the line out of the parser
+/// or the number would vanish or be misread. A count too long to be beats is
+/// peeled instead ([_BeatSplit.unread]). A zero count is not matched: 0 is
+/// "unspecified", see [_splitInlineBeats].
+final RegExp _strayLeadingCount = RegExp(
+  r'^(?:[(\[]\s*0*[1-9]\d*(?:\s*beats?)?\s*[)\]]|0*[1-9]\d*\s*beats?\b)',
+  caseSensitive: false,
+);
+final RegExp _strayTrailingCount = RegExp(
+  r'(?:[(\[]\s*0*[1-9]\d*(?:\s*beats?)?\s*[)\]]|\b0*[1-9]\d*\s*beats?)$',
+  caseSensitive: false,
+);
+
+/// A count in bars at the end of a line, bare or bracketed (`circle left 4
+/// bars`, `… (4 bars)`). Never beats: how many beats a bar holds is the dance's
+/// phrase structure, which a line does not see. Free-text entry keeps it as a
+/// note on the figure ([_BeatSplit.unread]).
+final RegExp _trailingBars = RegExp(
+  r'^(.*\S)(?:\s*[(\[]\s*(\d+)\s*bars?\s*[)\]]|\s+(\d+)\s*bars?)$',
+  caseSensitive: false,
+);
+
+/// A count in bars at the start of a line: `4 bars circle left`,
+/// `(4 bars) circle left`. See [_trailingBars].
+final RegExp _leadingBars = RegExp(
+  r'^(?:[(\[]\s*(\d+)\s*bars?\s*[)\]]\s*|(\d+)\s*bars?\s+)(\S.*)$',
+  caseSensitive: false,
+);
+
+/// The count forms of one reader: where a count may sit, and what a stated
+/// count that was not read looks like. [bars] is `null` for a reader that
+/// does not peel a count in bars.
+typedef _CountForms = ({
+  RegExp leading,
+  RegExp trailing,
+  RegExp strayLeading,
+  RegExp strayTrailing,
+  bool keepsUnread,
+  ({RegExp leading, RegExp trailing})? bars,
+});
+
+/// Free-text entry's forms, `beats` unit included.
+final _CountForms _typedCounts = (
+  leading: _leadingBeats,
+  trailing: _trailingBeats,
+  strayLeading: _strayLeadingCount,
+  strayTrailing: _strayTrailingCount,
+  keepsUnread: true,
+  bars: (leading: _leadingBars, trailing: _trailingBars),
+);
+
+/// The re-parse upgrade's forms ([splitForReparse]): the unit-less ones, as
+/// before the `beats` unit (#1826). That upgrade also runs over customs that
+/// came from imports, whose behaviour stays unchanged.
+final _CountForms _reparseCounts = (
+  leading: RegExp(
+    '^(?:(\\d{1,$_maxInlineBeatDigits})\\s+'
+    '|[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\\s*)(\\S.*)\$',
+  ),
+  trailing: RegExp('^(.*\\S)\\s*[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\$'),
+  strayLeading: RegExp(r'^[(\[]\s*0*[1-9]\d*\s*[)\]]'),
+  strayTrailing: RegExp(r'[(\[]\s*0*[1-9]\d*\s*[)\]]$'),
+  keepsUnread: false,
+  bars: null,
 );
 
 /// Result of splitting an optional inline beat count off a free-text line.
 class _BeatSplit {
-  const _BeatSplit(this.text, this.beats);
+  const _BeatSplit(this.text, this.beats, this.forms, {this.unread});
 
   /// The line with any recognised inline beat token removed.
   final String text;
@@ -46,32 +152,121 @@ class _BeatSplit {
   /// The extracted beat count, or 0 when the line stated none (0 is treated as
   /// "unspecified" everywhere downstream — see [parseFigureLine]).
   final int beats;
+
+  /// The count forms [text] was split with.
+  final _CountForms forms;
+
+  /// The count that was peeled off but is not a beat count: five or more
+  /// digits (`10000 beats`, #1863), or a count in bars (`4 bars`). Free text
+  /// keeps it as a note on the figure it was typed with; [beats] is 0, so the
+  /// figure takes its default.
+  final String? unread;
+
+  /// Whether [text] still starts or ends with a stated count that was not read
+  /// as [beats].
+  bool get hasStrayCount =>
+      forms.strayLeading.hasMatch(text) || forms.strayTrailing.hasMatch(text);
 }
 
 /// Extracts an optional inline beat count from a trimmed free-text [line]. A
-/// trailing `(N)` is checked first (it is unambiguous — digits inside parens at
-/// the end), then a leading `N `. Returns the line unchanged with 0 beats when
-/// neither form is present — or when the stated count parses to 0. Because 0 is
-/// "unspecified" downstream, stripping a `(0)`/`0 ` token would silently mutate
-/// the user's text for no gain, so a zero count leaves the whole line intact
-/// (it flows into the parser verbatim — e.g. as an honest custom).
-_BeatSplit _splitInlineBeats(String line) {
-  final trailing = _trailingBeats.firstMatch(line);
-  if (trailing != null) {
-    final beats = int.tryParse(trailing.group(2)!);
-    if (beats != null && beats > 0) {
-      return _BeatSplit(trailing.group(1)!.trim(), beats);
+/// trailing `(N)`/`[N]` or `N beats` is checked first (it is unambiguous —
+/// digits inside brackets, or with their unit, at the end), then a leading
+/// `N `, `(N)` or `[N]`, any of them with a `beats` unit. Returns the
+/// line unchanged with 0 beats when neither form is present — or when the
+/// stated count parses to 0. Because 0 is "unspecified" downstream, stripping a
+/// `(0)`/`0 ` token would silently mutate the user's text for no gain, so a
+/// zero count leaves the whole line intact (it flows into the parser verbatim
+/// — e.g. as an honest custom). [forms] defaults to free-text entry's.
+///
+/// A count of more than [_maxInlineBeatDigits] digits is not a beat count. It is
+/// only peeled when the line states no count that is: it becomes
+/// [_BeatSplit.unread] with 0 beats, so the figure takes its default (#1863).
+/// The reparse forms never read one. A count of four digits or fewer is the
+/// beats here, whatever its size: the parser and [_parseCountedClauses] hold it
+/// to the taxonomy's 0..64 range.
+_BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
+  final f = forms ?? _typedCounts;
+  bool isZero(String digits) => digits.replaceAll('0', '').isEmpty;
+  int? readable(String digits) {
+    if (digits.length > _maxInlineBeatDigits) return null;
+    final beats = int.parse(digits);
+    return beats > 0 ? beats : null;
+  }
+
+  final trailing = f.trailing.firstMatch(line);
+  final trailingDigits = trailing == null
+      ? null
+      : trailing.group(2) ?? trailing.group(3)!;
+  final leading = f.leading.firstMatch(line);
+  final leadingDigits = leading == null
+      ? null
+      : leading.group(1) ?? leading.group(2)!;
+  final trailingBeats = trailingDigits == null
+      ? null
+      : readable(trailingDigits);
+  if (trailingBeats != null) {
+    return _BeatSplit(trailing!.group(1)!.trim(), trailingBeats, f);
+  }
+  final leadingBeats = leadingDigits == null ? null : readable(leadingDigits);
+  if (leadingBeats != null) {
+    return _BeatSplit(leading!.group(3)!.trim(), leadingBeats, f);
+  }
+  if (f.keepsUnread) {
+    if (trailingDigits != null && !isZero(trailingDigits)) {
+      final token = line.substring(trailing!.group(1)!.length);
+      return _BeatSplit(
+        trailing.group(1)!.trim(),
+        0,
+        f,
+        unread: _countToken(token),
+      );
+    }
+    if (leadingDigits != null && !isZero(leadingDigits)) {
+      final token = line.substring(0, line.length - leading!.group(3)!.length);
+      return _BeatSplit(
+        leading.group(3)!.trim(),
+        0,
+        f,
+        unread: _countToken(token),
+      );
     }
   }
-  final leading = _leadingBeats.firstMatch(line);
-  if (leading != null) {
-    final beats = int.tryParse(leading.group(1)!);
-    if (beats != null && beats > 0) {
-      return _BeatSplit(leading.group(2)!.trim(), beats);
+  final bars = f.bars;
+  if (bars != null) {
+    final trailingBars = bars.trailing.firstMatch(line);
+    if (trailingBars != null) {
+      final head = trailingBars.group(1)!;
+      return _BeatSplit(
+        head.trim(),
+        0,
+        f,
+        unread: _countToken(line.substring(head.length)),
+      );
+    }
+    final leadingBars = bars.leading.firstMatch(line);
+    if (leadingBars != null) {
+      final rest = leadingBars.group(3)!;
+      return _BeatSplit(
+        rest.trim(),
+        0,
+        f,
+        unread: _countToken(line.substring(0, line.length - rest.length)),
+      );
     }
   }
-  return _BeatSplit(line, 0);
+  return _BeatSplit(line, 0, f);
 }
+
+/// A count as typed, without its brackets: `(10000 beats)` is `10000 beats`.
+String _countToken(String typed) => typed
+    .replaceAll(RegExp(r'[()\[\]]'), '')
+    .trim()
+    .replaceAll(RegExp(r'\s+'), ' ');
+
+/// [figure] with the unread count [token] added to its note.
+Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
+  note: figure.note == null ? token : '${figure.note}; $token',
+);
 
 /// Parses one free-text figure line typed in the editor's opt-in "Free-text
 /// entry" mode (issue #419) into structured/custom [Figure]s.
@@ -80,66 +275,925 @@ _BeatSplit _splitInlineBeats(String line) {
 /// the whole trimmed line is matched against the user's shorthand tokens as an
 /// EXACT, whole-line token (case-insensitive + trim-insensitive; no mid-line or
 /// substring substitution, keeping expansion deterministic). On a hit the line
-/// expands to the mapped figure(s) and those are returned verbatim — inline
-/// beat parsing is skipped because a shorthand's targets carry their own beats.
-/// On a miss (or when no store is given) the line falls through to the normal
-/// #419 parser path below.
+/// expands to the mapped figure(s) and those are returned verbatim.
+///
+/// On a whole-line miss the shorthands are tried again, still token-exact, in
+/// two further ways (issue #1827), so a shorthand does not stop working the
+/// moment it is given a count or a neighbour:
+/// - a **leading** `16 pbs` or **trailing** `pbs (16)` count (the same two forms
+///   as below) is peeled off and the rest matched. A shorthand that expands to
+///   exactly ONE figure (a single meanwhile or modifier container included, whose
+///   own beats it sets) takes the count as that figure's beats, if the taxonomy
+///   allows that many (0..64; `pbs (100)` stays one custom with its text as
+///   typed, as `circle left (100)` does), and a count of five or more digits
+///   rides in its note, as for any figure (#1879); one that expands to several
+///   figures is inserted as saved and the count is dropped, because there is no
+///   single figure it could belong to.
+///   A token that itself contains a count (`3 swings`) still matches in
+///   full, first.
+/// - a `;` line is split into clauses at bracket depth 0, and each clause is
+///   matched on its own (with its own count). The clauses that are not
+///   shorthands are parsed one at a time. Like the parser's own `;` compound
+///   the line is all-or-nothing: if any non-shorthand clause cannot be
+///   structured, the whole line falls through to the ordinary path below
+///   (usually one custom). A `;` line with no shorthand clause is untouched.
+///
+/// On a miss everywhere (or when no store is given) the line falls through to
+/// the normal #419 parser path below.
 ///
 /// This is the local-typed counterpart to the import adapters: it reuses the
 /// SAME hardened, bounded, never-throw core parser (fanning out across the
 /// source front-ends via [parseFigureLinesFanOut]) rather than any
 /// "trusted-local" fast-path, so a typed line behaves identically to the same
 /// line arriving from an import — `;`-compounds split all-or-nothing (in the
-/// CallersBox/TCB attempt) and a top-level `||` stays whole-custom.
+/// CallersBox/TCB attempt) and a top-level `||` builds a meanwhile container
+/// when it is well-formed (a malformed one stays whole-custom). One exception
+/// runs the other way: Caller's Companion imports also retry a missed line
+/// with a hyphenated hand (`Left-hand allemande`, #1908), which typed text
+/// does not get.
+///
+/// On top of that grammar, which follows how source sites write calls, free
+/// text reads what a caller types (#1826, `typed_figure_names.dart`): spoken
+/// turn amounts (`once and a half`) are rewritten to numerals before the
+/// parse, and a line no parse reads is looked up as a move's name
+/// (`hey`, `mad robin.`, `give & take`, an alias, the [dialect]'s own name),
+/// alone or after a dancer (`neighbor pass by`, `ones arch and dive`; #1857).
+/// That lookup is not a fast path: it runs after the parser, under the same
+/// length bound, and its figure is validated against the taxonomy. Imports
+/// and the re-parse upgrade use neither.
+///
+/// When a [dialect] is supplied, the line is parsed RAW first and the
+/// dialect-canonicalised line is tried only if the raw parse reads no move: the
+/// user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
+/// the always-on legacy synonym set the parser's scrub applies, so they miss
+/// raw but parse once [canonicalizeText] maps them back to `role1`/`role2`.
+/// Since #2121 it is also tried when the raw parse reads a move but leaves a
+/// note or an unread part (`half poussette - leads pull neighbor back then
+/// left` kept `- leads pull …` as a note); then the retry is taken only if it
+/// reads the whole line. Raw goes first because a dialect term can also be a
+/// MOVE word — `lead` in `ones lead down the hall`. The canonicaliser keeps
+/// such a verb when its neighbours show it is one (`RoleCanonicalizer`), but a
+/// line that parses as typed should never depend on that judgement. When that
+/// retry does not settle the line either, the built-in discouraged role terms
+/// are read by their meaning (`ravens chain` → a `role2s` chain), as
+/// user-glossary text is read ([canonicalizeGlossaryText]), so a role word the
+/// [dialect] claims keeps the dialect's meaning; this retry runs with no
+/// [dialect] too. When every retry misses, the raw result is returned, so the
+/// custom is not dialect-canonicalised here. It is not verbatim either: the
+/// parser's import scrub (`scrubFigureText`) has already run over it, and the
+/// editor canonicalises custom text against the active dialect when the dance
+/// is saved. With no [dialect], the dialect retry is skipped; the other steps
+/// still run.
 ///
 /// Before parsing, an optional inline beat count is peeled off the line and
 /// passed as the `beats` argument:
-/// - a **leading** `16 …` (a bare integer + space), or
-/// - a **trailing** `… (16)` (a parenthesised integer at the end).
+/// - a **leading** `16 …`, `(16) …` or `[16] …` (a bare integer + space, or a
+///   bracketed one, with or without a space), or
+/// - a **trailing** `… (16)` or `… [16]` (a bracketed integer at the end),
 ///
-/// Only ONE inline form is honoured per line: a trailing `(N)` is checked
-/// first and wins, so a line that redundantly supplies both (`16 … (8)`) keeps
-/// the leftover leading digits in its text (and typically degrades to a
-/// verbatim custom) rather than guessing which count the caller meant.
+/// any of them with a `beats` unit (`16 beats …`, `… (16 beats)`), which also
+/// makes a bare trailing count a count (`… 16 beats`). A count in `bars` is
+/// not read: beats per bar is the dance's phrase structure, which a line does
+/// not see, so it stays in the text.
+///
+/// Only ONE inline form is honoured per line (per `;` clause, see below): a
+/// trailing count is checked first and wins. A count that is not the one
+/// honoured (the leading digits of `16 … (8)`, a second bracketed group) is
+/// never dropped: it stays in the text, which then no longer parses and is kept
+/// as a custom. A zero count is not a count (0 is "unspecified"); it is left
+/// where it is.
+///
+/// A count of five or more digits (`circle left 10000 beats`, `(10000) circle
+/// left`) cannot be beats, and is not an error either (#1863). When the line
+/// states no count that can be, it is taken off the line, the rest is read as
+/// usual, and the figure keeps its default beats, as one entered through the
+/// figure picker does. The number is kept as a note on the figure it was typed
+/// with (`10000 beats`), so it is not dropped. If the rest is not read in full,
+/// the whole line is kept as a custom with its text as typed. A count of up to
+/// four digits is left to the beats range (0..64) as before.
+///
+/// In a `;` line each clause may state its own count, and keeps it
+/// ([_parseCountedClauses], #1870): `circle left (8); turn alone` and
+/// `circle left; turn alone (4)`. A count that cannot be placed on a figure
+/// keeps the line whole as a custom.
+///
+/// A line that ends up custom keeps its typed text, counts included, rather
+/// than the remainder after a count was peeled; the peeled count still rides
+/// on the custom as its beats.
 ///
 /// When the line states no inline count the beats argument is left at 0, which
 /// [parseFigureLine] treats as "unspecified": a matched structured figure then
 /// derives its move/param default beats on read via [Taxonomy.effectiveParams]
 /// (never forced to a literal 0), and an unrecognised line stays a beats-absent
-/// custom.
+/// custom. The app's editors read a draft's beats straight from its params, so
+/// they fill that derived count in when they insert the figures
+/// (`FigureDraft.fromFreeTextFigure`).
+///
+/// When [taxonomy] is an English Country Dance's
+/// (`shippedTaxonomies.forForm(DanceForm.ecd)`), the line is read by the ECD
+/// grammar ([recognizeEcdLine], ADR-006 W6) in place of the contra
+/// front-ends, the typed-name lookup and the beat-implied balances, so it never
+/// becomes a contra move; shorthands, counts and `;` clauses work as above.
+/// [formationShape] is the dance's shape, from which a circle's or star's
+/// fraction is read as a number of places ([ecdRingDancers]).
 ///
 /// Returns an empty list when the line is empty after trimming/scrubbing
 /// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
 /// malformed/hostile input). Matched lines yield structured taxonomy figures;
 /// unrecognised lines yield [customMove] figures tagged
-/// [CustomOrigin.importGap] (via [parseFigureLine]) so they surface the #398
-/// parser-gap marker and remain eligible for the reparse-customs upgrade.
+/// [CustomOrigin.importGap] so they surface the #398 parser-gap marker. They
+/// remain eligible for the reparse-customs upgrade, except a line kept whole
+/// for a stray count, which [splitForReparse] keeps custom.
 List<Figure> parseFreeTextFigureEntry(
   String input, {
   Taxonomy? taxonomy,
   ShorthandMappings? shorthands,
+  Dialect? dialect,
+  FormationShape? formationShape,
+  String? meter,
 }) {
+  final ring = ecdRingDancers(formationShape);
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed.length > maxFreeTextEntryLength) {
     return const [];
   }
   // Shorthand resolution runs FIRST (issue #420): a whole-line exact-token hit
-  // expands to the mapped figure(s) and short-circuits the parser. A miss (or
-  // no store) falls through to the normal #419 recognition below.
+  // expands to the mapped figure(s) and short-circuits the parser. Failing
+  // that, a counted or `;`-separated shorthand expands (#1827). Otherwise (or
+  // with no store) the line goes to the normal #419 recognition below.
   if (shorthands != null) {
     final expanded = shorthands.resolve(trimmed);
     if (expanded != null) return expanded;
+    final withShorthands = _expandShorthandClauses(
+      trimmed,
+      shorthands,
+      taxonomy,
+      dialect,
+      ring,
+    );
+    if (withShorthands != null) return withShorthands;
   }
+  // An English line that starts with a bar range (`1-4 partners set`) counts
+  // in bars of the dance's [meter] (ADR-006 W6; Hudson: "the meter is the
+  // rule"): the rest is read, and one figure read in full takes the bars as
+  // its count. Anything else, a rest that also states a count in beats or a
+  // line of several ranges (`(5-8) X (9-12) Y`, counted across all of them)
+  // included, keeps the line whole as typed, with that count.
+  final bars = _isEcd(taxonomy) ? ecdBarCount(trimmed, meter: meter) : null;
+  if (bars != null) {
+    // A count in beats as well would be dropped, and a line of several
+    // ranges names several figures: the line is kept whole.
+    if (bars.several || ecdRestStatesBeats(bars.rest)) {
+      return [_typedCustom(trimmed, bars.beats)];
+    }
+    final read = _parseLine(bars.rest, taxonomy, dialect, ringDancers: ring);
+    if (read.length == 1 && !read.single.isCustom) {
+      final figure = read.single;
+      return [
+        figure.copyWith(params: {...figure.params, 'beats': bars.beats}),
+      ];
+    }
+    return [_typedCustom(trimmed, bars.beats)];
+  }
+  return _parseLine(trimmed, taxonomy, dialect, ringDancers: ring);
+}
+
+/// Whether typing [token] as a free-text line already inserts a figure: the
+/// parser structures it to one or more non-custom figures (issue #1827). A
+/// shorthand with such a token would replace that reading, because shorthands
+/// are matched before the parser, so the editors warn before it is saved.
+/// [dialect] is the active one, so a token written in the user's own role words
+/// is judged as it would be typed.
+bool shorthandTokenShadowsFigure(
+  String token, {
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+}) {
+  final figures = parseFreeTextFigureEntry(
+    token,
+    taxonomy: taxonomy,
+    dialect: dialect,
+  );
+  return figures.isNotEmpty && figures.every((f) => !f.isCustom);
+}
+
+/// Most `;` clauses a line is split into to look for shorthands. Matches
+/// [maxShorthandTargetFigures], the most figures one shorthand may insert, so a
+/// hostile line of a thousand `;` cannot drive a thousand parses.
+const int _maxShorthandClauses = maxShorthandTargetFigures;
+
+/// Resolves [line] against [shorthands] after the whole-line match missed: a
+/// counted shorthand (`16 pbs`, `pbs (16)`) and/or a `;` line some of whose
+/// clauses are shorthands. Returns `null` when no clause is a shorthand, or the
+/// line cannot be expanded all-or-nothing, so the caller parses it as before.
+List<Figure>? _expandShorthandClauses(
+  String line,
+  ShorthandMappings shorthands,
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+  int? ringDancers,
+) {
+  final clauses = splitShorthandClauses(line);
+  if (clauses == null) return null;
+  final expansions = <List<Figure>?>[];
+  var anyShorthand = false;
+  for (final clause in clauses) {
+    final expansion = _resolveClause(clause, shorthands, taxonomy);
+    // A count the shorthand's figure cannot take keeps the whole line custom
+    // with its text as typed, as for a `;` line with a clause that does not
+    // structure (#1879); the line's own edge count, if any, is its beats.
+    if (expansion != null && expansion.refused) {
+      return [_typedCustom(line, _splitInlineBeats(line).beats)];
+    }
+    anyShorthand = anyShorthand || expansion != null;
+    expansions.add(expansion?.figures);
+  }
+  if (!anyShorthand) return null;
+  final result = <Figure>[];
+  for (var i = 0; i < clauses.length; i++) {
+    final expansion = expansions[i];
+    if (expansion != null) {
+      result.addAll(expansion);
+      continue;
+    }
+    final parsed = _parseLine(
+      clauses[i],
+      taxonomy,
+      dialect,
+      clause: true,
+      ringDancers: ringDancers,
+    );
+    if (parsed.isEmpty || parsed.any((f) => f.isCustom)) return null;
+    result.addAll(parsed);
+  }
+  return result;
+}
+
+/// What one `;` clause is as a shorthand: its [figures], or [refused] when the
+/// count typed with it cannot be put on the one figure it expands to.
+typedef _ClauseExpansion = ({List<Figure> figures, bool refused});
+
+/// The figures a single [clause] expands to as a shorthand, with an inline
+/// count applied when the shorthand is one figure, or `null` if it is not one.
+///
+/// The count follows the rule a line with no shorthand does: up to four digits
+/// it is the figure's beats if the taxonomy allows that many (0..64), and
+/// [_ClauseExpansion.refused] otherwise (`pbs (100)`, as `circle left (100)` is
+/// kept custom); five or more digits are not beats, so the figure keeps its
+/// beats and the count rides on its note (#1863). A shorthand of several
+/// figures drops any count, as ever: it has no one figure to hold it. So does
+/// one that expands to a sequence, whose count is its steps' own.
+_ClauseExpansion? _resolveClause(
+  String clause,
+  ShorthandMappings shorthands,
+  Taxonomy? taxonomy,
+) {
+  final whole = shorthands.resolve(clause);
+  if (whole != null) return (figures: whole, refused: false);
+  final split = _splitInlineBeats(clause);
+  final unread = split.unread;
+  if (split.beats == 0 && unread == null) return null;
+  final expanded = shorthands.resolve(split.text);
+  if (expanded == null) return null;
+  if (expanded.length != 1 || expanded.single.isSequence) {
+    return (figures: expanded, refused: false);
+  }
+  final only = expanded.single;
+  if (unread != null) {
+    return (figures: [_withUnreadCount(only, unread)], refused: false);
+  }
+  final counted = only.copyWith(params: {...only.params, 'beats': split.beats});
+  return (
+    figures: [counted],
+    refused: _errorCount(counted, taxonomy) > _errorCount(only, taxonomy),
+  );
+}
+
+/// How many errors [taxonomy] finds in [figure]: compared before and after a
+/// count is put on a shorthand's figure, so only what the count broke counts
+/// against it, not a fault the saved figure already had.
+int _errorCount(Figure figure, Taxonomy? taxonomy) =>
+    (taxonomy ?? contraTaxonomy)
+        .validateFigure(figure)
+        .where((i) => i.severity == ValidationSeverity.error)
+        .length;
+
+/// [line] split into its `;` clauses, trimmed, for a caller that matches a
+/// shorthand of its own kind per clause (a compound, or one of the user's own
+/// figures, #1866). The same split a plain shorthand gets
+/// ([_expandShorthandClauses]), so the kinds agree on where a clause ends.
+/// `null` when the line cannot be expanded clause by clause: it has an empty
+/// clause (`pbs;;swing`) or more than [maxShorthandTargetFigures] clauses. A
+/// line with no `;` is one clause.
+List<String>? splitShorthandClauses(String line) {
+  final clauses = _splitClauses(line);
+  if (clauses.length > _maxShorthandClauses || clauses.any((c) => c.isEmpty)) {
+    return null;
+  }
+  return clauses;
+}
+
+/// [line] with a leading `16 pbs` or trailing `pbs (16)` beat count peeled
+/// off, or `null` when it states none (issue #1861). The same split a plain
+/// shorthand gets above, for the callers that match a shorthand of their own
+/// kind (a compound, or one of the user's own figures) and so cannot go
+/// through [parseFreeTextFigureEntry]: the caller matches `text` against its
+/// tokens and decides what `beats` means for what it inserts. A count that is
+/// not beats is `unread`, with `beats` 0: one too long to be (five or more
+/// digits, #1863) or a count in bars (`4 bars`). The caller decides where it
+/// goes.
+({String text, int beats, String? unread})? splitShorthandCount(String line) {
+  final split = _splitInlineBeats(line.trim());
+  if (split.beats == 0 && split.unread == null) return null;
+  return (text: split.text, beats: split.beats, unread: split.unread);
+}
+
+/// Splits [line] at bracket-depth-0 `;`, trimming each clause and keeping empty
+/// ones so the caller can decline a degenerate run (`pbs;;swing`). Brackets are
+/// opaque, as in the parser's own `;` split, so a `(PR;WL)` pass list is not
+/// cut.
+List<String> _splitClauses(String line) {
+  final out = <String>[];
+  var depth = 0;
+  var start = 0;
+  for (var i = 0; i < line.length; i++) {
+    final c = line.codeUnitAt(i);
+    if (c == 0x28 || c == 0x5B) {
+      depth++;
+    } else if (c == 0x29 || c == 0x5D) {
+      if (depth > 0) depth--;
+    } else if (depth == 0 && c == 0x3B) {
+      out.add(line.substring(start, i).trim());
+      start = i + 1;
+    }
+  }
+  out.add(line.substring(start).trim());
+  return out;
+}
+
+/// The ordinary (non-shorthand) path for one trimmed [trimmed] line: peel an
+/// inline count, fan out across the front-ends, and retry dialect-canonicalised.
+/// [clause] is set when [trimmed] is one clause of a `;` line read clause by
+/// clause ([_expandShorthandClauses]), so it is not the whole line.
+List<Figure> _parseLine(
+  String trimmed,
+  Taxonomy? taxonomy,
+  Dialect? dialect, {
+  bool clause = false,
+  int? ringDancers,
+}) {
   final split = _splitInlineBeats(trimmed);
+  final counted = _parseCountedClauses(trimmed, taxonomy, dialect, ringDancers);
+  if (counted != null) {
+    // A clause that does not structure keeps the line whole, as for any other
+    // `;` line, with its text as typed and the line's own edge count (if any)
+    // as its beats.
+    return counted.isEmpty ? [_typedCustom(trimmed, split.beats)] : counted;
+  }
+  // A stray count keeps the line out of the parser, which would drop the
+  // number: it is kept whole as a custom.
+  final result = split.hasStrayCount
+      ? [_typedCustom(trimmed, split.beats)]
+      : _parseSplit(
+          split,
+          taxonomy: taxonomy,
+          dialect: dialect,
+          ringDancers: ringDancers,
+          whole: trimmed,
+        );
+  // A count that cannot be beats leaves the figure its default beats and rides
+  // on it as a note; a line the parser did not read in full keeps the number in
+  // its typed text instead (#1863).
+  final unread = split.unread;
+  if (unread != null) {
+    final read =
+        !split.hasStrayCount &&
+        result.isNotEmpty &&
+        !result.any((f) => f.isCustom);
+    return read
+        ? [_withUnreadCount(result.first, unread), ...result.skip(1)]
+        : [_typedCustom(trimmed, 0)];
+  }
+  // A line that stayed custom keeps the text as typed: the count peeled above
+  // would have left the custom with only its remainder.
+  if (split.beats > 0 && result.length == 1 && result.single.isCustom) {
+    return [_typedCustom(trimmed, split.beats)];
+  }
+  // A typed `(8) Box circulate` or `(8) Square through 2` reads its balance
+  // from its beats as an imported one does (#1975), and a typed balance and
+  // box the gnat with no count gets 8 beats, the balance and the box (#2121),
+  // unless it is one clause of a longer line, which leaves a clause
+  // beats-absent.
+  // Both read contra's moves, which an ECD line never holds.
+  if (_isEcd(taxonomy)) return result;
+  final balanced = withBeatImpliedBalance(trimmed, result);
+  return clause ? balanced : withBalancedBoxBeats(trimmed, balanced);
+}
+
+/// A `;` line in which some clause states a count, read so each count stays on
+/// the clause it was typed with (#1870). Peeled off the whole line, a count at
+/// the far end would ride on the FIRST clause (the parser puts a line's total
+/// on its first figure), and one inside the line would be dropped.
+///
+/// The clauses are read together, count-free, because the parser reads a clause
+/// in the context of its neighbours (`face up` after a move is that move's
+/// note, not a figure). The first clause's count is the line's, as ever; a
+/// count on a later clause is put on that clause's figure, which is only known
+/// when every clause made exactly one figure, in order. Anything else (a clause
+/// that became a note or was folded into a neighbour) cannot say which figure
+/// the count belongs to, so the line is kept whole rather than guess.
+///
+/// Returns `null` when the line is not such a line (no `;`, a `||`, an empty
+/// clause, or no clause with a count), so it is read whole as before; the
+/// empty list when the counts cannot be kept, so the caller keeps the line as
+/// one custom with its text as typed.
+List<Figure>? _parseCountedClauses(
+  String line,
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+  int? ringDancers,
+) {
+  if (hasTopLevelSeparator(line, '||')) return null;
+  final clauses = splitShorthandClauses(line);
+  if (clauses == null || clauses.length < 2) return null;
+  final splits = [for (final c in clauses) _splitInlineBeats(c)];
+  if (!splits.any((s) => s.beats > 0 || s.unread != null || s.hasStrayCount)) {
+    return null;
+  }
+  if (splits.any((s) => s.hasStrayCount)) return const [];
+  final first = splits.first;
+  final figures = _parseSplit(
+    _BeatSplit(splits.map((s) => s.text).join('; '), first.beats, first.forms),
+    taxonomy: taxonomy,
+    dialect: dialect,
+    ringDancers: ringDancers,
+  );
+  if (figures.isEmpty || figures.any((f) => f.isCustom)) return const [];
+  final later = splits.skip(1);
+  if (later.every((s) => s.beats == 0 && s.unread == null)) {
+    final unread = first.unread;
+    return unread == null
+        ? figures
+        : [_withUnreadCount(figures.first, unread), ...figures.skip(1)];
+  }
+  if (figures.length != clauses.length) return const [];
+  final counted = [
+    for (var i = 0; i < figures.length; i++)
+      _placeClauseCount(figures[i], splits[i], first: i == 0),
+  ];
+  // The first clause's count went through the parser, which refuses a value
+  // the taxonomy does not allow (more than 64 beats); a later clause's was set
+  // here, so it is held to the same rule.
+  final tax = taxonomy ?? contraTaxonomy;
+  final invalid = counted.any(
+    (f) => tax
+        .validateFigure(f)
+        .any((i) => i.severity == ValidationSeverity.error),
+  );
+  return invalid ? const [] : counted;
+}
+
+/// [figure], the one made from the clause [split] was read from, with that
+/// clause's own count on it. The first clause's beats went through the parser.
+Figure _placeClauseCount(
+  Figure figure,
+  _BeatSplit split, {
+  required bool first,
+}) {
+  final beats = first ? 0 : split.beats;
+  final counted = beats > 0
+      ? figure.copyWith(params: {...figure.params, 'beats': beats})
+      : figure;
+  final unread = split.unread;
+  return unread == null ? counted : _withUnreadCount(counted, unread);
+}
+
+/// What to re-parse for a saved import-gap custom with [text] and [beats]
+/// (`reparseImportGapFigures`), or `null` when the line must stay custom.
+///
+/// A free-text custom keeps its count in its text and in its beats; peeling the
+/// count the beats already state lets the line upgrade once the parser learns
+/// it. A stray count (see [_BeatSplit.hasStrayCount]) keeps the line custom,
+/// since the recogniser would drop the number.
+///
+/// Only the unit-less counts are read here (`_reparseCounts`): this also runs
+/// over customs that came from imports, so a `beats` unit (#1826) is left to
+/// the parser, as it was before. One exception: a line that free-text entry
+/// would itself keep custom for a stray count, honouring the stored [beats]
+/// (`circle left 8 beats (16)`, `circle left 8 beats (16 beats)`), stays
+/// custom here too, rather than upgrading with two counts. Free-text and
+/// import customs share [CustomOrigin.importGap], so this applies to both.
+({String text, int beats})? splitForReparse(String text, int beats) {
+  final typed = _splitInlineBeats(text);
+  if (beats > 0 && typed.beats == beats && typed.hasStrayCount) return null;
+  final split = _splitInlineBeats(text, _reparseCounts);
+  final peel = split.beats > 0 && split.beats == beats;
+  final line = peel ? split : _BeatSplit(text, 0, _reparseCounts);
+  if (line.hasStrayCount) return null;
+  return (text: line.text, beats: beats);
+}
+
+Figure _typedCustom(String trimmed, int beats) => customFigure(
+  scrubFigureText(trimmed),
+  beats: beats,
+  origin: CustomOrigin.importGap,
+);
+
+List<Figure> _parseSplit(
+  _BeatSplit split, {
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+  int? ringDancers,
+  String? whole,
+}) {
+  if (_isEcd(taxonomy)) {
+    return _parseEcdSplit(
+      split,
+      dialect: dialect,
+      ringDancers: ringDancers,
+      whole: whole,
+    );
+  }
   // Fan OUT across the three source front-ends in precedence order
   // (ContraDB > CallersBox/TCB > CallersCompanion) and take the highest-
   // precedence attempt that structures the whole line to non-custom figure(s);
   // on a full miss the line stays an import-gap custom (byte-identical to the
   // pre-fan-out CallersBox fallback). Only the TCB attempt `;`-splits, so a
-  // `;`-compound still resolves through it, and a top-level `||` stays custom.
-  return parseFigureLinesFanOut(
-    split.text,
+  // `;`-compound still resolves through it, and it also builds a top-level
+  // `||` into a meanwhile.
+  List<Figure> attempt(String text) => parseFigureLinesFanOut(
+    text,
     beats: split.beats,
     taxonomy: taxonomy,
+    demoteNoteTails: true,
   );
+  // A container counts as a miss when nothing inside it was read
+  // (`leads swing while follows chain` as typed is two unread halves).
+  bool missed(Iterable<Figure> fs) =>
+      fs.every((f) => f.isCustom || (f.isContainer && missed(f.subFigures)));
+  // Spoken turn amounts first (`once and a half` → `1 1/2`): the grammar would
+  // read `once` and keep `and a half` as a note, so this cannot wait for a
+  // miss. Only a reading that accounts for the whole line is taken, so the
+  // rewrite never changes a line the grammar already read, or the user's
+  // words in a note.
+  final rewritten = rewriteTypedSpellings(split.text);
+  if (!identical(rewritten, split.text)) {
+    final read = attempt(rewritten);
+    if (!missed(read) && !_anyNote(read)) return read;
+  }
+  final raw = attempt(split.text);
+  if (raw.isEmpty) return raw;
+  // Retries: the dialect's role words, then the built-in discouraged role
+  // terms by their meaning (`ravens` → `role2s`), read as user-glossary text
+  // is (`canonicalizeGlossaryText`), so a role word the dialect claims keeps
+  // the dialect's meaning. On a miss the first reading that finds a move is
+  // taken. When the line as typed found a move but did not read all of it — a
+  // note (`half poussette - leads pull neighbor back then left` keeps `- leads
+  // pull …`) or an unread part (`leads dance out while follows dance in …`
+  // splits into two unread halves) — a retry is taken only if it reads the
+  // whole line (#2121). So a line read as typed keeps that reading unless the
+  // role words account for all of it.
+  final rawMissed = missed(raw);
+  if (!rawMissed && _readsWholeLine(raw)) return raw;
+  final tried = {split.text};
+  final readTexts = <String>[];
+  for (final retry in [
+    if (dialect != null) canonicalizeText(split.text, dialect),
+    canonicalizeGlossaryText(split.text, dialect ?? Dialect.canonical),
+  ]) {
+    if (!tried.add(retry)) continue;
+    readTexts.add(retry);
+    final retried = attempt(retry);
+    if (missed(retried)) continue;
+    if (rawMissed || _readsWholeLine(retried)) return retried;
+  }
+  if (!rawMissed) return raw;
+  // Last, the line as a move's name (`hey.`, `mad robin`), alone or after a
+  // dancer (`neighbor pass by`): only when no parse read it, so a line the
+  // grammar reads keeps every fact it states. A role word in the dancer's place
+  // (`ravens mad robin`) is read by the retries' meaning of it, as it is above.
+  final names = taxonomy ?? contraTaxonomy;
+  final named =
+      figureFromTypedName(
+        split.text,
+        beats: split.beats,
+        taxonomy: names,
+        dialect: dialect,
+      ) ??
+      readTexts
+          .map(
+            (text) => figureFromTypedDancerName(
+              text,
+              beats: split.beats,
+              taxonomy: names,
+              dialect: dialect,
+            ),
+          )
+          .nonNulls
+          .firstOrNull ??
+      [split.text, ...readTexts]
+          .map((text) => _displayedCourtesyTurn(text, split.beats, names))
+          .nonNulls
+          .firstOrNull ??
+      [split.text, ...readTexts]
+          .map((text) => _displayedTradeTheWave(text, split.beats, names))
+          .nonNulls
+          .firstOrNull ??
+      _displayedForwardAndBack(split.text, split.beats, names, dialect) ??
+      [split.text, ...readTexts, ..._starburstVerbSplits(split.text, dialect)]
+          .map((text) => _displayedStarburst(text, split.beats, names, dialect))
+          .nonNulls
+          .firstOrNull ??
+      [split.text, ...readTexts]
+          .map(
+            (text) => _displayedHeyForThree(text, split.beats, names, dialect),
+          )
+          .nonNulls
+          .firstOrNull;
+  return named == null ? raw : [named];
 }
+
+/// Whether [taxonomy] is the one an English Country Dance is read with
+/// (`shippedTaxonomies.forForm(DanceForm.ecd)`, or ECD's own).
+bool _isEcd(Taxonomy? taxonomy) => taxonomy?.form == DanceForm.ecd;
+
+/// A line of an English Country Dance, read by the ECD grammar
+/// ([recognizeEcdLine], ADR-006 W6) instead of the contra front-ends, so it
+/// never becomes a contra move: an unprefixed move in an ECD dance means one
+/// stored before the ECD taxonomy existed (ADR-006 §5.1).
+///
+/// The same order as a contra line: the line as typed, then with the
+/// [dialect]'s role words read, then with the built-in discouraged role terms
+/// read by their meaning. A `;` line is read clause by clause, all or nothing.
+/// [whole] is the line before a leading count was peeled off: `2 changes of
+/// rights and lefts` and `2 hand turn` start with a number that is part of the
+/// figure, so the line is read whole first when its count was a bare leading
+/// number. A line no reading takes is one custom with its text as typed.
+List<Figure> _parseEcdSplit(
+  _BeatSplit split, {
+  Dialect? dialect,
+  int? ringDancers,
+  String? whole,
+}) {
+  List<Figure>? read(String text, int beats) {
+    final clauses = _splitClauses(text);
+    if (clauses.length > _maxShorthandClauses ||
+        clauses.any((c) => c.isEmpty)) {
+      return null;
+    }
+    final figures = <Figure>[];
+    for (var i = 0; i < clauses.length; i++) {
+      final figure = recognizeEcdLine(
+        scrubFigureText(clauses[i]),
+        // A `;` line's count is its first figure's, as for contra.
+        beats: i == 0 ? beats : 0,
+        ringDancers: ringDancers,
+      );
+      if (figure == null) return null;
+      figures.add(figure);
+    }
+    return figures;
+  }
+
+  List<Figure>? readEach(String text, int beats) {
+    for (final candidate in [
+      text,
+      if (dialect != null) canonicalizeText(text, dialect),
+      canonicalizeGlossaryText(text, dialect ?? Dialect.canonical),
+    ]) {
+      final figures = read(candidate, beats);
+      if (figures != null) return figures;
+    }
+    return null;
+  }
+
+  final leading = whole == null ? null : _bareLeadingCount.firstMatch(whole);
+  final leadingCount =
+      leading != null &&
+      split.beats > 0 &&
+      leading.group(2)!.trim() == split.text &&
+      int.tryParse(leading.group(1)!) == split.beats;
+  // `4 hands across`: the number counts hands, so the line is never read as
+  // beats and a star.
+  final countsHands =
+      leadingCount && _handsWord.hasMatch(leading.group(2)!.trim());
+  final figures =
+      (leadingCount ? readEach(whole!, 0) : null) ??
+      (countsHands ? null : readEach(split.text, split.beats));
+  if (figures != null) return figures;
+  // A count over the beats range is not read off the line, as for contra:
+  // the custom keeps the whole line as typed (`circle left (100)`).
+  final text = scrubFigureText(
+    split.beats > 64 && whole != null ? whole : split.text,
+  );
+  if (text.isEmpty) return const [];
+  return [
+    customFigure(text, beats: split.beats, origin: CustomOrigin.importGap),
+  ];
+}
+
+/// A line that starts with a bare number and a space: `2 changes of …`.
+final RegExp _bareLeadingCount = RegExp(r'^(\d+)\s+(.*)$');
+
+/// `hand`/`hands` as a line's first word, after its leading number.
+final RegExp _handsWord = RegExp(r'^hands?\b', caseSensitive: false);
+
+final RegExp _whitespaceRun = RegExp(r'\s+');
+
+/// Punctuation a caller may end a displayed line with.
+final RegExp _closingStop = RegExp(r'\s*[.!]$');
+
+/// A forward and back as the app displays one (taxonomy v39): a formation's
+/// words, then `forward & back` (or `forward and back`, or [dialect]'s name
+/// for the move), or `forward` alone when the dancers do not come back. Read
+/// only here, so imports' grammar is unchanged: no source writes these
+/// formations this way, and long lines, which sources do write, the grammar
+/// already reads. The figure is returned under the id it would be stored
+/// with, so a formation of long lines reads as `long_lines`.
+Figure? _displayedForwardAndBack(
+  String text,
+  int beats,
+  Taxonomy taxonomy,
+  Dialect? dialect,
+) {
+  final spec = taxonomy.moves['forward_and_back']?.params['formation'];
+  final formations = spec?.choices;
+  if (formations == null) return null;
+  final line = text
+      .trim()
+      .replaceFirst(_closingStop, '')
+      .replaceAll(_whitespaceRun, ' ')
+      .toLowerCase();
+  final dialectName = dialect?.moves['forward_and_back'];
+  // Each ending the display writes, with whether it means coming back.
+  final endings = <(String, bool)>[
+    ('forward & back', true),
+    ('forward and back', true),
+    if (dialectName != null && !dialectName.contains('%'))
+      (dialectName.trim().replaceAll(_whitespaceRun, ' ').toLowerCase(), true),
+    ('forward', false),
+  ];
+  for (final (ending, goBack) in endings) {
+    if (ending.isEmpty || !line.endsWith(' $ending')) continue;
+    final words = line.substring(0, line.length - ending.length - 1);
+    for (final token in formations) {
+      if (FigureRenderer.displayToken(token, spec, Dialect.canonical) !=
+          words) {
+        continue;
+      }
+      final figure = Figure(
+        move: 'forward_and_back',
+        params: {
+          'formation': token,
+          if (!goBack) 'goBack': false,
+          if (beats > 0) 'beats': beats,
+        },
+      );
+      final stored = taxonomy.resolvedMoveId(figure);
+      return figure.copyWith(
+        move: stored,
+        params: taxonomy.withoutListedAliasPins(stored, figure.params),
+      );
+    }
+  }
+  return null;
+}
+
+/// A courtesy turn naming `whom` as the app displays one (#2121), read only
+/// here so imports keep leaving `whom` out ([readDisplayedCourtesyTurnWithWhom]
+/// says why). A figure [taxonomy] rejects is a miss.
+Figure? _displayedCourtesyTurn(String text, int beats, Taxonomy taxonomy) {
+  final match = readDisplayedCourtesyTurnWithWhom(text);
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// A trade the wave as the app displays one (taxonomy v39), read only here
+/// so imports are unchanged ([readDisplayedTradeTheWave] says why). A figure
+/// [taxonomy] rejects is a miss.
+Figure? _displayedTradeTheWave(String text, int beats, Taxonomy taxonomy) {
+  final match = readDisplayedTradeTheWave(text);
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// The verb `lead` as a whole word, any case.
+final RegExp _leadVerb = RegExp(r'\blead\b', caseSensitive: false);
+
+/// [text] with [dialect]'s role words canonicalized on each side of one `lead`
+/// in turn, that `lead` kept as typed: one reading per `lead` in the line.
+///
+/// A starburst's display ("…, leads lead third neighbor out of the set")
+/// names its leaders and those they lead around the verb `lead`, which is a
+/// role word under a dialect whose roles are lead and follow. Read as a whole
+/// line, [canonicalizeText] keeps `lead` a verb only before a word it knows
+/// as a dancer's (`partner`), so before `third neighbor`, `centers` or
+/// `first lead` the verb becomes `role1` and the line no longer reads. Each
+/// side canonicalized on its own keeps the verb whichever dancer follows it.
+/// Trying every `lead` covers a subject that holds the word itself (`first
+/// lead lead partner …`).
+Iterable<String> _starburstVerbSplits(String text, Dialect? dialect) sync* {
+  if (dialect == null) return;
+  for (final verb in _leadVerb.allMatches(text)) {
+    yield '${canonicalizeText(text.substring(0, verb.start), dialect)}'
+        '${verb[0]}'
+        '${canonicalizeText(text.substring(verb.end), dialect)}';
+  }
+}
+
+/// A starburst as the app displays one (taxonomy v39), read only here
+/// ([readDisplayedStarburst] says why), under its own name or [dialect]'s name
+/// for it, which the display writes in its place. A figure [taxonomy] rejects
+/// is a miss.
+Figure? _displayedStarburst(
+  String text,
+  int beats,
+  Taxonomy taxonomy,
+  Dialect? dialect,
+) {
+  final dialectName = dialect?.moves['starburst'];
+  final match =
+      readDisplayedStarburst(text) ??
+      (dialectName == null || dialectName.contains('%')
+          ? null
+          : readDisplayedStarburst(
+              text,
+              name: dialectName
+                  .trim()
+                  .replaceAll(_whitespaceRun, ' ')
+                  .toLowerCase(),
+            ));
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// A hey for three as the app displays one (taxonomy v39), read only here
+/// ([readDisplayedHeyForThree] says why), under its own name, that name with
+/// the numeral (`hey for 3`, as a caller types the bare name), or [dialect]'s
+/// name for it, which the display writes in its place. A figure [taxonomy]
+/// rejects is a miss.
+Figure? _displayedHeyForThree(
+  String text,
+  int beats,
+  Taxonomy taxonomy,
+  Dialect? dialect,
+) {
+  final dialectName = dialect?.moves['hey_for_three'];
+  final match =
+      readDisplayedHeyForThree(text) ??
+      readDisplayedHeyForThree(text, name: 'hey for 3') ??
+      (dialectName == null || dialectName.contains('%')
+          ? null
+          : readDisplayedHeyForThree(
+              text,
+              name: dialectName
+                  .trim()
+                  .replaceAll(_whitespaceRun, ' ')
+                  .toLowerCase(),
+            ));
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// Whether [figures] account for their whole line: none of them, and no figure
+/// inside one, is custom or carries a note.
+bool _readsWholeLine(Iterable<Figure> figures) =>
+    !_anyNote(figures) && !_anyCustom(figures);
+
+/// Whether any of [figures], or any figure inside one, is custom.
+bool _anyCustom(Iterable<Figure> figures) => figures.any(
+  (f) => f.isCustom || (f.isContainer && _anyCustom(f.subFigures)),
+);
+
+/// Whether any of [figures], or any figure inside one, carries a note.
+bool _anyNote(Iterable<Figure> figures) => figures.any(
+  (f) => f.note != null || (f.isContainer && _anyNote(f.subFigures)),
+);

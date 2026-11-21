@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/calling_history_caller_filter.dart';
 import '../../data/venue_label.dart';
+import '../../data/date_format_scope.dart';
+import '../../data/regional_formats.dart';
 import '../../data/venue_call_count_scope.dart';
 import '../../theme/app_spacing.dart';
 
@@ -65,6 +67,8 @@ class CallingHistorySection extends StatefulWidget {
     required this.repositories,
     required this.danceId,
     required this.performedOnly,
+    this.requireEventDate = false,
+    this.tracking = CallingHistoryTracking.defaults,
     required this.trackAllCallers,
     this.venueCallCount = kVenueCallCountDefault,
     required this.onOpenProgram,
@@ -76,6 +80,14 @@ class CallingHistorySection extends StatefulWidget {
   /// "Require mark-performed for calling history" (ROADMAP G.2). Changing it
   /// changes the query, so the stream is rebuilt.
   final bool performedOnly;
+
+  /// "Require an event date" for calling history. Changing it changes the
+  /// query, so the stream is rebuilt.
+  final bool requireEventDate;
+
+  /// The history-order toggles. They change only the row order, never which
+  /// rows are listed; changing them rebuilds the stream.
+  final CallingHistoryTracking tracking;
 
   /// "Track calling history for all callers" (issue #583). Resolves to the
   /// caller filter passed to the query, so a change rebuilds the stream.
@@ -138,6 +150,8 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
     }
     if (oldWidget.danceId != widget.danceId ||
         oldWidget.performedOnly != widget.performedOnly ||
+        oldWidget.requireEventDate != widget.requireEventDate ||
+        oldWidget.tracking != widget.tracking ||
         oldWidget.trackAllCallers != widget.trackAllCallers ||
         oldWidget.repositories != widget.repositories) {
       setState(() => _history = _watch());
@@ -162,6 +176,8 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
             .watchCallingHistoryForDance(
               widget.danceId,
               performedOnly: widget.performedOnly,
+              requireEventDate: widget.requireEventDate,
+              tracking: widget.tracking,
               callerFilter: callerFilter,
             )
             .map((history) {
@@ -292,7 +308,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
               Padding(
                 key: const ValueKey('calling-history-error'),
                 // intentional: 2px optical inset, below the 4px AppSpacing grid
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
                 child: Text(
                   l10n.danceCallingHistoryError,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -304,7 +320,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
               Padding(
                 key: const ValueKey('calling-history-empty'),
                 // intentional: 2px optical inset, below the 4px AppSpacing grid
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
                 child: Text(
                   l10n.danceCallingHistoryEmpty,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -373,6 +389,36 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   }
 }
 
+/// The calendar day a calling-history row shows for [record]: the day
+/// [DanceCallingRecord.effectiveDate] picks. It orders the rows unless a
+/// history-order setting leaves the row with no
+/// [DanceCallingRecord.orderingDate], which lists it after every dated row.
+///
+/// That is the program's event date when it has one (GIG-2, maintainer
+/// decision 2026-10-29), so marking a slot performed on the Monday after
+/// Saturday's dance, or past midnight during it, still shows Saturday. Without
+/// an event date it is when the slot was marked performed, else when the
+/// program was last changed, so a date always shows.
+///
+/// `eventDate` is a calendar date stored as UTC midnight, so it is shown as
+/// stored: converting it would move it back a day west of UTC. `performedAt`
+/// and `programUpdatedAt` are instants stored in UTC, so they are shown in
+/// local time: a dance called at 22:30 in New York is stored as 02:30Z the
+/// next day.
+@visibleForTesting
+DateTime callingHistoryDisplayDate(DanceCallingRecord record) {
+  if (record.eventDate case final eventDate?) return eventDate;
+  return callingHistoryToLocal(record.performedAt ?? record.programUpdatedAt);
+}
+
+/// How [callingHistoryDisplayDate] converts a stored UTC instant to local time.
+/// A seam so a test can stand in for a host west of UTC: test hosts usually run
+/// in UTC, where `toLocal` keeps the day and cannot tell the two apart.
+@visibleForTesting
+DateTime Function(DateTime instant) callingHistoryToLocal = _toLocal;
+
+DateTime _toLocal(DateTime instant) => instant.toLocal();
+
 /// One program in the dance's calling history: its title, the date it was
 /// called (or scheduled) and its venue, tappable to open the program.
 class CallingHistoryRow extends StatelessWidget {
@@ -398,11 +444,12 @@ class CallingHistoryRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    // Programs appear as soon as they include the dance, so `performedAt` is
-    // often null; `effectiveDate` falls back to the program's event date, then
-    // its last-updated time, so a date always shows. These are stored UTC
-    // values rendered directly (matching the other date labels on this screen).
-    final date = localizations.formatMediumDate(record.effectiveDate);
+    final date = formatEventDate(
+      callingHistoryDisplayDate(record),
+      DateFormatScope.of(context),
+      localizations,
+      l10n,
+    );
     final venue = (venueLabel ?? record.venue)?.trim();
     final subtitleParts = <String>[
       date,

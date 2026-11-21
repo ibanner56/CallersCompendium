@@ -9,8 +9,8 @@ have called.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Programs**, **New program**, and **Matrix**. The
-> first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition
+> first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 New to the app? The [Getting started guide](./getting-started.md) gives you the
@@ -20,18 +20,103 @@ lay of the land first. To fill your library before you build a program, see
 ## Create and manage programs
 
 Open **Programs** to see the programs you have built. It starts with a short
-prompt and a **New program** button until you make your first one.
+prompt and a **New program** button until you make your first one. Once you
+have programs, **New program** floats at the bottom of the list, and a strip across the top shows the current week, with a dot on
+each day that has a program's event date; to choose which day the week starts
+on, see [Settings ▸ Language & region](./settings.md#formats).
 
-- **Start one** with **New program**.
+Each program in the list shows its title, the types of its dances (such as
+*Contra*, *English (ECD)*, or *Contra + English (ECD)* for a program with
+both), event date, venue, dance count, and a status label (**Draft**,
+**Finalized**, or **Performed**); on the program's own page the types are the
+first line of its details, and the status is a plain line under the title.
+Every dance counts toward the types, alternates included, but not a dance you
+have deleted. When your programs have more than one mix of types, chips above
+the list filter it by type. With **Only** (the default) beside them, there is
+a chip for each mix, and it shows the programs of exactly that mix:
+**Contra** leaves out a program that also has English dances. With
+**Includes**, there is a chip for each type, and it shows every program that
+has that type: **Contra** lists contra programs and programs with both. A
+type that every program with dances has gets no chip there, since it would
+hide nothing.
+The program you have open stays in the list whatever its types. Tap the chip
+again to show every program.
+Searching programs finds them by their types too, so `english` lists every
+program with an English dance. The dance count is
+the number of dances the evening is planned for, so alternates and breaks are
+not counted; a free-text slot such as a waltz counts, because it stands in for
+a dance. The same count appears in the builder beside **Slots**, in the
+summary's **Set list** heading, and on the **Add to program** sheet. Once there is a program, use the sort button to order the list by **Title**, **Recently
+updated**, or **Event date**, and the arrow beside it to flip the direction. To choose which sort and
+direction the list opens with, see
+[Settings ▸ Defaults](./settings.md#display-defaults).
+
+- **Start one** with **New program**. If you have set up a **Starting program**
+  template in [Settings ▸ Defaults](./settings.md#program-defaults), the new
+  program begins with the template's dances and notes in order (any dance you
+  have since deleted is left out). The template applies only here — not to
+  imported or duplicated programs, or to **Create a new program with this
+  dance**.
 - **Import one** from the **Import program** menu (the import icon in the
   **Programs** toolbar), which offers two sources — **From title list** (paste a
   set list you already have) and **From ContraDB** (pull an event straight from
-  the online archive). On a narrow screen, those actions say **Import from title
-  list** and **Import from ContraDB**. Both are described below.
-- **Duplicate** a program to reuse last month's shape as a starting point.
-- **Delete** a program and it is only soft-deleted — an **Undo** option appears,
-  and it moves to a **Recently Deleted** area you can restore from later, exactly
-  as with [dances](./collection.md#keep-your-collection-tidy).
+  the online archive). On a narrow screen, these sit in the **More actions** menu
+  as **Import from title list** and **Import from ContraDB**. Both are described
+  below.
+- **Sync** with your other devices from the **Sync now** icon in the
+  **Programs** toolbar. It appears only while [Device
+  Sync](./settings.md#device-sync) is on and a store is connected, and shows a
+  spinner while a sync is running.
+- **Add a dance from your collection** with **Add to program** on the dance's
+  page. **Create a new program with this dance** is always the first choice;
+  programs you can still plan are listed before those already **Performed**,
+  and a program that already holds the dance says **In this program** and asks
+  before adding it again. See
+  [What you can do with a dance](./collection.md#what-you-can-do-with-a-dance).
+- **Duplicate** a program from its row's **⋮** menu (on a computer, you can
+  also right-click the row) to reuse last month's shape
+  as a starting point. The copy starts as a **Draft** with no performed marks,
+  no pay and no event date, so it doesn't put a second entry on last month's
+  date into your calling history. Give it the new date when you know it.
+- **Archive** a program you're done with but want to keep, from the same menu.
+  It leaves the list (an **Undo** option appears) but is not deleted: it never
+  expires, it still counts in your
+  [calling history](#track-what-you-have-called), and search still finds it.
+  An archived program is not offered on the **Add to program** sheet. To see
+  archived programs, choose **Show archived** in the **More actions** (⋮) menu
+  in the **Programs** toolbar, just above **Recently deleted**. They are listed
+  with the others, marked **Archived**, and their row menu offers **Unarchive**
+  instead. Choose **Hide archived** to hide them again. The list keeps showing
+  them while you open programs and come back, until you go to another part of
+  the app (Collection, Glossary, Settings or the guide) or close it. You can
+  also archive a program from its summary or the builder, next to
+  **Duplicate**; that closes the program, as **Delete** does, and from the
+  builder it saves your unsaved edits first. On a wide screen, an archived
+  program you have open also closes when the list stops showing it: when you
+  archive it from its row, choose **Hide archived**, or leave Programs (which
+  turns **Show archived** off). A duplicate of an archived
+  program is not archived. Archiving syncs to your other devices and is kept
+  in [backups](./settings.md#backup--restore), but a program you
+  [share](./sharing.md#share-a-program-with-its-dances) arrives unarchived.
+- **Delete** a program from the same menu, or by swiping its row. An **Undo**
+  option appears, and the program moves to **Recently deleted** (in the **More actions** menu in the
+  **Programs** toolbar), where you can
+  restore it later, exactly as with
+  [dances](./collection.md#keep-your-collection-tidy). Deleting from the
+  builder saves any edits you haven't saved yet first, so the program you
+  restore, or bring back with **Undo**, is the one you were editing. If you
+  cleared the title, it keeps its saved title. A program you deleted while it
+  was archived comes back from Recently deleted unarchived, so it shows in the
+  list; **Undo** puts it back exactly as it was, still archived.
+
+  Deleting a program also takes it out of the
+  [calling history](#track-what-you-have-called) of every dance in it, and
+  restoring it puts it back. With **Confirm before delete** on in
+  [Settings ▸ General ▸ Accessibility](./settings.md#accessibility), the
+  prompt says how many dances lose the program from their history, counted
+  under your current calling-history settings. The
+  warning appears only if you turned that setting on, and swiping a row to
+  delete skips the prompt. The Undo message does not repeat the number.
 
 ### Build from a list of titles
 
@@ -42,7 +127,7 @@ program a title, paste your dance titles **one per line**, and you get a live
 preview before anything is saved:
 
 - **A line that matches a dance in your [collection](./glossary.md#collection)**
-  (ignoring capitalisation) becomes a **dance slot** linked to that dance.
+  (ignoring capitalization) becomes a **dance slot** linked to that dance.
 - **A line that matches nothing** — or that matches **more than one** dance, so
   the app can't tell which you meant — is kept as a **free-text note slot**, the
   same kind of slot used for breaks and announcements. Nothing is dropped, and
@@ -50,21 +135,35 @@ preview before anything is saved:
 - **Blank lines are skipped**, so you can space your list out however you like.
 
 Press **Import** to create the program; an **Undo** option appears in case you
-change your mind. You can then open the program and tidy up any notes — for
+change your mind. Undo removes the program and any dances the app imported
+online for it (see below); dances that were already in your collection stay,
+and so does an imported dance you have since added to another program. You can then open the program and tidy up any notes — for
 example, searching your collection to link a dance the paste couldn't find, or
 using a note slot's **…** menu to create a new dance from it directly (see
 "Kinds of slots" below).
 
-**Fill the gaps from The Caller's Box.** If some lines didn't match anything in
-your collection, the preview shows a **Resolve unmatched online** button. It
-looks each unmatched title up in [The Caller's Box](./glossary.md#the-callers-box)
-and, where it finds a confident single match, imports that dance and links the
-slot to it — so a paste can pull in dances you don't own yet, not just the ones
-you already have. It needs an internet connection, and anything it still can't
-place stays a note for you to sort out by hand. Unlike a Caller's Box search on
-the Collection screen, this looks at every dance the Box knows — including ones
-whose figures it won't share — because it runs unattended and adding to it what
-it can find is not the same as changing what it decides to import on its own.
+**Fill the gaps online.** If some lines didn't match anything in your
+collection, the preview shows a **Resolve unmatched online** button. It looks
+each unmatched title up in [The Caller's Box](./glossary.md#the-callers-box),
+then tries [ContraDB](./glossary.md#contradb) for any title the Box couldn't
+settle. Where a source has exactly one dance with that title, the app imports it
+and links the slot to it — so a paste can pull in dances you don't own yet, not
+just the ones you already have. When several dances share the exact title, a
+review screen lets you pick the one you meant instead of guessing. Like
+[bringing in a list of titles](./imports.md#bring-in-a-list-of-dance-titles), it
+only takes a dance whose figures the archive will share. Anything it still
+can't place stays a note for you to sort out by hand.
+
+It needs an internet connection. While it works it shows how far it has got,
+and you can **Cancel** at any point; titles it has already linked stay linked.
+If it can't reach the archives (you're offline, or the connection hangs), it
+**stops after the first failure** and says so, rather than reporting every
+title as not found; try again once you're online.
+
+The dances it imports are added to your collection straight away, so the
+preview can link them. If you go back with a title or a list pasted in, the app asks
+before discarding it. If you leave the screen without pressing **Import**, they
+are removed again, and so is anything it was still looking up.
 
 ### Import a program from ContraDB
 
@@ -79,24 +178,37 @@ flow:
 - **Search by name** — type part of a program's name and pick it from the
   results.
 
+If you go back with a link, a search or a fetched program on screen (including
+a link opened from elsewhere), the app asks before discarding it.
+
 When you search, the app marks programs you've likely already brought in, so
 repeat imports are easy to spot:
 
-- **Imported** — you already imported this exact ContraDB program before (matched
-  by its ContraDB program id). Hover or long-press for the date it was imported.
-- **Possibly imported** — a program with the same title already exists in your
-  collection, but nothing ties it to this ContraDB event (for example, you built
-  it by hand, or imported it before this marker existed).
+- **Imported** — you have imported this exact ContraDB program before. Hover or
+  long-press for the date it was imported.
+- **Possibly imported** — one of your programs has the same title, but nothing
+  ties it to this ContraDB event (for example, you built it by hand).
 
-Each marker shows an icon and a label — never colour alone — and the same hint
+Each marker shows an icon and a label — never color alone — and the same hint
 appears at the top of the preview once you open a program. It's only a hint:
 re-importing is always allowed if you want a fresh copy.
 
 Either way, the app reads the event's running order and lays it out as a program:
 each dance ContraDB lists is matched to your collection or imported for you, and
-anything it can't place is kept as a note, in the exact order of the event.
+anything it can't place is kept as a note, in the exact order of the event. A
+dance you already have with the same figures is used as it is, not copied,
+whether you imported it or typed it in; one whose figures differ from yours is
+imported as a variation of yours, linked back to it.
 Review the preview, then choose **Import** — with the same **Undo** safety net as
-every other import. This needs an internet connection.
+every other import: Undo removes the program and the dances it imported, and
+leaves the ones you already had, as well as any you have since added to another
+program.
+
+This needs an internet connection. Importing shows how far it has got, one
+dance at a time, and you can **Cancel** it. If the app can't reach the archives,
+or you cancel or leave the screen before it finishes, no program is created and
+any dances it had already brought in are removed again, so you can simply try
+again later.
 
 ## Build a program
 
@@ -108,25 +220,75 @@ collection picker opens as a panel when you go to add a dance.
 *The Programs builder with ordered program slots beside a searchable collection
 picker.*
 
-![The Programs builder showing ordered program slots beside a searchable collection picker with filters](images/programs-builder.png)
+![The Programs builder showing ordered program slots with a break between the halves, beside a searchable collection picker with filters](images/programs-builder.png)
 
 - **Your program** — the ordered list of
   [slots](./glossary.md#slot) that make up the evening.
 - **The collection picker** — the same search tools you know from
-  [Collection & search](./collection.md): the **Filters** panel, the
-  **Advanced** figure builder, and the **By-Phrase** panel. Find a dance and add
-  it to the program. In the **Advanced** panel, turn on **Online search** to
-  search The Caller's Box or ContraDB; selecting a result imports it and adds it
-  immediately. An exact match selects the dance already in your collection
-  without prompting. When the import needs your choice between a likely match
-  and a separate record, a resolution dialog appears before the dance is added.
-  Use **View details** on a result to inspect it without adding or importing it.
-  On a wide screen, holding a result temporarily shows its details in the
-  program pane; holding a dance slot temporarily shows its details in the picker
-  pane. Releasing restores the pane. **View details** opens the same read-only
-  preview until you close it. On a narrow screen, either action opens details
-  above the still-open picker so your search and selections remain available
-  when you dismiss the preview.
+  [Collection & search](./collection.md): **Search in** beside the search box
+  (above it in a narrow pane or with large text), the **Filters** panel, the **Advanced** figure builder, the **By phrase**
+  panel, and the **Sort** menu with its ascending / descending arrow at the end
+  of the result count. The picker opens in your
+  [Collection sort order](./settings.md#display-defaults); a sort you choose
+  while picking lasts until you close the picker and doesn't change how the
+  Collection opens. Rows show the details you chose under
+  [Collection card fields](./settings.md#collection-card-fields). Find a dance
+  and add it to the program.
+
+A program can mix types of dance, such as contra and English. When it does,
+each dance in your program names its type at the start of the line under its
+title, in the builder and on the program's summary, and each is shown in its
+own type's [dialect](./dialects.md). Perform mode names the type beside the
+formation, and the set list you copy, share or print names it first in the
+brackets at the end of the dance's line, before any guest caller or length:
+"3. Hole in the Wall (English (ECD); 5 min)". The
+**Type** section of the picker's **Filters** panel narrows the list to the
+types you choose.
+
+**Add note or break** adds a free-text slot (a note, a waltz, an announcement), and **Insert break** adds a break.
+On a narrow screen, **Add dance** opens the collection picker.
+
+To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
+picker's row of search tools to search The Caller's Box or ContraDB by title,
+author or figure, chosen with **Search in** as in the Collection. Selecting a
+result imports it and adds it straight away. If the dance is already in your
+collection, the app uses your copy without asking. If it matches one of your
+dances but the source or figures differ, the app asks how to handle it before
+adding it — see [Avoiding duplicates](./imports.md#avoiding-duplicates).
+
+To look at a dance without adding it, use **View details** on a picker result
+or on a dance slot — a read-only preview that stays open until you close it and
+never changes the program or the dance. On a wide screen you can also press and
+hold a result to show its details in the program pane, or hold a dance slot to
+show its details in the picker pane; letting go puts the pane back. On a narrow
+screen, details open on top of the picker, so your search is still there when
+you close them.
+
+### Save your program
+
+Choose **Save** at the end of the top bar to keep your changes; it is there
+while you're on the **Build** tab. On a phone it shows as a check mark. On a
+computer, **Ctrl-S** (**Cmd-S** on a Mac) does the same while you're on the
+**Build** tab. A program needs a title before it can be saved. If you leave
+the builder with changes you haven't saved, the app asks **Discard changes?**:
+**Keep editing** takes you back, and **Discard** leaves without them. To have
+changes saved as you work instead, turn on **Auto-save program changes** in
+[Settings ▸ Program ▸ Programs](./settings.md#programs).
+
+### Unsaved drafts
+
+While you build, the app keeps a draft of your changes on this device, so a
+program you were building when the app closed isn't lost. The next time you
+open that program, the app offers the draft back — **Restore** to pick up
+where you left off, or **Discard** to start from the last saved version. Drafts
+stay on your device; they are never uploaded, shared, or included in backups.
+
+Each new program keeps its own draft, so two new programs never overwrite each
+other's. If a new program you never saved left one behind, the next new
+program you start offers it back by its title (the one you saved last, if
+several were left behind) — *You have an unsaved draft of
+another new program* — so you can **Restore** it and carry on with that
+program, or **Discard** it and start fresh.
 
 ### Kinds of slots
 
@@ -134,79 +296,160 @@ A program is made of three kinds of slots:
 
 - **Dance slots** — dances pulled from your [collection](./glossary.md#collection).
 - **Free-text slots** — for the things between dances: a break, a waltz,
-  announcements. A free-text slot with real text in it also offers **Create a
-  dance from this** on its **…** menu, which opens the dance editor pre-filled
-  with that text as the title; saving links the slot to the new dance in one
-  step, so a note left behind by an import that couldn't find a match doesn't
-  need a separate trip through the collection to fix. A non-break note slot
-  also offers **Replace…**, which imports or selects a dance and swaps it into
-  that slot while clearing the old note and preserving its timing details.
+  announcements. A slot that reads **Break** (which is what **Insert break**
+  adds) divides the evening into sections — see the matrix below.
 - **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
-  of the one above it. An alt appears indented under its primary and is marked
-  with an icon and text (never color alone), so it is always clear which dance is
-  the backup.
+  of the one above it. Choose **Mark as alternate** from a slot's **…** menu
+  (and **Make primary** to undo it). An alt appears indented under its primary
+  and is marked with an icon and text (never color alone), so it is always clear
+  which dance is the backup.
 
-Each slot can also carry a **note**, a **guest caller**, and optional
-**walkthrough** and **dance** lengths in minutes — useful both for pacing the
-evening and for the timing display in [Perform mode](./perform.md#keep-time-through-the-evening).
-The two lengths are shown separately while their combined total is used for
-the final overrun cue. A dance slot's
-**…** menu also offers **Edit slot**, whose dialog includes a **Replace…**
-button for swapping the dance in place — keeping the note, guest caller,
-walkthrough and dance lengths, and mark-performed status exactly as they were —
-instead of
-adding the new dance, dragging it into position, and deleting the old one.
-Dance slots also have **View details** for an inspection-only preview; it cannot
-change the program or the dance.
+### Edit a slot
+
+Choose **Edit slot** from a slot's **…** menu to give it a **note**, a **guest
+caller**, and optional **walkthrough** and **dance** lengths in minutes. The
+lengths help you pace the evening and feed the timing display in
+[Perform mode](./perform.md#keep-time-through-the-evening), which shows them
+separately and uses their total for the overrun cue.
+
+The same dialog has a **Replace…** button:
+
+- **On a dance slot**, it swaps in a different dance and keeps everything else —
+  note, guest caller, lengths, and performed mark — so you don't have to add the
+  new dance, drag it into place, and delete the old one.
+- **On a note slot** (other than a break), it imports or selects a dance and
+  puts it in the slot in place of the note, keeping the timing details.
+
+A note slot with text in it also offers **Create a dance from this** on its
+**…** menu. It opens the dance editor with that text as the title, and saving
+links the slot to the new dance in one step — handy for a note left behind by an
+import that couldn't find a match.
+
+### Reorder and remove slots
 
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
 Both do the same job, so you are never forced to drag.
 
-### Event details
+To remove a slot, choose the **scissors** button on its row (its tooltip reads
+**Cut** and the slot's name). The slot is removed immediately, the slots after
+it move up, and the removal is announced to screen readers. Removing a slot from
+a program never deletes the dance from your collection.
 
-When you choose **New** from the Programs list, the editor starts with the
-configured **Starting program** template from Settings. It creates fresh slots
-and keeps the template's order and notes; missing dances are omitted. The
-template does not affect imported programs, duplicated programs, an existing
-program being edited, or the direct “create a new program with this dance”
-action.
+On a phone, or wherever the program pane is narrow, each row keeps only its drag
+handle and its **…** menu, so the slot's title has room. The menu then starts
+with **Move up** and **Move down**, followed by **View details** and the
+scissors **Cut** item, ahead of the slot's usual actions.
+
+When you cut or move a dance that has alternates, its first alternate takes its
+place as the primary, and any other alternates stay with that one. They never
+become alternates of the slot above. Screen readers announce which alternate
+took its place.
+
+The builder numbers the dances the way the set list does: alternates show
+**ALT**, and a break has no number.
+
+Dance rows in the builder and on the program's summary are tinted by formation
+family (contras, triplets, mixers, circles, squares), and a formation you have
+given your own color shows that color instead, unless the dance is marked as a
+mixer, which keeps the mixer color. The formation is always written on the row
+too. To turn the tints off, see
+[Settings ▸ Appearance ▸ Set lists](./settings.md#set-lists); to choose your own
+colors, see [Formation colors](./settings.md#formation-colors).
+
+### When a dance in a program is deleted
+
+A deleted dance stays in
+[Recently deleted](./collection.md#keep-your-collection-tidy) for a while, and
+every view of the program keeps showing it. Its slot shows the
+dance's title followed by "(deleted dance)" in the builder, the matrix and the
+summary, as in [Perform mode](./perform.md). Its figures stay in the matrix.
+The set list you print, copy or share shows the plain title, and **Share
+(program + dances)** includes the dance itself. To use the dance normally
+again, restore it: choose **Restore from Recently deleted** in the slot's
+**…** menu in the builder, press **Restore** on its row in the summary, or
+restore it from Recently deleted itself. Like Restore there, it asks nothing
+first, since you can delete the dance again. However the dance comes back,
+even from another device, the "(deleted dance)" mark goes away in the
+builder, the matrix and the summary straight away; Perform mode drops it the
+next time you open it. Perform mode has no Restore, so a stray tap on stage changes
+nothing. Once the dance is gone for good, the slot
+keeps its title as text. With [Device Sync](./settings.md#device-sync), a
+slot you added before this device heard that another device deleted the dance
+for good shows "Deleted dance" instead, in the builder, the summary, Perform
+mode and the set list. **Share program and dances** sends that slot as the
+words "Deleted dance" and leaves the dance out, and the PDF's figures pages
+skip it: there is nothing left of it to send.
+
+### Event details
 
 A program carries the details of its event:
 
-- **date**, **venue**, and **notes**; and
-- program-level **band**, **caller**, and dancer **level**.
+- **Event date**, **Venue**, and **Notes**;
+- program-level **Band**, **Caller**, and **Dancer level**;
+- **Pay**, an amount and currency under **More details**, shown on the
+  program's summary but never in the shared set list, the PDF, or a program
+  file you share;
+- a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
+  Programs list. Saving a change to **Performed** marks every unmarked dance
+  in the program performed, except alternates, and that writes calling
+  history. Changing the status back later keeps the marks: clear them one by
+  one if you saved Performed by mistake. **Mark all performed** also sets the status
+  to Performed, unless you turn that off (see
+  [Track what you have called](#track-what-you-have-called));
+- **Hide alternates in set list**, which leaves alternates out of the summary,
+  the PDF, and exported set lists while the builder still shows every slot; and
+- **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
+  [Perform mode](./glossary.md#perform-mode) uses for this program. Leave it on
+  **Use app dialect** to follow your active dialect. Each dance uses the dialect
+  of that name from its own type, or that type's active dialect if the type has
+  none by that name. It affects Perform only: the
+  editor, the summary, the PDF, and exports keep your active dialect, and a
+  program file you share leaves it out.
 
 The **venue** can be a simple free-text label, or — when you turn on **Use
-reusable venue records** in **Settings → Program → Venues** — a saved
-[venue](./glossary.md#venue) record you can reuse across programs, with its own
-address, contacts, and schedule that you edit in one place. A program linked to
-a saved venue shows and exports that record's details; otherwise the free-text
-label is used. The two coexist losslessly, so you can switch modes without
-losing what you typed. See [Settings](./settings.md#venues) for the toggle.
+reusable venue records** in [Settings ▸ Program ▸ Venues](./settings.md#venues) —
+a saved [venue](./glossary.md#venue) record you can reuse across programs, with
+its own address, contacts, and schedule that you edit in one place. A program
+linked to a saved venue shows and exports that record's details; otherwise the
+free-text label is used. Switching modes never loses what you typed. Older
+programs with a typed venue can be linked to a matching record, so calling
+history counts them as one hall: the app offers this (**Link earlier
+programs?**) when you turn the setting on or add the venue; see
+[Settings ▸ Program ▸ Venues](./settings.md#venues).
 
-If you often play the same role, set a default caller or band in **Settings →
-Defaults** and new programs will prefill them — see
-[Settings](./settings.md). You can always change these per program.
+If you often play the same role, set a default caller or band in
+[Settings ▸ Defaults](./settings.md#program-defaults) and new programs will
+prefill them. You can always change these per program.
 
 ## Check your evening with the matrix
 
 The **Matrix** tab turns your program into a grid worked out from the
 choreography, so you can see the shape of the evening at a glance.
 
-Break slots divide the grid into numbered sections. Dances before the first
-break are in the **1st** section, dances between breaks are in the **2nd**,
-**3rd**, and later sections, and break slots themselves are unnumbered. These
-labels describe the matrix only; calling-history summaries continue to group
-the 2nd and later sections together as the second half.
+Breaks divide the grid into numbered sections. Dances before the first break
+are in the **1st** section, dances between breaks are in the **2nd**, **3rd**,
+and later sections, and the breaks themselves are unnumbered. These numbers
+appear only in the matrix; calling-history summaries count the 2nd and later
+sections together as the second half.
 
 *The program matrix with moves as columns, dances as rows, pinned headers, and
 markers that explain how figures are introduced and reused.*
 
-![The program matrix showing dances as rows and moves as columns, with pinned headers and a legend for introduced-here, dance's-first-figure, present, and adjacent-dance beat-overlap markers](images/program-matrix.png)
+![The program matrix showing dances as rows, each marked 1st or 2nd for its half of the evening, and moves as columns, with pinned headers and a legend for introduced-here, dance's-first-figure, present, and adjacent-dance beat-overlap markers](images/program-matrix.png)
 
 Here is how to read it:
 
-- **Dances are rows; moves are columns.**
+- **Dances are rows; moves are columns.** In a program that mixes types of
+  dance, each move's column is named in the dialect of its type, and each
+  dance's formation details are in the dialect of that dance's type. A contra
+  figure can appear in a dance of another type too (square dances share
+  contra's figures for now): when only one type's dances use it, its column is
+  named in that type's dialect, and when dances of several types share it, in
+  the contra dialect.
+- **Large text.** The rows and the header strip grow with your system text
+  size, so dance titles and move names stay readable. A title or move name that
+  still does not fit ends in an ellipsis; **press and hold** it to read it in
+  full.
 - **A pinned Formation column** next to each dance title shows its formation
   (Improper, Becket, triple minor, and so on), so you can spot too many
   non-improper formations stacking up in a row without losing your place
@@ -227,17 +470,32 @@ Here is how to read it:
   very next dance. Adjacent repeats like this can make two dances feel samey on
   the floor, so the matrix flags them for you to notice and, if you like,
   reconsider. Only the two colliding cells are flagged; a repeat that is not in
-  neighbouring dances, or whose beats don't actually overlap, is left alone. If
-  you'd rather flag any repeat that merely lands in the same **named phrase**
-  (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
-  the matrix used to behave — turn off **Flag exact beat overlap only** in
-  **Settings ▸ Program**.
-- **Show phrase labels** with the text-fields icon above the matrix. This
-  replaces comparable move markers with every phrase where that move starts,
-  in order (A1, A2, B1, B2…). Custom and compound columns keep their markers.
-  It is a screen-only view, stays active while you switch between Matrix and
-  Build or resize the window, resets when you close the program editor, and
-  does not change the PDF.
+  neighboring dances, or whose beats don't actually overlap, is left alone.
+  A **break** separates two dances, so the last dance before a break and the
+  first dance after it are not neighbors and are never flagged against each
+  other. A waltz or a note between two dances, with no break, does not
+  separate them.
+
+  An **alternate** and its primary are two choices for the same spot in the
+  program, so they are never compared with each other. Instead, the primary
+  *and* each of its alternates are checked against the dances on either side
+  (including their alternates) — whichever one you end up calling could follow
+  the previous dance or lead into the next. This holds even while alternate rows
+  are hidden, so a cell can be flagged because of an alternate you cannot
+  currently see.
+
+  To flag any repeat that lands in the same **named phrase** (A1, A2, B1, B2…),
+  even when the beats themselves don't overlap, turn off **Flag exact beat
+  overlap only** in [Settings ▸ Program](./settings.md#programs).
+- **Show phrase labels** with the text-fields button above the matrix (it shows
+  shapes while labels are off, and text fields with a highlight while they are
+  on). This
+  replaces the markers with every phrase where that move starts, in order (A1,
+  A2, B1, B2…). Compound columns and the column for free-text figures keep their
+  markers; a column for one of your own figures shows phrase labels, and is
+  flagged for a repeat, as a built-in move's is. It is a screen-only view: it stays on while you switch between
+  **Matrix** and **Build** or resize the window, resets when you close the
+  program, and does not change the PDF.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is
@@ -248,64 +506,22 @@ Here is how to read it:
   beside the PDF button — it is available only while something is hidden. The
   pinned **Formation** column cannot be hidden, since it is part of each dance's
   identity rather than a move.
-- **Hide alternate rows temporarily** with the alternate-route icon above the
-  matrix. This view-only filter resets when you close the program editor, stays
-  active while you switch tabs or resize the window, and does not change the
-  saved program or any PDF/set-list export. It is separate from the persisted
-  **Hide alternates** option in the program's details, which controls set-list
-  output.
+- **Hide alternate rows** with the alternate-route button above the matrix (it
+  shows a forked route with a highlight while alternate rows are shown, and a
+  straight arrow while they are hidden). This
+  is a view-only filter: it stays on while you switch tabs or resize the window,
+  resets when you close the program, and does not change the saved program, the
+  alert markers, or anything you print or export. It is separate from the
+  program's **Hide alternates in set list** option, which is saved and controls
+  set-list output.
 - **Reorder, rename, or remove columns for good** in
-  **Settings ▸ Program ▸ Matrix columns**. Unlike the per-session eye icon above,
-  changes there are saved and apply to **every** program, on screen and in the
-  printed PDF: drag a column to a new position, give it a name that suits your
-  callers, or remove one you never use. Removed columns can be brought back at any
-  time, and two reset controls restore the built-in columns or wipe every
-  customisation. See
-  [Settings ▸ Program ▸ Programs](./settings.md#programs) for the
-  full walkthrough.
-
-### Parameterized columns
-
-In **Settings ▸ Program ▸ Matrix columns**, **Add parameterized column** lets you
-make a column for one taxonomy move with optional exact parameter values, such as
-partner swings or balance-and-swings. The move must be a canonical taxonomy
-move; matching uses the figure's effective parameters, including taxonomy
-defaults and alias-pinned values. A configured parameterized column appears only
-when at least one figure matches it.
-
-When parameterized columns overlap, the one with more exact constraints wins.
-Columns with the same number of constraints use their order in the settings
-list. A match replaces the ordinary built-in column rather than appearing in
-both columns, so the matrix and its first-figure, debut, phrase, and beat
-markers all refer to the selected parameterized column. Values are exact:
-there are no ranges, comparisons, wildcards, or multi-move matchers.
-
-Partner and neighbor swing baselines keep their legacy empty-program behavior
-when no plain swing candidate exists. Once plain candidates exist, a baseline is
-hidden only when every candidate is captured by parameterized columns; it stays
-visible when the capture is mixed.
-
-### Compound columns
-
-In **Settings ▸ Program ▸ Matrix columns**, **Add compound column** lets you
-define a named column for a sequence of at least two exact taxonomy moves. The
-sequence is a per-dance boolean: it appears when those moves occur in one
-strictly-adjacent, contiguous run in the dance's original figures. For example,
-a compound for **circle-left → swing → circle-left** matches that exact
-three-figure run; an intervening figure or a gap does not match.
-
-Compound columns are additive. The matching figures keep their built-in or
-parameterized memberships, while the compound column is emitted only for
-dances where it is present. Matching uses canonical move ids and exact
-effective parameter values, including taxonomy defaults and alias-pinned values.
-You can reorder, hide, rename, edit, or delete compounds alongside the built-in
-and parameterized columns, and the same display settings apply on screen and in
-the PDF.
-
-Compounds never match across dances, skip gaps or intervening figures, or use
-subsequences, ranges, comparisons, wildcards, or multi-move alternatives. They
-are presence markers rather than counts and do not participate in adjacent-dance
-phrase or beat collision warnings.
+  **Settings ▸ Program ▸ Matrix columns**. Unlike the eye icon above, changes
+  there are saved and apply to **every** program, on screen and in the printed
+  PDF: drag a column to a new position, give it a name that suits your callers,
+  or remove one you never use. Removed columns can be brought back at any time,
+  and two reset controls restore the built-in columns or wipe every
+  customization. The [Programs settings](./settings.md#programs) have the full
+  walkthrough.
 
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
 many times, and not the order the moves come in. That is exactly what you want
@@ -315,7 +531,15 @@ turns up in nearly every dance. To make the grid meaningful, swings, allemandes,
 and chains are split out by role (partner/neighbor/larks/robins/…); swings are
 further split by whether they carry a "balance and" or "meltdown" lead-in, and
 heys are split by their length — so similar-looking moves are not lumped
-together.
+together. The plain partner swing and neighbor swing columns are always shown,
+even when empty, so an evening without one stands out; other columns appear only
+when some dance uses that move. Free-text figures share one **Custom** column,
+except that, while **Custom Figures** is on, each of
+[your own new figures](./settings.md#glossary-and-custom-figures) that a dance uses gets a
+column of its own, headed by its name. With **Custom Figures** off, they join the
+**Custom** column, as does a use that shows its stored line instead of your
+figure's wording: one changed on another device, one whose figure is gone or
+not on this device yet, or one with a choice the figure no longer has.
 
 A few practical notes:
 
@@ -325,13 +549,51 @@ A few practical notes:
   navigate it row by row and column by column.
 - **To take it with you**, use **Export or print matrix as PDF** in the **Matrix**
   tab. This is the matrix's own control, separate from the program's **Export**
-  menu, and it is unavailable while the matrix is empty. The PDF is landscape and
-  carries its own legend — where the screen uses icons, the printed page uses the
+  menu, and it is unavailable while the matrix is empty. The PDF is landscape on
+  the paper you choose in the print dialog, repeats its heading row on every
+  page, and carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
   (shares beats with an adjacent dance, or same phrase as adjacent dance if
   you've turned the setting off). Columns you have hidden on screen still
   print: the export always covers the full matrix. See
   [Share, print & export](./sharing.md#print-the-programming-matrix).
+
+### Parameterized columns
+
+The built-in columns split moves in a fixed way. To track a narrower version of
+a move — say, only partner swings, or only balance and swings — choose **Add
+parameterized column** in **Settings ▸ Program ▸ Matrix columns**. Pick one move
+and, optionally, exact values for its details, such as who swings or the lead-in.
+A figure matches when its details have those values, counting the move's usual
+defaults for anything the dance doesn't spell out. The column appears only when
+at least one dance in the program has a matching figure.
+
+A matching figure moves into your column instead of also showing in the
+built-in one, so every marker — introduced here, first figure, phrase labels,
+and the alert — refers to your column. If two of your parameterized columns
+both match, the one with more values set wins; on a tie, the one you added
+first wins. Values must match exactly: there are no ranges, wildcards,
+or "this move or that one" choices.
+
+If your parameterized columns catch every plain partner swing (or neighbor
+swing) in the program, the now-empty built-in column is hidden. If they catch
+only some, it stays.
+
+### Compound columns
+
+To spot a particular run of figures — say, **circle left → swing → circle
+left** — choose **Add compound column** in **Settings ▸ Program ▸ Matrix
+columns** and list at least two moves in order, with exact details if you like.
+The column is marked for a dance only when those figures come back to back, in
+that order, in the dance as written. A gap or another figure in between means no
+match, and a run never continues from one dance into the next.
+
+A compound column adds to the matrix rather than taking anything away: the
+figures in the run still show in their own columns too. It marks presence only,
+and it never raises the alert marker. You can reorder, rename, remove, edit, or
+delete compound columns alongside the others, and they appear the same on
+screen and in the PDF. Deleting a compound or parameterized column offers
+**Undo**, which brings back its place, name and hiding too.
 
 ## Print, export, and email a program
 
@@ -340,26 +602,32 @@ menu:
 
 - **Share set list (text)** — hands a plain-text set list to your system's share
   sheet, ready to drop into an email or a message.
-- **Share (program + dances)** — writes one file holding the program *and* every
+- **Share program and dances** — writes one file holding the program *and* every
   dance it uses, so another caller gets the dances too, not just a list of titles.
 - **Copy set list** — puts the same text on your clipboard.
 - **Export as JSON file** — opens a choice to **Save**, **Copy raw JSON**,
-  **Share**, or **Cancel**. The file is the same as **Share (program + dances)**,
-  named `.json` so a device without the app can still open it. **Save** uses a
-  native file destination on desktop and the platform document-save flow on
-  Android and iOS; cancelling either dialog produces no output.
+  **Share**, or **Cancel**. The file is the same as **Share program and dances**,
+  named `.json` so a device without the app can still open it. **Save** opens
+  your system's save dialog; canceling it saves nothing.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
-A set list is titles, event details, and slot notes by default. When you share,
-copy, or export as PDF the app asks **"Include figures?"** — choose **Set list
-only** to keep titles and notes, or **Set list and figures** to append a full
-figure card for each dance after the set list. If none of the program's dances
-have structured figures the question is skipped automatically. If your program is
-linked to a [venue](./glossary.md#venue) with contact people recorded, the PDF,
-JSON, and `.ccshare` file exports ask before including any of those personal
-details, before any JSON delivery choice, and leave them out unless you say
-otherwise. A venue's street address is never included in any export, with or
-without a prompt.
+A set list is titles, event details, and slot notes by default, with each
+dance's author shown next to its title if you have authors turned on.
+Settings ▸ Defaults lets you choose other dance fields too, but they only
+appear on the richer per-dance card, not the numbered set-list line itself —
+see
+[Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
+When you share, copy, or export as PDF the app asks **"Include figures?"** —
+choose **Set list only** to keep titles, notes, and the author, or
+**Set list and figures** to append a full card for each dance, showing every
+selected field alongside its figures, after the set list. A dance with no
+structured figures still gets a card when it has calling notes, a walkthrough,
+a hook or a published source you've selected. If none of the program's dances
+have anything to put on a card, the question is skipped. If your program is linked to
+a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
+**Share program and dances** exports first ask whether to include those
+contacts, and leave them out unless you say otherwise. A venue's street address
+is never included in any export.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your
@@ -374,13 +642,75 @@ the programs that include it, most recent first.
 There are two ways to think about "called," and a setting lets you choose:
 
 - **Any program that contains the dance** counts (the default), or
-- **only slots you marked performed** count.
+- **only slots you marked performed** count — turn on **Require "mark
+  performed" for calling history** in
+  [Settings ▸ Program ▸ Calling history](./settings.md#calling-history).
 
-You can mark every unperformed dance slot at once from the **Program Editor**
-or a saved program's summary. Both actions offer a one-tap **Undo**; marking
-an individual slot is also available from [Perform mode](./perform.md). The
-[Settings](./settings.md) toggle decides which of the two rules a dance's
-calling history follows.
+An [alternate](./glossary.md#alt) counts only once you mark that slot
+performed, whichever way you choose. Listing a dance as a fallback is not
+calling it: if Hull's Victory is the alternate to Chorus Jig and you call Chorus
+Jig, only Chorus Jig's count goes up. Mark Hull's Victory performed too if you
+called it instead, or as well.
+
+Adding a dance to a program that is already **Performed** does not mark the
+new slot performed, because only the change to Performed stamps the slots. By
+default it still counts as a call; with **Require "mark performed" for calling
+history** on, it counts once you mark that slot.
+
+To mark one slot, tap the circle at the end of its row on a saved program's
+summary (alternates included; tap it again to clear the mark), choose **Mark
+performed** from its **…** menu in the editor, or mark it from
+[Perform mode](./perform.md#adjust-on-the-fly) while you call. Marking or
+clearing from the summary shows an **Undo**, which only applies while the
+program is otherwise unchanged. If you'd rather not see the circles, turn off
+**Show mark-performed toggles** in
+[Settings ▸ Program ▸ Calling history](./settings.md#calling-history); rows then
+just show a check on dances already marked. To mark
+every unperformed dance at once, use **Mark all performed** in the program
+editor or on a saved program's summary; it offers a one-tap **Undo**. On a
+phone, or wherever the summary pane is narrow, it is in the **More actions** (⋮)
+menu, with **Duplicate**, **Archive** and **Delete**. On a program's own screen these
+actions (and **Export**) are in the top bar, beside the title "Program"; the
+program's name is on its own line below it, and **Edit program** floats at the
+bottom of the screen. Mark all performed skips alternates,
+and so does setting a program's status to **Performed**: mark the alternates you
+used yourself.
+
+Mark all performed also sets the program's status to **Performed**, even when
+every dance was already marked, so a finished gig doesn't stay a Draft on the
+Programs list. Its **Undo** puts the marks and the status back together, unless
+you changed the status yourself in the meantime. Clearing a mark later doesn't
+change the status. To keep the status separate, turn off **Mark all performed
+sets the status** in
+[Settings ▸ Program ▸ Calling history](./settings.md#calling-history).
+
+Calling history dates each call by the program's **event date**, however late
+you mark it. Mark Saturday's dances on Monday morning and the history still says
+Saturday. Change a program's date and its dances' history moves with it. A
+program with no event date is dated by when you marked the slot performed, or,
+if you didn't, when you last changed the program, in the history list and the
+**Last called** sort. The **Called** filter's time windows are stricter by
+default and skip undated programs. The four settings under
+[Recency and history order](./settings.md#recency-and-history-order) let you
+choose which slots date a window and which date the order; they never change
+"called ×N".
+
+A program with no event date counts too, by default. A duplicated program, or
+one another caller [sent you](./sharing.md#share-a-program-with-its-dances),
+arrives without a date. To keep undated programs out of calling history until
+you date them, turn on **Require an event date for calling history** in the
+same settings section. It applies everywhere history is read: the "called ×N"
+count, the **Calling history** filter, the dance's history list, the **Last
+called** sort, and the repeated-venues and half summaries.
+
+The same settings section can also limit calling history to programs you called
+yourself, and control the repeated-venues summary.
+
+A program in **Recently deleted** is in no one's history, so deleting a program
+removes it from the history of each dance it holds, and restoring it brings
+those entries back. To put a program away without losing its history,
+[archive](#create-and-manage-programs) it instead. After the retention window the program is gone for good and
+so is that history.
 
 ## Where to go next
 
@@ -392,5 +722,5 @@ calling history follows.
   [Settings](./settings.md) ·
   [Backup & portability](./backup-portability.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

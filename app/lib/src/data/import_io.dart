@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../search/collection_query.dart' show ByPhraseSelections;
+import 'file_dialog_labels.dart';
+import 'picker_extensions.dart';
+import 'usr_archive_isolate.dart';
 
 /// Hard cap on the size of a **local file** chosen for import, in bytes.
 ///
@@ -23,25 +28,52 @@ import '../search/collection_query.dart' show ByPhraseSelections;
 /// TOCTOU window), so the cap is enforced *during* consumption, not before it.
 /// 25 MiB is deliberately **aligned with the archive intake cap**
 /// (`kMaxIncomingArchiveBytes`) and sits far above any real Compendium share
-/// bundle or Caller's Companion `.USR` (the real ~20 MB CC sample fits with
-/// margin) while bounding the blast radius. The `.USR` path adds *structural*
-/// bounds on top of this (see `FmpReadLimits`) because the FileMaker reader's
+/// bundle while bounding the blast radius. The Caller's Companion `.USR` path has
+/// its own, higher cap ([kMaxImportUsrBytes]) and adds *structural* bounds on
+/// top of it (see `FmpReadLimits`) because the FileMaker reader's
 /// per-table traversal makes a small-but-pathological file quadratic in work.
 const int kMaxImportFileBytes = 25 * 1024 * 1024;
 
-/// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
-/// oversized case is rejected *without* buffering the whole file into memory
+/// Hard cap on the size of a picked Caller's Companion `.USR`, in bytes.
+///
+/// Higher than [kMaxImportFileBytes] because a `.USR` is a FileMaker container
+/// that grows with the user's own data: the ~20 MB shipped sample is already
+/// close to the general cap, a tester's real file measured ~30 MB, and a
+/// modelled ~20,000-dance library (Caller's Box scale, with FileMaker's own
+/// indexes) is ~237 MiB. The share-bundle text path and the archive intake keep
+/// the 25 MiB cap — only the `.USR` byte path is widened. Enforced the same way
+/// (a bounded stream, failing closed the moment the cap is crossed), so the
+/// raise costs up to this many bytes of buffered input — one buffer, sized from
+/// the file's length up front and filled in place — before the structural
+/// bounds in `FmpReadLimits` take over, and more once the reader has decoded the
+/// file.
+/// `kMaxFmpSectors` is sized to this cap (256 MiB of 4 KiB sectors); raise them
+/// together, or the sector guard becomes the effective ceiling.
+const int kMaxImportUsrBytes = 256 * 1024 * 1024;
+
+/// Raised when a picked import file exceeds its cap ([kMaxImportFileBytes], or
+/// [kMaxImportUsrBytes] for a `.USR`), so the oversized case is rejected
+/// *without* buffering the whole file into memory
 /// (the bounded read abandons the stream as soon as the cap is crossed).
 ///
-/// Carries only the typed [length] — no user prose. The presentation layer maps
-/// this to a localized message (see `importFileTooLargeMessage` in
+/// Carries only the typed [length] and [maxBytes] — no user prose. The
+/// presentation layer maps this to a localized message (see
+/// `importFileTooLargeMessage` in
 /// `import_error_labels.dart`); the data layer never bakes English in.
 class ImportFileTooLargeException implements Exception {
-  const ImportFileTooLargeException(this.length);
+  const ImportFileTooLargeException(
+    this.length, {
+    this.maxBytes = kMaxImportFileBytes,
+  });
 
   /// The number of bytes consumed before the cap tripped (always greater than
   /// the cap; kept for diagnostics/tests — never shown to the user).
   final int length;
+
+  /// The cap that was exceeded (the `.USR` path uses a higher one than the
+  /// text/JSON path). Shown to the user, rounded down to whole MiB, so the
+  /// message can name the limit that actually applied.
+  final int maxBytes;
 
   @override
   String toString() => 'ImportFileTooLargeException(length: $length)';
@@ -56,37 +88,81 @@ class ImportFileTooLargeException implements Exception {
 /// moment the bound is crossed. A file of exactly [maxBytes] is accepted (the
 /// boundary is inclusive), mirroring the archive intake cap.
 ///
+/// [sizeHint], when given, is **only an allocation hint**: the buffer starts at
+/// that size (clamped to [maxBytes]) so a large file is filled in place instead
+/// of being collected as chunks and then joined into a second buffer, which held
+/// about twice the file in memory at once (measured: 613 MB peak for a 249 MB
+/// file, against 378 MB preallocated). A wrong hint — a file that grew, shrank
+/// or was swapped — costs nothing worse than that old peak: the buffer grows if
+/// the stream outruns it, the cap is still enforced from what actually arrives,
+/// and an overshooting hint is trimmed away.
+///
 /// Stream-typed (rather than [XFile]-typed) so the fail-closed behaviour is
 /// unit-testable against a synthetic multi-chunk stream that keeps producing
 /// data, with no real file or picker plugin.
 Future<Uint8List> readCappedBytes(
   Stream<List<int>> stream, {
   int maxBytes = kMaxImportFileBytes,
+  int? sizeHint,
 }) async {
-  final builder = BytesBuilder(copy: false);
+  var capacity = (sizeHint ?? 0).clamp(0, maxBytes);
+  var buffer = Uint8List(capacity);
+  var length = 0;
   await for (final chunk in stream) {
-    builder.add(chunk);
-    if (builder.length > maxBytes) {
+    final total = length + chunk.length;
+    if (total > maxBytes) {
       // `await for` cancels the subscription when we throw, so we never read
       // (or buffer) the rest of the file — allocation stays bounded even if the
       // underlying file keeps growing.
-      throw ImportFileTooLargeException(builder.length);
+      throw ImportFileTooLargeException(total, maxBytes: maxBytes);
     }
+    if (total > capacity) {
+      // The stream outran the hint (or there was none): grow geometrically, but
+      // never past the cap, which was just checked.
+      capacity = math.min(math.max(total, capacity * 2), maxBytes);
+      buffer = Uint8List(capacity)..setRange(0, length, buffer);
+    }
+    buffer.setRange(length, total, chunk);
+    length = total;
   }
-  return builder.takeBytes();
+  if (length == capacity) return buffer;
+  final used = Uint8List.sublistView(buffer, 0, length);
+  // A view pins the whole buffer; only worth keeping when little is wasted.
+  return length >= capacity * 0.9 ? used : Uint8List.fromList(used);
 }
 
 /// Reads [file]'s raw bytes, failing closed via [readCappedBytes] if the file
 /// exceeds [maxBytes]. Consumes [XFile.openRead] so the cap is enforced *while*
 /// reading — an oversized (or mid-read growing) file is never fully buffered,
-/// unlike a `length()`-then-`readAsBytes()` check, which trusts a stale length
-/// and still allocates the whole file. Split out from [pickImportUsrFile] so
-/// the cap is unit-testable without the native picker (tests inject an [XFile]
-/// + a small [maxBytes], mirroring `ArchiveIntakeService`).
+/// unlike checking `length()` and then reading the whole file, which trusts a
+/// stale length and still allocates the whole file. [XFile.length] is consulted only to size
+/// the buffer up front (see [readCappedBytes]'s `sizeHint`), never to decide
+/// whether the file is acceptable. Split out from [pickImportUsrFile] so the cap
+/// is unit-testable without the native picker (tests inject an [XFile] + a small
+/// [maxBytes], mirroring `ArchiveIntakeService`).
 Future<Uint8List> readImportBytesCapped(
   XFile file, {
   int maxBytes = kMaxImportFileBytes,
-}) => readCappedBytes(file.openRead(), maxBytes: maxBytes);
+}) async {
+  int? hint;
+  try {
+    hint = await file.length();
+  } on Object {
+    // diagnostics: silent — the size is only an allocation hint; without it the
+    // read is merely less frugal, and nothing about the file is lost or hidden.
+    hint = null;
+  }
+  return readCappedBytes(file.openRead(), maxBytes: maxBytes, sizeHint: hint);
+}
+
+/// Reads a picked `.USR` [file]'s bytes under [kMaxImportUsrBytes] — the
+/// `.USR`-specific counterpart to [readImportBytesCapped]'s general cap. Split
+/// out from [pickImportUsrFile] so the `.USR` cap is unit-testable without the
+/// native picker.
+Future<Uint8List> readImportUsrBytesCapped(
+  XFile file, {
+  int maxBytes = kMaxImportUsrBytes,
+}) => readImportBytesCapped(file, maxBytes: maxBytes);
 
 /// Reads [file]'s text, failing closed via [readImportBytesCapped] if the file
 /// exceeds [maxBytes] *before* it is decoded to a string. The byte cap is
@@ -131,18 +207,58 @@ typedef ImportPicker = Future<String?> Function();
 /// source (CallersBox/ContraDB) can supply its own picker/type group without
 /// changing the queue UI.
 Future<String?> pickImportFile() async {
-  const jsonGroup = XTypeGroup(
-    label: 'Compendium share',
-    extensions: ['ccshare', 'json'],
-    uniformTypeIdentifiers: [
-      'org.callerscompendium.compendiumApp.share',
-      'public.json',
-    ],
-    mimeTypes: ['application/json'],
-  );
-  final file = await openFile(acceptedTypeGroups: const [jsonGroup]);
+  final file = await openFile(acceptedTypeGroups: [importJsonTypeGroup()]);
   if (file == null) return null;
   return readImportTextCapped(file);
+}
+
+/// A file chosen in the import dialog: its [name] (as the picker reports it)
+/// and raw [bytes]. Unlike [ImportPicker] this keeps the file name, so the
+/// review screen can recognize a special file type from its extension.
+class PickedImportFile {
+  const PickedImportFile({required this.name, required this.bytes});
+
+  final String name;
+  final Uint8List bytes;
+}
+
+/// Prompts the user to choose an import file and returns it with its name, or
+/// `null` if they cancelled. Widget tests override this seam (via
+/// `ImportReviewScreen.filePicker`) so no real picker plugin is invoked.
+typedef ImportFilePicker = Future<PickedImportFile?> Function();
+
+/// The import source a picked file's extension identifies, or `null` when the
+/// extension says nothing about the source.
+///
+/// Only the dedicated file types are recognized: `.ccshare` (a Caller's
+/// Compendium share bundle) and `.usr` (a Caller's Companion export). A plain
+/// `.json` is deliberately **not** claimed: The Caller's Box and others serve
+/// JSON too, so the extension does not say which source it came from. Matching
+/// is case-insensitive (`.USR` is how Caller's Companion names its export).
+ImportSourceKind? importSourceKindForFileName(String fileName) {
+  final lower = fileName.toLowerCase();
+  if (lower.endsWith('.ccshare')) return ImportSourceKind.genericJson;
+  if (lower.endsWith('.usr')) return ImportSourceKind.callersCompanionUsr;
+  return null;
+}
+
+/// Default [ImportFilePicker]: opens the native open-file dialog restricted to
+/// the file types the import screen understands (`.ccshare`, `.json`, `.usr`)
+/// and reads the chosen file's bytes — under [kMaxImportUsrBytes] for a `.usr`,
+/// [kMaxImportFileBytes] otherwise. Returns `null` when the user cancels.
+Future<PickedImportFile?> pickImportAnyFile() async {
+  final file = await openFile(
+    acceptedTypeGroups: [importJsonTypeGroup(), importUsrTypeGroup()],
+  );
+  if (file == null) return null;
+  final isUsr =
+      importSourceKindForFileName(file.name) ==
+      ImportSourceKind.callersCompanionUsr;
+  final bytes = await readImportBytesCapped(
+    file,
+    maxBytes: isUsr ? kMaxImportUsrBytes : kMaxImportFileBytes,
+  );
+  return PickedImportFile(name: file.name, bytes: bytes);
 }
 
 /// Prompts the user to choose a **binary** source file for an import and returns
@@ -159,21 +275,50 @@ typedef ImportBytePicker = Future<Uint8List?> Function();
 /// `file_selector`), restricted to `.usr`, and reads the chosen file's bytes.
 /// Returns `null` when the user cancels.
 ///
-/// Wired for the Caller's Companion `.USR` migration (`docs/ROADMAP.md` 6.5):
-/// the `.USR` is a binary FileMaker 12 container, so the review flow needs the
-/// raw bytes to hand to `CallersCompanionUsrAdapter` (via `options['bytes']`),
+/// Wired for the Caller's Companion `.USR` migration (`docs/ROADMAP-archive.md`
+/// 6.5): the `.USR` is a binary FileMaker 12 container, so the review flow
+/// needs the raw bytes to hand to `CallersCompanionUsrAdapter` (via
+/// `options['bytes']`),
 /// not a decoded string.
 Future<Uint8List?> pickImportUsrFile() async {
-  const usrGroup = XTypeGroup(
-    label: "Caller's Companion .USR",
-    extensions: ['usr'],
-    // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
-    uniformTypeIdentifiers: ['public.data'],
-  );
-  final file = await openFile(acceptedTypeGroups: const [usrGroup]);
+  final file = await openFile(acceptedTypeGroups: [importUsrTypeGroup()]);
   if (file == null) return null;
-  return readImportBytesCapped(file);
+  return readImportUsrBytesCapped(file);
 }
+
+/// The file-type filter behind [pickImportFile].
+///
+/// **Android also accepts `application/octet-stream`** (PLAT-4). Android's
+/// picker filters by MIME type, not extension, and nothing on the device knows
+/// `.ccshare`, so a saved share file is usually typed as a generic binary and
+/// would be greyed out under `application/json` alone. The cost is that the
+/// picker then offers any file of an unknown type; the app tells the caller
+/// plainly when what they picked is not a share file, and nothing is imported
+/// before review. Other platforms keep the narrow filter: GTK treats
+/// `application/octet-stream` as a supertype of every file, so adding it there
+/// would show all files.
+@visibleForTesting
+XTypeGroup importJsonTypeGroup({bool? isLinux, bool? isAndroid}) => XTypeGroup(
+  label: FileDialogLabels.current.fileDialogTypeCompendiumShare,
+  extensions: pickerExtensions(['ccshare', 'json'], isLinux),
+  uniformTypeIdentifiers: [
+    'org.callerscompendium.compendiumApp.share',
+    'public.json',
+  ],
+  mimeTypes: [
+    'application/json',
+    if (isAndroid ?? Platform.isAndroid) 'application/octet-stream',
+  ],
+);
+
+/// The file-type filter behind [pickImportUsrFile].
+@visibleForTesting
+XTypeGroup importUsrTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: FileDialogLabels.current.fileDialogTypeCompanionUsr,
+  extensions: pickerExtensions(['usr'], isLinux),
+  // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
+  uniformTypeIdentifiers: ['public.data'],
+);
 
 /// Fetches the text body of an import source over HTTP and returns it, or
 /// throws a [UrlFetchException] with a user-presentable message. See
@@ -227,6 +372,12 @@ enum UrlFetchFailureReason {
   callersBoxMissingId,
   callersBoxEmptySearch,
   callersBoxUnreachable,
+
+  /// A fetch for The Caller's Box timed out. The shared fetcher throws the
+  /// generic [timeout]; `attributeFetchFailure` re-labels it with this reason
+  /// so the message names the source rather than "the URL". Carries
+  /// [UrlFetchException.timeoutSeconds].
+  callersBoxTimeout,
   callersBoxHttpStatus,
   callersBoxEmptyPage,
   callersBoxNoImportableDance,
@@ -235,6 +386,7 @@ enum UrlFetchFailureReason {
   // ContraDB.
   contraDbEmptyTitle,
   contraDbUnsupportedFigure,
+  contraDbUnsupportedAdvanced,
   contraDbEmptyDanceInput,
   contraDbInvalidDanceUrl,
   contraDbMissingDanceId,
@@ -244,6 +396,10 @@ enum UrlFetchFailureReason {
   contraDbInvalidProgramLink,
   contraDbUnsupportedHost,
   contraDbUnreachable,
+
+  /// A fetch for ContraDB timed out; the ContraDB twin of [callersBoxTimeout].
+  /// Carries [UrlFetchException.timeoutSeconds].
+  contraDbTimeout,
   contraDbHttpStatus,
   contraDbEmptyResponse,
   contraDbNoImportableDance,
@@ -272,7 +428,9 @@ class UrlFetchException implements Exception {
       assert(
         // A timeout reason must carry the elapsed seconds it describes.
         !(reason == UrlFetchFailureReason.timeout ||
-                reason == UrlFetchFailureReason.searchTimeout) ||
+                reason == UrlFetchFailureReason.searchTimeout ||
+                reason == UrlFetchFailureReason.callersBoxTimeout ||
+                reason == UrlFetchFailureReason.contraDbTimeout) ||
             timeoutSeconds != null,
         'timeoutSeconds is required for a timeout reason',
       );
@@ -286,7 +444,9 @@ class UrlFetchException implements Exception {
   final int? statusCode;
 
   /// The elapsed timeout in whole seconds, for [UrlFetchFailureReason.timeout] /
-  /// [UrlFetchFailureReason.searchTimeout]; `null` otherwise.
+  /// [UrlFetchFailureReason.searchTimeout] /
+  /// [UrlFetchFailureReason.callersBoxTimeout] /
+  /// [UrlFetchFailureReason.contraDbTimeout]; `null` otherwise.
   final int? timeoutSeconds;
 
   /// Debug-only, non-prose form (safe for logs — no user prose, no URL/path).
@@ -876,11 +1036,26 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// 50-row cap and returns the complete match set (verified live 2026-08-06:
 /// `?title=moon` returns 50 of a stated 68, `?title=moon&show_all` returns all
 /// 68; the `show_all=` form with an empty value behaves identically to the bare
-/// flag, which is what lets this stay inside [Uri.https]'s parameter map rather
-/// than hand-building a query string outside the fetch guard). Broad queries can
-/// match many thousands of dances, so callers must decide against the page's
-/// stated total rather than requesting it unconditionally — see
-/// [parseCallersBoxMatchCount] and `CallersBoxOnline.search`.
+/// flag). Broad queries can match many thousands of dances, so callers must
+/// decide against the page's stated total rather than requesting it
+/// unconditionally — see [parseCallersBoxMatchCount] and
+/// `CallersBoxOnline.search`.
+///
+/// Title, author and every figure line are normalized to what TCB stores and
+/// how it compares (measured live 2026-10-08, `docs/research/callersbox.md`):
+///
+/// - [foldTitlePunctuation]: TCB stores only ASCII apostrophes, quotes and
+///   hyphens and matches them exactly, so a `’` typed by a phone keyboard
+///   would otherwise make a correct title match nothing.
+/// - Lower-cased: TCB's case-insensitivity covers ASCII only (`DÉJÀ` misses
+///   `Déjà vu`), and every accented letter in its titles and authors is
+///   lower-case.
+/// - Percent-encoded as **windows-1252** ([_encodeTcbQuery]), the page's
+///   charset: TCB compares bytes, so the UTF-8 `%C3%A9` for `é` matches
+///   nothing while `%E9` matches.
+///
+/// The URL is still a string re-parsed by [_sendGuarded], so the hand-built
+/// query stays inside the same fetch guard as every other request.
 ///
 /// Throws a [UrlFetchException] (message safe to show) when there is nothing to
 /// search — empty title and author values with no effective [phrases].
@@ -891,9 +1066,11 @@ String buildCallersBoxSearchUrl(
   String host = callersBoxHost,
   bool showAll = false,
 }) {
-  final trimmed = title.trim();
-  final trimmedAuthor = author.trim();
+  String normalize(String text) => foldTitlePunctuation(text).toLowerCase();
+  final trimmed = normalize(title).trim();
+  final trimmedAuthor = normalize(author).trim();
   final hasPhrases = phrases != null && !phrases.isEmpty;
+  String joinLines(List<String> lines) => lines.map(normalize).join('\n');
   if (trimmed.isNotEmpty && trimmedAuthor.isNotEmpty) {
     throw ArgumentError('title and author cannot both be specified');
   }
@@ -907,27 +1084,78 @@ String buildCallersBoxSearchUrl(
   if (showAll) params['show_all'] = '';
   if (hasPhrases) {
     if (phrases.globalPos.isNotEmpty) {
-      params['pos_lines'] = phrases.globalPos.join('\n');
+      params['pos_lines'] = joinLines(phrases.globalPos);
       params['pos_mode'] = _tcbPosMode;
     }
     if (phrases.globalNeg.isNotEmpty) {
-      params['neg_lines'] = phrases.globalNeg.join('\n');
+      params['neg_lines'] = joinLines(phrases.globalNeg);
       params['neg_mode'] = _tcbNegMode;
     }
     phrases.phrasePos.forEach((slot, lines) {
       if (lines.isEmpty) return;
-      params['phr${slot}_pos_lines'] = lines.join('\n');
+      params['phr${slot}_pos_lines'] = joinLines(lines);
       params['phr${slot}_pos_mode'] = _tcbPosMode;
     });
     phrases.phraseNeg.forEach((slot, lines) {
       if (lines.isEmpty) return;
-      params['phr${slot}_neg_lines'] = lines.join('\n');
+      params['phr${slot}_neg_lines'] = joinLines(lines);
       params['phr${slot}_neg_mode'] = _tcbNegMode;
     });
   }
 
-  return Uri.https(host, '$callersBoxPathPrefix/index.php', params).toString();
+  return Uri.https(
+    host,
+    '$callersBoxPathPrefix/index.php',
+  ).replace(query: _encodeTcbQuery(params)).toString();
 }
+
+/// Serializes [params] as an `application/x-www-form-urlencoded` query in
+/// **windows-1252**, the way a browser submits TCB's own search form.
+///
+/// A character windows-1252 cannot represent is sent as the numeric character
+/// reference `&#N;`, again as a browser does for that form. No TCB title
+/// contains `&#` (`?title=%26%23` matches 0, 2026-10-08), so such a query
+/// matches nothing rather than a wrong dance.
+String _encodeTcbQuery(Map<String, String> params) {
+  final out = StringBuffer();
+  void writeByte(int b) =>
+      out.write('%${b.toRadixString(16).toUpperCase().padLeft(2, '0')}');
+  void writeText(String text) {
+    for (final rune in text.runes) {
+      if (rune == 0x20) {
+        out.write('+');
+      } else if (_isFormSafe(rune)) {
+        out.writeCharCode(rune);
+      } else if (rune < 0x80 || (rune >= 0xA0 && rune <= 0xFF)) {
+        writeByte(rune);
+      } else if (_cp1252High.indexOf(rune) case final i when i >= 0) {
+        writeByte(0x80 + i);
+      } else {
+        writeText('&#$rune;');
+      }
+    }
+  }
+
+  var first = true;
+  params.forEach((key, value) {
+    if (!first) out.write('&');
+    first = false;
+    writeText(key);
+    out.write('=');
+    writeText(value);
+  });
+  return out.toString();
+}
+
+/// Whether a form submission sends [rune] unescaped: `A-Z a-z 0-9 * - . _`.
+bool _isFormSafe(int rune) =>
+    (rune >= 0x30 && rune <= 0x39) ||
+    (rune >= 0x41 && rune <= 0x5A) ||
+    (rune >= 0x61 && rune <= 0x7A) ||
+    rune == 0x2A ||
+    rune == 0x2D ||
+    rune == 0x2E ||
+    rune == 0x5F;
 
 /// TCB positive figure-match mode: "all of these lines, in any order" — the
 /// dance must contain EVERY selected figure (order irrelevant). Confirmed
@@ -983,7 +1211,12 @@ class CallersBoxPhraseQuery {
     List<String> toLines(List<String> moveIds) {
       final out = <String>[];
       for (final id in moveIds) {
-        final line = (taxonomy.resolve(id)?.displayName ?? id).trim();
+        // An alias's own name (`long lines`), not its target's.
+        final line =
+            (taxonomy.aliases[id]?.displayName ??
+                    taxonomy.resolve(id)?.displayName ??
+                    id)
+                .trim();
         if (line.isNotEmpty) out.add(line);
       }
       return out;
@@ -1169,6 +1402,42 @@ String buildContraDbUrl(String input) {
     path: '/dances/$id',
   ).toString();
 }
+
+/// The numeric Caller's Box dance id in what the user typed: a bare id or a
+/// pasted `dance.php?id=N` link.
+///
+/// Validation is [buildCallersBoxJsonUrl]'s, so every input it rejects raises
+/// the same typed [UrlFetchException]. A link to another page under the
+/// mirror (`index.php?id=…`), or an `id` that is not a number, raises
+/// [UrlFetchFailureReason.callersBoxMissingId]: only the id is kept, so any
+/// other page's id would silently load whichever dance has that number, which
+/// is also why [extractSharedDanceLink] requires `dance.php`. Returning the id,
+/// not the built URL, lets `CallersBoxOnline.loadPreview` rebuild its own
+/// canonical fetch URL from it, as it does for an OS-shared link
+/// ([SharedDanceLink]).
+String callersBoxDanceIdFromInput(String input) {
+  final uri = Uri.parse(buildCallersBoxJsonUrl(input));
+  final id = uri.queryParameters['id'];
+  if (uri.normalizePath().path.toLowerCase() !=
+          '$callersBoxPathPrefix/dance.php' ||
+      id == null ||
+      !_numericIdRe.hasMatch(id)) {
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxMissingId);
+  }
+  return id;
+}
+
+/// The numeric ContraDB dance id in what the user typed: a bare id or a pasted
+/// `…/dances/N` link. Validation is [buildContraDbUrl]'s, so every input it
+/// rejects raises the same typed [UrlFetchException].
+String contraDbDanceIdFromInput(String input) => _contraDbDancePathRe
+    .firstMatch(Uri.parse(buildContraDbUrl(input)).path)!
+    .group(1)!;
+
+final RegExp _numericIdRe = RegExp(r'^\d+$');
+
+/// [buildContraDbUrl] always returns exactly this path.
+final RegExp _contraDbDancePathRe = RegExp(r'^/dances/(\d+)$');
 
 /// Builds the canonical ContraDB **program**-page URL from what the user typed.
 ///
@@ -1502,11 +1771,33 @@ typedef ContraDbSearchFetcher =
 /// [filter] is an internal fixed vocabulary value, never user-controlled
 /// structure. It is `title`, `choreographer`, or `figure`; Figure [query] text
 /// is normalized and must resolve to an exact canonical ContraDB move name.
+///
+/// An **expression** request ([ContraDbSearchRequest.expression]) instead
+/// carries a complete ContraDB filter array, built by the app from the
+/// Advanced query builder (`translateDanceFilterToContraDb`) and never from
+/// raw user text; its [query] is empty and its [filter] is `advanced`.
 class ContraDbSearchRequest {
-  const ContraDbSearchRequest({required this.query, required this.filter});
+  const ContraDbSearchRequest({
+    required this.query,
+    required this.filter,
+    this.offset = 0,
+  }) : expression = null;
+
+  const ContraDbSearchRequest.expression(
+    List<Object?> this.expression, {
+    this.offset = 0,
+  }) : query = '',
+       filter = 'advanced';
 
   final String query;
   final String filter;
+
+  /// The complete ContraDB filter array for an Advanced search, else `null`.
+  final List<Object?>? expression;
+
+  /// How many matches to skip: the start of the page to fetch. ContraDB's
+  /// `numberMatching` does not change with it.
+  final int offset;
 }
 
 /// POSTs [body] to the ContraDB search endpoint [uri] with [client].
@@ -1576,6 +1867,8 @@ Future<http.Response> _sendContraDbSearch(
 
 /// Default [ContraDbSearchFetcher]: POSTs [query] using [filter] as a ContraDB
 /// title-, choreographer-, or figure-search JSON body to [contraDbSearchUrl]
+/// (or, when [expression] is given, that complete Advanced filter array and
+/// neither [query] nor [filter])
 /// (with an [importFetchTimeout]) and returns the response body. Figure queries
 /// are normalized and invalid or partial names are rejected before the POST.
 /// Throws a [UrlFetchException] with a clear, user-presentable message for a
@@ -1586,6 +1879,8 @@ Future<http.Response> _sendContraDbSearch(
 Future<String> fetchContraDbSearch(
   String query, {
   String filter = 'title',
+  List<Object?>? expression,
+  int offset = 0,
   http.Client? client,
 }) async {
   // [contraDbSearchUrl] is a hard-coded public https constant, so this guard
@@ -1598,7 +1893,9 @@ Future<String> fetchContraDbSearch(
   // to narrow. _sendContraDbSearch additionally refuses redirects, so no
   // unvalidated hop can follow this check.
   final uri = _guardFetchUri(Uri.parse(contraDbSearchUrl));
-  final body = buildContraDbSearchBody(query, filter: filter);
+  final body = expression != null
+      ? buildContraDbFilterBody(expression, offset: offset)
+      : buildContraDbSearchBody(query, filter: filter, offset: offset);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
@@ -1733,12 +2030,12 @@ bool _isCallersBoxUrl(Uri uri) {
 bool _isContraDbUrl(Uri uri) => _contraDbHosts.contains(uri.host.toLowerCase());
 
 /// The canonical, ordered list of selectable import sources
-/// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): a pasted title list (issue #823), the
-/// [CallersBoxAdapter] ("The Caller's Box"), the [ContraDbHtmlAdapter]
-/// ("ContraDB"), the generic [GenericJsonAdapter] ("a Caller's Compendium JSON
-/// file"), and the [CallersCompanionUsrAdapter] ("a Caller's Companion .USR
-/// file", a binary FileMaker 12 migration that also imports the program
-/// history).
+/// (`docs/ROADMAP-archive.md` Phase 6.3/6.4/6.5): a pasted title list
+/// (issue #823), the [CallersBoxAdapter] ("The Caller's Box"), the
+/// [ContraDbHtmlAdapter] ("ContraDB"), the generic [GenericJsonAdapter] ("a
+/// Caller's Compendium JSON file"), and the [CallersCompanionUsrAdapter] ("a
+/// Caller's Companion .USR file", a binary FileMaker 12 migration that also
+/// imports the program history).
 ///
 /// Order and default selection are separate concerns (see
 /// [ImportSource.preselected]): the title list leads the dropdown, while The
@@ -1779,7 +2076,10 @@ List<ImportSource> defaultImportSources() => [
   ),
   ImportSource(
     kind: ImportSourceKind.callersCompanionUsr,
-    adapterFactory: CallersCompanionUsrAdapter.new,
+    // Parsed on a background isolate: a library-sized file takes seconds to
+    // read, which would otherwise freeze the review screen.
+    adapterFactory: () =>
+        CallersCompanionUsrAdapter(reader: readCcUsrArchiveInIsolate),
     bytePicker: pickImportUsrFile,
   ),
 ];

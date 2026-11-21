@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 
 /// Signature for loading the re-parse preview; defaults to
 /// [DanceRepository.previewImportGapReparse]. A test seam.
@@ -16,7 +19,7 @@ typedef ReparsePreviewLoader =
 typedef ReparseApplier =
     Future<int> Function(CompendiumRepositories repos, List<String> ids);
 
-/// Settings → "Re-check custom figures" (issue #417).
+/// Settings → "Re-check unrecognized figures" (issue #417).
 ///
 /// Re-runs the current figure parser locally over the stored text of every
 /// *import-gap* custom figure (customs that only exist because the parser
@@ -68,7 +71,9 @@ class _ReparseCustomFiguresScreenState
   void _load() {
     final repos = RepositoriesScope.of(context);
     final loader =
-        widget.previewLoader ?? (r) => r.dances.previewImportGapReparse();
+        widget.previewLoader ??
+        (r) =>
+            r.dances.previewImportGapReparse(reparse: reparseImportGapFigures);
     loader(repos)
         .then((previews) {
           if (!mounted) return;
@@ -124,6 +129,7 @@ class _ReparseCustomFiguresScreenState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
@@ -133,6 +139,7 @@ class _ReparseCustomFiguresScreenState
         widget.applier ??
         (r, danceIds) => r.dances.reparseImportGapFiguresForMany(
           danceIds,
+          reparse: reparseImportGapFigures,
           now: DateTime.now().toUtc(),
         );
     int changed;
@@ -179,14 +186,30 @@ class _ReparseCustomFiguresScreenState
 
   Widget _buildBody(BuildContext context) {
     if (_loadError != null) {
-      return _ErrorState(onRetry: _retryLoad);
+      return LoadErrorView(
+        key: const ValueKey('reparse-customs-error'),
+        icon: LoadErrorView.errorGlyph(context),
+        message: AppLocalizations.of(context).reparseErrorTitle,
+        body: AppLocalizations.of(context).reparseErrorBody,
+        onRetry: _retryLoad,
+      );
     }
     final previews = _previews;
     if (previews == null) {
       return const Center(child: CircularProgressIndicator());
     }
     if (previews.isEmpty) {
-      return _EmptyState();
+      final l10n = AppLocalizations.of(context);
+      return EmptyState(
+        key: const ValueKey('reparse-customs-empty'),
+        icon: Icon(
+          Icons.check_circle_outline,
+          size: 64,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: l10n.reparseEmptyTitle,
+        body: l10n.reparseEmptyBody,
+      );
     }
 
     final theme = Theme.of(context);
@@ -229,85 +252,6 @@ class _ReparseCustomFiguresScreenState
           ),
         ),
       ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      key: const ValueKey('reparse-customs-empty'),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 48,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.reparseEmptyTitle,
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.reparseEmptyBody,
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      key: const ValueKey('reparse-customs-error'),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.reparseErrorTitle,
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.reparseErrorBody,
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            FilledButton.tonalIcon(
-              key: const ValueKey('reparse-customs-retry-button'),
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.commonTryAgain),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

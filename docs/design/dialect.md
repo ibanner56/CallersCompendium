@@ -13,7 +13,10 @@ figure-bearing free text; hand-typed prose is stored verbatim (see
 A dance may also carry a per-figure **wording override** for display-only
 authoring. It is stored with that dance occurrence, rendered through the
 active dialect, and replaces the rendered line (including summary additions).
-It is never included in canonical figure text, search, or deduplication.
+It is never included in canonical figure text, search, or deduplication. A
+custom (free-text) figure uses its own text as its wording. The renderer ignores
+an override on it, and saving a dance through the editor removes it from the
+built figure.
 
 ```json
 {
@@ -40,15 +43,17 @@ It is never included in canonical figure text, search, or deduplication.
 - `dancers` substitutes the dancer tokens (ContraDB's parallel `dancers` map) —
   the positional/relational sets (`neighbors`, `ones`, `partners`,
   `nextNeighbors`, `centers`) **and** the single-dancer identities
-  (`onesRole1`/`onesRole2`/`twosRole1`/`twosRole2`). The role-driven tokens
-  `role1s`/`role2s` are **excluded**: they flow through role-term substitution
+  (`onesRole1`/`onesRole2`/`twosRole1`/`twosRole2`, and from taxonomy v39
+  `threesRole1`/`threesRole2`/`foursRole1`/`foursRole2`). The role-driven
+  tokens `role1s`/`role2s` are **excluded**: they flow through role-term substitution
   (`roles`) instead, so they are never listed here. Like `moves`, presets ship
   an **empty** `dancers` map — no gendered or house-specific dancer terms are
   baked in.
 - A single-dancer identity is the one dancer token with a **derived default**
   rather than a humanized one: with no substitution set it renders
-  `<first|second> <role singular>` ("second robin"), composed from the active
-  `roles`, mirroring ContraDB's `chooser_dancer` naming. Setting a `dancers`
+  `<first|second|third|fourth> <role singular>` ("second robin"), composed
+  from the active `roles`, mirroring ContraDB's `chooser_dancer` naming,
+  extended to the third and fourth couples (v39). Setting a `dancers`
   entry overrides that wording (a caller who says "robin two" enters it there);
   the ordinal construction is the default, not a hardcoded choice (issue #832).
 - `discouragedTerms` is **user-editable data with shipped defaults**, not
@@ -58,10 +63,26 @@ It is never included in canonical figure text, search, or deduplication.
   templates**. Templates use the computed slots for that move (for example
   `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
   omitted when their slots are empty, and substituted values are not rescanned.
+  A `{!name}` slot forces that slot to display even where the normal render hides
+  it (the stored `chain.hand` the role already implies, or an alias-pinned
+  param); slots owned by a display base renderer have no forced form and read as
+  the plain slot. Display-only: canonical text is unaffected.
+  A `[if … then … else …]` group words the line differently in some cases
+  (see [Conditional wording](#conditional-wording)).
   Malformed or empty templates fall back to the normal renderer. The editor
   warns when a template omits available slots and requires confirmation before
-  saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
-  each, and limited to 256 entries per dialect.
+  saving it. A new wording starts from the move's default display template,
+  except slide along set: it reads "slide left along set" by default, spelling
+  its name around the side, but starts a wording from `{move} {slide}`, so a
+  dialect's own name for it still shows. Saved unchanged, that wording reads
+  "slide along set left"; `slide {slide} along set` keeps the default order. An
+English country dance movement starts from its display template rewritten as
+a wording that saves: each `[{?flag}…]` group becomes `[if flag then …]`, and
+the template's own choices (a run of changes with no count, a hey with no
+`who`, a forward and back with no direction) become conditions too, so the
+wording, saved unchanged, reads as the default line. Imported
+  templates are sanitized, capped at 512 UTF-16 code units
+  each as stored, conditions included, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for
   `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`) and
   `promenade` (`ordinary`, `singleFile`). The editor reveals these branches only
@@ -74,16 +95,263 @@ It is never included in canonical figure text, search, or deduplication.
   forms; its single-file rendering supplies the fixed `single file` prefix.
   Legacy circle branch data retains its ordinary template and discards the
   single-file template. Branch templates are display-only and share the
-  512-code-unit/256-entry limits.
+  512-code-unit/256-entry limits, and may hold conditions too.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
-  Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
-  presets — a user who wants them enters them through the custom role-terms
-  editor. Everything a dialect can set is editable in Settings → Dialect:
+  Leads/Follows (plus Canonical). No dialect may show a gendered role word
+  (`genderedRoleWords`: gent(s), gentleman/men, man/men, lady/ladies,
+  woman/women; Hudson's rule, 2026-11-18). "man" and "men" count only as a
+  role term or a dancer substitution: in a wording, move substitution or
+  dialect name they are
+  also the impersonal pronoun of shipped locales (German and Danish "man",
+  Dutch "men"), so they are not refused or dropped there (implementer's call;
+  refusing them everywhere would delete those users' wordings). `Dialect.validate` reports
+  `gendered_role_term` for one in a role term, a move or dancer substitution, a
+  move wording or a branch entry, and the Settings name dialog refuses a
+  dialect name holding one. Data that already holds one (an older build, a
+  backup, another device) is repaired on read rather than rejected:
+  `Dialect.fromJson` puts the Larks/Robins term in place of a gendered role term
+  and drops gendered substitutions and wordings, and
+  `DialectLibraryController.load` renames a custom dialect whose name holds one
+  to a fresh `Dialect.customName`, carrying the new name to programs like any
+  rename. Until then, the sync conflict review shows such a dialect as the
+  app reads it (`Dialect.fromJson`) and masks its name (`shownDialectName`),
+  as does the program editor's "unavailable" dialect item. Everything a dialect can set is editable in Settings → Dialect:
   role terms, per-move substitutions, dancer-term substitutions, and the
   discouraged-terms list. Users may
   keep a custom dialect and switch instantly (e.g. per-gig) — this generalizes
   CC's binary "on the fly gendered↔gender-free switch". The active dialect
   (including a full custom one) is persisted as JSON.
+
+  **One dialect library per dance form** (ADR-006 §9.1, Hudson 2026-11-18;
+  storage chosen by Hudson on 2026-11-19). Each `DanceForm` has its own custom
+  dialects and its own active dialect. Contra keeps the keys it always had
+  (`custom_dialects`, `active_dialect_ref`, and the legacy `active_dialect`
+  blob); English country dance and square use `custom_dialects_ecd` /
+  `active_dialect_ref_ecd` and `custom_dialects_square` /
+  `active_dialect_ref_square`. The presets are the same for every form.
+  `DialectLibraries` holds one `DialectLibraryController` per form, and
+  `DialectsByForm` carries the active dialect of each form; a dance renders in
+  `DialectsByForm.forDance(dance)`. All the custom-dialect keys are
+  whole-collection sync settings (conflicts go to review). Contra's library
+  travels in the backup's `app.dialects` section and the other forms' as plain
+  `app.settings` entries; older builds keep the unknown keys whole (ADR-004).
+  The Glossary shows each form's built-in figures in that form's dialect, as
+  the dialect editor's preview samples and each walkthrough snippet (by its
+  figure's form) are. Surfaces that do not yet have a form of their own (the
+  user's own figures and terms, wherever they are shown, shorthands, and the
+  Settings defaults) stay on contra's dialect until they gain one.
+  Program-wide text (notes, set lists) is rendered in contra's dialect, while
+  each dance in a program renders in its own form's (implementer's call; the
+  alternative, rendering program text in the form of most of its dances, was
+  rejected as unpredictable). The matrix names a figure's column in its
+  figure's form's dialect, and a column of the user's own figure in contra's,
+  and shows each dance's formation details in that dance's dialect. A figure
+  with no prefix is contra's, and a dance of another form can use it too
+  (squares have no taxonomy yet; an English dance may keep a contra figure):
+  its column reads in the dialect of the dances that use it when they are all
+  of one form, and in contra's when forms mix; a column no dance uses (a
+  baseline swing column) reads in the program's form when all its dances are
+  of one form (implementer's call; the alternative, always contra's, would
+  word a square-only program's columns unlike its rows).
+
+  A program may also name its own dialect (`Program.dialectName`, issue #1554),
+  which only that program's Perform view uses; the editor, summary and exports
+  keep the active dialect, and the active dialect is never changed by it. The
+  program stores only the dialect's **name**, resolved when Perform opens
+  (`resolveProgramDialect`, comparing names after `normalizeShareableText`): a
+  name that no longer resolves — deleted, or not yet synced to this device —
+  silently falls back to the active dialect. With a library per form, Perform
+  looks the name up among the dialects of the form of the dance on screen, and a
+  form with no dialect of that name uses its own active dialect; the presets
+  share names across forms (implementer's call, ADR-006 §12.2 S3 left this open).
+  Because names are unique only within a form, a rename is carried to
+  programs only while no other form still has a dialect of the old name;
+  otherwise programs keep the old name, which that other form still answers
+  to (implementer's call; recording the form beside the name was rejected as
+  a persisted-format change). A name the app picks itself, such as the
+  rename of a gendered name on load, avoids every form's names. Delete never
+  writes to programs.
+  Rename does (amended 2026-10-29, @ibanner56's ruling on PRES-11/LIFE-11):
+  `DialectLibraryController.rename` saves the library, then
+  `ProgramRepository.renameDialect` gives every program naming the old dialect
+  (trashed ones included, names compared after `normalizeShareableText`) the
+  new name and a newer `updatedAt`. The library syncs as the `custom_dialects`
+  setting and each program as a record, so another device receives the two
+  independently, in either order, and ends on the new name. A program edited
+  on another device before it receives the rename is an ordinary record
+  conflict, and the loser keeps the old name, which reads as unavailable. Saving
+  an editor opened on an existing dialect goes through
+  `DialectLibraryController.updateTerms`, which replaces by name and writes
+  nothing when no custom dialect has that name any more (renamed or deleted
+  while the editor was open), so a stale editor can neither add a second dialect
+  nor revive a deleted one; the screen says the changes were not saved. A
+  dialect has no id, so a deleted name that a new dialect has since taken cannot
+  be told apart from the original. Inside Perform the quick-switch is then session-local.
+
+  **Choreographer exception: larks and robins only.** Rachel ("Rae") Fifer has
+  asked the dance community at large that her dances only ever be called with
+  the role terms "larks" and "robins". This is the one place the reader's
+  dialect does not win. `dialectForDance` (`dialect/author_role_terms.dart`)
+  takes the reader's dialect for the dance's form (`DialectsByForm.forDance`)
+  and the dance's title and author names, and when `requiresLarksRobins`
+  returns a copy with `lark`/`robin` role terms. It also
+  drops the reader's single-dancer substitutions (`onesRole1` …, which usually
+  spell a role) and stops flagging lark and robin as discouraged. Move
+  substitutions and wordings stay the reader's. A dance requires it when any
+  author's name has Rachel or Rae as its first word and Fifer as its last.
+  "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
+  when no author is named (none, or only Unknown/Traditional), so a dance
+  imported without its author is still caught. The request that added this
+  rule named those two dances and said she would probably prefer the rule to
+  cover all her dances, so it does. The rest was decided while implementing it,
+  not by the request: the title fallback, keeping the reader's move wording
+  (rather than switching the whole dialect to the Larks/Robins preset, which
+  would discard choices that have nothing to do with roles), and dropping
+  single-dancer substitutions (which would otherwise leak a role word such as
+  "first gent").
+
+  Every surface that shows one dance resolves its dialect through
+  `dialectForDance`: the dance page (which notes the override when it sets the
+  reader's role terms aside, `overridesRoleTerms`), the editor (whose controller
+  resolves its form's dialect through it, and converts its drafts as the
+  title or authors start or stop requiring it), Perform (single dance and
+  each program slot), the Collection list tile, the program summary row, the
+  program editor's slot row and its matrix's formation column (on screen and
+  in the PDF), the import review preview, and every export
+  built on `DanceCardContent`, which carries the dialect it rendered in
+  (`DanceCardContent.dialect`) for its consumers' figure rendering. Program-level
+  text keeps the reader's dialect: slot notes (Perform renders a slot's caller
+  note in the reader's dialect beside the dance's own, `PerformCard.
+  callerNoteDialect`), and the program matrix's column labels, which span
+  several dances (each in the reader's dialect for its figure's form). The sync-conflict comparison renders each
+  field without the dance's authors, so it also keeps the reader's dialect.
+  Storage is unaffected: the dance stays canonical.
+
+## Conditional wording
+
+A wording template, a dialect's move wording (`moveWordings`,
+`moveWordingBranches`, and its wording for a figure of your own) or a figure
+of your own's own template (#1023), may word its line differently in some
+cases with a **conditional group**:
+
+```text
+[if who is neighbors then neighbor swing else if who is in (partners, shadows) then {who} swing else {who} swing]
+```
+
+`wording_conditions.dart` holds the language: its reader, the stored form,
+rendering, and the issues a caller is shown.
+
+**The language.** These choices were made by Isaac (maintainer) in the design
+session for this change; the PR that adds it lists each one as he made it.
+
+- A group is `[if` *condition* `then` *wording*, any number of `else if`
+  *condition* `then` *wording*, and at most one `else` *wording*, then `]`. A
+  `[…]` that does not start with `if` keeps its meaning (left out when its slots
+  are empty). The wording of the first condition that holds is shown; with none
+  and no `else`, nothing.
+- A test is a *name* (a switch is on, or a detail is filled in), or a name
+  followed by `is` and one of: a value, `not` a value, `in (`values`)`,
+  `not in (`values`)`, `empty`, `not empty`, `more than`, `less than`,
+  `at least` or `at most` and a number. `not` negates; `and` and `or` join, and
+  mixing them needs parentheses.
+- Only `is not` negates `is`; `isn't` is refused with a message offering
+  `is not`.
+- A name is anything the template could use as a slot, computed ones included:
+  a figure of your own's opposites (`otherWho`), and a move's other slots (a
+  long wave's `subject`), as well as a move's parameters its templates do not
+  show as slots (the long wave's `in` and `out`).
+- **Reserved words.** A parameter of a figure of your own may not be named
+  `if`, `then`, `else`, `not`, `and`, `or` or `is` (`wordingReservedWords`,
+  ignoring case), the words that can stand where a name does. The other words
+  (`in`, `empty`, `more`, `than`, `at`, `least`, `most`) are read only after
+  `is`, so a parameter may be named any of them, and no built-in parameter or
+  slot needs renaming (`wording_conditions_test.dart` sweeps the taxonomy). A
+  stored figure with a parameter named a reserved word reads as **Needs
+  repair** and is repaired by renaming it: Custom Figures had only just
+  shipped, and Isaac judged that acceptable (same session, same PR).
+- Error messages are part of the language, not decoration: each one says what is
+  wrong, quotes the words it is about, and how to fix it, often with the
+  corrected words (`wording_issue_labels.dart`, one message per
+  `WordingIssueCode`; the standard is a caller fixing a condition from the
+  message alone).
+
+**Implementer's choices** (decided in the change, with the alternative):
+
+- **Words are read by where they stand.** A name only where a test starts, an
+  operator only after `is`, a value only where one is due, matched against the
+  values that name has (`WordingVocabulary`); `is in` is the operator only
+  before `(`, so `direction is in` compares with the direction "in". Every
+  reading is tried, and a condition with two is refused, naming both in a form
+  that has one (`style is rock and roll`, with choices "rock" and "rock and
+  roll" and a switch `roll`). The rejected alternative, longest match wins,
+  would choose silently.
+- **A value is written in the words shown**: a role in the dialect's term
+  (singular or plural), a dancer in its substitution or plain name, a choice by
+  its label, a built-in value by its plain name ("right diagonal") or its
+  rendered word; numbers as digits, and a turn as `1.5`, `1½`, `once` or
+  `twice`. The words are English, as rendered dances are; localizing them is not
+  part of this change.
+- **`is empty` always means no value**, never a choice labelled "empty"; a
+  warning says so and offers `is in (empty)`. Free text and text-only slots are
+  tested only for being filled in; a switch only bare or with `not`;
+  `is not more than` is refused for `is at most`.
+- **Stored by meaning.** The stored form holds each condition in a `{?…}`
+  marker, its values as tokens and choice ids:
+  `[{?if who is in ('neighbors', 'nextNeighbors')}…{?else}…]`. Renaming a role,
+  a dancer word or a choice never changes what a stored condition tests, and the
+  editor shows it in the current words (`wordingForEditing`). A template with no
+  condition is stored exactly as typed. A figure of your own's literal words are
+  canonicalized around the markers (`mapUserFigureTemplateText` keeps them as
+  written).
+- **The 512 cap is on the stored form.** A stored condition can be longer
+  than its words, but raising the cap was rejected: a build before
+  conditions truncates a longer template on reading a dialect, and would sync
+  the broken copy back. The editors refuse, with a message, a template that is
+  too long once stored; they never cut one short. Typed text longer than any
+  template within the cap can show (`wordingTypedLimit`, from the longest
+  word a value has) is refused before it is read, with its own message, which
+  bounds how long reading any text a caller can type takes.
+- **Older builds fall back.** A build before conditions refuses a brace holding
+  anything but a slot name, so it reads a stored condition as a malformed
+  template: a dialect wording falls back to the normal wording, and a figure of
+  your own reads as needing repair while dances show their stored lines. Gating
+  the data behind a sync capability (§6.15 of the sync spec) was rejected for
+  the beta, as #1899 was.
+- **Fit is checked where it is used.** A stored condition testing a name the
+  move or figure lacks, a value it does not have, or in a way its kind does not
+  take (`wordingConditionsFit`) makes a dialect wording unused, as an unknown
+  slot does, and a figure of your own's definition invalid
+  (`UserFigureIssueCodes.badCondition`).
+- **Shown so it reads back the same.** The editors show a stored condition in
+  its plain words only when reading them back gives the same condition
+  (`readableWordingCondition`); otherwise explicitly, a value of several
+  words or one spelled like an operator in `is in (…)` and each test of a
+  chain in parentheses. A list of one value is stored as the value, so
+  `is in (x)` and `is x` keep the same stored form.
+- **What isn't edited isn't read again.** An editor keeps a wording left as it
+  showed it in its stored form, while its conditions still fit what it may
+  test: one for a figure not on this device, or one saved before conditions
+  whose brackets start with "if" (which now reads as a condition), saves
+  untouched. Shown, such brackets start with an empty `[]`, which renders as
+  nothing and keeps "if" as a word, so an edit keeps their meaning too; an
+  imported branch's "else" shows as `[else]`, and an else branch starting with
+  "if" starts with `[]`, for the same reason. These add a few characters to
+  the stored form once the wording is edited, so one at the 512 cap may need
+  shortening then. Brackets or parentheses nested deeper than
+  `maxWordingNesting` (64), counted through any brace that isn't a slot, and
+  `not`s negating one another deeper than that, are refused, each with a
+  message of its own: the reader never needs more stack than that depth.
+  Renaming or swapping role or dancer words in the dialect editor, or a
+  choice's label in a figure's editor, shows each wording again in the new
+  words from what it last read as, so it keeps its meaning. A condition names
+  a parameter by its name, so renaming the parameter, or removing a choice it
+  tests, leaves the wording as typed, and the editor reports what it no longer
+  has; a wording that didn't read when the words changed stays as typed, and
+  is read in the new words.
+- **Warnings, not errors**, for wording that saves but likely not as meant:
+  `else` after "everyone" and its kin (the words "everyone else" go in their own
+  `[…]`, where `else` is ordinary wording), `otherwise` or `elif` in a branch,
+  and the `is empty` rule above.
 
 ## Rendering pipeline (pure functions, golden-tested)
 
@@ -94,7 +362,7 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
 
 - Substitution covers: role terms, move display names, dancer terms
   (positional/relational sets and single-dancer identities alike), and terms
-  inside free text (notes, hooks, custom figures) via compiled word-boundary
+  inside free text (notes, hooks, unrecognized figures) via compiled word-boundary
   regex with case preservation.
 - Per-dance wording overrides use the same dialect substitution, but do not
   enter the canonical rendering or any search/deduplication identity.
@@ -102,6 +370,21 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   dialect's move template, then the existing renderer output. Move templates
   replace the display line; summary modifiers are not appended to a templated
   line.
+- A use of a figure of your own (#1023) renders from its definition's
+  template: its slots are filled first, in one pass that never rescans a
+  value, so an argument cannot inject a slot; the assembled line, arguments and
+  labels included, is then rendered in the dialect as free text, which never
+  reads a `{…}` or `[…]`, so a dialect's role word cannot add one either. The
+  canonical render does the same in the canonical dialect. Without the
+  definition, the use shows its stored line as any unrecognized figure does.
+  Outside the canonical render, a dialect's `moves` and `moveWordings` entries
+  under `userFigure:<id>` stand in for the figure's name and template
+  (`dialectUserFigureName`, `dialectUserFigureWording`; plan C8): keys older
+  builds keep, as they keep every key. A wording that is not a valid template,
+  or that uses a slot the figure lacks, is not used; nor is a name holding
+  `%S`, which has no side to fill. The canonical render never reads them, so
+  stored lines and the index stay the figure's own. Deleting the figure drops
+  both entries from every dialect (plan C9).
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed
@@ -115,6 +398,75 @@ function** before persistence: it inverse-maps the user's dialect terms and
 known synonyms/legacy terms (gypsy → shoulder round) back to canonical
 vocabulary, and flags ambiguities inline ("lingo line" underlining: recognized
 terms underlined, discouraged terms struck through, unknown terms plain).
+Free-text figure entry parses the typed line as written first and canonicalises
+against the active dialect only when that reading does not account for the
+whole line: on a parse miss, or (since #2121) when it found a move only by
+leaving a note or an unread part, as `half poussette - leads pull neighbor back
+then left` did. In the second case the role-word reading is taken only if it
+reads the whole line. So a dialect term that is also a move word (`lead` in
+"ones lead down the hall") keeps parsing as the move, and a line read as typed
+keeps that reading unless the role words account for all of it. After that it
+reads the built-in discouraged role terms by their meaning,
+as user-glossary text is read (`canonicalizeGlossaryText`): `ravens chain` is a
+`role2s` chain, unless the active dialect's own role word is or holds the term,
+which keeps the dialect's meaning. Only when every parse misses is the line
+looked up as a move's name (#1826, `imports/typed_figure_names.dart`):
+taxonomy display names, then alias names, then a few caller phrasings, then the
+active dialect's own move names, so a dialect name that is another move's
+taxonomy name does not shadow that move. Punctuation at the end of the line
+(`hey.`) is ignored. A name read whole wins; failing that, a dancer word
+(`ones`, `twos`, `partner(s)`, `neighbor(s)`, `everyone`, `role1s`, `role2s`)
+followed by a name reads as the move with that `who` (#1857, `neighbor pass by`).
+Since #2121 the dancer may be any the figure display names before a move
+(`_dancerPhrases`): `shadow(s)`, `centers`, `opposites`, `same roles`, the
+corners, `first`/`second` before a role word, and the neighbour, partner and
+shadow series (`prev neighbor`, `third partners`, `second shadow`), so
+`third corners gate` reads back. Only a move with a `who` param takes one; for
+any other (`hey` names its dancers in `pass1`) or an unknown word the line
+stays custom. Role words (`ravens mad robin`) are not in that list: the dancer
+lookup also runs on the retries' text above, so they keep the meaning the
+dialect gives them. Last of all, a courtesy turn naming a second dancer in the
+display's wording (`partner courtesy turn larks`) is read with that dancer as
+`whom` (#2121, `readDisplayedCourtesyTurnWithWhom`). Imports read none of
+these, so an imported line still leaves a courtesy turn's `whom` out unless a
+source states it (the maintainer's decision, recorded in #2121).
+
+**Role words that are also move words.** The chokepoint does not rewrite every
+role term it finds (`RoleCanonicalizer`, `dialect/role_canonicalizer.dart`).
+Each occurrence is classified first, from the figure grammar's own vocabulary
+(`taxonomy/dance_vocabulary.dart`) and the taxonomy's move names:
+
+1. A role word inside a multi-word move name or search keyword — today only
+   "mad robin(s)" — names the move, in every dialect (`robin` is a legacy
+   synonym, so this applies under Larks/Robins too). It is not rewritten to a
+   role; the move name is stored in lowercase and single-spaced ("Mad Robin"
+   is stored as `mad robin`), the same bytes the import scrub stores, so typed
+   and imported text deduplicate (maintainer choice B, 2026-10-06; this
+   reverses the earlier editor rule, #1678, that kept it as typed).
+   A ratchet test fails if the taxonomy gains another role-bearing name until
+   it is classified as a move name or as a name whose role word is the dancer.
+   A custom dialect's own move substitutions are display wording, not move
+   names, and are not shielded: a role word in one ("robins chain") comes from
+   the dialect's expansion, so a no-edit save keeps the stored role token.
+2. The calling verbs that are also role terms, "lead" and "follow"
+   (`roleHomographVerbs`), are decided from their neighbours in the same
+   clause. The plural ("Leads chain") and a form after a determiner ("the
+   lead", "second follow") are roles. A form after an auxiliary ("to lead"),
+   or followed by a direction, object or dancer word ("lead down", "follow
+   your partner"), is a verb and kept. Anything else is a role. A dancer word
+   in front is not verb evidence, because the renderer itself writes the
+   `twosRole2` dancer as "twos follow". Neighbours are read across any Unicode
+   whitespace and the editor's `*bold*` and `_underline_` markers.
+3. Every other role term is rewritten as before.
+
+This applies wherever the chokepoint runs: figure notes, unrecognized figure text,
+the import scrub, free-text entry's retry, search queries and the editor's
+lingo underline. Notes stored by earlier versions are not repaired
+(maintainer decision, 2026-10-06): a note stored as `mad role2` still reads
+"mad follow" under Leads/Follows until it is edited, and one stored as
+`Ones role1 down the hall` is corrected the next time it is saved under
+Leads/Follows. The chokepoint is an input-side transform only; Device Sync
+admission never re-runs it, so changing it needs no sync wire-version bump.
 
 The chokepoint is deliberately **not** applied to long-form hand-typed prose.
 `canonicalize` is a word-boundary substitution over an always-on synonym set
@@ -143,17 +495,35 @@ Where the chokepoint IS wired:
   for the figure beside it, so its language must stay consistent with the
   figure — and importers already store note text canonically through
   `scrubFigureText` (issue #715).
+- **Unrecognized figure text** (`params['text']` of a `custom` figure) typed in the
+  dance editor goes through the same active-dialect chokepoint as figure notes
+  when the dance is saved (`FigureDraft._canonicalParams`, called from
+  `buildDance`), and is rendered back via `renderFreeText`. Move words that
+  are also role terms are not rewritten to roles, as above: a verb "lead" is
+  kept as typed and "mad robin" is stored in lowercase. Other role words are
+  substituted and lose their capitalisation, so
+  "Larks chain wide" is stored as `role1s chain wide` and reads back as
+  "larks chain wide".
+  This is deliberate (maintainer decision, 2026-10-06, post-audit finding
+  parser-2): imports already store role words lowercase, and preserving case
+  (`Role1s`) would give the same words different canonical bytes and split
+  the line-level dedupe identity (`figureCanonicalKey` in `figure_diff.dart`)
+  between a typed figure and the identical imported one. The same identity
+  holds for the move name: an all-caps "MAD ROBIN, LADIES IN" stores
+  `mad robin, role2s IN` from the editor and from an import alike
+  (maintainer decisions D6 and B, 2026-10-06).
 - **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
   stored **verbatim, exactly as typed**, in whatever dialect the caller uses.
   It is not canonicalized on save and not rewritten on load. Display sites
   still route it through `renderFreeText`, which is a no-op for text holding no
   canonical role tokens.
-- **Search** canonicalizes the query at the compiler boundary. Because prose is
-  stored verbatim, a role term typed into prose is **not** full-text matchable
-  (a Larks/Robins reader searching "Robins" has the query canonicalized to
-  `role2s`, which the verbatim index does not contain). Ordinary prose is
-  matched normally. This is a known gap, tracked separately; the fix is to
-  match the query against both forms, not to rewrite the caller's prose.
+- **Search** canonicalizes the query at the compiler boundary, and Omni also
+  matches the query as typed against the verbatim columns (title, authors,
+  sources, custom values, hook, notes). Because prose is stored verbatim, a
+  role term typed into prose ("ladies chain") is found by its own spelling,
+  while a Larks/Robins reader searching "Robins" still reaches canonical
+  `role2s` figures through the canonical branch. The caller's prose is never
+  rewritten. The scoped Title/Author/Figure searches are unchanged.
 
 > Intentionally not wired: **program-level prose** (`Program.notes`, free-text
 > `ProgramSlot.text`) is stored and displayed verbatim — it is not
@@ -163,6 +533,133 @@ Where the chokepoint IS wired:
 > text unchanged (byte-for-byte identical), wiring the chokepoint here would be
 > a no-op for the overwhelming majority of program prose. Tracked as issue #665,
 > closed as not planned.
+
+**User-glossary text (#709).** Text the user writes into their own glossary — a
+custom compound's name, definition, description, keywords and notes, and their
+notes on shipped figures, and a new figure's (#1023) wording template, choice
+and flag labels and text defaults — has its own variant of the chokepoint,
+`canonicalizeGlossaryText` (`dialect/canonicalize.dart`). It is
+`canonicalizeText` plus two rules, and `canonicalizeText` itself is unchanged:
+
+- The built-in discouraged terms are stored canonically: `ladies` → `role2s`,
+  `gents'` → `role1s'`, `gypsy` → `shoulder round`. The table is the one the
+  renderer displays them from (`dialect/discouraged_terms.dart`), so a stored
+  term reads back as the renderer would show the term itself; it is that
+  built-in table, not the dialect's own editable discouraged list, because
+  display uses the same table. One exception: a role word of the active
+  dialect that is one of the table's terms, or holds one as a word, keeps the
+  dialect's meaning. In a custom dialect whose role1 is "Raven", "ravens" is
+  stored as `role1s`, not the table's `role2s`; in one whose role1 is "Lady
+  Bird", "lady birds" is `role1s` while "lady" alone is still `role2`. The
+  renderer's **Auto-convert all discouraged terms** display makes the same
+  exception: it shows such a word as written rather than as the table's role
+  (fixed after #709; it used to show a "ravens" typed into a dance's text as
+  that dialect's role2). A stored possessive
+  also keeps the canonical token's spelling (`role1s'`), so where a dialect's
+  plural does not end in "s" it reads back as, say, "Leaderfolk'" where the
+  display path writes "Leaderfolk's", as any stored possessive role token
+  does. These are the implementer's choices.
+- Under a dialect whose roles are "lead"/"follow", the plural form directly
+  after a singular subject in the same clause is the verb, not the plural
+  role: "The robin follows the lark across" stores `The role2 follows the
+  role1 across`. A singular subject is:
+  - a singular role term or token;
+  - a pronoun that is only ever a subject: it, he, she, who, whoever, and
+    everyone, someone, anyone, nobody and their "-body" forms ("It leads into
+    a swing", "Everyone follows the leader");
+  - "this", "that" or "which" **when a direction, an object or a dancer word
+    comes next** ("a call that follows the balance"); otherwise they are a
+    conjunction or a determiner and the roles after them are plural ("Make
+    sure that leads cross first" stores `role1s`);
+  - a dancer noun after a determiner ("your partner leads");
+  - any other singular noun after a determiner, with the same condition on the
+    next word ("The caller follows the music", "The line leads down the
+    hall").
+
+  A bare noun ("swing partner follows cross", "swing caller follows the
+  music") is not a subject, so there `follows` is the role. "leads cross +
+  follows loop" still stores `role1s cross + role2s loop`.
+
+  **Who decided.** Only the exception for a singular role term is recorded as
+  decided (the maintainer, 2026-10-14, per the comment on
+  `canonicalizeGlossaryText`). Everything else here is the implementer's
+  choice, not a recorded maintainer decision: the dancer nouns, the pronouns,
+  the open-noun rule and its lookahead.
+
+  **Why the open-noun rule is narrow.** "determiner + word + leads" is also a
+  plural role whenever the word is an adjective, a count or a quantity. So
+  the word before the verb must not:
+  - end in "s" ("the ones leads down", "the class follows" stay roles);
+  - be a role term, a count ("the two leads down the hall") or a quantity
+    ("several"), a determiner other than an ordinal ("the other leads down"),
+    an auxiliary ("to", "not", "will") or a verb complement ("up", "down",
+    "all", a dancer word), or a single letter;
+
+  and the word after the verb must be a direction, an object or a dancer word
+  **and not a role term** ("the new leads follow the ones" and "the inside
+  leads, follows outside" stay roles). A hyphen before it counts as a space
+  ("leads-up").
+
+  **Known limitations.** In each of these the plural form is stored as the
+  plural role (`role1s`, `role2s`), as it was before the rule, though a reader
+  would take it for the verb:
+  - a subject followed by nothing, a comma or a non-complement word ("The set
+    follows.", "The set follows, then leads cross");
+  - a modifier between the determiner and the noun ("The opening figure leads
+    into a swing", "The new caller leads down the hall", "The whole set
+    follows the music"): the noun must be the word right after the determiner;
+  - a hyphenated noun ("the call-out leads down the hall"), a noun ending in
+    "s" ("the class follows the music"), "the other follows", "no one
+    follows", and "what follows" or "whatever follows";
+  - a subject that the built-in discouraged-term table rewrites first: "the
+    gypsy follows the ones" is stored `the shoulder round role2s the ones`,
+    because the rewrite runs before the verb is decided;
+  - "that", "this" and "which" followed by a complement are read as the
+    subject even where a conjunction and a plural role is meant: "Note that
+    follows the balance", "Make sure that follows your partner", "Remember
+    that leads the way", "Ensure that follows them" and "Do this follows the
+    music" are stored with the literal verb. The two readings are the same
+    words and the next word cannot tell them apart, so the lookahead is a
+    compromise: "Make sure that leads cross first" is the plural role and "a
+    call that follows the balance" the verb. When the next word is not a
+    complement the role wins even for a real subject ("This follows
+    established practice" is stored `This role2s established practice`);
+  - the render round trip, which can also turn a plural role into the verb.
+    Glossary text is stored in canonical form, shown through the active
+    dialect, and a no-edit save stores what was shown, so the decision is made
+    again on the shown text. "the active larks down the hall" typed under
+    Larks/Robins is stored `the active role1s down the hall`, shown under
+    Leads/Follows as "the active leads down the hall", and a re-save there
+    keeps `leads` as a literal word. The tests pin
+    `canonicalize(canonicalize(x))`, not `canonicalize(render(canonicalize(x)))`.
+    The drift is accepted: closing it needs the renderer to mark which role
+    word it wrote.
+
+  Rejected: reading any word after a determiner as the subject (it stores "the
+  new leads" as the verb and survives every pre-existing test); a longer
+  closed list of nouns (it cannot name "caller", "line" or "set", and glossary
+  prose has no closed vocabulary); no lookahead (it makes every "determiner +
+  adjective + leads" a verb); and a lookahead-free "that", "this" and "which"
+  (it stores "Make sure that leads cross first" with a literal `leads`).
+
+Every one of those fields is canonicalized, the prose ones included. That
+takes on, for this text only, the proper-noun risk that keeps hand-typed prose
+verbatim (#613): the maintainer accepted it (recorded in #709's consolidated
+spec), because glossary text describes figures and is read back through the
+active dialect like a figure note.
+
+The Glossary's custom-figure editor and its notes on built-in figures save
+through it, against the active dialect, and render the stored text back with
+`renderFreeText`.
+
+One field of a custom compound does not: a note on one of its parts is a
+figure note, and is stored with `canonicalizeText`, as the dance editor stores
+a dance's figure notes. Expanding the compound copies the note into a dance,
+where every later save of that dance runs it through `canonicalizeText` again;
+stored with the glossary variant, a note such as "The follow leads across"
+under Leads/Follows would be stored `The role2 leads across` and then turned
+into `The role2 role1s across` by that later save. The implementer chose
+this; the rejected alternative was the glossary variant for every field.
 
 Edge rules:
 - Round-trip safety: `canonicalize(render(x)) == x` for all taxonomy terms in
@@ -180,7 +677,11 @@ Edge rules:
 | Surface | Dialect applied? |
 |---|---|
 | Dance card, editor previews, performance mode | ✅ |
-| Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
+| Free text: unrecognized figures, figure notes | ✅ (canonical on save, rendered on read) |
+| User-glossary text: custom compounds, notes on built-in figures | ✅ (glossary variant on save, rendered on read; #709) |
+| Figure notes inside a custom compound's parts | ✅ (`canonicalizeText` on save, as a dance's figure notes; #709) |
+| A figure of your own's wording template, choice and flag labels, text defaults | ✅ glossary variant on save, the template's literal text only (slots kept as written); rendered on read (#1023) |
+| A use's text arguments | ✅ rendered on read (#1023) |
 | Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
 | Per-dance figure wording override | ✅ display-only; canonical identity unchanged |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |

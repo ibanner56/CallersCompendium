@@ -31,7 +31,8 @@ void main() {
         .select(
           "SELECT name FROM sqlite_master WHERE type = 'index' "
           "AND name IN ('deletion_jobs_queued_at_idx', "
-          "'blob_deletion_jobs_queued_at_idx', 'stores_last_seen_idx')",
+          "'blob_deletion_jobs_queued_at_idx', 'stores_last_seen_idx', "
+          "'manifest_refs_hash_idx')",
         )
         .map((row) => row['name'] as String)
         .toSet();
@@ -41,6 +42,7 @@ void main() {
         'deletion_jobs_queued_at_idx',
         'blob_deletion_jobs_queued_at_idx',
         'stores_last_seen_idx',
+        'manifest_refs_hash_idx',
       }),
     );
     final breakGlassIndexes = breakGlassDatabase
@@ -196,6 +198,7 @@ void main() {
       etag: '4' * 64,
       writtenAt: now.millisecondsSinceEpoch ~/ 1000,
       body: Uint8List.fromList(manifestBody),
+      referencedHashes: [reachableHash],
     );
     database.execute(
       'UPDATE blob_refs SET uploaded_at = ? '
@@ -551,7 +554,10 @@ void main() {
     });
 
     const syncId = 'café-horse-battery-staple';
-    store.recordBreakGlassAccess(syncId);
+    store.recordBreakGlassRead(
+      syncId,
+      BreakGlassRead.manifest(deviceId: 'device-one'),
+    );
     final rows = breakGlassDatabase.select(
       'SELECT id_key, accessed_at FROM break_glass_access',
     );
@@ -613,6 +619,7 @@ void main() {
         etag: 'd' * 64,
         writtenAt: 0,
         body: Uint8List.fromList([1]),
+        referencedHashes: const [],
       );
     }
     expect(
@@ -623,6 +630,7 @@ void main() {
         etag: 'e' * 64,
         writtenAt: 0,
         body: Uint8List.fromList([1]),
+        referencedHashes: const [],
       ),
       throwsA(isA<StoreQuotaExceeded>()),
     );
@@ -642,6 +650,109 @@ void main() {
       throwsA(isA<StoreQuotaExceeded>()),
     );
     expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isFalse);
+  });
+
+  group('manifest bytes count toward the store byte quota', () {
+    late Directory dataDirectory;
+    late AthenaeumStore store;
+    late String epoch;
+    final idKey = 'c' * 64;
+
+    setUp(() {
+      dataDirectory = Directory.systemTemp.createTempSync(
+        'athenaeum-manifest-quota-',
+      );
+      store = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: dataDirectory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: sqlite3.openInMemory(),
+        quotaLimits: const AthenaeumQuotaLimits(maxBytes: 10),
+      );
+      epoch = store.create(idKey).epoch;
+    });
+    tearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    bool put(String device, int length) => store.putManifest(
+      idKey: idKey,
+      epoch: epoch,
+      deviceId: device,
+      etag: 'd' * 64,
+      writtenAt: 0,
+      body: Uint8List(length)..fillRange(0, length, 1),
+      referencedHashes: const [],
+    );
+
+    test('a new device manifest over the remaining quota is rejected', () {
+      put('one', 6);
+      expect(() => put('two', 5), throwsA(isA<StoreQuotaExceeded>()));
+      expect(store.manifest(idKey, epoch, 'two'), isNull);
+      expect(put('two', 4), isTrue);
+    });
+
+    test('a replacement is charged only by its delta', () {
+      put('one', 6);
+      put('two', 3);
+      expect(put('one', 7), isFalse);
+      expect(() => put('one', 8), throwsA(isA<StoreQuotaExceeded>()));
+      expect(store.manifest(idKey, epoch, 'one')!.body.length, 7);
+    });
+
+    test('preflight reports the headroom for the uploading device', () {
+      put('one', 6);
+      expect(
+        store.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: 'one',
+        ),
+        10,
+      );
+      expect(
+        store.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: 'two',
+        ),
+        4,
+      );
+      put('two', 4);
+      expect(
+        () => store.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: 'three',
+        ),
+        throwsA(isA<StoreQuotaExceeded>()),
+      );
+    });
+
+    test('blob uploads see manifest bytes and metadata reports them', () {
+      put('one', 9);
+      expect(store.metadata(store.lookup(idKey)!).bytes, 9);
+      expect(
+        () => store.putBlob(
+          idKey: idKey,
+          epoch: epoch,
+          hash: 'f' * 64,
+          body: Uint8List.fromList([1, 2]),
+        ),
+        throwsA(isA<StoreQuotaExceeded>()),
+      );
+      expect(
+        () => store.blobUploadLimit(idKey, epoch, 'e' * 64),
+        returnsNormally,
+      );
+      put('two', 1);
+      expect(
+        () => store.blobUploadLimit(idKey, epoch, 'e' * 64),
+        throwsA(isA<StoreQuotaExceeded>()),
+      );
+    });
   });
 
   test('store deletion rolls back all metadata when a delete fails', () {
@@ -670,6 +781,7 @@ void main() {
       etag: 'b' * 64,
       writtenAt: 0,
       body: Uint8List.fromList([1]),
+      referencedHashes: const [],
     );
     store.putBlob(
       idKey: idKey,
@@ -1654,8 +1766,9 @@ void main() {
         Uint8List.fromList([0]),
       ],
     );
-    store.recordBreakGlassAccess(
+    store.recordBreakGlassRead(
       'café-horse-battery-staple',
+      BreakGlassRead.manifest(deviceId: 'device-one'),
       accessedAt: now.subtract(const Duration(days: 31)),
     );
     store.recordDiagnostic(
@@ -1733,6 +1846,113 @@ void main() {
       ),
       throwsA(isA<StoreQuotaExceeded>()),
     );
+  });
+
+  group('putBlobs', () {
+    late Directory dataDirectory;
+    late Database database;
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final idKey = '6' * 64;
+
+    AthenaeumStore open(AthenaeumQuotaLimits quota) {
+      dataDirectory = Directory.systemTemp.createTempSync(
+        'athenaeum-put-blobs-',
+      );
+      database = sqlite3.openInMemory();
+      final store = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: dataDirectory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: database,
+        breakGlassDatabase: sqlite3.openInMemory(),
+        clock: () => now,
+        quotaLimits: quota,
+        deleteDirectory: (_) {},
+        deleteFile: (_) {
+          throw const FileSystemException('injected file failure');
+        },
+      );
+      addTearDown(() {
+        store.close();
+        dataDirectory.deleteSync(recursive: true);
+      });
+      return store;
+    }
+
+    ({String hash, Uint8List body}) blob(List<int> bytes) {
+      final body = Uint8List.fromList(bytes);
+      return (hash: sha256Hex(body), body: body);
+    }
+
+    test('once a new blob is past the quota, every later new blob is 507, '
+        'even one that would fit', () {
+      final store = open(const AthenaeumQuotaLimits(maxBytes: 4));
+      final epoch = store.create(idKey).epoch;
+      final statuses = store.putBlobs(
+        idKey: idKey,
+        epoch: epoch,
+        blobs: [
+          blob([1, 2]),
+          blob([3, 4, 5]),
+          blob([6]),
+        ],
+      );
+      expect(statuses, [201, 507, 507]);
+      expect(store.lookup(idKey)!.bytesUsed, 2);
+    });
+
+    test('a blob whose deletion is pending in this epoch is not charged '
+        'twice when it is uploaded again', () {
+      final store = open(const AthenaeumQuotaLimits(maxBytes: 3));
+      final epoch = store.create(idKey).epoch;
+      final again = blob([1, 2, 3]);
+      store.putBlob(
+        idKey: idKey,
+        epoch: epoch,
+        hash: again.hash,
+        body: again.body,
+      );
+      database.execute(
+        'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?',
+        [
+          now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+          idKey,
+        ],
+      );
+      store.collectGarbage(idKey, epoch, now: now);
+      expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+
+      expect(store.putBlobs(idKey: idKey, epoch: epoch, blobs: [again]), [201]);
+    });
+
+    test('a pending deletion uploaded later in the batch is still charged to '
+        'the blobs before it, as a single PUT charges it', () {
+      final store = open(const AthenaeumQuotaLimits(maxBytes: 4));
+      final epoch = store.create(idKey).epoch;
+      final pending = blob([1, 2, 3]);
+      store.putBlob(
+        idKey: idKey,
+        epoch: epoch,
+        hash: pending.hash,
+        body: pending.body,
+      );
+      database.execute(
+        'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?',
+        [
+          now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+          idKey,
+        ],
+      );
+      store.collectGarbage(idKey, epoch, now: now);
+      final fresh = blob([4, 5]);
+
+      expect(
+        store.putBlobs(idKey: idKey, epoch: epoch, blobs: [fresh, pending]),
+        [507, 507],
+      );
+      expect(store.blobRef(idKey, epoch, fresh.hash), isNull);
+    });
   });
 
   test('deleting a recreated store cleans stale epoch directories', () {

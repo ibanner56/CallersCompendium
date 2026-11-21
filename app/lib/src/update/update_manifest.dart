@@ -78,8 +78,9 @@ enum UpdateArch {
 /// Raised when a manifest cannot be trusted: malformed/partial JSON, an
 /// unrecognized [kSupportedManifestSchemaVersion], a channel that disagrees with
 /// the file it came from, or a missing/invalid required field. Callers treat
-/// this as a **silent no-op** (never an error dialog) per ADR-002 §5 — the
-/// [message] exists only for tests/logging, not the UI.
+/// this as a no-op, never an error dialog (ADR-002 §5): silent in the
+/// automatic check, a calm status line in the manual one. The [message] exists
+/// only for tests/logging, not the UI.
 class UpdateManifestFormatException implements Exception {
   const UpdateManifestFormatException(this.message);
 
@@ -87,6 +88,19 @@ class UpdateManifestFormatException implements Exception {
 
   @override
   String toString() => 'UpdateManifestFormatException: $message';
+}
+
+/// A manifest that is well-formed as far as it goes but speaks a format this
+/// build does not understand: a `manifestSchemaVersion` newer than
+/// [kSupportedManifestSchemaVersion], or an artifact for a platform or
+/// architecture this build has no name for. Both are what a *newer* release
+/// looks like to an *older* app, so the manual check can say "a newer version
+/// is available" instead of "nothing found" — but only after the signature has
+/// proven the bytes authentic, which [UpdateService.checkManifest] guarantees.
+/// A schema number *below* the supported one is not "newer", so it stays a
+/// plain [UpdateManifestFormatException].
+class UpdateManifestUnsupportedException extends UpdateManifestFormatException {
+  const UpdateManifestUnsupportedException(super.message);
 }
 
 /// One downloadable artifact: `{platform, arch, url, sha256, size,
@@ -119,10 +133,10 @@ class UpdateArtifact {
     final parsedPlatform = UpdatePlatform.fromWire(platform);
     final parsedArch = UpdateArch.fromWire(arch);
     if (parsedPlatform == null) {
-      throw UpdateManifestFormatException('unknown platform "$platform"');
+      throw UpdateManifestUnsupportedException('unknown platform "$platform"');
     }
     if (parsedArch == null) {
-      throw UpdateManifestFormatException('unknown arch "$arch"');
+      throw UpdateManifestUnsupportedException('unknown arch "$arch"');
     }
     final size = node['size'];
     if (size is! int) {
@@ -154,6 +168,80 @@ class UpdateArtifact {
   }
 }
 
+/// One end-of-life announcement from the manifest's optional `retirements`
+/// list (ADR-002 §2): every build whose release identity is **at or below**
+/// [through] (SemVer precedence, so `0.7.0-beta` is covered by `0.7.0`) stops
+/// being supported on [endOfLife].
+///
+/// The field is additive — builds up to and including 0.6.0-beta parse the
+/// manifest without reading it, so they never see a notice; every later build
+/// does.
+class UpdateRetirement {
+  const UpdateRetirement({required this.through, required this.endOfLife});
+
+  /// The newest release identity this notice retires (inclusive).
+  final SemVer through;
+
+  /// The announced end-of-life day, as a calendar date with no time zone: a
+  /// UTC-midnight [DateTime] whose year/month/day are the published
+  /// `YYYY-MM-DD`. Callers compare and display it as a date, never as an
+  /// instant.
+  final DateTime endOfLife;
+
+  /// Whether the build identified by [version] is covered by this notice.
+  bool appliesTo(SemVer version) => !version.isNewerThan(through);
+
+  static final RegExp _isoDate = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
+
+  /// Parses a `YYYY-MM-DD` calendar date, or `null` when [value] is not one
+  /// (including impossible dates such as `2027-02-30`, which [DateTime] would
+  /// otherwise silently roll over into March).
+  static DateTime? parseDate(String value) {
+    final match = _isoDate.firstMatch(value);
+    if (match == null) return null;
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+    final date = DateTime.utc(year, month, day);
+    if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
+    return date;
+  }
+
+  /// The exact key set of an entry. Anything else — a misspelled date key
+  /// beside the real one included — is malformed, matching the producer
+  /// (`gen_release_metadata.py`), which refuses unknown keys.
+  static const Set<String> _keys = {'through', 'endOfLife'};
+
+  static UpdateRetirement _fromJson(Object? node) {
+    if (node is! Map<String, Object?>) {
+      throw const UpdateManifestFormatException('retirement is not an object');
+    }
+    final unknown = node.keys.where((k) => !_keys.contains(k));
+    if (unknown.isNotEmpty) {
+      throw UpdateManifestFormatException(
+        'retirement has unknown keys ${unknown.toList()}',
+      );
+    }
+    final throughStr = _requireString(node, 'through');
+    final through = SemVer.tryParse(throughStr);
+    if (through == null) {
+      throw UpdateManifestFormatException(
+        'invalid retirement.through "$throughStr"',
+      );
+    }
+    final dateStr = _requireString(node, 'endOfLife');
+    final endOfLife = parseDate(dateStr);
+    if (endOfLife == null) {
+      throw UpdateManifestFormatException(
+        'invalid retirement.endOfLife "$dateStr" (expected YYYY-MM-DD)',
+      );
+    }
+    return UpdateRetirement(through: through, endOfLife: endOfLife);
+  }
+}
+
 /// A parsed, validated update manifest (ADR-002 §2).
 class UpdateManifest {
   const UpdateManifest({
@@ -163,6 +251,7 @@ class UpdateManifest {
     required this.releaseNotesUrl,
     required this.pubDate,
     required this.artifacts,
+    this.retirements = const <UpdateRetirement>[],
   });
 
   final int manifestSchemaVersion;
@@ -175,15 +264,21 @@ class UpdateManifest {
 
   final List<UpdateArtifact> artifacts;
 
+  /// The optional end-of-life announcements (`retirements`); empty when the
+  /// manifest carries none.
+  final List<UpdateRetirement> retirements;
+
   /// Parses [source] as an ADR-002 §2 manifest and validates it against
   /// [expectedChannel] (the channel whose file was fetched — `stable.json` →
   /// [UpdateChannel.stable]).
   ///
-  /// Throws [UpdateManifestFormatException] — which callers treat as a silent
-  /// no-op — when the JSON is malformed/partial, when
+  /// Throws [UpdateManifestFormatException] — a failed check, silent in the
+  /// automatic check and reported by the manual one — when the JSON is malformed/partial, when
   /// `manifestSchemaVersion` is not [kSupportedManifestSchemaVersion], when
-  /// `channel` disagrees with [expectedChannel], or when any required field is
-  /// missing or the wrong type.
+  /// `channel` disagrees with [expectedChannel], when any required field is
+  /// missing or the wrong type, or when an optional `retirements` list is
+  /// present but malformed (the producer validates it, so a malformed list
+  /// means the file is not what the release workflow wrote).
   static UpdateManifest parse(
     String source, {
     required UpdateChannel expectedChannel,
@@ -207,10 +302,14 @@ class UpdateManifest {
       );
     }
     if (schema != kSupportedManifestSchemaVersion) {
-      throw UpdateManifestFormatException(
-        'unsupported manifestSchemaVersion $schema '
-        '(expected $kSupportedManifestSchemaVersion)',
-      );
+      final message =
+          'unsupported manifestSchemaVersion $schema '
+          '(expected $kSupportedManifestSchemaVersion)';
+      // Only a *higher* number is a newer format; a lower one is just wrong.
+      if (schema > kSupportedManifestSchemaVersion) {
+        throw UpdateManifestUnsupportedException(message);
+      }
+      throw UpdateManifestFormatException(message);
     }
 
     final channelStr = _requireString(decoded, 'channel');
@@ -247,6 +346,18 @@ class UpdateManifest {
         .map(UpdateArtifact._fromJson)
         .toList(growable: false);
 
+    // Absent means "none"; present means a list. An explicit `null` is not
+    // something the producer writes, so it is malformed rather than absent.
+    final rawRetirements = decoded.containsKey('retirements')
+        ? decoded['retirements']
+        : const <Object?>[];
+    if (rawRetirements is! List) {
+      throw const UpdateManifestFormatException('retirements must be a list');
+    }
+    final retirements = rawRetirements
+        .map(UpdateRetirement._fromJson)
+        .toList(growable: false);
+
     return UpdateManifest(
       manifestSchemaVersion: schema,
       channel: channel,
@@ -254,7 +365,23 @@ class UpdateManifest {
       releaseNotesUrl: _requireHttpsUrl(decoded, 'releaseNotesUrl'),
       pubDate: pubDate,
       artifacts: artifacts,
+      retirements: retirements,
     );
+  }
+
+  /// The end-of-life date announced for the build identified by [version], or
+  /// `null` when no retirement covers it. When several entries cover the same
+  /// build the **earliest** date wins: the strictest announcement is the one
+  /// the user must meet.
+  DateTime? endOfLifeFor(SemVer version) {
+    DateTime? earliest;
+    for (final r in retirements) {
+      if (!r.appliesTo(version)) continue;
+      if (earliest == null || r.endOfLife.isBefore(earliest)) {
+        earliest = r.endOfLife;
+      }
+    }
+    return earliest;
   }
 
   /// Selects the artifact matching the running [platform] and [arch]
@@ -277,7 +404,7 @@ class UpdateManifest {
 }
 
 /// Reads a required string field, throwing [UpdateManifestFormatException]
-/// (a silent-no-op signal) when it is absent or not a string.
+/// (a failed-check signal) when it is absent or not a string.
 String _requireString(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! String || value.isEmpty) {

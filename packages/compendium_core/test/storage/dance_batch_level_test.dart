@@ -166,4 +166,36 @@ void main() {
       DifficultyLevel.intermediateId,
     );
   });
+
+  test('setLevelForMany(N) stays within a per-chunk statement budget', () async {
+    // Counts every SELECT the batch issues. Before `_updateMany` the loop called
+    // `getById` per id (a dance select plus six child selects) and every write
+    // then rebuilt the derived rows: 10,000 SELECTs for 1,000 dances. Now the
+    // dances and their six child tables are read once per 500-id chunk
+    // (`c` = 7 SELECTs) and `_upsert` adds 2 per written dance; measured 2,014,
+    // so `k` = 3 per dance leaves room for one more SELECT without admitting a
+    // return to the per-id read.
+    const n = 1000;
+    const c = 7;
+    const k = 3;
+    final counter = QueryCounter();
+    final countingDb = openCountingTestDatabase(counter);
+    addTearDown(countingDb.close);
+    final repo = DanceRepository(countingDb, contraTaxonomy);
+    await countingDb.transaction(() async {
+      for (var i = 0; i < n; i++) {
+        await repo.create(sampleDance(id: 'd$i', title: 'Dance $i'));
+      }
+    });
+    counter.reset();
+
+    final changed = await repo.setLevelForMany(
+      [for (var i = 0; i < n; i++) 'd$i'],
+      difficultyLevelId: DifficultyLevel.intermediateId,
+      now: now,
+    );
+
+    expect(changed, n);
+    expect(counter.count, lessThanOrEqualTo(c * (n / 500).ceil() + k * n));
+  });
 }

@@ -34,9 +34,15 @@ prevent on its own are in
   commit subject and pull request title must be
   `docs(release): prepare vX.Y.Z` for a stable release or
   `docs(release): prepare vX.Y.Z-beta` for a beta release, using the actual
-  version literal (the merged #937 release used
-  `docs(release): prepare v0.1.0-beta.7`). Never use `chore(release)` unless a
-  maintainer explicitly overrides this convention. This remains true when the
+  version literal, with X.Y.Z equal to `app/pubspec.yaml`'s version (for the
+  `v0.10.0-beta` tag: `docs(release): prepare v0.10.0-beta`). When the PR
+  changes `app/pubspec.yaml`'s version, the title is checked by
+  `tools/ci/check_release_pr_title.py`; commit subjects are not, because
+  squash-merge makes the title `main`'s subject. Promoting an existing beta to
+  stable keeps the same core version, so that PR changes no version and its
+  title is not checked: get it right by hand. Never use
+  `chore(release)` unless a maintainer explicitly overrides this convention.
+  This remains true when the
   preparation changes version literals, issue-template metadata, or generated
   changelogs.
 - **Review the compiler diff and rendered notes.** The compiler prevents shared
@@ -50,9 +56,14 @@ prevent on its own are in
   Bump it if and only if pending fragments contain `core` entries, and get the
   new number by **asking the maintainer**,
   showing them the current one. Nothing resolves that `version:` at build time
-  (the app takes the core by workspace `path:`), so no gate and no build failure
-  will tell you it is wrong; it is a record, and a bump invented to look tidy is
-  a false one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
+  (the app takes the core by workspace `path:`), so no build failure will tell
+  you it is wrong. The compiler checks the two halves of the rule: a pubspec
+  version with no section in the core CHANGELOG and no pending `core` entry
+  fails `--check` (so in PR CI) and `--write`, and `--write` (only) refuses
+  pending core entries whose `--core-version` is not the pubspec's, so with core
+  entries pending `--check` cannot tell which number is right. It cannot judge
+  the number itself; it is a record, and a bump invented to look tidy is a false
+  one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
   its own new heading.
 - **A core fragment entry never replaces an app one.** The release-notes
   generator reads `app/CHANGELOG.md` only. If a `packages/compendium_core`

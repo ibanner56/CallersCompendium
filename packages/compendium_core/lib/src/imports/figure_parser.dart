@@ -1,9 +1,12 @@
 import '../model/figure.dart';
+import '../taxonomy/cast_vocabulary.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/dance_vocabulary.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'figure_text_scrub.dart';
+import 'roll_away_relationships.dart';
 import 'structured_draft.dart';
 
 /// Upper bound on a COMBINED [Figure.note] built by [combineFigureNotes].
@@ -204,7 +207,13 @@ const FigureFrontEnd canonicalFigureFrontEnd = FigureFrontEnd();
 ///   onto exactly one taxonomy move AND the whole line is accounted for — any
 ///   leftover, unexplained prose forces the custom fallback. A wrong structured
 ///   match silently misrepresents choreography, which is worse than an honest
-///   custom figure: when in doubt, custom.
+///   custom figure: when in doubt, custom. Free-text entry, and only it, adds
+///   one exception after this parser misses: a line that is a move's
+///   name (`hey.`, `mad robin`), alone or after a dancer (`neighbor pass by`),
+///   reads as that move, with that dancer as its `who` and every other param
+///   at its default (`typed_figure_names.dart`, #1826, #1857). The "bare X
+///   degrades to custom" notes on the recognizers below describe this parser,
+///   which imports use.
 /// - **Validated.** Every candidate structured figure is checked against
 ///   [taxonomy]; if it produces any error-severity [ValidationIssue] (unknown
 ///   move/param, out-of-domain value) it is discarded in favour of custom.
@@ -239,24 +248,36 @@ Figure? parseFigureLine(
   // `customFigure` throws on a negative beat count.
   final safeBeats = beats < 0 ? 0 : beats;
 
-  final scrubbed = scrubFn(rawText);
-  if (scrubbed.isEmpty) return null;
-
-  Figure fallback() => customFigure(
-    scrubbed,
+  Figure fallback(String text) => customFigure(
+    text,
     beats: safeBeats,
     progression: progression,
     origin: CustomOrigin.importGap,
   );
+
+  // The scrub is part of the parse-never-fails contract too. The recognisers
+  // assume it ran (role terms already canonical), so a scrub that throws (a
+  // dialect substitution it cannot look up, say) does not attempt recognition
+  // on the raw line: it degrades straight to an honest custom of that text.
+  final String scrubbed;
+  try {
+    scrubbed = scrubFn(rawText);
+  } catch (_) {
+    final raw = rawText.trim();
+    return raw.isEmpty ? null : fallback(raw);
+  }
+  if (scrubbed.isEmpty) return null;
 
   try {
     // A source-specific veto runs BEFORE any recognizer, including this
     // front-end's own pre-recognizers: the point is that the line must not
     // structure at all for this source. Inside the try so a throwing predicate
     // degrades to custom like everything else (parse-never-fails).
-    if (frontEnd.declineToCustom?.call(scrubbed) ?? false) return fallback();
+    if (frontEnd.declineToCustom?.call(scrubbed) ?? false) {
+      return fallback(scrubbed);
+    }
     final match = _recognize(scrubbed, frontEnd);
-    if (match == null || match.forceCustom) return fallback();
+    if (match == null || match.forceCustom) return fallback(scrubbed);
 
     final params = <String, Object?>{
       ...match.params,
@@ -272,9 +293,9 @@ Figure? parseFigureLine(
     final hasError = tax
         .validateFigure(candidate)
         .any((i) => i.severity == ValidationSeverity.error);
-    return hasError ? fallback() : candidate;
+    return hasError ? fallback(scrubbed) : candidate;
   } catch (_) {
-    return fallback();
+    return fallback(scrubbed);
   }
 }
 
@@ -313,7 +334,7 @@ class _Match {
 /// Exposed for front-ends that must read a dancer out of source text the shared
 /// grammar never sees — the CallersBox gate annotation (`(ones forward)`) is
 /// stripped before `_normalize`, so its pre-recognizer resolves the dancer here
-/// instead of duplicating [_dancerWords].
+/// instead of duplicating [dancerWords].
 ///
 /// Runs on POST-SCRUB text, so gendered terms have already become `role1`/
 /// `role2` tokens. Never throws.
@@ -344,7 +365,7 @@ FigureMatch? recognizeSharedFigureLine(
   final words = _normalize(scrubbed, recognitionNormalize);
   if (words.isEmpty) return null;
   for (final recognizer in _recognizers) {
-    final match = recognizer(List<String>.of(words));
+    final match = _runRecognizer(recognizer, words);
     if (match != null) {
       return FigureMatch(
         match.moveId,
@@ -385,16 +406,101 @@ _Match? _recognize(String scrubbed, FigureFrontEnd frontEnd) {
   if (words.isEmpty) return null;
 
   for (final recognizer in _recognizers) {
-    final match = recognizer(List<String>.of(words));
+    final match = _runRecognizer(recognizer, words);
     if (match != null) return match;
   }
   return null;
 }
 
+/// Source spellings of the non-quarter amounts [_takeRotation]/[_takePlaces]
+/// rounded during the CURRENT recognizer run, or `null` outside one.
+///
+/// Rounding changes the stated amount, so the source fraction must survive
+/// (`prefer-custom`: a figure must not silently claim 1¾ where the source said
+/// 1⅔). The takers return a bare number, so the spelling travels on this
+/// side channel and [_runRecognizer] appends it to the match's note. When no
+/// run is collecting, the takers do not round at all: an amount they could not
+/// record is an amount they must not change.
+List<String>? _roundedAmounts;
+
+/// Runs [recognizer] on a copy of [words], collecting any amount it rounded
+/// and folding the source spelling into the match's note (after the
+/// recognizer's own note, per [combineFigureNotes]). Saves and restores the
+/// collector so a nested parse cannot leak its amounts into this match.
+_Match? _runRecognizer(_Recognizer recognizer, List<String> words) {
+  final outer = _roundedAmounts;
+  final rounded = <String>[];
+  _roundedAmounts = rounded;
+  try {
+    final match = recognizer(List<String>.of(words));
+    if (match == null || rounded.isEmpty) return match;
+    return _Match(
+      match.moveId,
+      match.params,
+      combineFigureNotes(match.note, rounded.join('; ')),
+      match.assumedSubject,
+      match.forceCustom,
+    );
+  } finally {
+    _roundedAmounts = outer;
+  }
+}
+
+/// Rounds the proper fraction [numerator]/[denominator] to whole quarter
+/// turns, or returns `null` when it is already an exact quarter (the caller's
+/// exact tables own those) or is not a proper fraction with a denominator in
+/// 2..16.
+///
+/// Maintainer ruling: non-quarter rotations (⅓ ⅔ ⅛ ⅜ ⅝ ⅞, and the rarer ⅙/
+/// 9/16) round to the NEAREST quarter rather than declining to custom.
+/// Ties — every eighth sits exactly between two quarters — round HALF UP
+/// (⅛→¼, ⅜→½, ⅝→¾, ⅞→1): one direction for every tie, and the direction in
+/// which a stated nonzero amount can never become zero. For the same reason a
+/// fraction below ⅛ (1/16, 1/9) rounds up to ¼ rather than down to nothing.
+/// The result is 1..4 quarters; the caller records the source spelling so the
+/// rounding is never silent. The denominator cap bounds untrusted import text
+/// to amounts a caller actually writes (the corpus tops out at 16).
+int? roundFractionToQuarters(int numerator, int denominator) {
+  if (denominator < 2 || denominator > 16) return null;
+  if (numerator < 1 || numerator >= denominator) return null;
+  final scaled = numerator * 4;
+  final remainder = scaled % denominator;
+  if (remainder == 0) return null; // exact quarter: not a rounding
+  var quarters = scaled ~/ denominator;
+  if (remainder * 2 >= denominator) quarters++; // half up
+  return quarters < 1 ? 1 : quarters;
+}
+
+final RegExp _slashFractionRe = RegExp(r'^([0-9]{1,2})/([0-9]{1,2})$');
+
+/// [roundFractionToQuarters] for a single normalized `n/d` word, or `null`
+/// when [token] is not a non-quarter fraction OR no recognizer run is
+/// collecting rounded amounts (see [_roundedAmounts]).
+int? _roundedQuarters(String token) {
+  if (_roundedAmounts == null) return null;
+  final m = _slashFractionRe.firstMatch(token);
+  if (m == null) return null;
+  return roundFractionToQuarters(int.parse(m[1]!), int.parse(m[2]!));
+}
+
+/// Records the source spelling of a rounded amount: `7/8`, or `1 & 2/3` for a
+/// compound ([bridged] when the source joined them with `&`/`and`, which
+/// `_normalize` has already folded to "and").
+void _recordRounded(String fraction, {String? whole, bool bridged = false}) {
+  final spelled = whole == null
+      ? fraction
+      : bridged
+      ? '$whole & $fraction'
+      : '$whole $fraction';
+  _roundedAmounts?.add(spelled);
+}
+
 /// Lowercases, applies the front-end's optional recognition-only normalization
-/// (e.g. the CallersBox `()`/`[]` annotation strip), maps `&`→`and` and
-/// `thru`→`through`, folds the common unicode halves/quarters, strips
-/// surrounding punctuation, and splits into words.
+/// (e.g. the CallersBox `()`/`[]` annotation strip), reads `R&L` as right and
+/// left (through), maps `&`→`and`, `thru`→`through` and `alle`→`allemande`,
+/// folds the common unicode halves/quarters, strips surrounding punctuation,
+/// splits into words, spells a bare side after a move ([_spellBareSides]) and
+/// folds dancer numbers ([_foldDancerNumbers]).
 ///
 /// [recognitionNormalize] affects RECOGNITION only: a structured match does NOT
 /// retain whatever it removed, but the *custom fallback* runs on the
@@ -407,21 +513,136 @@ List<String> _normalize(
   var s = text.toLowerCase();
   if (recognitionNormalize != null) s = recognitionNormalize(s);
   s = s
+      // Caller's Companion's `R&L` is right and left through (maintainer
+      // decision, #1975).
+      .replaceAll(_rAndLThrough, ' right and left through ')
+      .replaceAll(_rAndL, ' right and left ')
       .replaceAll('&', ' and ')
       .replaceAll('½', ' 1/2 ')
       .replaceAll('¼', ' 1/4 ')
       .replaceAll('¾', ' 3/4 ');
   final words = s
-      .split(RegExp(r'\s+'))
+      .split(_wsRe)
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty)
       .map((w) => w == 'thru' ? 'through' : w)
+      .map((w) => w == 'alle' ? 'allemande' : w)
       .toList();
+  _spellBareSides(words);
+  _foldDancerNumbers(words);
   return words;
 }
 
-String _stripEdgePunct(String w) =>
-    w.replaceAll(RegExp(r'^[.,;:!]+'), '').replaceAll(RegExp(r'[.,;:!]+$'), '');
+final RegExp _rAndL = RegExp(r'\br\s*&\s*l\b');
+final RegExp _rAndLThrough = RegExp(r'\br\s*&\s*l\b(?!\s*(?:through|thru)\b)');
+
+/// Spells a bare `l`/`r` as `left`/`right` straight after a move that takes a
+/// direction, hand or shoulder (maintainer decision, #1975): `Circle L`,
+/// `pull by R`, `pass L`, `Slide L`, `Slice L`, `alle R`. The set of moves is
+/// the author's reading of the maintainer's list: the shared reader has no
+/// `loop`, `cross` or `step` move, and ContraDB's zig-zag reads its own
+/// sides (`_zigZagSide`), so those words are not listed. Anywhere else a lone
+/// letter stays as written, so a position note such as `(Rob R, Lar L)` is not
+/// read as directions.
+void _spellBareSides(List<String> w) {
+  for (var i = 1; i < w.length; i++) {
+    final side = switch (w[i]) {
+      'l' => 'left',
+      'r' => 'right',
+      _ => null,
+    };
+    if (side == null) continue;
+    final before = w[i - 1];
+    final afterMove =
+        _sideTakingMoves.contains(before) ||
+        (before == 'by' && i >= 2 && w[i - 2] == 'pull');
+    if (afterMove) w[i] = side;
+  }
+}
+
+/// The move words a bare side directly after reads as a side (#1975).
+const Set<String> _sideTakingMoves = {
+  'circle',
+  'pass',
+  'slide',
+  'slice',
+  'allemande',
+};
+
+/// The neighbour words a following `0`–`4` folds onto, as `Neighbor 2` is the
+/// same dancer as the `N2` tag (#1971).
+const Set<String> _neighborWords = {
+  'neighbor',
+  'neighbors',
+  'neighbour',
+  'neighbours',
+};
+
+/// Whether the words from [at] are the fraction of a mixed number: `1/2`, or
+/// `and 1/2` as `_normalize` leaves TCB's `1 & 1/2`.
+bool _startsMixedNumber(List<String> w, int at) {
+  if (at < w.length && w[at] == 'and') at++;
+  return at < w.length && _slashFractionRe.hasMatch(w[at]);
+}
+
+/// A bare whole number, as a dancer number or an amount is written.
+final RegExp _bareInteger = RegExp(r'^\d+$');
+
+/// Reads a number written straight after a dancer word as part of the dancer,
+/// never as an amount (#1971): `Neighbor 2 Do-si-do` is next neighbors, not a
+/// do-si-do twice, and `Neighbor 1 allemande Left 3/4` turns ¾, not 1¾.
+///
+/// A neighbour word followed by `0`–`4` becomes the matching `n0`–`n4` tag, so
+/// both spellings resolve through the same [dancerWords] entry. Any other
+/// `Corner 1`/`2`/`3` names a corner set (below). Any other number after a
+/// dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) or a corner word
+/// (`Corner 5`) is marked with a leading `#`, which no recognizer reads, so the
+/// line falls to custom (or into a prefix match's note) rather than lending
+/// its number to an amount. A number that starts a mixed number is left alone: it is the amount
+/// (`Gypsy partner 1 1/2`, `Allemande left neighbor 1½`).
+void _foldDancerNumbers(List<String> w) {
+  for (var i = 0; i + 1 < w.length; i++) {
+    final number = w[i + 1];
+    if (!_bareInteger.hasMatch(number)) continue;
+    // A whole number starting a mixed number is an amount, not a dancer:
+    // `Allemande left neighbor 1½` (`_normalize` splits `1½` into `1 1/2`).
+    if (_startsMixedNumber(w, i + 2)) continue;
+    if (_neighborWords.contains(w[i]) && number.length == 1) {
+      final n = int.parse(number);
+      if (n <= 4) {
+        w[i] = 'n$n';
+        w.removeAt(i + 1);
+        continue;
+      }
+    }
+    // Caller's Companion's numbered corners (maintainer decision, #1975):
+    // Corner 1, 2 and 3 are The Caller's Box's C1, C2 and C3.
+    if (w[i] == 'corner' && _numberedCorners.containsKey('#corner$number')) {
+      w[i] = '#corner$number';
+      w.removeAt(i + 1);
+      continue;
+    }
+    if (dancerWords.containsKey(w[i]) || _cornerWords.contains(w[i])) {
+      w[i + 1] = '#$number';
+    }
+  }
+}
+
+String _stripEdgePunct(String w) {
+  var start = 0;
+  var end = w.length;
+  while (start < end && _isEdgePunct(w.codeUnitAt(start))) {
+    start++;
+  }
+  while (end > start && _isEdgePunct(w.codeUnitAt(end - 1))) {
+    end--;
+  }
+  return start == 0 && end == w.length ? w : w.substring(start, end);
+}
+
+// . , ; : !
+bool _isEdgePunct(int c) =>
+    c == 0x2E || c == 0x2C || c == 0x3B || c == 0x3A || c == 0x21;
 
 /// Splits [t] on the FIRST top-level (bracket-depth-0, outside any `()`/`[]`)
 /// whole-word match of [word], returning exactly two trimmed pieces
@@ -478,59 +699,14 @@ List<String>? splitTopLevelOnWord(String t, RegExp word) {
 
 // --- Shared token vocabularies ----------------------------------------------
 
-/// Single words → canonical dancer-set token. Post-scrub, gendered terms are
-/// already `role1`/`role2`; this maps relationship words + those tokens.
-const Map<String, String> _dancerWords = {
-  'neighbor': 'neighbors',
-  'neighbors': 'neighbors',
-  'partner': 'partners',
-  'partners': 'partners',
-  'role1': 'role1s',
-  'role1s': 'role1s',
-  'role2': 'role2s',
-  'role2s': 'role2s',
-  'everyone': 'everyone',
-  'ones': 'ones',
-  'twos': 'twos',
-  // Tier B: TCB writes "Shadow allemande"; taxonomy supports `shadows`.
-  'shadow': 'shadows',
-  'shadows': 'shadows',
-  // Tier B: TCB N-prefix relationship shorthand ("N2 neighbor", "N1", …).
-  // Ni maps to the taxonomy's pair dancer-set convention.
-  'n0': 'prevNeighbors',
-  'n1': 'neighbors',
-  'n2': 'nextNeighbors',
-  'n3': 'thirdNeighbors',
-  'n4': 'fourthNeighbors',
-  // Tier B: TCB P-prefix partner-series shorthand ("P1 partner", "P2 partner",
-  // …). P/P1 = current partner; P0 = previous; P2–P5 = successive next
-  // partners (taxonomy v24, issue #732). P6+ and P-n have no taxonomy token
-  // and are absent from this map so they decline the whole line to custom.
-  'p': 'partners',
-  'p1': 'partners',
-  'p0': 'prevPartners',
-  'p2': 'nextPartners',
-  'p3': 'thirdPartners',
-  'p4': 'fourthPartners',
-  'p5': 'fifthPartners',
-  // TCB explicit-dancer codes map to the single-dancer identities: M/W are the
-  // roles, 1 = the active couple (ones), 2 = the inactive couple (twos). So
-  // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
-  // role1 (twosRole1), W2 = inactive role2 (twosRole2). Bare codes only —
-  // line-order annotations like "(M1-W2-M2-W1)" are stripped before recognition.
-  'm1': 'onesRole1',
-  'w1': 'onesRole2',
-  'm2': 'twosRole1',
-  'w2': 'twosRole2',
-};
-
-/// Filler words that carry no structural meaning and may be dropped anywhere.
-const Set<String> _filler = {'your', 'the', 'a', 'an'};
+// The dancer and filler vocabularies ([dancerWords], [fillerWords]) live in
+// `taxonomy/dance_vocabulary.dart`, outside this layer, so other code can read
+// a line with the same words.
 
 // --- Small word-list helpers ------------------------------------------------
 
-/// Removes all leading/embedded [_filler] words in place.
-void _dropFiller(List<String> w) => w.removeWhere(_filler.contains);
+/// Removes all leading/embedded [fillerWords] in place.
+void _dropFiller(List<String> w) => w.removeWhere(fillerWords.contains);
 
 /// Removes the first occurrence of the consecutive [phrase] found anywhere in
 /// [w] and returns true; returns false (leaving [w] untouched) if absent.
@@ -554,7 +730,15 @@ bool _consumePhrase(List<String> w, List<String> phrase) {
 /// Removes and returns the first dancer-set word found, or null.
 String? _takeDancer(List<String> w) {
   for (var i = 0; i < w.length; i++) {
-    final token = _dancerWords[w[i]];
+    // "Same-role neighbor" is ONE dancer set (`sameRoles`). Read the pair
+    // before the plain lookup, which would otherwise take "neighbor" alone and
+    // misreport the pairing as `neighbors`.
+    if (_isSameRolePair(w, i)) {
+      w.removeRange(i, i + 2);
+      return 'sameRoles';
+    }
+    if (_takeNamedDancerAt(w, i) case final named?) return named;
+    final token = dancerWords[w[i]];
     if (token != null) {
       final raw = w.removeAt(i);
       // TCB pairs the N-prefix with a redundant "neighbor(s)" word
@@ -573,11 +757,157 @@ String? _takeDancer(List<String> w) {
           (w[i] == 'partner' || w[i] == 'partners')) {
         w.removeAt(i);
       }
+      // TCB pairs the S-prefix with a redundant "shadow(s)" word
+      // ("S2 shadow swing"); drop it for the same reason.
+      if (_sSeriesCodes.contains(raw) &&
+          i < w.length &&
+          (w[i] == 'shadow' || w[i] == 'shadows')) {
+        w.removeAt(i);
+      }
       return token;
     }
   }
   return null;
 }
+
+/// Whether `w[i]`, `w[i + 1]` is a [sameRoleQualifiers] word followed by
+/// `neighbor`/`neighbors` — the two-word name of the `sameRoles` set.
+bool _isSameRolePair(List<String> w, int i) =>
+    i + 1 < w.length &&
+    sameRoleQualifiers.contains(w[i]) &&
+    (w[i + 1] == 'neighbor' || w[i + 1] == 'neighbors');
+
+/// Removes and returns the dancer set Caller's Companion names at `w[i]`, or
+/// null (#1975): "New Neighbor" is the next neighbors, and "Corner" the first
+/// corners ("1st"/"2nd"/"3rd", "first"/"second"/"third" corner name each one,
+/// and [_foldDancerNumbers] has read "Corner 1"/"2"/"3"). A bare plural ("the
+/// corners") may mean both corners in turn, so only the singular is read.
+/// "Opposite(s)" is the opposites, unless it describes a role, side,
+/// direction, way or hand ("opposite role pull by L"). These are maintainer
+/// decisions, except "3rd"/"third", the author's extension of the ordinals.
+///
+/// It also reads the names the figure display writes (#2121): the neighbour,
+/// partner and shadow series ([seriesDancer]), `same roles`, `centers`, and
+/// `first`/`second` (and, from v39, `third`/`fourth`) before a role word.
+/// Those are the implementing author's call, so that a figure reads back from
+/// its own displayed text. Since v40 it also reads The Caller's Box's role
+/// word before a couple number (`role2 one`, from "Woman one"), which the
+/// display never writes: the maintainer's ruling ([_singleDancers]).
+String? _takeNamedDancerAt(List<String> w, int i) {
+  final word = w[i];
+  final next = i + 1 < w.length ? w[i + 1] : null;
+  if (word == 'new' && _neighborWords.contains(next)) {
+    w.removeRange(i, i + 2);
+    return 'nextNeighbors';
+  }
+  // The display's series names: `prev neighbor`, `third partner`, `second
+  // shadow` (#2121).
+  if (seriesDancer(word, next) case final series?) {
+    w.removeRange(i, i + 2);
+    return series;
+  }
+  // The display's names for the same-role pairs, the centres and one dancer
+  // (`same roles`, `centers`, `first lark`, which arrives as `first role1`),
+  // as the ContraDB reader reads them (`contradbRenderedSubjectEntries`,
+  // #2121).
+  if (word == 'same' && next == 'roles') {
+    w.removeRange(i, i + 2);
+    return 'sameRoles';
+  }
+  if (word == 'centers') {
+    w.removeAt(i);
+    return 'centers';
+  }
+  if (_singleDancers[(word, next)] case final dancer?) {
+    w.removeRange(i, i + 2);
+    return dancer;
+  }
+  if (_numberedCorners[word] case final corners?) {
+    w.removeAt(i);
+    return corners;
+  }
+  if ((word == 'opposite' || word == 'opposites') &&
+      !_oppositeDescribes.contains(next)) {
+    w.removeAt(i);
+    return 'opposites';
+  }
+  if (_cornerOrdinals[word] case final corners?
+      when _cornerWords.contains(next)) {
+    w.removeRange(i, i + 2);
+    return corners;
+  }
+  if (word == 'corner') {
+    w.removeAt(i);
+    return 'firstCorners';
+  }
+  return null;
+}
+
+/// The corner words, which are not [dancerWords] keys: [_takeNamedDancerAt]
+/// reads them. [_foldDancerNumbers] folds `Corner 1`/`2`/`3` into a
+/// [_numberedCorners] mark and marks any other number after one, as
+/// `Corner 5 swing` names a numbered corner, not a swing five times.
+const Set<String> _cornerWords = {'corner', 'corners'};
+
+const Map<String, String> _cornerOrdinals = {
+  'first': 'firstCorners',
+  '1st': 'firstCorners',
+  'second': 'secondCorners',
+  '2nd': 'secondCorners',
+  'third': 'thirdCorners',
+  '3rd': 'thirdCorners',
+};
+
+/// The marks [_foldDancerNumbers] leaves for "Corner 1"/"2"/"3", which no
+/// other reader takes, and the dancer sets they name.
+const Map<String, String> _numberedCorners = {
+  '#corner1': 'firstCorners',
+  '#corner2': 'opposites',
+  '#corner3': 'thirdCorners',
+};
+
+/// One dancer of one couple, as the display names them once a role word is
+/// canonical (`first lark` → `first role1`), and since v40 as The Caller's Box
+/// names them after its scrub (`Woman one` → `role2 one`).
+const Map<(String, String?), String> _singleDancers = {
+  ('first', 'role1'): 'onesRole1',
+  ('first', 'role2'): 'onesRole2',
+  ('second', 'role1'): 'twosRole1',
+  ('second', 'role2'): 'twosRole2',
+  ('third', 'role1'): 'threesRole1',
+  ('third', 'role2'): 'threesRole2',
+  ('fourth', 'role1'): 'foursRole1',
+  ('fourth', 'role2'): 'foursRole2',
+  // The Caller's Box names one dancer by role and couple number, "Woman one"
+  // or "Man three", which the import scrub turns into `role2 one` and
+  // `role1 three`: the same dancers (v40, the maintainer's ruling).
+  ('role1', 'one'): 'onesRole1',
+  ('role2', 'one'): 'onesRole2',
+  ('role1', 'two'): 'twosRole1',
+  ('role2', 'two'): 'twosRole2',
+  ('role1', 'three'): 'threesRole1',
+  ('role2', 'three'): 'threesRole2',
+  ('role1', 'four'): 'foursRole1',
+  ('role2', 'four'): 'foursRole2',
+};
+
+/// The words after which "opposite" describes something rather than naming the
+/// opposites (maintainer decision, #1975; the plurals are the author's). Today
+/// the described word is never read, so such a line stays text even without
+/// this; it keeps a recognizer that tolerated a leftover word from reading
+/// "opposite role" as the opposites.
+const Set<String> _oppositeDescribes = {
+  'role',
+  'roles',
+  'side',
+  'sides',
+  'direction',
+  'directions',
+  'way',
+  'ways',
+  'hand',
+  'hands',
+};
 
 /// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].
 /// Recognizers whose grammar requires a *leading* dancer ("Ones turn contra
@@ -586,7 +916,13 @@ String? _takeDancer(List<String> w) {
 /// is NOT structured — it falls through to custom instead.
 String? _takeLeadingDancer(List<String> w) {
   if (w.isEmpty) return null;
-  final token = _dancerWords[w[0]];
+  // Mirror _takeDancer's "same-role neighbor" pair.
+  if (_isSameRolePair(w, 0)) {
+    w.removeRange(0, 2);
+    return 'sameRoles';
+  }
+  if (_takeNamedDancerAt(w, 0) case final named?) return named;
+  final token = dancerWords[w[0]];
   if (token == null) return null;
   final raw = w.removeAt(0);
   // Mirror _takeDancer's "N2 neighbor" pair absorption for the leading slot.
@@ -600,6 +936,12 @@ String? _takeLeadingDancer(List<String> w) {
   if (_pSeriesCodes.contains(raw) &&
       w.isNotEmpty &&
       (w[0] == 'partner' || w[0] == 'partners')) {
+    w.removeAt(0);
+  }
+  // Mirror _takeDancer's "S2 shadow" pair absorption for the leading slot.
+  if (_sSeriesCodes.contains(raw) &&
+      w.isNotEmpty &&
+      (w[0] == 'shadow' || w[0] == 'shadows')) {
     w.removeAt(0);
   }
   return token;
@@ -616,17 +958,44 @@ String? _takeSide(List<String> w) {
   return null;
 }
 
+/// Removes and returns the side of the first stated hand, or null: a
+/// hyphenated `left-hand`/`right-hand` token (one word after [_normalize]),
+/// else a spaced `left hand`/`right hand` pair, else a bare side
+/// ([_takeSide]). Any second side word stays in [w], so a contradictory line
+/// (`right-hand star left`) is left over and declines to custom.
+String? _takeHand(List<String> w) {
+  for (var i = 0; i < w.length; i++) {
+    if (w[i] == 'left-hand' || w[i] == 'right-hand') {
+      return w.removeAt(i) == 'left-hand' ? 'left' : 'right';
+    }
+  }
+  for (var i = 0; i + 1 < w.length; i++) {
+    if ((w[i] == 'left' || w[i] == 'right') && w[i + 1] == 'hand') {
+      final side = w[i];
+      w.removeRange(i, i + 2);
+      return side;
+    }
+  }
+  return _takeSide(w);
+}
+
 /// TCB N-prefix neighbor tags (`N0`..`N4`). Used to absorb a trailing numeric
 /// neighbor qualifier ("with neighbor N2", "chain to neighbor N2") that would
 /// otherwise be left over and force the custom fallback.
 const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
 
 /// TCB P-prefix partner tags that have taxonomy tokens (`P`/`P0`–`P5`; taxonomy
-/// v24, issue #732). Used to identify the subset of [_dancerWords] keys whose
+/// v24, issue #732). Used to identify the subset of [dancerWords] keys whose
 /// "P2 partner" pair absorption should fire — membership is a taxonomy fact, not
 /// a spelling heuristic. `partner` and `partners` also start with `p` in
-/// [_dancerWords] but must NOT trigger the absorption.
+/// [dancerWords] but must NOT trigger the absorption.
 const Set<String> _pSeriesCodes = {'p', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5'};
+
+/// TCB S-prefix shadow tags that have a [dancerWords] entry (`S1`, `S-1`,
+/// `S2`), whose "S2 shadow" pair absorption mirrors the N- and P-prefix ones.
+/// `shadow` and `shadows` are [dancerWords] keys too but must NOT absorb a
+/// following word.
+const Set<String> _sSeriesCodes = {'s1', 's-1', 's2'};
 
 /// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
 String? _takeNeighborNumber(List<String> w) {
@@ -649,7 +1018,7 @@ String? _takeRelationship(List<String> w) {
         _neighborNumbers.contains(w[i + 1])) {
       final tag = w[i + 1];
       w.removeRange(i, i + 2);
-      return _dancerWords[tag];
+      return dancerWords[tag];
     }
   }
   return _takeDancer(w);
@@ -657,25 +1026,43 @@ String? _takeRelationship(List<String> w) {
 
 /// Removes a rotation-direction word from anywhere in [w] and returns the
 /// canonical `clockwise`/`counterclockwise` token, or null when the line states
-/// none. Shared by every move whose TCB line states a spin direction (`orbit`,
-/// `mad_robin`, `butterfly_whirl`).
+/// none. The one spin-direction reader: every recognizer that reads a spin word
+/// goes through it (directly, via [_takeGateDirection], or via
+/// [_takeSpinDirectionPhrase], which shares its spelling table) so they all
+/// accept the same spellings.
 ///
 /// The counter-forms are tested FIRST: `_consumePhrase(['clockwise'])` would
 /// otherwise match the second half of a two-token "counter clockwise" and leave
 /// a stray "counter" behind, inverting the direction (the recognizer would then
 /// reject the line for leftover text — safe, but needlessly lossy).
 ///
-/// Distinct from [_takeGateDirection], which additionally admits TCB's
-/// gate-only `mirror` value and therefore cannot be shared.
-String? _takeSpinDirection(List<String> w) {
-  if (_consumePhrase(w, ['counterclockwise']) ||
-      _consumePhrase(w, ['counter', 'clockwise']) ||
-      _consumePhrase(w, ['anticlockwise']) ||
-      _consumePhrase(w, ['ccw'])) {
-    return 'counterclockwise';
-  }
-  if (_consumePhrase(w, ['clockwise']) || _consumePhrase(w, ['cw'])) {
-    return 'clockwise';
+/// Accepted counter-forms: `counterclockwise`, `counter clockwise`,
+/// `counter-clockwise`, `anticlockwise`, `anti-clockwise`, `anti clockwise`,
+/// `ccw`; clockwise forms: `clockwise`, `cw`. [_takeGateDirection] wraps this
+/// reader and additionally admits TCB's gate-only `mirror` value.
+String? _takeSpinDirection(List<String> w) => _takeSpinDirectionPhrase(w)?.$1;
+
+/// The spellings [_takeSpinDirection] accepts, in the order it tries them
+/// (counter-forms first — see there), each with its canonical token.
+const List<(List<String>, String)> _spinDirectionPhrases = [
+  (['counterclockwise'], 'counterclockwise'),
+  (['counter', 'clockwise'], 'counterclockwise'),
+  (['counter-clockwise'], 'counterclockwise'),
+  (['anticlockwise'], 'counterclockwise'),
+  (['anti-clockwise'], 'counterclockwise'),
+  (['anti', 'clockwise'], 'counterclockwise'),
+  (['ccw'], 'counterclockwise'),
+  (['clockwise'], 'clockwise'),
+  (['cw'], 'clockwise'),
+];
+
+/// [_takeSpinDirection], also returning the words the line actually wrote
+/// (`cw`, `counter clockwise`, …) as the record's second field. A move with no
+/// direction param (`two_hand_turn`) keeps those source words as its note, so
+/// the line's own spelling survives rather than a canonical rewrite of it.
+(String, String)? _takeSpinDirectionPhrase(List<String> w) {
+  for (final (phrase, canonical) in _spinDirectionPhrases) {
+    if (_consumePhrase(w, phrase)) return (canonical, phrase.join(' '));
   }
   return null;
 }
@@ -723,6 +1110,10 @@ String? _takeDiagonal(List<String> w) {
 
 /// Recognises a rotation amount (allemande/do si do/shoulder round `turn`).
 /// Consumes the token(s) and returns turns in 0.25..2.5, or null if none.
+///
+/// A non-quarter fraction (`2/3`, `7/8`, `1 & 5/8`) is rounded to the nearest
+/// quarter by [roundFractionToQuarters] and its source spelling is recorded
+/// via [_recordRounded], so it reaches the figure's note.
 double? _takeRotation(List<String> w) {
   const single = {
     'once': 1.0,
@@ -734,28 +1125,48 @@ double? _takeRotation(List<String> w) {
     '1/4': 0.25,
     '1/2': 0.5,
     '3/4': 0.75,
+    // Decimal turn counts, as Caller's Companion libraries write them (#1971).
+    '0.25': 0.25,
+    '0.5': 0.5,
+    '0.75': 0.75,
+    '1.0': 1.0,
     '1.25': 1.25,
     '1.5': 1.5,
     '1.75': 1.75,
+    '2.0': 2.0,
     '2.5': 2.5,
+    // Hyphenated mixed numbers (#1971).
+    '1-1/4': 1.25,
+    '1-1/2': 1.5,
+    '1-3/4': 1.75,
+    '2-1/2': 2.5,
   };
   for (var i = 0; i < w.length; i++) {
-    // Two-token "1 1/2" / "1 1/4" / "1 3/4" forms.
-    if (i + 1 < w.length && w[i] == '1') {
-      const combo = {'1/4': 1.25, '1/2': 1.5, '3/4': 1.75};
+    // Two-token compound forms: "1 1/2" / "1 1/4" / "1 3/4" and "2 1/2"
+    // (`_normalize` folds `½` to " 1/2 ", so "2½" arrives here the same way),
+    // plus rounded non-quarter fractions ("1 & 2/3" → 1.75, "2 & 1/8" → 2.25).
+    // A total beyond the 2.5 domain cap (2¾, or 2⅞ rounding to 3) declines the
+    // whole rotation rather than read "2" and leave the fraction as unexplained
+    // leftover — the line falls to custom either way, but without a
+    // half-consumed amount.
+    if (i + 1 < w.length && (w[i] == '1' || w[i] == '2')) {
+      const fraction = {'1/4': 0.25, '1/2': 0.5, '3/4': 0.75};
+      final whole = w[i] == '1' ? 1.0 : 2.0;
       // Three-token "1 and 1/2" form: TCB writes "1 & 1/2" and `_normalize`
       // maps `&`→"and", so bridge the intervening "and".
-      if (w[i + 1] == 'and' && i + 2 < w.length) {
-        final v3 = combo[w[i + 2]];
-        if (v3 != null) {
-          w.removeRange(i, i + 3);
-          return v3;
+      var j = i + 1;
+      final bridged = w[j] == 'and' && j + 1 < w.length;
+      if (bridged) j++;
+      final exact = fraction[w[j]];
+      final rounded = exact == null ? _roundedQuarters(w[j]) : null;
+      final frac = exact ?? (rounded == null ? null : rounded / 4);
+      if (frac != null) {
+        if (whole + frac > 2.5) return null;
+        if (rounded != null) {
+          _recordRounded(w[j], whole: w[i], bridged: bridged);
         }
-      }
-      final v = combo[w[i + 1]];
-      if (v != null) {
-        w.removeRange(i, i + 2);
-        return v;
+        w.removeRange(i, j + 1);
+        return whole + frac;
       }
     }
     final v = single[w[i]];
@@ -763,12 +1174,20 @@ double? _takeRotation(List<String> w) {
       w.removeAt(i);
       return v;
     }
+    final rounded = _roundedQuarters(w[i]);
+    if (rounded != null) {
+      _recordRounded(w[i]);
+      w.removeAt(i);
+      return rounded / 4;
+    }
   }
   return null;
 }
 
 /// Recognises circle/star travel and returns a `places` count (1..10), or null.
-/// Handles `N places`, quarter fractions, and "once"/"all the way"/"halfway".
+/// Handles `N places`, quarter fractions (non-quarter ones rounded to the
+/// nearest quarter, see [roundFractionToQuarters]), and
+/// "once"/"all the way"/"halfway".
 int? _takePlaces(List<String> w) {
   // "N places" (or "N place").
   for (var i = 0; i + 1 < w.length; i++) {
@@ -782,20 +1201,27 @@ int? _takePlaces(List<String> w) {
   }
   // Compound "N & 1/4|1/2|3/4" turn amount (TCB writes "1 & 1/2"; `_normalize`
   // maps `&`→"and"). `places` is an integer quarter-count (a full turn is 4),
-  // so places = N*4 + fractionPlaces. Only quarter fractions land on a whole
-  // place; eighth-turns ("1 & 1/8", "7/8") have no integer place and are left
-  // for the custom fallback — the place count is never rounded or fabricated.
+  // so places = N*4 + fractionPlaces. A non-quarter fraction ("1 & 1/8",
+  // "1 & 2/3") has no integer place of its own: per the maintainer's ruling it
+  // is rounded to the nearest quarter by [roundFractionToQuarters], and the
+  // source spelling is recorded via [_recordRounded] so it reaches the note.
   const quarterPlaces = {'1/4': 1, '2/4': 2, '1/2': 2, '3/4': 3};
   for (var i = 0; i + 1 < w.length; i++) {
     final whole = int.tryParse(w[i]);
     if (whole == null || whole < 1) continue;
     // Bridge the "and" that `_normalize` leaves between whole and fraction.
-    final fracIdx = w[i + 1] == 'and' ? i + 2 : i + 1;
+    final bridged = w[i + 1] == 'and';
+    final fracIdx = bridged ? i + 2 : i + 1;
     if (fracIdx >= w.length) continue;
-    final frac = quarterPlaces[w[fracIdx]];
+    final exact = quarterPlaces[w[fracIdx]];
+    final rounded = exact == null ? _roundedQuarters(w[fracIdx]) : null;
+    final frac = exact ?? rounded;
     if (frac == null) continue;
     final places = whole * 4 + frac;
     if (places < 1 || places > 10) continue;
+    if (rounded != null) {
+      _recordRounded(w[fracIdx], whole: w[i], bridged: bridged);
+    }
     var end = fracIdx + 1;
     if (end < w.length && (w[end] == 'places' || w[end] == 'place')) end++;
     w.removeRange(i, end);
@@ -807,6 +1233,22 @@ int? _takePlaces(List<String> w) {
     '1/2': 2,
     '3/4': 3,
     '4/4': 4,
+    // More than a full turn written as quarters ("Circle left 5/4", #1971).
+    '5/4': 5,
+    '6/4': 6,
+    '7/4': 7,
+    '8/4': 8,
+    '9/4': 9,
+    '10/4': 10,
+    // Decimal turns, as Caller's Companion libraries write them (#1971).
+    '0.25': 1,
+    '0.5': 2,
+    '0.75': 3,
+    '1.0': 4,
+    '1.25': 5,
+    '1.5': 6,
+    '1.75': 7,
+    '2.0': 8,
     'once': 4,
     '1x': 4,
     '1': 4,
@@ -822,6 +1264,13 @@ int? _takePlaces(List<String> w) {
     if (v != null) {
       w.removeAt(i);
       return v;
+    }
+    // A bare non-quarter fraction ("7/8" → 4, "2/3" → 3), rounded as above.
+    final rounded = _roundedQuarters(w[i]);
+    if (rounded != null) {
+      _recordRounded(w[i]);
+      w.removeAt(i);
+      return rounded;
     }
   }
   // "all the way" / "all the way around" / bare "all around".
@@ -845,6 +1294,7 @@ final List<_Recognizer> _recognizers = [
   _swing,
   _petronella,
   _balanceTheRing,
+  _balanceAndSlide,
   _balance,
   _shoulderRound,
   _allemande,
@@ -877,7 +1327,8 @@ final List<_Recognizer> _recognizers = [
   // its own copy of the word list, and "pass the ocean" contains no "through" so
   // _passThrough never matches (or partially consumes) it. They are placed
   // together here purely for locality. _formShortWaves sits between the two
-  // "pass …" recognizers and is independent of both (its lead word is "form").
+  // "pass …" recognizers and is independent of both (its lead word is "form",
+  // or Caller's Companion's "make", #1975).
   _passTheOcean,
   _formShortWaves,
   // Long-wave forms lead with "form … long wave(s)"; the "long" token keeps
@@ -896,6 +1347,12 @@ final List<_Recognizer> _recognizers = [
   _slice,
   _turnAlone,
   _turnAsCouples,
+  // Taxonomy v40 (#770): `hand cast` (an alias of `gate`) and `cast`. Each
+  // anchors on the word `cast`, which no other recognizer consumes; `_cast`
+  // steps aside for `hand cast`, so their relative order is not
+  // correctness-critical either.
+  _handCast,
+  _cast,
   _contraCorners,
   _giveAndTake,
   _poussette,
@@ -914,6 +1371,13 @@ final List<_Recognizer> _recognizers = [
   // ContraDB lines are recognized by `contradb_figure_dialect.dart` instead.
   _madRobin,
   _butterflyWhirl,
+  // Free-text phrasing "half hey, ladies start by the right", and Caller's
+  // Companion's "Half Hey, Robins start right shoulder" (#1975): anchors on the
+  // `hey` word plus a `start (by)` clause that no other recognizer consumes.
+  _heyStartBy,
+  // `circular_hey` (taxonomy v36): the renderer's own sentence, "3/4 circular
+  // hey, neighbors pass right across", and its "square hey" alias.
+  _circularHey,
   // Additive TCB-attested moves (issue #553, Gap 1). Each is conservative
   // (leftover token → null → custom) and anchors on a distinct lead phrase, so
   // none shadows or is shadowed by the recognizers above.
@@ -923,7 +1387,7 @@ final List<_Recognizer> _recognizers = [
   // "Men/Women/Neighbor trade" and "trade by [the] left/right [shoulder]"
   // (issue #945) → pass_by (the pair change places). Still excludes
   // "trade the wave"/"trade the line" internally, which corpus evidence shows
-  // are distinct, unmodelled whole-wave/whole-line constructions.
+  // are distinct whole-wave/whole-line constructions, not a pass by.
   _tradePassBy,
   // "Men pass left" / "Women cross by right" → pass_by (who + shoulder). Placed
   // after the "pass …" family (_passTheOcean/_passThrough) and _crossTrails; it
@@ -938,6 +1402,9 @@ final List<_Recognizer> _recognizers = [
   // parsed here and never derived (see gate_facing.dart).
   _gate,
   _californiaTwirl,
+  // Anchors on the exact four-word `<pair> arch <other pair> dive` shape, which
+  // no other recognizer consumes.
+  _archAndDive,
   _weaveTheLine,
   _squareThrough,
   _pullBy,
@@ -975,6 +1442,11 @@ _Match? _swing(List<String> w) {
 }
 
 _Match? _petronella(List<String> w) {
+  // A ring balance followed by a spin to the right is the petronella, balance
+  // included (#1975): Caller's Companion's "Ring balance, spin to the right".
+  if (_isRingBalanceThenSpinRight(w)) {
+    return const _Match('petronella', {'balance': true});
+  }
   // Optional leading "balance and" (petronella's balance flag defaults true).
   _consumePhrase(w, ['balance', 'and']);
   if (!_consumePhrase(w, ['petronella'])) return null;
@@ -986,10 +1458,41 @@ _Match? _petronella(List<String> w) {
   return w.isEmpty ? const _Match('petronella') : null;
 }
 
+/// Whether [w] is exactly a ring balance and then a spin to the right, in
+/// that order: `ring balance` or `balance (the) ring`, an optional `and`, then
+/// `spin (to the) right` (#1975).
+bool _isRingBalanceThenSpinRight(List<String> w) {
+  final rest = [...w];
+  if (!_takeRingBalance(rest)) return false;
+  _consumeLeading(rest, ['and']);
+  if (!_consumeLeading(rest, ['spin'])) return false;
+  _consumeLeading(rest, ['to', 'the']) || _consumeLeading(rest, ['to']);
+  return _consumeLeading(rest, ['right']) && rest.isEmpty;
+}
+
+/// Consumes a ring balance at the start of [w]: `balance the ring`, TCB's
+/// `balance ring`, or Caller's Companion's `ring balance` (#1975).
+bool _takeRingBalance(List<String> w) =>
+    _consumeLeading(w, ['balance', 'the', 'ring']) ||
+    _consumeLeading(w, ['balance', 'ring']) ||
+    _consumeLeading(w, ['ring', 'balance']);
+
+/// Consumes [phrase] only when [w] starts with it.
+bool _consumeLeading(List<String> w, List<String> phrase) {
+  if (w.length < phrase.length) return false;
+  for (var i = 0; i < phrase.length; i++) {
+    if (w[i] != phrase[i]) return false;
+  }
+  w.removeRange(0, phrase.length);
+  return true;
+}
+
 _Match? _balanceTheRing(List<String> w) {
-  // Accept "balance the ring" and TCB's "balance ring" (no "the").
+  // Accept "balance the ring", TCB's "balance ring" (no "the") and Caller's
+  // Companion's "ring balance" (#1975).
   if (!_consumePhrase(w, ['balance', 'the', 'ring']) &&
-      !_consumePhrase(w, ['balance', 'ring'])) {
+      !_consumePhrase(w, ['balance', 'ring']) &&
+      !_consumePhrase(w, ['ring', 'balance'])) {
     return null;
   }
   _dropFiller(w);
@@ -998,12 +1501,50 @@ _Match? _balanceTheRing(List<String> w) {
 
 _Match? _balance(List<String> w) {
   final who = _takeDancer(w);
+  final hand = _takeBalanceHand(w);
   if (!_consumePhrase(w, ['balance'])) return null;
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('balance', {'who': who2 ?? 'neighbors'}, null, who2 == null);
+  return _Match(
+    'balance',
+    {'who': who2 ?? 'neighbors', 'hand': ?hand},
+    null,
+    who2 == null,
+  );
 }
+
+/// Takes the hand Caller's Companion names before a balance (#1975):
+/// `R-hand balance`, `Right-hand balance`, `Right hand balance`, `RH-balance`.
+/// A `RH-balance` token is split so the `balance` after it is still consumed.
+String? _takeBalanceHand(List<String> w) {
+  if (w.isEmpty) return null;
+  final hyphenated = _balanceHandToken.firstMatch(w[0]);
+  if (hyphenated != null) {
+    w.removeAt(0);
+    if (hyphenated[2] != null) w.insert(0, 'balance');
+    return hyphenated[1]!.startsWith('r') ? 'right' : 'left';
+  }
+  if (w.length >= 2 && w[1] == 'hand' && _balanceSides.containsKey(w[0])) {
+    final side = _balanceSides[w[0]]!;
+    w.removeRange(0, 2);
+    return side;
+  }
+  return null;
+}
+
+/// `r-hand`, `right-hand`, `rh`, and each followed by `-balance`.
+final RegExp _balanceHandToken = RegExp(
+  r'^(r|l|right|left)(?:-hand|h)(-balance)?$',
+);
+
+/// The sides [_takeBalanceHand] reads before `hand`.
+const Map<String, String> _balanceSides = {
+  'r': 'right',
+  'right': 'right',
+  'l': 'left',
+  'left': 'left',
+};
 
 _Match? _shoulderRound(List<String> w) {
   final who = _takeDancer(w);
@@ -1025,6 +1566,9 @@ _Match? _shoulderRound(List<String> w) {
 _Match? _allemande(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['allemande'])) return null;
+  // "allemande left 1 1/2 with neighbor": a trailing `with <dancer>` names the
+  // `who` (precedent: _weaveTheLine's "with <dancer>").
+  _consumePhrase(w, ['with']);
   final who2 = who ?? _takeDancer(w);
   final hand = _takeSide(w);
   final turn = _takeRotation(w);
@@ -1038,17 +1582,49 @@ _Match? _allemande(List<String> w) {
   );
 }
 
+/// `two_hand_turn`: `[who] two hand turn [who] [direction] [rotation]
+/// [and face …]`.
+///
+/// - Both `two hand turn` and the hyphenated `two-hand turn` (TCB's usual
+///   spelling) anchor, with the subject before or after the move.
+/// - `two_hand_turn` has no direction param, so a stated spin word (`cw`,
+///   `clockwise`, `counterclockwise`, …) or `reverse` is kept VERBATIM as the
+///   note — never dropped, and never asserted as a param the move lacks.
+/// - A trailing `and face <…>` is kept as the note `face <…>`: the same note the
+///   TCB front-end gives a `; face <…>` clause, whose `face …` allowlist entry is
+///   a measured, maintainer-ruled reading of facing statements as commentary.
+///   It is split off BEFORE the subject is read, so `… and face partner` cannot
+///   lend the facing target to `who`.
+/// - A subject outside the dancer vocabulary (`next individual`) is not
+///   guessed: its words are leftover, and the line declines to custom, as for
+///   every other recognizer here.
 _Match? _twoHandTurn(List<String> w) {
+  final anchor = _phraseIndex(w, ['two', 'hand', 'turn']) != -1
+      ? ['two', 'hand', 'turn']
+      : ['two-hand', 'turn'];
+  final anchorAt = _phraseIndex(w, anchor);
+  if (anchorAt == -1) return null;
+  String? faceNote;
+  final faceAt = _phraseIndex(w, ['and', 'face']);
+  if (faceAt > anchorAt) {
+    // `face` plus at least one word of what is faced.
+    if (faceAt + 2 >= w.length) return null;
+    faceNote = w.sublist(faceAt + 1).join(' ');
+    w.removeRange(faceAt, w.length);
+  }
   final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['two', 'hand', 'turn'])) return null;
+  if (!_consumePhrase(w, anchor)) return null;
   final who2 = who ?? _takeDancer(w);
+  final direction =
+      _takeSpinDirectionPhrase(w)?.$2 ??
+      (_consumePhrase(w, ['reverse']) ? 'reverse' : null);
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match(
     'two_hand_turn',
     {'who': who2 ?? 'partners', 'travel': ?turn},
-    null,
+    combineFigureNotes(direction, faceNote),
     who2 == null,
   );
 }
@@ -1090,8 +1666,19 @@ _Match? _revolvingDoor(List<String> w) {
   return _Match('revolving_door', {'who': ?who2, 'hand': ?hand, 'whom': ?whom});
 }
 
+/// `<who> box the gnat`, and `<who> balance & box the gnat`, the display's
+/// own wording for a box with its balance (#2121). The balance is read only
+/// where it leads the line once the subject is taken out, as in the display;
+/// a line that does not state one leaves the flag absent, so it stays
+/// unbalanced.
+///
+/// No beats are set here: a later clause of a `;` line is read beats-absent,
+/// and a count set here would be counted on top of the line's total.
+/// Free-text entry gives a lone balanced box with no stated count its 8 beats
+/// (`withBalancedBoxBeats`).
 _Match? _boxTheGnat(List<String> w) {
   final who = _takeDancer(w);
+  final balance = _consumeLeading(w, ['balance', 'and']);
   final swat = _consumePhrase(w, ['swat', 'the', 'flea']);
   final box = _consumePhrase(w, ['box', 'the', 'gnat']);
   if (!swat && !box) return null;
@@ -1099,12 +1686,18 @@ _Match? _boxTheGnat(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   final moveId = swat ? 'swat_the_flea' : 'box_the_gnat';
-  return _Match(moveId, {'who': who2 ?? 'partners'}, null, who2 == null);
+  return _Match(
+    moveId,
+    {'who': who2 ?? 'partners', if (balance) 'balance': true},
+    null,
+    who2 == null,
+  );
 }
 
 // ContraDB `box circulate`. A single "box circulate" line states no balance, so
-// the `balance` flag is left absent (neutral); the CallersBox cross-line merge
-// folds a preceding balance line in as true. `hand` stays on the taxonomy
+// the recognizer leaves the `balance` flag absent; an importer sets it from the
+// line's beats (`withBeatImpliedBalance`, #1975), and the CallersBox cross-line
+// merge folds a preceding balance line in as true. `hand` stays on the taxonomy
 // default (ContraDB right_hand_spin) — TCB does not write it inline.
 _Match? _boxCirculate(List<String> w) {
   final who = _takeDancer(w);
@@ -1115,27 +1708,12 @@ _Match? _boxCirculate(List<String> w) {
   return _Match('box_circulate', {'who': ?who2}, null, who2 == null);
 }
 
-// Takes a TCB rotation-gate direction token (clockwise/cw, counterclockwise/ccw
-// /anticlockwise, or mirror) from anywhere in [w], returning the canonical
-// `direction` choice token, or null if none is present.
+// Takes a TCB rotation-gate direction from anywhere in [w]: `mirror`, or any
+// spelling [_takeSpinDirection] accepts. Returns the canonical `direction`
+// choice token, or null if none is present.
 String? _takeGateDirection(List<String> w) {
-  for (var i = 0; i < w.length; i++) {
-    switch (w[i]) {
-      case 'clockwise':
-      case 'cw':
-        w.removeAt(i);
-        return 'clockwise';
-      case 'counterclockwise':
-      case 'anticlockwise':
-      case 'ccw':
-        w.removeAt(i);
-        return 'counterclockwise';
-      case 'mirror':
-        w.removeAt(i);
-        return 'mirror';
-    }
-  }
-  return null;
+  if (_consumePhrase(w, ['mirror'])) return 'mirror';
+  return _takeSpinDirection(w);
 }
 
 // The unified gate (taxonomy v22; was the TCB-only `rotation_gate`, issue
@@ -1180,6 +1758,172 @@ _Match? _gate(List<String> w) {
   );
 }
 
+// The Caller's Box's bare `Hand cast` (taxonomy v40, #770): the `hand_cast`
+// alias of `gate`, which the maintainer ruled a hand cast is. Only the bare
+// phrase structures here. A named dancer ("Ones hand cast") is left over and
+// the line stays custom, because a gate's dancer slots each mean something
+// specific (the side that backs up, the side that walks forward, the pairing)
+// and the source does not say which one it names. The app's own display of a
+// hand cast with params is read by `_handCastDisplay` in the ContraDB front
+// end, which the free-text fan-out tries first.
+_Match? _handCast(List<String> w) {
+  if (!_consumePhrase(w, ['hand', 'cast'])) return null;
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return const _Match('hand_cast');
+}
+
+// Contra's `cast` (taxonomy v40, #770). Grammar, in this order:
+//
+//   <dancer>? "cast" <direction>? <places>? ("around" <dancer>)?
+//       ("to" <destination> | "to" <dancer> | "ending" <proper|improper>)?
+//
+// where <direction> is one of
+//   * `off`: down, with `places` 1 unless a number follows ("cast off 2"):
+//     the maintainer's ruling that a cast off is a cast down one place;
+//   * `up` / `down`;
+//   * `back`, optionally followed by a shoulder;
+//   * a shoulder alone: `right`/`clockwise` or `left`/`counterclockwise` (the
+//     maintainer's mapping of the rotation words onto shoulders).
+//
+// This reads both The Caller's Box's wording and the app's own display wording
+// ("ones cast back right 2 places around neighbor to partner's place"), so a
+// displayed cast types back in as itself. A bare "cast" and "cast back" both
+// leave `direction` unstated, which the display shows as "cast back".
+//
+// "To <dancer>" (The Caller's Box's mixer "Women cast back to P2") has no slot:
+// the cast's `destination` is a place, not a person. It is kept as a note
+// rather than dropped.
+//
+// What this reader does NOT do, deliberately: give a cast with no shoulder the
+// shoulder of its dancers' role. The maintainer limited that convention to The
+// Caller's Box adapter (`CallersBoxAdapter`, `_assumeCastShoulders`), so typed
+// text and other sources leave an unstated shoulder unstated.
+//
+// Conservative, per the whole-line contract: anything left over (a second
+// direction, "behind partner", "around the major set", "to the ends of a line
+// of four") declines the line to custom.
+_Match? _cast(List<String> w) {
+  final at = w.indexOf('cast');
+  if (at == -1) return null;
+  if (at > 0 && w[at - 1] == 'hand') return null;
+  final subject = w.sublist(0, at);
+  final rest = w.sublist(at + 1);
+  _dropFiller(rest);
+  String? who;
+  if (subject.isNotEmpty) {
+    who = _takeDancer(subject);
+    _dropFiller(subject);
+    if (who == null || subject.isNotEmpty) return null;
+  }
+
+  var i = 0;
+  String? peek([int ahead = 0]) =>
+      i + ahead < rest.length ? rest[i + ahead] : null;
+
+  String? direction;
+  var castOff = false;
+  switch (peek()) {
+    case 'off':
+      direction = 'down';
+      castOff = true;
+      i++;
+    case 'up' || 'down':
+      direction = peek();
+      i++;
+    case 'back':
+      i++;
+      direction = _castShoulder(peek());
+      if (direction != null) i++;
+    default:
+      direction = _castShoulder(peek());
+      if (direction != null) i++;
+  }
+
+  int? places;
+  final count = _castPlaceCount(peek());
+  if (count != null && (peek(1) == 'place' || peek(1) == 'places')) {
+    places = count;
+    i += 2;
+  } else if (castOff && count != null && int.tryParse(peek()!) != null) {
+    // "cast off 2": TCB's bare count after `off`.
+    places = count;
+    i++;
+  }
+  if (castOff) places ??= 1;
+
+  String? whom;
+  if (peek() == 'around') {
+    final end = _castClauseEnd(rest, i + 1);
+    whom = resolveDancerSetPhrase(rest.sublist(i + 1, end).join(' '));
+    if (whom == null) return null;
+    i = end;
+  }
+
+  String? destination;
+  String? note;
+  if (peek() == 'to' || peek() == 'ending') {
+    final words = rest.sublist(peek() == 'to' ? i + 1 : i);
+    destination = castDestinationFromWords(words);
+    if (destination == null) {
+      if (peek() != 'to' || words.length != 1) return null;
+      final dancer = dancerWords[words.single];
+      if (dancer == null) return null;
+      note = 'to ${_castNoteDancer(words.single)}';
+    }
+    i = rest.length;
+  }
+  if (i != rest.length) return null;
+
+  return _Match('cast', {
+    'who': ?who,
+    'direction': ?direction,
+    'places': ?places,
+    'whom': ?whom,
+    'destination': ?destination,
+  }, note);
+}
+
+/// The shoulder a cast's direction word names, or null.
+String? _castShoulder(String? word) => switch (word) {
+  'right' || 'clockwise' => 'right',
+  'left' || 'counterclockwise' => 'left',
+  _ => null,
+};
+
+/// A cast's count of places, as a digit or a small number word, or null.
+int? _castPlaceCount(String? word) {
+  if (word == null) return null;
+  final n = int.tryParse(word) ?? _castNumberWords[word];
+  return (n != null && n >= 1 && n <= 10) ? n : null;
+}
+
+const Map<String, int> _castNumberWords = {
+  'one': 1,
+  'two': 2,
+  'three': 3,
+  'four': 4,
+  'five': 5,
+  'six': 6,
+};
+
+/// The index in [w], at or after [from], where an `around <dancer>` phrase
+/// ends: the next `to`/`ending`, or the end of the line.
+int _castClauseEnd(List<String> w, int from) {
+  for (var j = from; j < w.length; j++) {
+    if (w[j] == 'to' || w[j] == 'ending') return j;
+  }
+  return w.length;
+}
+
+/// A dancer word as a cast's `to <dancer>` note writes it: The Caller's Box's
+/// numbered codes upper-cased as the source writes them (`P2`, `N3`), anything
+/// else as read.
+String _castNoteDancer(String word) =>
+    _castNumberedDancer.hasMatch(word) ? word.toUpperCase() : word;
+
+final RegExp _castNumberedDancer = RegExp(r'^[pns]\d$');
+
 // `star through`: mirrors california_twirl — who only, no `balance` param,
 // and it does NOT take part in the balance cross-line merge (v12 dropped it
 // from the merge set to match california_twirl). No inline
@@ -1202,7 +1946,18 @@ _Match? _starThrough(List<String> w) {
 
 _Match? _circle(List<String> w) {
   if (!_consumePhrase(w, ['circle'])) return null;
-  final turn = _takeSide(w); // circle `direction` is left/right
+  // Circle `direction` is stored as left/right. A spin word maps onto it: a
+  // circle left travels clockwise, a circle right counterclockwise. A line
+  // stating both a side and a spin word must agree, else it stays custom.
+  final side = _takeSide(w);
+  final spin = _takeSpinDirection(w);
+  final spinSide = switch (spin) {
+    'clockwise' => 'left',
+    'counterclockwise' => 'right',
+    _ => null,
+  };
+  if (side != null && spinSide != null && side != spinSide) return null;
+  final turn = side ?? spinSide;
   final places = _takePlaces(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
@@ -1232,12 +1987,7 @@ _Match? _facingStar(List<String> w) {
   if (i + 2 > w.length || w[i] != 'facing' || w[i + 1] != 'star') return null;
   w.removeRange(0, i + 2);
   // Direction MUST be stated (never defaulted).
-  String? spin;
-  if (_consumePhrase(w, ['clockwise'])) {
-    spin = 'clockwise';
-  } else if (_consumePhrase(w, ['counterclockwise'])) {
-    spin = 'counterclockwise';
-  }
+  final spin = _takeSpinDirection(w);
   if (spin == null) return null;
   // Turn-amount MUST be stated ("3/4" -> 3, "1"/full -> 4). Never defaulted.
   final places = _takePlaces(w);
@@ -1253,7 +2003,8 @@ _Match? _facingStar(List<String> w) {
 
 _Match? _star(List<String> w) {
   if (!_consumePhrase(w, ['star'])) return null;
-  final hand = _takeSide(w);
+  // "Star left", "left star", and the glossary's "left-hand star" (#1908).
+  final hand = _takeHand(w);
   final places = _takePlaces(w);
   // TCB writes "Hands-across star right/left"; recognise the grip qualifier
   // (hyphenated single token or two words). It carries no render token.
@@ -1278,7 +2029,7 @@ _Match? _chain(List<String> w) {
   final toIdx = w.indexOf('to');
   if (toIdx != -1 &&
       toIdx + 1 < w.length &&
-      _dancerWords.containsKey(w[toIdx + 1])) {
+      dancerWords.containsKey(w[toIdx + 1])) {
     // Absorb an optional trailing N-tag ("chain to neighbor N2") into the note
     // so the numeric qualifier does not survive as leftover → custom.
     var end = toIdx + 2;
@@ -1421,9 +2172,10 @@ _Match? _courtesyTurn(List<String> w) {
   if (!_consumePhrase(w, ['courtesy', 'turn'])) return null;
   final who2 = who ?? _takeDancer(w);
   // Emitted only when the line STATES it. Omitted otherwise, so the taxonomy's
-  // `clockwise` default applies without the figure claiming the source said so.
-  // Every one of the 10 corpus lines that states a direction says `clockwise`;
-  // `counterclockwise` is accepted for authoring parity and is unattested.
+  // default (`counterclockwise` since v37) applies without the figure claiming
+  // the source said so. Every one of the 10 corpus lines that states a
+  // direction says `clockwise`: a source names the rotation only when it is the
+  // unusual, mirrored turn. `counterclockwise` is accepted for authoring parity.
   final direction = _takeSpinDirection(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
@@ -1474,7 +2226,7 @@ String? _takeFacingDancer(List<String> w, {required int after}) {
   // hit this exists to remove.)
   final i = w.indexOf('face', after);
   if (i == -1 || i + 1 >= w.length) return null;
-  final token = _dancerWords[w[i + 1]];
+  final token = dancerWords[w[i + 1]];
   if (token == null) return null;
   // Absorb TCB's redundant "N2 neighbor" pairing, mirroring `_takeDancer`.
   var end = i + 2;
@@ -1573,7 +2325,7 @@ _Match? _walkForwardTo(List<String> w) {
     return null;
   }
   final dest = w[3];
-  if (!_dancerWords.containsKey(dest)) return null;
+  if (!dancerWords.containsKey(dest)) return null;
   var end = 4;
   var note = 'to $dest';
   // Absorb an optional trailing N-tag ("to neighbor N2") exactly as `_chain`
@@ -1623,8 +2375,21 @@ _Match? _passTheOcean(List<String> w) {
 // unexplained token behind, so they still fall to custom (prefer-custom): the
 // leading qualifier is never consumed and "of two/three/…" never matches.
 _Match? _formShortWaves(List<String> w) {
+  // Caller's Companion's `make short waves`, `make short wave` and `make wave
+  // of 4` are form short waves (maintainer decision, #1975); the same with an
+  // article or `four` (`make a short wave`, `make a wave of four`) is the
+  // author's call. A bare `make a wave` names no kind of wave and is not read.
+  if (w.isNotEmpty && w.first == 'make') {
+    final made = [...w]..[0] = 'form';
+    if (!_madeShortWave.any((phrase) => _startsWith(made, phrase))) {
+      return null;
+    }
+    w[0] = 'form';
+  }
   if (!_consumePhrase(w, ['form', 'a', 'wave', 'of', 'four']) &&
       !_consumePhrase(w, ['form', 'wave', 'of', 'four']) &&
+      !_consumePhrase(w, ['form', 'a', 'wave', 'of', '4']) &&
+      !_consumePhrase(w, ['form', 'wave', 'of', '4']) &&
       !_consumePhrase(w, ['form', 'a', 'wave']) &&
       !_consumePhrase(w, ['form', 'wave']) &&
       !_consumePhrase(w, ['form', 'a', 'short', 'wave']) &&
@@ -1650,18 +2415,66 @@ _Match? _formShortWaves(List<String> w) {
       : null;
 }
 
+/// The `make …` phrasings read as form short waves (see [_formShortWaves]),
+/// each with `make` already read as `form`.
+const List<List<String>> _madeShortWave = [
+  ['form', 'short', 'waves'],
+  ['form', 'short', 'wave'],
+  ['form', 'a', 'short', 'wave'],
+  ['form', 'wave', 'of', '4'],
+  ['form', 'wave', 'of', 'four'],
+  ['form', 'a', 'wave', 'of', '4'],
+  ['form', 'a', 'wave', 'of', 'four'],
+];
+
+bool _startsWith(List<String> w, List<String> phrase) {
+  if (w.length < phrase.length) return false;
+  for (var i = 0; i < phrase.length; i++) {
+    if (w[i] != phrase[i]) return false;
+  }
+  return true;
+}
+
+/// Caller's Companion's `Balance wave and slide to the right` is one Rory
+/// O'More with its balance, and so is `Balance and slide` (maintainer decision
+/// 11 on #1975). Requiring the side is the author's call (#2088): a bare
+/// `Balance and slide` is declined here and reads as a balance noting
+/// `and slide`, because a Rory O'More's `slide` defaults to `right`, which would
+/// invent a direction the line never gave. `Balance long wave and slide` is the
+/// same with the long wave as the note, and a line that names who slides (`… and Larks slide to the
+/// right`) is not read (maintainer decisions). Reading `Balance wave of 4 and
+/// slide` the same way, and not reading anything after the side, is the
+/// author's call.
+_Match? _balanceAndSlide(List<String> w) {
+  if (!_consumePhrase(w, ['balance'])) return null;
+  _consumePhrase(w, ['the']);
+  final long = _consumePhrase(w, ['long']);
+  if (_consumePhrase(w, ['waves']) || _consumePhrase(w, ['wave'])) {
+    if (!_consumePhrase(w, ['of', '4'])) _consumePhrase(w, ['of', 'four']);
+  } else if (long) {
+    return null;
+  }
+  if (!_consumePhrase(w, ['and', 'slide'])) return null;
+  _consumePhrase(w, ['to']);
+  _consumePhrase(w, ['the']);
+  final slide = _takeSide(w);
+  if (slide == null) return null;
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('rory_o_more', {
+    'balance': true,
+    'slide': slide,
+  }, long ? 'long wave' : null);
+}
+
 _Match? _promenade(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['promenade'])) return null;
   final who2 = who ?? _takeDancer(w);
   // Consume an optional trailing direction (promenade's `where` param). Prior to
-  // this it was never consumed, so any directed promenade fell to custom.
-  String? dir;
-  if (_consumePhrase(w, ['across'])) {
-    dir = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    dir = 'along';
-  }
+  // this it was never consumed, so any directed promenade fell to custom. The
+  // display's diagonal and facing phrases are read too (#2121).
+  final dir = _takeDirection(w);
   final turn = _takeSpinDirection(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
@@ -1786,14 +2599,12 @@ _Match? _poussette(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['poussette'])) return null;
   final who2 = who ?? _takeDancer(w);
-  String? spin;
-  if (_consumePhrase(w, ['clockwise'])) {
-    spin = 'clockwise';
-  } else if (_consumePhrase(w, ['counterclockwise'])) {
-    spin = 'counterclockwise';
-  }
+  final spin = _takeSpinDirection(w);
+  final amount = _takeFractionAmount(w);
   String? frac;
-  if (_consumePhrase(w, ['1/2'])) {
+  if (amount != null) {
+    frac = 'other';
+  } else if (_consumePhrase(w, ['1/2'])) {
     frac = 'half';
   } else if (_consumePhrase(w, ['full']) || _consumePhrase(w, ['1'])) {
     frac = 'full';
@@ -1804,7 +2615,31 @@ _Match? _poussette(List<String> w) {
     'who': ?who2,
     'direction': ?spin,
     'fraction': ?frac,
+    fractionAmountParam: ?amount,
   });
+}
+
+/// Removes and returns a mixed fraction amount, `1 1/4` to `2 1/2` (the
+/// display's `1½` is normalized to `1 1/2`), for a figure 8 or poussette
+/// whose fraction no named value states (#2120). Null, leaving [w] as it was,
+/// when there is none. A bare `2` is not read: a lone digit is too often a
+/// dancer number or a position note.
+double? _takeFractionAmount(List<String> w) {
+  const parts = {'1/4': 0.25, '1/2': 0.5, '3/4': 0.75};
+  for (var i = 0; i + 1 < w.length; i++) {
+    final whole = switch (w[i]) {
+      '1' => 1,
+      '2' => 2,
+      _ => null,
+    };
+    final part = parts[w[i + 1]];
+    if (whole == null || part == null) continue;
+    final amount = whole + part;
+    if (!isFractionAmount(amount)) continue;
+    w.removeRange(i, i + 2);
+    return amount;
+  }
+  return null;
 }
 
 /// Issue #295: standalone `orbit` — TCB writes "Men orbit clockwise 1/2" /
@@ -1902,6 +2737,185 @@ _Match? _butterflyWhirl(List<String> w) {
   return _Match('butterfly_whirl', {'who': who2, 'direction': direction});
 }
 
+/// Free-text phrasing of a hey with a starting position: "half hey, ladies start
+/// by the right", "full hey, ones start by the left", and Caller's Companion's
+/// "Half Hey, Robins start right shoulder" (#1975). Maps onto the taxonomy's
+/// existing hey params: `length`, `pass1` (the pair that starts), `shoulder`
+/// (the shoulder of the first pass), and from Caller's Companion's wording
+/// `where` (a leading "left/right diagonal") and a ricochet flag.
+///
+/// Both the starting pair and the shoulder are REQUIRED: a bare "half hey" is
+/// not matched here (an import keeps it custom; free-text entry reads it as a
+/// name, see `typed_figure_names.dart`), and any leftover token yields null so
+/// the line degrades to a faithful custom figure.
+///
+/// The "start" wording (also "starts") must state a length.
+///
+/// Lengths: half (`1/2`) and full, and the partial `1/4` → `lessThanHalf` and
+/// `3/4` → `betweenHalfAndFull`, as the Caller's Box pass-list decoder maps
+/// them. A trailing "`role` ricochet" is read only on a half hey started by a
+/// role: the ricochet flags count the same-role passes through the centre, so
+/// the starting role's is `rico1` and the other role's `rico2` (maintainer
+/// decision, #1975). Any other ricochet keeps the line custom.
+_Match? _heyStartBy(List<String> w) {
+  // A dash may stand between the hey and its start ("3/4 Hey - Neighbor
+  // start Right shoulder").
+  w.removeWhere(_standaloneDashes.contains);
+  String? where;
+  if (w.length >= 2 &&
+      (w[0] == 'left' || w[0] == 'right') &&
+      w[1] == 'diagonal') {
+    where = w[0] == 'left' ? 'leftDiagonal' : 'rightDiagonal';
+    w.removeRange(0, 2);
+  }
+  String? ricochetBy;
+  if (w.length >= 2 && w.last == 'ricochet') {
+    ricochetBy = dancerWords[w[w.length - 2]];
+    if (ricochetBy == null) return null;
+    w.removeRange(w.length - 2, w.length);
+  }
+  String? length;
+  for (final MapEntry(key: word, value: named) in _heyLengths.entries) {
+    if (_consumePhrase(w, [word, 'hey'])) {
+      length = named;
+      break;
+    }
+  }
+  if (length == null && !_consumePhrase(w, ['hey'])) return null;
+  final startBy = _consumePhrase(w, ['start', 'by']);
+  if (!startBy &&
+      !_consumePhrase(w, ['start']) &&
+      !_consumePhrase(w, ['starts'])) {
+    return null;
+  }
+  // Caller's Companion always states the length; without one, the half-hey
+  // default could contradict the line's beats (a 16-beat hey is a full one),
+  // so only the older "start by" phrasing may leave it out.
+  if (length == null && !startBy) return null;
+  final pass1 = _takeDancer(w);
+  if (pass1 == null) return null;
+  final shoulder = _takeSide(w);
+  if (shoulder == null) return null;
+  _consumePhrase(w, ['shoulders']) || _consumePhrase(w, ['shoulder']);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  String? rico;
+  if (ricochetBy != null) {
+    const roles = {'role1s', 'role2s'};
+    if (length != 'half' ||
+        !roles.contains(pass1) ||
+        !roles.contains(ricochetBy)) {
+      return null;
+    }
+    rico = ricochetBy == pass1 ? 'rico1' : 'rico2';
+  }
+  return _Match('hey', {
+    'pass1': pass1,
+    'length': ?length,
+    'shoulder': shoulder,
+    'where': ?where,
+    ?rico: true,
+  });
+}
+
+const Set<String> _standaloneDashes = {'-', '\u2013', '\u2014'};
+
+/// The hey lengths [_heyStartBy] reads before "hey" (#1975 adds `1/2` and the
+/// partial lengths).
+const Map<String, String> _heyLengths = {
+  'half': 'half',
+  '1/2': 'half',
+  'full': 'full',
+  '1/4': 'lessThanHalf',
+  '3/4': 'betweenHalfAndFull',
+};
+
+/// Removes and returns a set direction from anywhere in [w], worded as the
+/// figure display words one: `across`, `along`, or one of
+/// [displayDirectionPhrases] (`on right diagonal`, `facing in`; #2121). Null,
+/// consuming nothing, when [w] states none.
+String? _takeDirection(List<String> w) {
+  if (_consumePhrase(w, ['across'])) return 'across';
+  if (_consumePhrase(w, ['along'])) return 'along';
+  for (final MapEntry(key: token, value: phrase)
+      in displayDirectionPhrases.entries) {
+    if (_consumePhrase(w, phrase.split(' '))) return token;
+  }
+  return null;
+}
+
+/// The changes in a full circular hey, which its display states with no extent.
+const int _circularHeyFullCircuit = 4;
+
+/// Extent words of a circular hey -> number of changes (quarters of a full
+/// four-change circuit). `1/2` is the only non-quarter spelling accepted.
+final Map<String, int> _circularHeyExtents = {
+  for (var n = 1; n <= 10; n++) '$n/4': n,
+  '1/2': 2,
+  'full': 4,
+};
+
+/// `circular_hey` (taxonomy v36): "3/4 circular hey, neighbors pass right
+/// across" / "full circular hey, ones pass left along", plus the "square hey"
+/// alias (ADR-006 §7.4). This is the shape the display renderer writes for
+/// every count except the full circuit: four changes (the default) renders with
+/// no extent ("circular hey, neighbors pass right across").
+///
+/// Every other fact the move stores is REQUIRED from the text, never defaulted:
+/// the group that passes first, the shoulder and the direction. The extent is
+/// a quarter-fraction of a full circuit (`N/4` -> `changes: N`, `1/2` -> 2,
+/// `full` -> 4); a line that states the rest and no extent is the display's
+/// four changes (#2121). That reverses the earlier rule that such a line stays
+/// text: the implementing author's call, so that a full circular hey reads
+/// back from its own displayed line, as every other figure does. This reader
+/// still declines a bare "circular hey", which states nothing else (free-text
+/// entry reads a move's name alone through its own lookup). An
+/// extent outside `1/4`..`10/4` or ANY leftover token yields null, so the line
+/// degrades to a faithful custom figure.
+///
+/// v37: the display line may end with the second pass, "…, partners pass
+/// left", which is read into `who2`. That pass must use the other shoulder —
+/// a circular hey alternates — so a same-shoulder second pass also yields
+/// null.
+_Match? _circularHey(List<String> w) {
+  int? changes;
+  for (final entry in _circularHeyExtents.entries) {
+    if (_consumePhrase(w, [entry.key])) {
+      changes = entry.value;
+      break;
+    }
+  }
+  // No extent is the display's full circuit, the default (#2121).
+  changes ??= _circularHeyFullCircuit;
+  if (!_consumePhrase(w, ['circular', 'hey']) &&
+      !_consumePhrase(w, ['square', 'hey'])) {
+    return null;
+  }
+  final who = _takeDancer(w);
+  if (who == null || !_consumePhrase(w, ['pass'])) return null;
+  final shoulder = _takeSide(w);
+  if (shoulder == null) return null;
+  final where = _takeDirection(w);
+  if (where == null) return null;
+  _dropFiller(w);
+  String? who2;
+  if (w.isNotEmpty) {
+    who2 = _takeDancer(w);
+    if (who2 == null || !_consumePhrase(w, ['pass'])) return null;
+    final shoulder2 = _takeSide(w);
+    if (shoulder2 == null || shoulder2 == shoulder) return null;
+    _dropFiller(w);
+    if (w.isNotEmpty) return null;
+  }
+  return _Match('circular_hey', {
+    'who': who,
+    'changes': changes,
+    'shoulder': shoulder,
+    'who2': ?who2,
+    'where': where,
+  });
+}
+
 /// Tier A: TCB writes "Partner California twirl" (dance id 11 "Hocus Pocus").
 _Match? _californiaTwirl(List<String> w) {
   final who = _takeDancer(w);
@@ -1912,14 +2926,38 @@ _Match? _californiaTwirl(List<String> w) {
   return _Match('california_twirl', {'who': ?who2});
 }
 
+/// `arch_and_dive`: TCB's `<ones|twos> arch, <twos|ones> dive` (the comma is
+/// stripped by `_normalize`).
+///
+/// `who` is the ARCHING pair. That is the ContraDB reading the taxonomy move was
+/// ported from — its words are `<who> arch <other> dive`, and
+/// `contradb_figure_dialect.dart`'s `_archAndDive` stores the archers as `who`
+/// — so `Twos arch, ones dive` is `who: twos`.
+///
+/// The move has no slot for the divers: they are implied as "the other pair".
+/// So only the complementary `ones`/`twos` pairing structures, where the divers
+/// follow from `who` and nothing the line said is lost. Any other diver
+/// (`Ones arch, threes dive`, `Ones arch, role2 two dive`), the same pair on
+/// both sides, or any further word declines to custom.
+_Match? _archAndDive(List<String> w) {
+  if (w.length != 4 || w[1] != 'arch' || w[3] != 'dive') return null;
+  const other = {'ones': 'twos', 'twos': 'ones'};
+  final archers = w[0];
+  if (other[archers] != w[2]) return null;
+  return _Match('arch_and_dive', {'who': archers});
+}
+
 // "Weave the line" is a caller synonym for the existing (ContraDB-sourced)
-// `zig_zag` move (ratified in D4). It carries no separate turn/ender on the
-// line, so those stay at zig_zag's inherent taxonomy defaults (there is no
-// cross-line turn/ender fold for zig_zag). An optional leading/trailing dancer
-// set maps to `who`; any other leftover token forces the custom fallback.
+// `zig_zag` move (ratified in D4). The line itself carries no turn/ender, so
+// those stay at zig_zag's inherent taxonomy defaults (there is no cross-line
+// turn/ender fold for zig_zag), and so does `slide`: this recognizer never sets
+// it. TCB's `(R;L …)` bracket states the slide, but `_normalize` drops it before
+// this runs, so it is read by `_weaveSlideAnnotation` in
+// `callersbox_figure_dialect.dart`. An optional leading/trailing dancer set maps
+// to `who`; any other leftover token forces the custom fallback.
 _Match? _weaveTheLine(List<String> w) {
   if (!_consumePhrase(w, ['weave', 'the', 'line'])) return null;
-  // TCB writes "Weave the line with partner (L;R to N2)": the pass list is an
+  // TCB writes "Weave the line with partner (L;R to N2)": the bracket is an
   // annotation (dropped by `_normalize`), and "with <dancer>" names the set —
   // consume the optional "with" so the dancer resolves to `who` instead of
   // leaving a stray "with" that would force custom.
@@ -1962,7 +3000,7 @@ _Match? _starPromenade(List<String> w) {
 /// Tier A: TCB writes "Square through 3" / "Square through 4" (dance id 322
 /// "Whim's Gym"). Only a digit count is consumed (TCB never spells the count
 /// out); the word form "square through four" stays custom. A bare "square
-/// through" uses the taxonomy default (4 places).
+/// through" uses the taxonomy default (2 places).
 _Match? _squareThrough(List<String> w) {
   if (!_consumePhrase(w, ['square', 'through'])) return null;
   int? places;
@@ -1974,9 +3012,18 @@ _Match? _squareThrough(List<String> w) {
       break;
     }
   }
+  // "Square through 3 without hands" with a pass list is a circular hey, read
+  // by the TCB decoder; without one there is nothing to build it from, so the
+  // words stay as the note on the square through (#1971).
+  final withoutHands = _consumePhrase(w, ['without', 'hands']);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('square_through', {'places': ?places});
+  return _Match('square_through', {
+    'places': ?places,
+    // Passing without hands is no balance-and-pull, so the line states that
+    // there is none, and the beat rule leaves it so (#1971, #1975).
+    if (withoutHands) 'balance': false,
+  }, withoutHands ? 'without hands' : null);
 }
 
 /// Tier A: TCB writes "Men pull by left" / "Partner pull by left" (dance ids
@@ -2005,20 +3052,37 @@ _Match? _pullBy(List<String> w) {
 
 /// Tier B: TCB writes "Neighbor roll away" / "Partner roll away (W roll R, M
 /// side-step L)" — the styling parenthetical is dropped by `_normalize`. The
-/// stated relationship maps to `who` (matching the canonical ContraDB order
-/// "gentlespoons roll away neighbors with a half sashay …", where the dancer
-/// before "roll away" is `who` and a dancer after it is `whom`). "with a half
+/// canonical ContraDB order is "gentlespoons roll away neighbors with a half
+/// sashay …": the dancer before "roll away" is `who`, a dancer after it
+/// `whom`. A relationship that is the line's only dancer set is `whom`
+/// instead, with `who` left to the default (#1975): neighbors do not roll one
+/// another away. "with a half
 /// sashay" sets the `halfSashay` flag. roll_away has NO direction slot, so a
 /// trailing across/along (canonical spelling; TCB's is a stripped annotation)
 /// is consumed and not represented — the taxonomy deliberately omits it.
 _Match? _rollAway(List<String> w) {
-  final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['roll', 'away'])) return null;
-  final who2 = who ?? _takeDancer(w);
-  final whom = _takeDancer(w);
+  final lead = _takeDancer(w);
+  if (!_consumePhrase(w, ['roll', 'away']) &&
+      !_consumePhrase(w, ['rollaway'])) {
+    return null;
+  }
+  final after = _takeDancer(w);
+  String? who;
+  String? whom;
+  if (lead != null && after == null && rollAwayRelationships.contains(lead)) {
+    // A relationship that is the line's only dancer set is whom the roll away
+    // is with: Caller's Companion's "Neighbor Roll Away" (#1975). `lead` is
+    // the first dancer set anywhere on the line, so "roll away neighbors"
+    // reads the same way. The roller keeps its default.
+    whom = lead;
+  } else {
+    who = lead ?? after;
+    whom = lead == null ? _takeDancer(w) : after;
+  }
   final half =
       _consumePhrase(w, ['with', 'a', 'half', 'sashay']) ||
       _consumePhrase(w, ['with', 'half', 'sashay']) ||
+      _consumePhrase(w, ['w/', 'half', 'sashay']) ||
       _consumePhrase(w, ['half', 'sashay']);
   _consumePhrase(w, ['across']);
   _consumePhrase(w, ['along']);
@@ -2026,9 +3090,9 @@ _Match? _rollAway(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'roll_away',
-    {'who': ?who2, 'whom': ?whom, if (half) 'halfSashay': true},
+    {'who': ?who, 'whom': ?whom, if (half) 'halfSashay': true},
     null,
-    who2 == null,
+    who == null,
   );
 }
 
@@ -2058,8 +3122,9 @@ _Match? _crossTrails(List<String> w) {
 }
 
 /// Tier B: TCB writes "Ones figure eight 1/2 up" / "Twos figure eight down".
-/// The dancer maps to `who`; the fraction to `half`
-/// (1/2→half, 1/4→quarter, 3/4→threeQuarter, 1|full→full); and the TCB
+/// The dancer maps to `who`; the fraction to `fraction`
+/// (1/2→half, 1/4→quarter, 3/4→threeQuarter, 1|full→full, and a mixed amount
+/// such as `1 1/2`→other with that `amount`, #2120); and the TCB
 /// direction vocabulary up/down maps to the taxonomy's above/below (`across`
 /// passes through unchanged). Anything left over → custom.
 _Match? _figure8(List<String> w) {
@@ -2069,8 +3134,12 @@ _Match? _figure8(List<String> w) {
     return null;
   }
   final who2 = who ?? _takeDancer(w);
+  // A mixed amount first, so "1 1/2" is not read as `1` with a stray `1/2`.
+  final amount = _takeFractionAmount(w);
   String? half;
-  if (_consumePhrase(w, ['1/2'])) {
+  if (amount != null) {
+    half = 'other';
+  } else if (_consumePhrase(w, ['1/2'])) {
     half = 'half';
   } else if (_consumePhrase(w, ['1/4'])) {
     half = 'quarter';
@@ -2093,7 +3162,12 @@ _Match? _figure8(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'figure_8',
-    {'who': ?who2, 'fraction': ?half, 'where': ?dir},
+    {
+      'who': ?who2,
+      'fraction': ?half,
+      fractionAmountParam: ?amount,
+      'where': ?dir,
+    },
     null,
     who2 == null,
   );
@@ -2139,8 +3213,13 @@ _Match? _formLongWave(List<String> w) {
 /// this is the MWSD "Trade By" call and should structure; a corpus scan of
 /// ~24k dances found 709 `trade by` occurrences and zero instances of `trade
 /// by the` used any other way). `trade the wave` / `trade the line` remain
-/// excluded: corpus evidence supports them as distinct, unmodelled
-/// whole-wave/line constructions rather than a two-dancer pass-by.
+/// excluded: corpus evidence supports them as distinct whole-wave/line
+/// constructions rather than a two-dancer pass-by. Trade the wave is the
+/// `trade_the_wave` move since taxonomy v39, but no recognizer here reads it:
+/// a source's bare "Trade the wave" names none of the wave it ends in, so an
+/// import keeps it as text. Free-text entry reads the move's bare name, as it
+/// does every move's, and its whole display line
+/// (`readDisplayedTradeTheWave`, which no import calls).
 _Match? _tradePassBy(List<String> w) {
   if (_hasPhrase(w, ['trade', 'the', 'wave']) ||
       _hasPhrase(w, ['trade', 'the', 'line'])) {
@@ -2149,6 +3228,10 @@ _Match? _tradePassBy(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['trade'])) return null;
   final who2 = who ?? _takeDancer(w);
+  // The trade rule was decided for men, women and neighbors (#945). The
+  // centers of a wave usually trade with a hand turn, so `centers trade` stays
+  // text rather than read as a pass by (#2121 made `centers` a subject).
+  if (who2 == 'centers') return null;
   // "trade by" is consumed here (rather than folded into a shoulder phrase)
   // because a leftover `by` with no side word (e.g. a bare "trade by") must
   // still structure, matching the plain "trade" case above.
@@ -2275,7 +3358,7 @@ _Match? _downTheHall(List<String> w) {
   final who = _takeDancer(w);
   // "Ones lead down" (the actives lead down the center) — TCB's shorthand for
   // a hall figure whose `moving` set is the center couple.
-  final lead = _consumePhrase(w, ['lead']);
+  final lead = _consumePhrase(w, [leadVerb]);
   _consumePhrase(w, ['go']);
   final hall =
       _consumePhrase(w, ['down', 'the', 'hall']) ||
@@ -2310,7 +3393,7 @@ _Match? _downTheHall(List<String> w) {
 _Match? _upTheHall(List<String> w) {
   _consumeLineOfFour(w);
   final who = _takeDancer(w);
-  final lead = _consumePhrase(w, ['lead']);
+  final lead = _consumePhrase(w, [leadVerb]);
   _consumePhrase(w, ['go']);
   final hall =
       _consumePhrase(w, ['up', 'the', 'hall']) ||
@@ -2335,3 +3418,5 @@ _Match? _upTheHall(List<String> w) {
     'ender': 'none',
   });
 }
+
+final RegExp _wsRe = RegExp(r'\s+');

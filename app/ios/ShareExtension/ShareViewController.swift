@@ -45,6 +45,14 @@ final class ShareViewController: UIViewController {
       "share_extension.message.no_link",
       bundle: .main,
       comment: "Explains that the share contained no usable link.")
+    static let tooLongTitle = NSLocalizedString(
+      "share_extension.title.too_long",
+      bundle: .main,
+      comment: "Title shown when the shared text is too long to queue.")
+    static let tooLongMessage = NSLocalizedString(
+      "share_extension.message.too_long",
+      bundle: .main,
+      comment: "Explains that the shared text was too long to queue for import.")
     static let saveFailedTitle = NSLocalizedString(
       "share_extension.title.save_failed",
       bundle: .main,
@@ -74,6 +82,15 @@ final class ShareViewController: UIViewController {
   /// can't grow the App Group unbounded; the host drains and clears it on its
   /// next activation. Oldest entries beyond the cap are dropped.
   private static let maxQueuedURLs = 16
+
+  /// Upper bound on one queued payload, in UTF-8 bytes. Dart accepts at most
+  /// `kMaxSharedImportTextLength` (8,192) characters, and a character is at most
+  /// 4 UTF-8 bytes, so this never rejects text Dart would accept; Dart's
+  /// character check stays the exact gate. It only stops a huge selection being
+  /// written to the App Group and later read whole by the host. Must equal
+  /// `SharedImportQueue.maxPayloadBytes` in `IncomingFilesPlugin.swift`; a Dart
+  /// test (`incoming_native_limits_test.dart`) fails if they drift.
+  private static let maxPayloadBytes = 32_768
   private let titleLabel = UILabel()
   private let messageLabel = UILabel()
   private let activityIndicator = UIActivityIndicatorView(style: .large)
@@ -160,7 +177,11 @@ final class ShareViewController: UIViewController {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
       let trimmed = shared?.trimmingCharacters(in: .whitespacesAndNewlines)
-      if let trimmed, !trimmed.isEmpty {
+      if let trimmed, trimmed.utf8.count > Self.maxPayloadBytes {
+        self.showFailure(
+          title: L10n.tooLongTitle,
+          message: L10n.tooLongMessage)
+      } else if let trimmed, !trimmed.isEmpty {
         if self.enqueueSharedURL(trimmed) {
           self.showConfirmation()
         } else {

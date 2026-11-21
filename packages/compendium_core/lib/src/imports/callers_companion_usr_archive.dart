@@ -1,5 +1,11 @@
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
+import '../model/program.dart' show Program;
+import '../storage/shareable_text.dart' show normalizeShareableText;
+import '../storage/repositories/user_glossary_repository.dart'
+    show maxUserGlossaryNameLength, maxUserGlossaryTextLength;
 import '../util/text_sanitizer.dart';
 import 'callers_companion_mapping.dart';
 import 'fmp/fmp_reader.dart';
@@ -30,11 +36,16 @@ class CcUsrArchive {
     required this.dances,
     required this.sets,
     this.insertCalls = const [],
+    this.terms = const [],
     this.relatedDancePairs = const [],
     required this.warnings,
+    this.warningCodes = const [],
+    this.danceRecordIds,
   });
 
   /// One entry per CC `Dance` row, in file order.
+  ///
+  /// Empty after [withoutDances]; [danceRecordIds] outlives it.
   final List<CcDanceEntry> dances;
 
   /// One entry per CC `Set` row, each carrying its ordered [CcSetItem]s.
@@ -46,6 +57,13 @@ class CcUsrArchive {
   /// no `InsertCall` table.
   final List<CcInsertCall> insertCalls;
 
+  /// One entry per CC `Term` row that has a name and fits the glossary's
+  /// bounds (#1023): the user's own glossary terms, for the term-import step.
+  /// Empty when the file has no `Term` table or its term column can't be
+  /// found; rows skipped for their length, and an unreadable table, are
+  /// reported under [CcUsrWarningCodes.termsSkipped].
+  final List<CcTerm> terms;
+
   /// One entry per CC `Dance_Related` row, still keyed by CC `zk_Dance_ID`
   /// values (not yet resolved to Compendium dance ids — the importer resolves
   /// both endpoints once dances are committed; issue #688). Empty when the
@@ -54,6 +72,89 @@ class CcUsrArchive {
 
   /// Non-fatal notes (missing tables, guessed column names, reader warnings).
   final List<String> warnings;
+
+  /// Every `zk_Dance_ID` in the file's `Dance` table, or `null` when that is
+  /// not known: the file is cut short or the reader warned about damage, it has
+  /// no `Dance` table, or a `Dance` row has no `zk_Dance_ID` (the column is
+  /// missing or a value blank). A `SetItem`
+  /// naming an id outside a known set names a dance deleted in Caller's
+  /// Companion (#1976), which `buildCcPrograms` leaves out.
+  final Set<String>? danceRecordIds;
+
+  /// Typed twin of the notes in [warnings] that the user should hear about:
+  /// each a [CcUsrWarningCodes] value, distinct, in first-seen order. The prose
+  /// is English for logs; the app localizes from these codes. Notes that need
+  /// no user action (e.g. a missing optional table) carry no code.
+  final List<String> warningCodes;
+
+  /// This archive without its [dances] — everything [CallersCompanionUsrImporter]
+  /// needs at commit time (programs, shorthands, glossary terms, related-dance
+  /// links) and
+  /// nothing more. The dances have by then been carried through the import
+  /// pipeline as drafts, so holding their rows for the whole review would just
+  /// duplicate them in memory.
+  CcUsrArchive withoutDances() => CcUsrArchive(
+    dances: const [],
+    sets: sets,
+    insertCalls: insertCalls,
+    terms: terms,
+    relatedDancePairs: relatedDancePairs,
+    warnings: warnings,
+    warningCodes: warningCodes,
+    danceRecordIds: danceRecordIds,
+  );
+}
+
+/// The typed warning codes a [CcUsrArchive] can carry in
+/// [CcUsrArchive.warningCodes].
+abstract final class CcUsrWarningCodes {
+  /// The sector chain claims more sectors than the file holds: an incomplete
+  /// copy, so some records were never read.
+  static const String fileTruncated = 'usr_file_truncated';
+
+  /// The `Phrase` table could not be read, so figures came from the `Dance`
+  /// rows (usually empty).
+  static const String figuresFromDanceRows = 'usr_figures_from_dance_rows';
+
+  /// `Phrase` rows that could not be attached to a dance were dropped.
+  static const String phraseGroupsOrphaned = 'usr_phrase_groups_orphaned';
+
+  /// Over-long figure lines were dropped.
+  static const String linesDropped = 'usr_lines_dropped';
+
+  /// The `Set`/`SetItem` tables were missing, so programs or their items were
+  /// not imported.
+  static const String setsSkipped = 'usr_sets_skipped';
+
+  /// `Dance_Related` rows with a missing or self-referential id were skipped.
+  static const String relatedRowsSkipped = 'usr_related_rows_skipped';
+
+  /// Some `Term` rows (the user's glossary terms, #1023) were left out: too
+  /// long for a glossary entry, or the table's term column was not found.
+  static const String termsSkipped = 'usr_terms_skipped';
+
+  static const List<String> all = [
+    fileTruncated,
+    figuresFromDanceRows,
+    phraseGroupsOrphaned,
+    linesDropped,
+    setsSkipped,
+    relatedRowsSkipped,
+    termsSkipped,
+  ];
+}
+
+/// Collects the prose notes and their typed codes during extraction.
+class _UsrWarnings {
+  _UsrWarnings(Iterable<String> seed) : messages = [...seed];
+
+  final List<String> messages;
+  final List<String> codes = [];
+
+  void add(String message, {String? code}) {
+    messages.add(message);
+    if (code != null && !codes.contains(code)) codes.add(code);
+  }
 }
 
 /// One CC `Dance_Related` row: a directed pair of CC `zk_Dance_ID` values
@@ -112,15 +213,42 @@ class CcInsertCall {
   final int altBeats;
 }
 
+/// A single CC `Term` row (#1023): one of the user's glossary terms, a word
+/// with its explanation and no figure, for the term-import step (maintainer
+/// decision 7). All text is sanitized at this ingestion boundary and within
+/// the glossary's bounds.
+///
+/// Only [name] is certain. CC lets a term have no definition (one seen
+/// carries only a teaching note), and its [source] is a free-text citation
+/// (one seen reads "Give and Take - Larry Jennings"), kept as written: CC
+/// gives it no structure to split it by.
+class CcTerm {
+  CcTerm({required this.name, this.definition, this.source, this.notes});
+
+  /// The term (`Term`), single-line.
+  final String name;
+
+  /// What it means (`Definition`), or null when empty.
+  final String? definition;
+
+  /// Where it comes from (`Source`), or null when empty.
+  final String? source;
+
+  /// The user's notes on it (`Notes`), or null when empty.
+  final String? notes;
+}
+
 /// A single CC `Dance` row: its CC relational id, the mapped [CcDanceRecord],
-/// and the verbatim source column map (all CC `Dance` columns, including ones
-/// this PR does not map — preserved so nothing is lost and follow-up phases
-/// have the real values).
+/// and the source column map — the `Dance` columns the importer reads
+/// ([kCcDanceColumnsRead] plus the dance key), by their CC names. Not every column
+/// of the source row: [readCcUsrArchive] never decodes CC's derived
+/// search/display helper columns, which nothing consumes.
 class CcDanceEntry {
   CcDanceEntry({
     required this.recordId,
     required this.record,
     required this.rawColumns,
+    this.idIsFallback = false,
   });
 
   /// The CC dance identity used as the dedupe key **and** the join key that
@@ -130,6 +258,10 @@ class CcDanceEntry {
   final String recordId;
   final CcDanceRecord record;
   final Map<String, String> rawColumns;
+
+  /// Whether [recordId] is the FileMaker record id because the row had no
+  /// `zk_Dance_ID`, so `SetItem` rows cannot name this dance by it.
+  final bool idIsFallback;
 }
 
 /// A CC `Set` row reshaped toward the `Program` model.
@@ -143,6 +275,7 @@ class CcSet {
     this.caller,
     this.dancerLevel,
     this.notes,
+    this.hideAlternates = false,
     required this.items,
   });
 
@@ -154,6 +287,9 @@ class CcSet {
   final String? caller;
   final String? dancerLevel;
   final String? notes;
+
+  /// CC `SetList_HideALT`: the set list leaves its alternates out (#1974).
+  final bool hideAlternates;
   final List<CcSetItem> items;
 }
 
@@ -164,6 +300,7 @@ class CcSetItem {
     this.danceRecordId,
     this.breakText,
     this.isAlt = false,
+    this.breakAfter = false,
     this.guestCaller,
     this.minutes,
   });
@@ -182,6 +319,11 @@ class CcSetItem {
   /// a dance reference.
   final String? breakText;
   final bool isAlt;
+
+  /// CC `SetItem.Break` on a dance: the evening's break comes after this dance
+  /// (#1974). A real file sets it ("1") on one dance in a set, never on a slot
+  /// without a dance.
+  final bool breakAfter;
   final String? guestCaller;
 
   /// Planned minutes (CC `SetItem.Time`), best-effort; `null` when unparseable.
@@ -202,7 +344,16 @@ CcUsrArchive readCcUsrArchive(
   Uint8List bytes, {
   FmpReadLimits limits = const FmpReadLimits(),
 }) {
-  final db = readFmp12(bytes, limits: limits);
+  // Only the tables the CC-schema layer looks for (a real file carries ~22:
+  // shared reference data, settings, resources), and on the two big ones only
+  // the columns it reads. Decoding the rest is most of the cost of a large
+  // library.
+  final db = readFmp12(
+    bytes,
+    limits: limits,
+    tables: _ccTableNames,
+    columnFilter: _ccColumnsToRead,
+  );
   return extractCcUsrArchive(db, limits: limits);
 }
 
@@ -220,7 +371,8 @@ CcUsrArchive extractCcUsrArchive(
   FmpDatabase db, {
   FmpReadLimits limits = const FmpReadLimits(),
 }) {
-  final warnings = <String>[...db.warnings];
+  final warnings = _UsrWarnings(db.warnings);
+  if (db.truncated) warnings.codes.add(CcUsrWarningCodes.fileTruncated);
   final phraseBodies = _extractPhraseBodies(db, warnings, limits);
   final dances = _extractDances(db, warnings, phraseBodies, limits);
   // Phrase rows whose `zk_Dance_ID` matches no `Dance` row are orphans: their
@@ -234,28 +386,73 @@ CcUsrArchive extractCcUsrArchive(
     warnings.add(
       '${orphanIds.length} Caller\'s Companion "Phrase" group(s) referenced a '
       '"zk_Dance_ID" with no matching dance; their figures were skipped.',
+      code: CcUsrWarningCodes.phraseGroupsOrphaned,
     );
   }
   final sets = _extractSets(db, warnings);
   final insertCalls = _extractInsertCalls(db, warnings, limits);
+  final terms = _extractTerms(db, warnings, limits);
   final relatedDancePairs = _extractRelatedDancePairs(db, warnings, limits);
   return CcUsrArchive(
     dances: dances,
     sets: sets,
     insertCalls: insertCalls,
+    terms: terms,
     relatedDancePairs: relatedDancePairs,
-    warnings: warnings,
+    warnings: warnings.messages,
+    warningCodes: warnings.codes,
+    // A cut-short or damaged file (one the reader warned about) may be missing
+    // dances, which are not deleted; and a row with no `zk_Dance_ID` is a
+    // dance no `SetItem` id can match.
+    danceRecordIds:
+        db.truncated ||
+            db.warnings.isNotEmpty ||
+            _findTable(db, _danceTableNames) == null ||
+            dances.any((d) => d.idIsFallback)
+        ? null
+        : Set.unmodifiable(danceIds),
   );
 }
 
 // --- Dance extraction ------------------------------------------------------
+
+/// A column looked up by exact CC name first, then by tolerant token-matching
+/// (see [_resolveColumn]). Held as data so the extractor that reads the column
+/// and the reader-level column filter ([_ccColumnsToRead]) resolve it from the
+/// **same** definition and can never disagree about which column is read.
+class _ColumnSpec {
+  const _ColumnSpec(this.exactNames, this.tokenSets);
+  final List<String> exactNames;
+  final List<List<String>> tokenSets;
+}
+
+String? _resolveSpec(FmpTable table, _ColumnSpec spec) =>
+    _resolveColumn(table, spec.exactNames, spec.tokenSets);
+
+/// CC's own dance key (`zk_Dance_ID`) as it appears on the `Dance` table and,
+/// as the join key, on `Phrase`.
+const _ColumnSpec _danceIdSpec = _ColumnSpec(
+  ['zk_Dance_ID'],
+  [
+    ['dance', 'id'],
+    ['danceid'],
+  ],
+);
+
+const _ColumnSpec _phraseNumberSpec = _ColumnSpec(
+  ['PhraseNumber'],
+  [
+    ['phrase', 'number'],
+    ['phrase', 'num'],
+  ],
+);
 
 const List<String> _danceTableNames = ['Dance', 'Dances'];
 const List<String> _bodyLabels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 List<CcDanceEntry> _extractDances(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   Map<String, List<CcBodySection>> phraseBodies,
   FmpReadLimits limits,
 ) {
@@ -269,16 +466,11 @@ List<CcDanceEntry> _extractDances(
   }
   // CC references dances by its own `zk_Dance_ID` field value, not the FileMaker
   // record id, so that is the join/dedupe identity we expose.
-  final danceIdCol = _resolveColumn(
-    table,
-    ['zk_Dance_ID'],
-    [
-      ['dance', 'id'],
-      ['danceid'],
-    ],
-  );
+  final danceIdCol = _resolveSpec(table, _danceIdSpec);
   final entries = <CcDanceEntry>[];
   var missingIdCount = 0;
+  // Per-row notes from [ccDanceRecordFromColumns] are all dropped-line notes.
+  final rowNotes = <String>[];
   for (final rec in table.records) {
     final columns = _rowColumns(table, rec);
     final ccId = danceIdCol == null
@@ -293,11 +485,15 @@ List<CcDanceEntry> _extractDances(
           columns,
           bodyOverride: phraseBodies[recordId],
           limits: limits,
-          warnings: warnings,
+          warnings: rowNotes,
         ),
         rawColumns: columns,
+        idIsFallback: ccId == null || ccId.isEmpty,
       ),
     );
+  }
+  for (final note in rowNotes) {
+    warnings.add(note, code: CcUsrWarningCodes.linesDropped);
   }
   if (missingIdCount > 0) {
     warnings.add(
@@ -340,12 +536,13 @@ CcDanceRecord ccDanceRecordFromColumns(
     lookup.get('Author2'),
   ].whereType<String>().where((s) => s.trim().isNotEmpty).toList();
 
-  final formation = lookup.firstNonEmpty([
-    'ContraForm',
-    'Formation',
-    'FormationOther',
-  ]);
   final progression = lookup.firstNonEmpty(['Progression', 'ProgressionOther']);
+  // Beside a stated `Progression`, `ProgressionOther` is its detail ("Keeper",
+  // "Ls CCW, Rs 2xCCW") rather than a fallback (#1974).
+  final statedProgression = lookup.get('Progression')?.trim() ?? '';
+  final progressionOther = statedProgression.isEmpty
+      ? null
+      : lookup.get('ProgressionOther');
 
   var level = lookup.get('Level');
   if ((level == null || level.trim().isEmpty) &&
@@ -404,6 +601,7 @@ CcDanceRecord ccDanceRecordFromColumns(
             ? 'User field $i'
             : label.trim(),
         value: value,
+        labelWasBlank: label == null || label.trim().isEmpty,
       ),
     );
   }
@@ -412,11 +610,25 @@ CcDanceRecord ccDanceRecordFromColumns(
     name: lookup.get('Name'),
     authors: authors,
     type: lookup.firstNonEmpty(['Type', 'SubType']),
-    formation: formation,
+    subType: lookup.get('SubType'),
+    formationFamily: lookup.get('Formation'),
+    contraForm: lookup.get('ContraForm'),
+    direction: lookup.get('Direction'),
+    formationOther: lookup.get('FormationOther'),
+    fromUsrColumns: true,
     level: level,
     progression: progression,
+    progressionOther: progressionOther,
     music: lookup.get('Music'),
     notes: lookup.get('Credits'),
+    callingNotes: lookup.get('CallingNotes'),
+    otherNotes: lookup.get('NotesOther'),
+    from: lookup.get('From'),
+    reference: lookup.get('Reference'),
+    pageNumber: lookup.get('PageNumber'),
+    callersBoxId: lookup.get('CallersBox_id'),
+    sourceUrls: [?lookup.get('SourceURL')],
+    videoUrls: [for (final column in _ccVideoColumns) ?lookup.get(column)],
     composed: lookup.get('DateComposed'),
     revised: lookup.get('DateRevised'),
     rating: lookup.get('Rating'),
@@ -468,7 +680,7 @@ const List<String> _phraseOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 ///   grouped, never throwing.
 Map<String, List<CcBodySection>> _extractPhraseBodies(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   FmpReadLimits limits,
 ) {
   final table = _findTable(db, _phraseTableNames);
@@ -476,28 +688,15 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
   // A1..C2 fallback covers them, so this is silent (no warning).
   if (table == null) return const {};
 
-  final danceIdCol = _resolveColumn(
-    table,
-    ['zk_Dance_ID'],
-    [
-      ['dance', 'id'],
-      ['danceid'],
-    ],
-  );
-  final phraseNumCol = _resolveColumn(
-    table,
-    ['PhraseNumber'],
-    [
-      ['phrase', 'number'],
-      ['phrase', 'num'],
-    ],
-  );
+  final danceIdCol = _resolveSpec(table, _danceIdSpec);
+  final phraseNumCol = _resolveSpec(table, _phraseNumberSpec);
   final phraseTextCol = _resolvePhraseTextColumn(table);
   if (danceIdCol == null || phraseTextCol == null) {
     warnings.add(
       'The Caller\'s Companion "Phrase" table was found but its '
       'dance-id/text columns could not be resolved; figures were read from the '
       'Dance rows instead (they are usually empty).',
+      code: CcUsrWarningCodes.figuresFromDanceRows,
     );
     return const {};
   }
@@ -537,6 +736,7 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
       '$missingIdCount Caller\'s Companion "Phrase" row(s) had no '
       '"zk_Dance_ID"; their figures could not be linked to a dance and were '
       'skipped.',
+      code: CcUsrWarningCodes.phraseGroupsOrphaned,
     );
   }
 
@@ -582,6 +782,7 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
       '$overLongCount Caller\'s Companion figure line(s) exceeded the safe '
       'length (> ${limits.maxBodyLineLength} characters) and were dropped; the '
       'rest was imported.',
+      code: CcUsrWarningCodes.linesDropped,
     );
   }
   return result;
@@ -709,12 +910,13 @@ class _PhraseRow {
 const List<String> _setTableNames = ['Set', 'Sets', 'Program', 'Programs'];
 const List<String> _setItemTableNames = ['SetItem', 'SetItems', 'Set_Item'];
 
-List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
+List<CcSet> _extractSets(FmpDatabase db, _UsrWarnings warnings) {
   final setTable = _findTable(db, _setTableNames);
   if (setTable == null) {
     warnings.add(
       'No Caller\'s Companion "Set" table was found; no programs were '
       'imported (the dance import is unaffected).',
+      code: CcUsrWarningCodes.setsSkipped,
     );
     return const [];
   }
@@ -722,6 +924,7 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
   if (itemTable == null) {
     warnings.add(
       'No "SetItem" table was found; sets were imported without their items.',
+      code: CcUsrWarningCodes.setsSkipped,
     );
   }
 
@@ -764,8 +967,13 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
       final setId = setFk == null ? null : cols.get(setFk)?.trim();
       if (setId == null || setId.isEmpty) continue;
       final danceId = danceFk == null ? null : cols.get(danceFk)?.trim();
-      final breakText = cols.firstNonEmpty(['Break', 'BreakText', 'Note']);
+      final breakFlag = _isTruthy(cols.get('Break'));
       final hasDance = danceId != null && danceId.isNotEmpty;
+      // `Break` is a flag in a real file; a slot without a dance that carries
+      // it is the break itself, not the text "1".
+      final breakText =
+          cols.firstNonEmpty([if (!breakFlag) 'Break', 'BreakText', 'Note']) ??
+          (breakFlag ? Program.breakSlotText : null);
       items
           .putIfAbsent(setId, () => [])
           .add(
@@ -773,7 +981,11 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
               order: _parseInt(cols.get('Order')) ?? items[setId]?.length ?? 0,
               danceRecordId: hasDance ? danceId : null,
               breakText: hasDance ? null : breakText,
-              isAlt: _isTruthy(cols.get('AlternateDance')),
+              // A real file marks an alternate "ALT" (#1972).
+              isAlt:
+                  _isTruthy(cols.get('AlternateDance')) ||
+                  cols.get('AlternateDance')?.trim().toLowerCase() == 'alt',
+              breakAfter: hasDance && breakFlag,
               guestCaller: cols.get('Caller'),
               minutes: _parseInt(cols.get('Time')),
             ),
@@ -798,6 +1010,7 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
         caller: cols.get('Caller'),
         dancerLevel: cols.firstNonEmpty(['DancerLevel', 'Level']),
         notes: cols.get('Notes'),
+        hideAlternates: _isTruthy(cols.get('SetList_HideALT')),
         items: setItems,
       ),
     );
@@ -829,7 +1042,7 @@ const List<String> _insertCallTableNames = ['InsertCall', 'InsertCalls'];
 ///   text is skipped (nothing to seed), never a throw.
 List<CcInsertCall> _extractInsertCalls(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   FmpReadLimits limits,
 ) {
   final table = _findTable(db, _insertCallTableNames);
@@ -916,6 +1129,134 @@ List<CcInsertCall> _extractInsertCalls(
   return result;
 }
 
+// --- Term extraction (glossary terms, #1023) -------------------------------
+
+const List<String> _termTableNames = ['Term', 'Terms'];
+
+/// Reads the CC **`Term`** table, the user's glossary terms, as [CcTerm]s for
+/// the term-import step (#1023, maintainer decision 7).
+///
+/// A missing table yields an empty list (silent: many files have none), never
+/// a throw (parse-never-fails). Column names are resolved exact-first
+/// (confirmed against a real CallersCompanion2.USR file: `Term`, `Definition`,
+/// `Source`, `Notes`) with a tolerant token fallback.
+///
+/// ## OWASP hardening
+/// The `Term` table is untrusted external free text. This layer:
+/// - **Sanitizes** every field at the ingestion boundary via
+///   [sanitizeImportedText] (the name single-line).
+/// - **Bounds** the scan fail-closed: at most [FmpReadLimits.maxTermRows] rows
+///   (a hand-built [FmpDatabase] bypasses the byte-level guard); exceeding it
+///   throws a [FmpResourceLimitException].
+/// - **Degrades**: a row with no name is skipped, and so is one with a field
+///   over the glossary's bounds ([maxUserGlossaryNameLength],
+///   [maxUserGlossaryTextLength]), which could never be stored; the skipped
+///   are counted in one warning. Never a throw.
+List<CcTerm> _extractTerms(
+  FmpDatabase db,
+  _UsrWarnings warnings,
+  FmpReadLimits limits,
+) {
+  final table = _findTable(db, _termTableNames);
+  if (table == null) return const [];
+  final nameCol = _resolveColumn(
+    table,
+    ['Term'],
+    [
+      ['term', 'name'],
+      ['term'],
+    ],
+  );
+  if (nameCol == null) {
+    warnings.add(
+      'The Caller\'s Companion "Term" table was found but its term column '
+      'could not be resolved; no terms were read.',
+      code: CcUsrWarningCodes.termsSkipped,
+    );
+    return const [];
+  }
+  final definitionCol = _resolveColumn(
+    table,
+    ['Definition'],
+    [
+      ['definition'],
+    ],
+  );
+  final sourceCol = _resolveColumn(
+    table,
+    ['Source'],
+    [
+      ['source'],
+    ],
+  );
+  final notesCol = _resolveColumn(
+    table,
+    ['Notes'],
+    [
+      ['notes'],
+    ],
+  );
+
+  String? text(_CiColumns cols, String? column) {
+    if (column == null) return null;
+    final raw = cols.get(column);
+    if (raw == null) return null;
+    final value = sanitizeImportedText(raw).trim();
+    return value.isEmpty ? null : value;
+  }
+
+  final result = <CcTerm>[];
+  var processedRows = 0;
+  var overBounds = 0;
+  for (final rec in table.records) {
+    if (processedRows >= limits.maxTermRows) {
+      throw FmpResourceLimitException(
+        'The Caller\'s Companion "Term" table has too many rows to import '
+        'safely (> ${limits.maxTermRows}).',
+      );
+    }
+    processedRows++;
+    final cols = _CiColumns(_rowColumns(table, rec));
+    final rawName = cols.get(nameCol);
+    // A break in a name reads as a space, not as nothing (as the glossary
+    // editor treats one): FileMaker stores one as `\r`.
+    final name = rawName == null
+        ? ''
+        : sanitizeImportedText(
+            rawName.replaceAll(RegExp(r'[\r\n\t]+'), ' '),
+            allowLineBreaks: false,
+          ).replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (name.isEmpty) continue;
+    final term = CcTerm(
+      name: name,
+      definition: text(cols, definitionCol),
+      source: text(cols, sourceCol),
+      notes: text(cols, notesCol),
+    );
+    // Measured as the glossary measures it, after normalization, which can
+    // lengthen a string (NFC expands some characters to two code units).
+    int stored(String text) => normalizeShareableText(text).length;
+    if (stored(name) > maxUserGlossaryNameLength ||
+        [
+          term.definition,
+          term.source,
+          term.notes,
+        ].any((t) => t != null && stored(t) > maxUserGlossaryTextLength)) {
+      overBounds++;
+      continue;
+    }
+    result.add(term);
+  }
+  if (overBounds > 0) {
+    warnings.add(
+      '$overBounds Caller\'s Companion term(s) were longer than a glossary '
+      'entry can be and were skipped.',
+      code: CcUsrWarningCodes.termsSkipped,
+    );
+  }
+  return result;
+}
+
 /// Sanitizes a button label at the ingestion boundary — single-line (labels
 /// never span lines), control/bidi/format spoofing stripped.
 String _sanitizeButtonLabel(String? raw) =>
@@ -982,7 +1323,7 @@ const List<String> _relatedDanceTableNames = ['Dance_Related', 'DanceRelated'];
 ///   reach storage as a dangling `targetDanceId`.
 List<CcRelatedDancePair> _extractRelatedDancePairs(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   FmpReadLimits limits,
 ) {
   final table = _findTable(db, _relatedDanceTableNames);
@@ -1071,12 +1412,123 @@ List<CcRelatedDancePair> _extractRelatedDancePairs(
     warnings.add(
       '$skippedCount Caller\'s Companion "Dance_Related" row(s) had a '
       'missing or self-referential dance id and were skipped.',
+      code: CcUsrWarningCodes.relatedRowsSkipped,
     );
   }
   return pairs;
 }
 
 // --- Helpers ---------------------------------------------------------------
+
+/// CC's video columns: `VideoURL`, then `VideoURL2` … `VideoURL5`.
+const List<String> _ccVideoColumns = [
+  'VideoURL',
+  'VideoURL2',
+  'VideoURL3',
+  'VideoURL4',
+  'VideoURL5',
+];
+
+/// Every fixed `Dance` column name [ccDanceRecordFromColumns] looks up (the
+/// dance-key column is resolved separately, by [_danceIdSpec]). A real `Dance`
+/// table has ~200 columns, most of them CC's own derived search/display helpers
+/// (`zk_SearchKey_*`, `zi_*`, `zz_*`, …) that nothing here reads and that make up
+/// well over half of its text; [readCcUsrArchive] asks the reader not to decode
+/// them.
+///
+/// **Keep this in step with [ccDanceRecordFromColumns].** A lookup added there
+/// but not here reads as empty on a real file while every hand-built test
+/// database still passes — the source-scan test in
+/// `callers_companion_usr_columns_test.dart` fails when they drift.
+const List<String> kCcDanceColumnsRead = [
+  'Author1',
+  'Author2',
+  'ContraForm',
+  'Formation',
+  'FormationOther',
+  'Direction',
+  'Progression',
+  'ProgressionOther',
+  'Level',
+  'Mixed Level',
+  ..._bodyLabels,
+  'UserDefined_1',
+  'UserDefined_1_Name',
+  'UserDefined_2',
+  'UserDefined_2_Name',
+  'UserDefined_3',
+  'UserDefined_3_Name',
+  'Name',
+  'Type',
+  'SubType',
+  'Music',
+  'Credits',
+  'CallingNotes',
+  'NotesOther',
+  'From',
+  'Reference',
+  'PageNumber',
+  'CallersBox_id',
+  'SourceURL',
+  ..._ccVideoColumns,
+  'DateComposed',
+  'DateRevised',
+  'Rating',
+];
+
+/// The [FmpColumnFilter] for [readCcUsrArchive]: on the `Dance` and `Phrase`
+/// tables (which carry nearly all of a library's text) keep only the columns the
+/// extractors read; every other table is read whole (they are small, and their
+/// extractors resolve several columns each).
+///
+/// Column names are matched the way [_CiColumns] matches them (lowercased,
+/// trimmed), and resolved columns come from the same [_ColumnSpec]s the
+/// extractors use.
+Set<int>? _ccColumnsToRead(String tableName, List<FmpColumn> columns) {
+  final lower = tableName.toLowerCase();
+  final table = FmpTable(0, tableName, columns, const []);
+  final Iterable<String?> names;
+  if (_danceTableNames.any((n) => n.toLowerCase() == lower)) {
+    names = [...kCcDanceColumnsRead, _resolveSpec(table, _danceIdSpec)];
+  } else if (_phraseTableNames.any((n) => n.toLowerCase() == lower)) {
+    names = [
+      _resolveSpec(table, _danceIdSpec),
+      _resolveSpec(table, _phraseNumberSpec),
+      _resolvePhraseTextColumn(table),
+    ];
+  } else {
+    return null;
+  }
+  String norm(String s) => s.toLowerCase().trim();
+  final wanted = {
+    for (final n in names)
+      if (n != null) norm(n),
+  };
+  return {
+    for (final c in columns)
+      if (wanted.contains(norm(c.name))) c.index,
+  };
+}
+
+/// Every table name the CC-schema layer looks for — the union of the candidate
+/// lists each extractor passes to [_findTable] — so [readCcUsrArchive] can ask
+/// the reader for exactly those. Derived from the lists themselves, not copied,
+/// so adding a candidate name to an extractor cannot silently leave it out.
+final Set<String> _ccTableNames = {
+  ..._danceTableNames,
+  ..._phraseTableNames,
+  ..._setTableNames,
+  ..._setItemTableNames,
+  ..._insertCallTableNames,
+  ..._termTableNames,
+  ..._relatedDanceTableNames,
+};
+
+/// The tables [readCcUsrArchive] asks the reader for, for a test that a new
+/// extractor's tables are among them: one missing from the set is never
+/// decoded from a real file, though every hand-built fixture still carries it.
+@visibleForTesting
+Set<String> get ccUsrArchiveTableNames => Set.unmodifiable(_ccTableNames);
 
 FmpTable? _findTable(FmpDatabase db, List<String> candidateNames) {
   for (final name in candidateNames) {

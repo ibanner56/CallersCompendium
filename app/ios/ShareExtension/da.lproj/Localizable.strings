@@ -7,3 +7,5 @@
 "share_extension.message.no_link" = "Denne deling indeholdt ikke et link, som Caller's Compendium kan importere.";
 "share_extension.title.save_failed" = "Kunne ikke gemme link";
 "share_extension.message.save_failed" = "Caller's Compendium kunne ikke gemme dette link til import. Prøv igen.";
+"share_extension.title.too_long" = "Teksten er for lang";
+"share_extension.message.too_long" = "Denne delte tekst er for lang til, at Caller's Compendium kan importere den. Prøv at dele kun linket.";

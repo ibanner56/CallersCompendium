@@ -9,8 +9,8 @@ This is the operator runbook for cutting a desktop release. It documents the
 > the App Privacy / Data safety / content-rating forms — lives in
 > [`store-submission/`](store-submission/README.md).
 
-> **Scope of this wave.** Desktop builds are **free** — no paid accounts. The
-> **Linux** (`tar.gz`/AppImage) artifacts are **UNSIGNED**. Windows
+> **Scope of this wave.** The **Linux** (`tar.gz`/AppImage) artifacts are
+> **UNSIGNED**. Windows
 > (installer/`zip`) artifacts use Azure Trusted Signing when the five
 > `AZURE_*` repository variables are configured; otherwise Windows users bypass
 > the SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
@@ -26,7 +26,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 > per-platform signing table.
 
 <!-- section-index -->
-> **Section index.** This document is ~71 KB — read the section you
+> **Section index.** This document is ~79 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
@@ -34,16 +34,20 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
 - [Cutting a release](#cutting-a-release) — 202 lines
+- [Release cadence](#release-cadence) — 31 lines
+- [Deploying the Athenaeum server](#deploying-the-athenaeum-server) — 52 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
-- [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
+- [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
 - [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
+- [Signing the published-collection catalog (Ed25519, issue #2161)](#signing-the-published-collection-catalog-ed25519-issue-2161) — 84 lines
 - [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
 - [Dry run (no release created)](#dry-run-no-release-created) — 36 lines
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
 - [Android (signed APK)](#android-signed-apk) — 143 lines
 - [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
-- [Packaging tooling notes](#packaging-tooling-notes) — 24 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 101 lines
+- [Pinned native dependencies](#pinned-native-dependencies) — 81 lines
 <!-- /section-index -->
 
 ## What the pipeline produces
@@ -54,7 +58,7 @@ ADR-002 deterministic name contract
 
 | Platform | Runner | Artifacts |
 |----------|--------|-----------|
-| Linux (x64) | `ubuntu-latest` | `…-linux-x64.AppImage`, `…-linux-x64.tar.gz` |
+| Linux (x64) | `ubuntu-latest`, building inside an `ubuntu:22.04` container pinned by digest (the container's glibc 2.35 is the floor; `tools/ci/check_linux_build_runner.py`, and `tools/ci/check_linux_glibc_floor.py` checks the built bundle) | `…-linux-x64.AppImage`, `…-linux-x64.tar.gz` |
 | macOS (universal) | `macos-latest` | `…-macos-universal.dmg`, `…-macos-universal.zip` |
 | Windows (x64) | `windows-latest` | `…-windows-x64.exe` (Inno Setup installer), `…-windows-x64.zip` |
 
@@ -105,10 +109,19 @@ and produces no Android artifact.
 
 ## Safety model
 
-- Global workflow token is **read-only**. Only the `publish_draft` job elevates
+- Global workflow token is **read-only**. The `build` matrix runs in the
+  approval-gated `release-signing` environment, so no platform builds until a
+  maintainer approves, and it holds `id-token: write` job-wide (Azure Trusted
+  Signing authenticates over GitHub OIDC for the Windows leg; the other legs do
+  not use it, but they can request a token; see
+  [OIDC scope of the build matrix](#oidc-scope-of-the-build-matrix)) with
+  `contents: read` only. The `publish_draft` job elevates
   to `contents: write` (plus `id-token`/`attestations: write` for the provenance
   and SBOM attestations); the approval-gated `publish_mobile` job remains
-  read-only; the `verify` job is read-only (`attestations: read` to query the
+  read-only; the approval-gated `deploy_server` job is read-only and is the only
+  job that can read the server SSH credentials (see
+  [Deploying the Athenaeum server](#deploying-the-athenaeum-server)); the `verify`
+  job is read-only (`attestations: read` to query the
   attestations API — no write, no `id-token`); and the `pages` job elevates to
   `contents: write`
   **only** — just enough to push the manifest to the `gh-pages` branch (see
@@ -145,11 +158,17 @@ and produces no Android artifact.
      `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
      below them. Choose a newer `X.Y.Z` core instead.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
+     `tools/ci/check_changelog_promoted.py` refuses one, `-beta` included: a
+     release on the previous published tag's `X.Y` line with `Z` above zero
+     whose schema rose fails, naming both tags and both values. Cut the change as
+     the next minor release instead: a patch release cut from `main` while
+     `main`'s schema is ahead of the last tag's is refused for this reason. A
+     minor's beta and its stable promotion (`Z` is 0) may differ in schema.
    - **Update the static build-version hints in every issue form.** GitHub issue
      forms cannot read the latest release tag dynamically. Set every explicit
      SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same
      bare `X.Y.Z` as `app/pubspec.yaml` — currently the default and fallback
-     hint in the beta check-in and bug-report forms. Do not write `vX.Y.Z`, a
+     hint in the bug-report form. Do not write `vX.Y.Z`, a
      beta suffix, or build metadata: reporters are supplying the app build
      version, not its release tag. `tools/ci/check_app_version.py` checks all
      literals in those files, while the release workflow requires the pubspec
@@ -176,8 +195,10 @@ and produces no Android artifact.
    ```
 
    If no fragment has a `core` object, do not touch the core pubspec or core
-   CHANGELOG. If core entries exist, ask the maintainer for a new core version,
-   showing the current value for context:
+   CHANGELOG; the compiler fails a core pubspec version that has no section in
+   the core CHANGELOG while no core entry is pending. If core entries exist, ask
+   the maintainer for a new core version, showing the current value for
+   context:
 
    ```sh
    grep '^version:' packages/compendium_core/pubspec.yaml
@@ -217,7 +238,10 @@ and produces no Android artifact.
    - Do not add a build-number line: the tag deterministically supplies store
      build codes, and `app/pubspec.yaml` has no version suffix.
    - **Include a Data / Migrations section whenever `kCompendiumSchemaVersion`
-     or `contraTaxonomyVersion` has moved** since that section was last written.
+     or `contraTaxonomyVersion` has moved, or a new one-time repair marker
+     (a `'__…_done__'` settings key in
+     `packages/compendium_core/lib/src/storage/database.dart`) has appeared,**
+     since that section was last written.
      Read both from source at tag time — they move while a release is being
      prepared, so a value quoted from an earlier status report may already be
      stale. State old → new and what the migration does: these notes are where a
@@ -238,11 +262,31 @@ and produces no Android artifact.
      so write `schema … 20 → 25` and `taxonomy … 23 → 27` as separate,
      explicitly labelled ranges.
 
-     A taxonomy bump is **not** a data migration — nothing reads
-     `contraTaxonomyVersion` at runtime and no rebuild is triggered by it. It is
-     still user-visible, because dances get categorised or matched differently,
-     so it belongs in the notes; describe what changed about recognition or
-     canonical form rather than implying the database is rewritten.
+     The taxonomy **constant** migrates nothing — nothing reads
+     `contraTaxonomyVersion` at runtime — but the change it records usually
+     ships with a one-time pass that does. Several taxonomy changes rewrote
+     stored figures on first launch (v26, v28, v33, v34, v35) and others only
+     rebuilt the search index (v27, v30, v32, v37, v38), each gated by its own
+     `'__…_done__'` marker rather than by either version. So describe what
+     changed about recognition or canonical form, **and** describe every
+     one-time pass the release runs over stored figures or text: what it
+     rewrites, and whether it changes the user's data or only the search
+     index. Repairs ship this way in PATCH releases too, where the schema may
+     not move at all, so a release with no version range can still owe this
+     section.
+
+     `tools/ci/check_changelog_promoted.py` enforces the ranges, that a patch
+     release did not raise the schema (and no release lowered it), and, for a new
+     `'__…_done__'` marker since the previous tag, that a non-empty Data /
+     Migrations section exists. It cannot judge whether the prose describes
+     the pass; that is the author's job. Nor does it see a pass that re-runs
+     without a new `_done__` key: a change to the shareable-text normalisation
+     scope (a newly `shareable` column or settings key in the privacy
+     registry, or a new normalisation algorithm version) re-runs the full
+     normalisation of stored text, and a `kSectionRuleVersion` bump re-runs
+     the section rebuild. The complete list of passes is
+     `CompendiumRepositories.oneTimeRepairMarkers`; check it against the
+     previous tag.
 
    **Then preview the compiled notes.** The compiler verifies fragment shape and
    consumes the exact inputs shown in the generated diff; rendering remains the
@@ -271,8 +315,11 @@ and produces no Android artifact.
    tagged from `main`, never from the release branch. Use
    `docs(release): prepare vX.Y.Z` for a stable release or
    `docs(release): prepare vX.Y.Z-beta` for a beta release as both the
-   release-preparation commit subject and pull request title; the merged #937
-   precedent used `docs(release): prepare v0.1.0-beta.7`. Never use
+   release-preparation commit subject and pull request title, with X.Y.Z equal to
+   `app/pubspec.yaml`'s version (`docs(release): prepare v0.10.0-beta` for the
+   `v0.10.0-beta` tag); when the PR changes the pubspec version, CI checks the PR title, not the
+   commit subjects (a stable promotion of an existing beta changes no version, so
+   its title is not checked). Never use
    `chore(release)` unless a maintainer explicitly overrides the convention.
    This applies even when preparation changes version literals, issue-template
    metadata, or generated changelogs. This repo squash-merges, so what you want
@@ -314,7 +361,9 @@ and produces no Android artifact.
    release tags should always include one.
 5. Watch the run under **Actions → Release**. It resolves + validates metadata
    (pending fragments or a direct compatibility-queue edit fail here, fast; schema changes also require a
-   current Data / Migrations range), gates on the reusable checks, builds +
+   current Data / Migrations range), gates on the reusable checks, then **waits
+   for the `release-signing` environment approval** (every `build` leg is in
+   that environment, so nothing is built until a maintainer approves), builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
 6. Review the draft under **Releases**: confirm its title is the selected
@@ -329,8 +378,120 @@ and produces no Android artifact.
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
-8. **Publish** the draft manually once the `verify` job is green and the draft
+   `deploy_server` then waits for the `release-server` approval; see step 8.
+8. **Approve the `deploy_server` job** (`release-server` environment) once
+   `verify` is green, and **wait for it to go green before publishing**. It
+   deploys this tag's Athenaeum server, and the mobile uploads and the update
+   manifest cannot start until it succeeds. Publishing the draft is a manual step
+   the workflow cannot gate, and it makes the desktop binaries public, so
+   publishing first would let people run a client ahead of its server. See
+   [Deploying the Athenaeum server](#deploying-the-athenaeum-server).
+9. **Publish** the draft manually once `deploy_server` is green and the draft
    looks right.
+10. **Approve the `pages` job** (`release-manifest` environment) **after** the
+   draft is public. `pages` needs `verify`, checks that the release is no longer a
+   draft and that its manifests download anonymously, verifies every manifest
+   signature against the pinned key, and only then pushes `gh-pages`. Approving
+   before publishing fails closed without changing the update channel; publish the
+   draft, then re-run the failed `pages` job.
+
+Runs are serialized **per target tag**: a tag push and a recovery dispatch for the
+same tag share one concurrency group and queue rather than racing on the draft.
+(GitHub keeps only one *pending* run per group, so a third run queued behind an
+in-flight one replaces the second.)
+
+## Release cadence
+
+This is policy, not behaviour the release tooling enforces. There is no beta
+cohort beyond the maintainer, so the rules below make
+the maintainer's own soak and the mechanical gates carry the weight a tester
+pool would otherwise share.
+
+**Beta**
+
+- Cut a beta only when a release candidate exists. There is no calendar cadence.
+- Soak each beta for **7 days** before promoting it.
+- The maintainer validates the beta on **iOS, macOS and Windows**. Android and
+  Linux are the maintainer's daily devices, kept on the current build, so they
+  are exercised by ordinary use rather than a separate pass.
+- A beta passes when the library opens, the upgrade migration completes, a
+  backup/restore round-trips, and the updater offers the next build.
+- A release with a schema or taxonomy change always gets a full beta soak first.
+- No beta cohort is recruited yet. Revisit if stable users ask for early builds.
+
+**Stable**
+
+- Release when there is user-visible content, roughly every 6-8 weeks, with an
+  immediate patch when a fix is waiting.
+- A stable tag follows a beta that completed its 7-day soak with no new
+  problems. Only a hotfix skips the soak, and its diff stays minimal.
+- Use staged rollout on the stores (for example 20% then 100%). Pause the
+  rollout on any crash or data-loss report in the first 48-72 hours. The desktop
+  updater has no staged rollout, so the soak is its only guard.
+- Data loss, updater breakage and launch failures ship as soon as the fix is
+  verified.
+
+## Deploying the Athenaeum server
+
+The `deploy_server` job puts the server for the tagged commit into production
+before the mobile uploads and the update manifest. `publish_mobile` (TestFlight, Google
+Play) and `pages` (the update manifest) both `need` it, so a failed deploy stops
+the run before either starts. It runs after `verify`, behind its own
+`release-server` approval, and it also runs on an existing-tag recovery
+(rebuilding the same commit under the same image tag is idempotent while that
+tag is the newest release, and the manifest still waits on it; the script refuses
+to replace a newer running release with an older one, so recovering an old tag
+fails at this job instead of rolling the server back). A build-only `workflow_dispatch` dry run skips it.
+
+It SSHes to the host and pipes
+[`tools/release/deploy_athenaeum.sh`](../../tools/release/deploy_athenaeum.sh)
+from the tagged commit into `bash -s`, passing the commit SHA and the release
+version as arguments (the step validates both before ssh, which joins them into
+one command string for the remote login shell). On the host the script first
+refuses if the running container is a newer release than this tag, then:
+
+1. fetches that exact commit into `/opt/CallersCompendium` and checks it out
+   detached (the tag's commit, not whatever `main` is now);
+2. builds `callers-compendium-athenaeum:<version>` (`0.7.0-beta`, the tag without
+   its `v`) from `server/Dockerfile`, with `git archive <sha>` as the build
+   context, so local edits or untracked files in the host checkout never reach
+   the image: **before** touching the running container,
+   so a failed build leaves the previous release serving;
+3. stops and removes the `athenaeum` container, and starts the new image with the
+   flags in [the operations runbook](athenaeum-operations.md);
+4. waits for `http://127.0.0.1:33333/heartbeat` and confirms the container is
+   running the new image with no restarts.
+
+Any failing command fails the job, and so the release. A failure after step 2 can
+leave the new container down or crash-looping; the previous image is still on the
+host, so roll back as the runbook's *Upgrade, rollback, and release order* says,
+fix forward, and re-run the failed job (or recover the tag).
+
+### Maintainer: the `release-server` environment (one-time)
+
+Create the environment under **Settings → Environments** with **Required
+reviewers** (it is the approval gate). Under **Deployment branches and tags**,
+allow exactly the tag rule `v*` (tag pushes) and the branch `main` (an
+[existing-tag recovery](#recovering-a-failed-existing-tag-run) is dispatched from
+`main`, so without it the recovery's deploy, mobile and manifest jobs are refused);
+no other branch can reach the key. Unlike the signing legs, a missing value
+fails the job rather than skipping it.
+
+| Kind | Name | Value |
+|------|------|-------|
+| Secret | `ATHENAEUM_DEPLOY_SSH_KEY` | Private key (OpenSSH format) for the deploy account |
+| Secret | `ATHENAEUM_DEPLOY_KNOWN_HOSTS` | The host's `known_hosts` line(s), e.g. `ssh-keyscan -t ed25519 <host>` checked against the host's own fingerprint. Pinned: the connection fails on any other key |
+| Variable | `ATHENAEUM_DEPLOY_HOST` | Hostname or IP |
+| Variable | `ATHENAEUM_DEPLOY_USER` | Account the job logs in as |
+| Variable | `ATHENAEUM_DEPLOY_PORT` | Optional; defaults to `22` |
+
+The account needs passwordless `sudo` for `docker` (the script uses `sudo -n`,
+which fails instead of prompting), write access to the `/opt/CallersCompendium`
+checkout (it fetches and checks out the tagged commit, so the account must own it,
+or git refuses it as dubious ownership; `origin` must be fetchable), and `curl`. Prefer a dedicated key, and constrain it on
+the host (`authorized_keys` options such as `restrict`, plus `from=` for GitHub's
+runner ranges if you accept maintaining them): the key can run arbitrary commands
+as that account, so its protection is the environment's reviewers.
 
 ## CHANGELOG-driven release notes
 
@@ -349,8 +510,7 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
   same section serves the beta and the eventual stable release.
 - For a bare **beta** tag it prepends a clear **Beta / pre-release** banner.
 - It always appends the safety footer: the per-platform signing posture, a
-  reminder to verify against `SHA256SUMS`, and a note that a maintainer
-  publishes the draft after review. The Windows and macOS lines are **each
+  reminder to verify against `SHA256SUMS`. The Windows and macOS lines are **each
   honest about the actual signing outcome** — the publish job passes
   `--macos-signing configured` only when the Apple secrets are present (so macOS
   was Developer ID-signed & notarized) and `--windows-signing configured` only
@@ -393,11 +553,29 @@ supply chain with signed provenance.
   recorded in `metadata.properties`. First-party workspace packages and the
   Flutter SDK packages themselves are not listed as components (the SDK is pinned
   via `.fvmrc` and captured by the build provenance).
+- **Native components.** The pub graph cannot see binaries that the builds
+  fetch or copy outside pub, so the SBOM adds them itself:
+  - **pdfium**, one component per shipped build (`linux-x64`, `win-x64`), with
+    the pinned version, the SHA-256 and URL of the release archive, and the
+    SHA-256 of the library that lands in the bundle. Read from
+    `packaging/pdfium/pdfium.cmake`, the same pin the build verifies (see
+    [Pinned native dependencies](#pinned-native-dependencies)).
+  - the **MSVC runtime DLLs** the Windows build ships app-local
+    (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`). Their version
+    is whatever the runner's Visual Studio carries, so the Windows leg writes
+    each staged DLL's file version and SHA-256 to `msvc-runtime.json`
+    (workflow artifact `native-components-windows`, not a release asset), and
+    `publish_draft` passes it to `gen_sbom.py --msvc-runtime`.
+
+  Not yet listed: the AppImage runtime and `appimagetool` (pinned and
+  checksum-verified in the Linux packaging step), the Inno Setup installer
+  stub, and the native SQLite library the `sqlite3` package bundles.
 - **How it's produced.** In the `publish_draft` job, `flutter pub get
   --enforce-lockfile` resolves the single root `pubspec.lock`, `dart pub deps
   --json` dumps the resolved graph, and `tools/release/gen_sbom.py` turns it into
-  the SBOM. Output is deterministic (components sorted by purl; only
-  `metadata.timestamp` varies), so re-runs against the same lockfile diff cleanly.
+  the SBOM, adding the native components above. Output is deterministic
+  (components sorted by purl; only `metadata.timestamp` varies), so re-runs
+  against the same lockfile and MSVC manifest diff cleanly.
 - **Where it lands.** It's uploaded as a release asset, its checksum is included
   in `SHA256SUMS`, and it is **cryptographically attested** with
   `actions/attest-sbom` (keyless GitHub OIDC — same trust model as the build
@@ -410,12 +588,13 @@ flutter pub get --enforce-lockfile
 dart pub deps --json > /tmp/deps.json
 python3 tools/release/gen_sbom.py \
   --deps /tmp/deps.json --version 0.1.0 --output /tmp/sbom-0.1.0.cdx.json
+# (add --msvc-runtime <msvc-runtime.json> to list the MSVC runtime too)
 python3 tools/release/test_gen_sbom.py            # assert-based unit tests
 ```
 
 > **CI runs these too.** The release supply-chain suites
-> (`test_gen_sbom.py`, `test_gen_release_metadata.py`, `test_gen_release_notes.py`,
-> and `test_publish_pages_manifest.py`) also run on **every PR** via
+> (`test_gen_sbom.py`, `test_pdfium_pin.py`, `test_gen_release_metadata.py`,
+> `test_gen_release_notes.py`, and `test_publish_pages_manifest.py`) also run on **every PR** via
 > `.github/workflows/_checks.yml`, so a regression in SBOM / `SHA256SUMS` /
 > update-manifest / `.sig`-preservation output fails the PR gate — not just the
 > release path.
@@ -460,14 +639,24 @@ per-channel URL, hard-coded as `kUpdateManifestBaseUrl` in
 `app/lib/src/update/update_config.dart`:
 
 ```
-https://ibanner56.github.io/CallersCompendium/stable.json
-https://ibanner56.github.io/CallersCompendium/beta.json
+https://callerscompendium.com/stable.json
+https://callerscompendium.com/beta.json
 ```
 
+Builds before 0.6.0-beta request `https://ibanner56.github.io/CallersCompendium/…`
+instead, which only works while Pages "Enforce HTTPS" is on: with it off, Pages
+301s to `http://callerscompendium.com/…` and those clients refuse the non-https
+hop and silently report no update.
+
 On every real tagged release the `pages` job publishes the selected manifests
-to those URLs. It runs after `publish`, downloads the `channel-manifests`
-artifact (the exact signed `stable.json` / `beta.json` files that `publish`
-generated), and
+to those URLs. The channel advances only after verification and public release (it is not
+ordered against the mobile store uploads (TestFlight / Google Play), which run independently after
+`verify`): the job needs `verify`, waits behind the `release-manifest` approval (granted after
+the draft is published), and fails closed unless the release is public and its
+manifests download anonymously. It then downloads the `channel-manifests`
+artifact (the exact signed `stable.json` / `beta.json` files that `publish_draft`
+generated), verifies each manifest/signature pair with
+`tools/release/check_pages_signature_files.py` **before** publishing, and
 calls `tools/release/publish_pages_manifest.sh` to commit it to the persistent
 **`gh-pages`** branch at the site **root**. For a project Pages site the branch
 root maps 1:1 to the base URL (root `stable.json` → `…/CallersCompendium/stable.json`),
@@ -490,6 +679,41 @@ by `tools/release/test_publish_pages_manifest.py`.
 guard as `publish`, so forks, PRs, and build-only manual runs can never publish
 the site. An explicit existing-tag recovery is a release operation and does
 refresh the selected channel.
+
+### Announcing an end of life for older builds
+
+To tell users of older builds that they must update by a date, add an entry to
+`tools/release/retirements.json` and commit it **before tagging** the release
+that should carry it: the `publish_draft` job reads the file from the release's
+source commit and copies it into every manifest that release refreshes.
+
+```json
+[
+  {"through": "0.7.0", "endOfLife": "2027-01-31"}
+]
+```
+
+Every build at or below `through` (SemVer precedence, so `0.7.0-beta` is
+covered too) shows a banner warning that support ends on `endOfLife`, and
+from that day on that it has ended (`endOfLife` is the first unsupported day). Field rules are in ADR-002 §2.
+
+- **Only checks deliver it.** Clients learn of the notice from a manual or
+  opt-in automatic update check (ADR-002 §5); there is no separate request.
+  Builds up to and including 0.6.0-beta cannot show it at all.
+- **It travels with a release.** No workflow re-signs a manifest outside a
+  release. A stable release refreshes `stable.json` and `beta.json`; a beta
+  release refreshes only `beta.json`, so a notice added just before a beta
+  release does not reach stable-channel users until the next stable release.
+- **Keep entries until they no longer matter.** Each release copies the whole
+  current file, and a client clears its stored notice when an authenticated
+  manifest no longer covers it. Deleting an entry therefore withdraws the
+  notice, and moving a date postpones it, on the next release.
+- **A release cannot retire itself.** `gen_release_metadata.py` fails the run
+  for an entry whose `through` is not strictly older than the version being
+  released, and for any entry the client would refuse (unknown key, a
+  `v`-prefixed or otherwise malformed version, an impossible date). The
+  `tools/release/test_gen_release_metadata.py` suite also validates the
+  checked-in file, so a malformed entry fails CI before it reaches a release.
 
 ### One-time maintainer step: enable GitHub Pages
 
@@ -549,9 +773,10 @@ python3 tools/release/test_publish_pages_manifest.py
 > every `*.json` at the `gh-pages` root has a **valid** sibling `*.json.sig` — a
 > real Ed25519 signature over the exact manifest bytes, verified against the pinned key
 
-A missing or invalid `.sig` makes the in-app update client fail closed and silently
-report "no update" to every user on that channel — the failure is invisible by design,
-which is why an external, ongoing assertion is necessary. An out-of-band deletion (direct
+A missing or invalid `.sig` makes the in-app update client fail closed and report
+nothing found to every user on that channel — silently for the automatic check, and
+as "Couldn't check for updates" for a manual one (see the erratum below) — which is
+why an external, ongoing assertion is necessary. An out-of-band deletion (direct
 `git push` to `gh-pages`, a rogue workflow, or a GitHub UI edit) is caught within
 **≤24 hours** by the daily schedule. Publish-path regressions are caught immediately by
 the post-publish `Assert gh-pages signature invariant` steps in `pages-site.yml` and
@@ -571,20 +796,23 @@ gh workflow run pages-sig-gate.yml
 The check script is `tools/release/check_pages_signature_files.py` and its offline test
 suite is `tools/release/test_check_pages_signature_files.py`. The check verifies
 **presence** of `.sig` files (phase 1) and then validates each signature as a real
-Ed25519 signature over the exact bytes of the manifest against the public key pinned as
-`kUpdateManifestPublicKey` in `app/lib/src/update/update_config.dart` (phase 2). A
+Ed25519 signature over the exact bytes of the manifest against the public keys pinned as
+`kUpdateManifestPublicKeys` in `app/lib/src/update/update_config.dart` (phase 2); like
+the app, it accepts a signature that verifies under **any** pinned key. A
 stale `.sig` — e.g. from a previous release alongside an updated manifest — fails the
-same way a missing one does (issue #810). The key is parsed from the Dart source at
-runtime so a key rotation propagates automatically without touching the gate.
+same way a missing one does (issue #810). The keys are parsed from the Dart source at
+runtime so a key rotation propagates automatically without touching the gate; an
+empty set or a malformed entry exits 2, so a typo in a newly pinned key is caught
+before CI signs with it.
 
 ## Signing the update manifest (Ed25519, issue #431)
 
 The in-app update client verifies **integrity** with the per-artifact `sha256`
 in the manifest, but that only proves an artifact matches what the manifest
 claims — not that the manifest itself is authentic. To close that gap the client
-also verifies a **detached Ed25519 signature** over the manifest against an
-**in-app pinned public key**. A manifest with a missing, invalid, or malformed
-signature — or when no key is pinned — is **refused as a silent no-op** (never an
+also verifies a **detached Ed25519 signature** over the manifest against a small
+**in-app pinned set of public keys**. A manifest with a missing, invalid, or
+malformed signature — or one that verifies under no pinned key — is **refused as a silent no-op** (never an
 install). This is a fail-closed security gate (ADR-002 §6, OWASP A08).
 
 ### Signature format
@@ -596,10 +824,12 @@ install). This is a fail-closed security gate (ADR-002 §6, OWASP A08).
 - **File:** `<channel>.json.sig`, served next to `<channel>.json` on `gh-pages`
   (e.g. `stable.json.sig`). Its body is the **standard base64** of the raw
   **64-byte** Ed25519 signature (a trailing newline is tolerated).
-- **Pinned key:** `kUpdateManifestPublicKey` in
-  `app/lib/src/update/update_config.dart` — the standard base64 of the **32-byte**
-  Ed25519 public key (**now provisioned**). If it is empty or no key is pinned,
-  verification fails closed so the client never offers an update.
+- **Pinned keys:** `kUpdateManifestPublicKeys` in
+  `app/lib/src/update/update_config.dart` — a list of the standard base64 of each
+  **32-byte** Ed25519 public key: the *current* key CI signs with (**provisioned**)
+  and, ahead of a rotation, a *next* key. A signature is accepted if it verifies
+  under **any** entry; an empty or malformed entry is skipped, and an empty list
+  fails closed so the client never offers an update.
 
 Client verification lives in `app/lib/src/update/update_signature.dart` and is
 fully unit-tested with in-test keypairs.
@@ -642,12 +872,12 @@ provision — or later re-provision — the key:
    (repo/organization **Settings → Secrets and variables → Actions**). Paste the
    full PEM (`-----BEGIN PRIVATE KEY----- … -----END PRIVATE KEY-----`).
 
-3. **Pin the public key**: set `kUpdateManifestPublicKey` in
-   `app/lib/src/update/update_config.dart` to the base64 from step 1 (replacing
-   any previously pinned value), and **ship an app release** carrying it. Only
-   clients built with the pinned key
-   can verify — so the pinned key must reach users **before** the first signed
-   manifest is the only one they can use.
+3. **Pin the public key**: add the base64 from step 1 to
+   `kUpdateManifestPublicKeys` in `app/lib/src/update/update_config.dart` and
+   **ship an app release** carrying it. Only clients built with the key pinned
+   can verify — so the pinned key must reach users **before** the first
+   manifest signed with it is the only one they can use. To *replace* a key
+   that is already provisioned, follow [Key rotation](#key-rotation) instead.
 
 4. **Verify end-to-end** after the next release: confirm the `.sig` for
    whichever channel you just cut (e.g.
@@ -658,19 +888,147 @@ provision — or later re-provision — the key:
 
 ### Key rotation
 
-Because each client **pins** a public key, rotation must be staged so old
-clients are not stranded:
+Each client pins a **set** of public keys (`kUpdateManifestPublicKeys`) and
+accepts a manifest whose signature verifies under **any** of them, while CI
+signs with exactly one private key (`UPDATE_SIGNING_KEY`) and publishes one
+`.sig`. Rotation works by pinning the *next* key before CI uses it, so at every
+step every supported install trusts the key CI is signing with:
 
-1. Generate the new keypair and **pin the new public key in an app release**
-   first (clients now trust the new key).
-2. Give users time to update to that build.
-3. **Then** swap `UPDATE_SIGNING_KEY` to the new private key so subsequent
-   manifests are signed with it.
+1. **Generate the next keypair offline** (same commands as
+   [step 1 above](#maintainer-ops-enabling-signed-updates)). Store the private
+   key the way the current one is stored; do not put it in CI yet, and never
+   commit it.
+2. **Pin it as "next" in a release**: add its public key to
+   `kUpdateManifestPublicKeys` *after* the current key, and ship an app release.
+   CI keeps signing with the current key, so every install — old or new —
+   still verifies.
+3. **Wait until that release is widespread.** Installs that predate it trust
+   only the old key and will stop seeing updates at step 4 until they update
+   manually, so this is the window to keep long.
+4. **Switch the signer**: replace the `UPDATE_SIGNING_KEY` secret with the next
+   private key. From the next release on, manifests are signed with it; every
+   install from step 2 onwards already trusts it. The gh-pages gate accepts
+   either pinned key, so it stays green.
+5. **Retire the old key in a later release**: remove the old public key from
+   `kUpdateManifestPublicKeys` and add a freshly generated next key (step 1),
+   so the set is again *current + next*. The test
+   `app/test/update/update_signature_test.dart` pins the current key by value as
+   a tripwire against removing it early; update it in the same change.
 
-Never swap the CI signing key before the matching public key has shipped to
-clients — those clients would reject every new manifest (fail closed) until they
-update. If a private key is compromised, rotate immediately and treat any
-manifest signed by the old key as untrusted.
+Never switch `UPDATE_SIGNING_KEY` to a key that is not already pinned in a
+widely installed release — those installs would reject every new manifest
+(fail closed: no update is offered, silently on the automatic check) until they
+update by hand.
+
+> **Erratum (2026-10-29), manual update checks.** This chapter, and ADR-002 §5,
+> described a failed check as silently "no update". That holds only for the
+> **automatic** check, which stays silent. A **manual** "Check for updates" now
+> says "Couldn't check for updates right now" when it could not read the manifest
+> (offline, unreachable, unsigned, tampered or malformed), and says "A newer
+> version is available from the Releases page" when the manifest is **authentic**
+> but in a format the build cannot read (a newer `manifestSchemaVersion`, or an
+> artifact for a platform or architecture it has no name for). Only builds that
+> contain this change say so: an install that predates it still reports "No
+> update found" for every failure, so the key-rotation advice above is unchanged
+> for them. A `manifestSchemaVersion` bump is now survivable for later builds,
+> but only until their own pinned keys expire as above.
+
+**Compromise.** Pinning has no revocation: an install keeps trusting every key
+it shipped with until it updates, so a leaked private key can sign manifests
+those installs accept. If a next key is already pinned, switching the signer to
+it (step 4) and shipping a release that drops the leaked key (step 5) keeps
+update delivery working for every install that **already has the next key** —
+it cannot remove trust in the leaked key from installs that have not yet taken
+the step-5 release. Installs that **predate** the release that pinned the next
+key trust only the leaked key: an immediate switch strands them (no update is
+offered until they update by hand), and leaving the signer alone keeps them
+exposed. That trade-off is the maintainer's call at the time. Keeping a next key
+pinned at all times — so that cohort is as small as possible — is what makes
+the response available at all.
+
+## Signing the published-collection catalog (Ed25519, issue #2161)
+
+The published-collection catalog
+(`https://analect.callerscompendium.com/collections/manifest.json`) is signed
+by the **Compendium Analect** repository, not by this one, with a key that is
+deliberately **separate from the update-manifest key** above: a compromise of
+collection publishing must never become a way to sign app installers. The app
+verifies the catalog's detached `manifest.json.sig` against the pinned set
+`kPublishedCollectionPublicKeys` in
+`app/lib/src/published_collections/published_collection_config.dart`; the
+catalog carries a SHA-256 and byte count for each archive, so that one
+signature covers every archive. Analect's `docs/publishing.md` describes the
+publishing side.
+
+### Custody
+
+- The private key is held by the maintainer. Analect's Pages workflow reads it
+  from the `ANALECT_SIGNING_KEY_B64` Actions secret, which only the protected
+  `signing` environment supplies. It is never committed, printed or shared with
+  this repository's CI.
+- Analect's publisher also pins the public key (`PINNED_PUBLIC_KEY` in
+  `tools/publish_collections.py`) and refuses to sign with any key that does not
+  derive it, so a mistyped or swapped secret fails the publish instead of
+  shipping a catalog every install rejects.
+- Keep an offline backup of every pinned private key (current and next) the way
+  the update key is kept. A lost private key cannot be recovered; installs that
+  pin only that key can then verify nothing new until they update by hand.
+- **Where the next key is (recorded 2026-11-17).** The private half of the
+  pinned *next* key (`LJiuOr9D…DnE=`) is the Azure Key Vault secret
+  `analect-signing-knext` in the maintainer's `protege` vault (resource group
+  `callerscompendium`). Its value is the single-line base64 of the PEM, which
+  is the form `ANALECT_SIGNING_KEY_B64` takes. Before relying on it, check it:
+  base64-decode it, and `openssl pkey -pubout -outform DER | tail -c 32 |
+  base64` must print the next key pinned in `kPublishedCollectionPublicKeys`.
+  Update this entry whenever the key moves or a rotation retires it.
+
+### Published-collection key rotation
+
+The procedure mirrors [Key rotation](#key-rotation) for the update key, except
+that the signer lives in Analect. At every step every supported install must
+trust the key Analect is signing with:
+
+1. **Generate the next keypair offline** (the same `openssl genpkey` commands as
+   [Maintainer ops: enabling signed updates](#maintainer-ops-enabling-signed-updates)
+   step 1, with a different file name). Store the private key with the current
+   one; do not put it in Analect's secrets yet, and never commit it.
+2. **Pin it as "next" in an app release**: add its public key to
+   `kPublishedCollectionPublicKeys` *after* the current key, and ship a release.
+   Analect keeps signing with the current key, so every install still verifies.
+3. **Wait until that release is widespread.** Installs that predate it trust
+   only the old key and will reject the catalog after step 4 until they update.
+   They see "Published collections could not be verified… update the app" on
+   the **Published collections** screen; only builds that contain #2161 say so,
+   and older ones say "temporarily unavailable".
+4. **Switch Analect's signer** in one Analect change: replace the
+   `ANALECT_SIGNING_KEY_B64` secret with the next private key, **base64
+   encoded** (`base64 < analect_next_signing_key.pem | tr -d '\n'`; unlike
+   `UPDATE_SIGNING_KEY`, a pasted PEM fails as "not valid base64"), and update
+   Analect's `PINNED_PUBLIC_KEY` to the next public key, then re-run its Pages
+   workflow so the live catalog is re-signed. Changing only one of the two makes
+   the publish fail rather than ship a bad signature.
+5. **Retire the old key in a later app release**: remove it from
+   `kPublishedCollectionPublicKeys` and pin a freshly generated next key
+   (step 1), so the set is again *current + next*. The test
+   `app/test/published_collection_service_test.dart` pins the current key by
+   value as a tripwire against removing it early; update it in the same change.
+
+Never sign the catalog with a key that is not already pinned in a widely
+installed release. A release that pins *only* the replacement key does not
+work either: it rejects the live catalog until Analect switches.
+
+**Compromise.** Pinning has no revocation, as for the update key: an install
+keeps trusting every key it shipped with until it updates, so a leaked
+collection key can sign catalogs those installs accept. The catalog names the
+archives and their digests, so a forged catalog can point those installs at
+attacker-chosen dance data (it cannot sign installers, because the keys are
+separate). If a next key is already pinned, steps 4 and 5 move every install
+that has the next key onto it; they cannot remove trust in the leaked key from
+installs that have not yet taken the step-5 release. Installs that predate the
+release that pinned the next key trust only the leaked key: switching strands
+them (the catalog will not verify until they update) and not switching leaves
+them exposed. That trade-off is the maintainer's call at the time. Keeping a
+next key pinned at all times is what keeps that cohort small.
 
 ## Landing page and user guides (GitHub Pages)
 
@@ -708,7 +1066,7 @@ The two publishers therefore coexist on one branch without clobbering each other
 survival case guards the release blocker in #607, whose novel-channel case
 guards the pattern-based hardening in #640, and whose `guide/` case proves the
 hosted guides and the manifests survive each other — deleting a signature makes
-the in-app update client fail closed and silently stop offering updates). This is
+the in-app update client fail closed and stop offering updates). This is
 why Pages stays on **Deploy from a branch → `gh-pages`** — do not switch it to the
 GitHub-Actions Pages source.
 
@@ -722,7 +1080,7 @@ What does **not** auto-update is the **editorial copy**. As part of cutting a
 release (see the [Release Checklist](release-checklist.md) §4), skim `site/` and
 refresh anything the release changed:
 
-- **Status** — the "Where the project is today" list and the hero eyebrow, if the
+- **Status** — the "Project status" list and the hero eyebrow, if the
   shipped/in-flight picture moved (keep it in step with `README.md` and
   `docs/ROADMAP.md`).
 - **Features** — add/adjust cards for any newly shipped capability.
@@ -749,8 +1107,12 @@ gh workflow run pages-site.yml
 ## Dry run (no release created)
 
 A manual dispatch with no `release_tag` builds + packages without creating any
-release. The packaged artifacts are uploaded as **workflow run artifacts**
-instead:
+release. It still enters the `release-signing` environment like a tag run does,
+so the run waits for that approval before any platform builds (and, with the
+five Windows `AZURE_*` variables set, signs the Windows artifacts of the ref it
+was dispatched from; see
+[OIDC scope of the build matrix](#oidc-scope-of-the-build-matrix)). The
+packaged artifacts are uploaded as **workflow run artifacts** instead:
 
 ```sh
 gh workflow run release.yml
@@ -774,8 +1136,14 @@ gh workflow run release.yml --ref main -f release_tag=v0.1.1-beta
 ```
 
 Recovery validates that the input is an existing accepted release tag, checks
-out that immutable tag for every build and publishing step, and creates or
-refreshes the same draft release. It deliberately marks the iOS signing gate
+out that immutable tag for the reusable assurance checks as well as every build
+and publishing step, and creates or refreshes the same draft release. The
+assurance checks resolve their commit from `meta` (rather than the dispatch
+ref), so a recovery launched from `main` still lints and tests the tagged
+source, not `main`. If the tag's release is already published
+when the workflow checks it, the workflow fails before uploading any assets;
+recovery never intentionally overwrites a published release. It deliberately
+marks the iOS signing gate
 `skipped-recovery`, so it neither builds another `.ipa` nor uploads another
 TestFlight build. Its SLSA predicate records the tagged source SHA and the
 `main` workflow SHA as separate resolved dependencies, rather than claiming the
@@ -790,13 +1158,68 @@ repository variables, the Windows matrix leg authenticates through the federated
 Entra application/service principal using GitHub OIDC. It signs every `.exe` and
 `.dll` in the
 Flutter release bundle before creating the portable ZIP, then signs the generated
-Inno Setup installer. The signing endpoint is the WUS2 Azure Trusted Signing
+Inno Setup installer. The MSVC runtime DLLs are copied into the bundle after
+that signing step, so they keep Microsoft's own signatures. The signing endpoint is the WUS2 Azure Trusted Signing
 endpoint (`https://wus2.codesigning.azure.net/`).
 
 The variables must be paired with an Azure federated credential for the
 `ibanner56/CallersCompendium` release workflow and the service principal must
 have the Artifact Signing Certificate Profile Signer role. If any variable is
 absent, the Windows leg intentionally produces the existing unsigned artifacts.
+
+### OIDC scope of the build matrix
+
+`id-token: write` is granted to the **whole** `build` job, so all five legs
+(linux, macos, android, ios, windows) hold it, not only Windows. Windows had
+its own job and its own `permissions:` block until #1716 folded it into the
+matrix. Job-level `permissions:` cannot be made conditional per matrix leg:
+GitHub's context-availability table has no row for `jobs.<job_id>.permissions`,
+so no `matrix` expression is available there. Narrowing the grant would mean
+splitting Windows back into its own job, which duplicates the shared setup
+steps; the Windows leg already runs the same dependency resolution as the
+other legs, so the gain is small. (`jobs.<job_id>.environment`, unlike
+`permissions`, does accept a `matrix` expression, so Windows could be given an
+environment of its own with a distinct `sub`. That would let an Azure
+credential tell Windows from the other legs, but it would not narrow
+`id-token: write`, and it would need its own approvals and variables. It has
+not been adopted.)
+
+What this means in practice:
+
+- Only the three Windows-gated steps (`azure/login` and the two
+  `Azure/artifact-signing-action` steps) use the token. No step on another leg
+  requests one, but any code running in a leg's job can (a Pub, Gradle,
+  CocoaPods or apt dependency, or a build script).
+- Every leg references the `release-signing` environment. For a job that
+  references an environment, GitHub's default OIDC `sub` claim is
+  `repo:ibanner56/CallersCompendium:environment:release-signing`, with no ref
+  and no `job_workflow_ref`. An Azure federated credential keyed on that subject
+  accepts a token from any leg, and from any ref the environment admits.
+- The Windows signing gate (the "Determine Windows signing availability" step)
+  keys on the five `AZURE_*` repository variables being non-empty. It does not
+  consult `is_release`. A manual `workflow_dispatch` dry run therefore also
+  enters the environment and, with the variables set, signs the Windows
+  artifacts of whatever ref it was dispatched from. What contains this is the
+  environment's approval rule (and its deployment-branch rule, if one is set),
+  not the workflow.
+
+The Azure federated credential and the `release-signing` environment's
+reviewers and deployment rules live in the Azure portal and the repository
+settings, not in this repository, so this repository can neither change them
+nor record their current values. When reviewing them, check that:
+
+- the credential's subject is the environment form above (a ref-based subject,
+  in its branch or tag form, never matches a job that references an
+  environment);
+- the service principal holds only the Artifact Signing Certificate Profile
+  Signer role, scoped to the one signing account;
+- the environment has required reviewers, and that its deployment branch and
+  tag rule admits only the refs a release or a dry run is meant to run from;
+- the five `AZURE_*` variables are repository variables, not set on the
+  `release-signing` environment: the `build` job would read an environment
+  variable of the same name in preference, but `publish_draft` has no
+  environment and would not see it, so the release notes would say the Windows
+  artifacts are unsigned while the leg had signed them.
 
 ## macOS (Developer ID signed + notarized)
 
@@ -819,9 +1242,9 @@ Store) path: a **Developer ID Application** certificate + Apple's **`notarytool`
 > **Gated exactly like Android:** the `Determine macOS signing availability`
 > step sets `signing=configured` **only** when the full cert set **and** all
 > three notarytool credentials are present. Until then `signing=missing` and the
-> macOS leg builds the **UNSIGNED** `zip` + `dmg` exactly as before (the
-> unsigned packaging step is byte-for-byte unchanged) — so merging this never
-> changes the current release output and never produces a half-signed artifact.
+> macOS leg builds the **UNSIGNED** `zip` + `dmg` (the same
+> [installer disk image](#macos-installer-disk-image), unsigned) — so the leg
+> never fails for want of the secrets and never produces a half-signed artifact.
 
 ### Hardened runtime & entitlements
 
@@ -885,7 +1308,7 @@ or PRs.
 
 ## Android (signed APK)
 
-Unlike the desktop artifacts (which are **unsigned** this wave), Android's first
+Unlike the Linux desktop artifacts (always **unsigned**), Android's first
 beta ships as a **self-signed** sideload APK. Android refuses to install an
 unsigned APK, so the `release` build type is wired to a real upload keystore via
 the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.kts`.
@@ -902,8 +1325,16 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > workflow artifact. Unlike the APK it is deliberately **not** staged into
 > `dist/`, so — like the iOS `.ipa` — it stays out of `SHA256SUMS`, the channel
 > manifest, provenance subjects, and the draft release; it is a Play-upload input
-> the maintainer downloads from the run and uploads to the Play Console (see
+> that the approval-gated `publish_mobile` job uploads to Google Play when the
+> service-account secret exists (see
+> [Upload to Google Play](#upload-to-google-play) and
 > [store-submission/google-play.md](store-submission/google-play.md)).
+>
+> The `.aab` build alone passes `--dart-define=CALLERS_COMPENDIUM_PLAY_BUILD=true`,
+> which is how an installed Play build knows the store updates it and the in-app
+> updater stays out of the way (`app/lib/src/update/install_kind.dart`). The
+> sideload APK must not set it: it shares the manifest channel.
+> `tools/release/test_release_workflow_recovery.py` pins both.
 >
 > Both Android artifacts receive the tag-derived `versionCode` described below;
 > `app/pubspec.yaml` remains exactly the visible `X.Y.Z` release version.
@@ -1042,6 +1473,54 @@ via step `env:` (never interpolated into a `run:` line) so they can't leak into
 logs, and they are only available to the canonical repo's tag-triggered run — not
 to forks or PRs.
 
+### Upload to Google Play
+
+On a real `v*` tag push, after the `release-publication` protected environment is
+approved, the `publish_mobile` job downloads the `android-aab` artifact and uploads
+it with [`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play)
+(pinned to a commit SHA like every other action). The same job uploads the iOS
+`.ipa` to TestFlight; the two stores are attempted independently, so a failure in
+one does not stop the other. The upload is skipped (a clean no-op) on a
+`workflow_dispatch` dry run, and an existing-tag recovery skips `publish_mobile`
+entirely, exactly as for TestFlight.
+
+One-time maintainer setup:
+
+1. In a Google Cloud project, enable the **Google Play Android Developer API** and
+   create a **service account** with a JSON key. In Play Console → **Users and
+   permissions**, invite the service account's email address and grant it access
+   to this app with the **Release apps to testing tracks** permission (add
+   **Release to production, exclude devices, and use Play App Signing** only if you
+   set `PLAY_TRACK=production`).
+2. Add the JSON key's **full contents** as a secret named
+   `PLAY_SERVICE_ACCOUNT_JSON`. Prefer storing it as a secret of the
+   `release-publication` **environment** rather than a repository secret, so only
+   the approval-gated job can read it.
+3. Optionally add repository **variables** (not secrets):
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `PLAY_TRACK` | `internal` | Play track to assign the bundle to: `internal`, `alpha`/`beta`/a custom closed-track name, or `production` |
+| `PLAY_RELEASE_STATUS` | `draft` | `draft` lands the release in the Play Console for you to review and roll out; `completed` rolls it out immediately on the chosen track. Use only these two: the workflow does not set a rollout fraction, so `inProgress` fails at the upload step |
+
+Behaviour to know about:
+
+- With no `PLAY_SERVICE_ACCOUNT_JSON` the Play steps are skipped. With it set but
+  the `ANDROID_*` signing secrets missing there is no `android-aab` artifact, so
+  the download step **fails loudly** rather than skipping.
+- A `versionCode` can never be reused on Play. **Re-running a failed
+  `publish_mobile` job re-attempts both stores**, and a store that already accepted
+  this build rejects the duplicate; if only one store failed, expect the other's
+  step to fail on the re-run and judge it by its error text.
+- The service account can publish to your users. Treat its key like the Android
+  keystore: never commit it, paste it into an issue, or print it in a log, and
+  rotate it (create a new key, update the secret, delete the old key) if exposed.
+- Play still applies its own gates: a new personal account cannot reach Open
+  testing or Production before the closed-testing requirement in
+  [store-submission/google-play.md](store-submission/google-play.md), and the first
+  release of a brand-new app must be created in the Console before the API can
+  upload to it.
+
 ### Android signing-key custody, backup, and rotation
 
 The setup steps above explain how to build the artifacts. This policy governs
@@ -1103,7 +1582,7 @@ in-place update.
 
 ### Sideload install note (for release notes / users)
 
-The Android APK is **self-signed**, *not* "unsigned" like the desktop builds — it
+The Android APK is **self-signed**, *not* "unsigned" like the Linux desktop builds — it
 carries a valid signature, just not one from Google Play. To sideload it a user
 enables **"install unknown apps"** for their browser/file manager, then opens the
 downloaded APK. Verify the download against `SHA256SUMS` as with every artifact.
@@ -1239,15 +1718,50 @@ Packaging is hand-rolled per platform for byte-exact control over the name
 contract and `SHA256SUMS`, using only free tooling available on GitHub-hosted
 runners:
 
-- **Linux tar.gz** — `tar` over the release bundle.
+- **Linux tar.gz** — `tar` over the release bundle, plus the launcher
+  `org.callerscompendium.compendiumApp.desktop` and its icon
+  (`compendium_app.png`) at the top of the extracted folder. The step fails if
+  either, or the bundle's own `data/compendium_app.png`, is missing from the
+  archive.
 - **Linux AppImage** — `appimagetool` (pinned to `1.9.1`, checksum-verified)
   with a pinned runtime (`type2-runtime` `20251108`) over the committed AppDir
-  recipe in `packaging/linux/` (`AppRun`, `compendium_app.desktop`, `icon.png`).
-  Runs with `--appimage-extract-and-run` so no FUSE is required on CI.
-- **macOS zip/dmg** — `ditto` and the built-in `hdiutil` (zero extra deps). When
-  the Apple signing secrets are configured the same step also Developer
-  ID-signs (hardened runtime), notarizes, and staples the artifacts — see
+  recipe in `packaging/linux/` (`AppRun`,
+  `org.callerscompendium.compendiumApp.desktop`, `icon.png`). Runs with
+  `APPIMAGE_EXTRACT_AND_RUN=1` so no FUSE is required on CI; the build
+  container has none.
+- **Linux launcher and window identity** — the `.desktop` file is named after
+  the GtkApplication id (`APPLICATION_ID` in `app/linux/CMakeLists.txt`) and
+  repeats it as `StartupWMClass`, because a desktop shell pairs the running
+  window with its launcher by that id (the Wayland `app_id`, or the X11
+  `WM_CLASS`). Changing the id means renaming the `.desktop` file and its
+  `StartupWMClass` with it. The window icon is `packaging/linux/icon.png`,
+  installed into the bundle as `data/compendium_app.png` by the CMake build and
+  loaded by `app/linux/runner/my_application.cc`.
+  `tools/release/test_linux_desktop_integration.py` checks that these agree.
+  The launcher declares no file types (`MimeType=`) and its `Exec=` takes no
+  files: the running app has no way to receive a file from a second launch.
+- **macOS zip/dmg** — `ditto` for the zip; the `.dmg` is built by
+  `packaging/macos/build_dmg.sh` with `dmgbuild` — see
+  [macOS installer disk image](#macos-installer-disk-image). When the Apple
+  signing secrets are configured the signing step also Developer ID-signs
+  (hardened runtime), notarizes, and staples the artifacts — see
   [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized).
+- **Windows MSVC runtime** — the runner and plugin DLLs link the MSVC runtime
+  dynamically, so the job copies `vcruntime140.dll`, `vcruntime140_1.dll` and
+  `msvcp140.dll` (the `MSVC_RUNTIME_DLLS` job variable) from the runner's Visual
+  Studio redistributable folder into the Release folder, next to
+  `compendium_app.exe`, before the zip and installer are built. The version
+  folder is read from Visual Studio, not hard-coded. The step fails if
+  `dumpbin /dependents` shows any bundled binary importing a runtime DLL outside
+  that list. A later step fails the job unless each DLL is in the zip, is
+  installed by the installer, and is removed by its uninstaller. The staging
+  step also writes each DLL's file version and SHA-256 to `msvc-runtime.json`
+  for the [SBOM](#software-bill-of-materials-sbom).
+  `tools/release/test_release_windows_crt.py` pins this structure.
+- **pdfium (Linux and Windows)** — fetched by the `printing` plugin while CMake
+  configures the build, pinned and hash-checked by
+  `packaging/pdfium/pdfium.cmake`; see
+  [Pinned native dependencies](#pinned-native-dependencies).
 - **Windows zip** — PowerShell `Compress-Archive`.
 - **Windows installer** — Inno Setup (`ISCC.exe`, preinstalled on the runner)
   driving `packaging/windows/CallersCompendium.iss`.
@@ -1258,3 +1772,127 @@ runners:
   Not staged into `dist/` (store-delivered, not a download).
 
 All GitHub Actions are pinned to full commit SHAs (repo convention).
+
+### macOS installer disk image
+
+Opening the `.dmg` shows a fixed installer window rather than a bare Finder
+folder: the app on the left and an `Applications` shortcut on the right, over
+a background with a heading, an arrow from one to the other, and a line on
+opening the app afterwards. The arrow is pressed into the background, with
+the brand's small mark raised inside it, and both icons sit on a soft hovering
+shadow. The app's own icon is the mounted volume's icon.
+
+Finder draws the icons on top of the background, so their shadows are painted
+into the art at the icons' fixed positions, shaped to each icon's visible
+outline. The app outline is measured from its icon; the folder's is an
+approximation of the system folder icon (constants in the generator), so
+check that shadow on a Mac after changing it.
+
+| File | Role |
+| --- | --- |
+| `packaging/macos/dmg_settings.py` | Window size, icon size and positions, contents, format (`UDZO`, HFS+). Read by `dmgbuild`. The format must stay read-only: the app's not-installed notice (`app/macos/Runner/InstallLocationBridge.swift`, #1725) fires on a read-only volume, so a writable format (`UDRW`) would silently disable it. A Gatekeeper-translocated copy is read-only too, including (suspected, not reproduced) one of an app already in Applications, so the notice says the app "may" not be installed and does not promise that moving it clears the notice. |
+| `packaging/macos/dmg-background.png`, `…@2x.png` | Background art (1x and Retina). Combined into one multi-resolution TIFF by `dmgbuild` via `tiffutil`. |
+| `tools/brand/generate_dmg_background.py` | Draws the art from the geometry in `dmg_settings.py`, using the app's palette, bundled fonts and `app/assets/brand/mark-small.svg`. Local-only (Pillow, and cairosvg with the Cairo library); its outputs are committed. |
+| `packaging/macos/build_dmg.sh` | Runs `dmgbuild`, then mounts the image read-only and fails unless the app copy matches the source bundle file for file and the shortcut, layout, background and volume icon are all present (`dmgbuild` does not fail when one of its copy or attribute steps does). |
+| `packaging/macos/requirements-dmg.txt` | `dmgbuild` and its two dependencies, exact versions with SHA-256 hashes. Build-time only. |
+
+`dmgbuild` writes the window layout (`.DS_Store`) directly instead of scripting
+Finder, so the layout comes out the same on a headless runner. The release job
+installs it with `pip install --require-hashes` into a virtualenv under
+`$RUNNER_TEMP` (step *Install DMG layout tool*), and both the unsigned and the
+signed packaging steps call `build_dmg.sh`; the signed step then signs,
+notarizes and staples the result as before.
+
+**Changing the layout.** Edit the geometry constants in `dmg_settings.py`, then
+re-run `python3 tools/brand/generate_dmg_background.py` so the arrow, the icon
+shadows and the image size follow. `tools/release/test_macos_dmg.py` (a PR
+gate) runs the settings file the way `dmgbuild` does and fails when the art's
+size no longer matches the window, an icon or its label falls outside it, the
+requirements lose a pin or hash, or a packaging step stops using
+`build_dmg.sh`. It cannot build
+or look at the image: check the window on a Mac (light and dark appearance)
+after changing it. Bump the three requirements together, re-taking each hash
+from PyPI.
+
+## Pinned native dependencies
+
+Binaries that ship inside the product but do not come through pub, and how
+each is pinned:
+
+| Component | Ships in | Pinned by | Verified by |
+| --- | --- | --- | --- |
+| pdfium (`bblanchon/pdfium-binaries` `chromium/5200`, PDFium 106.0.5200.0) | Linux and Windows builds | `packaging/pdfium/pdfium.cmake` | SHA-256 of the archive (fetched by us before the plugin runs) and of the plugin's copy and the bundled library, at CMake configure time; see the residual risk below |
+| MSVC runtime (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`) | Windows zip and installer | not pinned: the runner's Visual Studio redistributable (Microsoft-signed) | `dumpbin` import check and ship check in `release.yml`; versions and hashes recorded in the SBOM |
+
+**pdfium.** The `printing` plugin (5.15.1) downloads
+`pdfium-<os>-<arch>.tgz` from `bblanchon/pdfium-binaries` while CMake adds it,
+through `download_project` with no `URL_HASH`. Its only option is the
+`PDFIUM_VERSION` cache variable, which also accepts `latest`. We do not patch
+the pub cache or fork the plugin. Instead `app/linux/CMakeLists.txt` and
+`app/windows/CMakeLists.txt`:
+
+1. include `packaging/pdfium/pdfium.cmake` and call
+   `compendium_pin_pdfium(linux|win)` before
+   `include(flutter/generated_plugins.cmake)`. This forces `PDFIUM_VERSION` and
+   `PDFIUM_ARCH` into the cache, so the plugin's own default and any
+   `-DPDFIUM_VERSION=latest` are ignored. It then downloads the same release
+   asset itself (`file(DOWNLOAD … EXPECTED_HASH SHA256=… TLS_VERIFY ON)` into
+   `<build>/pdfium-preverify/`) and stops the configure step unless it matches
+   the pin. This matters because the plugin extracts its archive and
+   `include()`s the `PDFiumConfig.cmake` inside it at configure time: a check
+   only afterwards would let a swapped archive run its CMake first. A copy
+   that already matches is reused, so a reconfigure does not fetch again. The
+   function also sets `CMAKE_TLS_VERIFY` in the environment so the plugin's
+   own download (a child CMake process) verifies TLS on CMake 3.30 and later;
+2. call `compendium_verify_pdfium(linux|win)` straight after. It hashes the
+   archive the plugin downloaded and the library it is about to bundle
+   (`lib/libpdfium.so`, `bin/pdfium.dll`), and stops the configure step on a
+   version, hash or missing-file mismatch, before anything is compiled or
+   installed.
+
+**Residual risk.** The plugin still downloads its own copy, with no hash, and
+`include()`s that copy's `PDFiumConfig.cmake` before step 2 runs. That copy is a
+second request for the same asset, seconds after ours matched the pin. A server
+that returns different bytes to the second request could still run CMake at
+configure time (on the release runner, before signing) before step 2 fails the
+build. Closing that completely needs a patched or vendored `printing` plugin,
+which we have not done.
+
+The pin keeps `chromium/5200`, the release printing 5.15.1 asks for by default,
+so it changes nothing the app does. pdfium-binaries publishes no checksums for
+that release, so the hashes were computed from the downloaded release assets
+(the comment in the pin file has the date and method). The Linux and Windows
+x64 and arm64 targets are pinned; any other architecture fails the build until
+it is added.
+
+`tools/release/test_pdfium_pin.py` (in the PR checks; locally, preflight's
+`release-tooling` step runs the tests that need no CMake and `pdfium-verifier`
+runs the `cmake -P` ones, skipping visibly when `cmake` is not installed)
+fails if the pin, a hash, or the CMake wiring is missing, if `pubspec.lock`
+moves `printing` off the version the pin was written for, or if the
+pre-download or the verifier accepts a fake archive (it runs both under
+`cmake -P`, the pre-download against a `file://` copy of the release layout). It also checks that the bundled licence
+(`app/assets/licenses/pdfium-LICENSE.txt`) is the pinned release's `LICENSE`.
+
+To move pdfium or upgrade `printing`:
+
+```sh
+v=5200   # the chromium/<n> release
+for t in linux-x64 linux-arm64 win-x64 win-arm64; do
+  curl -fsSLO "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/$v/pdfium-$t.tgz"
+  sha256sum "pdfium-$t.tgz"
+done
+tar -xzf pdfium-linux-x64.tgz -O lib/libpdfium.so | sha256sum   # likewise
+tar -xzf pdfium-linux-arm64.tgz -O lib/libpdfium.so | sha256sum # for each
+tar -xzf pdfium-win-x64.tgz -O bin/pdfium.dll | sha256sum       # target
+tar -xzf pdfium-win-arm64.tgz -O bin/pdfium.dll | sha256sum
+tar -xzf pdfium-linux-x64.tgz LICENSE && sha256sum LICENSE
+```
+
+Then update the values in `packaging/pdfium/pdfium.cmake`, replace the bundled
+licence with that `LICENSE` (re-encoded as UTF-8 if it is not already; see
+`license_bytes_for_bundle` in `tools/release/pdfium_pin.py`), re-read the new
+plugin's `linux/` and `windows/CMakeLists.txt` (the verifier depends on where
+`download_project` leaves the archive), and build on Windows before
+releasing. A newer pdfium release also needs checking against the `printing`
+plugin's C++, which is written against this release's API.

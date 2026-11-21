@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../../privacy/data_classification.dart';
 import '../../privacy/settings_registry.dart';
+import 'sync_local_repository.dart';
 
 /// Free-form key/value app settings (dialect choice, prefs, source URLs).
 /// Values are stored as JSON so callers can persist any JSON-encodable type.
@@ -60,19 +62,107 @@ class SettingsRepository {
 
   final CompendiumDatabase _db;
 
+  /// Writes this repository has made since the last [takeWriteSummary], kept
+  /// per database so a second repository over the same connection shares it.
+  _WriteTally get _tally => _tallies[_db] ??= _WriteTally();
+  static final Expando<_WriteTally> _tallies = Expando('settings write tally');
+
+  /// Reads and clears the tally of settings writes made through any
+  /// repository over this database since the last call.
+  ///
+  /// The `settings` table mixes keys that travel with keys that never do, and
+  /// drift's table-update event carries only the table name. Device Sync needs
+  /// to know whether a `settings` event was an edit to something it syncs, so
+  /// it asks here when the event arrives. [SettingsWriteSummary.deviceScopedOnly]
+  /// is true only when this repository positively reported at least one write
+  /// and every one was classified, by [classifySettingsKey], as anything but
+  /// `shareable`. An unclassified key counts as an edit, as do writes from
+  /// anywhere that does not report here, so the failure direction is an extra
+  /// pass, never a missed one.
+  ///
+  /// Writes are recorded inside the write's own transaction, so they are
+  /// visible before the commit's event can be delivered. A tally is only a
+  /// count, never an expectation that must be matched by an event: nothing
+  /// here can swallow a later edit if a write turns out to be a no-op.
+  SettingsWriteSummary takeWriteSummary() {
+    final tally = _tally;
+    final summary = SettingsWriteSummary._(
+      deviceScopedWrites: tally.deviceScoped,
+      syncRelevantWrites: tally.syncRelevant,
+    );
+    tally
+      ..deviceScoped = 0
+      ..syncRelevant = 0;
+    return summary;
+  }
+
+  void _recordWrite(String key) {
+    final egress = classifySettingsKey(key)?.egress;
+    if (egress == null || egress == EgressClass.shareable) {
+      _tally.syncRelevant++;
+    } else {
+      _tally.deviceScoped++;
+    }
+  }
+
   /// Writes [key], reviving it if it was previously removed.
   ///
   /// `key` is the primary key, so re-setting a removed setting lands on its
   /// tombstone; clearing `deleted_at` here is what makes the value visible
-  /// again. Drift's untargeted `ON CONFLICT DO UPDATE` only writes the columns
+  /// again. Drift targets the conflict clause at the primary key — here
+  /// `ON CONFLICT("key") DO UPDATE` — and that update only writes the columns
   /// the companion names, so without this the value would be stored and then
   /// filtered straight back out of every read.
-  Future<void> set(String key, Object? value, {DateTime? at}) {
-    final now = resolveStamp(at);
-    final storedValue =
-        classifySettingsKey(key)?.egress == EgressClass.shareable
-        ? normalizeShareableJson(value)
-        : value;
+  ///
+  /// A `shareable` value whose object keys normalize to one key is stored
+  /// **whole and un-composed** and recorded in `normalisation_skips`, rather
+  /// than raising [ShareableJsonKeyCollision] out of the save. That is §4.1's
+  /// write-path rule: a collision may cost the user neither the edit nor a
+  /// silent discard, and the one-time pass has always handled the identical
+  /// condition this way; only the write path let the exception escape (#1348). Recording the key is what makes the value re-attemptable once the
+  /// user renames or deletes one of the colliding keys.
+  ///
+  /// "Un-composed" is the whole of the carve-out: the value is still sanitised
+  /// ([sanitizeShareableJson]), because §4.6 binds the sanitiser to every write
+  /// path and says nothing about normalisation. Only a pair of keys that
+  /// collides under the **sanitiser** still raises, since no sanitised form of
+  /// the object keeps both entries.
+  Future<void> set(String key, Object? value, {DateTime? at}) =>
+      _set(key, value, at: resolveStamp(at), restored: false);
+
+  /// [set] for a backup restore: [at] is the backup's creation time, and the
+  /// row's existence is stamped there too ([applyRestoredExistence]) rather
+  /// than causally, so a change another device made to [key] after the backup
+  /// wins at the next sync instead of being overwritten everywhere (SYNC-1).
+  /// Only the restore calls this.
+  Future<void> setFromRestore(
+    String key,
+    Object? value, {
+    required DateTime at,
+  }) => _set(key, value, at: resolveStamp(at), restored: true);
+
+  Future<void> _set(
+    String key,
+    Object? value, {
+    required DateTime at,
+    required bool restored,
+  }) {
+    final now = at;
+    var storedValue = value;
+    var collided = false;
+    if (classifySettingsKey(key)?.egress == EgressClass.shareable) {
+      try {
+        storedValue = normalizeShareableJson(value);
+      } on ShareableJsonKeyCollision {
+        // Kept whole — normalizing key by key instead would drop whichever
+        // entry was written second, which is the silent loss §4.1 skips the
+        // whole value to avoid — and sanitised all the same, because only
+        // composition is carved out. Restoring the caller's own object here
+        // would persist a `U+200B` under a rule that is about NFC.
+        storedValue = sanitizeShareableJson(value);
+        collided = true;
+      }
+    }
     return _db.transaction(() async {
       await _db
           .into(_db.settings)
@@ -83,15 +173,52 @@ class SettingsRepository {
               updatedAt: Value(now),
             ),
           );
-      await applyUpsertExistence(
-        _db,
-        table: _db.settings,
-        keyColumn: 'key',
-        key: key,
-        at: now,
-      );
+      if (collided) {
+        await recordNormalisationSkipAt(
+          _db,
+          settingsValueNormalisation,
+          recordId: key,
+        );
+      }
+      if (restored) {
+        await applyRestoredExistence(
+          _db,
+          table: _db.settings,
+          keyColumn: 'key',
+          key: key,
+          at: now,
+          deleted: false,
+        );
+      } else {
+        await applyUpsertExistence(
+          _db,
+          table: _db.settings,
+          keyColumn: 'key',
+          key: key,
+          at: now,
+        );
+      }
+      _recordWrite(key);
     });
   }
+
+  /// Tombstones [key] for a backup restore that does not hold it, stamped at
+  /// the backup's creation time [at] ([applyRestoredExistence]) rather than
+  /// causally. A key another device set after the backup therefore comes back
+  /// at the next sync instead of being removed everywhere (SYNC-1). A key that
+  /// is not set is left alone. Only the restore calls this.
+  Future<void> removeFromRestore(String key, {required DateTime at}) =>
+      _db.transaction(() async {
+        await applyRestoredExistence(
+          _db,
+          table: _db.settings,
+          keyColumn: 'key',
+          key: key,
+          at: resolveStamp(at),
+          deleted: true,
+        );
+        _recordWrite(key);
+      });
 
   /// Returns the decoded value for [key], or `null` if unset. Note this
   /// cannot distinguish "unset" from "explicitly set to JSON `null`" — use
@@ -134,16 +261,51 @@ class SettingsRepository {
   /// is.
   Future<void> remove(String key, {DateTime? at, bool permanent = false}) {
     if (permanent) {
-      return (_db.delete(_db.settings)..where((t) => t.key.equals(key))).go();
+      final isShareable =
+          classifySettingsKey(key)?.egress == EgressClass.shareable;
+      if (isShareable) {
+        return _db.transaction(() async {
+          if (await isPublishedSyncRecord(
+            _db,
+            kind: SyncRecordKind.setting,
+            recordId: key,
+          )) {
+            await stampExistenceTransition(
+              _db,
+              table: _db.settings,
+              keyColumn: 'key',
+              key: key,
+              at: resolveStamp(at),
+              deleted: true,
+            );
+            _recordWrite(key);
+            return;
+          }
+          final removed = await (_db.delete(
+            _db.settings,
+          )..where((t) => t.key.equals(key))).go();
+          if (removed > 0) _recordWrite(key);
+        });
+      }
+      return _db.transaction(() async {
+        // Only a deleted row emits a table update, so only that is recorded.
+        final removed = await (_db.delete(
+          _db.settings,
+        )..where((t) => t.key.equals(key))).go();
+        if (removed > 0) _recordWrite(key);
+      });
     }
-    return stampExistenceTransition(
-      _db,
-      table: _db.settings,
-      keyColumn: 'key',
-      key: key,
-      at: resolveStamp(at),
-      deleted: true,
-    );
+    return _db.transaction(() async {
+      await stampExistenceTransition(
+        _db,
+        table: _db.settings,
+        keyColumn: 'key',
+        key: key,
+        at: resolveStamp(at),
+        deleted: true,
+      );
+      _recordWrite(key);
+    });
   }
 
   Future<Map<String, Object?>> all() async {
@@ -152,4 +314,77 @@ class SettingsRepository {
     )..where((t) => t.deletedAt.isNull())).get();
     return {for (final r in rows) r.key: jsonDecode(r.valueJson)};
   }
+
+  /// The keys that start with [prefix], without reading their values — for
+  /// keys built at runtime from a prefix, such as the editor autosave drafts,
+  /// whose values can be large.
+  Future<List<String>> keysWithPrefix(String prefix) async {
+    final key = _db.settings.key;
+    final query = _db.selectOnly(_db.settings)
+      ..addColumns([key])
+      // LIKE reads `_` and `%` in the prefix as wildcards, which can only
+      // widen the match; the startsWith below is the exact test.
+      ..where(key.like('$prefix%') & _db.settings.deletedAt.isNull());
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        if (row.read(key) case final k? when k.startsWith(prefix)) k,
+    ];
+  }
+
+  /// The keys that start with [prefix], most recently written first.
+  ///
+  /// For keys whose newest value matters, such as the editor autosave drafts:
+  /// each autosave rewrites its row, so the row's own timestamp says which
+  /// draft was saved last. A row with no timestamp (written before the column
+  /// existed) comes after every stamped one, and ties break on the key, so the
+  /// order is stable.
+  Future<List<String>> keysWithPrefixNewestFirst(String prefix) async {
+    final key = _db.settings.key;
+    final updatedAt = _db.settings.updatedAt;
+    final query = _db.selectOnly(_db.settings)
+      ..addColumns([key, updatedAt])
+      ..where(key.like('$prefix%') & _db.settings.deletedAt.isNull());
+    final rows = [
+      for (final row in await query.get())
+        if (row.read(key) case final k? when k.startsWith(prefix))
+          (key: k, at: row.read(updatedAt)),
+    ];
+    rows.sort((a, b) {
+      final x = a.at;
+      final y = b.at;
+      if (x != null && y != null) {
+        final byTime = y.compareTo(x);
+        if (byTime != 0) return byTime;
+      } else if (x != null || y != null) {
+        return x == null ? 1 : -1;
+      }
+      return a.key.compareTo(b.key);
+    });
+    return [for (final row in rows) row.key];
+  }
+}
+
+class _WriteTally {
+  int deviceScoped = 0;
+  int syncRelevant = 0;
+}
+
+/// What [SettingsRepository.takeWriteSummary] reports.
+class SettingsWriteSummary {
+  const SettingsWriteSummary._({
+    required this.deviceScopedWrites,
+    required this.syncRelevantWrites,
+  });
+
+  /// Writes to keys classified `deviceScoped` or `deviceLocal`.
+  final int deviceScopedWrites;
+
+  /// Writes to `shareable` keys and to keys the registry does not classify.
+  final int syncRelevantWrites;
+
+  /// Whether the reported writes were all to keys that never sync, and there
+  /// was at least one.
+  bool get deviceScopedOnly =>
+      deviceScopedWrites > 0 && syncRelevantWrites == 0;
 }

@@ -1,0 +1,22 @@
+{
+  "id": "ecd-w2-figure-registry",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "English Country Dance figures: when you edit a dance whose form is English, the figure picker now offers its own figures, such as set, turn single (including cloverleaf), cast, lead, siding, back-to-back, the heys for three, four and six, contra corners, petronella, pull by, and poussette, pushed or drawn. Who dances can name several groups at once (\"twos and threes\"), and a figure you pick leaves unstated anything you don't fill in. Typing English figures as text still reads them as contra figures for now.",
+      "Advanced search can find dances by English figures too; where an English figure shares a contra figure's name, the picker labels it with its form, such as \"circle · English (ECD)\"."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add ecdTaxonomy (ecdTaxonomyVersion 1): ADR-006 §7's 52 movements under ecd_ IDs and the ecd_swat_the_flea alias, registered in shippedTaxonomies. Add ecdSelectors and ecdDestinations.",
+      "Add ParamKind.dancerList (a list of dancer tokens, ECD's who), ParamVocab.soloDancerTokens and isValidDancerList.",
+      "FigureRenderer renders a dancerList as an English list and expands ECD templates with ADR-006 §6.3's optional groups and flags; a sequence ending in an ECD star back to place reads \"and back by the left\".",
+      "Add ecdSequenceSpanIssue and stepStatesTiming: an ECD sequence may carry one span for untimed steps (ADR-006 §5.5).",
+      "Add ecdTaxonomyCanonicalRebuildDoneKey, a one-time canonical/FTS rebuild listed in oneTimeRepairMarkers.",
+      "testFigure and the fixture-validity ratchet validate against shippedTaxonomies.anyForm, and the ratchet reads list literals.",
+      "canonicalizeMoveSearchText lets the taxonomy's own form win a name or keyword another form also uses, so searching every form reads contra's keywords as before.",
+      "figureSnippetSignature keys an ECD template's {?flag} and a dancerList (sorted, joined by +); migrateFigureSnippetSignature leaves ecd_ keys unchanged."
+    ]
+  }
+}

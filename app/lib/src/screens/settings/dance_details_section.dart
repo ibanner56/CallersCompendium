@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/display_defaults.dart';
 import '../../data/canonical_discouraged_terms_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
+import '../../data/show_custom_figures_scope.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
@@ -94,9 +96,11 @@ class _DanceDetailsAndShorthandsSectionState
       _canonicalFigureTextUserSet = true;
       _canonicalFigureText = value;
     });
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kCanonicalFigureTextKey, value);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kCanonicalFigureTextKey,
+      value,
+    );
   }
 
   Future<void> _onCanonicalDiscouragedTermsChanged(bool value) async {
@@ -105,9 +109,11 @@ class _DanceDetailsAndShorthandsSectionState
       _canonicalDiscouragedTerms = value;
     });
     CanonicalDiscouragedTermsScope.notifierOf(context).value = value;
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kCanonicalDiscouragedTermsKey, value);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kCanonicalDiscouragedTermsKey,
+      value,
+    );
   }
 
   Future<void> _onDefaultRenderingChanged(DanceDetailRendering value) async {
@@ -115,9 +121,11 @@ class _DanceDetailsAndShorthandsSectionState
       _defaultRenderingUserSet = true;
       _defaultRendering = value;
     });
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kDefaultDanceDetailRenderingKey, value.name);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kDefaultDanceDetailRenderingKey,
+      value.name,
+    );
   }
 
   Future<void> _onFreeTextEntryChanged(bool value) async {
@@ -125,7 +133,11 @@ class _DanceDetailsAndShorthandsSectionState
       _freeTextEntryUserSet = true;
       _freeTextEntry = value;
     });
-    await RepositoriesScope.of(context).settings.set(kFreeTextEntryKey, value);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kFreeTextEntryKey,
+      value,
+    );
   }
 
   @override
@@ -183,13 +195,18 @@ class _DanceDetailsAndShorthandsSectionState
             key: const ValueKey('dialect-figure-shorthands'),
             enabled: _freeTextEntry,
             title: Text(l10n.settingsDefaultsFigureShorthandsTitle),
-            subtitle: Text(
-              shorthandController.mappings.isEmpty
-                  ? l10n.settingsDefaultsFigureShorthandsEmptySubtitle
-                  : l10n.settingsDefaultsFigureShorthandsCountSubtitle(
-                      shorthandController.mappings.length,
-                    ),
-            ),
+            // The shorthands for the user's own figures, of both kinds (#709,
+            // #1023), count while their section shows.
+            subtitle: Text(switch (shorthandController.mappings.length +
+                (customFiguresShown(context)
+                    ? shorthandController.compoundShorthands.length +
+                          shorthandController.userFigureShorthands.length
+                    : 0)) {
+              0 => l10n.settingsDefaultsFigureShorthandsEmptySubtitle,
+              final count => l10n.settingsDefaultsFigureShorthandsCountSubtitle(
+                count,
+              ),
+            }),
             trailing: const Icon(Icons.chevron_right),
             onTap: _freeTextEntry
                 ? () => Navigator.of(context).push(

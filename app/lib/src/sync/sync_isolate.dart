@@ -1,0 +1,719 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:isolate';
+
+import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
+import 'sync_coordinator.dart';
+import 'sync_failure.dart';
+import 'sync_http_client.dart';
+
+/// Coordinates an interruption test at the first successful inbound write.
+///
+/// This is a test seam, not a production sync state. The worker sends a
+/// release port after it has written a record inside the transaction, allowing
+/// a test to terminate the worker while the transaction is still open.
+final class SyncIsolateApplyControl {
+  SyncIsolateApplyControl() {
+    _subscription = _events.listen((message) {
+      if (message is! SendPort) return;
+      _releasePort = message;
+      if (!_applyStarted.isCompleted) _applyStarted.complete();
+    });
+  }
+
+  final ReceivePort _events = ReceivePort();
+  final Completer<void> _applyStarted = Completer<void>();
+  late final StreamSubscription<dynamic> _subscription;
+  SendPort? _releasePort;
+
+  SendPort get _eventPort => _events.sendPort;
+
+  Future<void> get applyStarted => _applyStarted.future;
+
+  void release() {
+    final releasePort = _releasePort;
+    if (releasePort == null) {
+      throw StateError('the sync isolate is not paused in apply');
+    }
+    releasePort.send(null);
+    _releasePort = null;
+  }
+
+  Future<void> close() async {
+    await _subscription.cancel();
+    _events.close();
+  }
+}
+
+/// Raised when a caller terminates a sync worker before it returns a result.
+///
+/// Nothing crosses the port from a worker that dies, so which rows it had
+/// committed is unknown, and [appliedKinds] is every kind (#1913): one
+/// spurious reload is the price of never leaving a committed row unreported.
+final class SyncIsolateInterrupted
+    implements Exception, SyncAppliedBeforeThrow {
+  const SyncIsolateInterrupted();
+
+  @override
+  Set<SyncRecordKind> get appliedKinds => SyncRecordKind.values.toSet();
+
+  @override
+  String toString() => 'Sync isolate terminated before returning a result';
+}
+
+/// Raised when the sync worker dies of an uncaught error before it returns a
+/// result: an error thrown outside the pass's own `try`, such as from a timer
+/// or an unawaited future, which `errorsAreFatal` turns into the worker's end.
+///
+/// Still a [StateError], as this path threw before, but like
+/// [SyncIsolateInterrupted] nothing crossed the port to say what the worker had
+/// committed, so [appliedKinds] is every kind (#1913).
+final class SyncIsolateCrashed extends StateError
+    implements SyncAppliedBeforeThrow {
+  SyncIsolateCrashed(super.message);
+
+  @override
+  Set<SyncRecordKind> get appliedKinds => SyncRecordKind.values.toSet();
+}
+
+/// A running pass that the caller can terminate at an isolate boundary.
+final class IsolatedSyncPassHandle {
+  const IsolatedSyncPassHandle._(this.result, this._kill);
+
+  final Future<SyncPassResult> result;
+  final void Function() _kill;
+
+  /// Terminates the worker. Its open database transaction is then recovered by
+  /// SQLite as either the pre-pass or post-apply state when reopened.
+  void kill() => _kill();
+}
+
+/// Runs a sync pass in a controllable isolate that owns its database and HTTP
+/// resources.
+///
+/// The main isolate passes only serializable request data across the boundary.
+/// The worker opens the same SQLite file independently, so the transaction
+/// enclosing inbound apply belongs to the isolate that the caller can
+/// terminate without leaving partially applied rows in the caller.
+///
+/// The session's [SyncPeerManifestCache] lives here between passes as the
+/// message the last worker returned, never decoded on this isolate: nothing
+/// here reads it, and decoding and re-encoding every cached peer manifest
+/// cost the UI thread a visible pause at both ends of every pass (#1934). It
+/// is checked with [SyncPeerManifestCache.checkMessage] on arrival, so a
+/// malformed one is refused where it was when this side decoded it. Only
+/// whether each manifest body decodes is left to the next worker, and a body
+/// is the worker's own encoding of a manifest it held: one that failed there
+/// would fail that pass, and every pass after it this session, as the held
+/// message would be kept.
+final class IsolatedSyncPassOperation {
+  IsolatedSyncPassOperation({
+    required this.databasePath,
+    required this.endpoint,
+    required this.syncId,
+    required this.deviceId,
+    this.beforeTerminalAcknowledgement,
+    this.onAppliedKinds,
+    SyncPeerManifestCache? peerManifestCache,
+    @visibleForTesting this.workerEntryPoint,
+  }) : _peerManifestCacheMessage = peerManifestCache?.toMessage();
+  final String databasePath;
+  final Uri endpoint;
+  final String syncId;
+  final String deviceId;
+  final Future<void> Function()? beforeTerminalAcknowledgement;
+  final void Function(Set<SyncRecordKind> kinds)? onAppliedKinds;
+
+  /// The session's peer-manifest cache as the last worker returned it, or as
+  /// the constructor's `peerManifestCache` encoded it before the first pass;
+  /// null is an empty cache.
+  Object? _peerManifestCacheMessage;
+
+  /// A decoded copy of the session's peer-manifest cache, for a test to
+  /// inspect. Changing it changes nothing the next pass sees, and decoding it
+  /// is the main-isolate cost this class otherwise avoids.
+  @visibleForTesting
+  SyncPeerManifestCache get peerManifestCache =>
+      SyncPeerManifestCache.fromMessage(_peerManifestCacheMessage);
+
+  /// Replaces the worker's entry point, so a test can make the worker die in
+  /// ways the real pass catches; it receives the same request the real
+  /// worker would. Must be a top-level or static function.
+  @visibleForTesting
+  final void Function(Object? request)? workerEntryPoint;
+
+  Future<SyncPassResult> call({SyncStoreResult? initialStore}) async {
+    final handle = await start(initialStore: initialStore);
+    return handle.result;
+  }
+
+  Future<IsolatedSyncPassHandle> start({
+    SyncIsolateApplyControl? applyControl,
+    SyncStoreResult? initialStore,
+  }) async {
+    final resultPort = ReceivePort();
+    final exitPort = ReceivePort();
+    final errorPort = ReceivePort();
+    final result = Completer<SyncPassResult>();
+    var finished = false;
+    var terminalMessageReceived = false;
+
+    late final StreamSubscription<dynamic> resultSubscription;
+    late final StreamSubscription<dynamic> exitSubscription;
+    late final StreamSubscription<dynamic> errorSubscription;
+
+    void closePorts() {
+      resultPort.close();
+      exitPort.close();
+      errorPort.close();
+      unawaited(resultSubscription.cancel());
+      unawaited(exitSubscription.cancel());
+      unawaited(errorSubscription.cancel());
+    }
+
+    void completeResult(SyncPassResult value) {
+      if (finished) return;
+      finished = true;
+      result.complete(value);
+      closePorts();
+    }
+
+    void completeError(Object error, [StackTrace? stack]) {
+      if (finished) return;
+      finished = true;
+      result.completeError(error, stack ?? StackTrace.current);
+      closePorts();
+    }
+
+    resultSubscription = resultPort.listen((message) async {
+      if (message is! Map<Object?, Object?>) {
+        completeError(
+          const FormatException('sync isolate returned a malformed message'),
+        );
+        return;
+      }
+      final acknowledgement = message['ack'];
+      if (acknowledgement is! SendPort) {
+        completeError(
+          const FormatException(
+            'sync isolate terminal message omitted its acknowledgement port',
+          ),
+        );
+        return;
+      }
+      final beforeAcknowledgement = beforeTerminalAcknowledgement;
+      if (beforeAcknowledgement != null) await beforeAcknowledgement();
+      terminalMessageReceived = true;
+      acknowledgement.send(null);
+      switch (message['type']) {
+        case 'result':
+          final encoded = message['result'];
+          if (encoded is! Map<Object?, Object?>) {
+            completeError(
+              const FormatException('sync isolate returned a malformed result'),
+            );
+            return;
+          }
+          try {
+            final encodedResult = Map<String, Object?>.from(encoded);
+            final updatedCache = encodedResult['_peerManifestCache'];
+            SyncPeerManifestCache.checkMessage(updatedCache);
+            final decodedResult = _decodeResult(encodedResult);
+            _peerManifestCacheMessage = updatedCache;
+            final onAppliedKinds = this.onAppliedKinds;
+            if (onAppliedKinds != null &&
+                decodedResult.appliedKinds.isNotEmpty) {
+              onAppliedKinds(decodedResult.appliedKinds.toSet());
+            }
+            completeResult(decodedResult);
+            // diagnostics: silent — malformed terminal results are surfaced to the caller.
+          } on Object catch (error, stack) {
+            completeError(error, stack);
+          }
+        case 'error':
+          // Adopt whatever the failed pass learned before it threw. Without
+          // this the §6.9 session evidence restarts at every failure, so a
+          // device on a flaky link never sees a peer publish twice after one
+          // of its own publications — the unreflected-publication judgement
+          // needs both inside one session — and every peer manifest it had
+          // already verified is downloaded again.
+          final failedCache = message['_peerManifestCache'];
+          if (failedCache != null) {
+            try {
+              SyncPeerManifestCache.checkMessage(failedCache);
+              _peerManifestCacheMessage = failedCache;
+              // diagnostics: silent — a malformed cache is discarded, and the
+              // pass failure below is what the caller acts on.
+            } on FormatException {
+              // Keep the pre-pass cache rather than losing the pass error.
+            }
+          }
+          // A pass can throw after its apply committed (a manifest PUT on a
+          // flaky link), and those rows are in the database however the pass
+          // ended. Reported here as the 'result' branch reports them, or the
+          // main isolate's live queries and settings controllers keep the old
+          // values, and the retry, finding the rows already matching the
+          // peers, applies nothing and never reports them either (#1913).
+          final appliedKinds = _decodeFailedPassAppliedKinds(
+            message['appliedKinds'],
+          );
+          final onAppliedKinds = this.onAppliedKinds;
+          if (onAppliedKinds != null && appliedKinds.isNotEmpty) {
+            onAppliedKinds(appliedKinds);
+          }
+          final messageText = message['message'];
+          final causeName = message['failureCause'];
+          completeError(
+            SyncWorkerFailure(
+              messageText is String
+                  ? messageText
+                  : 'sync isolate failed without an error message',
+              causeName is String
+                  ? SyncFailureCause.values.asNameMap()[causeName] ??
+                        SyncFailureCause.internal
+                  : SyncFailureCause.internal,
+              appliedKinds: appliedKinds,
+            ),
+          );
+      }
+    });
+    exitSubscription = exitPort.listen((_) {
+      if (!terminalMessageReceived && !finished) {
+        // Whatever the worker committed before it died is unknown, so every
+        // kind is reported; see [SyncIsolateInterrupted.appliedKinds].
+        const interrupted = SyncIsolateInterrupted();
+        onAppliedKinds?.call(interrupted.appliedKinds);
+        completeError(interrupted);
+      }
+    });
+    errorSubscription = errorPort.listen((message) {
+      if (finished) return;
+      final values = message is List<Object?> ? message : const <Object?>[];
+      final error = values.isNotEmpty ? values.first : null;
+      final stack = values.length > 1 ? values[1] : null;
+      final crashed = SyncIsolateCrashed(
+        error is String ? error : 'sync isolate failed',
+      );
+      // The worker dies of this without posting a terminal message, exactly
+      // as an interrupted one does, so the same every-kind report applies.
+      // The error port is heard before the exit port, and completing here
+      // cancels the exit listener, so this is the only report for the death.
+      if (!terminalMessageReceived) {
+        onAppliedKinds?.call(crashed.appliedKinds);
+      }
+      completeError(
+        crashed,
+        stack is String ? StackTrace.fromString(stack) : null,
+      );
+    });
+
+    final isolate = await Isolate.spawn<Object?>(
+      workerEntryPoint ?? _runSyncPassWorkerEntry,
+      _SyncPassRequest(
+        databasePath: databasePath,
+        endpoint: endpoint.toString(),
+        syncId: syncId,
+        deviceId: deviceId,
+        resultPort: resultPort.sendPort,
+        applyControlPort: applyControl?._eventPort,
+        peerManifestCache: _peerManifestCacheMessage,
+        initialStore: _encodeStoreResult(initialStore),
+      ),
+      onExit: exitPort.sendPort,
+      onError: errorPort.sendPort,
+      errorsAreFatal: true,
+    );
+
+    return IsolatedSyncPassHandle._(result.future, () {
+      if (!finished) isolate.kill(priority: Isolate.immediate);
+    });
+  }
+}
+
+final class _SyncPassRequest {
+  const _SyncPassRequest({
+    required this.databasePath,
+    required this.endpoint,
+    required this.syncId,
+    required this.deviceId,
+    required this.resultPort,
+    required this.applyControlPort,
+    required this.peerManifestCache,
+    required this.initialStore,
+  });
+
+  final String databasePath;
+  final String endpoint;
+  final String syncId;
+  final String deviceId;
+  final SendPort resultPort;
+  final SendPort? applyControlPort;
+  final Object? peerManifestCache;
+  final Map<String, Object?>? initialStore;
+}
+
+/// The port a [IsolatedSyncPassOperation.workerEntryPoint] replacement posts
+/// its terminal message to, from the [request] that entry point received.
+@visibleForTesting
+SendPort syncPassResultPort(Object? request) =>
+    (request! as _SyncPassRequest).resultPort;
+
+void _runSyncPassWorkerEntry(Object? request) =>
+    unawaited(_runSyncPassWorker(request! as _SyncPassRequest));
+
+Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
+  final acknowledgementPort = ReceivePort();
+  // Hoisted so the failure path can return it too: the worker mutates this
+  // cache as the pass runs, and a fresh isolate per pass means anything not
+  // sent back is lost.
+  SyncPeerManifestCache? peerManifestCache;
+  // Hoisted for the same reason: filled from the coordinator as the pass
+  // ends, so a pass that throws after its apply committed can still say what
+  // it wrote (#1913).
+  final appliedKinds = <SyncRecordKind>{};
+  try {
+    peerManifestCache = SyncPeerManifestCache.fromMessage(
+      request.peerManifestCache,
+    );
+    final applyControlPort = request.applyControlPort;
+    final applyEngine = applyControlPort == null
+        ? null
+        : SyncApplyEngine(
+            onAfterWrite: (_) => _pauseAfterWrite(applyControlPort),
+          );
+    final encoded = await _runSyncPass(
+      databasePath: request.databasePath,
+      endpoint: request.endpoint,
+      syncId: request.syncId,
+      deviceId: request.deviceId,
+      applyEngine: applyEngine,
+      peerManifestCache: peerManifestCache,
+      initialStore: _decodeStoreResult(request.initialStore),
+      appliedKinds: appliedKinds,
+    );
+    encoded['_peerManifestCache'] = peerManifestCache.toMessage();
+    request.resultPort.send({
+      'type': 'result',
+      'result': encoded,
+      'ack': acknowledgementPort.sendPort,
+    });
+    // diagnostics: silent — worker errors are serialized to the parent isolate.
+  } on Object catch (error, stack) {
+    // The cache carries the session-scoped state §6.9 depends on — the
+    // unreflected-publication evidence, the reported-once rejected hashes — and
+    // every peer ETag. A fresh isolate per pass means anything not returned
+    // here is lost, so a pass that throws late (a manifest PUT on a flaky
+    // link) would discard evidence the spec gathers across passes and force a
+    // full re-download of manifests it had already verified.
+    request.resultPort.send({
+      'type': 'error',
+      'message': '$error',
+      // Classified here because the parent only ever sees the text: a
+      // `SocketException` and an app bug are the same string-typed throw once
+      // they cross the port, and they call for different things from the user.
+      'failureCause': syncFailureCauseForError(error).name,
+      'stack': '$stack',
+      '_peerManifestCache': peerManifestCache?.toMessage(),
+      'appliedKinds': [for (final kind in appliedKinds) kind.name],
+      'ack': acknowledgementPort.sendPort,
+    });
+  }
+  await acknowledgementPort.first;
+  acknowledgementPort.close();
+}
+
+Future<void> _pauseAfterWrite(SendPort parentPort) async {
+  final releasePort = ReceivePort();
+  parentPort.send(releasePort.sendPort);
+  try {
+    await releasePort.first;
+  } finally {
+    releasePort.close();
+  }
+}
+
+/// The store one worker pass syncs through. It is built for that pass and
+/// dropped when the pass ends, so it is the store that keeps the snapshot
+/// memo: the pass's later snapshots reuse what did not change (#1931).
+@visibleForTesting
+CompendiumSyncCoordinatorStore syncPassStore(
+  CompendiumRepositories repositories, {
+  required String syncId,
+}) => CompendiumSyncCoordinatorStore(
+  repositories,
+  syncId: syncId,
+  memoizeSnapshots: true,
+);
+
+Future<Map<String, Object?>> _runSyncPass({
+  required String databasePath,
+  required String endpoint,
+  required String syncId,
+  required String deviceId,
+  SyncApplyEngine? applyEngine,
+  required SyncPeerManifestCache peerManifestCache,
+  SyncStoreResult? initialStore,
+  required Set<SyncRecordKind> appliedKinds,
+}) async {
+  // This is a second connection to the file the app already has open, so it
+  // needs the same WAL/busy-timeout setup the app connection uses. Without it
+  // an ordinary app write arriving during this pass's apply transaction fails
+  // immediately with "database is locked".
+  final database = CompendiumDatabase(
+    NativeDatabase(File(databasePath), setup: applyCompendiumSqliteSetup),
+  );
+  SyncHttpClient? client;
+  SyncCoordinator? coordinator;
+
+  try {
+    client = SyncHttpClient(endpoint: Uri.parse(endpoint), syncId: syncId);
+    coordinator = SyncCoordinator(
+      syncId: syncId,
+      deviceId: deviceId,
+      store: syncPassStore(
+        CompendiumRepositories(
+          database,
+          shippedTaxonomies.anyForm,
+          taxonomyForForm: shippedTaxonomies.forForm,
+        ),
+        syncId: syncId,
+      ),
+      transport: SyncHttpCoordinatorTransport(client),
+      applyEngine: applyEngine,
+      peerManifestCache: peerManifestCache,
+    );
+    return _encodeResult(await coordinator.runPass(initialStore: initialStore));
+  } finally {
+    if (coordinator != null) {
+      appliedKinds.addAll(coordinator.passAppliedKinds);
+      await coordinator.dispose();
+    } else {
+      client?.close();
+    }
+
+    await database.close();
+  }
+}
+
+/// The applied kinds a failed worker pass reported. An unknown name is
+/// skipped, as one from a newer kind would be; a missing or malformed value
+/// means the worker's report cannot be read, so every kind is assumed, as for
+/// an interrupted worker (#1913).
+Set<SyncRecordKind> _decodeFailedPassAppliedKinds(Object? encoded) {
+  if (encoded is! List<Object?>) return SyncRecordKind.values.toSet();
+  final byName = SyncRecordKind.values.asNameMap();
+  final kinds = <SyncRecordKind>{};
+  for (final name in encoded) {
+    if (name is! String) return SyncRecordKind.values.toSet();
+    if (byName[name] case final kind?) kinds.add(kind);
+  }
+  return kinds;
+}
+
+Map<String, Object?>? _encodeStoreResult(SyncStoreResult? result) {
+  if (result == null) return null;
+  return {
+    'statusCode': result.response.statusCode,
+    'kind': result.response.kind.name,
+    'headers': result.response.headers,
+    'body': result.response.body,
+    'retryAfterMs': result.response.retryAfter?.inMilliseconds,
+    'missingKind': result.missingKind?.name,
+  };
+}
+
+SyncStoreResult? _decodeStoreResult(Map<String, Object?>? encoded) {
+  if (encoded == null) return null;
+  final statusCode = encoded['statusCode'];
+  final kind = encoded['kind'];
+  final headers = encoded['headers'];
+  final body = encoded['body'];
+  final retryAfterMs = encoded['retryAfterMs'];
+  final missingKind = encoded['missingKind'];
+  if (statusCode is! int ||
+      kind is! String ||
+      headers is! Map<Object?, Object?> ||
+      body is! List<Object?> ||
+      (retryAfterMs != null && retryAfterMs is! int) ||
+      (missingKind != null && missingKind is! String)) {
+    throw const FormatException(
+      'sync isolate received a malformed store result',
+    );
+  }
+  final decodedHeaders = <String, String>{};
+  for (final entry in headers.entries) {
+    if (entry.key is! String || entry.value is! String) {
+      throw const FormatException(
+        'sync isolate received malformed store headers',
+      );
+    }
+    decodedHeaders[entry.key as String] = entry.value as String;
+  }
+  final decodedBody = <int>[];
+  for (final value in body) {
+    if (value is! int) {
+      throw const FormatException('sync isolate received malformed store body');
+    }
+    decodedBody.add(value);
+  }
+  final retryAfter = retryAfterMs == null ? null : retryAfterMs as int;
+  final missingKindName = missingKind == null ? null : missingKind as String;
+  return SyncStoreResult(
+    response: SyncHttpResponse(
+      statusCode: statusCode,
+      kind: SyncResponseKind.values.byName(kind),
+      headers: decodedHeaders,
+      body: decodedBody,
+      retryAfter: retryAfter == null
+          ? null
+          : Duration(milliseconds: retryAfter),
+    ),
+    missingKind: missingKindName == null
+        ? null
+        : SyncStoreMissingKind.values.byName(missingKindName),
+  );
+}
+
+Map<String, Object?> _encodeResult(SyncPassResult result) => {
+  'status': result.status.name,
+  'message': result.message,
+  'failure': result.failure?.encode(),
+  'duplicateCount': result.duplicateCount,
+  'appliedKinds': [for (final kind in result.appliedKinds) kind.name],
+  'quota': result.quota?.encode(),
+  'storeRead': result.storeRead,
+  'reports': [
+    for (final report in result.reports)
+      {
+        'code': report.code.name,
+        'message': report.message,
+        'kind': report.kind?.name,
+        'recordId': report.recordId,
+        'peerId': report.peerId,
+        'httpStatus': report.httpStatus,
+      },
+  ],
+  'peers': switch (result.peers) {
+    null => null,
+    final peers => [
+      for (final peer in peers)
+        {
+          'peerId': peer.peerId,
+          'writtenAt': peer.writtenAt.microsecondsSinceEpoch,
+          'waitingCount': peer.waitingCount,
+        },
+    ],
+  },
+};
+
+SyncPassResult _decodeResult(Map<String, Object?> encoded) {
+  final rawStatus = encoded['status'];
+  final rawMessage = encoded['message'];
+  final rawFailure = encoded['failure'];
+  final rawDuplicateCount = encoded['duplicateCount'];
+  final rawAppliedKinds = encoded['appliedKinds'];
+  final rawReports = encoded['reports'];
+  final rawQuota = encoded['quota'];
+  final rawStoreRead = encoded['storeRead'];
+  if (rawStoreRead != null && rawStoreRead is! bool) {
+    throw const FormatException('sync isolate returned an invalid store read');
+  }
+  final quota = SyncStoreQuota.tryParse(rawQuota);
+  if (rawQuota != null && quota == null) {
+    throw const FormatException('sync isolate returned an invalid quota');
+  }
+  final rawPeers = encoded['peers'];
+  if (rawStatus is! String ||
+      (rawMessage != null && rawMessage is! String) ||
+      (rawDuplicateCount != null && rawDuplicateCount is! int) ||
+      rawAppliedKinds is! List<Object?> ||
+      rawReports is! List<Object?> ||
+      (rawPeers != null && rawPeers is! List<Object?>)) {
+    throw const FormatException('sync isolate returned a malformed result');
+  }
+
+  final status = SyncPassStatus.values.byName(rawStatus);
+  final appliedKinds = <SyncRecordKind>[];
+  for (final rawKind in rawAppliedKinds) {
+    if (rawKind is! String) {
+      throw const FormatException(
+        'sync isolate returned an invalid applied kind',
+      );
+    }
+    appliedKinds.add(SyncRecordKind.values.byName(rawKind));
+  }
+  final reports = <SyncReport>[];
+  for (final rawReport in rawReports) {
+    if (rawReport is! Map<Object?, Object?>) {
+      throw const FormatException('sync isolate returned a malformed report');
+    }
+    final code = rawReport['code'];
+    final message = rawReport['message'];
+    final kind = rawReport['kind'];
+    final recordId = rawReport['recordId'];
+    final peerId = rawReport['peerId'];
+    final httpStatus = rawReport['httpStatus'];
+    if (code is! String ||
+        message is! String ||
+        (kind != null && kind is! String) ||
+        (recordId != null && recordId is! String) ||
+        (peerId != null && peerId is! String) ||
+        (httpStatus != null && httpStatus is! int)) {
+      throw const FormatException('sync isolate returned an invalid report');
+    }
+    final kindName = kind == null ? null : kind as String;
+    final recordIdValue = recordId == null ? null : recordId as String;
+    final peerIdValue = peerId == null ? null : peerId as String;
+    reports.add(
+      SyncReport(
+        code: SyncReportCode.values.byName(code),
+        message: message,
+        kind: kindName == null ? null : SyncRecordKind.values.byName(kindName),
+        recordId: recordIdValue,
+        peerId: peerIdValue,
+        httpStatus: httpStatus as int?,
+      ),
+    );
+  }
+
+  List<SyncPeerSummary>? peers;
+  if (rawPeers != null) {
+    peers = [];
+    for (final rawPeer in rawPeers as List<Object?>) {
+      if (rawPeer is! Map<Object?, Object?> ||
+          rawPeer['peerId'] is! String ||
+          rawPeer['writtenAt'] is! int ||
+          rawPeer['waitingCount'] is! int ||
+          (rawPeer['waitingCount']! as int) < 0) {
+        throw const FormatException(
+          'sync isolate returned an invalid peer summary',
+        );
+      }
+      peers.add(
+        SyncPeerSummary(
+          peerId: rawPeer['peerId']! as String,
+          writtenAt: DateTime.fromMicrosecondsSinceEpoch(
+            rawPeer['writtenAt']! as int,
+            isUtc: true,
+          ),
+          waitingCount: rawPeer['waitingCount']! as int,
+        ),
+      );
+    }
+  }
+
+  return SyncPassResult(
+    status,
+    reports: reports,
+    message: rawMessage as String?,
+    failure: rawFailure == null ? null : SyncFailure.decode(rawFailure),
+    duplicateCount: rawDuplicateCount as int? ?? 0,
+    appliedKinds: appliedKinds,
+    quota: quota,
+    storeRead: rawStoreRead as bool? ?? false,
+    peers: peers,
+  );
+}

@@ -7,23 +7,17 @@ import '../model/dance.dart';
 import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
-import '../model/figure.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
 import '../storage/repositories/difficulty_level_repository.dart';
 import 'callers_companion_mapping.dart';
+import 'dance_choreography_reimport.dart';
 import 'dedupe.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
-
-/// Value-equality for the choreography-body comparison in
-/// [ImportPipeline.autoResolveAmbiguous]. [Figure] and `String` both carry
-/// structural equality, so element-wise list comparison is exact.
-const ListEquality<Figure> _figureListEquality = ListEquality<Figure>();
-const ListEquality<String> _stringListEquality = ListEquality<String>();
 
 /// The commit action chosen (or defaulted) for one record of a batch.
 enum CommitAction {
@@ -31,6 +25,11 @@ enum CommitAction {
   create,
 
   /// Update an existing dance matched by exact `(source, externalId)`.
+  ///
+  /// Only its choreography and provenance change (see
+  /// [withReimportedChoreography]), plus its title and credit when the
+  /// verdict's [DedupeVerdict.alsoTitleAndCredit] is set; everything else the
+  /// caller keeps on the dance stays (INTAKE-7).
   reimport,
 
   /// Update an existing dance the caller chose to link a fuzzy match to.
@@ -77,11 +76,18 @@ class ImportBatchResult {
   ImportBatchResult({
     required this.records,
     List<ImportError> errors = const [],
+    List<ImportIssue> warnings = const [],
     this.dedupeIndex,
-  }) : errors = List.unmodifiable(errors);
+  }) : errors = List.unmodifiable(errors),
+       warnings = List.unmodifiable(warnings);
 
   final List<ImportRecordPlan> records;
   final List<ImportError> errors;
+
+  /// Concerns about the whole file (not one record) the adapter raised during
+  /// discover — see [BatchWarningSource]. The batch is still plannable; these
+  /// tell the user it may be incomplete.
+  final List<ImportIssue> warnings;
 
   /// The [DedupeIndex] snapshot [plan] used to build these [records], if any.
   /// [ImportPipeline.commit] reuses its
@@ -166,13 +172,20 @@ class ImportSession {
     required List<Dance> priorStates,
     List<String> createdChoreographerIds = const [],
     List<String> revivedChoreographerIds = const [],
+    List<ImportIssue> issues = const [],
   }) : records = List.unmodifiable(records),
        _insertedDanceIds = List.unmodifiable(insertedDanceIds),
        _priorStates = List.unmodifiable(priorStates),
        _createdChoreographerIds = List.unmodifiable(createdChoreographerIds),
-       _revivedChoreographerIds = List.unmodifiable(revivedChoreographerIds);
+       _revivedChoreographerIds = List.unmodifiable(revivedChoreographerIds),
+       issues = List.unmodifiable(issues);
 
   final List<CommittedRecord> records;
+
+  /// Non-fatal notes raised while committing: a related-dance link the batch
+  /// carried was left out because its target was not imported (see
+  /// [ImportPipeline.commit]).
+  final List<ImportIssue> issues;
   final List<String> _insertedDanceIds;
   final List<Dance> _priorStates;
   final List<String> _createdChoreographerIds;
@@ -181,7 +194,9 @@ class ImportSession {
   /// Ids of dances newly inserted by this batch.
   List<String> get insertedDanceIds => _insertedDanceIds;
 
-  /// Prior snapshots of dances this batch updated (for rollback).
+  /// Prior snapshots of dances this batch updated (for rollback): one per
+  /// dance, taken before the batch's *first* write to it, however many rows
+  /// resolved onto it.
   List<Dance> get updatedDancePriorStates => _priorStates;
 
   /// Ids of [Choreographer] rows newly created while resolving author names in
@@ -208,8 +223,28 @@ class ImportSession {
   bool _undone = false;
 }
 
+/// One record mid-[ImportPipeline.plan]: fetched and parsed, but not yet
+/// carrying a dedupe verdict. Verdicts are assigned in a second pass over the
+/// whole batch (see [ImportPipeline.plan]) so a legacy-alias collision between
+/// *distinct* current keys — two dances that only agree on a pre-namespacing
+/// alias — can be caught before either is committed to a `reimport` verdict.
+class _PendingPlanRecord {
+  _PendingPlanRecord({
+    required this.raw,
+    required this.draft,
+    required this.externalKey,
+  });
+
+  final RawRecord raw;
+  final StructuredDraft draft;
+
+  /// `${source.name}\u0000$externalId`, or `null` when the record carries no
+  /// external id — matches [ImportPipeline.plan]'s `firstIndexByExternalKey`.
+  final String? externalKey;
+}
+
 /// Drives a [SourceAdapter] through the full pipeline: `discover → fetch →
-/// parse → dedupe` (planning, non-destructive) and then `commit` (transactional
+/// parse → dedupe` (planning, non-destructive) and then `commit` (per-record
 /// write of dances + provenance) with session-scoped undo.
 ///
 /// Pure framework: it performs no source I/O itself (adapters own that) and
@@ -262,23 +297,66 @@ class ImportPipeline {
     );
   }
 
+  /// Returns [committed] (`externalId → danceId` for the records a commit
+  /// wrote) extended with each entry of [existing] whose dance is still live,
+  /// for linking program slots after a commit (INTAKE-1).
+  ///
+  /// [existing] names dances a caller resolved *outside* the commit, such as
+  /// a re-import row the review left at Skip (its verdict's target). Without
+  /// them a program slot for such a dance would become a "not imported"
+  /// placeholder, although the dance is in the collection. An entry in [committed] wins over
+  /// one in [existing] for the same key. An [existing] dance deleted since it
+  /// was planned is dropped, so the slot falls back to whatever a dance that
+  /// did not commit becomes for that importer (a "not imported" placeholder,
+  /// or for a `.USR` set its title) rather than naming a dance that is gone.
+  Future<Map<String, String>> withLiveExistingDances(
+    Map<String, String> committed,
+    Map<String, String> existing,
+  ) async {
+    final merged = Map<String, String>.of(committed);
+    for (final MapEntry(:key, :value) in existing.entries) {
+      if (key.isEmpty || merged.containsKey(key)) continue;
+      // A single-column read, not a full hydrate: a re-import of a whole
+      // `.USR` can name every dance in the collection here.
+      if (await _dances.isDeletedById(value) == false) merged[key] = value;
+    }
+    return merged;
+  }
+
   /// Runs discover → fetch → parse → dedupe over [request], producing a
   /// non-destructive [ImportBatchResult]. Per-record fetch/parse failures are
   /// collected as structured [ImportError]s; the rest of the batch proceeds.
   ///
   /// [index] should be a fresh [buildDedupeIndex] snapshot; if omitted, one is
   /// built automatically.
+  ///
+  /// Parsing and deduping are CPU-bound and their awaits complete without
+  /// waiting on anything, so on a large batch (a ~20,000-dance `.USR` is ~40 s
+  /// of parsing, then a scan of every record against the whole collection) the
+  /// loops would otherwise hold the isolate from start to finish and freeze any
+  /// UI running on it. Both the parse loop and the dedupe loop therefore hand
+  /// the event loop a turn every [yieldInterval] of work, sharing one slice
+  /// clock; pass [Duration.zero] to yield after every record. [onProgress] is
+  /// told `(processed, total)` as records are parsed, and once more with
+  /// `(total, total)` when the parse loop ends; the dedupe loop reports
+  /// nothing.
   Future<ImportBatchResult> plan(
     SourceAdapter adapter,
     ImportRequest request, {
     DedupeIndex? index,
     double threshold = DedupeIndex.defaultThreshold,
     bool preserveCanonicalDifficultyIds = false,
+    void Function(int processed, int total)? onProgress,
+    Duration yieldInterval = const Duration(milliseconds: 25),
   }) async {
     final dedupe = index ?? await buildDedupeIndex();
     final List<DiscoveredRecord> discovered;
     try {
       discovered = await adapter.discover(request);
+    } on ImportError catch (e) {
+      // An adapter's own failure already carries stage, source and a typed
+      // code; wrapping it would hide the code from the UI.
+      return ImportBatchResult(records: const [], errors: [e]);
     } catch (e) {
       return ImportBatchResult(
         records: const [],
@@ -292,6 +370,11 @@ class ImportPipeline {
         ],
       );
     }
+    // Read right after discover: the adapter's warnings describe this file and
+    // are replaced by its next discover.
+    final batchWarnings = adapter is BatchWarningSource
+        ? List<ImportIssue>.of((adapter as BatchWarningSource).batchWarnings)
+        : const <ImportIssue>[];
 
     final configuredLevels = _difficultyLevels == null
         ? null
@@ -304,9 +387,28 @@ class ImportPipeline {
       for (final level in configuredLevels ?? const <DifficultyLevel>[])
         _normalizeName(level.label): level,
     };
-    final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
+    // `(source, externalId)` → index into `pending` of the first planned
+    // record carrying it. [dedupe] is a pre-batch snapshot and never learns
+    // about planned records, so without this a source that lists one id twice
+    // (a `.USR` FileMaker record-id fallback colliding with a real zk id, say)
+    // planned both as `isNew` and committed two dances under one provenance
+    // key — which a later re-import could then only ever match one of.
+    final firstIndexByExternalKey = <String, int>{};
+    final pending = <_PendingPlanRecord>[];
+    final slice = Stopwatch()..start();
+    var processed = 0;
     for (final record in discovered) {
+      if (processed > 0) {
+        onProgress?.call(processed, discovered.length);
+        if (slice.elapsed >= yieldInterval) {
+          // A real turn of the event loop, not a microtask: paint, input and
+          // timers get to run.
+          await Future<void>.delayed(Duration.zero);
+          slice.reset();
+        }
+      }
+      processed++;
       RawRecord raw;
       try {
         raw = await adapter.fetch(record);
@@ -351,15 +453,101 @@ class ImportPipeline {
         continue;
       }
 
+      final externalId = raw.externalId;
+      final externalKey = externalId == null || externalId.isEmpty
+          ? null
+          : '${raw.source.name}\u0000$externalId';
+      final firstIndex = externalKey == null
+          ? null
+          : firstIndexByExternalKey[externalKey];
+      if (firstIndex != null) {
+        // Drop the repeat and say so on the record that is kept — the dropped
+        // one has no row of its own for the note to appear on.
+        final first = pending[firstIndex];
+        pending[firstIndex] = _PendingPlanRecord(
+          raw: first.raw,
+          draft: first.draft.copyWith(
+            issues: [
+              ...first.draft.issues,
+              ImportIssue(
+                severity: ImportIssueSeverity.warning,
+                code: 'duplicate_external_id_in_batch',
+                message:
+                    'The source listed ${raw.source.name}:$externalId again '
+                    'later in this batch ("${draft.dance.title}"); that '
+                    'repeat was left out in favour of this record.',
+              ),
+            ],
+          ),
+          externalKey: first.externalKey,
+        );
+        continue;
+      }
+
+      if (externalKey != null) {
+        firstIndexByExternalKey[externalKey] = pending.length;
+      }
+      pending.add(
+        _PendingPlanRecord(raw: raw, draft: draft, externalKey: externalKey),
+      );
+    }
+    onProgress?.call(discovered.length, discovered.length);
+
+    // A legacy alias (the bare upstream id `GenericJsonAdapter` keyed a
+    // bundled dance under before receive keys carried the upstream source) is
+    // only trustworthy as a reimport target when exactly one current key in
+    // this batch resolves to it. [dedupe] is a pre-batch snapshot, so two
+    // dances that only share that alias — e.g. a bundle's `contradb:457` and
+    // `callersbox:457` both falling back to the legacy bare `457` — would
+    // otherwise each independently resolve to the same existing dance and
+    // both commit as `reimport`, overwriting it twice and mapping two program
+    // slots onto one dance (the data-loss case this PR fixes). Collect every
+    // claim before assigning any verdict so a collision is caught regardless
+    // of processing order, and regardless of which record it is discovered
+    // through.
+    final legacyTargetByIndex = <int, String>{};
+    final claimantsByLegacyTarget = <String, Set<String>>{};
+    for (var i = 0; i < pending.length; i++) {
+      final raw = pending[i].raw;
+      if (dedupe.findByExternalId(raw.source, raw.externalId) != null) {
+        continue; // An exact current-key match never consults legacy aliases.
+      }
+      for (final prior in raw.priorExternalIds) {
+        final legacyTarget = dedupe.findByExternalId(raw.source, prior);
+        if (legacyTarget == null) continue;
+        legacyTargetByIndex[i] = legacyTarget;
+        (claimantsByLegacyTarget[legacyTarget] ??= {}).add(
+          pending[i].externalKey ?? '#$i',
+        );
+        break;
+      }
+    }
+
+    final records = <ImportRecordPlan>[];
+    for (var i = 0; i < pending.length; i++) {
+      if (i > 0 && slice.elapsed >= yieldInterval) {
+        // As in the parse loop: `_dedupeAuthorNames` completes as a microtask
+        // when the draft carries names, so only a real turn lets a frame paint.
+        await Future<void>.delayed(Duration.zero);
+        slice.reset();
+      }
+      final p = pending[i];
+      final legacyTarget = legacyTargetByIndex[i];
+      final legacyCollision =
+          legacyTarget != null &&
+          claimantsByLegacyTarget[legacyTarget]!.length > 1;
       try {
         final verdict = dedupe.verdictFor(
-          source: raw.source,
-          externalId: raw.externalId,
-          title: draft.dance.title,
-          authorNames: await _dedupeAuthorNames(draft),
+          source: p.raw.source,
+          externalId: p.raw.externalId,
+          // Suppressed on a collision so `verdictFor` falls through to fuzzy
+          // matching instead of reimporting onto a contested legacy target.
+          priorExternalIds: legacyCollision ? const [] : p.raw.priorExternalIds,
+          title: p.draft.dance.title,
+          authorNames: await _dedupeAuthorNames(p.draft),
           threshold: threshold,
         );
-        records.add(ImportRecordPlan(draft: draft, verdict: verdict));
+        records.add(ImportRecordPlan(draft: p.draft, verdict: verdict));
       } on ImportError catch (e) {
         errors.add(e);
       } catch (e) {
@@ -368,7 +556,7 @@ class ImportPipeline {
             stage: ImportStage.dedupe,
             source: adapter.source,
             message: 'Failed to dedupe record: $e',
-            externalId: raw.externalId ?? record.externalId,
+            externalId: p.raw.externalId,
             cause: e,
           ),
         );
@@ -377,6 +565,7 @@ class ImportPipeline {
     return ImportBatchResult(
       records: records,
       errors: errors,
+      warnings: batchWarnings,
       dedupeIndex: dedupe,
     );
   }
@@ -396,18 +585,26 @@ class ImportPipeline {
     if (sourceLabel == null || sourceLabel.trim().isEmpty) {
       return draft;
     }
-    final hasUnmappedLevelIssue = draft.issues.any(
-      (issue) => issue.code == 'cc_unmapped_level',
-    );
+    // A level the source names but the mapper could not place: one it does
+    // not recognise, or a CC combined level such as "Easy/Intermediate"
+    // (#1973). Either is matched to a configured level of the same name.
+    bool isUnplacedLevel(ImportIssue issue) =>
+        issue.code == 'cc_unmapped_level' || issue.code == ccNewLevelIssueCode;
+    final hasUnmappedLevelIssue = draft.issues.any(isUnplacedLevel);
     if (id == null) {
       if (!hasUnmappedLevelIssue) return draft;
-      final configured = configuredByLabel[_normalizeName(sourceLabel)];
+      final configured =
+          configuredByLabel[_normalizeName(sourceLabel)] ??
+          configuredById.values.firstWhereOrNull(
+            (level) =>
+                ccLevelNameKey(level.label) == ccLevelNameKey(sourceLabel),
+          );
       if (configured == null) return draft;
       return draft.copyWith(
         dance: draft.dance.copyWith(difficultyLevelId: configured.id),
         issues: [
           for (final issue in draft.issues)
-            if (issue.code != 'cc_unmapped_level') issue,
+            if (!isUnplacedLevel(issue)) issue,
         ],
       );
     }
@@ -440,12 +637,46 @@ class ImportPipeline {
     );
   }
 
-  /// Commits a planned [batch] transactionally, writing each dance and its
-  /// provenance row. [resolutions] resolves ambiguous records, keyed by their
-  /// index into `batch.records`; an ambiguous record with no resolution is
-  /// skipped (never guessed). New/duplicate inserts get a fresh id from
-  /// [newId]; re-imports/links update the matched dance, preserving its
-  /// `createdAt`.
+  /// Commits a planned [batch], writing each dance and its provenance row.
+  /// Records are independent: one that fails is reported in its
+  /// [CommittedRecord.error] and leaves no dance and no author writes behind
+  /// (see `_rollbackRecordDances` and `_rollbackRecordAuthors`); the rest still
+  /// commit. The batch as a whole is not one transaction — [undo] reverts the
+  /// records that did commit. [resolutions] resolves ambiguous records, keyed
+  /// by their index into `batch.records`; an ambiguous record with no
+  /// resolution is skipped (never guessed). New/duplicate inserts get a fresh
+  /// id from [newId]; re-imports/links update the matched dance, preserving its
+  /// `createdAt`. A re-import writes only the draft's choreography and
+  /// provenance onto it ([withReimportedChoreography]), and its title and
+  /// credit too when [DedupeVerdict.alsoTitleAndCredit] is set; a link writes
+  /// the whole draft.
+  ///
+  /// [defaultTagIds] are added to every dance this commit **creates**
+  /// (create / duplicate / variation), after any tags the draft already
+  /// carries. Re-imports and links update an existing dance and never receive
+  /// them. The default is empty so callers that must not tag (program-driven
+  /// creation, archive restore) are unaffected by construction. Callers pass
+  /// only ids of live tags: a tombstoned id would attach a join row that
+  /// `DanceRepository` hides, and an erased one fails that record's write.
+  ///
+  /// [onProgress] is told `(done, total)` after each record has been handled
+  /// (written, skipped or failed), and once more with `(total, total)` when the
+  /// loop ends.
+  ///
+  /// A draft's links come from the source's id space (a shared file carries the
+  /// sender's link ids), so they are never written as given. Every link gets a
+  /// fresh id from [newId]. A `relatedDance` link names its target by the
+  /// target's external id in this source ([GenericJsonAdapter] and
+  /// [PublishedCollectionAdapter] rewrite the file's dance id to it), and is
+  /// held back until every record has been written. It is then added to its
+  /// dance with its target resolved: to the dance the record of this batch
+  /// with that external id was written as, else to a live dance already
+  /// received from this source under that external id, else to a live dance
+  /// whose id it is (a file this library wrote). A link
+  /// whose target resolves to neither is left out with an
+  /// `archive_related_dance_unresolved` note in [ImportSession.issues]. The
+  /// link is written by a second update of a dance this batch already wrote,
+  /// so [undo] reverts it with that dance.
   ///
   /// Returns an [ImportSession] recording what was written so the batch can be
   /// [undo]ne.
@@ -454,10 +685,19 @@ class ImportPipeline {
     required DateTime now,
     required String Function() newId,
     Map<int, DedupeResolution> resolutions = const {},
+    List<String> defaultTagIds = const [],
+    void Function(int done, int total)? onProgress,
   }) async {
     final committed = <CommittedRecord>[];
     final insertedIds = <String>[];
     final priorStates = <Dance>[];
+    // Ids whose pre-import state is already in `priorStates`. Two rows can
+    // resolve onto one target in a batch (both linked to it, or one linked and
+    // one a variation with link-back); the second read then sees the first
+    // write, and restoring that "prior" on undo left the dance at an
+    // intermediate state. Capture once per target, as the program ledger in
+    // `CompendiumArchiveImporter.commit` (`priorCapturedFor`) does.
+    final priorCapturedFor = <String>{};
 
     // Batch-scoped author resolution state. Seeded from the current
     // choreographers (normalized name → id) so imported names match existing
@@ -478,11 +718,17 @@ class ImportPipeline {
     }
     final createdChoreographerIds = <String>[];
     final revivedChoreographerIds = <String>[];
+    // Each written dance's held-back related links, and each written record's
+    // external id → the id it was written as (see the doc above).
+    final heldRelatedLinks =
+        <String, ({ProvenanceSource source, List<DanceLink> links})>{};
+    final writtenIdByExternalId = <String, String>{};
 
-    for (var i = 0; i < batch.records.length; i++) {
+    final total = batch.records.length;
+    for (var i = 0; i < total; i++) {
       final plan = batch.records[i];
       final resolution = resolutions[i];
-      final (action, targetId) = _resolveAction(plan.verdict, resolution);
+      final (action, targetId) = resolveCommitAction(plan.verdict, resolution);
 
       if (action == CommitAction.skip) {
         committed.add(
@@ -491,21 +737,67 @@ class ImportPipeline {
             externalId: plan.draft.raw.externalId,
           ),
         );
+        onProgress?.call(i + 1, total);
         continue;
       }
 
+      // What this record adds to the batch-wide author state, so a failure can
+      // take back exactly its own writes (see the `catch` below).
+      final createdBefore = createdChoreographerIds.length;
+      final revivedBefore = revivedChoreographerIds.length;
+      final priorBefore = priorStates.length;
+      // The new dance this record created, if any. A default variation writes
+      // twice (the new dance, then the reciprocal link on its target), so the
+      // second write can fail after the first has landed.
+      String? createdDanceId;
+
       try {
+        final writesNewDance =
+            action == CommitAction.create ||
+            action == CommitAction.duplicate ||
+            action == CommitAction.variation;
+        // reimport / link update the matched dance in place, so the target must
+        // still exist. Checked BEFORE authors are resolved: a vanished target
+        // (hard-deleted since planning) otherwise skips the record only after
+        // `_resolveAuthors` has already written its choreographers.
+        Dance? prior;
+        if (!writesNewDance) {
+          prior = await _dances.getById(targetId!, includeDeleted: true);
+          if (prior == null) {
+            committed.add(
+              CommittedRecord(
+                action: action,
+                externalId: plan.draft.raw.externalId,
+                error: commitError(
+                  plan.draft.raw.source,
+                  'Target dance "$targetId" no longer exists',
+                  externalId: plan.draft.raw.externalId,
+                ),
+              ),
+            );
+            onProgress?.call(i + 1, total);
+            continue;
+          }
+        }
+
         // Resolve the record's author names to Choreographer ids, creating rows
-        // as needed. Done before the write so both create and reimport/link
-        // paths get real authorIds. Reimport/link REPLACES authors wholesale
-        // (consistent with re-import's overwrite of dance content).
-        final authorResolutions = await _resolveAuthors(
-          plan.draft.authorNames,
-          nameToId: nameToId,
-          newId: newId,
-          createdChoreographerIds: createdChoreographerIds,
-          revivedChoreographerIds: revivedChoreographerIds,
-        );
+        // as needed. Done before the write so both create and link paths get
+        // real authorIds. A link REPLACES authors wholesale (consistent with its
+        // overwrite of dance content). A re-import keeps the dance's authors
+        // (INTAKE-7), so it resolves none: a row minted for it would credit no
+        // dance. A re-import that also takes the title and credit resolves
+        // them as a link does.
+        final takesCredit =
+            action != CommitAction.reimport || plan.verdict.alsoTitleAndCredit;
+        final authorResolutions = !takesCredit
+            ? const <AuthorResolution>[]
+            : await _resolveAuthors(
+                plan.draft.authorNames,
+                nameToId: nameToId,
+                newId: newId,
+                createdChoreographerIds: createdChoreographerIds,
+                revivedChoreographerIds: revivedChoreographerIds,
+              );
         // Only override authorIds when the draft actually carried author NAMES
         // to resolve (the free-text adapters). Drafts that ship canonical
         // authorIds directly and no names (e.g. the generic archive/JSON
@@ -514,18 +806,43 @@ class ImportPipeline {
         final authorIds = plan.draft.authorNames.isEmpty
             ? null
             : [for (final r in authorResolutions) r.choreographerId];
+        // Interpreters resolve the same way, but only for a dance this commit
+        // writes whole: a re-import never changes them (see
+        // [withReimportedChoreography]). They come from names alone, never
+        // from the draft's own `interpreterIds`, which are the sender's.
+        final interpreterIds = action == CommitAction.reimport
+            ? const <String>[]
+            : [
+                for (final r in await _resolveAuthors(
+                  plan.draft.interpreterNames,
+                  nameToId: nameToId,
+                  newId: newId,
+                  createdChoreographerIds: createdChoreographerIds,
+                  revivedChoreographerIds: revivedChoreographerIds,
+                ))
+                  r.choreographerId,
+              ];
 
         final prov = _provenanceFrom(plan.draft, now);
-        if (action == CommitAction.create ||
-            action == CommitAction.duplicate ||
-            action == CommitAction.variation) {
+        if (writesNewDance) {
           final id = newId();
+          final (draftDance: incoming, :relatedLinks) = _withFreshLinks(
+            plan.draft.dance,
+            newId,
+          );
           // #686: a `.variation` commit with `linkBack` (the default) attaches
           // a `relatedDance` link to the target BEFORE `_rebuildWithIdentity`
           // — that helper copies `src.links` verbatim, so this is the one
           // place the new dance's link list can be extended at creation time
           // (no second write needed on the new-dance side).
-          var draftDance = plan.draft.dance;
+          var draftDance = incoming;
+          if (defaultTagIds.isNotEmpty) {
+            draftDance = draftDance.copyWith(
+              tagIds: [
+                ...{...draftDance.tagIds, ...defaultTagIds},
+              ],
+            );
+          }
           final wantsLinkBack =
               action == CommitAction.variation &&
               (resolution?.linkBack ?? false);
@@ -537,7 +854,7 @@ class ImportPipeline {
                   id: newId(),
                   kind: LinkKind.relatedDance,
                   // `wantsLinkBack` is only true for `CommitAction.variation`,
-                  // which `_resolveAction` only ever produces alongside a
+                  // which `resolveCommitAction` only ever produces alongside a
                   // non-null `resolution.targetDanceId` (`targetId` here) —
                   // `DedupeResolution.variation` requires one. The `!`
                   // documents that invariant rather than silently accepting
@@ -551,11 +868,13 @@ class ImportPipeline {
             draftDance,
             id: id,
             authorIds: authorIds,
+            interpreterIds: interpreterIds,
             createdAt: now,
             updatedAt: now,
             provenance: prov,
           );
           await _dances.create(dance);
+          createdDanceId = id;
           insertedIds.add(id);
           if (wantsLinkBack) {
             // Symmetric reciprocal link on the TARGET side, so the
@@ -572,7 +891,7 @@ class ImportPipeline {
               includeDeleted: true,
             );
             if (target != null) {
-              priorStates.add(target);
+              if (priorCapturedFor.add(target.id)) priorStates.add(target);
               await _dances.update(
                 target.copyWith(
                   links: [
@@ -588,6 +907,53 @@ class ImportPipeline {
               );
             }
           }
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
+          if (relatedLinks.isNotEmpty) {
+            heldRelatedLinks[id] = (
+              source: plan.draft.raw.source,
+              links: relatedLinks,
+            );
+          }
+          committed.add(
+            CommittedRecord(
+              action: action,
+              danceId: id,
+              externalId: plan.draft.raw.externalId,
+              authorResolutions: authorResolutions,
+            ),
+          );
+        } else if (action == CommitAction.reimport) {
+          // A re-import refreshes only the choreography (figures, formation,
+          // progression, and the form, meter and key they need; see
+          // [withReimportedChoreography]) and the provenance, from every
+          // source: the caller's
+          // own title, notes, rating, tags, links, authors and custom fields
+          // are never overwritten (maintainer decisions, 2026-10-29 and
+          // 2026-10-30, INTAKE-7). The draft's links are not written either,
+          // so none are held back for it. The row's "Also update title and
+          // credit" choice adds those two (maintainer decision, 2026-10-30).
+          final id = targetId!;
+          // Non-null: a missing target `continue`d before authors were resolved.
+          final existing = prior!;
+          if (priorCapturedFor.add(id)) priorStates.add(existing);
+          await _dances.update(
+            withReimportedChoreography(
+              existing,
+              // Only credit resolved here. Unlike a create or a link, a draft
+              // with no names does not fall back to its own `authorIds`: those
+              // are the sender's ids, and none of them may name a choreographer
+              // in this library. No resolved credit keeps the dance's.
+              plan.draft.dance.copyWith(authorIds: authorIds ?? const []),
+              updatedAt: now,
+              provenance: prov,
+              alsoTitleAndCredit: plan.verdict.alsoTitleAndCredit,
+            ),
+          );
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
           committed.add(
             CommittedRecord(
               action: action,
@@ -597,33 +963,35 @@ class ImportPipeline {
             ),
           );
         } else {
-          // reimport / link: update the matched dance in place.
+          // link: update the matched dance in place, replacing its content.
           final id = targetId!;
-          final prior = await _dances.getById(id, includeDeleted: true);
-          if (prior == null) {
-            committed.add(
-              CommittedRecord(
-                action: action,
-                externalId: plan.draft.raw.externalId,
-                error: commitError(
-                  plan.draft.raw.source,
-                  'Target dance "$id" no longer exists',
-                  externalId: plan.draft.raw.externalId,
-                ),
-              ),
-            );
-            continue;
-          }
-          priorStates.add(prior);
-          final dance = _rebuildWithIdentity(
+          // Non-null: a missing target `continue`d before authors were resolved.
+          final existing = prior!;
+          if (priorCapturedFor.add(id)) priorStates.add(existing);
+          final (draftDance: incoming, :relatedLinks) = _withFreshLinks(
             plan.draft.dance,
+            newId,
+          );
+          final dance = _rebuildWithIdentity(
+            incoming,
             id: id,
             authorIds: authorIds,
-            createdAt: prior.createdAt,
+            interpreterIds: interpreterIds,
+            createdAt: existing.createdAt,
             updatedAt: now,
             provenance: prov,
+            keepFrom: existing,
           );
           await _dances.update(dance);
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
+          if (relatedLinks.isNotEmpty) {
+            heldRelatedLinks[id] = (
+              source: plan.draft.raw.source,
+              links: relatedLinks,
+            );
+          }
           committed.add(
             CommittedRecord(
               action: action,
@@ -634,6 +1002,22 @@ class ImportPipeline {
           );
         }
       } catch (e) {
+        // Dance writes first: the created dance credits this record's authors,
+        // so the repository would refuse to delete them while it stands.
+        await _rollbackRecordDances(
+          createdDanceId: createdDanceId,
+          insertedIds: insertedIds,
+          priorStates: priorStates,
+          priorCapturedFor: priorCapturedFor,
+          priorFrom: priorBefore,
+        );
+        await _rollbackRecordAuthors(
+          nameToId: nameToId,
+          createdChoreographerIds: createdChoreographerIds,
+          revivedChoreographerIds: revivedChoreographerIds,
+          createdFrom: createdBefore,
+          revivedFrom: revivedBefore,
+        );
         committed.add(
           CommittedRecord(
             action: action,
@@ -647,7 +1031,15 @@ class ImportPipeline {
           ),
         );
       }
+      onProgress?.call(i + 1, total);
     }
+    final issues = await _addHeldRelatedLinks(
+      heldRelatedLinks,
+      writtenIdByExternalId: writtenIdByExternalId,
+      newId: newId,
+      now: now,
+    );
+    onProgress?.call(total, total);
 
     return ImportSession(
       records: committed,
@@ -655,7 +1047,113 @@ class ImportPipeline {
       priorStates: priorStates,
       createdChoreographerIds: createdChoreographerIds,
       revivedChoreographerIds: revivedChoreographerIds,
+      issues: issues,
     );
+  }
+
+  /// [dance] with a fresh id from [newId] on every link but its `relatedDance`
+  /// ones, which are removed and returned for [_addHeldRelatedLinks].
+  ({Dance draftDance, List<DanceLink> relatedLinks}) _withFreshLinks(
+    Dance dance,
+    String Function() newId,
+  ) {
+    if (dance.links.isEmpty) {
+      return (draftDance: dance, relatedLinks: const []);
+    }
+    return (
+      draftDance: dance.copyWith(
+        links: [
+          for (final link in dance.links)
+            if (link.kind != LinkKind.relatedDance)
+              DanceLink(
+                id: newId(),
+                kind: link.kind,
+                url: link.url,
+                label: link.label,
+              ),
+        ],
+      ),
+      relatedLinks: [
+        for (final link in dance.links)
+          if (link.kind == LinkKind.relatedDance) link,
+      ],
+    );
+  }
+
+  /// Adds each dance's [held] related links once the whole batch is written, so
+  /// a target imported by a later record resolves (see [commit]). Every dance
+  /// in [held] was written by this batch and is already in its undo ledger.
+  ///
+  /// A link is skipped when it would point the dance at itself or repeat a
+  /// target it already links to (a variation's link-back). A failed write keeps
+  /// the dance as the batch wrote it and notes each link it lost, since the
+  /// record itself did import.
+  Future<List<ImportIssue>> _addHeldRelatedLinks(
+    Map<String, ({ProvenanceSource source, List<DanceLink> links})> held, {
+    required Map<String, String> writtenIdByExternalId,
+    required String Function() newId,
+    required DateTime now,
+  }) async {
+    final issues = <ImportIssue>[];
+    if (held.isEmpty) return issues;
+    // Read after the batch's writes, so it is current whatever snapshot the
+    // caller planned with (a review screen rebuilds its batch without one).
+    final index = await buildDedupeIndex();
+    ImportIssue unresolved(String danceId) => ImportIssue(
+      severity: ImportIssueSeverity.warning,
+      code: 'archive_related_dance_unresolved',
+      message:
+          'Dance "$danceId" had a related-dance link to a dance that was not '
+          'imported; the link was left out.',
+    );
+    for (final MapEntry(key: danceId, value: (:source, :links))
+        in held.entries) {
+      final dance = await _dances.getById(danceId);
+      if (dance == null) {
+        issues.addAll([for (final _ in links) unresolved(danceId)]);
+        continue;
+      }
+      final linkedTargets = {
+        for (final link in dance.links)
+          if (link.kind == LinkKind.relatedDance) link.targetDanceId,
+      };
+      final added = <DanceLink>[];
+      for (final link in links) {
+        final targetKey = link.targetDanceId!;
+        final target =
+            writtenIdByExternalId[targetKey] ??
+            index.findByExternalId(source, targetKey) ??
+            // The key is the dance's own id when it had no provenance, so a
+            // file this library wrote (its own export, or its dance shared and
+            // sent back) names a dance still here. A sender's id or a
+            // namespaced key matches no other library's dance.
+            (await _dances.getById(targetKey))?.id;
+        if (target == null) {
+          issues.add(unresolved(danceId));
+          continue;
+        }
+        if (target == danceId || !linkedTargets.add(target)) continue;
+        added.add(
+          DanceLink(
+            id: newId(),
+            kind: LinkKind.relatedDance,
+            targetDanceId: target,
+            label: link.label,
+            transitive: link.transitive,
+          ),
+        );
+      }
+      if (added.isEmpty) continue;
+      try {
+        await _dances.update(
+          dance.copyWith(links: [...dance.links, ...added], updatedAt: now),
+        );
+      } catch (_) {
+        // diagnostics: the lost links are reported as notes below.
+        issues.addAll([for (final _ in added) unresolved(danceId)]);
+      }
+    }
+    return issues;
   }
 
   /// Auto-resolves the **ambiguous** records of [batch] for an automated,
@@ -669,8 +1167,10 @@ class ImportPipeline {
   ///   slot always resolves to the received copy.
   ///
   /// It **never** skips and **never** links on a weak match. A match is
-  /// *confident* only when the candidate's normalized title equals the incoming
-  /// title (an exact gate — not merely a fuzzy near-match) **and** one of:
+  /// *confident* only when the candidate's title shares a [dedupeTitleKeys]
+  /// key with the incoming title (its [normalizeTitle] as written or with a
+  /// trailing article fronted, #1976: an exact gate — not merely a fuzzy
+  /// near-match) **and** one of:
   ///   - the choreography body is equal (form, formation, progression, phrase
   ///     structure, figures, hook, calling notes, level, mixed-level, tunes),
   ///     compared author-independently; or
@@ -702,22 +1202,34 @@ class ImportPipeline {
       if (!plan.verdict.isAmbiguous) continue;
 
       final incoming = plan.draft.dance;
-      final incomingTitle = normalizeTitle(incoming.title);
+      // Matched on the dedupe index's keys (#1976).
+      final incomingKeys = dedupeTitleKeys(incoming.title);
+      if (incomingKeys.isEmpty) {
+        // A title that folds to nothing (non-Latin, punctuation-only) carries
+        // no identity signal, so the exact-title gate below would pass on
+        // '' == '' against every other such dance and the content check could
+        // then link two unrelated ones. Never link; import as its own dance.
+        resolutions[i] = DedupeResolution.duplicate();
+        continue;
+      }
       final incomingAuthors = _normalizedAuthorSet(authorNamesOf(incoming));
 
       String? linkTarget;
       for (final candidate in plan.verdict.candidates) {
         final existing = await _dances.getById(candidate.danceId);
         if (existing == null) continue;
-        // Exact normalized-title gate: a fuzzy-but-inexact title is never
-        // confident (that is the "two different dances share a title" trap).
-        if (normalizeTitle(existing.title) != incomingTitle) continue;
+        // Exact-title gate on shared [dedupeTitleKeys] keys: a fuzzy-but-inexact
+        // title is never confident (that is the "two different dances share a
+        // title" trap).
+        if (!dedupeTitleKeys(existing.title).any(incomingKeys.contains)) {
+          continue;
+        }
         // Try the cheap in-memory content comparison first: a canonical
         // choreography match is confident on its own and short-circuits before
         // any author lookup. Only when content differs AND the incoming dance
         // declares authors do we spend a choreographer read on the author
         // signal.
-        var confident = _choreographyEquals(incoming, existing);
+        var confident = _choreographyMatches(incoming, existing);
         if (!confident && incomingAuthors.isNotEmpty) {
           final existingAuthors = _normalizedAuthorSet(
             await _authorNamesFor(existing),
@@ -754,13 +1266,21 @@ class ImportPipeline {
   /// reappeared permanently after a rolled-back import — and worse, the revival
   /// had stamped `existence_at` strictly *past* the user's deletion, which is
   /// the value existence is ordered by, so the resurrection would outrank that
-  /// deletion on every peer once a sync client exists.
+  /// deletion on every peer.
   ///
-  /// The choreographer removal is a **hard** delete (`permanent: true`), not
-  /// the tombstone `ChoreographerRepository.delete` writes by default since
+  /// The choreographer removal asks for a **hard** delete (`permanent: true`),
+  /// not the tombstone `ChoreographerRepository.delete` writes by default since
   /// schema v25 (#898). A rollback is erasing an import that is being treated
   /// as never having happened, so leaving a tombstone would advertise the
   /// deletion of an author no other device ever saw.
+  ///
+  /// The repository may still decline to erase, and the caller wants it to:
+  /// since issue #1357 it downgrades to a tombstone when the row was already
+  /// published, or when a `dance_authors` row still credits it — which after
+  /// the live guard means a *tombstoned* dance credits it. Erasing then would
+  /// cascade that dance's author credit away for good, which costs more than
+  /// the unwanted tombstone does. The choreographer leaves every live view
+  /// either way, which is all this rollback needs of it.
   Future<void> undo(ImportSession session) async {
     if (session.isUndone) return;
     // Opt out of hardDelete's orphan-ref GC (#462): undo is a faithful rollback
@@ -809,6 +1329,90 @@ class ImportPipeline {
   /// is worse than a near-duplicate row.
   String _normalizeName(String name) =>
       nfc(name).trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
+  /// Takes back the dance writes one failed record made, so a record that
+  /// fails leaves no dance behind either.
+  ///
+  /// The only dance write that can precede a failure is a variation's new
+  /// dance ([createdDanceId]), when the reciprocal update on its target throws;
+  /// it is erased like [undo] erases inserted dances. Every other dance write is
+  /// the record's last, so a throw means it did not land. The prior state this
+  /// record captured (from index [priorFrom]) is dropped with it: its update
+  /// never landed, and leaving it would have [undo] rewrite an unchanged
+  /// target — or, were a later record to link the same target, skip capturing
+  /// the state that later write really replaced. If the erase itself fails the
+  /// dance stays in [insertedIds], so [undo] still owns it.
+  Future<void> _rollbackRecordDances({
+    required String? createdDanceId,
+    required List<String> insertedIds,
+    required List<Dance> priorStates,
+    required Set<String> priorCapturedFor,
+    required int priorFrom,
+  }) async {
+    for (final prior in priorStates.sublist(priorFrom)) {
+      priorCapturedFor.remove(prior.id);
+    }
+    priorStates.removeRange(priorFrom, priorStates.length);
+    if (createdDanceId == null) return;
+    try {
+      await _dances.hardDelete([createdDanceId], gcOrphanedRefs: false);
+      insertedIds.remove(createdDanceId);
+    } catch (_) {
+      // Best effort, as for authors: the record's own error is the one worth
+      // reporting, and the dance left behind stays tracked for `undo`.
+    }
+  }
+
+  /// Takes back the author writes one failed record made, so a record that
+  /// fails leaves no choreographer rows behind (`_resolveAuthors` commits each
+  /// upsert on its own, before the dance write that can still fail).
+  ///
+  /// Only ids appended at or after [createdFrom] / [revivedFrom] are touched:
+  /// authors an earlier record created, or that already existed, stay. Mirrors
+  /// [undo]'s per-row treatment (created → permanent delete, revived → back to
+  /// a tombstone) and, like it, leaves a row a surviving dance still credits.
+  /// A rolled-back id must also leave [nameToId] and the session lists, or a
+  /// later record crediting the same name would resolve to a row that no longer
+  /// exists. A row that could not be removed stays in all three, so `undo`
+  /// still owns it.
+  Future<void> _rollbackRecordAuthors({
+    required Map<String, String> nameToId,
+    required List<String> createdChoreographerIds,
+    required List<String> revivedChoreographerIds,
+    required int createdFrom,
+    required int revivedFrom,
+  }) async {
+    Future<void> rollBack(
+      List<String> ids,
+      int from, {
+      required bool permanent,
+    }) async {
+      final removed = <String>{};
+      for (final id in ids.sublist(from)) {
+        try {
+          await _choreographers.delete(id, permanent: permanent);
+          removed.add(id);
+        } on StateError {
+          // Still referenced by a surviving dance — leave it in place.
+        } catch (_) {
+          // Cleanup is best effort: the record's own error is the one worth
+          // reporting, and a row left behind stays tracked for `undo`.
+        }
+      }
+      if (removed.isEmpty) return;
+      nameToId.removeWhere((_, id) => removed.contains(id));
+      // Preserve the order of the ids that stay (the list tail is this record's).
+      final kept = [
+        for (final id in ids.sublist(from))
+          if (!removed.contains(id)) id,
+      ];
+      ids.removeRange(from, ids.length);
+      ids.addAll(kept);
+    }
+
+    await rollBack(createdChoreographerIds, createdFrom, permanent: true);
+    await rollBack(revivedChoreographerIds, revivedFrom, permanent: false);
+  }
 
   /// Resolves [names] to [Choreographer] ids: matches an existing row by
   /// normalized name, else creates a new row (name only) via [newId] + upsert.
@@ -876,30 +1480,6 @@ class ImportPipeline {
     return resolutions;
   }
 
-  (CommitAction, String?) _resolveAction(
-    DedupeVerdict verdict,
-    DedupeResolution? resolution,
-  ) {
-    switch (verdict.kind) {
-      case DedupeKind.isNew:
-        return (CommitAction.create, null);
-      case DedupeKind.reimport:
-        return (CommitAction.reimport, verdict.targetDanceId);
-      case DedupeKind.ambiguous:
-        if (resolution == null) return (CommitAction.skip, null);
-        switch (resolution.kind) {
-          case DedupeResolutionKind.link:
-            return (CommitAction.link, resolution.targetDanceId);
-          case DedupeResolutionKind.duplicate:
-            return (CommitAction.duplicate, null);
-          case DedupeResolutionKind.skip:
-            return (CommitAction.skip, null);
-          case DedupeResolutionKind.variation:
-            return (CommitAction.variation, resolution.targetDanceId);
-        }
-    }
-  }
-
   /// The normalized author-name set for a match comparison (blanks dropped),
   /// using the same [normalizeAuthor] the deduper uses so names match the way
   /// fuzzy matching does.
@@ -914,18 +1494,11 @@ class ImportPipeline {
   /// identity, provenance, timestamps, and device-local id collections
   /// (authorIds, tags, custom fields, links, citations) so a bundle received
   /// on another device still matches by its intrinsic content.
-  bool _choreographyEquals(Dance a, Dance b) =>
-      a.form == b.form &&
-      a.formation == b.formation &&
-      a.progression == b.progression &&
-      a.phraseStructure == b.phraseStructure &&
-      _figureListEquality.equals(a.figures, b.figures) &&
-      a.hook == b.hook &&
-      a.callingNotes == b.callingNotes &&
-      a.difficultyLevelId == b.difficultyLevelId &&
-      a.mixedLevel == b.mixedLevel &&
-      a.mixer == b.mixer &&
-      _stringListEquality.equals(a.tunes, b.tunes);
+  bool _choreographyMatches(Dance a, Dance b) =>
+      const DeepCollectionEquality().equals(
+        choreographyFingerprintForDance(a),
+        choreographyFingerprintForDance(b),
+      );
 
   Provenance _provenanceFrom(StructuredDraft draft, DateTime now) {
     final raw = draft.raw;
@@ -959,20 +1532,26 @@ class ImportPipeline {
 
   /// Rebuilds [src] under a different identity/timestamps/provenance. Used to
   /// reassign an import's id (fresh insert) or re-target it onto an existing
-  /// dance (re-import/link) without the caller having to reconstruct every
+  /// dance (link) without the caller having to reconstruct every
   /// field. All content fields are carried over verbatim, except [authorIds]
   /// which may be overridden with the pipeline's resolved ids. When
   /// [authorIds] is null the draft's own ids are kept — free-text adapters
   /// resolve names at commit and pass the resolved list, while adapters that
   /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
-  /// null to preserve them.
+  /// null to preserve them. [interpreterIds] are always the pipeline's
+  /// resolved ids, never [src]'s. [keepFrom] is the dance being linked over:
+  /// its custom-field values for fields [src] does not carry survive, and so
+  /// do its rating, interpreters and interpretation date when [src] carries
+  /// none.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
     required DateTime createdAt,
     required DateTime updatedAt,
     List<String>? authorIds,
+    required List<String> interpreterIds,
     Provenance? provenance,
+    Dance? keepFrom,
   }) => Dance(
     id: id,
     title: src.title,
@@ -981,24 +1560,79 @@ class ImportPipeline {
     formation: src.formation,
     progression: src.progression,
     phraseStructure: src.phraseStructure.raw,
-    figures: src.figures,
+    // Carried through whole, so a re-identified dance keeps a transcription
+    // that could not be decoded instead of silently becoming figureless.
+    figuresSource: src.figuresSource,
     hook: src.hook,
     callingNotes: src.callingNotes,
     walkthrough: src.walkthrough,
+    meter: src.meter,
+    musicalKey: src.musicalKey,
     status: src.status,
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,
     mixer: src.mixer,
-    rating: src.rating,
-    tunes: src.tunes,
-    customFields: src.customFields,
+    // A source that carries no rating (share files, Caller's Box) must not
+    // erase the one the person gave the dance: on a link the incoming rating
+    // wins when present, otherwise the linked-over dance's is kept.
+    rating: src.rating ?? keepFrom?.rating,
+    // Carried through whole, so a re-identified dance keeps a tune list
+    // that could not be decoded instead of silently becoming empty.
+    tunesSource: src.tunesSource,
+    // A source that carries no custom fields (every adapter but the native
+    // archive and the CC user fields) must not erase the ones the person added
+    // to the dance since: `DanceRepository.update` deletes every stored value
+    // and rewrites only what the dance carries. On a link the draft's value
+    // wins for a field it carries; every other stored value is kept.
+    customFields: [
+      ...src.customFields,
+      if (keepFrom != null)
+        for (final value in keepFrom.customFields)
+          if (!src.customFields.any((v) => v.fieldId == value.fieldId)) value,
+    ],
     tagIds: src.tagIds,
     links: src.links,
     sourceCitations: src.sourceCitations,
     provenance: provenance,
     composedOn: src.composedOn,
+    // A source that names no interpreter (every adapter but the native
+    // archive) must not erase the ones the linked-over dance credits, as for
+    // [rating].
+    interpreterIds: interpreterIds.isNotEmpty
+        ? interpreterIds
+        : keepFrom?.interpreterIds ?? const [],
+    interpretedOn: src.interpretedOn ?? keepFrom?.interpretedOn,
     revisedOn: src.revisedOn,
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
+}
+
+/// The action [ImportPipeline.commit] takes for a record with [verdict], and
+/// the dance it targets: a resolution is read only for an ambiguous verdict,
+/// and an ambiguous record without one is skipped. Public so a caller that
+/// must prepare for the commit (the archive importer's metadata) can tell which
+/// records will write a dance.
+(CommitAction, String?) resolveCommitAction(
+  DedupeVerdict verdict,
+  DedupeResolution? resolution,
+) {
+  switch (verdict.kind) {
+    case DedupeKind.isNew:
+      return (CommitAction.create, null);
+    case DedupeKind.reimport:
+      return (CommitAction.reimport, verdict.targetDanceId);
+    case DedupeKind.ambiguous:
+      if (resolution == null) return (CommitAction.skip, null);
+      switch (resolution.kind) {
+        case DedupeResolutionKind.link:
+          return (CommitAction.link, resolution.targetDanceId);
+        case DedupeResolutionKind.duplicate:
+          return (CommitAction.duplicate, null);
+        case DedupeResolutionKind.skip:
+          return (CommitAction.skip, null);
+        case DedupeResolutionKind.variation:
+          return (CommitAction.variation, resolution.targetDanceId);
+      }
+  }
 }

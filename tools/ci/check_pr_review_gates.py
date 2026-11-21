@@ -10,7 +10,13 @@ hand-rolled versions read as PASS when they should have failed:
 ``findings``    Review findings, including the ``Suppressed comments`` blocks
                 that ``GET /pulls/<N>/comments``, thread state and the inline
                 comment count are all blind to. Reads every page of review
-                bodies, every round.
+                bodies, every round. For a Claude review (the default) it also prints
+                the latest ``## Review verdict:`` line and FAILS on anything
+                but ``APPROVE``. ``BLOCK`` because a finding on a line outside
+                the diff exists only in the review body, so no inline comment
+                or thread records it; ``APPROVE-WITH-NITS`` because resolving a
+                thread does not clear its item -- only a later round that no
+                longer raises it does.
 ``review``      Review freshness, filtered by *reviewer identity* rather than
                 ``.[-1].commit_id`` -- author replies are recorded as review
                 entries and carry the new head SHA, so the naive read matches
@@ -26,14 +32,31 @@ hand-rolled versions read as PASS when they should have failed:
                 fails or is unanswerable, so one invocation reports the whole
                 picture rather than costing a round trip per gate.
 
-Output is one line per gate: ``PASS <gate>: <evidence>``,
+Output is an optional ``repo: <owner/name> (from <source>)`` line (printed when
+``--repo`` is not given), then one line per gate: ``PASS <gate>: <evidence>``,
 ``FAIL <gate>: <what is wrong>``, or ``SKIP <gate>: <why it is unanswerable>``.
 A red run should cost a few hundred tokens to
 act on, not a few thousand to read.
 
+``--reviewer`` names whose review the ``findings`` and ``review`` gates read:
+``claude`` (the default: PRs are reviewed by the ``claude-code-review.yml``
+workflow, requested with the ``review: claude`` label) or ``copilot``. A PR
+reviewed by one is not reviewed as far as the gate for the other is concerned;
+pass ``--reviewer copilot`` if you requested Copilot instead.
+
 Exit codes: 0 all gates pass, 1 at least one gate failed, 2 at least one gate
 could not be answered (bad input, or ``gh`` missing or unauthenticated). 2
 dominates 1, so an environment problem never reads as a clean run.
+
+The repository is ``--repo``, else ``GITHUB_REPOSITORY``, else the git remote
+(no GraphQL, so it works in Claude Code sessions), else ``gh repo view``.
+
+Where the environment refuses GraphQL outright (Claude Code cloud sessions
+answer ``gh api graphql`` with HTTP 403), ``threads`` and ``closes`` answer from
+REST instead and label their evidence "via REST". ``threads`` uses the CCR
+review-threads route; ``closes`` parses the closing keywords out of the PR title,
+body, commit messages and branch, so it cannot see a link added by hand in the PR
+sidebar. Any other GraphQL failure is still a SKIP.
 
 Requires the ``gh`` CLI, authenticated. Network access is confined to
 ``GitHubFetcher``; the gate logic is pure and is exercised offline by
@@ -44,16 +67,45 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, NamedTuple, Sequence
 
-REVIEWER_LOGIN = "copilot-pull-request-reviewer[bot]"
-# The same reviewer is reported under a different login by the comments
-# endpoint. Carrying the /reviews login to /comments yields a silent zero, which
-# reads as "no inline findings" rather than "filter matched nothing".
-REVIEWER_COMMENT_LOGIN = "Copilot"
+
+class Reviewer(NamedTuple):
+    """Who a review is attributed to, per endpoint.
+
+    ``/pulls/<N>/reviews`` and ``/pulls/<N>/comments`` can report the same
+    reviewer under different logins. Carrying the /reviews login to /comments
+    yields a silent zero, which reads as "no inline findings" rather than
+    "filter matched nothing" -- so each endpoint's login is named separately.
+    """
+
+    review_login: str
+    comment_login: str
+
+
+COPILOT = Reviewer(
+    review_login="copilot-pull-request-reviewer[bot]",
+    comment_login="Copilot",
+)
+# The Claude GitHub App's bot user, the same on both endpoints -- unlike
+# Copilot. Verified against the first Claude reviews in this repository: on
+# #1738, /reviews and /comments both report only `claude[bot]`.
+CLAUDE = Reviewer(review_login="claude[bot]", comment_login="claude[bot]")
+
+REVIEWERS = {"copilot": COPILOT, "claude": CLAUDE}
+
+
+# The first line of a Claude review (.github/skills/code-review/SKILL.md). Models
+# decorate it (`**BLOCK**`, backticks, a different heading level), so those are
+# tolerated; the value must start the line's heading, so a "## Review verdict:"
+# quoted mid-sentence in prose is not a verdict.
+VERDICT_LINE = re.compile(
+    r"^#{1,6}[ \t]*Review verdict:[ \t]*[*_`]*([A-Za-z][A-Za-z-]*)", re.MULTILINE
+)
 
 SUPPRESSED_BLOCK = re.compile(
     r"<details>\s*<summary>\s*Suppressed comments?\s*\((\d+)\)\s*</summary>(.*?)</details>",
@@ -63,6 +115,22 @@ SUPPRESSED_BLOCK = re.compile(
 
 class GateError(RuntimeError):
     """The environment could not answer the question (exit 2, not a failure)."""
+
+
+class GraphQLUnavailable(GateError):
+    """This environment refuses GraphQL outright (not a transient failure).
+
+    Claude Code cloud sessions answer ``gh api graphql`` with HTTP 403 and
+    "GitHub GraphQL is not available from Claude Code sessions", pointing at REST
+    routes instead. ``threads`` and ``closes`` catch this one error and answer
+    from REST; any other GraphQL failure (network, auth, rate limit) is still a
+    plain :class:`GateError`, so it is reported as SKIP rather than answered by a
+    weaker check.
+    """
+
+
+# The refusal's own wording; matched case-insensitively against gh's stderr.
+_GRAPHQL_REFUSED = "graphql is not available"
 
 
 # --------------------------------------------------------------------------- #
@@ -103,8 +171,8 @@ class GitHubFetcher:
 
     def graphql(self, query: str) -> Any:
         owner, _, name = self.repo.partition("/")
-        return json.loads(
-            self._gh(
+        try:
+            out = self._gh(
                 [
                     "api",
                     "graphql",
@@ -116,10 +184,85 @@ class GitHubFetcher:
                     f"name={name}",
                 ]
             )
+        except GateError as exc:
+            if _GRAPHQL_REFUSED in str(exc).lower():
+                raise GraphQLUnavailable(str(exc)) from exc
+            raise
+        return json.loads(out)
+
+
+_SLUG = r"[A-Za-z0-9_.-]+"
+# scp-style (`git@github.com:owner/name.git`) or a URL (`https://`, `ssh://`,
+# and the proxy-style `http://host:port/git/owner/name` some sandboxes use).
+# The path must be exactly `owner/name`, optionally behind one `git/` segment:
+# `https://github.com/o/r/pulls` or a bare local path is not a slug.
+_REMOTE_PATTERNS = (
+    re.compile(rf"^[\w.-]+@[\w.-]+:/?({_SLUG})/({_SLUG})/?$"),
+    re.compile(rf"^[A-Za-z][A-Za-z0-9+.-]*://[^/]+/(?:git/)?({_SLUG})/({_SLUG})/?$"),
+)
+
+
+def _slug(owner: str, name: str) -> str | None:
+    if name.lower().endswith(".git"):
+        name = name[: -len(".git")]
+    for part in (owner, name):
+        if not part or part in (".", "..") or part.lower().endswith(".git"):
+            return None
+    return f"{owner}/{name}"
+
+
+def parse_remote_url(url: str) -> str | None:
+    """`owner/name` from a git remote URL, or None when it has no such shape."""
+    url = url.strip()
+    for pattern in _REMOTE_PATTERNS:
+        match = pattern.match(url)
+        if match:
+            return _slug(*match.groups())
+    return None
+
+
+def _git(args: Sequence[str]) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *args], check=False, capture_output=True, encoding="utf-8"
         )
+    except FileNotFoundError:  # pragma: no cover - environment
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
 
 
-def detect_repo() -> str:
+def _repo_from_git() -> tuple[str, str] | None:
+    """`(owner/name, remote name)` from `upstream`, the branch's remote, or `origin`.
+
+    `upstream` goes first because that is the fork convention (and what `gh`
+    ranks highest): in a fork clone the PR lives on the base repo. Uses no
+    GitHub API, so it works where GraphQL is refused.
+    """
+    branch = _git(["symbolic-ref", "--quiet", "--short", "HEAD"])
+    tracked = _git(["config", "--get", f"branch.{branch}.remote"]) if branch else ""
+    for name in dict.fromkeys(["upstream", tracked, "origin"]):
+        if not name or name == ".":
+            continue
+        slug = parse_remote_url(_git(["remote", "get-url", name]))
+        if slug:
+            return slug, name
+    return None
+
+
+def detect_repo_with_source() -> tuple[str, str]:
+    """Resolve `owner/name` without GraphQL (refused in Claude Code sessions).
+
+    Returns the repo and where it came from. Order: `GITHUB_REPOSITORY`, the
+    git remote (`upstream`, else the branch's tracking remote, else `origin`),
+    then `gh repo view`. Pass `--repo` to override.
+    """
+    env_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    env_match = re.fullmatch(rf"({_SLUG})/({_SLUG})", env_repo)
+    if env_match and _slug(*env_match.groups()) == env_repo:
+        return env_repo, "GITHUB_REPOSITORY"
+    from_git = _repo_from_git()
+    if from_git:
+        return from_git[0], f"git remote {from_git[1]}"
     try:
         result = subprocess.run(
             ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
@@ -131,7 +274,11 @@ def detect_repo() -> str:
         raise GateError("the `gh` CLI is not installed; pass --repo owner/name") from exc
     if result.returncode != 0 or not result.stdout.strip():
         raise GateError("could not detect the repository; pass --repo owner/name")
-    return result.stdout.strip()
+    return result.stdout.strip(), "gh repo view"
+
+
+def detect_repo() -> str:
+    return detect_repo_with_source()[0]
 
 
 # --------------------------------------------------------------------------- #
@@ -156,13 +303,17 @@ def _reviews(fetcher: Any, pr: int) -> list[dict[str, Any]]:
     ]
 
 
-def gate_findings(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
+def gate_findings(
+    fetcher: Any, pr: int, reviewer: Reviewer = CLAUDE
+) -> tuple[bool, list[str]]:
     """Report review findings, including every suppressed block, every round."""
-    reviews = [r for r in _reviews(fetcher, pr) if _login(r) == REVIEWER_LOGIN]
+    reviews = [
+        r for r in _reviews(fetcher, pr) if _login(r) == reviewer.review_login
+    ]
     inline = [
         c
         for c in _flatten_pages(fetcher.rest(f"pulls/{pr}/comments", paginate=True))
-        if isinstance(c, dict) and _login(c) == REVIEWER_COMMENT_LOGIN
+        if isinstance(c, dict) and _login(c) == reviewer.comment_login
     ]
 
     lines: list[str] = []
@@ -181,12 +332,60 @@ def gate_findings(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
         lines.append(f"  inline {path}:{line} {_first_line(comment.get('body'))}")
 
     summary = (
-        f"{len(reviews)} round(s) by {REVIEWER_LOGIN}; "
+        f"{len(reviews)} round(s) by {reviewer.review_login}; "
         f"{len(inline)} inline finding(s); {suppressed_total} suppressed"
     )
     if reviews and suppressed_total == 0 and not inline:
         summary += " (a zero here is a claim about the query as much as the PR)"
-    return True, [summary, *lines]
+
+    ok = True
+    if reviewer == CLAUDE and reviews:
+        # The latest round that CARRIES a verdict line. A reply to an inline
+        # thread records an empty-body review entry, and claude.yml also posts
+        # as claude[bot]; neither has a verdict, so neither may stand in for
+        # the round that does. An earlier BLOCK that a later verdict cleared is
+        # history, and the `review` gate already fails a latest round that is
+        # not on the head. A BLOCK is judged whichever commit it sits on -- a
+        # BLOCK nobody has re-reviewed is not cleared.
+        carrying = [
+            (index, review, match)
+            for index, review in enumerate(reviews, start=1)
+            if (match := VERDICT_LINE.search(review.get("body") or ""))
+        ]
+        if not carrying:
+            lines.insert(0, "  no `## Review verdict:` line in any review")
+        else:
+            index, review, match = carrying[-1]
+            commit = (review.get("commit_id") or "")[:8] or "(none)"
+            where = f"round {index}, {commit}"
+            verdict = match.group(1).upper()
+            lines.insert(0, f"  verdict {verdict} ({where})")
+            if verdict == "BLOCK":
+                ok = False
+                summary = (
+                    "BLOCK verdict in the latest verdict-bearing review; its "
+                    f"findings may be body-only, so read the review body -- {summary}"
+                )
+            elif verdict == "APPROVE-WITH-NITS":
+                # Resolving a thread does not clear its item: on #2196 and
+                # #2192 the author dismissed the reviewer's item, resolved the
+                # thread, and merged. An item clears when a later round no
+                # longer raises it -- after a fix, or after a dispute on its
+                # thread that the reviewer accepts on a re-run.
+                ok = False
+                summary = (
+                    "APPROVE-WITH-NITS verdict in the latest verdict-bearing "
+                    "review; fix each item, or dispute it on its thread and "
+                    "re-run the review, until a round reads APPROVE (a dispute "
+                    f"the reviewer upholds goes to the maintainer) -- {summary}"
+                )
+            elif verdict != "APPROVE":
+                ok = False
+                summary = (
+                    f"unrecognised verdict {verdict!r} in the latest "
+                    f"verdict-bearing review; only APPROVE passes -- {summary}"
+                )
+    return ok, [summary, *lines]
 
 
 def _suppressed_findings(block: str) -> list[str]:
@@ -208,12 +407,40 @@ def _login(entry: dict[str, Any]) -> str:
     return user.get("login", "") if isinstance(user, dict) else ""
 
 
-def gate_review(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
-    """The reviewer's latest review must be on the commit being merged."""
+def gate_review(
+    fetcher: Any, pr: int, reviewer: Reviewer = CLAUDE
+) -> tuple[bool, list[str]]:
+    """The reviewer's latest review must be on the commit being merged.
+
+    For Claude, only an entry carrying a ``## Review verdict:`` line is a
+    review round. A reply to an inline thread records an empty review entry on
+    the head, and ``claude.yml`` (the ``@claude`` assistant) posts as
+    ``claude[bot]`` too: either would otherwise pass a head no round reviewed,
+    the #842 author-reply trap again. ``gate_findings`` reads the verdict by the
+    same rule.
+    """
     head = _head_sha(fetcher, pr)
-    reviewed = [r for r in _reviews(fetcher, pr) if _login(r) == REVIEWER_LOGIN]
+    reviewed = [
+        r for r in _reviews(fetcher, pr) if _login(r) == reviewer.review_login
+    ]
+    others = ", ".join(
+        f"--reviewer {name}" for name, r in REVIEWERS.items() if r != reviewer
+    )
     if not reviewed:
-        return False, [f"no review by {REVIEWER_LOGIN} (an unreviewed PR fails closed)"]
+        return False, [
+            f"no review by {reviewer.review_login} (an unreviewed PR fails "
+            f"closed; if another reviewer was requested, pass {others})"
+        ]
+    if reviewer == CLAUDE:
+        entries = len(reviewed)
+        reviewed = [r for r in reviewed if VERDICT_LINE.search(r.get("body") or "")]
+        if not reviewed:
+            return False, [
+                f"no review round by {reviewer.review_login}: none of its "
+                f"{entries} review entr{'y' if entries == 1 else 'ies'} carries "
+                "a `## Review verdict:` line (a reply to an inline thread or a "
+                "claude.yml answer is not a review; an unreviewed PR fails closed)"
+            ]
     latest = reviewed[-1].get("commit_id") or ""
     if latest != head:
         return False, [
@@ -249,7 +476,10 @@ query($owner: String!, $name: String!) {
 
 def gate_threads(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
     """No unresolved review threads -- and prove the page was not truncated."""
-    payload = fetcher.graphql(THREADS_QUERY % pr)
+    try:
+        payload = fetcher.graphql(THREADS_QUERY % pr)
+    except GraphQLUnavailable as exc:
+        return _threads_via_rest(fetcher, pr, exc)
     threads = _dig(payload, "data", "repository", "pullRequest", "reviewThreads")
     if threads is None:
         raise GateError(f"could not read review threads for PR #{pr}")
@@ -268,11 +498,63 @@ def gate_threads(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
     return True, [f"0 of {total} thread(s) unresolved"]
 
 
+# The CCR review-threads route (Claude Code sessions only) is not documented to
+# paginate or report a total, so a full-looking page cannot be told from a
+# truncated one. GitHub's default page size is 30: at or above it, say so rather
+# than read the list as everything.
+REST_THREADS_MAX = 30
+
+
+def _threads_via_rest(fetcher: Any, pr: int, cause: Exception) -> tuple[bool, list[str]]:
+    """`threads` without GraphQL: the CCR route lists each thread's state."""
+    try:
+        threads = _flatten_pages(
+            fetcher.rest(f"pulls/{pr}/ccr/review_threads", paginate=True)
+        )
+    except GateError as exc:
+        raise GateError(f"{cause}; REST fallback also failed: {exc}") from exc
+    via = "via REST (GraphQL unavailable)"
+    if len(threads) >= REST_THREADS_MAX:
+        return False, [
+            f"{len(threads)} thread(s) {via} -- cannot prove the list is not "
+            "truncated; check from an environment with GraphQL"
+        ]
+    unresolved = [t for t in threads if not t.get("resolved")]
+    if unresolved:
+        paths = ", ".join(sorted({t.get("path") or "?" for t in unresolved})[:5])
+        return False, [
+            f"{len(unresolved)} of {len(threads)} thread(s) unresolved {via}: {paths}"
+        ]
+    return True, [f"0 of {len(threads)} thread(s) unresolved {via}"]
+
+
+def _check_runs(fetcher: Any, head: str) -> tuple[list[dict[str, Any]], int | None]:
+    """Every check run for `head`, at the max page size, following every page --
+    a single unpaged response silently hides checks past the first page, which
+    is exactly the failing check a merge gate must not miss."""
+    payload = fetcher.rest(f"commits/{head}/check-runs?per_page=100", paginate=True)
+    pages = payload if isinstance(payload, list) else [payload]
+    runs: list[dict[str, Any]] = []
+    total: int | None = None
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+        page_total = page.get("total_count")
+        if isinstance(page_total, int):
+            total = page_total
+        runs.extend(r for r in page.get("check_runs", []) if isinstance(r, dict))
+    return runs, total
+
+
 def gate_ci(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
     """Checks must be green on the head commit, not on a superseded one."""
     head = _head_sha(fetcher, pr)
-    payload = fetcher.rest(f"commits/{head}/check-runs")
-    runs = payload.get("check_runs", []) if isinstance(payload, dict) else []
+    runs, total = _check_runs(fetcher, head)
+    if total is not None and len(runs) < total:
+        return False, [
+            f"{total} check run(s) reported on {head[:8]} but only {len(runs)} "
+            "fetched -- pagination truncated, investigate before concluding"
+        ]
     if not runs:
         return False, [f"no check runs on head {head[:8]} (has CI started?)"]
     pending = [r for r in runs if r.get("status") != "completed"]
@@ -309,7 +591,10 @@ query($owner: String!, $name: String!) {
 
 def gate_closes(fetcher: Any, pr: int, intended: Iterable[int]) -> tuple[bool, list[str]]:
     """The PR must close exactly the issues you named -- no more, no fewer."""
-    payload = fetcher.graphql(CLOSES_QUERY % pr)
+    try:
+        payload = fetcher.graphql(CLOSES_QUERY % pr)
+    except GraphQLUnavailable as exc:
+        return _closes_via_rest(fetcher, pr, intended, exc)
     pull = _dig(payload, "data", "repository", "pullRequest")
     if pull is None:
         raise GateError(f"could not read closing references for PR #{pr}")
@@ -354,6 +639,91 @@ def gate_closes(fetcher: Any, pr: int, intended: Iterable[int]) -> tuple[bool, l
     return True, [f"closes exactly {listed}"]
 
 
+# GitHub's closing keywords (docs: "Linking a pull request to an issue"). A
+# denial ("does not close #887") still links, so the match ignores what precedes
+# the keyword, exactly as GitHub does.
+_CLOSING_REF = re.compile(
+    r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[ \t]*:?[ \t]+"
+    r"(?:"
+    # `#12` or `owner/name#12`
+    r"(?P<repo>[\w.-]+/[\w.-]+)?#(?P<num>\d+)"
+    r"|"
+    # a full issue URL
+    r"https?://github\.com/(?P<urlrepo>[\w.-]+/[\w.-]+)/issues/(?P<urlnum>\d+)"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _closing_refs(text: str | None, repo: str) -> tuple[set[int], set[str]]:
+    """(same-repo issue numbers, other-repo `owner/name#N` references)."""
+    same: set[int] = set()
+    other: set[str] = set()
+    for m in _CLOSING_REF.finditer(text or ""):
+        ref_repo = m.group("repo") or m.group("urlrepo")
+        number = m.group("num") or m.group("urlnum")
+        if ref_repo is None or ref_repo.lower() == repo.lower():
+            same.add(int(number))
+        else:
+            other.add(f"{ref_repo}#{number}")
+    return same, other
+
+
+def _closes_via_rest(
+    fetcher: Any, pr: int, intended: Iterable[int], cause: Exception
+) -> tuple[bool, list[str]]:
+    """`closes` without GraphQL: read the closing keywords out of the PR.
+
+    GraphQL's ``closingIssuesReferences`` is not exposed by REST, so this parses
+    what creates the links -- the PR title and body, its commit messages, and the
+    branch name. It cannot see a link added by hand from the PR sidebar, and says
+    so in its evidence line; a PASS here is weaker than GraphQL's.
+    """
+    try:
+        pull = fetcher.rest(f"pulls/{pr}")
+        commits = _flatten_pages(fetcher.rest(f"pulls/{pr}/commits", paginate=True))
+    except GateError as exc:
+        raise GateError(f"{cause}; REST fallback also failed: {exc}") from exc
+    repo = getattr(fetcher, "repo", "")
+    texts = [pull.get("title"), pull.get("body")] + [
+        _dig(c, "commit", "message") for c in commits
+    ]
+    actual: set[int] = set()
+    other: set[str] = set()
+    for text in texts:
+        same, foreign = _closing_refs(text, repo)
+        actual |= same
+        other |= foreign
+    expected = set(intended)
+
+    problems: list[str] = []
+    unexpected = sorted(actual - expected)
+    missing = sorted(expected - actual)
+    if unexpected or other:
+        problems.append(
+            "will also close "
+            + ", ".join([f"#{n}" for n in unexpected] + sorted(other))
+            + " -- check the branch name and any sentence containing a closing "
+            "verb next to the number (a denial still links)"
+        )
+    if missing:
+        problems.append("will NOT close " + ", ".join(f"#{n}" for n in missing))
+    branch = _dig(pull, "head", "ref") or ""
+    if re.search(r"issue-\d+", branch):
+        problems.append(
+            f"branch name {branch!r} contains issue-<N>, which creates a closing "
+            "link on its own"
+        )
+    note = (
+        "via REST (GraphQL unavailable): parsed from the PR title, body, commit "
+        "messages and branch; a link added by hand in the PR sidebar is not visible"
+    )
+    if problems:
+        return False, [*problems, note]
+    listed = ", ".join(f"#{n}" for n in sorted(actual)) or "nothing"
+    return True, [f"closes exactly {listed} {note}"]
+
+
 def _dig(payload: Any, *keys: str) -> Any:
     for key in keys:
         if not isinstance(payload, dict):
@@ -385,6 +755,7 @@ def run_gates(
     names: Sequence[str],
     intended: Sequence[int],
     *,
+    reviewer: Reviewer = CLAUDE,
     out: Callable[[str], None] = print,
 ) -> int:
     failed = 0
@@ -392,9 +763,12 @@ def run_gates(
     for name in names:
         gate = GATES[name]
         try:
-            ok, lines = (
-                gate(fetcher, pr, intended) if name == "closes" else gate(fetcher, pr)
-            )
+            if name == "closes":
+                ok, lines = gate(fetcher, pr, intended)
+            elif name in ("findings", "review"):
+                ok, lines = gate(fetcher, pr, reviewer)
+            else:
+                ok, lines = gate(fetcher, pr)
         except GateError as exc:
             # One unanswerable gate must not hide the answers to the others:
             # record it and keep going, but let its exit code dominate so an
@@ -428,7 +802,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             "numbers to assert the PR closes nothing"
         ),
     )
-    parser.add_argument("--repo", help="owner/name (default: detected via gh)")
+    parser.add_argument(
+        "--reviewer",
+        choices=sorted(REVIEWERS),
+        default="claude",
+        help=(
+            "whose review the findings and review gates read (default: "
+            "claude, the `review: claude` workflow); copilot if you "
+            "requested Copilot instead"
+        ),
+    )
+    parser.add_argument(
+        "--repo",
+        help="owner/name (default: GITHUB_REPOSITORY, the git remote, then gh)",
+    )
     args = parser.parse_args(argv)
 
     names = list(ALL_ORDER) if args.gate == "all" else [args.gate]
@@ -442,12 +829,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
     try:
-        repo = args.repo or detect_repo()
+        if args.repo:
+            repo = args.repo
+        else:
+            repo, source = detect_repo_with_source()
+            # Say which repo was checked: a wrong guess must not be silent.
+            print(f"repo: {repo} (from {source}; --repo overrides)")
     except GateError as exc:
         print(f"SKIP: {exc}")
         return 2
 
-    return run_gates(GitHubFetcher(repo), args.pr, names, args.closes or [])
+    return run_gates(
+        GitHubFetcher(repo),
+        args.pr,
+        names,
+        args.closes or [],
+        reviewer=REVIEWERS[args.reviewer],
+    )
 
 
 if __name__ == "__main__":

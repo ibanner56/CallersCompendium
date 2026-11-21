@@ -10,6 +10,13 @@ enum ParamKind {
   /// A pairing of dancers valid for a paired move (subset of dancerSet).
   dancerPair,
 
+  /// An ordered list of dancer tokens, such as `["twos", "threes"]` for "2s
+  /// and 3s circle left": ECD's `who` (ADR-006 §5.2). The list holds at
+  /// least one token, each from [ParamSpec.choices] (default
+  /// [ParamVocab.dancerSets]), none twice, and a token in
+  /// [ParamVocab.soloDancerTokens] only on its own.
+  dancerList,
+
   /// `right` / `left` hand.
   handedness,
 
@@ -25,9 +32,26 @@ enum ParamKind {
   /// Distance travelled around a ring/star, 1–10 "places" (circle, star,
   /// facing star, square through). Stored as places directly (not ContraDB's
   /// degrees), analogous to [rotation] being stored in turns.
+  ///
+  /// A spec may opt into [ParamVocab.unspecified] by listing it in
+  /// [ParamSpec.choices], as `circle.places` and `star.places` do (v39).
+  ///
+  /// Also the 1–10 whole-number kind for `circular_hey.changes`, a count of
+  /// changes rather than a distance; the renderer words that param "N changes"
+  /// by name.
   places,
 
-  /// `quarter` / `half` / `threeQuarter` / `full` / `other` (heys, poussettes).
+  /// A plain whole number, 0–99, worded as the digits alone: no "place(s)",
+  /// "change(s)" or other unit. For a count that is not a distance around a
+  /// ring, where [places] would add its own word: a figure of your own's, or
+  /// `starburst.travel`, the couples passed (taxonomy v39).
+  number,
+
+  /// `quarter` / `half` / `threeQuarter` / `full` / `other` (figure 8,
+  /// poussette). `other` means "an amount none of the named values states":
+  /// the amount itself lives in the move's sibling `amount` param
+  /// ([fractionAmountParam]), read only while the fraction is `other`
+  /// (taxonomy v39, #2120).
   fraction,
 
   /// Duration 0–64 beats (0 allowed: formation labels).
@@ -42,7 +66,7 @@ enum ParamKind {
   /// Free text; dialect-aware.
   text,
 
-  /// Boolean flag (e.g. `withBalance`).
+  /// Boolean flag (e.g. `balance`).
   flag,
 }
 
@@ -57,8 +81,12 @@ abstract final class ParamVocab {
     'role2s',
     'ones',
     'twos',
-    'firstCorners',
-    'secondCorners',
+    // v40 (#770 follow-up, the maintainer's ruling): the third and fourth
+    // couples as groups, for triplets, triple minors and four-couple sets.
+    // The same tokens ECD's selectors use. Offered in every dance, as their
+    // single dancers (`threesRole1` …) already are.
+    'threes',
+    'fours',
     'partners',
     'neighbors',
     'sameRoles',
@@ -68,6 +96,14 @@ abstract final class ParamVocab {
     'nextNeighbors',
     'thirdNeighbors',
     'fourthNeighbors',
+    // v38 (#1975, maintainer decisions): the corners and opposites sit below
+    // the neighbour series in the picker. A square's corner is a contra first
+    // corner, and The Caller's Box's square corners C1, C2 and C3 are the
+    // first corners, the opposites and the third corners.
+    'firstCorners',
+    'secondCorners',
+    'thirdCorners',
+    'opposites',
     // Mixer partner series (issue #732, v24): a mixer's previous / successive
     // partners beyond the current one (P1 = `partners`). Named to parallel the
     // neighbour series above; `prevPartners` covers P0 (the partner before your
@@ -83,14 +119,24 @@ abstract final class ParamVocab {
     'centers',
   ];
 
-  /// Single-dancer identities — one couple (1s/2s) × one role — for moves that
-  /// name an individual (figure_8's `lead`, dolphin_hey's `whom`). Equivalent
-  /// to ContraDB's chooser_dancer "first/second gentlespoon/ladle" (2.4a PR3).
+  /// Single-dancer identities — one couple × one role — for moves that name
+  /// an individual (figure_8's `lead`, dolphin_hey's `whom`) and wherever a
+  /// param takes any dancer. The first four are ContraDB's chooser_dancer
+  /// "first/second gentlespoon/ladle" (2.4a PR3).
+  ///
+  /// The third and fourth couples' dancers (taxonomy v39) sit at the end of
+  /// the list, so the picker reads ... `twosRole2`, `threesRole1`, ...,
+  /// `foursRole2`: a three- or four-couple set, or a square, can name one
+  /// dancer of couple 3 or 4. ContraDB has no such dancer.
   static const List<String> singleDancers = [
     'onesRole1',
     'onesRole2',
     'twosRole1',
     'twosRole2',
+    'threesRole1',
+    'threesRole2',
+    'foursRole1',
+    'foursRole2',
   ];
 
   /// The five mixer partner-series tokens (taxonomy v24, issue #732): the
@@ -119,6 +165,11 @@ abstract final class ParamVocab {
     'fifthPartners',
   ];
 
+  /// The tokens a [ParamKind.dancerList] holds only on its own: `everyone`
+  /// and the [unspecified] sentinel can't be combined with another selector
+  /// (ADR-006 §5.2, Q1b).
+  static const Set<String> soloDancerTokens = {'everyone', unspecified};
+
   /// All dancer tokens (pair/group + single-dancer identities). The default
   /// domain for [ParamKind.dancerSet] / [ParamKind.dancerPair].
   static const List<String> dancerSets = [...pairDancerSets, ...singleDancers];
@@ -130,7 +181,8 @@ abstract final class ParamVocab {
   /// The rule, deliberately stated instead of enumerated: a param admits the
   /// sentinel **iff** it names it explicitly in [ParamSpec.choices] and its
   /// [ParamKind]'s validator consults `choices` — every kind with a closed
-  /// vocabulary does, plus [ParamKind.rotation] by an explicit opt-in. Nothing
+  /// vocabulary does, plus [ParamKind.rotation] and [ParamKind.places] by an
+  /// explicit opt-in. Nothing
   /// admits it implicitly. That includes the semantically typed kinds, which is
   /// why `form_long_waves.hand` can be a [ParamKind.handedness] and still mean
   /// "not stated" (issue #739); a param does NOT have to be laundered through
@@ -199,8 +251,9 @@ String? invertPairDancerSet(String who) => ParamVocab.pairInverse[who];
 /// derive it from our default rather than from the source).
 ///
 /// The single source of truth for this mapping, shared by every write/read
-/// site that must agree on it: both `_selectMove` implementations and
-/// `_applyNonBeatsParamChange` in `figure_list_editor.dart`, the ContraDB and
+/// site that must agree on it: core's `seedChainHand` (`param_change_rules.dart`,
+/// called by `applyParamChange` and by both `_selectMove` implementations and
+/// the meanwhile side editor in `figure_list_editor.dart`), the ContraDB and
 /// shared-recognizer `_chain` parsers, the one-time backfill sweep, and the
 /// canonical/display silencing rule in `renderer.dart`. Kept here (not in
 /// `contra_taxonomy.dart`) because the app-layer editor needs it too.
@@ -215,6 +268,103 @@ String? chainHandForWho(String who) {
   }
 }
 
+/// The sibling param of a [ParamKind.fraction] param that states the amount
+/// when the fraction is `other` (taxonomy v39, #2120).
+///
+/// It is a [ParamKind.rotation] (quarter steps, 0.25–2.5) that opts into the
+/// [ParamVocab.unspecified] sentinel, and it is read **only** while the
+/// fraction is `other`: an amount left behind by a change to a named fraction
+/// means nothing. The fraction keeps its string tokens, and the amount is a
+/// separate param, because a peer on an older build has no way to refuse a new
+/// value type: its editor rewrites any fraction it does not recognise to
+/// `half` and syncs that back, whereas it stores and saves an extra param
+/// untouched. An older build's `validateFigure` does reject the extra param
+/// (`unknown_param`), so where it validates (import, and a figure of the
+/// user's own whose template holds such a figure) that figure is refused
+/// there; which is why the key is written only on a figure that states an
+/// amount ([Taxonomy.entryParams] does not seed it).
+///
+/// An amount equal to a named value (0.25, 0.5, 0.75, 1) is stored as that
+/// named value instead ([fractionParamsForAmount]), so in practice `other`
+/// carries 1¼–2½. `other` with no amount is a legacy row from before v39 (or
+/// a source that said "other" and nothing more): it reads as an unstated
+/// amount, never as a guessed one.
+const String fractionAmountParam = 'amount';
+
+/// The figure 8 param that makes it a double figure 8 (lead it, the other pair
+/// cast the mirror way). A flag stored only while true: [Taxonomy.entryParams]
+/// seeds none and `applyParamChange` removes it when turned off, so a figure 8
+/// that is not double carries no key a peer on taxonomy v38 (whose
+/// `validateFigure` rejects a param it does not know) would refuse.
+const String figure8DoubleParam = 'double';
+
+/// Whether a fraction field with no amount beside it offers [choice] when its
+/// value is [current] (#2120): every fraction but `other`, which would be
+/// stored with no amount. Such fields are a figure of the user's own, whose
+/// argument cannot carry an amount through to the move it fills, and a
+/// per-move default in Settings, which seeds no amount. One already chosen is
+/// still offered, so it is shown rather than hidden, and it still validates:
+/// only the offer stops.
+bool offersFractionChoice(String choice, Object? current) =>
+    choice != 'other' || current == 'other';
+
+/// Whether a saved per-move default (Settings ▸ Defaults) of [value] for
+/// [key] is left unapplied (#2120): a fraction of `other`, which would seed a
+/// figure with no amount (one saved before taxonomy v39 is still stored and
+/// shown, see [offersFractionChoice]), and an amount, which Settings no
+/// longer offers.
+bool skipsMoveDefault(String key, Object? value) =>
+    key == fractionAmountParam || (key == 'fraction' && value == 'other');
+
+/// Whether an editor leaves the param [key] out for a figure with [params]:
+/// [fractionAmountParam] while the fraction is not `other`, the only value
+/// that reads it (#2120). An absent fraction is the spec default, `half`.
+bool hidesFractionAmount(String key, Map<String, Object?> params) =>
+    key == fractionAmountParam && params['fraction'] != 'other';
+
+/// The amount the editor seeds when a caller picks `other` (#2120): one and a
+/// half, the commonest amount no named fraction states.
+const num kFractionOtherSeedAmount = 1.5;
+
+/// The fraction params for a numeric [amount] in full turns of the figure:
+/// the named token when it is one (`{fraction: half}`), else `other` with the
+/// amount (`{fraction: other, amount: 1.5}`). Null when [amount] is outside
+/// the amount domain (a quarter step from 0.25 to 2.5), so a caller can leave
+/// the line unread rather than store a value that cannot be shown.
+Map<String, Object?>? fractionParamsForAmount(num amount) {
+  final named = fractionTokenForAmount(amount);
+  if (named != null) return {'fraction': named};
+  if (!isFractionAmount(amount)) return null;
+  return {'fraction': 'other', fractionAmountParam: amount};
+}
+
+/// The named [ParamKind.fraction] token for [amount] in full turns of the
+/// figure (0.5 -> `half`), or null when no named value states it.
+String? fractionTokenForAmount(num amount) => switch (amount) {
+  0.25 => 'quarter',
+  0.5 => 'half',
+  0.75 => 'threeQuarter',
+  1 => 'full',
+  _ => null,
+};
+
+/// Whether [value] is a storable fraction amount: a quarter step from 0.25 to
+/// 2.5, the same domain as [ParamKind.rotation].
+bool isFractionAmount(Object? value) =>
+    value is num && value >= 0.25 && value <= 2.5 && (value * 4) % 1 == 0;
+
+/// The amount a figure's fraction states: [fractionAmountParam] while the
+/// fraction is `other` and the amount is in domain, else null (a named
+/// fraction, or an `other` that states none).
+num? statedFractionAmount(
+  Map<String, Object?> params, {
+  String fractionParam = 'fraction',
+}) {
+  if (params[fractionParam] != 'other') return null;
+  final amount = params[fractionAmountParam];
+  return isFractionAmount(amount) ? amount! as num : null;
+}
+
 /// Specification of one named move parameter: kind, default, and (for
 /// [ParamKind.choice], or to narrow dancer kinds) an explicit value domain.
 @immutable
@@ -222,6 +372,7 @@ class ParamSpec {
   const ParamSpec(
     this.kind, {
     required this.defaultValue,
+    this.entryDefault,
     this.choices,
     this.allowManualClear = true,
   });
@@ -230,6 +381,16 @@ class ParamSpec {
 
   /// Value assumed when the figure omits this parameter.
   final Object? defaultValue;
+
+  /// Value the figure editor seeds when a figure of this move is first entered,
+  /// when that differs from [defaultValue]; null means "seed [defaultValue]".
+  ///
+  /// This is an editor convenience only. It is never consulted when a figure
+  /// omits the parameter, so it changes neither how an omitted value renders
+  /// nor what an importer means by leaving one out (`balance` is the case it
+  /// exists for: authors usually balance, but a source that does not state a
+  /// balance is unbalanced). Read it through [Taxonomy.entryParams].
+  final Object? entryDefault;
 
   /// Explicit allowed values. Required for [ParamKind.choice]; optional for
   /// dancer kinds (narrows the shared vocabulary to what the move accepts).
@@ -251,8 +412,9 @@ class ParamSpec {
   /// active choice to erase a stated rotation down to "not stated", which the
   /// taxonomy owner explicitly does not want reachable as a manual action
   /// (owner ruling, 2026-08-18): the sentinel is reachable ONLY via the
-  /// automatic reset the editor performs when `dir` is set to `in`/`out`/
-  /// `up`/`down` (see `figure_list_editor.dart`), never via a button. Set
+  /// automatic reset when promenade's `where` is set to `in`/`out`/`up`/
+  /// `down` (`applyParamChange`, `param_change_rules.dart`), never via a
+  /// button. Set
   /// `false` there for that reason; every other spec leaves this at its
   /// default.
   final bool allowManualClear;
@@ -264,6 +426,8 @@ class ParamSpec {
       case ParamKind.dancerPair:
         return value is String &&
             (choices ?? ParamVocab.dancerSets).contains(value);
+      case ParamKind.dancerList:
+        return isValidDancerList(value, choices ?? ParamVocab.dancerSets);
       case ParamKind.handedness:
       case ParamKind.shoulder:
         // `choices` is optional here too (issue #726): when a spec narrows
@@ -292,7 +456,17 @@ class ParamSpec {
             value <= 2.5 &&
             (value * 4) % 1 == 0;
       case ParamKind.places:
+        // Like a rotation, a count of places MAY opt into the "source stated
+        // nothing" sentinel by listing it in [choices] (taxonomy v39:
+        // `circle.places` and `star.places`, which a dance may leave unstated).
+        if (value is String) {
+          return choices != null &&
+              value == ParamVocab.unspecified &&
+              choices!.contains(value);
+        }
         return value is int && value >= 1 && value <= 10;
+      case ParamKind.number:
+        return value is int && value >= 0 && value <= 99;
       case ParamKind.fraction:
         return value is String &&
             (choices ?? ParamVocab.fractions).contains(value);
@@ -309,4 +483,18 @@ class ParamSpec {
         return value is bool;
     }
   }
+}
+
+/// Whether [value] is a valid [ParamKind.dancerList] over [domain]: a
+/// non-empty list of tokens from [domain], none repeated, with a token of
+/// [ParamVocab.soloDancerTokens] only as the list's one entry (ADR-006 §5.2).
+bool isValidDancerList(Object? value, List<String> domain) {
+  if (value is! List || value.isEmpty) return false;
+  final seen = <String>{};
+  for (final token in value) {
+    if (token is! String || !domain.contains(token) || !seen.add(token)) {
+      return false;
+    }
+  }
+  return value.length == 1 || !value.any(ParamVocab.soloDancerTokens.contains);
 }

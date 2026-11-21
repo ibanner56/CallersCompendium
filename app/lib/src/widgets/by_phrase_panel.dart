@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
+import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart' show MoveTypeAheadField;
+import 'move_autocomplete.dart' show moveLabelWithForm;
 
 /// A Caller's Box-style "search by phrase" panel
-/// (https://www.ibiblio.org/contradance/thecallersbox/). For each phrase of the
-/// dance (the standard four — A1, A2, B1, B2 — via [sectionLabels]) the caller
+/// (https://www.ibiblio.org/contradance/thecallersbox/). For each phrase in
+/// [sectionLabels] (the standard A1, A2, B1, B2, plus any label an English
+/// dance's named phrases give, from `sectionLabelsFor`) the caller
 /// lists figures that MUST occur in that phrase ("figures match") and figures
 /// that must NOT ("but do not match").
 ///
@@ -24,6 +27,7 @@ class ByPhrasePanel extends StatelessWidget {
     required this.taxonomy,
     required this.sectionLabels,
     required this.onChanged,
+    this.dialect,
   });
 
   final ByPhraseSelections selections;
@@ -31,10 +35,18 @@ class ByPhrasePanel extends StatelessWidget {
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
-  /// Caller's Box-style caption for the [index]-th phrase, e.g.
-  /// "first phrase (usually A1)". Ordinals beyond the fourth fall back to
-  /// "phrase N".
-  static String captionFor(AppLocalizations l10n, int index, String label) {
+  /// Active dialect: move suggestions and chips use its own move names, as the
+  /// dance editor's move entry does. Canonical when null. Picks are stored as
+  /// canonical move ids either way.
+  final Dialect? dialect;
+
+  /// Caller's Box-style caption for a standard phrase, by its place in the
+  /// standard A1 A2 B1 B2, e.g. "first phrase (usually A1)". Any other label,
+  /// such as an English dance's named `A` or `C1`, is captioned by itself,
+  /// because its place differs from dance to dance.
+  static String captionFor(AppLocalizations l10n, String label) {
+    final index = PhraseStructure.standard.labels.indexOf(label);
+    if (index < 0) return label;
     final ordinal = switch (index) {
       0 => l10n.collectionByPhraseOrdinalFirst,
       1 => l10n.collectionByPhraseOrdinalSecond,
@@ -51,13 +63,14 @@ class ByPhrasePanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final (index, label) in sectionLabels.indexed)
+        for (final label in sectionLabels)
           _PhraseRow(
             key: ValueKey('by-phrase-$label'),
             label: label,
-            caption: captionFor(l10n, index, label),
+            caption: captionFor(l10n, label),
             selections: selections,
             taxonomy: taxonomy,
+            dialect: dialect,
             onChanged: onChanged,
           ),
       ],
@@ -72,6 +85,7 @@ class _PhraseRow extends StatelessWidget {
     required this.caption,
     required this.selections,
     required this.taxonomy,
+    required this.dialect,
     required this.onChanged,
   });
 
@@ -79,6 +93,7 @@ class _PhraseRow extends StatelessWidget {
   final String caption;
   final ByPhraseSelections selections;
   final Taxonomy taxonomy;
+  final Dialect? dialect;
   final VoidCallback onChanged;
 
   @override
@@ -86,7 +101,7 @@ class _PhraseRow extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -102,6 +117,7 @@ class _PhraseRow extends StatelessWidget {
             fieldLabel: l10n.collectionByPhraseFieldMatch(caption),
             moves: selections.match.putIfAbsent(label, () => []),
             taxonomy: taxonomy,
+            dialect: dialect,
             onChanged: onChanged,
           ),
           const SizedBox(height: 4),
@@ -110,6 +126,7 @@ class _PhraseRow extends StatelessWidget {
             fieldLabel: l10n.collectionByPhraseFieldExclude(caption),
             moves: selections.exclude.putIfAbsent(label, () => []),
             taxonomy: taxonomy,
+            dialect: dialect,
             onChanged: onChanged,
           ),
         ],
@@ -128,6 +145,7 @@ class _MoveMultiField extends StatelessWidget {
     required this.fieldLabel,
     required this.moves,
     required this.taxonomy,
+    required this.dialect,
     required this.onChanged,
   });
 
@@ -135,10 +153,23 @@ class _MoveMultiField extends StatelessWidget {
   final String fieldLabel;
   final List<String> moves;
   final Taxonomy taxonomy;
+  final Dialect? dialect;
   final VoidCallback onChanged;
 
-  String _displayName(String moveId) =>
-      taxonomy.resolve(moveId)?.displayName ?? moveId;
+  /// The chip's label: the move's name in the active dialect, as the
+  /// suggestion that added it read, its form named when another form's
+  /// figure is named alike ("circle · English (ECD)").
+  String _displayName(BuildContext context, String moveId) =>
+      taxonomy.resolve(moveId) == null
+      ? moveId
+      : moveLabelWithForm(
+          context,
+          taxonomy,
+          moveId,
+          FigureRenderer(
+            taxonomy,
+          ).displayMoveName(moveId, dialect ?? Dialect.canonical),
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +179,7 @@ class _MoveMultiField extends StatelessWidget {
       children: [
         if (moves.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Wrap(
               spacing: 6,
               runSpacing: 2,
@@ -156,14 +187,14 @@ class _MoveMultiField extends StatelessWidget {
                 for (final moveId in moves)
                   InputChip(
                     key: ValueKey('$keyPrefix-chip-$moveId'),
-                    label: Text(_displayName(moveId)),
+                    label: Text(_displayName(context, moveId)),
                     onDeleted: () {
                       moves.remove(moveId);
                       onChanged();
                     },
                     deleteButtonTooltipMessage: l10n
                         .collectionByPhraseRemoveMove(
-                          _displayName(moveId),
+                          _displayName(context, moveId),
                           fieldLabel,
                         ),
                   ),
@@ -178,13 +209,14 @@ class _MoveMultiField extends StatelessWidget {
             // count for reliable test targeting.
             key: ValueKey('$keyPrefix-input-${moves.length}'),
             taxonomy: taxonomy,
+            dialect: dialect,
             labelText: fieldLabel,
             // New capability (see MoveTypeAheadField.fieldKey doc comment):
             // this call site had no ValueKeys on the field/options before.
             fieldKey: keyPrefix,
-            onSelected: (m) {
-              if (!moves.contains(m.id)) {
-                moves.add(m.id);
+            onSelected: (id) {
+              if (!moves.contains(id)) {
+                moves.add(id);
                 onChanged();
               }
             },

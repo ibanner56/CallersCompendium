@@ -19,8 +19,9 @@ That baseline ships the beta fine, but it leaves four gaps for Linux users that
 the other desktops either don't have or get "for free":
 
 - **No auto-update.** ADR-002 §4 Stage-1 only *reveals/marks* the downloaded
-  `.AppImage`; true in-place self-update is Stage-2 and is **gated on
-  code-signing**, which Linux has no first-party mechanism for. So Linux users
+  `.AppImage`; true in-place self-update is Stage-2 (not yet built; for
+  macOS and Windows signing no longer gates it), and Linux has no first-party
+  code-signing mechanism for it. So Linux users
   update by re-downloading, indefinitely.
 - **No desktop integration.** A raw `.AppImage`/`.tar.gz` gives no menu entry,
   icon, or MIME/file associations unless the user wires them up by hand.
@@ -32,6 +33,13 @@ There is also a known **AppImage papercut** (being clarified separately in the
 docs, out of scope here): the shipped AppImage needs **`libfuse2`** at runtime,
 which recent Ubuntu/Fedora do not preinstall, producing a cryptic
 `libfuse.so.2` failure. The `.tar.gz` avoids it, but it is a rough first-run.
+
+> **Note (2026-10):** this paragraph is kept as history and is wrong about the
+> dependency. The shipped AppImage is built with the static type2-runtime
+> (`release.yml`, `--runtime-file runtime-x86_64`), which never loads
+> `libfuse2`; the actual requirement is a `fusermount`/`fusermount3` binary on
+> `$PATH` (package `fuse3`), and its failure reads "No suitable fusermount
+> binary found on the $PATH".
 
 Constraints bounding the answer (per ADR-001 / ADR-002): volunteer maintainers,
 **low operational burden**, **no telemetry**, a privacy-clean update story, and

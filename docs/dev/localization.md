@@ -12,8 +12,20 @@ This document is the contract for the string-extraction work: the framework and
 every user-facing UI string have landed, and new strings are added to the ARB as
 features land. Follow the conventions here so the app stays consistent.
 
-**Extraction status: complete.** Every user-facing UI surface now sources its
-prose from `AppLocalizations`. The phased extraction (layers 1–6) is finished:
+**Extraction status: every UI string the guard can see is extracted.** The
+hard-coded-string guard (see [below](#guarding-against-hardcoded-strings))
+scans string literals passed as *widget arguments*. It cannot see prose that is
+stored in an enum or a value object and read back later, so those labels must
+be routed through `AppLocalizations` **by convention**: keep the data type's
+English `label` as a stable key/fallback (and sort key), and add a resolver in
+the app layer that switches on the stable identity. The theme gallery and the
+custom-theme editor are the worked example — `AppThemeGroup`,
+`AppThemeSelection` and `CustomThemeRoles` keep English labels, and
+`app_theme_labels_l10n.dart` (`appThemeLabel`, `appThemeDescription`,
+`themeEditorRoleLabel`, …) resolves them (CS-47, L10N-02). Brand palette names
+are proper nouns and stay literal; user-authored names are user data.
+
+Beyond that, the phased extraction (layers 1–6) is finished:
 the framework, shared cross-cutting vocabulary (facet domain-value labels), the
 import-gap badge, the `(copy)` title suffix, global/shared chrome, the full
 **Settings surface**, all secondary screens and editors (custom fields, dialect
@@ -22,8 +34,7 @@ figure-shorthand mappings, reparse-custom-figures), the large chrome widgets
 (`collection_picker`, `command_palette`, `update_banner`), and the
 **venue-management trio** (`venue_manager_screen`, `venue_editor_sheet`,
 `venue_picker`) are all localized. New user-facing strings go straight into the
-ARB — the guard (see [below](#guarding-against-hardcoded-strings)) keeps it that
-way.
+ARB — the guard keeps widget literals that way.
 
 The only remaining hardcoded English is **intentional and permanent**, in one
 bucket:
@@ -77,6 +88,17 @@ English template, and a CI ratchet keeps it that way — see
 user-facing string is therefore no longer complete until it is translated, or
 knowingly and visibly exempted.
 
+**File-dialog filter names reach the data layer through `FileDialogLabels`.**
+The native open/save dialogs are opened from `data/`, which has no
+`BuildContext` and is reached through zero-argument test seams, so the filter
+names (`backupJsonTypeGroup`, `importJsonTypeGroup`, `importUsrTypeGroup`,
+`crashLogTypeGroup`, `macosUpdateTypeGroup`) cannot be resolved where they are
+built. The root `MaterialApp.builder` binds the active `AppLocalizations` to
+`FileDialogLabels` on every build; until one is bound (unit tests) the English
+strings are used. The `fileDialogType*` keys are ordinary ARB keys. The JSON
+bundle filter's `JSON` label and the upper-cased extension label are format
+names, not prose, and stay literals.
+
 ## How it's wired
 
 - **`app/pubspec.yaml`** declares `flutter_localizations` (SDK) and sets
@@ -116,6 +138,10 @@ as `InheritedNotifier` scopes (mirroring `AppThemeScope`/`DateFormatScope`):
 | Date format       | `DateFormatScope`     | `kDateFormatKey`       | enum token           |
 | First day of week | `FirstDayOfWeekScope` | `kFirstDayOfWeekKey`   | enum token           |
 
+New preference scopes are added to `_appScopeWrappers` in `main.dart` (outermost
+first; `build` folds the list onto the navigator) and to the type list in
+`app/test/app_scopes_test.dart`.
+
 `DateFormatScope` carries a `DateFormatSetting` (the enum token plus, for the
 `custom` variant, a raw user-entered pattern persisted separately under
 `kDateFormatCustomPatternKey`). The custom pattern is validated at the point of
@@ -132,10 +158,31 @@ the English month-name allowlist it already uses for its month-name tiers. See
 #632.
 
 Read a scope with `Scope.of(context)` (registers a rebuild); change it with
-`Scope.notifierOf(context)`. Changing `LocaleScope` updates `MaterialApp.locale`,
+`Scope.notifierOf(context)`, then write it with
+`persistSetting(settings, key, value)` (`persisted_preference.dart`), which logs a
+failed write instead of throwing; flip the notifier first so the UI reacts at
+once. Changing `LocaleScope` updates `MaterialApp.locale`,
 so the whole app re-renders in the selected language live. The Language & region
 settings section (`app/lib/src/screens/settings/regional_section.dart`) is the
 UI for all three.
+
+The settings-backed preferences, including the three locale and regional-format
+scopes above (`Locale?`, `DateFormatSetting` and `FirstDayOfWeekPref`), are
+`PreferenceNotifier<T>`s (`app/lib/src/data/persisted_preference.dart`), each
+owning its settings key, default, decoder and encoder. They are listed once, in
+`_preferences` in `app/lib/main.dart`, which both the reset and the load
+iterate; a scope still receives its notifier as a plain `ValueNotifier<T>`, so
+the scope API above is unchanged. The one exception is the active dialect: it is
+persisted by `DialectLibraryController` (`kActiveDialectRefKey`), not by a
+`PreferenceNotifier`, and `_resetAppPreferenceNotifiers` resets it by hand.
+
+Handlers do not call `PreferenceNotifier.persist`; each writes through
+`persistSetting` itself. So that the encoding still has one owner, a handler's
+written value must be spelled exactly as the descriptor's `encode` applied to the
+value it just assigned to the notifier (`selection.name` for
+`encode: (v) => v.name`). `tools/ci/check_preference_encode.py` (preflight step
+`preference-encode`) fails the build otherwise; to change an encoding, change
+the descriptor and every handler the checker then names.
 
 ### Security: validate every persisted value (OWASP)
 
@@ -167,8 +214,15 @@ startup or select an unsupported option:
 ## Key-naming convention
 
 Keys are **camelCase** and **area-prefixed** so the flat ARB namespace stays
-navigable as it grows to ~900 strings. Every key gets an `@<key>` metadata block
-with a `description`; use ICU placeholders/plurals where relevant.
+navigable as it grows past a few thousand strings. Every key gets an `@<key>`
+metadata block with a `description`; use ICU placeholders/plurals where relevant.
+
+`app/test/l10n/arb_key_convention_test.dart` enforces the mechanical part on
+`app_en.arb`: lowerCamelCase keys, a non-empty `description` on every key, no
+orphaned `@key` block, and every ICU argument declared and typed in
+`@key.placeholders` (and every declared placeholder used). The area prefix is
+**not** asserted: the leading segments in use are an observation, and listing
+them would make each new feature area a failing build.
 
 | Prefix      | Area                                   | Examples                                      |
 | ----------- | -------------------------------------- | --------------------------------------------- |
@@ -192,8 +246,9 @@ Guidelines:
 
 ## Adding a new UI string
 
-1. Add the key and its `@key` metadata (with a `description`) to
-   `app/lib/l10n/app_en.arb`, following the convention above.
+1. Add the key and its `@key` metadata (with a `description`, and a typed
+   `placeholders` entry for every `{argument}`) to `app/lib/l10n/app_en.arb`,
+   following the convention above.
 2. Regenerate and format:
    ```sh
    fvm flutter gen-l10n     # (also runs as part of `flutter pub get`)
@@ -201,6 +256,8 @@ Guidelines:
    ```
 3. Use it in a widget: `AppLocalizations.of(context).yourKey`. For a string with
    a placeholder, it's a method: `AppLocalizations.of(context).yourKey(value)`.
+   Write quotes and apostrophes straight (`"`, `'`); the quote-style ratchet
+   rejects curly ones in English.
 4. Commit the updated `app_en.arb` **and** the regenerated
    `app/lib/l10n/app_localizations*.dart`.
 
@@ -266,8 +323,20 @@ App call sites resolve the localized labels from `AppLocalizations` through
 `programMatrixExportLabels(l10n)`) and pass them into the builder. Content
 **values** (formation / status / level names) route through the existing
 localized helpers in `search/facet_labels.dart` (`formationLabel`,
-`danceStatusLabel`, `danceLevelLabel`); dates already use
-`MaterialLocalizations.formatMediumDate`. Never call `AppLocalizations` from a
+`danceStatusLabel`, `danceLevelLabel`); dates go through
+`formatEventDate` under the user's Date format setting (System follows the
+**device region**, `PlatformDispatcher.locale`, as its numeric `yMd` date, so
+it carries the year and shows no month names that could mix with the app
+language. `resolveDateLocale` picks the `intl` set: the full language-and-region
+tag if Flutter ships it (`en_GB`), else the one shipped `_<CC>` variant for the
+country (`en_MX` → `es_MX`), else the small `kRegionDateLocales` table for
+single-convention countries (`en_DK` → `da`; also the US and Canada, which have
+several shipped sets so the single-variant rule skips them), guarded by a drift
+test against `intl`'s locale list, else the language's default. `intl` has no region data to
+derive this from. An `intl`-unresolvable tag falls back to
+`MaterialLocalizations.formatShortDate`. Date symbols for every Flutter-shipped
+locale are registered when `GlobalMaterialLocalizations` first loads, so the
+region need not match the app language). Never call `AppLocalizations` from a
 core renderer, and never add a Flutter dependency to `compendium_core` — inject a
 label object instead.
 
@@ -280,13 +349,26 @@ it is documented here but stays **off** the allow-list.
 
 A ratchet test — `app/test/l10n/no_hardcoded_ui_strings_test.dart` — runs inside
 the ordinary `flutter test` gate (no extra CI step; it mirrors the `dart:io`
-file-walking precedent of `test/data/migration_guard_test.dart`). It walks
-`lib/src/**.dart` and fails if a **string literal** is passed to a user-facing
-constructor/argument (`Text('…')`, `tooltip:`, `labelText:`, `hintText:`,
-`helperText:`, `errorText:`, `semanticLabel:`, `message:`, `hint:`, `helpText:`).
-Prose in a localized app must come from `l10n.*`, so any such literal is a leak.
-Pure interpolations, numbers, and punctuation (`'$count'`, `'• '`, `'—'`) are
-ignored.
+file-walking precedent of `test/data/migration_guard_test.dart`). It walks every
+`lib/**.dart` file except the generated `lib/l10n/` (so `lib/main.dart` is covered,
+and a test asserts it stays covered) and fails if a **string literal** is passed to
+a user-facing constructor/argument (`tooltip:`, `labelText:`, `hintText:`,
+`helperText:`, `errorText:`, `semanticLabel:`, `message:`, `hint:`, `helpText:`),
+or appears at the top level of a `Text(…)` argument list — so `Text(cond ? 'a' : 'b')`
+is caught as well as `Text('a')` (grouping parentheses included: `Text((a ? 'x' : 'y'))`). Prose in a localized app must come from `l10n.*`,
+so any such literal is a leak. Pure interpolations, numbers, and punctuation
+(`'$count'`, `'• '`, `'—'`) are ignored.
+
+**What the guard cannot see.** A literal nested inside another call's arguments
+(`Text(f('a'))`), and — more importantly — prose that is stored in a `String` and
+displayed later. The update controller's download errors were exactly that (#1396):
+literals passed to `_failDownload(...)` and read back through `downloadError`. No
+literal-at-a-widget rule can catch this class, so keep such state **typed**: a
+controller records a discriminator (`UpdateDownloadFailure`, `UrlFetchFailureReason`)
+and the presentation layer maps it through `l10n` when it renders
+(`update/update_failure_labels.dart`, `data/import_error_labels.dart`). A
+locale-free controller then cannot hold English text, and the message re-localizes
+if the language changes while it is on screen.
 
 - **Allow-list.** Files that intentionally keep English literals would live in
   `app/test/l10n/hardcoded_ui_strings_allowlist.dart`. With extraction complete,
@@ -358,13 +440,30 @@ You do **not** need to write code to translate the app.
    It flags stale English-source markers, missing/renamed placeholders,
    mismatched plural arguments, a wrong `@@locale`, and unsafe content before
    the change ever reaches a build.
-5. **iOS only:** add your locale to `app/ios/Runner/Info.plist` under a
-   `CFBundleLocalizations` array, using the **hyphenated BCP-47 tag** (e.g.
-   `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
-   not the underscore filename form. iOS advertises the languages an app supports
-   from this list, so without it a contributed language isn't offered by the
-   system. Other platforms pick up the supported locales automatically, so no
-   extra step is needed there.
+5. **Platform manifests:** the OS advertises the languages an app supports from
+   each platform's own list, so without an entry a contributed language isn't
+   offered by the system. Add the locale to every one:
+   - iOS: a `CFBundleLocalizations` array in `app/ios/Runner/Info.plist`
+     (`<string>fr</string>`, `<string>pt-BR</string>`, …), using the
+     **hyphenated BCP-47 tag** (e.g. `fr`, `pt-BR`, `zh-Hant`), not the
+     underscore filename form.
+   - macOS: `CFBundleLocalizations` in `app/macos/Runner/Info.plist`, with the
+     same tag form. macOS `knownRegions` in
+     `app/macos/Runner.xcodeproj/project.pbxproj` still lists only `en, Base`;
+     the plist entry has not been confirmed on a Mac to be enough on its own.
+   - Android 13+: a `<locale android:name="…"/>` line in
+     `app/android/app/src/main/res/xml/locales_config.xml`, with the same tag
+     form.
+   - Windows installer: the Inno `[Languages]` section of
+     `packaging/windows/CallersCompendium.iss` is keyed by Inno's English
+     language name, not a tag. Add a line matching the existing entries, e.g.
+     `Name: "brazilianportuguese"; MessagesFile:
+     "compiler:Languages\BrazilianPortuguese.isl"` (one line in the file).
+
+   The Dart side needs nothing further: `resolveSystemLocale`
+   (`locale_scope.dart`) matches the device's language list against the
+   supported locales and falls back to **English** — not `supportedLocales.first`,
+   which is alphabetical (`da`) — when none match.
 6. That's it — your language automatically appears in **Settings ▸ Language &
    region ▸ App language**, shown by its native name, with no code change. If the
    endonym doesn't yet have an entry in `nativeLanguageName` it falls back to the
@@ -468,6 +567,18 @@ Both limitations are asserted as tests in
 `tools/ci/test_check_arb_translation_coverage.py`, so they stay documented
 properties rather than becoming surprises.
 
+### The quote-style ratchet: straight quotes in English
+
+`app_en.arb` values use straight `"` and `'` (maintainer decision, 2026-10-31).
+`tools/ci/check_arb_quote_style.py` fails any new or edited English value with a
+curly quote or apostrophe; `python3 tools/ci/arb_quote_style.py --only KEY...`
+is the idempotent normaliser that fixes the reported keys. Values only,
+English only; the rule, the exemptions and the reasons are in the module docstrings and in the
+[style guide](../user/style-guide.md#app-strings-straight-quotes). The
+allow-list (`tools/ci/arb_quote_allowlist.json`) is empty,
+so a curly mark in English always fails; `--regenerate` would record a
+violation instead of fixing it and is never the way to go green.
+
 ### The `arb-translate` Copilot extension
 
 `.github/extensions/arb-translate/` wires the pipeline into the Copilot CLI so
@@ -487,11 +598,12 @@ human translations.
 
 ## Known limitation: system date pickers
 
-Flutter's `showDatePicker` derives its **first day of week from the active
-locale** and offers no per-call override, so the platform calendar picker — the
-app's current date-entry surface — always follows the locale, regardless of the
-app's first-day-of-week preference. Overriding `showDatePicker`'s first day of
-week is intentionally avoided rather than hacked around.
+The app's date picker (`showAppDatePicker`, which opens Flutter's
+`DatePickerDialog`) takes its **first day of week from the active locale**, so
+it always follows the locale, regardless of the app's first-day-of-week
+preference. The app builds that dialog itself, so it could wrap it in a
+`MaterialLocalizations` override that changes the first day of week; it does
+not do so today.
 
 The first-day-of-week preference (ROADMAP G.8) does have a live consumer: the
 Programs list's "this week" header strip (`WeekdayHeaderStrip`) column-orders
@@ -501,3 +613,11 @@ to the platform locale's `MaterialLocalizations.firstDayOfWeekIndex` for
 The Language & region settings section's dropdown is live — changing it updates
 the strip immediately app-wide, the same instant-notifier-then-persist pattern
 as the date-format control.
+
+## Known limitation: the User guide is English only
+
+The bundled guide (`app/assets/docs/user/`, mirrored from `docs/user/`) has one
+English set. For any app language other than English, `UserGuideDocView` shows
+the `userGuideEnglishOnly` notice above every page — the hub and a page a help
+link opens directly alike. Translating the guide is not planned (maintainer
+decision `guide-language` = (a), 2026-10-29: a one-line notice).

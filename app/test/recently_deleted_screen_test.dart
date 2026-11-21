@@ -48,7 +48,7 @@ void main() {
     await _pumpScreen(tester, repos);
 
     expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
-    expect(find.textContaining('Nothing in the trash'), findsOneWidget);
+    expect(find.textContaining('No recently deleted'), findsOneWidget);
   });
 
   testWidgets('shows soft-deleted dances and not active dances', (
@@ -193,7 +193,8 @@ void main() {
 
       // Confirm dialog appears.
       expect(find.text('Delete permanently?'), findsOneWidget);
-      expect(find.textContaining('cannot be recovered'), findsOneWidget);
+      expect(find.text('"Gone Forever" will be deleted now.'), findsOneWidget);
+      expect(find.text("This can't be undone."), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
       await tester.pumpAndSettle();
@@ -210,6 +211,115 @@ void main() {
       expect(find.textContaining('permanently deleted'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'Permanently delete removes only the chosen dance, not other expired ones '
+    '(LIFE-1)',
+    (tester) async {
+      final repos = openTestRepositories();
+      // "Never" is the user's promise that nothing is auto-purged.
+      await repos.settings.set(
+        kSoftDeleteRetentionKey,
+        kSoftDeleteRetentionNever,
+      );
+      final now = DateTime.now().toUtc();
+      for (final (id, daysAgo) in [('a', 5), ('b', 60), ('c', 10)]) {
+        await repos.dances.create(_dance(id: id, title: 'Dance $id'));
+        await repos.dances.softDelete(
+          id,
+          at: now.subtract(Duration(days: daysAgo)),
+        );
+      }
+
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('permanent-delete-a')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
+      await tester.pumpAndSettle();
+
+      expect(await repos.dances.getById('a', includeDeleted: true), isNull);
+      expect(await repos.dances.getById('b', includeDeleted: true), isNotNull);
+      expect(await repos.dances.getById('c', includeDeleted: true), isNotNull);
+      expect(find.text('Dance b'), findsOneWidget);
+      expect(find.text('Dance c'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Permanently delete on a synced dance hides it and says a deletion record '
+    'stays (LIFE-2)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Synced Dance'));
+      await repos.syncLocal.markPublished(
+        kind: SyncRecordKind.dance,
+        recordId: 'd1',
+      );
+      await repos.dances.softDelete('d1', at: _now);
+
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('permanent-delete-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
+      await tester.pumpAndSettle();
+
+      // Gone from the list, though its blank deletion record stays on disk.
+      expect(find.byKey(const ValueKey('restore-d1')), findsNothing);
+      expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
+      final kept = await repos.dances.getById('d1', includeDeleted: true);
+      expect(kept!.title, blankedRecordTitle);
+      expect(find.textContaining('deletion record is kept'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Restore on a dance a peer blanked meanwhile claims nothing', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Blanked Dance'));
+    await repos.dances.softDelete('d1', at: _now);
+    await _pumpScreen(tester, repos);
+    expect(find.byKey(const ValueKey('restore-d1')), findsOneWidget);
+
+    // A peer's permanent deletion arrives while the list is on screen.
+    await repos.dances.softDelete('d1', at: DateTime.utc(1970));
+    await tester.tap(find.byKey(const ValueKey('restore-d1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('restored to your collection'), findsNothing);
+    expect(find.byKey(const ValueKey('restore-d1')), findsNothing);
+    final kept = await repos.dances.getById('d1', includeDeleted: true);
+    expect(kept!.deletedAt, isNotNull, reason: 'still deleted');
+  });
+
+  testWidgets('Restore on a live item still says restored', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Fine Dance'));
+    await repos.dances.softDelete('d1', at: _now);
+    await _pumpScreen(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('restore-d1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('restored to your collection'), findsOneWidget);
+    expect((await repos.dances.getById('d1'))!.deletedAt, isNull);
+  });
+
+  testWidgets('a dance already permanently deleted is not listed', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Removed Dance'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Trashed Dance'));
+    // The mark a build that predates blanking left on a published dance.
+    await repos.dances.softDelete('d1', at: DateTime.utc(1970));
+    await repos.dances.softDelete('d2', at: _now);
+
+    await _pumpScreen(tester, repos);
+
+    expect(find.text('Removed Dance'), findsNothing);
+    expect(find.text('Trashed Dance'), findsOneWidget);
+  });
 
   testWidgets('Permanently delete dialog cancel leaves the dance in place', (
     tester,
@@ -233,5 +343,53 @@ void main() {
     final dance = await repos.dances.getById('d1', includeDeleted: true);
     expect(dance, isNotNull);
     expect(dance!.deletedAt, isNotNull);
+  });
+
+  testWidgets('a failed load shows an error with Retry, not an empty trash', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Deleted Dance'));
+    await repos.dances.softDelete('d1', at: _now);
+    var attempts = 0;
+    final base = danceRecentlyDeletedConfig;
+    final config = RecentlyDeletedConfig<Dance>(
+      pluralNoun: base.pluralNoun,
+      initialRetention: base.initialRetention,
+      loadDeleted: (repos) async {
+        attempts++;
+        if (attempts == 1) throw StateError('injected load failure');
+        return base.loadDeleted(repos);
+      },
+      restore: base.restore,
+      permanentlyDelete: base.permanentlyDelete,
+      idOf: base.idOf,
+      titleOf: base.titleOf,
+      deletedAtOf: base.deletedAtOf,
+      restoredMessage: base.restoredMessage,
+      loadingLabel: base.loadingLabel,
+      emptyKept: base.emptyKept,
+      emptyRetention: base.emptyRetention,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: RecentlyDeletedScreen<Dance>(config: config),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('load-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('empty-state')), findsNothing);
+    expect(find.textContaining('No recently deleted'), findsNothing);
+
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('load-error')), findsNothing);
+    expect(find.text('Deleted Dance'), findsOneWidget);
   });
 }

@@ -131,7 +131,7 @@ void main() {
       expect(
         renderer.render(Figure(move: 'pass_the_ocean'), d),
         'pass through to an ocean wave - role2s catch left hands in the '
-        'center, neighbor take right hands on the sides',
+        'center, neighbors take right hands on the sides',
       );
     });
 
@@ -142,23 +142,20 @@ void main() {
           d,
         ),
         'pass through to an ocean wave - role2s catch left hands in the '
-        'center, neighbor take right hands on the sides and balance',
+        'center, neighbors take right hands on the sides and balance',
       );
     });
 
-    test(
-      'non-default where surfaces the diagonal word + indefinite article',
-      () {
-        expect(
-          renderer.render(
-            Figure(move: 'pass_the_ocean', params: {'where': 'rightDiagonal'}),
-            d,
-          ),
-          'pass through to a right diagonal ocean wave - role2s catch left '
-          'hands in the center, neighbor take right hands on the sides',
-        );
-      },
-    );
+    test('non-default where follows the wave', () {
+      expect(
+        renderer.render(
+          Figure(move: 'pass_the_ocean', params: {'where': 'rightDiagonal'}),
+          d,
+        ),
+        'pass through to an ocean wave on right diagonal - role2s catch left '
+        'hands in the center, neighbors take right hands on the sides',
+      );
+    });
 
     test('the "across" where default is silent (no diagonal word)', () {
       expect(
@@ -177,7 +174,7 @@ void main() {
           d,
         ),
         'pass through to an ocean wave - role2s catch right hands in the '
-        'center, neighbor take left hands on the sides',
+        'center, neighbors take left hands on the sides',
       );
     });
 
@@ -208,8 +205,8 @@ void main() {
           ),
           d,
         ),
-        'pass through to a right diagonal ocean wave - role1s catch left '
-        'hands in the center, partner take right hands on the sides and '
+        'pass through to an ocean wave on right diagonal - role1s catch left '
+        'hands in the center, partners take right hands on the sides and '
         'balance',
       );
     });

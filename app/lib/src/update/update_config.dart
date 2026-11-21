@@ -7,21 +7,47 @@ import '../utils/safe_name.dart';
 import 'update_manifest.dart';
 
 /// The GitHub Pages base under which the per-channel manifests are published
-/// (ADR-002 §1). **Not live until A11c publishes it** — so a 404/unreachable
-/// manifest is a silent no-op, never an error (see the fetcher and ADR-002 §5).
-const String kUpdateManifestBaseUrl =
-    'https://ibanner56.github.io/CallersCompendium';
-
-/// The pinned Ed25519 **public key** (32 bytes, standard base64) the client
-/// verifies the update manifest's detached signature against (issue #431,
-/// ADR-002 §6). This is the root of trust for the *authenticity* of an update:
-/// a manifest whose signature does not verify against this key — or that has no
-/// signature at all — is refused as a silent no-op, never installed.
+/// (ADR-002 §1); the `beta.json` manifest is served from the `gh-pages` branch.
+/// A 404/unreachable manifest is never an error dialog: the automatic check
+/// stays silent and a manual one says it couldn't check (see the fetcher and
+/// ADR-002 §5).
 ///
-/// Rotating the key requires publishing the new public key in an app update
-/// **before** switching the signing key, because older clients pin the old key.
-const String kUpdateManifestPublicKey =
-    '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=';
+/// This is the Pages **custom domain**, requested directly. The project-site
+/// origin (`ibanner56.github.io/CallersCompendium`) 301-redirects to
+/// `http://callerscompendium.com/…` whenever the Pages site's "Enforce HTTPS"
+/// is off, and the fetcher refuses any non-https hop — so clients built
+/// against that origin saw "no update" with no error. Builds before this
+/// change still use the old origin and depend on that setting.
+const String kUpdateManifestBaseUrl = 'https://callerscompendium.com';
+
+/// The pinned Ed25519 **public keys** (each 32 bytes, standard base64) the
+/// client verifies the update manifest's detached signature against (issue
+/// #431, ADR-002 §6; key set: security-2). This is the root of trust for the
+/// *authenticity* of an update: a manifest whose signature verifies against
+/// **none** of these keys — or that has no signature at all — is refused
+/// (`UpdateCheckFailure.unauthentic`: silent in the automatic check, reported by
+/// a manual one), never installed. An empty or malformed entry is skipped (never
+/// trusted); an empty list trusts nothing.
+///
+/// The list is a **set**, not a history: at most a *current* key (the one CI
+/// signs with today, via the `UPDATE_SIGNING_KEY` secret) and a *next* key
+/// (generated offline and pinned ahead of time so installs already trust it
+/// when CI switches to it). A rotation is: ship a release that adds the next
+/// key → once that release is widespread, switch `UPDATE_SIGNING_KEY` to the
+/// next private key → in a later release remove the old key (and add a new
+/// next one). Pinning only one key cannot rotate without stranding one cohort
+/// of installs. Removing a key does not revoke it for installs that already
+/// shipped with it. The full procedure is `docs/dev/releasing.md` → "Key
+/// rotation".
+///
+/// `tools/release/check_pages_signature_files.py` parses this declaration
+/// out of this file, so keep it a `const List<String>` literal of
+/// single-quoted entries.
+const List<String> kUpdateManifestPublicKeys = [
+  // Current: the key CI signs every manifest with today.
+  '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=',
+  // Next: pinned by the maintainer ahead of the next rotation (not yet set).
+];
 
 /// The filename suffix of a channel manifest's detached signature, served next
 /// to `<channel>.json` on gh-pages (e.g. `stable.json` → `stable.json.sig`).
@@ -46,12 +72,18 @@ const int kMaxSignatureBytes = 4 * 1024;
 
 /// The exhaustive allowlist of hosts an update artifact (and every redirect hop
 /// on the way to it) may be served from (issue #431). Restricting downloads to
-/// canonical GitHub-owned domains — the release-assets host that
+/// GitHub-owned domains — the release-assets host that
 /// `https://github.com/<repo>/releases/download/...` redirects to, plus the
-/// gh-pages origin — closes an off-host redirect as an exfiltration/tamper
+/// gh-pages origin — and this project's custom domain `callerscompendium.com`
+/// (the manifest origin) closes an off-host redirect as an exfiltration/tamper
 /// vector even before the mandatory signature + sha256 gates (OWASP A10 —
 /// Server-Side Request Forgery / A08). Matched **exactly** (no subdomain
 /// wildcard) so a look-alike or taken-over subdomain is never trusted.
+///
+/// `callerscompendium.com` is **not** GitHub-owned: trust in it also rests on
+/// that domain's DNS registration (and its Pages CNAME) staying under the
+/// maintainer's control. A lapsed or hijacked registration would make it an
+/// allowed host for an attacker, with only the signature + sha256 gates left.
 const Set<String> kAllowedArtifactHosts = {
   // Release-download URLs the manifest publishes.
   'github.com',
@@ -62,11 +94,11 @@ const Set<String> kAllowedArtifactHosts = {
   'objects.githubusercontent.com',
   // The gh-pages origin that serves the manifests (and could serve artifacts).
   'ibanner56.github.io',
-  // The GitHub Pages custom domain for this project. The compiled-in
-  // `kUpdateManifestBaseUrl` points at the gh-pages origin above, which the
-  // Pages CDN 301-redirects to this host. Every installed client therefore
-  // takes this redirect on every update check, so it must be allowed or
-  // updates are silently broken for all users.
+  // The GitHub Pages custom domain for this project, and the host
+  // `kUpdateManifestBaseUrl` now points at directly. Clients built before that
+  // change request the gh-pages origin above, which the Pages CDN
+  // 301-redirects to this host, so it must stay allowed or updates are
+  // silently broken for those installs.
   'callerscompendium.com',
 };
 
@@ -87,7 +119,7 @@ bool isAllowedArtifactHost(Uri uri) {
 }
 
 /// How long the update check waits before giving up. Deliberately short: a
-/// missing network must be a fast, silent no-op rather than a hang (ADR-002 §5).
+/// missing network must fail fast, never hang or raise a dialog (ADR-002 §5).
 const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 
 /// The **idle** timeout for an assisted download (ADR-002 "Stage 1.5"): the
@@ -97,6 +129,45 @@ const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 /// connection still fails promptly. Longer than [kUpdateCheckTimeout] because a
 /// real transfer is expected here, unlike the fire-and-forget check.
 const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
+
+/// How long [downloadArtifact] waits for a failed or cancelled download's
+/// partial file to close before it returns anyway, with
+/// [DownloadOutcome.released] set so the caller finishes the cleanup later.
+///
+/// Much shorter than [kUpdateDownloadTimeout] on purpose. The idle timeout
+/// waits for a slow network that is still expected to deliver; this waits for
+/// a local file handle that normally closes in milliseconds, and the user is
+/// waiting on it: the controller only leaves `downloading` (and so only
+/// accepts a retry) once the downloader returns, so a handle the OS holds
+/// (antivirus scan, stalled disk or network share) would otherwise leave
+/// Cancel apparently dead for the whole idle timeout.
+const Duration kUpdateDiscardCloseTimeout = Duration(seconds: 3);
+
+/// The name prefix of the per-attempt directory a Windows/Linux assisted
+/// download is written into (`Directory.createTemp` appends a random suffix),
+/// and what [sweepStaleUpdateTempDirs] looks for. Keep the two in step: they
+/// share this constant so a directory the download creates is one the sweep
+/// can find.
+const String kUpdateTempDirPrefix = 'cc_update_';
+
+/// How long an update-download directory must have been untouched before the
+/// launch-time sweep ([sweepStaleUpdateTempDirs]) deletes it.
+///
+/// A successful download deliberately leaves its verified installer in place so
+/// the user can still reach it, and nothing else removes it, so the sweep
+/// is the only thing that ever does. A week is chosen to be far past the
+/// time a download in progress or a freshly handed-over installer needs, not to
+/// reclaim space quickly: a download another running instance is still writing
+/// and an installer the user was handed but has not run yet (on Linux they
+/// run it themselves, when they choose) are minutes to days old. The cost of
+/// being generous is one installer's disk space per update for that week.
+///
+/// The age is not what protects an installer the user keeps *running* from the
+/// temp directory: on Linux the AppImage is the app, and its directory's age is
+/// the download time, so it passes this age after a week of use. The sweep skips
+/// the directory holding the running executable instead (see
+/// [sweepStaleUpdateTempDirs]'s `inUsePaths`).
+const Duration kUpdateTempDirMinAge = Duration(days: 7);
 
 /// A hard upper bound on the number of bytes [downloadArtifact] will write for a
 /// single artifact, applied as a **backstop** for an artifact that carries no
@@ -108,6 +179,16 @@ const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
 /// (OWASP A08 / resource exhaustion). Set well above any realistic desktop
 /// installer (1 GiB) so it never truncates a legitimate update.
 const int kMaxArtifactDownloadBytes = 1024 * 1024 * 1024;
+
+/// The most bytes [downloadArtifact] lets accumulate in the file sink's pending
+/// queue before it pauses the response stream and waits for the sink to flush.
+/// This bounds the memory a fast network can build up against a slow disk to
+/// roughly this value (plus one chunk) instead of the whole artifact.
+const int kDownloadWriteHighWaterBytes = 1024 * 1024;
+
+/// How often [downloadArtifact] polls its cancel token while the response is
+/// paused waiting for a sink flush (no chunk arrives to observe it then).
+const Duration kDownloadCancelPollInterval = Duration(milliseconds: 200);
 
 /// The maximum number of HTTP redirects [downloadArtifact] follows before giving
 /// up. Redirects are followed **manually** so each hop can be re-validated as
@@ -160,3 +241,15 @@ const String kUpdateAutoCheckKey = 'update_auto_check';
 /// update banner (ADR-002 §5). Stored as a SemVer string; once version X is
 /// dismissed the banner stays hidden until a strictly-newer version appears.
 const String kUpdateDismissedVersionKey = 'update_dismissed_version';
+
+/// Persisted-settings key for the end-of-life notice most recently announced
+/// for this build by an authenticated manifest (ADR-002 §2 `retirements`).
+/// Stored as `{"build": "<SemVer>", "endOfLife": "YYYY-MM-DD"}` so the warning
+/// keeps showing on every launch — offline included — without a new check.
+///
+/// `build` is the release identity the notice was found for: a stored notice
+/// whose `build` is not the running version is ignored on load, so updating
+/// the app retires the notice with it. Installation state, never backed up
+/// (`kBackupSettingsDenylist`): restored onto another install it would describe
+/// a build that is not running there.
+const String kUpdateRetirementNoticeKey = 'update_retirement_notice';

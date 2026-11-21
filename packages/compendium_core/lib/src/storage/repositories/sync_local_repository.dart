@@ -1,10 +1,61 @@
 import 'package:drift/drift.dart';
 
+import '../../sync/sync_capabilities.dart';
+import '../../sync/sync_codec.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
+import '../existence.dart';
+
+Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
+  final list = values.toList(growable: false);
+  for (var start = 0; start < list.length; start += size) {
+    final end = start + size < list.length ? start + size : list.length;
+    yield list.sublist(start, end);
+  }
+}
 
 /// A polymorphic sync record identity.
 typedef SyncRecordAddress = ({SyncRecordKind kind, String recordId});
+
+/// The body-hash representation used by a persisted baseline entry.
+enum SyncBaselineBodyHashVersion {
+  /// The pre-W9 hash covered the complete record body, including projections.
+  legacyFullBody,
+
+  /// W9 hashes cover only the projection-neutral comparison body.
+  comparison,
+}
+
+const _comparisonBodyHashPrefix = 'comparison-v1:';
+
+SyncBaselineBodyHashVersion _storedBodyHashVersion(String? bodyHash) {
+  if (bodyHash == null || bodyHash.startsWith(_comparisonBodyHashPrefix)) {
+    return SyncBaselineBodyHashVersion.comparison;
+  }
+  return SyncBaselineBodyHashVersion.legacyFullBody;
+}
+
+String? _decodeStoredBodyHash(
+  String? bodyHash,
+  SyncBaselineBodyHashVersion version,
+) {
+  if (bodyHash == null ||
+      version == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return bodyHash;
+  }
+  return bodyHash.substring(_comparisonBodyHashPrefix.length);
+}
+
+String? _encodeStoredBodyHash(
+  String? bodyHash,
+  SyncBaselineBodyHashVersion version,
+) {
+  if (bodyHash == null ||
+      version == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return bodyHash;
+  }
+  return '$_comparisonBodyHashPrefix$bodyHash';
+}
 
 /// A baseline hash pair to persist for one sync record.
 class SyncBaselineEntry {
@@ -13,13 +64,33 @@ class SyncBaselineEntry {
     required this.recordId,
     required this.wireHash,
     this.bodyHash,
+    this.bodyHashVersion = SyncBaselineBodyHashVersion.comparison,
   });
 
   final SyncRecordKind kind;
   final String recordId;
   final String wireHash;
   final String? bodyHash;
+  final SyncBaselineBodyHashVersion bodyHashVersion;
+
+  /// Whether this entry and [other] carry the same wire hash, body hash and
+  /// body-hash version: everything a stored row holds besides its address,
+  /// which is not compared.
+  bool hasSameHashesAs(SyncBaselineEntry other) =>
+      wireHash == other.wireHash &&
+      bodyHash == other.bodyHash &&
+      bodyHashVersion == other.bodyHashVersion;
 }
+
+/// What this device last published (sync-spec §6.3 step 8): the hash of its
+/// manifest encoded with `writtenAt` fixed, and when the store last confirmed
+/// every blob that manifest names.
+typedef SyncPublishedManifest = ({String hash, DateTime verifiedAt});
+
+/// A peer's last verified manifest as this device keeps it (sync-spec §5.2):
+/// the epoch it was fetched in, the server's `ETag` for it, and its canonical
+/// encoding.
+typedef SyncStoredPeerManifest = ({String epoch, String etag, String body});
 
 /// Local-only state for the Device Sync protocol.
 ///
@@ -40,10 +111,122 @@ class SyncLocalRepository {
   Future<List<BaselineEntryRow>> listBaselineEntries() =>
       _db.select(_db.baselineEntries).get();
 
+  Future<Map<SyncRecordAddress, SyncBaselineEntry>> snapshotBaseline() async {
+    final rows = await listBaselineEntries();
+    return {
+      for (final row in rows)
+        (kind: row.kind, recordId: row.recordId): () {
+          final version = _storedBodyHashVersion(row.bodyHash);
+          return SyncBaselineEntry(
+            kind: row.kind,
+            recordId: row.recordId,
+            wireHash: row.wireHash,
+            bodyHash: _decodeStoredBodyHash(row.bodyHash, version),
+            bodyHashVersion: version,
+          );
+        }(),
+    };
+  }
+
   Future<void> replaceBaseline({
     required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) => transaction((tx) => tx.replaceBaseline(epoch: epoch, entries: entries));
+
+  /// Advances only entries justified by an observed peer manifest.
+  ///
+  /// Entries not named by [entries] or [drop] are retained so an unresolved
+  /// blob or malformed record remains retryable on the next pass. [entries]
+  /// are written in one batch; the coordinator passes only those that change
+  /// a stored row.
+  Future<void> advanceBaseline({
+    required String epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+    Iterable<SyncRecordAddress> drop = const [],
+  }) => transaction(
+    (tx) => tx.advanceBaseline(epoch: epoch, entries: entries, drop: drop),
+  );
+
+  /// The manifest this device last published in [epoch] (sync-spec §6.3 step
+  /// 8), or null when none is recorded for that epoch.
+  Future<SyncPublishedManifest?> publishedManifest({
+    required String epoch,
+  }) async {
+    final state = await getBaselineState();
+    final hash = state?.publishedManifestHash;
+    final verifiedAt = state?.publishedVerifiedAt;
+    if (state == null ||
+        state.epoch != epoch ||
+        hash == null ||
+        verifiedAt == null) {
+      return null;
+    }
+    return (
+      hash: hash,
+      verifiedAt: DateTime.fromMillisecondsSinceEpoch(verifiedAt, isUtc: true),
+    );
+  }
+
+  /// Records [published] as what this device's manifest in [epoch] now is, or
+  /// forgets what was recorded when it is null. A no-op when the stored
+  /// baseline belongs to another epoch, or there is none: the record is only
+  /// ever read back against the epoch it was written for.
+  Future<void> setPublishedManifest({
+    required String epoch,
+    required SyncPublishedManifest? published,
+  }) async {
+    await (_db.update(
+      _db.baselineState,
+    )..where((row) => row.id.equals(1) & row.epoch.equals(epoch))).write(
+      BaselineStateCompanion(
+        publishedManifestHash: Value(published?.hash),
+        publishedVerifiedAt: Value(
+          published?.verifiedAt.toUtc().millisecondsSinceEpoch,
+        ),
+      ),
+    );
+  }
+
+  /// The manifest last kept for [peerId], or null when none is.
+  Future<SyncStoredPeerManifest?> peerManifest(String peerId) async {
+    final row = await (_db.select(
+      _db.peerManifests,
+    )..where((row) => row.peerId.equals(peerId))).getSingleOrNull();
+    if (row == null) return null;
+    return (epoch: row.epoch, etag: row.etag, body: row.body);
+  }
+
+  /// Keeps [manifest] as [peerId]'s, replacing whatever was kept for it.
+  Future<void> putPeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) => _db
+      .into(_db.peerManifests)
+      .insertOnConflictUpdate(
+        PeerManifestsCompanion.insert(
+          peerId: peerId,
+          epoch: manifest.epoch,
+          etag: manifest.etag,
+          body: manifest.body,
+        ),
+      );
+
+  /// Forgets what was kept for [peerId].
+  Future<void> removePeerManifest(String peerId) => (_db.delete(
+    _db.peerManifests,
+  )..where((row) => row.peerId.equals(peerId))).go();
+
+  /// Keeps only the manifests of [peerIds] fetched in [epoch]: a peer the
+  /// store no longer lists, or one cached in another epoch, is forgotten.
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) =>
+      (_db.delete(_db.peerManifests)..where(
+            (row) =>
+                row.epoch.equals(epoch).not() | row.peerId.isNotIn(peerIds),
+          ))
+          .go();
 
   Future<void> resetEpoch({
     required String epoch,
@@ -56,8 +239,13 @@ class SyncLocalRepository {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
-  }) =>
-      transaction((tx) => tx.clearForRestore(restoredRecords: restoredRecords));
+    bool revalidatePending = true,
+  }) => transaction(
+    (tx) => tx.clearForRestore(
+      restoredRecords: restoredRecords,
+      revalidatePending: revalidatePending,
+    ),
+  );
 
   Future<List<IdAliasRow>> listAliases() => _db.select(_db.idAliases).get();
 
@@ -76,6 +264,15 @@ class SyncLocalRepository {
   Future<List<PendingDeletionRow>> listPendingDeletions() =>
       _db.select(_db.pendingDeletions).get();
 
+  Future<PendingDeletionRow?> getPendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.select(_db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+
   Future<void> upsertPendingDeletion({
     required SyncRecordKind kind,
     required String recordId,
@@ -92,8 +289,57 @@ class SyncLocalRepository {
     ),
   );
 
+  Future<void> deletePendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => transaction(
+    (tx) => tx.deletePendingDeletion(kind: kind, recordId: recordId),
+  );
+
+  /// Every record this device keeps parts of for a newer version of the app
+  /// (spec §6.7).
+  Future<List<RetainedSyncFieldsRow>> listRetainedSyncFields() =>
+      _db.select(_db.retainedSyncFields).get();
+
+  Future<RetainedSyncFieldsRow?> getRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.select(_db.retainedSyncFields)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+
+  /// Replaces what is kept of a record; a null [payload] keeps nothing.
+  Future<void> setRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String? payload,
+    bool wholeRecord = false,
+  }) => transaction(
+    (tx) => tx.setRetainedSyncFields(
+      kind: kind,
+      recordId: recordId,
+      payload: payload,
+      wholeRecord: wholeRecord,
+    ),
+  );
+
   Future<List<ReviewQueueRow>> listReviewQueue() =>
       _db.select(_db.reviewQueue).get();
+
+  Future<ReviewQueueRow?> getReviewQueue({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) =>
+      (_db.select(_db.reviewQueue)..where(
+            (row) =>
+                row.kind.equals(kind.name) &
+                row.recordId.equals(recordId) &
+                row.counterpartId.equals(counterpartId),
+          ))
+          .getSingleOrNull();
 
   Future<void> enqueueReview({
     required SyncRecordKind kind,
@@ -102,6 +348,7 @@ class SyncLocalRepository {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    String? localHash,
     required DateTime queuedAt,
   }) => transaction(
     (tx) => tx.enqueueReview(
@@ -111,12 +358,45 @@ class SyncLocalRepository {
       reason: reason,
       candidateBlob: candidateBlob,
       candidateHash: candidateHash,
+      localHash: localHash,
       queuedAt: queuedAt,
+    ),
+  );
+
+  Future<void> deleteReview({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) => transaction(
+    (tx) => tx.deleteReview(
+      kind: kind,
+      recordId: recordId,
+      counterpartId: counterpartId,
     ),
   );
 
   Future<List<PublishedRecordRow>> listPublishedRecords() =>
       _db.select(_db.publishedRecords).get();
+
+  /// Which of [records] carry a publication marker, read by key rather than
+  /// as the whole table.
+  Future<Set<SyncRecordAddress>> publishedAmong(
+    Iterable<SyncRecordAddress> records,
+  ) async {
+    final idsByKind = <SyncRecordKind, Set<String>>{};
+    for (final record in records) {
+      idsByKind.putIfAbsent(record.kind, () => {}).add(record.recordId);
+    }
+    return {
+      for (final MapEntry(key: kind, value: ids) in idsByKind.entries)
+        for (final id in await publishedSyncRecordIds(
+          _db,
+          kind: kind,
+          recordIds: ids,
+        ))
+          (kind: kind, recordId: id),
+    };
+  }
 
   Future<bool> isPublished({
     required SyncRecordKind kind,
@@ -133,6 +413,9 @@ class SyncLocalRepository {
     required String recordId,
   }) => transaction((tx) => tx.markPublished(kind: kind, recordId: recordId));
 
+  Future<void> markPublishedAll(Iterable<SyncRecordAddress> records) =>
+      transaction((tx) => tx.markPublishedAll(records));
+
   Future<void> remapIdentity({
     required SyncRecordKind kind,
     required String losingId,
@@ -144,6 +427,18 @@ class SyncLocalRepository {
       survivingId: survivingId,
     ),
   );
+
+  /// Retires aliases whose losing IDs are absent from every current peer
+  /// manifest. The caller must only invoke this after all peer manifests for
+  /// the current epoch were verified; an unavailable manifest is not evidence
+  /// that it dropped an ID.
+  Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses}) =>
+      transaction((tx) => tx.retireAliases(peerAddresses: peerAddresses));
+
+  Future<String> resolveAlias({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => transaction((tx) => tx.resolveAlias(kind: kind, recordId: recordId));
 }
 
 /// The transaction-bound operations of [SyncLocalRepository].
@@ -166,18 +461,50 @@ class SyncLocalTransaction {
         .insertOnConflictUpdate(
           BaselineStateCompanion.insert(id: const Value(1), epoch: epoch),
         );
-    for (final entry in entries) {
-      await _db
-          .into(_db.baselineEntries)
-          .insertOnConflictUpdate(
-            BaselineEntriesCompanion.insert(
-              kind: entry.kind,
-              recordId: entry.recordId,
-              wireHash: entry.wireHash,
-              bodyHash: Value(entry.bodyHash),
-            ),
-          );
+    await _upsertBaselineEntries(entries);
+  }
+
+  Future<void> advanceBaseline({
+    required String epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+    Iterable<SyncRecordAddress> drop = const [],
+  }) async {
+    final state = await _db.select(_db.baselineState).getSingleOrNull();
+    if (state == null || state.epoch != epoch) {
+      throw StateError('cannot advance a baseline from a different epoch');
     }
+    for (final address in drop) {
+      await (_db.delete(_db.baselineEntries)..where(
+            (row) =>
+                row.kind.equals(address.kind.name) &
+                row.recordId.equals(address.recordId),
+          ))
+          .go();
+    }
+    await _upsertBaselineEntries(entries);
+  }
+
+  /// Writes [entries] in one batch rather than one statement per row, as
+  /// [markPublishedAll] does. A later entry for an address still wins, as it
+  /// did when each was written in turn.
+  Future<void> _upsertBaselineEntries(
+    Iterable<SyncBaselineEntry> entries,
+  ) async {
+    final rows = [
+      for (final entry in entries)
+        BaselineEntriesCompanion.insert(
+          kind: entry.kind,
+          recordId: entry.recordId,
+          wireHash: entry.wireHash,
+          bodyHash: Value(
+            _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+          ),
+        ),
+    ];
+    if (rows.isEmpty) return;
+    await _db.batch((batch) {
+      batch.insertAllOnConflictUpdate(_db.baselineEntries, rows);
+    });
   }
 
   Future<void> resetEpoch({
@@ -191,6 +518,7 @@ class SyncLocalTransaction {
   Future<void> clearBaseline() async {
     await _db.delete(_db.baselineState).go();
     await _db.delete(_db.baselineEntries).go();
+    await _db.delete(_db.peerManifests).go();
     await _db.delete(_db.idAliases).go();
     await _db.delete(_db.reviewQueue).go();
   }
@@ -198,13 +526,41 @@ class SyncLocalTransaction {
   Future<void> clearOnDetach() async {
     await clearBaseline();
     await _db.delete(_db.pendingDeletions).go();
+    // Every device's capability record (#709) names a device of the store
+    // being left. Erased rather than tombstoned, as the device ID itself is
+    // (sync-spec §3.3): a tombstone keeps the key, and with it the old
+    // store's device IDs, to be published to whatever store comes next.
+    await (_db.delete(_db.settings)..where(
+          (t) => t.key
+              .substr(1, syncCapabilityKeyPrefix.length)
+              .equals(syncCapabilityKeyPrefix),
+        ))
+        .go();
   }
 
+  /// Clears what a restore or import makes stale: the baseline, and, when
+  /// [revalidatePending] is true, the pending deletions of records it did not
+  /// restore.
+  ///
+  /// It clears no `retained_sync_fields` row, in either restore mode or for an
+  /// archive import. A backup restore stamps a record at the backup's creation
+  /// time (sync-spec §6.11) and an import stamps it now, so its body still
+  /// wins last-writer-wins against a peer's copy that has not changed since,
+  /// and the kept part
+  /// of a record is the only copy of what a peer's newer build put there:
+  /// clearing it would let the body without it win and strip it from the peer
+  /// (sync-spec §6.7). A row whose record no longer exists after the restore
+  /// is dropped by the next snapshot, which sweeps every row whose record is
+  /// gone, so the writer need not. [restoredRecords] only scopes which pending
+  /// deletions survive, and only when [revalidatePending] is true.
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
+    bool revalidatePending = true,
   }) async {
     await clearBaseline();
-    await revalidatePendingDeletions(restoredRecords: restoredRecords);
+    if (revalidatePending) {
+      await revalidatePendingDeletions(restoredRecords: restoredRecords);
+    }
   }
 
   Future<void> revalidatePendingDeletions({
@@ -229,15 +585,22 @@ class SyncLocalTransaction {
     required SyncRecordKind kind,
     required String losingId,
     required String survivingId,
-  }) => _db
-      .into(_db.idAliases)
-      .insertOnConflictUpdate(
-        IdAliasesCompanion.insert(
-          kind: kind,
-          losingId: losingId,
-          survivingId: survivingId,
-        ),
-      );
+  }) async {
+    // A self-alias is never meaningful and is actively dangerous: `_resolveAlias`
+    // seeds its `seen` set with the id it was asked about, so a row mapping an
+    // id to itself would be re-read on every hop of a chain that starts
+    // elsewhere and spin inside an open write transaction.
+    if (losingId == survivingId) return;
+    await _db
+        .into(_db.idAliases)
+        .insertOnConflictUpdate(
+          IdAliasesCompanion.insert(
+            kind: kind,
+            losingId: losingId,
+            survivingId: survivingId,
+          ),
+        );
+  }
 
   Future<void> upsertPendingDeletion({
     required SyncRecordKind kind,
@@ -257,6 +620,71 @@ class SyncLocalTransaction {
         ),
       );
 
+  Future<void> deletePendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.delete(_db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .go();
+
+  Future<void> setRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String? payload,
+    bool wholeRecord = false,
+  }) async {
+    if (payload == null) {
+      await (_db.delete(_db.retainedSyncFields)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .go();
+      return;
+    }
+    await _db
+        .into(_db.retainedSyncFields)
+        .insertOnConflictUpdate(
+          RetainedSyncFieldsCompanion.insert(
+            kind: kind,
+            recordId: recordId,
+            wholeRecord: Value(wholeRecord),
+            payload: payload,
+          ),
+        );
+  }
+
+  /// Moves what is kept of [losingId] onto [survivingId] when two records
+  /// become one, unless the survivor already keeps its own parts.
+  Future<void> moveRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String losingId,
+    required String survivingId,
+  }) async {
+    if (losingId == survivingId) return;
+    final losing =
+        await (_db.select(_db.retainedSyncFields)..where(
+              (row) =>
+                  row.kind.equals(kind.name) & row.recordId.equals(losingId),
+            ))
+            .getSingleOrNull();
+    if (losing == null) return;
+    await setRetainedSyncFields(kind: kind, recordId: losingId, payload: null);
+    final surviving =
+        await (_db.select(_db.retainedSyncFields)..where(
+              (row) =>
+                  row.kind.equals(kind.name) & row.recordId.equals(survivingId),
+            ))
+            .getSingleOrNull();
+    if (surviving != null) return;
+    await setRetainedSyncFields(
+      kind: kind,
+      recordId: survivingId,
+      payload: losing.payload,
+      wholeRecord: losing.wholeRecord,
+    );
+  }
+
   Future<void> enqueueReview({
     required SyncRecordKind kind,
     required String recordId,
@@ -264,6 +692,7 @@ class SyncLocalTransaction {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    String? localHash,
     required DateTime queuedAt,
   }) => _db
       .into(_db.reviewQueue)
@@ -275,10 +704,25 @@ class SyncLocalTransaction {
           reason: reason,
           candidateBlob: candidateBlob,
           candidateHash: candidateHash,
+          localHash: Value(localHash),
           queuedAt: queuedAt,
         ),
         mode: InsertMode.insertOrIgnore,
       );
+
+  Future<void> deleteReview({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) async {
+    await (_db.delete(_db.reviewQueue)..where(
+          (row) =>
+              row.kind.equals(kind.name) &
+              row.recordId.equals(recordId) &
+              row.counterpartId.equals(counterpartId),
+        ))
+        .go();
+  }
 
   Future<void> markPublished({
     required SyncRecordKind kind,
@@ -288,6 +732,24 @@ class SyncLocalTransaction {
       .insertOnConflictUpdate(
         PublishedRecordsCompanion.insert(kind: kind, recordId: recordId),
       );
+
+  Future<void> markPublishedAll(Iterable<SyncRecordAddress> records) async {
+    final rows = [
+      for (final record in records)
+        PublishedRecordsCompanion.insert(
+          kind: record.kind,
+          recordId: record.recordId,
+        ),
+    ];
+    if (rows.isEmpty) return;
+    await _db.batch((batch) {
+      batch.insertAll(
+        _db.publishedRecords,
+        rows,
+        mode: InsertMode.insertOrIgnore,
+      );
+    });
+  }
 
   Future<void> remapIdentity({
     required SyncRecordKind kind,
@@ -314,24 +776,68 @@ class SyncLocalTransaction {
         }
       }
     }
-    await (_db.update(_db.idAliases)..where(
-          (row) =>
-              row.kind.equals(kind.name) & row.survivingId.isIn(rewrittenIds),
-        ))
-        .write(IdAliasesCompanion(survivingId: Value(target)));
+    for (final chunk in _chunked(rewrittenIds, 500)) {
+      await (_db.update(_db.idAliases)..where(
+            (row) => row.kind.equals(kind.name) & row.survivingId.isIn(chunk),
+          ))
+          .write(IdAliasesCompanion(survivingId: Value(target)));
+    }
     await upsertAlias(kind: kind, losingId: losingId, survivingId: target);
+    await moveRetainedSyncFields(
+      kind: kind,
+      losingId: losingId,
+      survivingId: target,
+    );
 
-    final published =
-        await (_db.select(_db.publishedRecords)..where(
-              (row) =>
-                  row.kind.equals(kind.name) &
-                  row.recordId.isIn({...rewrittenIds, target}),
-            ))
-            .get();
-    if (published.isNotEmpty) {
-      await markPublished(kind: kind, recordId: target);
+    final publishedIds = {...rewrittenIds, target};
+    for (final chunk in _chunked(publishedIds, 500)) {
+      final published =
+          await (_db.select(_db.publishedRecords)..where(
+                (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+              ))
+              .get();
+      if (published.isNotEmpty) {
+        await markPublished(kind: kind, recordId: target);
+        break;
+      }
     }
   }
+
+  Future<void> retireAliases({
+    required Set<SyncRecordAddress> peerAddresses,
+  }) async {
+    final aliases = await _db.select(_db.idAliases).get();
+    final aliasesByAddress = {
+      for (final alias in aliases)
+        (kind: alias.kind, recordId: alias.losingId): alias,
+    };
+    final retainedAddresses = <SyncRecordAddress>{};
+    for (final peerAddress in peerAddresses) {
+      var current = peerAddress;
+      final seen = <SyncRecordAddress>{};
+      while (seen.add(current)) {
+        final alias = aliasesByAddress[current];
+        if (alias == null) break;
+        retainedAddresses.add(current);
+        current = (kind: alias.kind, recordId: alias.survivingId);
+      }
+    }
+    for (final alias in aliases) {
+      final address = (kind: alias.kind, recordId: alias.losingId);
+      if (retainedAddresses.contains(address)) continue;
+      await (_db.delete(_db.idAliases)..where(
+            (row) =>
+                row.kind.equals(alias.kind.name) &
+                row.losingId.equals(alias.losingId),
+          ))
+          .go();
+    }
+  }
+
+  Future<String> resolveAlias({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => _resolveAlias(kind: kind, recordId: recordId, seen: {recordId});
 
   Future<String> _resolveAlias({
     required SyncRecordKind kind,
@@ -353,4 +859,184 @@ class SyncLocalTransaction {
       current = alias.survivingId;
     }
   }
+}
+
+/// Returns whether a record has ever been named by a successfully prepared
+/// publication. Repository hard-delete paths use this marker instead of the
+/// sync baseline because the marker survives reset, detach, and restore.
+Future<bool> isPublishedSyncRecord(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) async =>
+    (await (db.select(db.publishedRecords)..where(
+          (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+        ))
+        .getSingleOrNull()) !=
+    null;
+
+Future<Set<String>> publishedSyncRecordIds(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required Iterable<String> recordIds,
+}) async {
+  final ids = recordIds.toSet().toList(growable: false);
+  if (ids.isEmpty) return const {};
+  final published = <String>{};
+  const chunkSize = 500;
+  for (var start = 0; start < ids.length; start += chunkSize) {
+    final end = start + chunkSize < ids.length ? start + chunkSize : ids.length;
+    final chunk = ids.sublist(start, end);
+    final rows =
+        await (db.select(db.publishedRecords)..where(
+              (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+            ))
+            .get();
+    published.addAll([for (final row in rows) row.recordId]);
+  }
+  return published;
+}
+
+/// Clears a pending tombstone for a deliberate local act on the record.
+///
+/// Two acts qualify, and sync-spec §6.8 admits no others: an explicit restore
+/// from Recently deleted, and a deliberate local user edit — see
+/// [cancelPendingSyncDeletionForLocalEdit], which wraps this call with the
+/// existence stamp that edit path also owes.
+///
+/// Sync-originated body/reference writes deliberately do not call this helper;
+/// a newer [updatedAt] alone is not evidence that the user revived a record.
+/// Neither is an import, an archive restore, or any automatic write: the gate
+/// is the provenance of the write, which only the caller knows.
+Future<void> clearPendingSyncDeletion(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) =>
+    (db.delete(db.pendingDeletions)..where(
+          (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+        ))
+        .go();
+
+/// Reads the `existenceAt` of the tombstone held for [recordId], if any.
+///
+/// `null` means there is no hold — or that its retained blob will not decode,
+/// which is deliberately the same answer here. A tombstone that cannot be
+/// decoded cannot be stamped above, and `revalidatePendingDeletions` owns that
+/// failure: it raises on exactly this condition. Reporting it as "no hold"
+/// leaves the row in place for that path to diagnose, where treating it as a
+/// cancellable hold would destroy the deferred deletion with nothing left to
+/// re-derive it from. `_cancelOutrankedPendingDeletion` swallows the same
+/// failure for the same reason.
+Future<DateTime?> heldTombstoneExistenceAt(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) async {
+  final pending =
+      await (db.select(db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+  if (pending == null) return null;
+  try {
+    return decodeSyncRecordBlob(pending.tombstoneBlob).existenceAt;
+  } on Object {
+    return null;
+  }
+}
+
+/// Cancels a pending tombstone because the user deliberately edited the record
+/// it names (sync-spec §6.8), stamping the existence that cancellation owes.
+///
+/// Returns whether a hold was found and cancelled, so a caller can tell "no
+/// hold" from "hold released" without a second query.
+///
+/// ## Why this path exists at all
+///
+/// §6.8 holds a peer's tombstone for a still-cited entity in
+/// `pending_deletions`, keeps the row **live** locally, and advertises the
+/// entity as a tombstone until its last citation goes. The row being live is
+/// what makes this necessary: it never appears in Recently deleted, so
+/// `restore()` — §6.8's other cancellation — can never reach it. Without this,
+/// an edit to a held record is overwritten by the retained tombstone body the
+/// moment the last citation clears, and the record is deleted with the user's
+/// work inside it.
+///
+/// ## The gate is provenance, never recency
+///
+/// Callers opt in; nothing here infers intent. "This write is a deliberate user
+/// edit" is knowledge only the call site has, and the same repository method
+/// serves imports, archive restore and automatic back-population. Gating on a
+/// newer `updatedAt` instead is forbidden outright: reference rewriting after
+/// reconciliation, merge-by-recency and the dance merge's scalar recency all
+/// advance `updatedAt` with nobody having touched the record, so a recency gate
+/// would let a third device silently reverse another's deletion.
+///
+/// [table] and [keyColumn] name the row to stamp; [at] is the write's own
+/// instant. See [raiseExistenceAbove] for why the tombstone's own `existenceAt`
+/// has to floor that stamp.
+Future<bool> cancelPendingSyncDeletionForLocalEdit(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required DateTime at,
+}) async {
+  final floor = await heldTombstoneExistenceAt(
+    db,
+    kind: kind,
+    recordId: recordId,
+  );
+  if (floor == null) return false;
+  await raiseExistenceAbove(
+    db,
+    table: table,
+    keyColumn: keyColumn,
+    key: recordId,
+    at: at,
+    floor: floor,
+  );
+  await clearPendingSyncDeletion(db, kind: kind, recordId: recordId);
+  return true;
+}
+
+/// Clears a hold for an explicit restore from Recently deleted, flooring the
+/// restore's own existence stamp against the tombstone it is cancelling.
+///
+/// [restore] already stamps causally via `stampExistenceTransition`, which
+/// floors against the row's own `existence_at`. For a record that was locally
+/// deleted *while a peer's tombstone was held*, that floor is the local
+/// deletion stamp and says nothing about the held tombstone, which the row
+/// never carried — the same gap [cancelPendingSyncDeletionForLocalEdit] exists
+/// to close, reached by the other of §6.8's two cancellations.
+///
+/// Strictly monotonic: the underlying stamp is a `MAX`, so this can only raise
+/// a value and changes nothing when the restore's own stamp is already ahead.
+///
+/// Falls back to a bare [clearPendingSyncDeletion] when there is no usable
+/// floor, so a hold whose blob will not decode is still cleared by an explicit
+/// restore exactly as it was before. That differs from the edit path on
+/// purpose: a restore is an unambiguous instruction to bring the record back,
+/// where an edit is not evidence that the user meant to overrule a deletion
+/// they may not know about.
+Future<void> clearPendingSyncDeletionForRestore(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required DateTime at,
+}) async {
+  final cancelled = await cancelPendingSyncDeletionForLocalEdit(
+    db,
+    kind: kind,
+    recordId: recordId,
+    table: table,
+    keyColumn: keyColumn,
+    at: at,
+  );
+  if (cancelled) return;
+  await clearPendingSyncDeletion(db, kind: kind, recordId: recordId);
 }

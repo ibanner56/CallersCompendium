@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../support/test_repositories.dart';
+import '../figures_support.dart';
 
 /// A minimal Caller's Box per-dance JSON payload (trimmed to the fields
 /// [CallersBoxAdapter] reads), used by the load/import policy tests.
@@ -158,21 +159,95 @@ void main() {
       final uri = Uri.parse(url);
       expect(uri.host, 'www.ibiblio.org');
       expect(uri.path, '/contradance/thecallersbox/index.php');
-      expect(uri.queryParameters['title'], 'Money Musk');
+      expect(uri.queryParameters['title'], 'money musk');
     });
 
     test('trims surrounding whitespace', () {
       expect(
         Uri.parse(buildCallersBoxSearchUrl('  Petronella ')).queryParameters,
-        {'title': 'Petronella'},
+        {'title': 'petronella'},
       );
+    });
+
+    test('folds typographic punctuation to the ASCII TCB stores', () {
+      final params = Uri.parse(
+        buildCallersBoxSearchUrl(
+          'Rory O’More – “Reel”',
+          phrases: const CallersBoxPhraseQuery(globalPos: ['rory o’more']),
+        ),
+      ).queryParameters;
+      expect(params['title'], 'rory o\'more - "reel"');
+      expect(params['pos_lines'], "rory o'more");
+      expect(
+        Uri.parse(
+          buildCallersBoxSearchUrl('', author: 'Tom O’Brien'),
+        ).queryParameters['author'],
+        "tom o'brien",
+      );
+    });
+
+    // TCB compares windows-1252 bytes, case-insensitively for ASCII only, and
+    // stores every accented letter lower-case: `?title=d%E9j%E0` finds
+    // "Déjà vu"; the UTF-8 `d%C3%A9j%C3%A0` and the upper-case `D%C9J%C0`
+    // find nothing (measured live 2026-10-08).
+    test('sends accented letters as lower-case windows-1252 bytes', () {
+      final query = Uri.parse(buildCallersBoxSearchUrl('DÉJÀ Vu')).query;
+      expect(query, 'title=d%E9j%E0+vu');
+      expect(
+        Uri.parse(buildCallersBoxSearchUrl('', author: 'Ström')).query,
+        'author=str%F6m',
+      );
+      expect(
+        Uri.parse(
+          buildCallersBoxSearchUrl(
+            '',
+            phrases: const CallersBoxPhraseQuery(globalPos: ['façade']),
+          ),
+        ).query,
+        'pos_lines=fa%E7ade&pos_mode=all_any',
+      );
+    });
+
+    test('uses the windows-1252 slots above 0x7F, not latin1', () {
+      // Œ (U+0152) is 0x8C in windows-1252 and has no latin1 byte at all.
+      expect(
+        Uri.parse(buildCallersBoxSearchUrl('Œuvre')).query,
+        'title=%9Cuvre',
+      );
+    });
+
+    test('a character windows-1252 lacks is sent as a browser would', () {
+      expect(
+        Uri.parse(buildCallersBoxSearchUrl('I ♥ Unicorns')).query,
+        'title=i+%26%239829%3B+unicorns',
+      );
+    });
+
+    test('reserved characters stay escaped', () {
+      final uri = Uri.parse(buildCallersBoxSearchUrl('A&B = 50/50 #2+?'));
+      expect(uri.query, 'title=a%26b+%3D+50%2F50+%232%2B%3F');
+      expect(uri.queryParameters, {'title': 'a&b = 50/50 #2+?'});
+    });
+
+    test('the hand-built query still passes the fetch guard', () async {
+      Uri? requested;
+      final client = MockClient((request) async {
+        requested = request.url;
+        return http.Response('<html><body>ok</body></html>', 200);
+      });
+      await fetchCallersBoxSearch(
+        buildCallersBoxSearchUrl('Déjà vu'),
+        client: client,
+      );
+      expect(requested!.host, 'www.ibiblio.org');
+      expect(requested!.query, 'title=d%E9j%E0+vu');
     });
 
     test('sends a trimmed author criterion', () {
       final params = Uri.parse(
         buildCallersBoxSearchUrl('', author: '  Alice Smith  '),
       ).queryParameters;
-      expect(params, containsPair('author', 'Alice Smith'));
+      expect(params, containsPair('author', 'alice smith'));
       expect(params.containsKey('title'), isFalse);
     });
 
@@ -273,7 +348,7 @@ void main() {
         ),
       );
       final params = Uri.parse(url).queryParameters;
-      expect(params['title'], 'Money Musk');
+      expect(params['title'], 'money musk');
       expect(params['phr2_pos_lines'], 'swing');
       expect(params['phr2_pos_mode'], 'all_any');
     });
@@ -288,7 +363,7 @@ void main() {
         buildCallersBoxSearchUrl('Money Musk', showAll: true),
       );
       expect(all.queryParameters.containsKey('show_all'), isTrue);
-      expect(all.queryParameters['title'], 'Money Musk');
+      expect(all.queryParameters['title'], 'money musk');
       // Verified live: TCB treats `show_all=` identically to the bare flag, so
       // this stays inside Uri.https rather than concatenating a query string.
       expect(all.queryParameters['show_all'], '');
@@ -298,7 +373,7 @@ void main() {
       final params = Uri.parse(
         buildCallersBoxSearchUrl('', author: 'Alice', showAll: true),
       ).queryParameters;
-      expect(params['author'], 'Alice');
+      expect(params['author'], 'alice');
       expect(params.containsKey('title'), isFalse);
       expect(params.containsKey('show_all'), isTrue);
     });
@@ -335,6 +410,18 @@ void main() {
       expect(query.globalPos, isEmpty);
       expect(query.globalNeg, isEmpty);
       expect(query.isEmpty, isFalse);
+    });
+
+    test('long lines asks for long lines, not its target forward and back', () {
+      final selections = ByPhraseSelections();
+      selections.match['A1'] = ['long_lines', 'forward_and_back'];
+
+      final query = CallersBoxPhraseQuery.fromSelections(
+        selections,
+        contraTaxonomy,
+      );
+
+      expect(query.phrasePos[1], ['long lines', 'forward and back']);
     });
 
     test('non-standard phrase labels fall back to the global fields', () {
@@ -608,7 +695,7 @@ void main() {
         );
 
         expect(preview.detail.dance.title, 'Cabin Contra');
-        expect(preview.detail.dance.figures, isEmpty);
+        expect(figuresOf(preview.detail.dance), isEmpty);
         expect(
           preview.plan.draft.issues.map((i) => i.code),
           contains('callersbox_search_tier'),
@@ -873,8 +960,8 @@ void main() {
       expect(r.urls, hasLength(2));
       final first = Uri.parse(r.urls.first).queryParameters;
       final second = {...Uri.parse(r.urls.last).queryParameters};
-      expect(first['author'], 'Alice');
-      expect(second['author'], 'Alice');
+      expect(first['author'], 'alice');
+      expect(second['author'], 'alice');
       expect(second['show_all'], '');
       expect(second..remove('show_all'), first);
     });
@@ -926,6 +1013,31 @@ void main() {
 
       final saved = await repos.dances.listAll();
       expect(saved.map((d) => d.title), contains("Money Musk"));
+    });
+
+    test('import applies defaultTagIds to the new dance, and only when '
+        'passed (program callers omit them)', () async {
+      final repos = openTestRepositories();
+      final _ = await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final online = onlineWithJson(_danceJson());
+      final preview = await online.loadPreview(repos, result());
+
+      final untagged = await online.import(repos, preview.plan);
+      expect(
+        (await repos.dances.getById(untagged.danceId!))!.tagIds,
+        isEmpty,
+        reason: 'the default must be no tags',
+      );
+
+      final repos2 = openTestRepositories();
+      final tagId2 = await repos2.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final preview2 = await online.loadPreview(repos2, result());
+      final tagged = await online.import(
+        repos2,
+        preview2.plan,
+        defaultTagIds: [tagId2],
+      );
+      expect((await repos2.dances.getById(tagged.danceId!))!.tagIds, [tagId2]);
     });
 
     test('re-importing the same dance reports already-in-collection', () async {
@@ -1072,10 +1184,11 @@ void main() {
     );
 
     test(
-      'confident match + link resolution: preserves dance id, overwrites user data',
+      'confident match + link resolution: preserves dance id and the existing rating when the record carries none',
       () async {
-        // Documents the intentional data-loss: link overwrites the existing
-        // dance's fields (rating, figures, etc.) with the incoming draft.
+        // Link replaces the existing dance's content with the incoming draft,
+        // but a record that carries no rating (Caller's Box never does) leaves
+        // the caller's own rating alone (maintainer decision, 2026-10-30).
         // The dance id is preserved so program-slot calling history still
         // references the same dance (call history is derived, not stored on
         // the dance record).
@@ -1093,11 +1206,42 @@ void main() {
           now: now,
         );
 
-        // Dance id is preserved (program slots continue to reference it).
         final updated = await repos.dances.getById(existing.id);
         expect(updated, isNotNull);
-        // Rating was overwritten by the incoming draft (which carries none).
-        expect(updated!.rating, isNull);
+        // Content was replaced...
+        expect(figuresOf(updated!), isNot(figuresOf(existing)));
+        // ...but the rating the draft does not carry was kept.
+        expect(updated.rating, 4);
+      },
+    );
+
+    test(
+      'confident match + link resolution: a rating the record carries overwrites the existing one',
+      () async {
+        final repos = openTestRepositories();
+        final existing = await seedDance(repos, rating: 4);
+
+        final base = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('partners balance and swing')],
+        );
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: base.draft.dance.copyWith(rating: 2),
+            raw: base.draft.raw,
+            issues: base.draft.issues,
+            authorNames: base.draft.authorNames,
+          ),
+          verdict: base.verdict,
+        );
+        await CallersBoxOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.link(existing.id),
+          now: now,
+        );
+
+        expect((await repos.dances.getById(existing.id))!.rating, 2);
       },
     );
 
@@ -1131,6 +1275,38 @@ void main() {
     );
 
     test(
+      'an undecodable existing transcription never compares as identical (#1347)',
+      () async {
+        // The trap this guards: mapping an undecodable side to an empty list
+        // made BOTH sides empty when the incoming dance legitimately has no
+        // figures, so `figuresCanonicallyIdentical` returned true and the flow
+        // skipped confirmation — acting on a comparison that was impossible.
+        final repos = openTestRepositories();
+        final existing = await seedDance(
+          repos,
+          provenanceSource: ProvenanceSource.contradb,
+        );
+        await repos.db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[{"kind":', existing.id],
+        );
+
+        // Incoming draft carries NO figures, which is what makes the empty-list
+        // mapping collide with the undecodable side.
+        final plan = ambiguousPlan(candidateId: existing.id, figures: const []);
+        final result = await CallersBoxOnline().import(repos, plan);
+
+        expect(
+          result.kind,
+          OnlineImportKind.needsConfirmation,
+          reason: 'an unreadable side cannot be compared, so the user decides',
+        );
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1), reason: 'nothing written without consent');
+      },
+    );
+
+    test(
       'confident match + identical figures + same source: falls through to duplicate (no prompt)',
       () async {
         // A same-source re-import with a drifted externalId produces an
@@ -1158,11 +1334,12 @@ void main() {
     );
 
     test(
-      'confident match + identical figures + null provenance (hand-entered): falls through to duplicate (no prompt)',
+      'confident match + identical figures + null provenance (hand-entered): prompts, writes nothing',
       () async {
-        // A hand-entered dance has null provenance. Triggering the cross-source
-        // dialog for it would falsely assert "from a different source". Guard:
-        // existing.provenance == null → falls through to duplicate().
+        // A hand-entered dance has null provenance. It used to fall through to
+        // a silent second copy, because the dialog then said "from a different
+        // source". Its wording now names no source, so a hand-entered match
+        // asks like any other (INTAKE-5).
         final repos = openTestRepositories();
         // seedDance with no provenanceSource → provenance == null
         final existing = await seedDance(repos);
@@ -1173,10 +1350,10 @@ void main() {
         );
         final result = await CallersBoxOnline().import(repos, plan);
 
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
+        expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
+        expect(result.danceId, existing.id);
         final saved = await repos.dances.listAll();
-        expect(saved, hasLength(2));
+        expect(saved, hasLength(1), reason: 'nothing written without consent');
       },
     );
 

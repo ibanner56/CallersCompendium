@@ -10,6 +10,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_support.dart';
 
 /// Fixtures + tests for [ContraDbAdapter].
 ///
@@ -65,7 +66,7 @@ Future<StructuredDraft> _importOne(String payload) async {
 }
 
 Figure _figureFor(StructuredDraft d, String move) =>
-    d.dance.figures.firstWhere((f) => f.move == move);
+    figuresOf(d.dance).firstWhere((f) => f.move == move);
 
 void main() {
   group('ContraDbAdapter', () {
@@ -169,7 +170,7 @@ void main() {
             ),
           ),
         );
-        final custom = draft.dance.figures.single;
+        final custom = figuresOf(draft.dance).single;
         expect(custom.isCustom, isTrue);
         expect(custom.params['text'], 'twirl!');
       });
@@ -241,7 +242,7 @@ void main() {
           // Falsification target: re-add the 'star promenade' _MoveMap entry in
           // `contradb_adapter.dart` and this test goes red.
           expect(
-            draft.dance.figures.any((f) => f.move == 'star_promenade'),
+            figuresOf(draft.dance).any((f) => f.move == 'star_promenade'),
             isFalse,
           );
         },
@@ -381,7 +382,7 @@ void main() {
             ),
           ),
         );
-        final fig = draft.dance.figures.single;
+        final fig = figuresOf(draft.dance).single;
         expect(fig.isCustom, isTrue);
         expect(fig.params['text'], contains('floop de doo'));
         expect(fig.params['beats'], 8);
@@ -408,7 +409,7 @@ void main() {
               ),
             ),
           );
-          final fig = draft.dance.figures.single;
+          final fig = figuresOf(draft.dance).single;
           expect(fig.isCustom, isTrue);
           expect(fig.params['text'], 'do a thing');
           expect(fig.params['beats'], 6);
@@ -427,7 +428,7 @@ void main() {
               ),
             ),
           );
-          final fig = draft.dance.figures.single;
+          final fig = figuresOf(draft.dance).single;
           expect(fig.params['text'], 'do a thing');
           expect(fig.params['beats'], 8);
         },
@@ -449,7 +450,7 @@ void main() {
             ),
           ),
         );
-        final figs = draft.dance.figures;
+        final figs = figuresOf(draft.dance);
         expect(figs[0].customOrigin, CustomOrigin.userEntered);
         expect(figs[1].customOrigin, CustomOrigin.importGap);
         expect(figs[2].customOrigin, CustomOrigin.importGap);
@@ -464,7 +465,7 @@ void main() {
           ImportRequest(payload: payload),
         );
         final draft = adapter.parse(await adapter.fetch(discovered.single));
-        final fig = draft.dance.figures.single;
+        final fig = figuresOf(draft.dance).single;
         expect(fig.params['text'], '(unreadable figure)');
         expect(fig.customOrigin, CustomOrigin.importGap);
       });
@@ -482,7 +483,7 @@ void main() {
           ),
         );
         expect(draft.quality.isFullyCustom, isTrue);
-        expect(draft.dance.figures.every((f) => f.isCustom), isTrue);
+        expect(figuresOf(draft.dance).every((f) => f.isCustom), isTrue);
         expect(draft.dance.title, 'All Custom');
       });
 
@@ -830,6 +831,46 @@ void main() {
           expect(verdict.targetDanceId, 'existing');
         },
       );
+    });
+  });
+
+  // FODA vol. 2: Thatcher Pass is "Proper Triplet (231)", Chris' Crossing
+  // is "Improper Quadruplet (2341)". The set shape wins over the
+  // proper/improper word, which is kept as the formation detail.
+  group('formation names that carry a set shape and a start word', () {
+    Future<Formation> read(String startType) async {
+      final draft = await _importOne(jsonEncode(_dance(startType: startType)));
+      return draft.dance.formation;
+    }
+
+    const cases = <(String, FormationShape, String?)>[
+      ('Proper Triplet (231)', FormationShape.triplet, 'Proper'),
+      ('Improper Triplet', FormationShape.triplet, 'Improper'),
+      ('Indecent Triplet', FormationShape.triplet, 'Indecent'),
+      ('Improper (triple progression)', FormationShape.dupleImproper, null),
+      ('Triplet', FormationShape.triplet, null),
+      ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
+      ('Quadruplet', FormationShape.quadruplet, null),
+      ('Triple Minor', FormationShape.tripleMinor, null),
+      ('Triple Minor - Improper', FormationShape.tripleMinor, 'Improper'),
+      ('Triple Minor - Proper', FormationShape.tripleMinor, 'Proper'),
+      ('Duple Minor - Proper', FormationShape.dupleProper, null),
+      ('Improper', FormationShape.dupleImproper, null),
+    ];
+    for (final (name, shape, detail) in cases) {
+      test('"$name"', () async {
+        final f = await read(name);
+        expect(f.shape, shape);
+        expect(f.detail, detail);
+      });
+    }
+
+    test('keeps the start word ahead of the preamble detail', () async {
+      final draft = await _importOne(
+        jsonEncode(_dance(startType: 'Proper Triplet', preamble: 'chestnut')),
+      );
+      expect(draft.dance.formation.shape, FormationShape.triplet);
+      expect(draft.dance.formation.detail, 'Proper; chestnut');
     });
   });
 }

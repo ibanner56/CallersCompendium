@@ -68,6 +68,36 @@ void main() {
     ]);
   });
 
+  test('carries the people a dance credits as interpreters, once each, '
+      'and their sharing-safe records', () {
+    final dance = Dance(
+      id: 'd1',
+      title: 'Hole in the Wall',
+      authorIds: const ['playford'],
+      interpreterIds: const ['pat', 'playford'],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+    final archive = decodeArchive(
+      buildDanceShareBundle(
+        dance,
+        now: _now,
+        choreographerFor: (id) =>
+            Choreographer(id: id, name: id, email: '$id@example.com'),
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
+      ),
+    ).archive;
+
+    expect(archive.choreographers.map((c) => c.id).toSet(), {
+      'playford',
+      'pat',
+    });
+    expect(archive.choreographers.map((c) => c.email), everyElement(isNull));
+    expect(archive.dances.single.interpreterIds, ['pat', 'playford']);
+  });
+
   test(
     'rejects unresolved references instead of emitting a dangling archive',
     () {
@@ -116,5 +146,23 @@ void main() {
     expect(ccshare.name, 'Rory_O_More.ccshare');
     expect(json.name, 'Rory_O_More.json');
     expect(ccshare.json, json.json);
+  });
+
+  group('danceShareBundleFileName (OUT-8)', () {
+    test('keeps Unicode letters and drops a trailing underscore', () {
+      expect(
+        danceShareBundleFileName('Contredanse à la française'),
+        'Contredanse_à_la_française.ccshare',
+      );
+      expect(danceShareBundleFileName('春のコントラ'), '春のコントラ.ccshare');
+      expect(
+        danceShareBundleFileName("Ain't She Sweet?", extension: 'json'),
+        'Ain_t_She_Sweet.json',
+      );
+    });
+
+    test('falls back to "dance" when no letter or digit remains', () {
+      expect(danceShareBundleFileName('?!'), 'dance.ccshare');
+    });
   });
 }

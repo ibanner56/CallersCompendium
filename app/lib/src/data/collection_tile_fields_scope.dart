@@ -71,11 +71,10 @@ enum CollectionTileField {
 /// so the settings screen — a sibling of the collection screen in the navigation
 /// tree — can write to the notifier via [notifierOf].
 ///
-/// **Scope of the preference:** only the collection screen opts in by passing
-/// [CollectionTileFieldsScope.of] to [DanceListTile.visibleFields]. All other
-/// [DanceListTile] call sites pass `null`, which defaults to
-/// [CollectionTileField.all] inside the tile — so search results, program
-/// lists, and the picker always render at full density without any override.
+/// **Scope of the preference:** the collection screen and the program dance
+/// picker (`CollectionPicker`, PRES-15) opt in by passing
+/// [CollectionTileFieldsScope.of] to [DanceListTile.visibleFields]; a tile
+/// given `null` shows [CollectionTileField.all].
 ///
 /// **Reading the value:** call [CollectionTileFieldsScope.of] inside `build`.
 /// It returns [CollectionTileField.all] when no ancestor is present, preserving

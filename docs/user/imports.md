@@ -5,12 +5,11 @@ and moving your whole library between devices. It covers bringing in single
 dances from [The Caller's Box](./glossary.md#the-callers-box) and
 [ContraDB](./glossary.md#contradb), importing signed published collections and
 Caller's Compendium files, moving a whole library across from Caller's Companion,
-and backing up and restoring everything you own. Where a feature is still on the
-way, it says so plainly.
+and backing up and restoring everything you own.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Import…**, and **Choose file…**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 ## Your data stays yours
@@ -28,9 +27,9 @@ changes your collection until you say so.
 
 Every import follows one promise: **bringing a dance in never loses the dance.**
 
-When the app reads a dance from another source, it recognises the
+When the app reads a dance from another source, it recognizes the
 [figures](./glossary.md#figure) it can and turns them into structured moves you
-can search and rework. Anything it does not recognise — an unusual phrasing, a
+can search and rework. Anything it does not recognize — an unusual phrasing, a
 complicated sequence, a note the choreographer tucked into a line — is kept
 word-for-word as a plain-text figure instead of being dropped. A dance can
 arrive entirely as plain text and still land safely in your collection, still be
@@ -40,13 +39,16 @@ what the app quietly threw away, because it throws nothing away.
 The app also *shows* you where that happened. A figure kept word-for-word carries
 a small warning glyph beside it — on a dance card, in the editor, and in Perform.
 Hover it on a desktop, or select it on a touchscreen, and it explains itself:
-**Couldn't parse this call — kept verbatim as a custom figure.** It is a shape,
-not just a colour, and it is announced to screen readers, so you can find the
-lines worth tidying up whichever way you read.
+**Couldn't recognize this call — kept exactly as written as an
+unrecognized figure.** It is a shape, not just a color, and it is announced to screen
+readers, so you can find the lines worth tidying up whichever way you read.
 
 There is nothing wrong with leaving them as they are. A verbatim figure calls
 perfectly well; the badge just tells you the app cannot search or count beats for
-that line the way it can for a recognised move.
+that line the way it can for a recognized move.
+Once you rewrite such a figure's text yourself in the editor, it is your own
+wording: the badge goes away, and **Re-check unrecognized figures** leaves it as
+you wrote it.
 
 ## Bring in single dances from an online archive
 
@@ -60,17 +62,34 @@ keep.
 ### Search an archive online and import a dance
 
 1. Open **Collection**.
-2. Open the **Advanced** panel above the dance list and turn on the
-   **Online search** switch. (Your local filters do not apply while online
+2. Tap the **Online search** icon at the end of the row of search tools above
+   the dance list. (Your local filters do not apply while online
    search is on — you are searching the archive, not your own library.)
 3. Choose which archive to search — **The Caller's Box** or **ContraDB** — from
    the online source selector.
-4. Choose **Title** or **Author** in the **Search in** menu, then type a dance
-   title or author/choreographer name in the search box. Results appear as you
-   type. With The Caller's Box you can also narrow by the figures a dance
-   contains, using the same **By-Phrase** panel as a local search.
-5. Select a result to open a **preview** of that dance.
+4. Choose **Title**, **Author**, or **Figure** in the **Search in** menu, then
+   type in the search box. Results appear as you type. With The Caller's Box you
+   can also narrow by the figures a dance contains, using the same **By phrase**
+   panel as a local search. The
+   [Collection & search guide](./collection.md#search-across-your-dances)
+   explains how each option matches. Curly and straight apostrophes and quotes
+   (`’` and `'`, `“”` and `"`) and the different dashes count as the same, so
+   type them however your keyboard does. Accented letters must still be typed
+   with their accents (`Déjà vu`, not `Deja vu`), but upper or lower case
+   doesn't matter. With ContraDB you can instead (or as well) use the
+   **Advanced** panel to find dances by the figures they contain; a dance
+   must match both the Advanced query and any text you typed. See the
+   [Collection & search guide](./collection.md#search-across-your-dances) for
+   what ContraDB can and cannot run.
+5. Select a result to open a **preview** of that dance. While the dance is
+   loading you can choose **Cancel** (or press Back) to stop waiting and return
+   to your results.
 6. If it is the one you want, choose **Import** to add it to your collection.
+   The message that confirms it offers **Undo** while it is showing. Undo takes
+   the dance back out, or, if you chose **Same dance (update existing)** for a
+   dance you already had, puts your own version back. In that case the message
+   says **Updated** rather than **Imported**, because nothing new was added. A dance you have since
+   added to a program, or changed, is kept as it is.
 
 **Caller's Box results only include dances whose figures it will share.** Not
 every dance in The Caller's Box has its choreographer's permission for the
@@ -97,7 +116,7 @@ it directly:
 2. In the source selector, choose **The Caller's Box** or **ContraDB**.
 3. Paste the dance's **web address** — for The Caller's Box a `dance.php?id=…`
    link, for ContraDB a `…/dances/N` link — or enter its **ID number** (for
-   example `1`) in the address field, then choose **Fetch**. Paste a recognised
+   example `1`) in the address field, then choose **Fetch**. Paste a recognized
    address and the app selects the matching source for you.
 4. Review the dance and commit it, as described in
    [Review before anything changes](#review-before-anything-changes).
@@ -112,8 +131,11 @@ A few honest notes about these online imports:
   link-or-ID route described here — it is deliberately how you can still bring
   in a Caller's Box dance whose figures the Box will not share, even though
   online search leaves those out.
-- Figures come in as recognised moves where the app can read them and as
+- Figures come in as recognized moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
+- To have every dance you import on its own tagged automatically — a "no card"
+  tag, say — choose the tags under **Settings ▸ Defaults ▸ Import defaults**.
+  See [Settings](./settings.md#import-defaults).
 
 ### What the app will and won't fetch
 
@@ -152,13 +174,37 @@ trusted Compendium Analect catalog. They are signed and checked before the app
 offers them for import, and the app records their source and version so you can
 see where the dances came from.
 
-1. Open **Collection** and choose **Import dances**.
+1. Open **Collection** and choose **Import dances**, choose **Browse published
+   collections** on the card that shows while the sample dance is your only
+   dance, or open **Settings** ▸ **General** ▸ **Import…**.
 2. Under the source selector, choose a published collection to review its
    title, version, dance count, and availability. You can also browse the same
-   catalog from **Settings** → **General** → **Published collections**.
+   catalog from **Settings** ▸ **General** ▸ **Published collections**.
 3. Select **Import collection** and review what it contains.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
+
+The catalog shows only the newest version of each collection, and a version
+older than the one you already imported cannot be imported from the catalog.
+
+Importing a newer version of a collection you already have offers
+**Re-import onto** for its dances, which updates only their figures, formation
+and progression (with the dance form, meter and key they need), as for any other source (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+A corrected title or credit in the new version reaches a dance you already have
+only if you tick **Also update title and credit** on its row; a corrected note
+never does.
+
+If the catalog or a collection cannot be loaded, the message tells you which of
+four things happened: the catalog **could not be reached** (check your
+connection), it **needs a newer app version** (update the app), it **could not
+be verified** (its signature did not match a key this app trusts; if it keeps
+happening, update the app, because the catalog may have moved to a newer
+signing key), or it is **temporarily unavailable** (it failed another safety
+check, so nothing was imported). Choose **Try again** to run it again without leaving
+the screen (it is not offered when the catalog or collection is in a format
+only a newer app can read). Failures are
+recorded in **Settings** ▸ **Diagnostics**.
 
 ## Bring in a list of dance titles
 
@@ -166,8 +212,8 @@ If you have a list of titles written down — an evening's set list, a workshop
 handout, dances a friend recommended — you can paste the whole list at once and
 let the app find them, **without** building a program.
 
-1. Open **Collection** and choose **Import dances**, or open **Settings** →
-   **General** → **Import…**.
+1. Open **Collection** and choose **Import dances**, or open **Settings** ▸
+   **General** ▸ **Import…**.
 2. In the source selector, choose **a list of titles**.
 3. Paste your titles, **one per line**, and choose **Review import**.
 4. The app checks each title against your own collection first, then searches
@@ -203,8 +249,12 @@ A few honest notes:
 - Blank lines are ignored, and a title repeated in your list is only looked up
   once.
 - It works through the list one title at a time, showing its progress, and you
-  can **Cancel** at any point — nothing has been added yet, so cancelling costs
+  can **Cancel** at any point — nothing has been added yet, so canceling costs
   you nothing.
+- If the app can't reach The Caller's Box (you're offline, or the connection
+  hangs), it **stops after the first failure** instead of trying every title, and
+  says so once at the top of the review. The titles already in your collection
+  are still listed; paste the rest again once you're online.
 - There is a limit of **100 titles** per import. A longer list is refused
   outright rather than partly imported, so you are never left thinking a list
   came in whole when it didn't.
@@ -213,11 +263,12 @@ A few honest notes:
 
 ## Import a Caller's Compendium file
 
-Dances shared as a **Caller's Compendium** file (the app's own `.json` format)
-come in through the same review flow:
+Dances shared as a **Caller's Compendium** file (the app's own `.json` or
+`.ccshare` format) come in through the same review flow:
 
 1. Open **Settings**, choose **General**, and choose **Import…**.
-2. Set the source to **a Caller's Compendium JSON file**.
+2. Set the source to **a Caller's Compendium JSON file**. If you choose a
+   `.ccshare` file in the next step, the source switches to this one for you.
 3. Choose the file with **Choose file…**, paste its contents, or enter a URL and
    choose **Fetch**.
 4. Review and commit.
@@ -228,28 +279,102 @@ through the review queue; it does not replace what you already have. To move an
 entire library and replace what is on a device, use **Restore** instead — see
 below.
 
+A file made by a **newer version** of Caller's Compendium can still be reviewed
+and imported, but this version only understands the details it already knows
+about. The review then shows one warning, *"This file was made by a newer version
+of Caller's Compendium. Update the app before importing, or some details may be
+left out."* Update the app first if you want everything that file carries.
+
+If the app can't read the file you chose, it says why and nothing is imported:
+either the file isn't a share file or text the app can read (another app
+saved it as text in a different encoding: save it again as UTF-8), or the file
+can't be opened
+(another app is using it, or it is on a drive that isn't connected).
+
 ### Open a shared program someone sent you
 
 If another caller shares a **program bundle** with you — the
-**Share (program + dances)** file described in
-[Share, print & export](./sharing.md#share-a-program-with-its-dances) — you don't
-have to go through **Settings › General** and choose **Import…** by hand. Caller's Compendium registers
-itself as a place that can open those files, so you can just **open the file**:
-AirDrop it (on a Mac, iPhone, or iPad), use your system's **Open with** /
-**Share** menu, or tap it wherever it arrives. The app launches and takes you
-straight to the same review screen a manual import uses, already loaded with what
-the file contains — the program, its dances, and its venue.
+**Share program and dances** file described in
+[Share, print & export](./sharing.md#share-a-program-with-its-dances) — you can
+often open the file directly:
+
+- **Mac, iPhone, or iPad:** open the `.ccshare` file wherever it arrives, or
+  send it by AirDrop.
+- **Android:** open a `.ccshare` or `.json` file with **Open with**, or send it
+  to the app from another app's **Share** menu. Android doesn't know the
+  `.ccshare` type, so the app also appears for other files of unknown type;
+  if you open something that isn't a share file, the app says so and imports
+  nothing.
+- **Windows:** if you installed the app with the installer, double-click the
+  `.ccshare` file, or pick Caller's Compendium under **Open with**. The portable
+  copy doesn't register the file type.
+- **Linux:** open the `.ccshare` file with Caller's Compendium once the file
+  type is set up (see [Installing on Linux](./installation.md#install-on-linux));
+  you can also run the app with the file's path, for example
+  `./CallersCompendium-*.AppImage "Contra Night.ccshare"`.
+- On Windows and Linux, if the app is already open, the file opens in the
+  window you have. If you open more files while one is in review, the app
+  keeps only the last one and shows it when you close that review. Only a `.ccshare` file stored on this computer opens this
+  way. For a file on a network share (a `\\server\folder` path), a
+  symbolic link to a file or, on Windows, a file inside a folder that is a
+  symbolic link or junction, the app says it couldn't read the shared file:
+  copy the file itself to a local folder first.
+- **Any device**: go to **Settings ▸ General** and choose **Import…**, then
+  pick the file.
+  On Android the file picker lists every file of unknown type as well as share
+  files, so choose the one you saved.
+
+Opened directly, the app launches and takes you straight to the same review
+screen a manual import uses, already loaded with what the file contains — the
+program, its dances, and its venue.
 
 Nothing is added until you confirm. You review the bundle exactly as you would any
-other import, decide what to bring in, and commit; an **Undo** is offered
-afterwards.
+other import, decide what to bring in, and commit. The same summary as any
+other import follows: what happened to each dance and to the program, anything
+that could not be imported, and any note, such as a link to a related dance
+that was left out. It offers **Undo** until you choose **Done**. The dances it
+adds get your [default import tags](./settings.md#import-defaults), next to
+the tags the sender gave them.
+
+A full **backup** opened this way is not imported: the app says it is a
+backup, and that **Settings ▸ General ▸ Restore from a backup** is where to
+bring it in (see [below](#move-your-whole-library-backup-and-restore)).
 
 This intake is deliberately safe. The file is treated as untrusted input: it is
 size-checked *before* being read, validated against the expected format, and a
 file that fails any check is turned away with a plain message and nothing is
-written. It is also **identity-first** — dances and programs you already have are
-matched and updated in place rather than duplicated, brand-new material is added,
-and nothing is ever deleted.
+written. It is also **identity-first** — dances you already have are matched rather
+than duplicated, brand-new material is added, and nothing is ever deleted. A
+program always arrives as a new one, as a **Draft** with no performed marks or
+event date, even when you already have a copy: your own copy is never
+overwritten (see
+[Share a program with its dances](./sharing.md#share-a-program-with-its-dances)).
+
+#### Figures in a shared file
+
+A shared file also carries any of the sender's
+[own new figures](./authoring.md#your-own-figures) its dances use. With
+[Custom Figures](./settings.md#glossary-and-custom-figures) on, once you have
+imported the dances the app shows **Figures in this file**, so you can choose
+what to add to your Glossary:
+
+- **New to you**: figures you don't have. Each is ticked; untick any you don't
+  want.
+- **Different from yours**: figures you have, which the sender's version
+  changes. **Keep mine** is chosen, and the dances you imported then show the
+  figure your way; **Use theirs** replaces yours with theirs, keeping your
+  notes on it.
+- **Added as a copy**: figures whose id this device has used before, for
+  another entry or a figure you deleted. Each is added under a new id, and the
+  dances you just imported use the copy.
+- **Already in your Glossary**: figures you have, unchanged. Nothing to do.
+
+A figure whose name is already taken here is added all the same, and your
+Glossary marks it **Rename needed**. A dance whose new figure you don't add
+shows the line it was shared with. **Skip** adds nothing. The **Undo** after the
+import also takes back what you added or replaced here. With Custom Figures
+off, nothing is offered, and the dances show each figure as the line it was
+shared with.
 
 ## Bring your library across from Caller's Companion
 
@@ -258,21 +383,162 @@ Moving from **Caller's Companion**? Caller's Compendium can read its exported
 
 1. Open **Settings**, choose **General**, and choose **Import…**.
 2. In the source selector, choose **a Caller's Companion .USR file**.
-3. Choose your `.USR` file when the app asks for it.
+3. Choose your `.USR` file when the app asks for it. Files over **256 MiB** are
+   refused; a typical Caller's Companion library is around 20 MB, far below that.
 4. Review and commit, as described in
    [Review before anything changes](#review-before-anything-changes).
 
 A `.USR` import brings across both your **dances** and your **program history**
 (Caller's Companion "sets"), and — like every other import — it is reviewable
 before it commits and undoable right after. Dances and programs you have imported
-before are recognised and offered as updates rather than duplicated.
+before are recognized and offered as updates rather than duplicated. A dance
+you bring in early with **Import and edit** still takes its place in your
+programs and related dances when you then import the rest of the file (one you
+re-imported that way gets no new related-dance links, as with any re-import). The review
+says how many programs the file includes, and they are imported even when you
+leave every dance at **Skip** — so importing a fresher export just to pick up new
+sets works when you already have all its dances.
+
+Each program is named the way Caller's Companion names the set, by its date and
+location: "2024/04/20 - NEFFA Contra Party". A set with no location is named by
+its date alone, and one with no date, or a date the app cannot read, by its
+location. With no location and a date the app cannot read, it is named
+"Caller's Companion set" and the date as written; with neither, "Caller's
+Companion set" and its number. Importing a set again renames its program the same way.
+
+A slot keeps the name of the caller Caller's Companion recorded for it only
+when the set's slots name more than one caller, when a slot names someone other
+than the set's own caller, or when the set is called by several people
+("Michael Smith & Lisa Greenleaf"). On a set you called yourself throughout,
+with your name on the set first name first, the repeated name is left out.
 
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app
 brought your dances over with their titles, authors and notes but an empty body.
 The import now reads that choreography, so a migrated dance arrives with real
-A1/A2/B1/B2 figures you can search and edit. Anything the app cannot represent
-faithfully is kept word-for-word as text rather than guessed at.
+A1/A2/B1/B2 figures you can search and edit. A line that names several figures
+separated by commas, such as "Slide Left, Circle Left 3/4", comes across as
+those figures, sharing the line's beats. Anything the app cannot represent
+faithfully is kept word-for-word as text rather than guessed at. A dance
+whose Type is English comes across as an English country dance: its lines
+are read as English figures, and a "Duple Proper" or "Duple Improper"
+formation becomes a duple minor, proper or improper. A formation that doesn't
+say Improper comes across proper.
+
+Many Caller's Companion libraries of English dances type them all "Contra",
+so before reading a `.USR` file the app asks once: **Are these English country
+dances?** Choose **Yes, English dances** and every dance in the file but a
+square comes across as an English country dance; choose **No, read their
+types** and each dance comes across by its Type, as above. Closing the question reads nothing, and choosing the file
+again asks again. Re-importing a dance you first brought in with the other
+answer takes the form along with the figures, so a contra dance re-imported
+as English becomes English and takes the file's meter and key if it had none
+(see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+
+An English dance takes its meter and key from the dance's Music field ("Key:
+G, Meter: 3/2" gives the meter 3/2 and the key G). A line that starts with a
+bar range, such as `1-4 Partners set and turn single`, `(5-8) circle left` or
+`A1 1-8 lead up`, counts that many bars, and the dance's meter says how many
+beats a bar holds: two in 2/2, 2/4, 6/8 or 6/4, three in 3/2, 3/4, 9/8 or
+9/4, four in 4/4, 12/8 or 12/4. So `1-4` is 8 beats in 2/2 and 12 in 3/2.
+When the Music field gives no meter the app counts two beats a bar and says so
+in the review. The bars are the count: a line that also gives a count in beats,
+such as `1-4 (6) circle left` or `(6) 1-4 circle left`, comes across as
+written, with the bars' count. So does a line with several bar ranges, such
+as `(5-8) circle left (9-12) circle right`, counted across all of them (or
+by its first range, if all of them would come to more than 64 beats).
+A number after a word like Track, CD or Disc ("Track 3/4 of CD") isn't taken
+for a meter unless a word like Meter names it, and "A 3/2 hornpipe" gives the
+meter 3/2 but no key ("A 3/2 hornpipe in G" gives the key G).
+When the dance's sections are labeled A, B and C (`A1 A2 B1`, `A1 B1 C1`)
+and every line in them is counted, the dance comes across with those
+phrases named, each with the bars its lines add up to: A1 and A2 of 4 bars
+and a B1 of 8 become A played twice and B played once (see **Phrases** in
+[Writing and editing dances](./authoring.md)). A section that counts no bars,
+such as an A2 that only says "Repeat to places", names no phrases. Otherwise
+an English dance whose meter gives other than two beats a bar, such as 3/2
+or 4/4, gets four 8-bar phrases of that many beats, so its A and B labels
+fall in the right places.
+
+The app also reads Caller's Companion's abbreviations and wording. "Circle L",
+"pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;
+"R&L" is a right and left through; "New Neighbor" and "Corner" mean your next
+neighbors and first corners. "Ring balance, spin to the right", "Balance wave
+and slide to the right", "Wave balance, circulate" and "Partner R-hand balance,
+square through 2" read as a petronella, a Rory O'More, a box circulate and a
+square through, each with its balance. The same wordings work in
+[Free-text entry](./authoring.md#free-text-entry). For dances brought across
+earlier, [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
+can upgrade such lines, but it does not split a line at its commas: re-import
+the dance for that.
+
+The up to three **custom columns** you defined in Caller's Companion come
+across as **custom fields**, one per column name, filled in on each dance, so
+you can show, search and sort by them like any field you made yourself. If you
+already have a text field whose key is the column name in lower case with
+punctuation turned into underscores (a column called "Card color" matches a
+field with the key `card_color` or `Card_Color`), it is reused;
+if that key is taken by a field of another kind (a number, say), the column
+arrives as a new field with `_2` on the end. A column with no name is called
+"User field" and its number. New fields are shared like any other custom field, so if a
+column holds private notes, turn off **Include in sharing** for that field in
+the custom fields settings before you share. Dances you imported in an earlier version keep those
+values as lines in their calling notes.
+
+Re-importing a dance takes only its figures, formation and progression from
+the file, with the dance form, meter and key they need (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)),
+so it never changes the dance's custom-field values. A column you changed or
+emptied in Caller's Companion since is not applied; change it in the app.
+
+Each dance's **formation** comes across as Caller's Companion recorded it: a
+Becket keeps its direction (clockwise or counterclockwise), four facing four,
+triplets, triple minors and longways keep their shape, squares come across as
+squares, circle and scatter mixers are marked as mixers, and your own
+description of the starting position ("Long Waves, R-hand to Neighbor") is kept
+as the formation's detail.
+Alternates in your sets come across as alternates.
+
+A **title** that Caller's Companion filed with its article at the end, such as
+"Baby Rose, The", comes across with the article back in front: "The Baby Rose".
+The articles moved are The, A, An, La, Le, Les and L' ("Amour, L'" becomes
+"L'Amour"), and a note in brackets stays at the end ("Baby Rose, The (var)"
+becomes "The Baby Rose (var)"). A title that only looks library-style moves
+too ("Thanks, Les" becomes "Les Thanks"), so check a dedication title and fix
+it in the editor if it moved. A dance you imported before keeps the title it
+has, unless you tick **Also update title and credit** on its row when you
+import again (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+When the app looks for a dance you already have, "Bastringue, La" and "La
+Bastringue" count as the same title, whichever source either came from.
+
+A dance Caller's Companion credits to a choreographer **"and others"** (such
+as "Rick Mohr" and "And Others") is credited to the people it names, and the
+credit is kept as a line in its calling notes: "Choreography: Rick Mohr and
+others". No author called "Others" is made. "& others", "et al." and a
+credit of just "Others" are read the same way, and a dance credited only to
+others reads "Choreography: others, not named". A dance you imported before
+keeps its credit; if you re-import it with **Also update title and credit**,
+it is credited to the named people only, without the note, and an author
+called "Others" from the earlier import stays in your list. Fix it in
+**Settings ▸ General ▸ Dances ▸ Authors** (see
+[Settings](./settings.md#dances)): delete it once no dance credits it, or merge
+it into another author.
+
+Your **notes and sources** come across with each dance. Your calling notes
+come first, then the music, any progression detail, your other notes (under
+"Other notes:"), an "and others" credit (under "Choreography:"), and where the
+dance came from (under "Source:"). Source and
+video web addresses become links on the dance, a dance with a Caller's Box
+number gets a link to its page there, and a book reference becomes a published
+source cited with its page, reusing a source you already have with the same
+title. A dance's **level** comes across too. When you checked more than one
+level, such as Easy and Intermediate, the dance gets a level of its own named
+"Easy/Intermediate", placed between Beginner and Intermediate in your list of
+levels; a level you already have with that name is used instead. In your programs, a dance you marked with a
+break is followed by a **Break** slot, and a set that hid its alternates keeps
+them hidden.
 
 Your **venues** and **related-dance links** come across as well. Set locations
 become real venue entries — matching one you already have when it is clearly the
@@ -280,10 +546,85 @@ same place, and creating a new one when it isn't (an ambiguous match always
 creates a fresh venue rather than guessing). That happens when venue entities
 are switched on; with them off, the location is kept as plain text exactly as
 before. Dances that pointed at each other in Caller's Companion arrive linked as
-**related dances**.
+**related dances**. A dance you re-import gets no related-dance links from the
+file, and the review notes no link left out for it.
 
-One thing does not come across yet: custom **glossary terms** stay behind, because
-the app has no glossary of its own to put them in.
+If the `.USR` file is an **incomplete copy** — cut short by an interrupted
+download or copy — the review shows a warning above the list: *"This file looks
+incomplete — only part of it could be read."* Dances after the cut are missing,
+and the count of dances to import only reflects what could be read, so the
+warning is the sign that something is absent. Copy the file again from the
+original and import it again; dances you already imported are recognized and
+offered as updates rather than duplicated. The same warning area
+also tells you when figures, programs, glossary terms or related-dance links in
+the file could not be read.
+
+Your own **glossary terms** can come across too, if the
+[Glossary](settings.md#glossary-and-custom-figures) is shown. See
+[Bring your glossary terms across](#bring-your-glossary-terms-across).
+
+### Dances tagged "ECD"
+
+Some libraries mark English country dances with a tag called **ECD** rather
+than with the dance's **Type** (see [Write & edit dances](./authoring.md)),
+and a Caller's Companion library is often one of them. When the app opens and
+finds a dance tagged **ECD** (in any capitalization) whose type is not already
+**English (ECD)**, it asks once per launch:
+
+> **Convert ECD dances?** — Would you like to convert all non-English dances in
+> your collection with the tag "ECD" to English dances?
+
+**Convert** sets each of those dances' type to **English (ECD)** and takes the
+**ECD** tag off it; other tags stay. **Not now** changes nothing, and the
+question comes back the next time you open the app. Check **Don't show this
+again** before either answer to stop it asking.
+
+After a conversion the app says how many dances it converted and offers
+**Undo** for a few seconds. **Undo** gives each dance back its old type and its
+**ECD** tag. A dance whose type or tags you have changed since the conversion
+is left as it is, so that change is never overwritten, and an **ECD** tag you
+have deleted in the meantime is not put back.
+
+The question appears when the app opens, not straight after an import: a
+dance you import tagged **ECD** is offered for conversion the next time you
+open the app.
+
+### Convert English dances to English figures
+
+An English country dance imported before the app knew English figures, or
+converted from the **ECD** tag above, still holds the contra moves it was
+read with. Those still show correctly, but **Settings ▸ General ▸ Import ▸
+Convert English dances** can turn them into English figures, so they read in your
+English dialect and can be edited with English options.
+
+The screen lists each English dance that would change and what would change
+in it:
+
+- **moves to convert**: contra moves that mean the same in English dancing,
+  such as a circle, a star, an allemande (a hand turn) or a do si do (a back to
+  back). Only what the dance already says is carried across: nothing it left
+  unstated is filled in, except that a forward and back goes back, and goes a
+  double unless the dance says otherwise. Each figure keeps the number of
+  beats it had.
+  A contra move with no English twin is read again from its words, as if you
+  had typed them into the English dance, and converts when they read in full
+  as English figures that keep every detail the move holds. Then what it
+  shows, such as the hand or shoulder, is what it states from then on. A move
+  whose words would lose or change a detail, such as a promenade's direction
+  entered in the contra editor, stays as it is.
+- **unrecognized figures now read**: lines the app kept as text because it
+  could not read them, which the English reading now understands, as
+  [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
+  does. An unrecognized figure you chose to write as text is not changed.
+- **English formation**: a duple proper or improper dance becomes a duple
+  minor, proper or improper, and a triplet or quadruplet becomes a three- or
+  four-couple longways set.
+
+Every dance starts ticked. Untick the ones you want to leave alone, choose
+**Convert**, and confirm. A move with no clear English meaning, such as a
+contra hey, a poussette, a mad robin or a petronella, stays as it is. Tags, ratings, notes
+and everything else on the dance are kept. A conversion can't be undone, so
+you may want to [export a backup](./backup-portability.md) first.
 
 ### Bring your call buttons across as shorthands
 
@@ -291,14 +632,56 @@ If your Caller's Companion file has **call buttons**, the import offers to turn
 them into [figure shorthands](./authoring.md#figure-shorthands) — short tokens you
 type during free-text entry that expand into whole figures.
 
-The **Seed figure shorthands** screen lists the buttons it found and what each
-one would expand to. Tick the ones you want and choose the confirm button, which
-counts what you picked (**Seed 3 shorthands**), or choose **Skip** to move on.
-Nothing is added until you confirm.
+The **Seed figure shorthands** screen lists the buttons the app could read as
+figures and what each one would expand to. Buttons whose text does not read as a
+figure are left out, and a note at the top says how many. Every button listed starts ticked, so untick
+the ones you do not want and choose the confirm button, which counts what you
+kept (**Seed 3 shorthands**), or choose **Skip** to move on. Nothing is added
+until you confirm.
 
 Where a button offers two versions, you pick **Primary** or **Alternate**. And if
 a shorthand of that name already exists, the button is listed under **Already
 defined — skipped** and your existing one is left exactly as it is.
+
+The app keeps up to 500 figure shorthands. When fewer than that many slots are
+free, the screen says how many more it can take, and only the first ones you
+leave ticked are added. The message afterwards says how many were seeded and how
+many were not added; you can seed those after deleting some shorthands.
+
+The message offers **Undo**, which takes back the shorthands this step added.
+One you have already changed in the meantime is left as you made it.
+
+### Bring your glossary terms across
+
+If your Caller's Companion file has **terms** of your own, and the
+[Glossary](./settings.md#glossary-and-custom-figures) is shown, the import then
+offers them on **Terms in this file**, after the shorthands. Each comes across as
+a term in your Glossary: a word with its explanation, and no figure. Its
+**Source**, where Caller's Companion has one (such as a book and its author),
+comes with it as it was written, and shows on the term's page. Its notes become
+the term's notes.
+
+Every Glossary entry needs a name and a definition. Caller's Companion has no
+**More details**, so each term's starts as its definition. Choose **Edit** to
+change either one, or the name, before you add it. More details left blank
+there becomes the definition.
+
+- A term with no definition starts unticked and says so. Give it one with
+  **Edit**, and it is ticked.
+- A term whose name is already a figure's, a shorthand's or one of your entries'
+  (or an earlier term's in the same file) can't be added under that name. Leave
+  it out, or rename it with **Edit**. Names are compared as your Glossary keeps
+  them, so *Ladies wait* and *Robins wait* are the same name.
+- A term longer than a Glossary entry can be says so, and can be added once
+  **Edit** shortens it.
+- A term already in your Glossary as the file has it, from an earlier import of
+  the same file, isn't offered again. If every term is, the step doesn't
+  appear. A term of your own with the same name is a taken name, as above.
+
+The confirm button counts what is ticked (**Add 2 terms**). Afterwards, **Undo**
+on the message takes the terms back out. A term that doesn't fit because your
+Glossary is full is left out, and the same message says how many. Choose
+**Skip** to add none.
 
 ## Move your whole library: backup and restore
 
@@ -312,7 +695,7 @@ moving between devices is a clean round trip: what you save is what you get back
 For step-by-step backup and restore, see
 [Backup & portability](./backup-portability.md). In short:
 
-- **Export a backup** — open **Settings › General**, find **Export a backup**,
+- **Export a backup** — open **Settings ▸ General**, find **Export a backup**,
   and choose **Export**. The app writes one `.json` file containing your entire
   collection, programs, custom fields, dialects, themes, and settings. Keep it
   somewhere safe or copy it to another device.
@@ -328,30 +711,40 @@ For step-by-step backup and restore, see
 ## Review before anything changes
 
 Importing from a file or a URL opens the **import review** screen, and nothing
-touches your collection until you commit there. It works the same whichever
+touches your collection until you commit there — except **Import and edit**,
+which imports that one dance right away (and, if the row is a Re-import or
+Link, updates the matched dance as that choice would; you are asked first). It works the same whichever
 source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
-   a file, paste text, or enter a URL or ID. (Paste a recognised web address and
+   a file, paste text, or enter a URL or ID. (Paste a recognized web address and
    the app selects the matching source for you.)
 2. **See the plan** — the app reads the material without changing anything and
    lists every dance it found, with a sense of how much of each dance it could
    turn into structured figures versus keep as plain text, plus any notes about
    a particular dance.
 3. **Decide dance by dance** — each dance can be brought in as **new**, updated
-   as a **re-import** of one you imported before, **linked** to an existing
-   dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
+   as a **re-import** of one you imported before (which refreshes only its
+   figures, formation and progression, with the dance form, meter and key they need), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
    unsure about defaults to **skip**, so it never guesses its way into your
    library.
+   If something is wrong with the **whole file** — an incomplete `.USR`, or a
+   file from a newer version of the app — a warning at the top of the list says
+   so, and what to do about it.
+   If you go back or close the screen while you are still deciding, the app asks
+   whether to **Discard** the import or **Keep reviewing**, because leaving
+   throws away the list and your choices on it. Dances you already brought in
+   with **Import and edit** stay in your collection.
 4. **Commit** — only now are the dances you accepted written to your collection.
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
-   everything that import added. This is the review-and-undo queue for
+   everything the **Import** button added; dances brought in with **Import and
+   edit** are not undone by it. This is the review-and-undo queue for
    bringing in more than one dance at a time.
 
 *The import review screen lists each dance and the action available for its
 current result, so you can inspect the batch before committing it.*
 
-![The import review screen showing per-dance results with actions to import, edit, skip, or resolve each item](images/import-review.png)
+![The import review screen listing each dance with its structured-figure count; each possible match offers to replace the existing dance with this version, import it as a duplicate, or skip it, and a Skip all possible matches button sits at the top](images/import-review.png)
 
 ## Avoiding duplicates
 
@@ -359,30 +752,58 @@ Re-importing the same dances should not clutter your collection, so the app
 watches for matches:
 
 - **Same dance, same source.** If you import a dance you have imported before
-  from the same source, the app recognises it and offers to **update** the one
-  you already have rather than adding a copy. (This is how the Caller's Box
+  from the same source, the app recognizes it and offers to **update** the
+  choreography of the one you already have rather than adding a copy (see
+  [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)). (This is how the Caller's Box
   online import can tell you a dance *"is already in your collection."*)
-- **Same dance, different source.** If a dance matches one already in your
-  collection by title, author, and figures — the same moves in the same order,
-  even if the timing or notes differ — but comes from a different archive
-  — the app prompts rather than adding a second copy. You can choose **Same
+- **Same dance, from another source or typed in.** If a dance matches one
+  already in your collection by title, author, and figures — the same moves in
+  the same order, even if the timing or notes differ — and yours came from a
+  different archive, or is one you typed in yourself, the app prompts rather
+  than adding a second copy. You can choose **Same
   dance (update existing)** to link the import to your existing copy — this
   replaces your version of the dance with the online record's, including its
-  figures, notes, tags, rating, and custom fields; its place in your programs
-  and its calling history are kept — **Import a second copy** to add it alongside
+  title, figures, notes, and tags; your rating (unless the online record carries
+  one), custom fields, its place in your
+  programs and its calling history are kept — **Import a second copy** to add it alongside
   your existing dance and keep both source records, or **Cancel** to leave your
   collection unchanged. This applies to single-dance online imports only; the
   batch review screen still marks the row for you to decide.
 - **Looks like something you already have.** If a dance closely matches one
   already in your collection by title and author but did not come from the same
-  source, the app marks it as **unsure** and asks you to choose: **link** the two,
-  keep both as a **duplicate**, or **skip** the new one. It never merges dances
-  on its own.
+  source, the review shows **Possible match — choose how to import:** and asks you
+  to choose: **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
+  one. **Same dance — replace** keeps the existing dance's identity (its id,
+  created date and history) but replaces its content with the imported version,
+  including its title, calling notes, tags, hook, walkthrough, status, links
+  and source citations. Custom fields the import carries replace yours; the rest
+  of your custom fields are kept. Your star rating is kept whenever the
+  incoming file carries none, as share files and The Caller's Box never do; a
+  rating the file does carry replaces yours. The review warns
+  how many existing dances will be overwritten before you commit.
+- **Same dance, written another way.** Archives spell and annotate titles
+  differently: The Caller's Box has `A-1 Reel {variant}` where your collection
+  might have `A1 Reel (Imp Var)`. When a dance's title matches one you already
+  have once punctuation and a trailing note in brackets are set aside, **and**
+  the two share an author, the review offers a **Same dance under another
+  title — replace** choice for each such dance. Nothing is chosen for you. When
+  these are a row's only matches, the row is headed **Possibly a dance you
+  already have, under another title**, still defaults to **New dance**, and is
+  left alone by **Skip all possible matches**. When the row also has an ordinary
+  possible match, the choices are added to that row, which defaults to **Skip**
+  as before. A single-dance online import asks the same question in a dialog
+  (**Is this a dance you already have?**), where you pick the dance to replace
+  or **Import as a new dance**; replacing it keeps your rating, custom fields, its
+  place in your programs and its calling history, but takes the incoming title,
+  figures, notes and tags. (A rating the incoming record carries would replace
+  yours.) A title like `New Dance (Velvet)`, whose
+  bracket is the dance's real name, is not treated this way, and nor is a
+  bracket holding only a part number, as in `Rickett's Hornpipe {#2}`.
 - **Same name, different choreography.** When the title and author match
-  confidently but the *figures* differ, the app shows a **Variation?** block with
+  confidently but the *figures* differ, the app shows a **Variation of "…"?** block with
   an inline diff of exactly which lines changed, and offers **Import as a
   variation** — which keeps it as its own dance, optionally linked back to the
-  original as a related dance — or **Same dance (link/update)**. Two dances that
+  original as a related dance — or **Same dance — replace**. Two dances that
   differ only in timing or in which figure carries the progression count as the
   same dance and never raise the prompt.
 
@@ -390,40 +811,123 @@ watches for matches:
   this same confirmation appears as a dialog rather than a review-screen block.
   The choices are identical: **Import as a variation**, **Same dance (update
   existing)**, or **Cancel**. "Same dance" overwrites the existing dance with the
-  incoming version — your edits, tags, and rating for the existing dance will be
-  replaced — but your calling history is preserved.
+  incoming version — your edits and tags for the existing dance will be
+  replaced, and so will its rating if the incoming record carries one — but
+  your calling history is preserved.
+- **A record with no figures.** Some sources send a dance without its figures —
+  The Caller's Box does when the choreographer has not allowed them to be
+  shared. Replacing one of your dances with such a record would erase its
+  figures, so no **Same dance** or **Same dance under another title** choice is
+  offered for it, in the review or in a single-dance online import. The record
+  can still be imported as a new dance (or, where the figures differ from a
+  matching dance, as a variation), and a note says so.
 
 ### Re-import an archive dance to pick up a correction
 
-When the review screen recognises a dance you already imported, it offers
+When the review screen recognizes a dance you already imported, it offers
 **Re-import onto** that dance, naming the dance it would update, so there is no
-doubt which one it will touch. Choose it and the incoming version updates the
-dance you already have instead of adding a second copy, which is how you pick up a
-correction an archive has made since you first imported.
+doubt which one it will touch. Choose it and the incoming version's **figures,
+formation, and progression** replace those of the dance you already have instead
+of adding a second copy, which is how you pick up a correction an archive has
+made since you first imported.
 
-Dances already in your collection are marked **Imported** in the review list, and
-the commit summary counts them separately — **Re-imported: 4** — so you can see at
-a glance how much of an import was new material and how much was an update.
+The figures bring their dance form with them: figures from a contra source make
+the dance a contra dance, and English figures make it English. When the dance
+has no meter or key yet, the incoming ones fill them, since English figures are
+counted in bars of the meter; a meter or key you already set stays.
 
-Re-importing overwrites that dance with the incoming version, so if you have
-edited your copy, look before you commit. The **Undo** on the summary reverses the
-whole import if it was not what you wanted.
+Everything else on the dance is yours and stays as it is: its title, authors,
+calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and
+source citations. Your own ratings, tags and notes are never overwritten by a
+re-import, whatever the source: a share file or other Caller's Compendium file,
+a published collection, a Caller's Companion `.USR` file, ContraDB or The
+Caller's Box. Only the dance's record of where it came from is updated, to the
+version you re-imported. If the incoming version has no figures the app can
+read, your figures are kept.
+
+To pick up a corrected **title or credit** as well, tick **Also update title
+and credit** under that row's **Re-import onto** choice. It is off on every row
+each time you import, and applies only to the row you tick it on. The dance
+then also takes the incoming title and authors; if the incoming version names
+no author, yours are kept. Its rating, tags, notes, links and status still
+never change.
+
+Before you commit, a note above the **Import** button says how many existing
+dances a re-import will update, and how many of those will also take the
+file's title and credit.
+
+A shared file carries the tags, custom fields and published sources its dances
+use. Those that only a re-imported or skipped dance needed are not added to
+your collection, and one you had deleted stays deleted.
+
+Dances already in your collection show **Re-import** and **Skip** choices in the
+review list, and **Skip** is the default, so choose **Re-import** on the ones you
+want updated. When many dances match, use **Set all matched dances to:
+Re-import** or **Skip** at the top of the list to change every one in a single tap
+(you can still change individual rows afterwards), and **Skip all possible
+matches** to skip every row marked **Possible match** (not a row whose only
+matches are under another title). The commit summary counts re-imports separately — **Re-imported: 4**
+— so you can see at a glance how much of an import was new material and how much
+was an update. The **Imported** badge appears only on a row you brought in with **Import and
+edit** during review.
+
+**Skip** leaves your copy of a dance exactly as it is, but programs in the same
+file still point at it. When a `.USR` file or a shared program uses a dance the
+review recognized as one you already have and you left it at **Skip**, or one you
+brought in with **Import and edit**, its place in the program links to the dance
+in your collection. In a shared program, a dance that is not brought in and
+was not recognized — including a **Possible match** you skip — still becomes a
+*Dance not imported* note in the program. From a `.USR` file, such a dance's
+place in the program shows its title instead, so the program still reads as
+you planned it, and you can make the dance from that slot later. If the app
+could not write the dance, the slot shows its title and a *Dance not imported*
+line, and the import says so; if it could not read the dance from the file at
+all, just the *Dance not imported* line. A slot for a dance you deleted in Caller's
+Companion is left out of the program, as Caller's Companion has nothing left to
+show for it; the import result notes it. Its first alternate, if it had one,
+moves up to take its place, as when you remove a dance in the program editor,
+and the same happens to an empty slot's alternate.
+
+Re-importing replaces that dance's figures, formation, and progression with the
+incoming version's, with the dance form they need (and its title and credit, if
+you ticked the box), so if you
+have edited them in your copy, look before you commit. The **Undo** on the summary reverses the
+whole batch import if it was not what you wanted (but not a dance you brought in
+with **Import and edit**).
 
 ### Refresh choreography on one saved dance
 
 From any saved dance detail view — including Collection, a Program Summary,
 global search, a post-import result, or a saved Program Editor preview — choose
 **Re-import choreography**. Select Caller's Box,
-ContraDB, or a Caller's Compendium JSON file. Online searches use the saved
-dance title and always show their results for you to choose from; the app never
-selects an online match automatically. JSON must contain exactly one dance and
-cannot contain a program.
+ContraDB, **Link or ID**, or a Caller's Compendium JSON file. Online searches use
+the saved dance title and always show their results for you to choose from; the
+app never selects an online match automatically. JSON must contain exactly one
+dance and cannot contain a program.
+
+If the source spells the title differently from your copy — `A-1 Reel` on The
+Caller's Box against your `A1 Reel` — the title search finds nothing. Choose
+**Link or ID** instead and paste the dance's Caller's Box or ContraDB address,
+or enter its ID number, as for
+[importing a dance by link or ID](#import-a-dance-by-link-or-id). A pasted
+address selects its own source. A bare ID number is looked up in the source
+selected above the field, which starts on the one your dance was imported from
+(The Caller's Box when it has none), so check it before you fetch. An address the app does not recognize is reported before anything
+is fetched, and a dance that does not exist, or a source that cannot be reached,
+says so in its own words.
+
+If the source does not provide the dance's figures — The Caller's Box shares
+them for only some dances — the app tells you so and leaves your dance
+unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,
-formation, and progression**. This keeps your title, notes, rating, tags,
-links, custom fields, authors, citations, and other saved metadata. This is
-different from the normal import review's re-import/link choices, which can
-replace an entire imported record.
+formation, and progression**, with the dance form they are written in, and the
+meter and key if the dance has none. The Caller's Box and ContraDB hold contra
+dances, so refreshing an English dance from them makes it a contra dance. This keeps your title, notes, rating, tags,
+links, custom fields, authors, citations, and other saved metadata. The import
+review's **Re-import onto** does the same. Its **Same dance — replace** choices
+are different: they replace the dance's content (see
+[Avoiding duplicates](#avoiding-duplicates)).
 
 ## Importing whole programs
 
@@ -437,7 +941,7 @@ your collection (or imports it for you) as it reads the list:
 Both live in the **Import program** menu on the **Programs** screen rather than
 the **Import…** flow here, because they build a program, not just add dances. For
 step-by-step instructions, see
-[Programs & matrix › Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
+[Programs & matrix ▸ Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
 and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
 
 If you want the dances but **not** a program, use
@@ -452,5 +956,5 @@ instead.
 - Want imported dances to read in your own words and role names? See
   [Dialect](./dialects.md).
 - Tidying up a dance after it lands: [Write & edit dances](./authoring.md).
-- Unsure about a term used here? The [Glossary](./glossary.md) has plain
+- Unsure about a term used here? [App terms](./glossary.md) has plain
   definitions.

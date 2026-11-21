@@ -67,7 +67,10 @@ void main() {
     );
 
     expect(find.byType(ImportGapBadge), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('parse this call')), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp('recognize this call')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('no badge for userEntered customs or structured figures', (

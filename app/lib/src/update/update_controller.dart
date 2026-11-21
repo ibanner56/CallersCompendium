@@ -8,7 +8,13 @@
 /// files; this controller only holds state, persists prefs, and calls
 /// [UpdateService]. Honors the ADR-002 §5 privacy contract: auto-check is
 /// opt-in (default off), the banner is gated by a stored dismissed version, and
-/// every failure is a silent no-op.
+/// the automatic check's failures are silent (the manual check reports them
+/// in its status line).
+///
+/// It also keeps the running build's announced end-of-life date
+/// ([retirementNotice]): found by whichever check runs (manual, or the opt-in
+/// auto-check), cached on the device so it survives restarts and offline
+/// launches, and cleared once an authenticated manifest stops announcing it.
 library;
 
 import 'dart:async';
@@ -25,10 +31,12 @@ import 'artifact_downloader.dart';
 import 'artifact_handoff.dart';
 import 'artifact_verifier.dart';
 import 'current_platform.dart';
+import 'install_kind.dart';
 import 'semver.dart';
 import 'update_config.dart';
 import 'update_manifest.dart';
 import 'update_service.dart';
+import 'update_temp_sweep.dart';
 
 /// The state of the manual "Check for updates" action, surfaced as inline
 /// status text in Settings (never an error dialog — ADR-002 §5).
@@ -39,13 +47,24 @@ enum UpdateCheckStatus {
   /// A check is in flight.
   checking,
 
-  /// A check completed and found no newer version — this also covers a silent
-  /// failure (offline/404/malformed), which the privacy contract makes
-  /// indistinguishable from "up to date" by design.
+  /// A check completed and found no newer version. The *automatic* check also
+  /// only reaches here by reading a manifest. A failed *automatic* check leaves
+  /// the status as it was, silently (ADR-002 §5, erratum 2026-10-29); the
+  /// manual check reports a failure as [couldNotCheck] or [newerFormat].
   noUpdate,
 
   /// A check found a strictly-newer version (the banner is now eligible).
   updateAvailable,
+
+  /// A **manual** check could not read the manifest: offline, unreachable,
+  /// unsigned or tampered, or malformed. Says nothing about whether an update
+  /// exists.
+  couldNotCheck,
+
+  /// A **manual** check fetched an authentic manifest in a format this build
+  /// cannot read, which means a newer release exists. There is no artifact or
+  /// banner to offer — the Releases page is the way forward.
+  newerFormat,
 }
 
 /// The state of the desktop assisted-download flow (ADR-002 "Stage 1.5"):
@@ -74,13 +93,69 @@ enum AssistedDownloadStatus {
   /// the file manager for the user to run (see [UpdateController.handoffResult]).
   completed,
 
-  /// The download, verification, or handoff failed. [UpdateController.downloadError]
-  /// holds a user-facing message; a verification failure has already deleted the
-  /// file.
+  /// The download, verification, or handoff failed. [UpdateController.downloadFailure]
+  /// says why; a verification failure has already deleted the file.
   failed,
 
   /// The user cancelled an in-flight download.
   cancelled,
+}
+
+/// Why an assisted download ended in [AssistedDownloadStatus.failed].
+///
+/// A discriminator, not a message: the controller is locale-free, so it records
+/// the reason and the presentation layer localizes it
+/// (`update_failure_labels.dart`), like `UrlFetchFailureReason` for imports.
+enum UpdateDownloadFailure {
+  /// No folder could be prepared to receive the file, or (off macOS) something
+  /// already sat at the app-chosen download path.
+  destinationUnavailable,
+
+  /// macOS only: the path chosen in the Save panel holds something the app
+  /// will not replace — a folder, a symbolic link, or a file it could not
+  /// delete. A Finder alias is a regular file and is replaced like one.
+  destinationOccupied,
+
+  /// The file's size did not match the manifest; it was deleted.
+  incomplete,
+
+  /// The download URL's host was refused.
+  refusedHost,
+
+  /// The transfer failed (network or another transport error).
+  unreachable,
+
+  /// The server answered with an error status (404, 5xx, ...).
+  serverError,
+
+  /// The disk filled up while the file was being written.
+  diskFull,
+
+  /// The file could not be created or written: the location is not writable.
+  unwritable,
+
+  /// The sha256 check failed; the file was deleted.
+  checksumMismatch,
+
+  /// The verified file could not be handed to the operating system.
+  handoffFailed,
+
+  /// An unexpected error interrupted the install step.
+  installFailed,
+}
+
+/// An announced end of support for the running build (ADR-002 §2
+/// `retirements`).
+class RetirementNotice {
+  const RetirementNotice({required this.endOfLife, required this.isPast});
+
+  /// The announced end-of-life day — a UTC-midnight calendar date; display it
+  /// as a date, never convert it as an instant.
+  final DateTime endOfLife;
+
+  /// Whether that day has arrived on the device's local calendar. The notice
+  /// is worded as a deadline before it and as a lapse from it on.
+  final bool isPast;
 }
 
 /// Owns update prefs + the latest check result.
@@ -91,26 +166,40 @@ class UpdateController extends ChangeNotifier {
     SemVer? currentVersion,
     UpdatePlatform? platform,
     UpdateArch? arch,
+    InstallKind? installKind,
     ArtifactDownloader? downloader,
     ArtifactVerifier? verifier,
     ArtifactHandoff? handoff,
     ArtifactDestinationPicker? macosDestinationPicker,
     Future<Directory> Function()? temporaryDirectoryProvider,
+    Iterable<String> Function()? runningExecutablePathsProvider,
     this.onMacosShutdown,
-  }) : _service = service ?? UpdateService(),
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now,
+       _service = service ?? UpdateService(),
        currentVersion =
            currentVersion ??
            (SemVer.tryParse(kUpdaterVersion) ??
                const SemVer(major: 0, minor: 0, patch: 0)),
        _platform = platform ?? currentUpdatePlatform(),
        _arch = arch ?? currentUpdateArch(),
+       // Detection reads the real process, so it only means something for the
+       // real platform: a test that fakes [platform] gets the standard channel
+       // unless it names an [installKind].
+       installKind =
+           installKind ??
+           (platform == null
+               ? detectInstallKind(platform: currentUpdatePlatform())
+               : InstallKind.standard),
        _downloader = downloader ?? downloadArtifact,
        _verifier = verifier ?? verifyArtifactSha256,
        _handoff = handoff ?? handoffArtifactToOs,
        _macosDestinationPicker =
            macosDestinationPicker ?? pickMacosArtifactDestination,
        _temporaryDirectoryProvider =
-           temporaryDirectoryProvider ?? getTemporaryDirectory;
+           temporaryDirectoryProvider ?? getTemporaryDirectory,
+       _runningExecutablePaths =
+           runningExecutablePathsProvider ?? runningExecutablePaths;
 
   final SettingsRepository _settings;
   final UpdateService _service;
@@ -122,7 +211,9 @@ class UpdateController extends ChangeNotifier {
   final ArtifactHandoff _handoff;
   final ArtifactDestinationPicker _macosDestinationPicker;
   final Future<Directory> Function() _temporaryDirectoryProvider;
+  final Iterable<String> Function() _runningExecutablePaths;
   final Future<void> Function()? onMacosShutdown;
+  final DateTime Function() _clock;
 
   /// The running release identity (parsed from [kUpdaterVersion]) that manifest
   /// versions are compared against.
@@ -131,15 +222,32 @@ class UpdateController extends ChangeNotifier {
   final UpdatePlatform _platform;
   final UpdateArch _arch;
 
+  /// How this copy was installed (PLAT-5, PLAT-6). A [InstallKind.store] copy
+  /// is never offered an update (it reads an end-of-support date only); a [InstallKind.portable] copy checks but is pointed at the
+  /// release instead of being handed an installer it cannot use.
+  final InstallKind installKind;
+
+  /// Whether this copy is ever offered an update. A store copy is updated by
+  /// its store, so it is not: its check reads the release information for an
+  /// end-of-support date only (maintainer decision, 2026-10-30).
+  bool get offersUpdates => installKind != InstallKind.store;
+
+  /// Where the end-of-support "Get update" action goes on a store copy: its
+  /// store listing. `null` on every other copy, which opens the release.
+  String? get storeListingUrl =>
+      installKind == InstallKind.store ? storeListingUrlFor(_platform) : null;
+
   bool _betaChannel = false;
   bool _autoCheck = false;
   SemVer? _dismissedVersion;
   UpdateAvailable? _available;
   UpdateCheckStatus _status = UpdateCheckStatus.idle;
+  DateTime? _endOfLife;
+  bool _retirementHidden = false;
 
   AssistedDownloadStatus _downloadStatus = AssistedDownloadStatus.idle;
   DownloadProgress? _downloadProgress;
-  String? _downloadError;
+  UpdateDownloadFailure? _downloadFailure;
   HandoffResult? _handoffResult;
   File? _pendingMacosArtifact;
   DownloadCancelToken? _cancelToken;
@@ -151,9 +259,14 @@ class UpdateController extends ChangeNotifier {
   /// Whether the automatic background check is enabled (default off).
   bool get autoCheck => _autoCheck;
 
-  /// The channel the check fetches, derived from [betaChannel].
-  UpdateChannel get channel =>
-      _betaChannel ? UpdateChannel.beta : UpdateChannel.stable;
+  /// The channel the check fetches, derived from [betaChannel]. A store copy
+  /// has no channel choice (it is never offered an update), so it reads the
+  /// channel its own build was released on, whatever a beta preference stored
+  /// before it was a store copy says.
+  UpdateChannel get channel {
+    final beta = offersUpdates ? _betaChannel : currentVersion.isPreRelease;
+    return beta ? UpdateChannel.beta : UpdateChannel.stable;
+  }
 
   /// The last version the user dismissed from the banner, or `null`.
   SemVer? get dismissedVersion => _dismissedVersion;
@@ -178,6 +291,34 @@ class UpdateController extends ChangeNotifier {
     return found;
   }
 
+  /// The end of support announced for the running build, or `null` when none
+  /// is known. Not affected by [hideRetirementBanner] — Settings always shows
+  /// it.
+  RetirementNotice? get retirementNotice {
+    final endOfLife = _endOfLife;
+    if (endOfLife == null) return null;
+    final now = _clock();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    return RetirementNotice(
+      endOfLife: endOfLife,
+      isPast: !today.isBefore(endOfLife),
+    );
+  }
+
+  /// The notice the app-wide retirement banner should show, or `null` once the
+  /// user has hidden it. Hiding lasts for this session only: unlike an update,
+  /// an end of support is not something the user can opt out of hearing about,
+  /// so it returns on the next launch.
+  RetirementNotice? get retirementBanner =>
+      _retirementHidden ? null : retirementNotice;
+
+  /// Hides the retirement banner until the app is next launched.
+  void hideRetirementBanner() {
+    if (_retirementHidden) return;
+    _retirementHidden = true;
+    notifyListeners();
+  }
+
   /// The status of the desktop assisted-download flow.
   AssistedDownloadStatus get downloadStatus => _downloadStatus;
 
@@ -185,9 +326,11 @@ class UpdateController extends ChangeNotifier {
   /// [AssistedDownloadStatus.downloading], else `null`.
   DownloadProgress? get downloadProgress => _downloadProgress;
 
-  /// A user-facing error when [downloadStatus] is
-  /// [AssistedDownloadStatus.failed], else `null`.
-  String? get downloadError => _downloadError;
+  /// Why the download failed when [downloadStatus] is
+  /// [AssistedDownloadStatus.failed], else `null`. Deliberately a typed reason
+  /// and not prose: the controller has no locale, so the UI turns it into text
+  /// with `updateDownloadFailureMessage` when it is displayed.
+  UpdateDownloadFailure? get downloadFailure => _downloadFailure;
 
   /// How the verified artifact was handed off when [downloadStatus] is
   /// [AssistedDownloadStatus.completed] — [HandoffResult.launched] on macOS and
@@ -214,6 +357,8 @@ class UpdateController extends ChangeNotifier {
   /// "Download & install" exactly when this is non-null.
   UpdateArtifact? get downloadableArtifact {
     if (!isDesktopUpdatePlatform(_platform)) return null;
+    // A portable copy cannot take the installer the manifest names.
+    if (installKind != InstallKind.standard) return null;
     return _available?.artifact;
   }
 
@@ -227,8 +372,8 @@ class UpdateController extends ChangeNotifier {
   /// until [installPendingMacosUpdate] receives explicit approval.
   /// A concurrent call is ignored while one is in flight. Never throws — every
   /// failure resolves to [AssistedDownloadStatus.failed] with a user-facing
-  /// [downloadError] (a verification mismatch also deletes the file). This is
-  /// deliberately **not** a silent no-op like the check: it is a security gate
+  /// [downloadFailure] (a verification mismatch also deletes the file). This is
+  /// deliberately **not** a silent no-op like the automatic check: it is a security gate
   /// (ADR-002 §6, "Stage 1.5").
   Future<void> startAssistedDownload() async {
     if (isDownloadInFlight || isAwaitingMacosInstall) return;
@@ -237,7 +382,7 @@ class UpdateController extends ChangeNotifier {
 
     final token = DownloadCancelToken();
     _cancelToken = token;
-    _downloadError = null;
+    _downloadFailure = null;
     _downloadProgress = null;
     _handoffResult = null;
     _lastNotifiedProgressTick = -1;
@@ -254,8 +399,19 @@ class UpdateController extends ChangeNotifier {
         // hard quarantine flag ("created without user consent"), which prevents
         // Gatekeeper from launching the installed application.
         final selected = await _macosDestinationPicker(artifact);
-        if (selected == null) {
+        // A cancel pressed while the panel was open wins: return before the
+        // chosen path is touched, so a file the user just confirmed replacing
+        // is not deleted for a download that will never run.
+        if (selected == null || token.isCancelled) {
           _cancelDownloadState(null);
+          return;
+        }
+        // The downloader refuses anything already at its destination (#626).
+        // The Save panel has already asked the user to confirm "Replace", so
+        // a regular file here is removed first; anything else is reported as
+        // occupied rather than written through or blamed on the network.
+        if (!_clearMacosDestination(selected)) {
+          _failDownload(UpdateDownloadFailure.destinationOccupied);
           return;
         }
         destination = selected;
@@ -266,7 +422,7 @@ class UpdateController extends ChangeNotifier {
         // cannot pre-plant a symlink at a guessable location to redirect the
         // write (CWE-59/377). The downloader's own `create(exclusive: true)`
         // guard is defense-in-depth on top of this.
-        downloadDir = await dir.createTemp('cc_update_');
+        downloadDir = await dir.createTemp(kUpdateTempDirPrefix);
         usesTemporaryDirectory = true;
         destination = File(
           '${downloadDir.path}/${downloadFileName(artifact.url)}',
@@ -281,7 +437,7 @@ class UpdateController extends ChangeNotifier {
       if (usesTemporaryDirectory && downloadDir != null) {
         await _deleteDirQuietly(downloadDir);
       }
-      _failDownload('Could not choose a place to download the update.');
+      _failDownload(UpdateDownloadFailure.destinationUnavailable);
       return;
     }
 
@@ -296,12 +452,18 @@ class UpdateController extends ChangeNotifier {
 
       if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
         _cancelDownloadState(outcome.file);
-        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
+        if (usesTemporaryDirectory) {
+          await _deleteDownloadDir(downloadDir!, outcome);
+        }
         return;
       }
       if (!outcome.isSuccess || outcome.file == null) {
-        _failDownload(_downloadFailureMessage(outcome.kind));
-        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
+        final failure = _downloadFailureFor(outcome.kind);
+        _logDownloadFailure(failure, outcome);
+        _failDownload(failure);
+        if (usesTemporaryDirectory) {
+          await _deleteDownloadDir(downloadDir!, outcome);
+        }
         return;
       }
       final file = outcome.file!;
@@ -320,10 +482,7 @@ class UpdateController extends ChangeNotifier {
       if (!verified) {
         await _deleteQuietly(file);
         if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
-        _failDownload(
-          'The downloaded update failed its security (sha256) check and was '
-          'deleted. Try again, or use "View release" to download it manually.',
-        );
+        _failDownload(UpdateDownloadFailure.checksumMismatch);
         return;
       }
 
@@ -345,10 +504,7 @@ class UpdateController extends ChangeNotifier {
         } else {
           await _deleteQuietly(file);
         }
-        _failDownload(
-          'The update was downloaded and verified, but could not be opened '
-          'automatically. Use "View release" to finish installing.',
-        );
+        _failDownload(UpdateDownloadFailure.handoffFailed);
         return;
       }
 
@@ -368,10 +524,7 @@ class UpdateController extends ChangeNotifier {
       );
       await _deleteQuietly(downloaded ?? destination);
       if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
-      _failDownload(
-        'Something went wrong while installing the update. Try again, or use '
-        '"View release" to download it manually.',
-      );
+      _failDownload(UpdateDownloadFailure.installFailed);
     } finally {
       _cancelToken = null;
     }
@@ -399,20 +552,14 @@ class UpdateController extends ChangeNotifier {
       );
       await _deleteQuietly(file);
       _pendingMacosArtifact = null;
-      _failDownload(
-        'Something went wrong while installing the update. Try again, or use '
-        '"View release" to download it manually.',
-      );
+      _failDownload(UpdateDownloadFailure.installFailed);
       return;
     }
 
     if (handoff == HandoffResult.failed) {
       await _deleteQuietly(file);
       _pendingMacosArtifact = null;
-      _failDownload(
-        'The update was downloaded and verified, but could not be opened '
-        'automatically. Use "View release" to finish installing.',
-      );
+      _failDownload(UpdateDownloadFailure.handoffFailed);
       return;
     }
 
@@ -440,6 +587,34 @@ class UpdateController extends ChangeNotifier {
   /// and the partial file is deleted.
   void cancelDownload() => _cancelToken?.cancel();
 
+  /// Deletes update-download directories that earlier runs left in the temp
+  /// directory and nobody has touched for [kUpdateTempDirMinAge]; see
+  /// [sweepStaleUpdateTempDirs]. The app calls it once per launch, fire and
+  /// forget, on every platform; only the Windows and Linux download flow makes
+  /// such directories, so elsewhere it finds nothing. It needs no opt-in (it is local housekeeping and sends nothing)
+  /// and never throws: a temp directory that cannot be resolved or listed just
+  /// means nothing is swept.
+  ///
+  /// Safe next to a download: it only removes a directory whose newest file is
+  /// a week old, and a download in flight keeps its file's modification time
+  /// current while one that just completed is only minutes old. It also never
+  /// removes the directory holding the running executable (see
+  /// [runningExecutablePaths]), so a Linux AppImage the user keeps running from
+  /// where it was downloaded survives however old it is.
+  Future<void> sweepStaleDownloads() async {
+    try {
+      final dir = await _temporaryDirectoryProvider();
+      await sweepStaleUpdateTempDirs(
+        dir,
+        now: _clock,
+        inUsePaths: _runningExecutablePaths(),
+      );
+    } on Object {
+      // diagnostics: silent — best-effort housekeeping; the temp directory
+      // could not be resolved, so there is nothing to sweep.
+    }
+  }
+
   /// Clears a terminal download state (completed/failed/cancelled) back to idle
   /// so the affordance re-arms — e.g. after the user reads an error and wants to
   /// retry.
@@ -447,7 +622,7 @@ class UpdateController extends ChangeNotifier {
     if (isDownloadInFlight) return;
     _downloadStatus = AssistedDownloadStatus.idle;
     _downloadProgress = null;
-    _downloadError = null;
+    _downloadFailure = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
     notifyListeners();
@@ -472,16 +647,16 @@ class UpdateController extends ChangeNotifier {
     if (file != null) unawaited(_deleteQuietly(file));
     _downloadStatus = AssistedDownloadStatus.cancelled;
     _downloadProgress = null;
-    _downloadError = null;
+    _downloadFailure = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
     _cancelToken = null;
     notifyListeners();
   }
 
-  void _failDownload(String message) {
+  void _failDownload(UpdateDownloadFailure failure) {
     _downloadStatus = AssistedDownloadStatus.failed;
-    _downloadError = message;
+    _downloadFailure = failure;
     _downloadProgress = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
@@ -489,19 +664,74 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _downloadFailureMessage(DownloadResultKind kind) {
+  /// Records a failed download in the diagnostics log. Only the typed failure,
+  /// the outcome kind and an HTTP status are written: [DownloadOutcome.message]
+  /// can embed the OS error text, which names the destination path.
+  void _logDownloadFailure(
+    UpdateDownloadFailure failure,
+    DownloadOutcome outcome,
+  ) {
+    final status = outcome.httpStatus;
+    logCaughtError(
+      _UpdateDownloadError(
+        '${failure.name} (${outcome.kind.name}'
+        '${status == null ? '' : ', HTTP $status'})',
+      ),
+      null,
+      source: 'update_controller.startAssistedDownload',
+    );
+  }
+
+  UpdateDownloadFailure _downloadFailureFor(DownloadResultKind kind) {
     switch (kind) {
       case DownloadResultKind.sizeMismatch:
-        return 'The download was incomplete and was deleted. Please try again, '
-            'or use "View release".';
+        return UpdateDownloadFailure.incomplete;
       case DownloadResultKind.refusedHost:
-        return 'The update download was refused because it pointed at an '
-            'unexpected location. Use "View release" to download it manually.';
+        return UpdateDownloadFailure.refusedHost;
+      case DownloadResultKind.httpError:
+        return UpdateDownloadFailure.serverError;
+      case DownloadResultKind.diskFull:
+        return UpdateDownloadFailure.diskFull;
+      case DownloadResultKind.permissionDenied:
+        return UpdateDownloadFailure.unwritable;
+      case DownloadResultKind.destinationOccupied:
+        // Only macOS lets the user choose another name or folder; elsewhere the
+        // app picked the temp path itself, so that advice would be unusable.
+        return _platform == UpdatePlatform.macos
+            ? UpdateDownloadFailure.destinationOccupied
+            : UpdateDownloadFailure.destinationUnavailable;
       case DownloadResultKind.networkError:
       case DownloadResultKind.success:
       case DownloadResultKind.cancelled:
-        return 'The update could not be downloaded. Check your connection and '
-            'try again, or use "View release".';
+        return UpdateDownloadFailure.unreachable;
+    }
+  }
+
+  /// Makes [path], which the user picked and confirmed in the macOS Save
+  /// panel, free for the downloader. Deletes it only when it is a **regular
+  /// file**, checked without following links, so a symlink is never followed
+  /// to its target and a directory is never removed. Returns `false` when
+  /// something else is there or the delete fails; the path is then untouched
+  /// by this method. Never used for the Windows/Linux temp-dir path, where
+  /// anything already present is refused outright.
+  ///
+  /// Synchronous on purpose: one `lstat` and at most one `unlink` on a path
+  /// the user just chose. Doing it with async I/O would add an event-loop
+  /// round trip that widget tests under fake async never complete.
+  bool _clearMacosDestination(File path) {
+    try {
+      final type = FileSystemEntity.typeSync(path.path, followLinks: false);
+      if (type == FileSystemEntityType.notFound) return true;
+      if (type != FileSystemEntityType.file) return false;
+      path.deleteSync();
+      return true;
+    } on Object catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'update_controller.clearMacosDestination',
+      );
+      return false;
     }
   }
 
@@ -515,11 +745,28 @@ class UpdateController extends ChangeNotifier {
     }
   }
 
+  /// Removes the per-attempt temp directory after a failed or cancelled
+  /// download, and again once [DownloadOutcome.released] completes when the
+  /// downloader returned with its partial file still open: on Windows that
+  /// open file blocks the first removal. Each attempt's directory is unique,
+  /// so the late removal cannot touch a newer download's files.
+  Future<void> _deleteDownloadDir(
+    Directory dir,
+    DownloadOutcome outcome,
+  ) async {
+    await _deleteDirQuietly(dir);
+    final released = outcome.released;
+    if (released != null) {
+      unawaited(released.then((_) => _deleteDirQuietly(dir)));
+    }
+  }
+
   /// Best-effort recursive removal of the per-attempt temp directory created
   /// in [startAssistedDownload] (issue #626). Only ever called on a
   /// non-success path — the directory (and its file) are deliberately left in
   /// place after [AssistedDownloadStatus.completed] so the user can still
-  /// reach the verified artifact.
+  /// reach the verified artifact. [sweepStaleDownloads] removes it at a later
+  /// launch.
   Future<void> _deleteDirQuietly(Directory dir) async {
     try {
       if (await dir.exists()) await dir.delete(recursive: true);
@@ -536,12 +783,12 @@ class UpdateController extends ChangeNotifier {
   void _resetDownloadForNewResult() {
     if (isDownloadInFlight) return;
     if (_downloadStatus == AssistedDownloadStatus.idle &&
-        _downloadError == null) {
+        _downloadFailure == null) {
       return;
     }
     _downloadStatus = AssistedDownloadStatus.idle;
     _downloadProgress = null;
-    _downloadError = null;
+    _downloadFailure = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
   }
@@ -571,19 +818,89 @@ class UpdateController extends ChangeNotifier {
         ); // diagnostics: silent — dismissed-version pref read failed; falls back to null.
     _dismissedVersion = dismissed is String ? SemVer.tryParse(dismissed) : null;
 
+    final retirement = await _settings
+        .get(kUpdateRetirementNoticeKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — cached retirement read failed; the next check re-finds it.
+    _endOfLife = _cachedEndOfLife(retirement);
+    if (retirement != null && _endOfLife == null) {
+      // A notice cached by a build the user has since updated away from (or a
+      // malformed one): nothing will ever read it again, so drop it.
+      await _settings
+          .remove(kUpdateRetirementNoticeKey, permanent: true)
+          .catchError(
+            (_) {},
+          ); // diagnostics: silent — best-effort cleanup of an ignored cache row.
+    }
+
     notifyListeners();
   }
 
-  /// Runs a check now (the manual "Check for updates" action, always
-  /// available). Concurrent presses are ignored while one is in flight. Never
-  /// throws — a failure resolves to [UpdateCheckStatus.noUpdate].
-  Future<void> checkNow() async {
+  /// The end-of-life date in a cached notice, or `null` when [stored] is not a
+  /// well-formed notice **for the running build**. A notice cached by an older
+  /// build is ignored rather than trusted: the user has since updated, and the
+  /// new build learns its own date from its next check.
+  DateTime? _cachedEndOfLife(Object? stored) {
+    if (stored is! Map) return null;
+    final build = stored['build'];
+    final date = stored['endOfLife'];
+    if (build is! String || date is! String) return null;
+    if (SemVer.tryParse(build) != currentVersion) return null;
+    return UpdateRetirement.parseDate(date);
+  }
+
+  /// Records the end-of-life date an authenticated manifest announced for the
+  /// running build — or, when it announced none, forgets any cached one (the
+  /// maintainer withdrew or postponed it).
+  Future<void> _applyEndOfLife(DateTime? endOfLife) async {
+    if (endOfLife == _endOfLife) return;
+    _endOfLife = endOfLife;
+    notifyListeners();
+    try {
+      if (endOfLife == null) {
+        await _settings.remove(kUpdateRetirementNoticeKey, permanent: true);
+      } else {
+        await _settings.set(kUpdateRetirementNoticeKey, {
+          'build': currentVersion.toString(),
+          'endOfLife': _isoDate(endOfLife),
+        });
+      }
+    } on Object catch (error, stackTrace) {
+      // The in-memory notice is already right for this session; only the
+      // offline carry-over to the next launch is lost.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'update_controller.applyEndOfLife',
+      );
+    }
+  }
+
+  static String _isoDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+
+  /// Runs a check now (the manual "Check for updates" action, available on
+  /// every build but a store one, which does nothing: [offersUpdates]).
+  /// Concurrent presses are ignored while one is in flight. Never
+  /// throws — a failure resolves to [UpdateCheckStatus.couldNotCheck] or, for
+  /// an authentic manifest this build cannot read,
+  /// [UpdateCheckStatus.newerFormat].
+  Future<void> checkNow() =>
+      offersUpdates ? _check(manual: true) : Future.value();
+
+  Future<void> _check({required bool manual}) async {
     if (_status == UpdateCheckStatus.checking) return;
+    // What the status line said before this check, for an automatic check that
+    // fails: it must leave the line as it found it, not claim "No update found".
+    final statusBefore = _status;
     _status = UpdateCheckStatus.checking;
     notifyListeners();
 
     final requestedChannel = channel;
-    final result = await _service.check(
+    final outcome = await _service.checkManifest(
       channel: requestedChannel,
       currentVersion: currentVersion,
       platform: _platform,
@@ -591,15 +908,46 @@ class UpdateController extends ChangeNotifier {
     );
 
     // The user switched channels while this check was in flight — the result
-    // belongs to the old channel, so drop it (setBetaChannel already reset the
-    // state for the new channel) to avoid a stale cross-channel banner.
+    // belongs to the old channel, so drop all of it (setBetaChannel already
+    // reset the state for the new channel). That includes its end-of-life
+    // date: a beta release refreshes only beta.json, so the two channels can
+    // carry different retirement lists, and a late answer from the old one
+    // could resurrect a withdrawn date over the channel the user now reads.
     if (requestedChannel != channel) return;
 
-    _available = result;
-    _resetDownloadForNewResult();
-    _status = result == null
-        ? UpdateCheckStatus.noUpdate
-        : UpdateCheckStatus.updateAvailable;
+    // A failed check leaves the cached notice alone: being offline is
+    // not evidence that the announcement was withdrawn.
+    final checked = switch (outcome) {
+      UpdateChecked(:final result) => result,
+      UpdateCheckFailed() => null,
+    };
+    if (checked != null) await _applyEndOfLife(checked.endOfLife);
+    if (!offersUpdates) {
+      // A store copy reads the release information for its end-of-support
+      // date only: no update offer, and no status line to speak of.
+      _status = statusBefore;
+      notifyListeners();
+      return;
+    }
+    final result = checked?.update;
+
+    // A failed check says nothing about the release it could not reach, so it
+    // leaves the update found earlier (and any download state for it) alone;
+    // only a completed check, with or without an update, replaces them.
+    if (checked != null) {
+      _available = result;
+      _resetDownloadForNewResult();
+    }
+    _status = switch ((result, outcome)) {
+      (UpdateAvailable(), _) => UpdateCheckStatus.updateAvailable,
+      (_, UpdateChecked()) => UpdateCheckStatus.noUpdate,
+      // The automatic check never speaks up about a failure (ADR-002 §5), and
+      // "No update found" would be a claim that no check completed to make.
+      _ when !manual => statusBefore,
+      (_, UpdateCheckFailed(failure: UpdateCheckFailure.unsupportedFormat)) =>
+        UpdateCheckStatus.newerFormat,
+      (_, UpdateCheckFailed()) => UpdateCheckStatus.couldNotCheck,
+    };
     notifyListeners();
   }
 
@@ -607,7 +955,7 @@ class UpdateController extends ChangeNotifier {
   /// off). Wired to app bootstrap so a check runs at most once per launch and
   /// only for opted-in users (ADR-002 §5).
   Future<void> maybeAutoCheck() async {
-    if (_autoCheck) await checkNow();
+    if (_autoCheck) await _check(manual: false);
   }
 
   /// Sets the beta opt-in and persists it. Switching channels clears any
@@ -638,4 +986,15 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
     await _settings.set(kUpdateDismissedVersionKey, version.toString());
   }
+}
+
+/// A download failure reduced to its typed cause, safe to persist in the
+/// diagnostics log (no path, URL or OS message).
+class _UpdateDownloadError implements Exception {
+  const _UpdateDownloadError(this.summary);
+
+  final String summary;
+
+  @override
+  String toString() => 'UpdateDownloadError: $summary';
 }

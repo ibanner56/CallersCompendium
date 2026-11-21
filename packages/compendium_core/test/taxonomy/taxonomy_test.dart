@@ -72,7 +72,7 @@ void main() {
       final p = tax.effectiveParams(Figure(move: 'allemande'));
       expect(p['who'], 'neighbors');
       expect(p['hand'], 'right');
-      expect(p['travel'], 1.0);
+      expect(p['travel'], 1.5);
       expect(p['beats'], 8);
     });
 

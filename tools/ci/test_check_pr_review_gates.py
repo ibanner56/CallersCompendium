@@ -11,7 +11,10 @@ one that does nothing.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -24,13 +27,16 @@ assert SPEC and SPEC.loader
 gates = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(gates)
 
-REVIEWER = gates.REVIEWER_LOGIN
+COPILOT = gates.COPILOT
+COPILOT_LOGIN = COPILOT.review_login
 AUTHOR = "ibanner56"
 HEAD = "c11f747e2b0f4d9a8c1e5d3b7a6f2e1d0c9b8a77"
 STALE = "a76f3e0f1d2c3b4a5968778695a4b3c2d1e0f9a8"
 
 
 class FakeFetcher:
+    repo = "ibanner56/CallersCompendium"
+
     def __init__(self, rest: dict[str, Any], graphql: Any = None) -> None:
         self._rest = rest
         self._graphql = graphql
@@ -45,11 +51,17 @@ class FakeFetcher:
     def graphql(self, query: str) -> Any:
         if self._graphql is None:
             raise AssertionError("unexpected GraphQL call")
+        if isinstance(self._graphql, Exception):
+            raise self._graphql
         return self._graphql
 
 
 def review(login: str, commit: str, body: str = "") -> dict[str, Any]:
     return {"user": {"login": login}, "commit_id": commit, "body": body}
+
+
+# A Claude round's body opens with its verdict (.github/skills/code-review).
+APPROVE_BODY = "## Review verdict: APPROVE\n\nNo findings."
 
 
 def pull(head: str = HEAD) -> dict[str, Any]:
@@ -67,20 +79,20 @@ def test_review_freshness_catches_the_authors_reply_carrying_head() -> None:
         {
             "pulls/1": pull(),
             "pulls/1/reviews": [
-                [review(REVIEWER, STALE), review(AUTHOR, HEAD)],
+                [review(COPILOT_LOGIN, STALE), review(AUTHOR, HEAD)],
             ],
         }
     )
-    ok, lines = gates.gate_review(fetcher, 1)
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
     assert not ok, lines
     assert STALE[:8] in lines[0] and HEAD[:8] in lines[0]
 
 
 def test_review_freshness_passes_on_current_head() -> None:
     fetcher = FakeFetcher(
-        {"pulls/1": pull(), "pulls/1/reviews": [[review(REVIEWER, HEAD)]]}
+        {"pulls/1": pull(), "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]]}
     )
-    ok, lines = gates.gate_review(fetcher, 1)
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
     assert ok, lines
 
 
@@ -88,7 +100,7 @@ def test_unreviewed_pr_fails_closed() -> None:
     fetcher = FakeFetcher(
         {"pulls/1": pull(), "pulls/1/reviews": [[review(AUTHOR, HEAD)]]}
     )
-    ok, lines = gates.gate_review(fetcher, 1)
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
     assert not ok, lines
     assert "no review" in lines[0]
 
@@ -98,14 +110,387 @@ def test_reviews_are_read_across_pages() -> None:
         {
             "pulls/1": pull(),
             "pulls/1/reviews": [
-                [review(REVIEWER, STALE)],
-                [review(REVIEWER, HEAD)],
+                [review(COPILOT_LOGIN, STALE)],
+                [review(COPILOT_LOGIN, HEAD)],
             ],
         }
     )
-    ok, _ = gates.gate_review(fetcher, 1)
+    ok, _ = gates.gate_review(fetcher, 1, COPILOT)
     assert ok
     assert ("pulls/1/reviews", True) in fetcher.rest_calls, "must paginate"
+
+
+# --------------------------------------------------------------------------- #
+# reviewer selection (--reviewer)
+# --------------------------------------------------------------------------- #
+
+CLAUDE = gates.CLAUDE
+
+
+def test_reviewer_logins_are_the_ones_github_reports() -> None:
+    """The other tests build fixtures from these constants, so only this one
+    can catch a wrong login. Values observed on this repository: Copilot on
+    #900, Claude on #1738 (see docs/dev/agents/code-review.md)."""
+    assert gates.COPILOT == ("copilot-pull-request-reviewer[bot]", "Copilot")
+    assert gates.CLAUDE == ("claude[bot]", "claude[bot]")
+
+
+def test_claude_freshness_ignores_a_copilot_review_on_head() -> None:
+    """Asking for Claude's review must not be satisfied by Copilot's."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [
+                [review(CLAUDE.review_login, STALE, APPROVE_BODY), review(COPILOT_LOGIN, HEAD)]
+            ],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert not ok, lines
+    assert STALE[:8] in lines[0], lines
+
+
+def test_claude_freshness_passes_on_its_own_review_at_head() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, APPROVE_BODY)]],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert ok, lines
+
+
+def test_claude_freshness_ignores_an_entry_with_no_verdict_on_head() -> None:
+    """A reply to an inline thread, or a claude.yml answer, records a
+    claude[bot] review entry on the head; it is not a review round (#842's
+    author-reply trap, by Claude's own login)."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [
+                [
+                    review(CLAUDE.review_login, STALE, APPROVE_BODY),
+                    review(CLAUDE.review_login, HEAD, "Fixed, thanks."),
+                    review(CLAUDE.review_login, HEAD),
+                ]
+            ],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert not ok, lines
+    assert STALE[:8] in lines[0], lines
+
+
+def test_claude_freshness_fails_closed_with_no_round_at_all() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, "@claude answer")]],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert not ok, lines
+    assert "Review verdict" in lines[0], lines
+
+
+def test_copilot_freshness_needs_no_verdict() -> None:
+    fetcher = FakeFetcher(
+        {"pulls/1": pull(), "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]]}
+    )
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
+    assert ok, lines
+
+
+def test_default_reviewer_is_claude_so_a_copilot_review_does_not_count() -> None:
+    """PRs are reviewed by Claude by default, so the gate reads Claude unless told."""
+    copilot_only = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]],
+        }
+    )
+    ok, lines = gates.gate_review(copilot_only, 1)
+    assert not ok, lines
+    assert CLAUDE.review_login in lines[0], lines
+
+    claude_only = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, APPROVE_BODY)]],
+        }
+    )
+    ok, lines = gates.gate_review(claude_only, 1)
+    assert ok, lines
+
+
+def test_claude_findings_read_claudes_inline_comments_only() -> None:
+    def inline(login: str, path: str) -> dict[str, Any]:
+        return {"user": {"login": login}, "path": path, "line": 3, "body": "x"}
+
+    fetcher = FakeFetcher(
+        {
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+            "pulls/1/comments": [
+                [
+                    inline(CLAUDE.comment_login, "lib/claude.dart"),
+                    inline(COPILOT.comment_login, "lib/copilot.dart"),
+                ]
+            ],
+        }
+    )
+    _, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+    assert lines[0].startswith(f"1 round(s) by {CLAUDE.review_login}"), lines
+    assert "1 inline finding(s)" in lines[0], lines
+    assert any("lib/claude.dart" in line for line in lines[1:]), lines
+    assert not any("lib/copilot.dart" in line for line in lines[1:]), lines
+
+
+BLOCK_BODY = """\
+## Review verdict: BLOCK
+
+The change falsifies a doc it did not touch.
+
+### Blockers
+
+#### B1. docs/x.md still describes the removed flag
+- **Where:** `docs/x.md:3`
+"""
+
+
+def _claude_reviews(*bodies: tuple[str, str]) -> Any:
+    """A Claude-only `findings` fixture: (commit, body) per round, no inline
+    comments -- the shape of a review whose findings all sit outside the diff."""
+    return FakeFetcher(
+        {
+            "pulls/1/reviews": [[review(CLAUDE.review_login, c, b) for c, b in bodies]],
+            "pulls/1/comments": [[]],
+        }
+    )
+
+
+def test_claude_block_verdict_with_body_only_findings_fails_the_findings_gate() -> None:
+    """A finding on a line outside the diff cannot be an inline comment, so a
+    `BLOCK` review can have zero inline findings and zero threads. The gate
+    used to read only inline comments and passed it."""
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, BLOCK_BODY)), 1, CLAUDE)
+    assert not ok, lines
+    assert any("BLOCK" in line for line in lines), lines
+
+
+def test_claude_block_verdict_fails_through_run_gates_with_exit_one() -> None:
+    fetcher = _claude_reviews((HEAD, BLOCK_BODY))
+    fetcher._rest["pulls/1"] = pull()
+    printed: list[str] = []
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], reviewer=CLAUDE, out=printed.append
+    )
+    assert code == 1, printed
+    assert any(line.startswith("FAIL findings:") for line in printed), printed
+    assert any(line.startswith("PASS review:") for line in printed), printed
+
+
+def test_claude_approve_verdict_is_surfaced_and_passes() -> None:
+    body = "## Review verdict: APPROVE\n\nNo findings."
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+    assert ok, lines
+    assert any("verdict APPROVE" in line for line in lines), lines
+
+
+NITS_BODY = """\
+## Review verdict: APPROVE-WITH-NITS
+
+### Suspected (never makes the verdict BLOCK; confirm or dismiss in one line)
+
+#### S1. 360 px surface size is not reset after its test
+"""
+
+
+def test_claude_nits_verdict_fails_the_findings_gate() -> None:
+    """On #2196 and #2192 the author replied "Dismissed" to the reviewer's item,
+    resolved the thread, and merged under APPROVE-WITH-NITS: every thread was
+    resolved, so `threads` passed, and `findings` passed anything but BLOCK. A
+    nit now clears only when a later round no longer raises it -- a fix, or a
+    dispute the reviewer accepts on a re-run."""
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, NITS_BODY)), 1, CLAUDE)
+    assert not ok, lines
+    assert "APPROVE-WITH-NITS" in lines[0], lines
+    assert any("verdict APPROVE-WITH-NITS" in line for line in lines), lines
+
+
+def test_claude_nits_verdict_fails_through_run_gates_with_exit_one() -> None:
+    fetcher = _claude_reviews((HEAD, NITS_BODY))
+    fetcher._rest["pulls/1"] = pull()
+    printed: list[str] = []
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], reviewer=CLAUDE, out=printed.append
+    )
+    assert code == 1, printed
+    assert any(line.startswith("FAIL findings:") for line in printed), printed
+
+
+def test_nits_cleared_by_a_later_approve_passes_and_a_later_nits_fails() -> None:
+    cleared = _claude_reviews((STALE, NITS_BODY), (HEAD, "## Review verdict: APPROVE"))
+    ok, lines = gates.gate_findings(cleared, 1, CLAUDE)
+    assert ok, lines
+
+    reopened = _claude_reviews((STALE, "## Review verdict: APPROVE"), (HEAD, NITS_BODY))
+    ok, lines = gates.gate_findings(reopened, 1, CLAUDE)
+    assert not ok, lines
+
+
+def test_a_verdictless_entry_does_not_mask_a_nits_round() -> None:
+    """`claude.yml` answers and thread replies can record claude[bot] review
+    entries with no verdict line; one after a NITS round must not read as
+    clearing it."""
+    fetcher = _claude_reviews((HEAD, NITS_BODY), (HEAD, ""))
+    ok, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+    assert not ok, lines
+
+
+def test_an_unrecognised_claude_verdict_fails_closed() -> None:
+    """Only the exact word APPROVE passes: a misspelt or new verdict word is
+    not evidence of a clean review."""
+    for verdict in ("APPROVED", "LGTM", "APPROVE-WITH"):
+        body = f"## Review verdict: {verdict}"
+        ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+        assert not ok, (verdict, lines)
+
+
+def test_claude_verdict_is_read_from_the_latest_round_only() -> None:
+    """A BLOCK that a later round cleared must not fail the gate, and a BLOCK
+    that a later round did not clear must not be hidden by an earlier APPROVE."""
+    cleared = _claude_reviews((STALE, BLOCK_BODY), (HEAD, "## Review verdict: APPROVE"))
+    ok, lines = gates.gate_findings(cleared, 1, CLAUDE)
+    assert ok, lines
+    assert not any("verdict BLOCK" in line for line in lines), lines
+
+    reopened = _claude_reviews((STALE, "## Review verdict: APPROVE"), (HEAD, BLOCK_BODY))
+    ok, lines = gates.gate_findings(reopened, 1, CLAUDE)
+    assert not ok, lines
+
+
+def test_claude_verdict_survives_markdown_decoration() -> None:
+    for body in (
+        "## Review verdict: **BLOCK**",
+        "### Review verdict: `BLOCK`",
+        "intro line\n\n## Review verdict: block\n",
+    ):
+        ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+        assert not ok, (body, lines)
+
+
+def test_a_later_verdictless_claude_entry_does_not_mask_an_earlier_block() -> None:
+    """Replying to an inline thread records an empty-body review entry, and
+    claude.yml posts as claude[bot] too. Neither carries a verdict, so neither
+    may stand in for the round that does."""
+    for later in ("", "Thanks, looking at it."):
+        fetcher = _claude_reviews((HEAD, BLOCK_BODY), (HEAD, later))
+        ok, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+        assert not ok, (later, lines)
+        assert any("verdict BLOCK (round 1" in line for line in lines), lines
+
+
+def test_a_verdictless_entry_after_a_cleared_block_does_not_resurrect_it() -> None:
+    fetcher = _claude_reviews(
+        (STALE, BLOCK_BODY), (HEAD, "## Review verdict: APPROVE"), (HEAD, "")
+    )
+    ok, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+    assert ok, lines
+    assert any("verdict APPROVE (round 2" in line for line in lines), lines
+
+
+def test_claude_review_without_a_verdict_line_says_so_and_does_not_fail() -> None:
+    """`claude.yml` also posts as claude[bot] with no verdict line. Failing
+    on it would block merges on a review that is not a rubric review; hiding it
+    would read as a clean verdict."""
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, "Looks fine.")), 1, CLAUDE)
+    assert ok, lines
+    assert any("no `## Review verdict:` line" in line for line in lines), lines
+
+
+def test_a_block_mentioned_in_prose_is_not_a_verdict() -> None:
+    for body in (
+        "Round 1 said ## Review verdict: BLOCK, now fixed.\n\n## Review verdict: APPROVE",
+        "## Review verdict: APPROVE\n\nRound 1 said ## Review verdict: BLOCK.",
+    ):
+        ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+        assert ok, (body, lines)
+        assert any("verdict APPROVE" in line for line in lines), lines
+
+
+def test_a_copilot_review_is_not_read_for_a_verdict() -> None:
+    """Copilot's body has no verdict line; the Copilot gate stays as it was."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD, BLOCK_BODY)]],
+            "pulls/1/comments": [[]],
+        }
+    )
+    ok, lines = gates.gate_findings(fetcher, 1, COPILOT)
+    assert ok, lines
+    assert not any("verdict" in line for line in lines), lines
+
+
+def test_run_gates_passes_the_reviewer_to_both_review_gates() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, APPROVE_BODY)]],
+            "pulls/1/comments": [[]],
+        }
+    )
+    printed: list[str] = []
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], reviewer=CLAUDE, out=printed.append
+    )
+    assert code == 0, printed
+    assert any(CLAUDE.review_login in line for line in printed), printed
+
+
+def test_run_gates_and_findings_default_to_claude() -> None:
+    """With no reviewer named, run_gates gates Claude's review, findings included."""
+    printed: list[str] = []
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, BLOCK_BODY)]],
+            "pulls/1/comments": [[]],
+        }
+    )
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], out=printed.append
+    )
+    assert code == 1, printed
+    assert any(line.startswith("FAIL findings:") for line in printed), printed
+    assert any(line.startswith("PASS review:") for line in printed), printed
+
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, BLOCK_BODY)), 1)
+    assert not ok, lines
+
+
+def _reviewer_chosen_by_cli(argv: list[str]) -> Any:
+    seen: dict[str, Any] = {}
+
+    def fake_run_gates(*_args: Any, reviewer: Any, **_kwargs: Any) -> int:
+        seen["reviewer"] = reviewer
+        return 0
+
+    real_run, real_fetcher = gates.run_gates, gates.GitHubFetcher
+    gates.run_gates, gates.GitHubFetcher = fake_run_gates, lambda repo: None
+    try:
+        assert gates.main(argv) == 0
+    finally:
+        gates.run_gates, gates.GitHubFetcher = real_run, real_fetcher
+    return seen["reviewer"]
+
+
+def test_cli_reviewer_defaults_to_claude_and_accepts_copilot() -> None:
+    assert _reviewer_chosen_by_cli(["review", "1", "--repo", "o/r"]) == CLAUDE
+    chosen = _reviewer_chosen_by_cli(
+        ["review", "1", "--repo", "o/r", "--reviewer", "copilot"]
+    )
+    assert chosen == COPILOT
 
 
 # --------------------------------------------------------------------------- #
@@ -127,11 +512,11 @@ lib/b.dart:40 — unused parameter
 def test_findings_surface_suppressed_blocks_that_thread_state_cannot_see() -> None:
     fetcher = FakeFetcher(
         {
-            "pulls/1/reviews": [[review(REVIEWER, HEAD, SUPPRESSED_BODY)]],
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD, SUPPRESSED_BODY)]],
             "pulls/1/comments": [[]],
         }
     )
-    ok, lines = gates.gate_findings(fetcher, 1)
+    ok, lines = gates.gate_findings(fetcher, 1, COPILOT)
     assert ok
     assert "2 suppressed" in lines[0]
     assert any("this cast can throw" in line for line in lines[1:])
@@ -141,19 +526,19 @@ def test_findings_surface_suppressed_blocks_that_thread_state_cannot_see() -> No
 def test_findings_use_the_comments_endpoint_login() -> None:
     """The two endpoints report the reviewer under different logins."""
     inline = {
-        "user": {"login": gates.REVIEWER_COMMENT_LOGIN},
+        "user": {"login": COPILOT.comment_login},
         "path": "lib/a.dart",
         "line": 7,
         "body": "possible null dereference",
     }
-    wrong_login = dict(inline, user={"login": REVIEWER})
+    wrong_login = dict(inline, user={"login": COPILOT_LOGIN})
     fetcher = FakeFetcher(
         {
-            "pulls/1/reviews": [[review(REVIEWER, HEAD)]],
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]],
             "pulls/1/comments": [[inline, wrong_login]],
         }
     )
-    _, lines = gates.gate_findings(fetcher, 1)
+    _, lines = gates.gate_findings(fetcher, 1, COPILOT)
     assert "1 inline finding(s)" in lines[0], lines
     assert any("lib/a.dart:7" in line for line in lines[1:])
 
@@ -163,14 +548,14 @@ def test_findings_read_every_round_not_just_the_last() -> None:
         {
             "pulls/1/reviews": [
                 [
-                    review(REVIEWER, STALE, SUPPRESSED_BODY),
-                    review(REVIEWER, HEAD, "Reviewed 8 of 8 files."),
+                    review(COPILOT_LOGIN, STALE, SUPPRESSED_BODY),
+                    review(COPILOT_LOGIN, HEAD, "Reviewed 8 of 8 files."),
                 ]
             ],
             "pulls/1/comments": [[]],
         }
     )
-    _, lines = gates.gate_findings(fetcher, 1)
+    _, lines = gates.gate_findings(fetcher, 1, COPILOT)
     assert "2 suppressed" in lines[0], lines
 
 
@@ -231,16 +616,25 @@ def test_total_count_beyond_nodes_is_truncation_even_without_the_flag() -> None:
 # --------------------------------------------------------------------------- #
 
 
+CHECK_RUNS_PATH = f"commits/{HEAD}/check-runs?per_page=100"
+
+
+def check_runs_page(runs: list[dict[str, Any]], total: int | None = None) -> dict[str, Any]:
+    return {"total_count": len(runs) if total is None else total, "check_runs": runs}
+
+
 def test_ci_reports_failures_on_head() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            f"commits/{HEAD}/check-runs": {
-                "check_runs": [
-                    {"name": "checks", "status": "completed", "conclusion": "failure"},
-                    {"name": "build", "status": "completed", "conclusion": "success"},
-                ]
-            },
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [
+                        {"name": "checks", "status": "completed", "conclusion": "failure"},
+                        {"name": "build", "status": "completed", "conclusion": "success"},
+                    ]
+                )
+            ],
         }
     )
     ok, lines = gates.gate_ci(fetcher, 1)
@@ -252,9 +646,9 @@ def test_ci_fails_while_a_check_is_still_running() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            f"commits/{HEAD}/check-runs": {
-                "check_runs": [{"name": "build", "status": "in_progress"}]
-            },
+            CHECK_RUNS_PATH: [
+                check_runs_page([{"name": "build", "status": "in_progress"}])
+            ],
         }
     )
     ok, _ = gates.gate_ci(fetcher, 1)
@@ -265,16 +659,75 @@ def test_ci_passes_when_green_and_skipped_counts_as_green() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            f"commits/{HEAD}/check-runs": {
-                "check_runs": [
-                    {"name": "checks", "status": "completed", "conclusion": "success"},
-                    {"name": "docs", "status": "completed", "conclusion": "skipped"},
-                ]
-            },
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [
+                        {"name": "checks", "status": "completed", "conclusion": "success"},
+                        {"name": "docs", "status": "completed", "conclusion": "skipped"},
+                    ]
+                )
+            ],
         }
     )
     ok, lines = gates.gate_ci(fetcher, 1)
     assert ok, lines
+
+
+def test_ci_reads_check_runs_across_pages() -> None:
+    """A commit with more check runs than fit on one page must have every
+    page evaluated, not just the first."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [{"name": "checks", "status": "completed", "conclusion": "success"}],
+                    total=2,
+                ),
+                check_runs_page(
+                    [{"name": "build", "status": "completed", "conclusion": "success"}],
+                    total=2,
+                ),
+            ],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert ok, lines
+    assert "2 check(s)" in lines[0], lines
+
+
+def test_ci_fails_when_total_count_exceeds_fetched_runs() -> None:
+    """A truncated fetch must fail closed rather than read as green -- the
+    bug this gate exists for: a later, unfetched check run can be failing."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [{"name": "checks", "status": "completed", "conclusion": "success"}],
+                    total=4,
+                )
+            ],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert not ok, lines
+    assert "4" in lines[0] and "1" in lines[0], lines
+
+
+def test_ci_requests_max_page_size_and_paginates() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [{"name": "checks", "status": "completed", "conclusion": "success"}]
+                )
+            ],
+        }
+    )
+    gates.gate_ci(fetcher, 1)
+    assert (CHECK_RUNS_PATH, True) in fetcher.rest_calls, fetcher.rest_calls
 
 
 # --------------------------------------------------------------------------- #
@@ -358,6 +811,201 @@ def test_closes_total_count_beyond_nodes_is_truncation_even_without_the_flag() -
 
 
 # --------------------------------------------------------------------------- #
+# REST fallback when GraphQL is refused (Claude Code cloud sessions)
+# --------------------------------------------------------------------------- #
+
+REFUSED = gates.GraphQLUnavailable(
+    "gh api graphql failed: gh: GitHub GraphQL is not available from Claude "
+    "Code sessions; use the REST API (HTTP 403)"
+)
+THREADS_PATH = "pulls/1/ccr/review_threads"
+
+
+def rest_thread(resolved: bool, path: str = "lib/a.dart") -> dict[str, Any]:
+    return {"resolved": resolved, "outdated": False, "path": path, "line": 1}
+
+
+def test_fetcher_classifies_only_the_graphql_refusal_as_unavailable() -> None:
+    fetcher = gates.GitHubFetcher("o/r")
+
+    def refused(args: Any) -> str:
+        raise gates.GateError(
+            "gh api graphql failed: gh: GitHub GraphQL is not available from "
+            "Claude Code sessions; use the REST API (HTTP 403)"
+        )
+
+    def rate_limited(args: Any) -> str:
+        raise gates.GateError("gh api graphql failed: API rate limit exceeded (HTTP 403)")
+
+    fetcher._gh = refused  # type: ignore[method-assign]
+    try:
+        fetcher.graphql("q")
+    except gates.GraphQLUnavailable:
+        pass
+    else:
+        raise AssertionError("the refusal must be GraphQLUnavailable")
+
+    fetcher._gh = rate_limited  # type: ignore[method-assign]
+    try:
+        fetcher.graphql("q")
+    except gates.GraphQLUnavailable:
+        raise AssertionError("a rate limit is not a refusal; it must not fall back")
+    except gates.GateError:
+        pass
+
+
+def test_threads_fall_back_to_rest_and_pass_when_all_resolved() -> None:
+    fetcher = FakeFetcher({THREADS_PATH: [[rest_thread(True)]]}, REFUSED)
+    ok, lines = gates.gate_threads(fetcher, 1)
+    assert ok, lines
+    assert "via REST" in lines[0]
+
+
+def test_threads_fall_back_to_rest_and_fail_on_unresolved() -> None:
+    fetcher = FakeFetcher(
+        {THREADS_PATH: [rest_thread(False, "lib/b.dart"), rest_thread(True)]}, REFUSED
+    )
+    ok, lines = gates.gate_threads(fetcher, 1)
+    assert not ok
+    assert "lib/b.dart" in lines[0] and "via REST" in lines[0]
+
+
+def test_rest_threads_at_the_page_size_cannot_prove_completeness() -> None:
+    full = [rest_thread(True)] * gates.REST_THREADS_MAX
+    fetcher = FakeFetcher({THREADS_PATH: full}, REFUSED)
+    ok, lines = gates.gate_threads(fetcher, 1)
+    assert not ok, lines
+    assert "truncated" in lines[0]
+
+
+def test_threads_report_both_failures_when_rest_fails_too() -> None:
+    class RestBroken(FakeFetcher):
+        def rest(self, path: str, *, paginate: bool = False) -> Any:
+            raise gates.GateError("HTTP 404")
+
+    try:
+        gates.gate_threads(RestBroken({}, REFUSED), 1)
+    except gates.GateError as exc:
+        assert "REST fallback also failed" in str(exc) and "HTTP 404" in str(exc)
+    else:
+        raise AssertionError("an unanswerable gate must raise, not pass")
+
+
+def test_a_graphql_failure_that_is_not_the_refusal_still_skips() -> None:
+    """No weaker REST answer for a transient failure: it stays unanswered."""
+    fetcher = FakeFetcher({}, gates.GateError("gh api graphql failed: timeout"))
+    try:
+        gates.gate_threads(fetcher, 1)
+    except gates.GraphQLUnavailable:
+        raise AssertionError("a timeout must not trigger the fallback")
+    except gates.GateError:
+        pass
+    assert fetcher.rest_calls == []
+
+
+def closes_rest(
+    body: str = "",
+    commits: list[str] | None = None,
+    title: str = "A change",
+    branch: str = "claude/a-change",
+) -> dict[str, Any]:
+    return {
+        "pulls/1": {"title": title, "body": body, "head": {"ref": branch}},
+        "pulls/1/commits": [[{"commit": {"message": m}} for m in (commits or [])]],
+    }
+
+
+def test_closes_fall_back_to_rest_and_pass_on_an_exact_match() -> None:
+    fetcher = FakeFetcher(closes_rest(body="Closes #1841.\n\nSupersedes #895."), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [1841])
+    assert ok, lines
+    assert "closes exactly #1841" in lines[0]
+    assert "sidebar" in lines[0], "the weaker evidence must be labelled"
+
+
+def test_closes_via_rest_flags_a_denial_that_still_links() -> None:
+    """#897 again, through the fallback: `Does not close #887` links it."""
+    fetcher = FakeFetcher(closes_rest(body="Closes #990. Does not close #887."), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [990])
+    assert not ok
+    assert "#887" in lines[0]
+
+
+def test_closes_via_rest_reads_commit_messages_and_the_title() -> None:
+    fetcher = FakeFetcher(
+        closes_rest(title="Fixes #12", commits=["Resolve: #13", "tidy"]), REFUSED
+    )
+    ok, lines = gates.gate_closes(fetcher, 1, [12])
+    assert not ok
+    assert "#13" in lines[0] and "#12" not in lines[0].split("also close")[1]
+
+
+def test_closes_via_rest_flags_another_repository() -> None:
+    fetcher = FakeFetcher(closes_rest(body="Closes other/repo#5"), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [])
+    assert not ok
+    assert "other/repo#5" in lines[0]
+
+
+def test_closes_via_rest_counts_a_same_repo_qualified_reference() -> None:
+    fetcher = FakeFetcher(
+        closes_rest(body="Closes ibanner56/CallersCompendium#7"), REFUSED
+    )
+    ok, lines = gates.gate_closes(fetcher, 1, [7])
+    assert ok, lines
+
+
+def test_closes_via_rest_flags_a_missing_link_and_an_issue_branch() -> None:
+    fetcher = FakeFetcher(closes_rest(body="Mentions #3", branch="feat/issue-716-x"), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [990])
+    assert not ok
+    assert any("#990" in line for line in lines)
+    assert any("issue-716" in line for line in lines)
+
+
+def test_closes_via_rest_reads_a_keyword_followed_by_an_issue_url() -> None:
+    fetcher = FakeFetcher(
+        closes_rest(
+            body=(
+                "Fixes https://github.com/ibanner56/CallersCompendium/issues/21 "
+                "and resolves https://github.com/other/repo/issues/8"
+            )
+        ),
+        REFUSED,
+    )
+    ok, lines = gates.gate_closes(fetcher, 1, [21])
+    assert not ok
+    assert "other/repo#8" in lines[0] and "#21" not in lines[0].split("also close")[1]
+
+
+def test_closes_via_rest_ignores_words_that_merely_contain_a_keyword() -> None:
+    fetcher = FakeFetcher(closes_rest(body="A prefixed #4 and disclosed #5"), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [])
+    assert ok, lines
+
+
+def test_run_gates_exits_zero_through_the_fallback() -> None:
+    rest = {
+        "pulls/1": {
+            "head": {"sha": HEAD, "ref": "claude/x"},
+            "title": "t",
+            "body": "Closes #9",
+        },
+        "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]],
+        "pulls/1/comments": [[]],
+        THREADS_PATH: [rest_thread(True)],
+        "pulls/1/commits": [[]],
+    }
+    printed: list[str] = []
+    code = gates.run_gates(
+        FakeFetcher(rest, REFUSED), 1, ["closes", "threads", "review"], [9],
+        reviewer=COPILOT, out=printed.append
+    )
+    assert code == 0, printed
+    assert not any(line.startswith("SKIP") for line in printed), printed
+
+
+# --------------------------------------------------------------------------- #
 # runner
 # --------------------------------------------------------------------------- #
 
@@ -366,14 +1014,15 @@ def test_run_gates_reports_every_gate_and_exits_non_zero() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            "pulls/1/reviews": [[review(REVIEWER, STALE)]],
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, STALE)]],
             "pulls/1/comments": [[]],
         },
         threads_payload([{"isResolved": True}], 1, False),
     )
     printed: list[str] = []
     code = gates.run_gates(
-        fetcher, 1, ["findings", "threads", "review"], [], out=printed.append
+        fetcher, 1, ["findings", "threads", "review"], [], reviewer=COPILOT,
+        out=printed.append
     )
     assert code == 1
     assert any(line.startswith("FAIL review:") for line in printed)
@@ -414,6 +1063,146 @@ def test_an_unanswerable_gate_does_not_hide_the_answerable_ones() -> None:
 def test_cli_requires_explicit_closes_intent() -> None:
     code = gates.main(["closes", "1", "--repo", "o/r"])
     assert code == 2
+
+
+# --- detect_repo: no GraphQL ------------------------------------------------ #
+
+
+@contextlib.contextmanager
+def _patched(env: dict[str, str | None], git: Any, run: Any):
+    saved_env = {k: os.environ.get(k) for k in env}
+    saved = (gates._git, gates.subprocess.run)
+    for k, v in env.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+    gates._git, gates.subprocess.run = git, run
+    try:
+        yield
+    finally:
+        gates._git, gates.subprocess.run = saved
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def _gh_forbidden(*a: Any, **k: Any) -> None:
+    raise AssertionError("gh must not be consulted")
+
+
+def test_parse_remote_url_shapes() -> None:
+    p = gates.parse_remote_url
+    want = "ibanner56/CallersCompendium"
+    assert p("https://github.com/ibanner56/CallersCompendium") == want
+    assert p("https://github.com/ibanner56/CallersCompendium.git") == want
+    assert p("git@github.com:ibanner56/CallersCompendium.git") == want
+    assert p("ssh://git@github.com/ibanner56/CallersCompendium") == want
+    assert p("http://local_proxy@127.0.0.1:41234/git/ibanner56/CallersCompendium") == want
+    assert p("https://github.com/ibanner56/CallersCompendium/") == want
+
+
+def test_parse_remote_url_rejects_non_shapes() -> None:
+    p = gates.parse_remote_url
+    assert p("/home/user/CallersCompendium") is None
+    assert p("CallersCompendium") is None
+    assert p("https://github.com/CallersCompendium") is None
+    assert p("") is None
+    assert p("https://github.com/o/r/pulls") is None
+    assert p("https://host/a/b/c/d") is None
+    assert p("https://github.com/o/r.git.git") is None
+    assert p("https://github.com/o/..") is None
+    assert p("https://github.com/o/r.GIT") == "o/r"
+    assert p("https://github.com/o/r ?x") is None
+
+
+def test_detect_repo_prefers_environment() -> None:
+    with _patched({"GITHUB_REPOSITORY": "o/r"}, lambda a: "", _gh_forbidden):
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_uses_git_remote_without_gh() -> None:
+    answers = {"symbolic-ref": "main", "config": "", "remote": "git@github.com:o/r.git"}
+    with _patched({"GITHUB_REPOSITORY": None}, lambda a: answers[a[0]], _gh_forbidden):
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_uses_tracking_remote_then_origin() -> None:
+    urls = {"fork": "https://github.com/me/r", "origin": "https://github.com/o/r"}
+
+    def git(a: Any) -> str:
+        if a[0] == "symbolic-ref":
+            return "feat"
+        if a[0] == "config":
+            return "fork"
+        return urls.get(a[2], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, git, _gh_forbidden):
+        assert gates.detect_repo() == "me/r"
+        urls["fork"] = "/local/path"  # unparsable -> origin
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_prefers_upstream_remote_in_a_fork_clone() -> None:
+    urls = {"upstream": "https://github.com/o/r", "origin": "https://github.com/me/r"}
+
+    def git(a: Any) -> str:
+        if a[0] == "symbolic-ref":
+            return "feat"
+        if a[0] == "config":
+            return "origin"
+        return urls.get(a[2], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, git, _gh_forbidden):
+        assert gates.detect_repo_with_source() == ("o/r", "git remote upstream")
+
+
+def test_main_prints_the_detected_repo_and_its_source() -> None:
+    answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
+    lines: list[str] = []
+    saved = gates.run_gates
+    gates.run_gates = lambda *a, **k: 0
+    real_print = print
+    try:
+        with _patched(
+            {"GITHUB_REPOSITORY": None}, lambda a: answers.get(a[0], ""), _gh_forbidden
+        ):
+            import builtins
+
+            builtins.print = lambda *a, **k: lines.append(" ".join(map(str, a)))
+            try:
+                gates.main(["threads", "1"])
+            finally:
+                builtins.print = real_print
+    finally:
+        gates.run_gates = saved
+    assert any(l.startswith("repo: o/r (from git remote ") for l in lines), lines
+
+
+def test_detect_repo_ignores_invalid_environment_value() -> None:
+    answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
+    for bad in ("./..", "a/b/c", "o/ r", "o/r/", "ö/r", "o/r?x", "o/r.git/"):
+        with _patched({"GITHUB_REPOSITORY": bad}, lambda a: answers.get(a[0], ""), _gh_forbidden):
+            assert gates.detect_repo() == "o/r", bad
+
+
+def test_detect_repo_falls_back_to_gh_then_errors() -> None:
+    out = {"rc": 0, "text": "x/y\n"}
+
+    def fake_run(*a: Any, **k: Any) -> Any:
+        return subprocess.CompletedProcess(a, out["rc"], out["text"], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, lambda a: "", fake_run):
+        assert gates.detect_repo() == "x/y"
+        out.update(rc=1, text="")
+        try:
+            gates.detect_repo()
+        except gates.GateError as exc:
+            assert "pass --repo" in str(exc)
+        else:
+            raise AssertionError("expected GateError")
 
 
 def main() -> int:

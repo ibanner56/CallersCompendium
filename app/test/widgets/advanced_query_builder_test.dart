@@ -2,8 +2,10 @@ import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
 
@@ -14,12 +16,20 @@ import '../support/screen_size.dart';
 
 class _Host extends StatefulWidget {
   const _Host({
+    this.tagsUnavailableFor,
     required this.root,
     required this.sectionLabels,
     required this.taxonomy,
     required this.dialect,
+    required this.tags,
+    this.onChanged,
+    this.textScale = 1.0,
   });
+  final double textScale;
+  final String? tagsUnavailableFor;
   final BuilderGroup root;
+  final List<Tag> tags;
+  final VoidCallback? onChanged;
   final List<String> sectionLabels;
   final Taxonomy taxonomy;
   final Dialect dialect;
@@ -34,6 +44,12 @@ class _HostState extends State<_Host> {
     return MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(widget.textScale)),
+        child: child!,
+      ),
       home: Scaffold(
         body: SingleChildScrollView(
           child: AdvancedQueryBuilder(
@@ -41,7 +57,12 @@ class _HostState extends State<_Host> {
             taxonomy: widget.taxonomy,
             dialect: widget.dialect,
             sectionLabels: widget.sectionLabels,
-            onChanged: () => setState(() {}),
+            tags: widget.tags,
+            tagsUnavailableFor: widget.tagsUnavailableFor,
+            onChanged: () {
+              widget.onChanged?.call();
+              setState(() {});
+            },
           ),
         ),
       ),
@@ -67,6 +88,12 @@ Future<void> _pump(
   // Defaults to the app's own default dialect. Overridden by the labelling
   // tests, which assert the facet honours the user's role terminology.
   Dialect? dialect,
+  // Empty by default: most tests here are about figures, and an empty list is
+  // the state in which "Has tag" is not offered.
+  List<Tag> tags = const [],
+  VoidCallback? onChanged,
+  double textScale = 1.0,
+  String? tagsUnavailableFor,
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -75,6 +102,10 @@ Future<void> _pump(
       sectionLabels: sectionLabels,
       taxonomy: taxonomy ?? contraTaxonomy,
       dialect: dialect ?? Dialect.larksRobins,
+      tags: tags,
+      tagsUnavailableFor: tagsUnavailableFor,
+      onChanged: onChanged,
+      textScale: textScale,
     ),
   );
   await tester.pumpAndSettle();
@@ -82,8 +113,304 @@ Future<void> _pump(
 
 void main() {
   // -------------------------------------------------------------------------
+  // "Has tag" row (#1412)
+  // -------------------------------------------------------------------------
+
+  group('a chosen figure of another form keeps its form\'s name', () {
+    // As the suggestion that set it read (ADR-006): in a search over every
+    // dance, contra's and ECD's "hand cast" and "circle" are told apart.
+    for (final (move, label) in [
+      ('ecd_hand_cast', 'hand cast · English (ECD)'),
+      ('ecd_circle', 'circle · English (ECD)'),
+      ('hand_cast', 'hand cast'),
+      ('circle', 'circle'),
+    ]) {
+      testWidgets('$move reads "$label"', (tester) async {
+        await _pump(
+          tester,
+          root: BuilderGroup(children: [BuilderFigure(move: move)]),
+          taxonomy: shippedTaxonomies.anyForm,
+          dialect: Dialect.canonical,
+        );
+        expect(find.text(label), findsOneWidget);
+      });
+    }
+  });
+
+  group('long lines, listed as a move (taxonomy v39)', () {
+    testWidgets('offers no formation to narrow it by', (tester) async {
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [BuilderFigure(move: 'long_lines')]),
+      );
+      expect(find.text('Any formation'), findsNothing);
+    });
+
+    testWidgets('picking long lines sets the row to long lines', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'swing');
+      await _pump(tester, root: BuilderGroup(children: [figure]));
+
+      final fieldKey = ValueKey('has-figure-${figure.id}-input');
+      await tester.enterText(find.byKey(fieldKey), 'long lines');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('has-figure-${figure.id}-option-long_lines')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(figure.move, 'long_lines');
+    });
+
+    testWidgets('forward and back offers every formation but long lines', (
+      tester,
+    ) async {
+      // A forward and back in long lines is stored as long lines, which a
+      // forward and back leaf (matching the stored id) can never find.
+      final figure = BuilderFigure(move: 'forward_and_back');
+      await _pump(tester, root: BuilderGroup(children: [figure]));
+      expect(find.text('Any formation'), findsOneWidget);
+      final dropdown = tester.widget<AppDropdownField<String?>>(
+        find.byKey(ValueKey('param-${figure.id}-formation')),
+      );
+      final values = [for (final item in dropdown.entries) item.value];
+      expect(values, [
+        null,
+        for (final formation in forwardAndBackFormations)
+          if (formation != 'longLines') formation,
+      ]);
+    });
+  });
+
+  group('"Has tag" row', () {
+    final tags = [
+      Tag(id: 't1', name: 'Smooth'),
+      Tag(id: 't2', name: 'Energetic'),
+    ];
+
+    Future<void> openAddMenu(WidgetTester tester, BuilderGroup root) async {
+      await tester.tap(find.byKey(ValueKey('add-menu-${root.id}')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the Add menu offers "Has tag" and adds an unpicked row', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(tester, root: root, tags: tags);
+
+      await openAddMenu(tester, root);
+      await tester.tap(find.text('Has tag'));
+      await tester.pumpAndSettle();
+
+      final row = root.children.single as BuilderTag;
+      expect(row.tagId, isNull);
+      expect(row.toFilter(), isNull, reason: 'an unpicked row is skipped');
+      expect(find.byKey(ValueKey('tag-${row.id}')), findsOneWidget);
+      expect(find.text('Choose a tag'), findsOneWidget);
+    });
+
+    testWidgets('a source with no tags: "Has tag" is greyed out and names it', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(
+        tester,
+        root: root,
+        tags: tags,
+        tagsUnavailableFor: 'ContraDB',
+      );
+
+      await openAddMenu(tester, root);
+
+      expect(find.text('Has tag'), findsNothing);
+      final entry = find.byKey(ValueKey('add-tag-unavailable-${root.id}'));
+      expect(entry, findsOneWidget);
+      expect(
+        find.descendant(
+          of: entry,
+          matching: find.text('Has tag (not available on ContraDB)'),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.widget<PopupMenuItem<String>>(entry).enabled, isFalse);
+
+      await tester.tap(entry, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(root.children, isEmpty, reason: 'a disabled entry adds nothing');
+    });
+
+    testWidgets('greyed out even when the collection has no tags', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(tester, root: root, tagsUnavailableFor: 'ContraDB');
+      await openAddMenu(tester, root);
+      expect(
+        find.byKey(ValueKey('add-tag-unavailable-${root.id}')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the Add menu does not offer "Has tag" with no tags', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(tester, root: root);
+
+      await openAddMenu(tester, root);
+
+      expect(find.text('Has figure'), findsOneWidget);
+      expect(find.text('Has tag'), findsNothing);
+    });
+
+    testWidgets('picking a tag sets the model and fires onChanged', (
+      tester,
+    ) async {
+      final row = BuilderTag();
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
+
+      await tester.tap(find.byKey(ValueKey('tag-${row.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Energetic').last);
+      await tester.pumpAndSettle();
+
+      expect(row.tagId, 't2');
+      expect(changes, 1);
+      expect((root.toFilter() as TagFilter).tagId, 't2');
+    });
+
+    testWidgets('two tag rows in an All group AND their tags', (tester) async {
+      final a = BuilderTag(tagId: 't1');
+      final b = BuilderTag();
+      final root = BuilderGroup(children: [a, b]);
+      await _pump(tester, root: root, tags: tags);
+
+      await tester.tap(find.byKey(ValueKey('tag-${b.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Energetic').last);
+      await tester.pumpAndSettle();
+
+      final filter = root.toFilter();
+      expect(filter, isA<AndFilter>());
+      expect(
+        [
+          for (final c in (filter as AndFilter).children)
+            (c as TagFilter).tagId,
+        ],
+        ['t1', 't2'],
+      );
+    });
+
+    testWidgets('the remove button drops the row and fires onChanged', (
+      tester,
+    ) async {
+      final row = BuilderTag(tagId: 't1');
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
+
+      await tester.tap(find.byKey(ValueKey('remove-${row.id}')));
+      await tester.pumpAndSettle();
+
+      expect(root.children, isEmpty);
+      expect(changes, 1);
+    });
+
+    testWidgets('a picked tag that is no longer offered is cleared, not a '
+        'crash', (tester) async {
+      final row = BuilderTag(tagId: 'gone');
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
+
+      expect(tester.takeException(), isNull);
+      expect(row.tagId, isNull, reason: 'a filter the row cannot show is gone');
+      expect(root.toFilter(), isNull);
+      expect(changes, 1);
+      expect(find.text('Choose a tag'), findsOneWidget);
+    });
+
+    testWidgets('a pick made before the stale-clear callback runs survives', (
+      tester,
+    ) async {
+      final row = BuilderTag();
+      final root = BuilderGroup(children: [row]);
+      await _pump(tester, root: root, tags: tags);
+
+      // Make the row stale and schedule a rebuild, but register the "user
+      // picks a tag" callback FIRST so it runs before the row's own post-frame
+      // clear. The clear must then find a different id and leave it alone.
+      row.tagId = 'gone';
+      WidgetsBinding.instance.addPostFrameCallback((_) => row.tagId = 't1');
+      tester.element(find.byType(_Host)).markNeedsBuild();
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(row.tagId, 't1');
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // _ThenRow basic rendering
   // -------------------------------------------------------------------------
+
+  group('"Any figure" on a figure row', () {
+    testWidgets('the chip makes the row ask for any figure, and hides the '
+        'move field and section', (tester) async {
+      final row = BuilderFigure(move: 'swing', section: 'A1');
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(
+        tester,
+        root: root,
+        sectionLabels: const ['A1'],
+        onChanged: () => changes++,
+      );
+      expect(find.byKey(ValueKey('move-${row.id}')), findsOneWidget);
+
+      await tester.tap(find.byKey(ValueKey('any-figure-${row.id}')));
+      await tester.pumpAndSettle();
+
+      expect(row.isAnyFigure, isTrue);
+      expect(row.move, isNull, reason: 'the old move is dropped');
+      expect(row.section, isNull);
+      expect(changes, 1);
+      expect(find.byKey(ValueKey('move-${row.id}')), findsNothing);
+      expect(
+        tester
+            .widget<FilterChip>(find.byKey(ValueKey('any-figure-${row.id}')))
+            .selected,
+        isTrue,
+      );
+      expect((root.toFilter()! as FigureFilter).query, same(anyFigure));
+    });
+
+    testWidgets('tapping the chip again brings the move field back', (
+      tester,
+    ) async {
+      final row = BuilderFigure(isAnyFigure: true);
+      final root = BuilderGroup(children: [row]);
+      await _pump(tester, root: root);
+      expect(find.byKey(ValueKey('move-${row.id}')), findsNothing);
+
+      await tester.tap(find.byKey(ValueKey('any-figure-${row.id}')));
+      await tester.pumpAndSettle();
+
+      expect(row.isAnyFigure, isFalse);
+      expect(find.byKey(ValueKey('move-${row.id}')), findsOneWidget);
+      expect(root.toFilter(), isNull, reason: 'no move chosen yet');
+    });
+
+    testWidgets('each side of a then has the chip', (tester) async {
+      final root = BuilderGroup(children: [BuilderThen()]);
+      await _pump(tester, root: root);
+      expect(find.text('Any figure'), findsNWidgets(2));
+    });
+  });
 
   group('_ThenRow basic rendering', () {
     testWidgets('renders First / then / Later labels', (tester) async {
@@ -92,7 +419,7 @@ void main() {
 
       expect(find.text('First'), findsOneWidget);
       expect(find.text('then'), findsOneWidget);
-      expect(find.text('Later'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
     });
 
     testWidgets('each side shows "Group figures" button by default', (
@@ -625,7 +952,10 @@ void _paramChoiceTests() {
               'model and keep filtering',
         );
         // What the UI promises and what the query does now agree.
-        expect(figure.toFigureQuery()?.params, isNot(contains('hand')));
+        expect(
+          (figure.toFigureQuery() as FigureLeaf?)?.params,
+          isNot(contains('hand')),
+        );
       },
     );
   });
@@ -796,6 +1126,97 @@ void _paramChoiceTests() {
       await tester.pumpAndSettle();
       expect(find.text('rightDiagonal'), findsNothing);
       expect(find.text('right diagonal'), findsWidgets);
+    });
+  });
+
+  // UX4-3b: the group headers were a Row with an unflexed label, so at large
+  // text the label pushed the row past the edge of a phone.
+  group('group headers fit a phone at large text (UX4-3b)', () {
+    testWidgets('condition group header at 360px, 2x text', (tester) async {
+      final inner = BuilderGroup();
+      final root = BuilderGroup(children: [inner]);
+      await _pump(
+        tester,
+        root: root,
+        screenSize: const Size(360, 900),
+        textScale: 2.0,
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getRect(find.byKey(ValueKey('remove-${inner.id}'))).right,
+        lessThanOrEqualTo(360),
+      );
+    });
+
+    testWidgets('figure group header at 360px, 2x text', (tester) async {
+      final group = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [BuilderFigure(move: 'swing')],
+      );
+      await _pump(
+        tester,
+        root: BuilderGroup(
+          children: [BuilderThen(before: group, after: BuilderFigure())],
+        ),
+        screenSize: const Size(360, 900),
+        textScale: 2.0,
+      );
+      // The leaf rows' own section dropdown overflows at 2x on a phone; that
+      // is outside UX4-3b (group headers) and is tracked as a follow-up, so
+      // only the header's controls are asserted here.
+      while (tester.takeException() != null) {}
+      for (final key in ['fig-group-kind-${group.id}', 'flatten-${group.id}']) {
+        expect(
+          tester.getRect(find.byKey(ValueKey(key))).right,
+          lessThanOrEqualTo(360),
+          reason: key,
+        );
+      }
+    });
+  });
+
+  // U6: a leaf row's section dropdown was as wide as its longest label, so a
+  // long section name pushed the row past the edge of a phone at large text.
+  group('a leaf row fits a phone at large text (U6)', () {
+    const longLabel =
+        'An unusually long section label that a caller might type in';
+
+    testWidgets('the section dropdown stays inside 360px at 2x text', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'swing', section: longLabel);
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [figure]),
+        sectionLabels: const [longLabel, 'A'],
+        screenSize: const Size(360, 900),
+        textScale: 2.0,
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getRect(find.byKey(ValueKey('section-${figure.id}'))).right,
+        lessThanOrEqualTo(360),
+      );
+    });
+
+    testWidgets('the section dropdown keeps showing the chosen section', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'swing', section: 'A');
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [figure]),
+        sectionLabels: const ['A', 'B'],
+      );
+
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('section-${figure.id}')),
+          matching: find.text('A'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

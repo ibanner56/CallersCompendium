@@ -1,14 +1,19 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/search/program_sort.dart' show ProgramSort;
+import 'package:compendium_app/src/widgets/brand_mark.dart';
+import 'package:compendium_app/src/widgets/empty_state.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
@@ -57,8 +62,9 @@ int _perfSeconds(String display) {
 
 Future<void> _pumpWide(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  bool markAllSetsStatus = true,
+}) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
@@ -73,7 +79,10 @@ Future<void> _pumpWide(
         repositories: repos,
         child: ActiveDialectScope(
           notifier: ValueNotifier<Dialect>(Dialect.canonical),
-          child: child!,
+          child: MarkAllSetsStatusScope(
+            notifier: ValueNotifier<bool>(markAllSetsStatus),
+            child: child!,
+          ),
         ),
       ),
       home: const ProgramsShell(),
@@ -110,6 +119,37 @@ Future<void> _pumpNarrow(
 }
 
 void main() {
+  testWidgets('the empty-detail pane carries the brand mark', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpWide(tester, repos);
+    final pane = find.ancestor(
+      of: find.text(AppLocalizationsEn().programsSelectTitle),
+      matching: find.byType(EmptyState),
+    );
+    expect(
+      find.descendant(of: pane, matching: find.byType(BrandMark)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('empty-detail pane body text uses onSurfaceVariant (AA)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpWide(tester, repos);
+
+    final bodyText = AppLocalizationsEn().programsSelectBody;
+    final finder = find.text(bodyText);
+    expect(finder, findsOneWidget);
+
+    // Body text must use a text colour role (onSurfaceVariant, >=4.5:1), not
+    // the hairline outlineVariant role (~1.5:1 against the pane).
+    final textWidget = tester.widget<Text>(finder);
+    final scheme = Theme.of(tester.element(finder)).colorScheme;
+    expect(textWidget.style?.color, scheme.onSurfaceVariant);
+    expect(textWidget.style?.color, isNot(scheme.outlineVariant));
+  });
+
   testWidgets(
     'wide split-pane list and summary FABs coexist and survive a route '
     'transition without a duplicate hero-tag crash',
@@ -172,8 +212,24 @@ void main() {
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      // Section header carries the slot count.
-      expect(find.text('Set list (3)'), findsOneWidget);
+      // Section header carries the planned dance count: the alternate and
+      // the break are not dances the evening is planned for (GIG-10).
+      expect(find.text('Set list (1 dance)'), findsOneWidget);
+
+      // Only the planned dance is numbered: the alternate shows ALT and the
+      // break has no number, as in the set list's text and PDF (GIG-10).
+      // Scoped to the summary pane: the program list beside it carries a
+      // "this week" calendar strip whose day numbers come from the wall clock
+      // and collide with '1'/'2' in the week around the 1st and 2nd.
+      final summary = find.byType(ProgramSummaryPane);
+      expect(
+        find.descendant(of: summary, matching: find.text('1')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text('2')),
+        findsNothing,
+      );
 
       // All three slots render.
       expect(find.text('Chase the Squirrel'), findsOneWidget);
@@ -272,6 +328,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DanceDetailScreen), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
     },
   );
@@ -312,7 +370,8 @@ void main() {
   );
 
   testWidgets(
-    'an unresolved dance id renders a non-tappable "Dance unavailable" fallback',
+    'a dance in Recently deleted keeps its title, marked as deleted, and its '
+    'row opens nothing (GIG-11)',
     (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
@@ -326,18 +385,52 @@ void main() {
           updatedAt: _now,
         ),
       );
-      // The dance is soft-deleted after the program references it, so the
-      // slot's danceId no longer resolves to a title.
+      // The dance is soft-deleted after the program references it. It is
+      // still restorable, so the caller must be able to tell which dance it
+      // is, as in Perform.
       await repos.dances.softDelete('d1', at: _now);
 
       await _pumpWide(tester, repos);
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dance unavailable'), findsOneWidget);
-      expect(find.byKey(const ValueKey('summary-slot-s0')), findsNothing);
+      expect(find.text('Chase the Squirrel (deleted dance)'), findsOneWidget);
+      expect(find.text('Dance unavailable'), findsNothing);
+      // The dance details read live dances only, so the row is not a button.
+      final row = find.byKey(const ValueKey('summary-slot-s0'));
+      expect(tester.widget<InkWell>(row).onTap, isNull);
+      expect(
+        find.descendant(of: row, matching: find.byIcon(Icons.chevron_right)),
+        findsNothing,
+      );
     },
   );
+
+  testWidgets('a dance id that resolves to nothing renders a non-tappable '
+      '"Dance unavailable" fallback', (tester) async {
+    final repos = openTestRepositories();
+    // A slot whose dance id names no row at all: only reachable with the
+    // foreign key off, as from an older or damaged database.
+    await repos.db.customStatement('PRAGMA foreign_keys = OFF');
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'gone')],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await repos.db.customStatement('PRAGMA foreign_keys = ON');
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dance unavailable'), findsOneWidget);
+    expect(find.byKey(const ValueKey('summary-slot-s0')), findsNothing);
+  });
 
   testWidgets('an empty program shows the teaching empty state', (
     tester,
@@ -349,7 +442,7 @@ void main() {
     await tester.tap(find.text('Barn Dance'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Set list (0)'), findsOneWidget);
+    expect(find.text('Set list (0 dances)'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('summary-set-list-empty')),
       findsOneWidget,
@@ -443,6 +536,62 @@ void main() {
         _perfSeconds(_perfText(tester, 'perform-clock')),
         greaterThanOrEqualTo(clockBefore),
       );
+    },
+  );
+
+  testWidgets(
+    'the summary Perform launcher keeps the dance-start mark on re-entry '
+    '(#1659)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 2,
+              danceMinutes: 3,
+            ),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+
+      await tester.pump(const Duration(seconds: 10));
+      await tester.tap(find.byKey(const ValueKey('perform-dance-start')));
+      await tester.pump();
+      final before = _perfText(tester, 'perform-walkthrough-actual');
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-dance-start')),
+            )
+            .isSelected,
+        isTrue,
+      );
+      expect(_perfText(tester, 'perform-walkthrough-actual'), before);
     },
   );
 
@@ -554,11 +703,99 @@ void main() {
 
       // Feedback is announced and the change is written through immediately —
       // the summary shows a saved program, not a draft.
-      expect(find.text('Marked all dances performed.'), findsOneWidget);
+      expect(
+        find.text(
+          'Marked all dances performed and set the status to Performed.',
+        ),
+        findsOneWidget,
+      );
       final saved = await repos.programs.getById('p1');
       expect(saved!.slots.single.performedAt, isNotNull);
     },
   );
+
+  // F5: an alternate counts as called only once it is marked by hand
+  // (maintainer ruling, 2026-10-28), so Mark all performed skips it and says so.
+  testWidgets('summary mark-all skips alternates and says so', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'chorus', title: 'Chorus Jig'));
+    await repos.dances.create(_dance(id: 'hulls', title: "Hull's Victory"));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(id: 's0', position: 0, danceId: 'chorus'),
+          ProgramSlot(id: 's1', position: 1, danceId: 'hulls', isAlt: true),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Marked all dances performed except alternates, and set the status '
+        'to Performed. Mark an alternate yourself if you called it.',
+      ),
+      findsOneWidget,
+    );
+    final saved = (await repos.programs.getById('p1'))!;
+    expect(saved.slots[0].performedAt, isNotNull);
+    expect(saved.slots[1].performedAt, isNull);
+  });
+
+  testWidgets('summary mark-all explains an alternate left unmarked', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final called = DateTime.utc(2025, 12, 31, 20);
+    await repos.dances.create(_dance(id: 'chorus', title: 'Chorus Jig'));
+    await repos.dances.create(_dance(id: 'hulls', title: "Hull's Victory"));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(
+            id: 's0',
+            position: 0,
+            danceId: 'chorus',
+            performedAt: called,
+          ),
+          ProgramSlot(id: 's1', position: 1, danceId: 'hulls', isAlt: true),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    // With the status left alone (GIG-12's setting off) there is nothing at
+    // all to do; the status-setting case is covered by the GIG-12 group.
+    await _pumpWide(tester, repos, markAllSetsStatus: false);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Marked all dances performed except alternates. '
+        'Mark an alternate yourself if you called it.',
+      ),
+      findsOneWidget,
+    );
+    final stored = (await repos.programs.getById('p1'))!;
+    expect(stored.slots.map((s) => s.performedAt), [called, null]);
+  });
 
   testWidgets(
     'summary mark-all Undo preserves prior stamps and intervening edits',
@@ -619,6 +856,120 @@ void main() {
       expect(saved.slots[2].performedAt, isNull);
     },
   );
+
+  // GIG-12 (maintainer decision 2026-10-29, with the note): Mark all
+  // performed also sets the status, behind a setting that is on by default,
+  // and Undo puts the marks and the status back together.
+  group('summary mark-all and the program status (GIG-12)', () {
+    Future<CompendiumRepositories> seed({
+      required ProgramStatus status,
+      DateTime? performedAt,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: status,
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: performedAt,
+            ),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      return repos;
+    }
+
+    Future<void> markAll(WidgetTester tester) async {
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sets Performed, and Undo puts the status back', (
+      tester,
+    ) async {
+      final repos = await seed(status: ProgramStatus.finalized);
+      await _pumpWide(tester, repos);
+      await markAll(tester);
+
+      expect(
+        find.text(
+          'Marked all dances performed and set the status to Performed.',
+        ),
+        findsOneWidget,
+      );
+      final marked = (await repos.programs.getById('p1'))!;
+      expect(marked.status, ProgramStatus.performed);
+      expect(marked.slots.single.performedAt, isNotNull);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final undone = (await repos.programs.getById('p1'))!;
+      expect(undone.status, ProgramStatus.finalized);
+      expect(undone.slots.single.performedAt, isNull);
+    });
+
+    testWidgets('sets Performed when every dance was already marked', (
+      tester,
+    ) async {
+      final called = DateTime.utc(2025, 12, 31, 20);
+      final repos = await seed(
+        status: ProgramStatus.draft,
+        performedAt: called,
+      );
+      await _pumpWide(tester, repos);
+      await markAll(tester);
+
+      final marked = (await repos.programs.getById('p1'))!;
+      expect(marked.status, ProgramStatus.performed);
+      expect(marked.slots.single.performedAt, called);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final undone = (await repos.programs.getById('p1'))!;
+      expect(undone.status, ProgramStatus.draft);
+      expect(undone.slots.single.performedAt, called);
+    });
+
+    testWidgets('Undo keeps a status changed since', (tester) async {
+      final repos = await seed(status: ProgramStatus.draft);
+      await _pumpWide(tester, repos);
+      await markAll(tester);
+
+      final marked = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        marked.copyWith(status: ProgramStatus.finalized),
+      );
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final undone = (await repos.programs.getById('p1'))!;
+      expect(undone.status, ProgramStatus.finalized);
+      expect(undone.slots.single.performedAt, isNull);
+    });
+
+    testWidgets('leaves the status alone with the setting off', (tester) async {
+      final repos = await seed(status: ProgramStatus.draft);
+      await _pumpWide(tester, repos, markAllSetsStatus: false);
+      await markAll(tester);
+
+      expect(find.text('Marked all dances performed.'), findsOneWidget);
+      final marked = (await repos.programs.getById('p1'))!;
+      expect(marked.status, ProgramStatus.draft);
+      expect(marked.slots.single.performedAt, isNotNull);
+    });
+  });
 
   testWidgets('summary navigation invalidates the bulk Undo action', (
     tester,
@@ -696,8 +1047,8 @@ void main() {
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      // The left list tile starts at a single slot.
-      expect(find.text('1 slot'), findsOneWidget);
+      // The left list tile starts at a single dance.
+      expect(find.text('Contra · 1 dance'), findsOneWidget);
 
       // Enter the Perform view from the summary pane (Perform-first, no edit
       // mode) and grow the program via the in-event "adjust" sheet.
@@ -720,10 +1071,13 @@ void main() {
 
       // ... and the coexisting list pane (still mounted beneath the Perform
       // route) reflects the new count with no back-navigation or manual
-      // reload. Before the fix the tile stayed "1 slot" until re-navigated,
+      // reload. Before the fix the tile stayed "1 dance" until re-navigated,
       // because the in-pane mutation never bumped the shared list refresh.
-      expect(find.text('2 slots', skipOffstage: false), findsOneWidget);
-      expect(find.text('1 slot', skipOffstage: false), findsNothing);
+      expect(
+        find.text('Contra · 2 dances', skipOffstage: false),
+        findsOneWidget,
+      );
+      expect(find.text('Contra · 1 dance', skipOffstage: false), findsNothing);
     },
   );
 
@@ -854,7 +1208,7 @@ void main() {
   });
 
   group('rotation across the split-pane breakpoint (issue #895)', () {
-    /// Rotating a tablet crosses [ProgramsShell.splitBreakpoint] (900px): the
+    /// Rotating a tablet crosses [AppBreakpoints.split] (900px): the
     /// narrow branch builds a bare [ProgramsListScreen]
     /// (`programs_shell.dart:70`) while the wide branch builds one nested in
     /// `Row > SizedBox > ScaffoldMessenger` (`:82-89`) — structurally
@@ -948,5 +1302,136 @@ void main() {
         );
       },
     );
+  });
+
+  group('Perform resume across the split-pane breakpoint (GIG-14)', () {
+    Future<void> seedTwoSlotProgram(CompendiumRepositories repos) async {
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+    }
+
+    /// Opens Perform from the wide summary pane, moves to slot 2 and lets the
+    /// clock run; returns the clock reading.
+    Future<int> performToSlotTwo(WidgetTester tester) async {
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+      await tester.pump(const Duration(seconds: 8));
+      return _perfSeconds(_perfText(tester, 'perform-clock'));
+    }
+
+    Future<void> exitPerform(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+    }
+
+    testWidgets('rotating to narrow mid-set keeps the place for the narrow '
+        'summary', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await _pumpWide(tester, repos);
+      final clockBefore = await performToSlotTwo(tester);
+
+      // The rotation rebuilds the shell's layout under Perform, disposing the
+      // summary pane that launched it.
+      tester.view.physicalSize = const Size(600, 1200);
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+      await exitPerform(tester);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+      expect(
+        _perfSeconds(_perfText(tester, 'perform-clock')),
+        greaterThanOrEqualTo(clockBefore),
+      );
+    });
+
+    testWidgets('leaving Perform after a rotation, then rotating back, keeps '
+        'the place for the wide pane', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await _pumpWide(tester, repos);
+      await performToSlotTwo(tester);
+
+      // The shell under Perform is laid out again, narrow, only once Perform
+      // has gone, which is when the wide pane is disposed.
+      tester.view.physicalSize = const Size(600, 1200);
+      await tester.pumpAndSettle();
+      await exitPerform(tester);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+      tester.view.physicalSize = const Size(1400, 900);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+    });
+
+    testWidgets('closing the program still starts the next Perform fresh', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await repos.programs.create(_program(id: 'p2', title: 'Another Night'));
+      await _pumpWide(tester, repos);
+      await performToSlotTwo(tester);
+      await exitPerform(tester);
+
+      // Another program selected closes this one (perform.md, "Leaving
+      // Perform").
+      await tester.tap(find.text('Another Night'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 1 of 2');
+    });
+
+    testWidgets('leaving the narrow summary still starts the next Perform '
+        'fresh', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await _pumpNarrow(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      await exitPerform(tester);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 1 of 2');
+    });
   });
 }

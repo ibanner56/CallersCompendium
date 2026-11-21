@@ -7,7 +7,7 @@ caller — and, just as importantly, what the app deliberately leaves behind.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Export**, **Copy set list**, and **Continue**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 Looking for a copy of *everything* — your whole collection, your settings, your
@@ -16,48 +16,111 @@ dialects — to move to a new device? That is a different job, and
 
 ## Share a dance
 
-Open a dance and choose **Export**. Five actions:
+Open a dance and choose **Export**. (On a narrow screen, the same actions are in
+the dance's **More actions** menu.) There are five actions:
 
 | Action | What happens |
 |---|---|
 | **Share dance (text)** | Hands a plain-text dance card to your system's share sheet — email, messages, notes, whatever you have |
-| **Share dance file** | Packages the dance and its referenced metadata into a `.ccshare` file for another Caller's Compendium user |
+| **Share dance file** | Packages the dance, with the details that go with it, into a `.ccshare` file for another Caller's Compendium user |
 | **Copy dance** | Puts the same text on your clipboard, and confirms with "Dance copied to clipboard." |
-| **Export dance as JSON** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient without the app or for inspection |
+| **Export dance as JSON** | Builds the same file as **Share dance file**, named `.json` instead, then offers **Save**, **Copy raw JSON**, **Share**, or **Cancel** |
 | **Export / print PDF** | Builds a PDF and opens your system's print dialog |
+
+With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
+cards, there is a sixth: **Print calling card**, which prints the dance on a small card — see
+[Print calling cards](#print-calling-cards).
+
+**Copying a selection instead.** On Windows, macOS and Linux you can also drag
+across part of a dance's page and press **Ctrl-C** (**Cmd-C** on macOS). That copy
+is what the page shows: it follows the canonical-text toggle and your dialect,
+like **Copy dance**, but it also carries **Always show verbose figure text**,
+figure capitalization and **Show turns as decimals** when those are on, which
+**Copy dance** never applies. (Decimal turns show only while verbose text is off.)
 
 **Export / print PDF** is a real print path, not a save-to-PDF shortcut: your
 operating system's own dialog opens, and from there you can send it to a printer,
 save it as a PDF, or cancel. This works on every platform the app runs on,
 including Linux.
 
+A PDF can print Japanese text (hiragana, katakana and the everyday kanji). Rarer
+kanji, Chinese-only characters and Korean may still show as empty boxes.
+
+A PDF is laid out on the paper size you pick in the print dialog — Letter, A4,
+or another size — and every page carries "Page 1 of 3" at the bottom. From the
+second page on, the dance's or program's title also runs along the top.
+
+**File names.** A dance or program you share as a file (`.ccshare` or `.json`)
+is named after its title, keeping its letters in any script ("Contredanse à la
+française" stays that way) and replacing characters that can't go in a file name
+with `_`, and shortening a very long title. A program's file name and its PDF's suggested name end with the event
+date — `Saturday_Contra_2026-10-31` — so a weekly program doesn't export under
+the same name every time. Backups are named for the day you took them on your
+device's clock.
+
 ### Which words a dance export uses
 
-A dance export is written in your **active [dialect](./glossary.md#dialect)** —
-the one selected in the app right now. That is what makes exports genuinely
-useful: hand a card to a caller and it reads the way you (and they) speak.
+Text you share or copy, and a PDF you print, are written in your **active
+[dialect](./glossary.md#dialect)** — the one selected in the app right now. Hand
+a card to a caller and it reads the way you speak.
 
-Note that this is the *active* dialect, not the dance detail screen's
-canonical-terms view. Switching that view changes what you see on screen; it does
-not change what an export contains. To export in different words, switch your
-active dialect first — see [Dialect](./dialects.md).
+This is the *active* dialect, not the dance detail screen's **Canonical**
+switch. Flipping that switch changes what you see on screen; it does not change
+what an export contains. To export in different words, switch your active
+dialect first — see [Dialect](./dialects.md#switch-dialect-on-the-fly). If
+**Auto-convert all discouraged terms** is on (the default), common older terms
+are also shown in current wording — see
+[Discouraged terms](./dialects.md#discouraged-terms).
+
+One exception: a dance whose author has asked that it only be called with
+**larks** and **robins** exports with those role terms whatever your dialect,
+and switching dialect does not change them. The rest of your dialect still
+applies — see [Good to know](./dialects.md#good-to-know).
 
 The field labels around the content — *Formation*, *Level*, *Figures*, *Calling
 notes*, and so on — follow the app's language setting, not your dialect.
 
+A dance *file* (**Share dance file** or **Export dance as JSON**) is different: it
+carries the dance itself rather than your wording of it, so it opens in the
+recipient's own dialect.
+
 ### Share a dance file
 
-**Share dance file** and **Export dance as JSON** contain the same canonical
-archive: the selected dance, its credited choreographers, tags, cited published
-sources, and shareable custom-field definitions and values. The `.ccshare` and
-`.json` extensions are the only difference. Private choreographer contact
-details are removed, and custom fields marked **Include in sharing** off are
-omitted.
+**Share dance file** and **Export dance as JSON** build the same file: the dance,
+its credited authors, its tags and difficulty level, the published
+sources it cites, its [custom fields](./glossary.md#custom-field), and any of
+[your own new figures](./authoring.md#your-own-figures) it uses, without your
+notes on them. The only
+difference is the name — `.ccshare` or `.json`. Authors' private details
+are removed (see [What stays private](#what-stays-private)), and custom fields
+with **Include in sharing** turned off are left out. Your star rating of the
+dance is left out too; it stays on your devices and in your backup.
+
+On Linux the system has no file share sheet, so **Share dance file** is
+labeled **Save dance file…** and saves the file through the system dialog
+instead; choosing **Share** in the JSON dialog does the same.
 
 Opening either file in Caller's Compendium goes through import review before
-anything is added. Existing compatible metadata is reused without overwriting
-local edits; incompatible custom-field definitions are rejected. A successful
-import can be undone from the confirmation message.
+anything is added. Tags, sources, and custom fields the recipient already has are
+reused, and their own edits are never overwritten. A custom field in the file
+with the same key as one of theirs is the same field when it has the same type
+(and, for a choice field, the same choices): its values go into their field,
+which keeps their name, choice order, **Show in list**, **Searchable** and
+**Include in sharing** settings. If the type or the choices differ, the values
+go into the field with their key plus `_2` instead, so their own field never
+changes meaning. That field is added the first time; when the same file comes
+again, its values go into the same `_2` field. If `_2` is already taken by a
+field that differs, or by another field in the same file, the next number is
+used. Import review says so before anything is
+added. A link to a video or web page
+comes along as it is. A link to a related dance comes along when that dance is
+imported from the same file. It also comes along when the recipient already has
+the related dance from an earlier file, as long as that dance is in this file
+too or the sender added it by hand rather than importing it. Otherwise that one
+link is left out, and the rest of the dance still imports. After the import, a
+summary says what happened to each dance, lists any dance that could not be
+imported and any link that was left out, and offers **Undo** until you choose
+**Done**.
 
 ## Share a program
 
@@ -66,78 +129,162 @@ Open a program and choose **Export**. Five actions:
 | Action | What happens |
 |---|---|
 | **Share set list (text)** | Hands a plain-text set list to your system's share sheet |
-| **Share (program + dances)** | Packages the program *and* its dances into one file to hand to another caller |
+| **Share program and dances** | Packages the program *and* its dances into one file to hand to another caller |
 | **Copy set list** | Puts the set list text on your clipboard, and confirms with "Set list copied to clipboard." |
 | **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
 
+With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
+cards, there is a sixth: **Print calling cards**, one small card for each of the program's dances — see
+[Print calling cards](#print-calling-cards).
+
 The set list — text and PDF alike — is titles, event details, and slot notes by
-default. When you tap **Share set list (text)**, **Copy set list**, or **Export /
-print PDF**, the app asks **"Include figures?"** with two choices:
+default, with each dance's author shown next to its title if you have authors
+turned on (see [Choose which dance fields
+appear](#choose-which-dance-fields-appear) below). When you choose **Share set
+list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
+**Include figures?** with two choices:
 
-- **Set list only** — just titles, event details, and slot notes (the default).
-- **Set list and figures** — appends a full figure card for each dance after the
-  set list. The cards use your app language for field labels; the figure text
-  uses your active dialect. Alternate dances are marked "Alternate".
+- **Set list only** — titles, event details, slot notes, and the author
+  (the default). None of your other selected dance fields appear here —
+  formation, level, mixer, status, phrase, calling notes, walkthrough,
+  tunes, hook, and sources only ever show up on the richer per-dance card described next.
+- **Set list and figures** — appends a full card for each dance after the set
+  list, showing every dance field you've selected alongside its figures. The
+  cards use your app language for field labels; the figure text uses your
+  active dialect. Alternate dances are marked "Alternate". A dance with no
+  structured figures still gets its card when it has calling notes, a
+  walkthrough, a hook or a published source and you've selected that field; a dance with nothing to show
+  beneath its title gets no card.
 
-If none of the program's dances have any structured figures, the question is
-skipped and the export proceeds as set-list-only automatically.
+If none of the program's dances have anything to put on a card — no structured
+figures, and no selected calling notes, walkthrough, hook or published source —
+the question is skipped and the export proceeds as set-list-only automatically.
 
-Cancelling the dialog (or tapping outside it) aborts the export — nothing is
-shared or copied.
+Canceling the dialog (or dismissing it) stops the export — nothing is shared or
+copied.
 
 If something goes wrong the app says so plainly — "Couldn't share this set list",
 "Couldn't export this set list" — and nothing is sent.
 
+### Choose which dance fields appear
+
+Settings ▸ Defaults has a checklist for every non-figures dance field a dance
+card can show: author, formation, level, mixer, status, phrase, calling
+notes, walkthrough, suggested tunes, hook, and published sources. Everything
+except suggested tunes, the hook and published sources is on by default,
+matching every export before this setting existed; those three are off by
+default, since no export showed them before.
+
+A published source prints as one line per citation, such as *Give-and-Take —
+A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and
+number you recorded. The source's web address is not printed. A citation whose
+source has since been removed from your library still prints its page and number
+under "(unknown source)". A dance's custom fields and its links (video, source,
+related dance) never appear on a card. Only a
+[shared dance file](#share-a-dance-file) carries them (a custom field only if
+you marked it **Include in sharing**).
+
+Turning a field off removes it everywhere it would otherwise appear — but
+**author is the only one of these fields the plain numbered set-list line
+ever shows.** The rest only appear on the richer per-dance card: the "Set
+list and figures" appendix, a single dance's own **Share dance (text)**/
+**Copy dance** card, or a single dance's PDF. Figures are not part of this
+list; they stay controlled by the **Include figures?** choice above.
+
 ### Share a program with its dances
 
-**Share (program + dances)** is the one to reach for when you are handing an
+**Share program and dances** is the one to reach for when you are handing an
 evening to another caller. It builds a single self-contained file — a
 `.ccshare` file — containing:
 
 - the program itself;
-- every dance the program's slots refer to;
-- the choreographers credited on those dances; and
+- every dance the program's slots refer to, except one deleted for good on
+  another device, which travels as the words "Deleted dance" (see
+  [Programs](./programs.md#when-a-dance-in-a-program-is-deleted));
+- the authors credited on those dances;
+- the tags, published sources, and [custom fields](./glossary.md#custom-field)
+  those dances use, so the recipient can import them completely;
+- any of [your own new figures](./authoring.md#your-own-figures) those dances
+  use: each one's name, description, parameters and wording, but not your
+  notes on it; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
+
+The file leaves out what is private to you: the program's **Pay**, its
+**Perform dialect**, whether you [archived](./programs.md#create-and-manage-programs)
+it, and the star **rating** on each dance. Those stay on your own devices and in
+your [backup](./backup-portability.md), and still move with Device Sync. A
+program you archived arrives unarchived, so it shows in the other caller's list. Pay is never part of the shared set-list text or PDF either.
+
+On Linux the system has no file share sheet, so this action is labeled **Save
+program file…** and saves the file through the system dialog instead.
+
+Custom fields with **Include in sharing** turned off are left out, values
+included, exactly as they are for a single dance. If a definition one of the
+dances depends on cannot be found, the share stops with an error instead of
+sending the file.
 
 The file goes to your system's share sheet, so how it travels is up to you —
 AirDrop, email, a messaging app, a USB stick.
 
-On the receiving end, opening the file launches Caller's Compendium straight into
-its [import review](./imports.md#open-a-shared-program-someone-sent-you) screen,
-loaded with the program, its dances, and its venue. Nothing is added until the
-recipient confirms. Bringing the same file in twice does not pile up duplicate
-*dances* — the importer matches what is already there. Plain `.json` files are
-accepted too, so an older bundle still opens.
+The recipient gets your program as a plan, not as your calling history. It
+arrives as a **Draft**, with your performed marks and its event date cleared,
+just as a [duplicated program](./programs.md#create-and-manage-programs) would. With their
+default settings it counts toward their calling history like any other program;
+their **Require an event date for calling history** setting keeps it out until
+they date it.
 
-One exception worth knowing about: **venues do get duplicated.** The importer
-recognises a repeated venue by its name *and* its address, and a shared file
-deliberately carries no address (see [What stays private](#what-stays-private)).
-So importing two programs held at the same hall, or the same program twice,
-leaves a separate venue record each time. They are name-only records, nothing is
-lost or overwritten, and you can tidy the extras with
-[**Settings ▸ Venues ▸ Manage venues**](./settings.md#venues) — but the app
-cannot spot them for you.
+On the receiving end, opening the file takes the recipient to Caller's
+Compendium's [import review](./imports.md#open-a-shared-program-someone-sent-you)
+screen, loaded with the program, its dances, and its venue. Nothing is added
+until the recipient confirms. Any of your own figures the file carries are
+offered to them afterwards, to add to their Glossary or not — see
+[Figures in a shared file](./imports.md#figures-in-a-shared-file). Bringing the same file in twice does not pile up
+duplicate *dances* — the importer matches what is already there. A dance it
+recognizes as one you already have defaults to **Skip**, and the program still
+points at your copy of it. Programs are different: each import adds the program
+as a new one. If a caller sends you an updated version of a program you already
+have, it arrives beside your copy and never overwrites it, so your own date,
+marks and edits stay as they were.
+
+Venues are matched more narrowly. Importing the same program again, or another
+program from the same sender that uses the same venue, reuses the venue the first
+import added. But a shared file carries no address (see
+[What stays private](#what-stays-private)), so the app can't tell that a shared
+venue is a hall you already have in your own records, or that venues from two
+different callers are the same place. In those cases you get a separate,
+name-only venue record. Nothing is lost or overwritten, and you can tidy the
+extras in [**Settings ▸ Program ▸ Venues ▸ Manage venues**](./settings.md#venues).
 
 ### The same thing, as a plain `.json` file
 
-**Export as JSON file** builds *exactly* the same content as **Share (program +
+**Export as JSON file** builds exactly the same content as **Share (program +
 dances)** — same program, same dances with their full figures, same
-choreographers, same venue, same privacy rules. You then choose **Save**,
+authors, same venue, same privacy rules. You then choose **Save**,
 **Copy raw JSON**, **Share**, or **Cancel**. The only difference in the file
-itself is the name: `.json` instead of `.ccshare`.
+itself is the name: `.json` instead of `.ccshare`. A
+[JSON file](./glossary.md#json-file) is a plain-text format that almost any
+device can open.
 
-On desktop, **Save** opens a native file-save dialog. On Android and iOS it
+On Linux, the third button reads **Save as…** instead of **Share** and saves the
+file through the system dialog, because there is no file share sheet to open. On desktop, **Save** opens a native
+file-save dialog. On Android and iOS it
 opens the platform's document-save flow so you can choose a user-accessible
 location. If the platform reports the destination, the confirmation names it.
 The native save flow handles an existing filename rather than silently
 overwriting an earlier export. Dismissing the choice dialog or the save dialog
 produces no file, clipboard change, or share.
 
-That matters on the receiving end. A `.ccshare` file is registered to Caller's
-Compendium, so a device that has the app opens it straight into import review —
-but a device that doesn't may not know what to do with it at all. A `.json` file
-is a plain document anywhere, so reach for this one when you are:
+That matters on the receiving end. A `.ccshare` file is Caller's Compendium's
+own file type: on a Mac, iPhone, or iPad with the app installed, opening one goes
+straight to import review, on Android it is offered under **Open with** (the app
+checks the file and tells you if it isn't a share file), and on Windows the
+installer registers it, so double-clicking one opens import review. On Linux it
+opens the same way once the file type is set up, which the downloads don't do
+for you (see [Installing on Linux](./installation.md#install-on-linux)). On any
+device the recipient can bring it in with **Settings ▸ General ▸ Import…**. A device without the app may not know what to
+do with it at all. A `.json` file is a plain document anywhere, so reach for this
+one when you are:
 
 - emailing the program to someone who hasn't installed the app yet;
 - putting it somewhere that rejects unfamiliar file types; or
@@ -146,6 +293,39 @@ is a plain document anywhere, so reach for this one when you are:
 Either file imports back into the app the same way, so nothing is lost by
 choosing one over the other.
 
+## Print calling cards
+
+A calling card is one dance on a small card, such as a 3 × 5 index card, to hold
+while you call. Turn on **Print calling cards** in Settings ▸ Experimental ▸
+Calling cards first; that is also where you choose the card size and lay out what goes on it (see
+[Calling cards](./settings.md#calling-cards)).
+
+- **One dance:** open it and choose **Export** ▸ **Print calling card**.
+- **A whole program:** open it and choose **Export** ▸ **Print calling cards**.
+  You get one card per dance, in program order, each alternate after the dance
+  it stands in for. For a layout that prints the `number`, each card carries
+  the number the dance has in the set list, and an alternate is marked
+  **Alternate**. A dance that appears twice prints once, under its first
+  number, and a slot that is only a note (a waltz, the break) prints no card.
+  A program that hides its alternates prints no cards for them. The action is unavailable until the
+  program has a dance in it.
+
+Your system's print dialog opens on the card's own paper size, and each page
+of what it prints is one card — the cards don't change if you pick other paper
+in the dialog, so load your printer with cards of that size, or save the PDF.
+With **Several cards to a page** on, it's the other way round: pick the paper
+you have in the dialog, and the cards are laid out on it as many to a page as
+fit, with marks to cut along (see [Calling cards](./settings.md#calling-cards)).
+A card that doesn't fit even at half size is cut off at the bottom and marked
+with a small grey triangle at the bottom-right corner of its printed area, and
+after printing the app says how many were cut off.
+
+Calling cards follow your **active dialect**, like every other export, and the
+same [shared dance fields](#choose-which-dance-fields-appear): a field you
+turned off there never appears on a card. They never include anything listed
+under [What stays private](#what-stays-private), and the program's venue isn't
+on them at all, so printing never asks about venue contacts.
+
 ## Print the programming matrix
 
 The [programming matrix](./programs.md#check-your-evening-with-the-matrix) has its
@@ -153,12 +333,16 @@ own PDF — it is not in the **Export** menu. Open a program's **Matrix** tab an
 **Export or print matrix as PDF**. The button is unavailable while the matrix is
 empty.
 
-The matrix PDF is laid out in landscape, uses your active dialect for the move
-column headings, and prints a legend along the bottom:
+The matrix PDF is laid out in landscape on the paper you choose in the print
+dialog, uses your active dialect for the move column headings, and prints a
+legend above the grid. When the grid runs onto more than one page, its heading
+row repeats at the top of each page. It is saved under its own name — your
+program's title followed by "Programming matrix" — so it never overwrites the
+set-list PDF:
 
 | Mark | Meaning |
 |---|---|
-| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in Settings ▸ Program ▸ Programs) |
+| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in **Settings ▸ Program ▸ Programs**) |
 | `★` | Introduced here |
 | `▸` | Dance's first figure |
 | `✓` | Present |
@@ -174,21 +358,35 @@ leave, and one thing asks you first.
 
 ### Never included
 
-- **A choreographer's email, location, and deceased mark.** These are marked
-  private in the editor and are stripped out of anything you share — see
+- **An author's email, location, and deceased mark.** These are marked
+  private in the editor and are removed from anything you share — see
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
-  choreographer's name, website, and notes do travel.
+  author's name, website, and notes do travel.
 
-- **A venue's street address.** The address line, city, state or province,
-  country, and postcode are left out of everything you share, print, or copy —
-  the `.ccshare` file, the JSON file, the PDF, and the text set list alike. There
-  is no tick box for these: they are simply not sent. What does travel is the
-  venue's **name**, plus its website, schedule, price, sponsor, event name, and
-  notes, so a recipient still knows which hall you mean.
+- **Your pay, Perform dialect, archived state and star ratings.** A program
+  file leaves out the program's **Pay**, its **Perform dialect** and whether you
+  archived it, and every share file leaves out your star rating of a dance. They stay on your devices, still move with
+  Device Sync, and are kept in a [backup](./backup-portability.md).
+
+- **Your notes on your own figures.** A shared file carries each of
+  [your own new figures](./authoring.md#your-own-figures) its dances use, but
+  not the notes you keep on it. They stay in your Glossary and in a
+  [backup](./backup-portability.md).
+
+- **A venue's street address.** The address lines, city, state or province,
+  country, and postcode of a saved venue record are left out of everything you
+  share, print, or copy — the `.ccshare` file, the JSON file, the PDF, and the
+  text set list alike. There is no tick box for these: they are never sent. What
+  does travel is the venue's **name**, so a recipient still knows which hall you
+  mean; the `.ccshare` and JSON files also carry its website, time, schedule,
+  price, sponsor, event name, and notes, and the PDF prints all of those except
+  the notes.
 
   Your own copy is untouched — the address is still there in the venue record,
   and a [backup](./backup-portability.md) still contains it. This is only about
-  what leaves the device.
+  what leaves the device. A program's free-text venue label is different: it is
+  shared exactly as you typed it, so leave an address out of it if you don't
+  want that sent.
 
 ### Included only if you say so
 
@@ -210,9 +408,11 @@ contacts, each with a name, phone, and email. **Every box starts unticked.**
   nothing is written, copied, printed, or shared.
 
 Whatever you leave unticked is genuinely absent from the file, not hidden inside
-it. The venue's other details — its name, website, schedule, price, sponsor,
-event name, and notes — are not personal contact details and are always
-included. Its street address is always left out; see **Never included** above.
+it. The venue's other details — its name, website, time, schedule, price, sponsor,
+event name, and notes — are not personal contact details, so they are not part
+of this choice: the `.ccshare` and JSON files carry all of them, and the PDF
+prints all of them except the notes. Its street address is always left out; see
+**Never included** above.
 
 You will not see this dialog when there is nothing to ask about: a program with no
 linked venue, or a venue with no contact people recorded, exports straight away.
@@ -221,9 +421,10 @@ contact people in the first place.
 
 ### A note on diagnostics
 
-Crash reports are a separate system with its own privacy rules, and they are
-scrubbed by default. [Settings ▸ Diagnostics](./settings.md#diagnostics) explains
-what a report contains and what "include full detail" changes.
+The app's diagnostics log is separate from exports. It never leaves your device
+unless you export it yourself, and an exported log has your content removed
+unless you choose otherwise. [Settings ▸ Diagnostics](./settings.md#diagnostics)
+explains what the log contains and what **Include full detail** changes.
 
 ## Exports versus backups
 
@@ -231,10 +432,10 @@ They are different tools for different jobs:
 
 | | Share / export | [Backup](./backup-portability.md) |
 |---|---|---|
-| **Covers** | One dance, or one program | Everything: dances, programs, venues, choreographers, dialects, themes, custom fields, and settings |
+| **Covers** | One dance, or one program | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
-| **Privacy** | Private contact details stripped or opt-in | Complete — it is your own data, unredacted |
-| **Where** | The **Export** menu on a dance or program | **Settings** ▸ **General** ▸ **Export a backup** |
+| **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out | Complete — it is your own data, unredacted |
+| **Where** | The **Export** menu on a dance or program | **Settings ▸ General ▸ Export a backup** |
 
 The **Include in sharing** setting on a custom field applies to share/export
 files sent to other people. Your own backup remains complete, including fields
@@ -253,5 +454,5 @@ your own address book — it is for you, not for sharing.
 - **Record the details that travel with a dance:**
   [Write & edit dances](./authoring.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain definitions
+Not sure what a word means? [App terms](./glossary.md) has plain definitions
 for every term used across these guides.

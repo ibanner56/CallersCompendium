@@ -16,8 +16,13 @@ import 'package:flutter_test/flutter_test.dart' show addTearDown;
 /// mention streams themselves, because they merely mount a shell containing a
 /// converted screen, so the fix belongs here once rather than in each of them.
 ///
+/// The default executor runs the app's connection setup,
+/// [applyCompendiumSqliteSetup], so a search finds its SQL functions as it
+/// does in the app: `cc_fold` for an All fields or Author search and a Meter
+/// or Key filter, `cc_venue_key` for a typed-venue calling-history search.
 /// Pass [executor] to wrap a non-default one (e.g. `NativeDatabase.memory()`
-/// with an interceptor).
+/// with an interceptor); pass the same setup to it if the test runs any of
+/// those searches.
 ///
 /// Databases close automatically when the current test tears down. Set
 /// [closeOnTearDown] to false when the caller owns an explicit or early close.
@@ -26,7 +31,7 @@ CompendiumDatabase openWidgetTestDatabase({
   bool closeOnTearDown = true,
 }) {
   final db = CompendiumDatabase(
-    executor ?? NativeDatabase.memory(),
+    executor ?? NativeDatabase.memory(setup: applyCompendiumSqliteSetup),
     closeStreamsSynchronously: true,
   );
   if (closeOnTearDown) addTearDown(db.close);
@@ -50,13 +55,24 @@ CompendiumRepositories openTestRepositories({bool closeOnTearDown = true}) =>
 class FailingSettingsRepository extends SettingsRepository {
   FailingSettingsRepository(super.db);
 
-  /// When true, every [set] throws instead of writing.
+  /// When true, every [set] and [setFromRestore] throws instead of writing.
   bool failWrites = true;
 
   @override
   Future<void> set(String key, Object? value, {DateTime? at}) {
     if (failWrites) throw const InjectedSettingsFailure();
     return super.set(key, value, at: at);
+  }
+
+  /// A backup restore's writes go through here, so they fail as [set] does.
+  @override
+  Future<void> setFromRestore(
+    String key,
+    Object? value, {
+    required DateTime at,
+  }) {
+    if (failWrites) throw const InjectedSettingsFailure();
+    return super.setFromRestore(key, value, at: at);
   }
 }
 
@@ -270,11 +286,59 @@ class DelayedProgramRepository extends ProgramRepository {
   }
 
   @override
+  Future<Program> updateAndReadBack(
+    Program program, {
+    bool keepStoredArchivedAt = false,
+  }) async {
+    await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
+    return super.updateAndReadBack(
+      program,
+      keepStoredArchivedAt: keepStoredArchivedAt,
+    );
+  }
+
+  /// Held by [holdNextWrite] like any other write. The hold sits before the
+  /// repository's transaction, so a write landed during it is one the
+  /// compare inside that transaction must see.
+  @override
+  Future<bool> replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) async {
+    await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
+    return super.replaceIfUnchanged(
+      expected: expected,
+      replacement: replacement,
+      updatedAt: updatedAt,
+    );
+  }
+
+  /// Held by [holdNextWrite] like [replaceIfUnchanged].
+  @override
+  Future<Program?> replaceIfUnchangedAndReadBack({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) async {
+    await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
+    return super.replaceIfUnchangedAndReadBack(
+      expected: expected,
+      replacement: replacement,
+      updatedAt: updatedAt,
+    );
+  }
+
+  @override
   Future<int> clearPerformedAtIfMatches({
     required String programId,
     required Iterable<String> slotIds,
     required DateTime performedAt,
     required DateTime updatedAt,
+    ProgramStatus? restoreStatus,
   }) {
     conditionalRollbackCalls++;
     if (failConditionalRollback) {
@@ -291,6 +355,7 @@ class DelayedProgramRepository extends ProgramRepository {
           slotIds: slotIds,
           performedAt: performedAt,
           updatedAt: updatedAt,
+          restoreStatus: restoreStatus,
         ),
       );
     }
@@ -299,6 +364,7 @@ class DelayedProgramRepository extends ProgramRepository {
       slotIds: slotIds,
       performedAt: performedAt,
       updatedAt: updatedAt,
+      restoreStatus: restoreStatus,
     );
   }
 
@@ -374,6 +440,32 @@ class FailingProgramRepository extends ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     _checkWrite();
     await super.update(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<Program> updateAndReadBack(
+    Program program, {
+    bool keepStoredArchivedAt = false,
+  }) async {
+    _checkWrite();
+    return super.updateAndReadBack(
+      program,
+      keepStoredArchivedAt: keepStoredArchivedAt,
+    );
+  }
+
+  @override
+  Future<bool> replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) async {
+    _checkWrite();
+    return super.replaceIfUnchanged(
+      expected: expected,
+      replacement: replacement,
+      updatedAt: updatedAt,
+    );
   }
 }
 

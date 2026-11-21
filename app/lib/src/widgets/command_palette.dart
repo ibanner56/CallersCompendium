@@ -1,10 +1,16 @@
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/sort_ignore_articles_scope.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import 'skeleton.dart';
 
 /// The kind of entity a [CommandResult] points at, so the shell knows which
@@ -20,6 +26,7 @@ class CommandResult {
     required this.title,
     this.subtitle,
     this.icon = Icons.tag,
+    this.forms,
   });
 
   final CommandResultKind kind;
@@ -27,18 +34,51 @@ class CommandResult {
   final String title;
   final String? subtitle;
   final IconData icon;
+
+  /// A program's dance forms as a label ([programFormsLabel]), which a search
+  /// also matches: "english" lists the programs of English dances. Null for
+  /// a dance, and for a program with no dances.
+  final String? forms;
 }
 
+/// Requests the global search palette. Bound to Ctrl-K / Cmd-K by
+/// [searchShortcuts] on the root `MaterialApp`, so it fires from pushed routes
+/// as well as the main tabs.
+class OpenSearchIntent extends Intent {
+  const OpenSearchIntent();
+}
+
+/// The Ctrl-K / Cmd-K bindings for [OpenSearchIntent]; the only place `keyK` is
+/// bound.
+const Map<ShortcutActivator, Intent> searchShortcuts = {
+  SingleActivator(LogicalKeyboardKey.keyK, control: true): OpenSearchIntent(),
+  SingleActivator(LogicalKeyboardKey.keyK, meta: true): OpenSearchIntent(),
+};
+
+/// [RouteSettings.name] of the Perform route. Ctrl-K is suppressed while a route
+/// with this name is on top, so a keystroke mid-event cannot cover the card.
+const String performRouteName = 'perform';
+
 /// Opens the global search / command palette as a modal, returning the chosen
-/// [CommandResult] or `null` if dismissed. Wired to Ctrl/Cmd-K by the shell
+/// [CommandResult] or `null` if dismissed. Triggered by Ctrl/Cmd-K
+/// ([searchShortcuts]) and the shell's rail button
 /// (`docs/design/ux-modernization.md` §6). The palette itself only *selects*;
 /// the caller performs navigation so it can also switch the active section.
-Future<CommandResult?> showCommandPalette(BuildContext context) {
+///
+/// With [programsOnly] it lists programs and never dances: the narrow Programs
+/// list's app-bar search, whose screen holds only programs.
+Future<CommandResult?> showCommandPalette(
+  BuildContext context, {
+  bool programsOnly = false,
+}) {
   final l10n = AppLocalizations.of(context);
   return showDialog<CommandResult>(
     context: context,
-    barrierLabel: l10n.commandPaletteBarrierLabel,
-    builder: (_) => const CommandPalette(),
+    barrierLabel: programsOnly
+        ? l10n.programsSearchTooltip
+        : l10n.commandPaletteBarrierLabel,
+    builder: (_) => CommandPalette(programsOnly: programsOnly),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -46,7 +86,11 @@ Future<CommandResult?> showCommandPalette(BuildContext context) {
 /// title; ↑/↓ move the highlight, Enter jumps to the highlighted result, Esc
 /// closes. Every row pairs an icon with text (never color alone).
 class CommandPalette extends StatefulWidget {
-  const CommandPalette({super.key});
+  const CommandPalette({super.key, this.programsOnly = false});
+
+  /// Lists programs only, for the narrow Programs list's search. Dances are
+  /// then not even read.
+  final bool programsOnly;
 
   /// Max results shown per group so the list stays scannable.
   static const int perGroupLimit = 8;
@@ -63,6 +107,11 @@ class _CommandPaletteState extends State<CommandPalette> {
   List<CommandResult> _all = const [];
   List<CommandResult> _results = const [];
   List<GlobalKey> _rowKeys = const [];
+
+  /// How many entries matched the current query before the per-group cap was
+  /// applied, so the count the palette reports is honest when the list is
+  /// truncated.
+  int _matchCount = 0;
   int _highlighted = 0;
   bool _loading = true;
 
@@ -85,10 +134,14 @@ class _CommandPaletteState extends State<CommandPalette> {
     final repos = RepositoriesScope.of(context);
     // The two queries are independent; start both before awaiting so the
     // database work overlaps and the palette opens sooner.
-    final dancesFuture = repos.dances.listIdsTitlesAndForms();
+    final dancesFuture = widget.programsOnly
+        ? null
+        : repos.dances.listIdsTitlesAndForms();
     final programsFuture = repos.programs.listIdsAndTitles();
-    final dances = await dancesFuture;
+    final formsFuture = repos.programs.formsByProgram();
+    final dances = await dancesFuture ?? const [];
     final programs = await programsFuture;
+    final formsById = await formsFuture;
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final all = <CommandResult>[
@@ -101,13 +154,17 @@ class _CommandPaletteState extends State<CommandPalette> {
           icon: danceFormIcon(d.form),
         ),
       for (final p in programs)
-        CommandResult(
-          kind: CommandResultKind.program,
-          id: p.id,
-          title: p.title,
-          subtitle: l10n.commandPaletteProgramSubtitle,
-          icon: Icons.event_note_outlined,
-        ),
+        if (programFormsLabel(l10n, formsById[p.id]) case final forms)
+          CommandResult(
+            kind: CommandResultKind.program,
+            id: p.id,
+            title: p.title,
+            subtitle: forms == null
+                ? l10n.commandPaletteProgramSubtitle
+                : '${l10n.commandPaletteProgramSubtitle} · $forms',
+            icon: Icons.event_note_outlined,
+            forms: forms,
+          ),
     ];
     setState(() {
       _all = all;
@@ -116,15 +173,62 @@ class _CommandPaletteState extends State<CommandPalette> {
     });
   }
 
+  /// Whether every word of [raw] starts a word of [forms] (a program's
+  /// forms label), ignoring case and accents: "eng" and "contra english"
+  /// match "Contra + English"; an empty query matches no forms.
+  static bool _matchesForms(String? forms, String raw) {
+    if (forms == null) return false;
+    final words = foldForTitleMatch(raw).split(RegExp(r'\s+'))
+      ..removeWhere((w) => w.isEmpty);
+    if (words.isEmpty) return false;
+    final labelWords = foldForTitleMatch(
+      forms,
+    ).split(RegExp(r'[^\p{L}\p{N}]+', unicode: true));
+    return words.every((w) => labelWords.any((l) => l.startsWith(w)));
+  }
+
   void _applyFilter(String raw) {
-    final q = raw.trim().toLowerCase();
+    // Same matching as the other title surfaces: diacritics folded, a leading
+    // article ignored for the ordering (per "Ignore leading articles when
+    // sorting"), and an exact or prefix hit ahead of a mid-title one, so
+    // typing "hey" lists "Hey" before "Cheyenne" however many titles there are.
+    final ignoreArticles = SortIgnoreArticlesScope.of(context);
+    final ranked =
+        <({int rank, String key, int index, CommandResult result})>[];
+    for (var i = 0; i < _all.length; i++) {
+      final r = _all[i];
+      final rank =
+          rankTitleMatch(
+            r.title,
+            raw,
+            ignoreLeadingArticles: ignoreArticles,
+          )?.index ??
+          // A program's forms match after every title match, so a title hit
+          // is never cut off by the group's limit in favour of one.
+          (_matchesForms(r.forms, raw) ? TitleMatchRank.values.length : null);
+      if (rank == null) continue;
+      final folded = foldForTitleMatch(r.title);
+      ranked.add((
+        rank: rank,
+        key: ignoreArticles ? titleSortKey(folded) : folded,
+        index: i,
+        result: r,
+      ));
+    }
+    ranked.sort((a, b) {
+      final byRank = a.rank.compareTo(b.rank);
+      if (byRank != 0) return byRank;
+      final byKey = a.key.compareTo(b.key);
+      return byKey != 0 ? byKey : a.index.compareTo(b.index);
+    });
     final dances = <CommandResult>[];
     final programs = <CommandResult>[];
-    for (final r in _all) {
-      if (q.isNotEmpty && !r.title.toLowerCase().contains(q)) continue;
+    for (final entry in ranked) {
+      final r = entry.result;
       final bucket = r.kind == CommandResultKind.dance ? dances : programs;
       if (bucket.length < CommandPalette.perGroupLimit) bucket.add(r);
     }
+    _matchCount = ranked.length;
     _results = [...dances, ...programs];
     _rowKeys = [for (var i = 0; i < _results.length; i++) GlobalKey()];
     _highlighted = _results.isEmpty
@@ -168,6 +272,28 @@ class _CommandPaletteState extends State<CommandPalette> {
       if (_highlighted < 0) _highlighted += _results.length;
     });
     _ensureHighlightedVisible();
+    _announceHighlighted();
+  }
+
+  /// Tells assistive technology which row Enter will now open. Arrow-key
+  /// movement keeps focus in the text field, so the highlighted row is never
+  /// the focused node: `ListTile.selected` only flips a flag on an unfocused
+  /// node, which screen readers do not speak. Mirrors the Perform screen's
+  /// slot-position announcement.
+  void _announceHighlighted() {
+    if (_highlighted < 0 || _highlighted >= _results.length) return;
+    final r = _results[_highlighted];
+    final l10n = AppLocalizations.of(context);
+    final name = r.subtitle == null ? r.title : '${r.title}, ${r.subtitle}';
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.commandPaletteHighlightedResult(
+        name,
+        _highlighted + 1,
+        _results.length,
+      ),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 
   void _ensureHighlightedVisible() {
@@ -182,9 +308,7 @@ class _CommandPaletteState extends State<CommandPalette> {
       Scrollable.ensureVisible(
         context,
         alignment: 0.5,
-        duration: reduceMotion
-            ? Duration.zero
-            : const Duration(milliseconds: 120),
+        duration: reduceMotion ? Duration.zero : AppMotion.quick,
         curve: Curves.easeOut,
       );
     });
@@ -204,7 +328,11 @@ class _CommandPaletteState extends State<CommandPalette> {
     return Dialog(
       key: const ValueKey('command-palette'),
       alignment: Alignment.topCenter,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        // Clears the status bar and keeps the palette in the top third.
+        vertical: AppSpacing.xxl + AppSpacing.xl,
+      ),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
@@ -212,7 +340,12 @@ class _CommandPaletteState extends State<CommandPalette> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
               child: TextField(
                 key: const ValueKey('command-palette-field'),
                 focusNode: _fieldFocus,
@@ -222,10 +355,43 @@ class _CommandPaletteState extends State<CommandPalette> {
                 textInputAction: TextInputAction.go,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  hintText: l10n.commandPaletteSearchHint,
+                  hintText: widget.programsOnly
+                      ? l10n.programsSearchHint
+                      : l10n.commandPaletteSearchHint,
                 ),
               ),
             ),
+            // Result count as a polite live region (accessibility baseline:
+            // "announce dynamic changes such as search result counts"), so a
+            // screen-reader user hears the list change as they type. Kept
+            // outside the scrollable so it cannot scroll away.
+            if (!_loading && _results.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.xxs,
+                ),
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _matchCount > _results.length
+                          ? l10n.commandPaletteResultCountCapped(
+                              _results.length,
+                              _matchCount,
+                            )
+                          : l10n.commandPaletteResultCount(_results.length),
+                      key: const ValueKey('command-palette-result-count'),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Flexible(child: _buildBody(theme, l10n)),
           ],
         ),
@@ -236,21 +402,26 @@ class _CommandPaletteState extends State<CommandPalette> {
   Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: SkeletonResultRows(),
       );
     }
     if (_results.isEmpty) {
       return Padding(
         key: const ValueKey('command-palette-empty'),
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Center(
-          child: Text(
-            _all.isEmpty
-                ? l10n.commandPaletteEmptyInitial
-                : l10n.commandPaletteNoMatches,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          // Live region for the same reason as the result count above: an
+          // empty result set is a change in what Enter would do.
+          child: Semantics(
+            liveRegion: true,
+            child: Text(
+              _all.isEmpty
+                  ? l10n.commandPaletteEmptyInitial
+                  : l10n.commandPaletteNoMatches,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),
@@ -280,7 +451,7 @@ class _CommandPaletteState extends State<CommandPalette> {
     }
     return ListView(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       children: children,
     );
   }
@@ -299,12 +470,17 @@ class _GroupHeader extends StatelessWidget {
         ? l10n.commandPaletteGroupDances
         : l10n.commandPaletteGroupPrograms;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.xxs,
+      ),
       child: Text(
         label,
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
         ),
       ),

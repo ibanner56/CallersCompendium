@@ -1,6 +1,6 @@
 # Roadmap archive — completed phases
 
-Phases 0 through 5, plus the settings work, are **complete**. Their item-by-item
+Phases 0 through 6, plus the settings work, are **complete**. Their item-by-item
 record lives here so that [ROADMAP.md](ROADMAP.md) stays a document about open
 work: it was 80 KB with 58 of 64 items already done, which every reader — human
 or agent — had to page through to find what was left.
@@ -37,12 +37,12 @@ Design items (each produces a design doc + review):
 - [x] 1.10 Import pipeline design — [design/imports.md](design/imports.md)
 - [x] 1.11 UX design — [design/ux.md](design/ux.md) (wireframes to follow per screen before Phase 3)
 - [x] 1.12 Local storage design — [design/storage.md](design/storage.md)
-- [x] 1.13 CallersBox rehosting plan — [design/callersbox-snapshot.md](design/callersbox-snapshot.md) — **superseded**: direct in-app import from CallersBox replaces the hosted-snapshot approach (see 6.2/6.3 in [ROADMAP.md](ROADMAP.md#phase-6--imports--migration))
+- [x] 1.13 CallersBox rehosting plan — [design/callersbox-snapshot.md](design/callersbox-snapshot.md) — **superseded**: direct in-app import from CallersBox replaces the hosted-snapshot approach (see 6.2/6.3 in [Phase 6](#phase-6--imports--migration))
 
 ## Phase 2 — Core skeleton
 
 - [x] 2.1 Scaffold the chosen stack; CI (build + test + lint on all platforms) — pub workspace (`app/` + `packages/compendium_core/`), FVM-pinned Flutter 3.44.6, `.github/workflows/ci.yml`
-- [x] 2.2 Local database layer + migrations + test harness — `packages/compendium_core/lib/src/storage`: drift/SQLite schema, `CompendiumRepositories` facade (choreographer/tag/custom-field/settings/program/dance repos), FTS5 full-text search + structural figure search, soft-delete/restore/purge, `figures_json`-derived rebuild, UTC-normalized DateTime round-tripping, migration-test scaffold. One documented deviation from the literal `storage.md` SQL sketch: `dance_fts` uses a normal FTS5 table with an `UNINDEXED dance_id` column rather than `content=''` tied to SQLite's implicit rowid — same derived/rebuildable behavior, avoids coupling to rowid conventions inside drift's typed API (see comment in `database.dart`).
+- [x] 2.2 Local database layer + migrations + test harness — `packages/compendium_core/lib/src/storage`: drift/SQLite schema, `CompendiumRepositories` facade (choreographer/tag/custom-field/settings/program/dance repos), FTS5 full-text search + structural figure search, soft-delete/restore/purge, `figures_json`-derived rebuild, UTC-normalized DateTime round-tripping, migration-test scaffold. One documented deviation from the `storage.md` SQL sketch as it stood at the time: `dance_fts` uses a normal FTS5 table with an `UNINDEXED dance_id` column rather than the sketch's then-`content=''` design tied to SQLite's implicit rowid — same derived/rebuildable behavior, avoids coupling to rowid conventions inside drift's typed API (the sketch was later corrected to match this DDL; see comment in `database.dart`).
 - [x] 2.3 Domain model implementation with comprehensive unit tests — `packages/compendium_core` model types, invariants, phrase-section derivation
 - [x] 2.4 Figure serialization + dialect rendering engine with golden tests — `figures_json` codec, `Taxonomy`/`MoveDef` validation, two-flavor renderer (`%S`, quarter-turn words), `canonicalize()` chokepoint with round-trip property tests
 - [x] 2.4a Complete taxonomy data entry (remaining ContraDB moves) — full ContraDB v1 contra move set now modeled in `contra_taxonomy.dart` across five additive slices (PR1 simple, PR2 dancer-interaction, PR3 choice-enum + `centers`/single-dancer vocab, PR4 places family + `ParamKind.places`, PR5 hey/wave family). Exactly one new engine type was needed (`ParamKind.places`, int 1–10, renders "N places"); the reduced-but-structured `hey` model keeps four ricochet flags + full/half length; `box_circulate` intentionally carries no places param. `contraTaxonomyVersion` = 5; comprehensive per-move tests (validation, golden rendering, `goodBeats`, canonicalize round-trip). See docs/design/figure-taxonomy.md "Implementation status" (`hey.length` was later expanded to the full set of ContraDB named durations — `full`/`half`/`lessThanHalf`/`betweenHalfAndFull` — bumping `contraTaxonomyVersion` to 6; the dynamic `dancer%%N` meeting encodings remain out of scope).
@@ -51,7 +51,7 @@ Design items (each produces a design doc + review):
 
 - [x] 3.1 Dance list: browse, sort, filter — `app/lib/src/screens/dance_list_screen.dart`: virtualized `ListView` of dances (title, authors, formation chip, status/tag chips, `showInList` custom fields) sourced from `CompendiumRepositories`; sort by title/author/recently-added/last-called (`ProgramRepository.lastCalledByDance()`, new); a lightweight client-side quick-filter (text + tag/formation `FilterChip`s) over the loaded list — the unified FTS search bar and structured query-builder panel from `docs/design/ux.md` §1 are deferred to 3.2 per that item's explicit scope. Minimal `DanceDetailScreen` placeholder (title/authors/formation/hook/tags) navigated to from the list; full detail/edit UI is later roadmap work. DB now opened on-device via `drift_flutter`.
 - [x] 3.2 Search: Title, Author, Type, Formation, Figures, custom fields; full-text
-  - 3.2b (core, done): `DanceFilter`/`FigureQuery` AST + `FilterCompiler` (one parameterized SQL query over the derived indexes), schema **v2** migration (`dance_figures.section` column + `(move, section)`/`(dance_id, idx)` indexes, back-filled via the post-open integrity pass), `DanceRepository.search(DanceFilter) → ids`, migration test with a checked-in v1 fixture, and a 20k-dance CI perf benchmark (median < 50 ms). See `docs/design/search.md`.
+  - 3.2b (core, done): `DanceFilter`/`FigureQuery` AST + `FilterCompiler` (one parameterized SQL query over the derived indexes), schema **v2** migration (`dance_figures.section` column, back-filled via the post-open integrity pass, + the `(move, section)` index; the `Then` self-join rides the `{dance_id, idx}` primary key's implicit index), `DanceRepository.search(DanceFilter) → ids`, migration test with a checked-in v1 fixture, and a 20k-dance CI perf benchmark (median < 50 ms). See `docs/design/search.md`.
   - 3.2c (app, done): the Collection screen (`app/lib/src/screens/dance_list_screen.dart`) now hosts the real search UI, replacing 3.1's interim client-side quick-filter. A unified full-text search bar (debounced `FullTextFilter`), a one-tap **Filters** facet panel (`app/lib/src/widgets/facet_panel.dart`: Type/Formation/Progression/Author/Tags/Status + choice/boolean custom fields, OR-within a facet, AND across facets), and an **Advanced** boolean-tree builder (`app/lib/src/widgets/advanced_query_builder.dart`: All/Any/None groups, "has figure" rows with a move type-ahead + section/param pickers, and "then" sequence rows) all compose one `DanceFilter` run through `DanceRepository.search` (dialect-canonicalized via `Dialect.canonical`). Composition logic lives in `app/lib/src/search/collection_query.dart`. Sort exposes Title/Author/Recently added/Last called plus Relevance (only for a bare full-text search); core `SearchSort` gained `recentlyAdded` (`created_at DESC`). Result counts are announced to AT via a live region; results reuse the 3.1 `DanceListTile` and open `DanceDetailScreen`. App startup now runs `CompendiumRepositories.ensureMigrated()` behind a loading gate (`app/lib/src/widgets/app_bootstrap.dart`) so the schema-v2 back-fill completes before the first read.
   - [x] 3.2d By-phrase figure search — Caller's Box-style per-phrase (A1/A2/B1/B2) "figures match" / "but do not match" search dropdown (`app/lib/src/widgets/by_phrase_panel.dart`, surfaced from `dance_list_screen.dart` between Filters and Advanced), compiling to the existing section-aware figure query. Within a phrase every "match" move must be present (positive sectioned `FigureFilter`) and no "do not match" move may be present (each a dance-level `NotFilter` over the sectioned leaf); across phrases all constraints AND, and By-Phrase AND-composes with full-text + Filters + Advanced via `buildCollectionFilter`. Reuses the Advanced builder's move type-ahead (extracted as `MoveTypeAheadField`); each input is keyboard/AT-reachable and labeled with phrase + match/exclude role. App-UI only — the section-aware backend (3.2b) already supported it; a core test confirms sectioned match/negation.
 - [x] 3.3 Dance editor: structured figure entry + Custom figure, validation of required fields
@@ -152,13 +152,13 @@ Design items (each produces a design doc + review):
   rename / delete) alongside shipped presets, a term editor with **live
   preview** + collision validation, and dialect **quick-switch** on the dance
   card / perform screens. Builds on the existing (single-active) editor above.
-  - PR1 (this branch, `dialect-term-editor`): core `Dialect.resolveByName`
+  - PR1 (#89): core `Dialect.resolveByName`
     (custom-wins-over-preset resolver superseding `forName`); app
     `DialectLibraryController` + `DialectLibraryScope` (settings keys
     `custom_dialects` / `active_dialect_ref`) with CRUD, active-fallback on
     delete, and legacy `active_dialect` blob migration. Fully unit-tested;
     wired into the app + UI in PR2/PR3.
-  - PR2 delivered (branch `isaacbanner-dialect-pr2`): the library is wired into
+  - PR2 delivered (#133): the library is wired into
     the app — `DialectLibraryController`/`DialectLibraryScope` mounted in
     `main.dart`, with the controller driving the existing `ActiveDialectScope`
     notifier (a listener mirrors `controller.active` into it) so every existing
@@ -168,7 +168,7 @@ Design items (each produces a design doc + review):
     reusable `DialectEditorScreen` term editor for custom dialects (presets
     offer "Duplicate to customize"). Live preview, collision validation, and
     dance-card/perform quick-switch remain **PR3**.
-  - PR3 delivered (branch `isaacbanner-dialect-pr3`): completes the manager. The
+  - PR3 delivered (#138): completes the manager. The
     `DialectEditorScreen` now reassembles the working dialect on every edit and
     runs core `Dialect.validate()` live — collision (two terms → one word) and
     empty-substitution issues surface inline via the existing
@@ -383,6 +383,151 @@ design/domain-model.md "CC parity backfill".*
   the [figure-taxonomy.md](design/figure-taxonomy.md) "verbose rendering still TODO" note. Applies to the dance
   detail card and the Phase 5 large-print performance view.
 
+## Phase 6 — Imports & migration
+
+- [x] 6.1 Source adapter framework + provenance tracking — pure-Dart import pipeline in `packages/compendium_core/lib/src/imports/`: `SourceAdapter` (discover/fetch/parse), `RawRecord` (verbatim payload → provenance), `StructuredDraft`+`ParseQuality` (structured-vs-custom score; parse-never-fails custom fallback), structured `ImportError`s with source context + partial-batch tolerance, dedupe primitives (exact `(source, externalId)` re-import + fuzzy title/author → link/duplicate/skip), and `ImportPipeline` (transactional commit writing provenance) with a session-scoped in-memory undo log (`ImportSession`; no schema bump — provenance persists via the existing v9 table, `DanceRepository.hardDelete` supports undo). Exercised end-to-end by an in-memory fake adapter (test-only). Real source adapters remain 6.2–6.6; review-queue UI is 6.3.
+  - **Author resolve-or-create seam delivered** (proposed sub-note — not ticking any box): fulfils the "author linking left to the pipeline; no ids fabricated" promise made across 6.2–6.5. Adapters now carry raw author/choreographer names on `StructuredDraft.authorNames`; `ImportPipeline.commit` resolves each name to a `Choreographer` (`Dance.authorIds`) — exact normalized match (trim/collapse-ws/lowercase, punctuation significant, **no fuzzy**), else create a name-only row; blank names skipped, batch-de-duped to one row per new author, seeded Traditional/Unknown reused. Undo removes only choreographers this batch created and only when unreferenced (repo referenced-guard respected). **Behavior change:** author names are no longer folded into `callingNotes` and the `*_unresolved` info issues are gone; per-name resolution (matched vs created) is surfaced on `CommittedRecord.authorResolutions`. Re-import replaced the resolved author list until 2026-10-30, when a re-import became choreography-only and keeps the dance's authors (INTAKE-7); a link still replaces them. See design/imports.md §"Author resolution".
+- [ ] ~~6.2 CallersBox sanitization pipeline (separate tool) + hosted snapshot~~ — **Cut**: superseded by direct in-app import from the primary source; we will not ingest a full snapshot or host it for download
+- [ ] ~~6.3 CallersBox snapshot import in-app~~ — **Cut**: folded into direct import (no hosted snapshot to consume)
+  - Adapter-agnostic import review-queue UI delivered (`app/lib/src/screens/import_review_screen.dart`): source input (.json file / paste) → non-destructive plan → review queue (parse-quality, issues, new/reimport/ambiguous actions; ambiguous defaults to skip) → commit → result summary → undo, with a live Collection refresh. Reached from Settings › General; currently wired to `GenericJsonAdapter`. The CallersBox-specific in-app import shipped via direct link import (see below); the hosted-snapshot path is cut.
+  - **Core `CallersBoxAdapter` delivered** (pure-Dart CORE `SourceAdapter`, `ProvenanceSource.callersbox`): parses The Caller's Box **per-dance JSON** (`dance.php?id=N&format=JSON`) through the standard pipeline (discover → fetch → parse). Core stays I/O-free — it parses a payload string; the app URL-fetch + wiring lands in a follow-up PR (so no line ticks and CallersBox import is not yet user-reachable). `Name`→title, `FormationBase`→`FormationShape` best-effort, separate `FormationDetail`→normalized `Formation.detail`, `Progression`/`PhraseStructure` best-effort, `CallingNotes`/`OtherNames`/`Appearances`/`Music`→callingNotes, `Tunes`→tunes, `Authors[]`→author names for pipeline resolution (not calling notes; no ids fabricated). **Headline: gendered-term dialect scrubbing** — each `(beats) text` figure line is beats-parsed and routed through the CORE `canonicalizeText(…, Dialect.canonical)` chokepoint (gents/ladies/larks/robins/ladles/gentlespoons → `role1`/`role2` tokens), with a `gypsy`→`shoulder round` legacy-move safety net; the canonicalized text is stored (storage is dialect-agnostic). **Permission tiers honored exactly**: `full` imports figures; `search`/blank/omitted → metadata-only stub with a warning issue (figures never fabricated). Figures import as **custom** (dialect-scrubbed text + beats); free-text `(beats) text` → structured-move grammar parsing is **deferred to a follow-up** (same scope call as ContraDB 6.4 / CC 6.5). Validated against synthetic fixtures + the real id=1 example ("The Nice Combination").
+  - **User-facing CallersBox-by-link import wired** (`import_review_screen.dart` + `import_io.dart`): the import screen now offers an explicit source selector; picking "The Caller's Box" resolves a pasted dance URL (`…/dance.php?id=N`) or a bare numeric id to the `&format=JSON` endpoint (`buildCallersBoxJsonUrl`, app-layer), fetches it via the existing `UrlFetcher` seam (single user-initiated fetch — no crawl), and parses it with the core `CallersBoxAdapter` through the same plan → review → commit → undo pipeline; the resolved endpoint is stashed on `ImportRequest.uri` for provenance. Core stays I/O-free. *(6.2/6.3 cut: direct link import is the shipped path; there is no hosted snapshot to consume.)*
+  - **Free-text figures now structure where recognized** (shared-parser phase): CallersBox figure lines route through the new core `parseFigureLine` (`imports/figure_parser.dart`), which conservatively upgrades recognized moves (swing/balance/circle/star/chain/allemande/do-si-do/shoulder-round/…) into structured taxonomy figures and degrades everything else to the same dialect-scrubbed `custom` figure as before (parse-never-fails; source beats preserved). Section labels are no longer prefixed onto the figure text (they derive from cumulative beats via the domain model, and beats are already a structured field — the old `'$label: $scrubbed'` prefix duplicated structured data), so custom figures now store clean scrubbed text. The previously-deferred `(beats) text` → taxonomy structuring for CallersBox is delivered here.
+  - **Pasted title-list import delivered (#823).** The Collection import pane gains a fifth source, **"a list of titles"** — the first whose input is pasted text rather than a file or URL, and the only one that plans without a `SourceAdapter`. `resolveTitleList` (`app/lib/src/data/title_list_import.dart`) reuses the program importer's local-match stage (`parsePlaintextProgram`) verbatim and its online stage via the newly-extracted, non-committing `lookupUniqueExactTitle`, then **skips** `buildProgramSlots` — the only program-coupled stage — so the dances land in the Collection with no program created. Deliberately does **not** reuse `resolveUnmatchedOnline` wholesale: that commits as it goes (correct for a program line, which has no user to adjudicate it), which would leave nothing to review. Instead every resolved title becomes an `ImportRecordPlan` for `ImportReviewScreen`, so the batch is confirmed once and an `ambiguous` verdict still defaults to skip — sidestepping #685's non-interactive amplifier rather than widening it. **Every** pasted title appears in the review grouped by outcome (to import / already in your collection, named with the matched dance's choreographer / not found, with which way it missed), and a list with nothing importable shows that answer instead of dead-ending on "no dances found". Untrusted-paste bounds: 65,536 UTF-16 code units of raw text (a length cap, not a byte cap — the same count is roughly three times as many bytes for Japanese or Chinese titles), 100 **distinct** titles refused before any request (never silently truncated), 200 characters per line, case-insensitive de-duplication, per-title error isolation, and serial, cancellable lookups with progress. `OnlineSearchService.loadPreview` gains an optional shared `DedupeIndex` so an N-title batch plans against one snapshot instead of 2N full collection loads. **Behavior change:** dropdown order and default selection are now separate concerns (`ImportSource.preselected`), so the source list leads with the title list while **The Caller's Box** is what the screen opens on — previously the generic-JSON source was both first and the default.
+- [x] 6.4 ContraDB import
+  - `ContraDbAdapter` (pure-Dart CORE `SourceAdapter`, `ProvenanceSource.contradb`) imports ContraDB JSON **per dance** through the standard pipeline (discover → fetch → parse → dedupe → commit). ContraDB's `figures_json` move/parameter model maps move-for-move onto our taxonomy via a **positional→named** conversion table per move (~45 moves), with the gyre → `shoulder_round` term migration and the see saw / swat the flea / meltdown swing aliases. Parse-never-fails: unmapped moves, the ContraDB `custom` move, and unconvertible params fall back to `customFigure` / taxonomy defaults with non-fatal `ImportIssue`s. `start_type` free text is classified to a `FormationShape` best-effort (recognized text is shape-only; normalized `preamble` is `Formation.detail`, and only `notes` is `callingNotes`; an unclassified start type retains both values in preamble-first detail). **Validated against SYNTHETIC fixtures only** — ContraDB is a grey-code site with no committed real export, so the input shape and per-move positional orders are assumed from the documented `defineFigure` model; revisit with a real dump when available. This `figures_json` path remains **web-unobtainable** (ContraDB serves no JSON: `dances/N.json` → HTTP 406, no public API), so it is reachable only from a self-hosted instance, a DB dump, or the AGPL seed data — the user-facing import (below) uses the HTML page instead.
+  - **User-facing ContraDB-by-link import delivered (HTML scrape).** Delivered via HTML scrape of `contradb.com/dances/N` (`ContraDbHtmlAdapter`, pure-Dart CORE `SourceAdapter`, `ProvenanceSource.contradb`): since the `figures_json` path above is web-unobtainable (406 / no API), the user-facing import parses the **server-rendered dance page** — the page a normal website visitor gets — into a `StructuredDraft` (`html` package added to core; still Flutter-free per ADR-001). It reads `h1.dance-show-title`→title, `p.dance-show-formation`→`FormationShape` best-effort (recognized text is shape-only unless a source preamble supplies `Formation.detail`; unknown normalized formation text is retained as `Formation.detail` on `other` with a warning), `div.dance-show-preamble`→normalized formation detail, `p.dance-show-choreographer`→author name for pipeline resolution, and walks `table.contra-table-nonfluid` rows as (section-label, beats, free-text) tuples — carrying the last non-empty section label forward onto continuation rows and capturing `<u>`/`⁋` progression markers via the figure progression flag. Figure text shares the **CallersBox/CC free-text path**: `gypsy`→`shoulder round` safety net + the CORE `canonicalizeText(…, Dialect.canonical)` chokepoint (gendered role terms → `role1`/`role2`), stored without a section-label prefix. Parse-never-fails: malformed/missing elements → non-fatal `ImportIssue`s; a page with no figures table imports as a metadata stub with a warning. Core stays I/O-free — the app fetches. **App wiring:** `import_io.dart` gains `buildContraDbUrl` (bare id or pasted `…/dances/N` URL → canonical `https://contradb.com/dances/N`; user-info dropped), and Settings › General offers a third **"ContraDB"** source in its **Import…** action (single user-initiated fetch via the existing `UrlFetcher`, no crawl; resolved URL stashed on `ImportRequest.uri`). Validated against synthetic HTML fixtures modeled on the real `dances/1` DOM **and** the live `contradb.com/dances/1` page (1 dance, 7 figures with correct beats + progression flags, `improper` formation, "Dan Pearl" retained as author name). The shared free-text parser now upgrades recognized moves to structured taxonomy figures; unrecognized lines remain custom with their scrubbed text, beats, and progression flag.
+  - **Shared free-text parser landed (that follow-up phase).** The ContraDB-HTML figure path now routes its scrubbed `(beats, text)` tuples through the core `parseFigureLine` (`imports/figure_parser.dart`): recognized moves become structured taxonomy figures, the rest fall back to the identical `custom` figure (progression flag + source beats preserved). Section labels are no longer prefixed onto the text (they derive from beats), so custom figures store clean scrubbed text — this drops the earlier `'$label: $scrubbed'` prefix. Validated against the real `dances/1`-modeled "The Rendezvous" fixture (balance & swing, long lines, circle → structured; the "or"/multi-move lines correctly stay custom).
+- [x] 6.5 Caller's Companion migration import — map CC tables discovered in the
+  schema audit: `Dance` (incl. `Level`, composed/revised dates, `Rating`,
+  `UserDefined_*` → custom fields), `Set`+`SetItem` → Programs (with band/caller/
+  dancerLevel, ALT flags, guest caller, timing), `Author` → Choreographers,
+  `Venue` → venue entity (delivered — schema v14, Phase 4.2 entity, plus the
+  CC `.USR` import mapping into it), `Term` → glossary,
+  `Dance_Related` → related links (delivered).
+  Free-text figures route through the shared `parseFigureLine` grammar: lines the
+  parser recognizes import as STRUCTURED moves and only the remainder falls back
+  to `custom` (see design/imports.md §2).
+  - **Clipboard/text migration adapter delivered** (part 1 of 2):
+    `CallersCompanionTextAdapter` (pure-Dart CORE `SourceAdapter`,
+    `ProvenanceSource.callersCompanion`) imports **dances** from CC's "copy
+    formatted dance" clipboard/text export through the standard import pipeline
+    (discover → fetch → parse → dedupe → commit). CC records map into our model
+    via a source-agnostic `mapCallersCompanionDance` unit (`callers_companion_
+    mapping.dart`) — header fields → title/level/formation/progression/dates,
+    free-text body `(beats) text` lines → `custom` figures (design §2;
+    opportunistic structuring deferred until the TCB grammar parser lands),
+    author names surfaced for review (no fabricated ids). No stable CC id →
+    fuzzy title/author dedupe.
+  - **Binary `.USR` migration adapter delivered** (part 2 of 2; box stays open —
+    see caveats): the headline FileMaker-12 binary path landed in PR #204,
+    reusing the `mapCallersCompanionDance` unit above.
+    - Pure-Dart FileMaker-12 `.USR` binary reader (`readFmp12` + SCSU text
+      decode) — block/sector chain + catalog table/field-name recovery —
+      **validated against the real `CallersCompanion2.USR`** (22 tables, 40
+      dances, 205 authors; byte-for-byte cross-check against the `fmptools`
+      reference across five real files). Stays **Flutter-free** (pure
+      `dart:typed_data`; passes the ADR-001 guard).
+    - `CallersCompanionUsrAdapter` imports **dances end-to-end** through the
+      existing pipeline (discover → fetch → parse → dedupe → commit), reusing
+      `mapCallersCompanionDance`; `externalId` = CC `zk_Dance_ID`; `Rating` →
+      `Dance.rating`, `UserDefined_*` → typed custom fields (#1890).
+    - **Shared free-text parser now applied to CC figures** (shared-parser
+      phase): `mapCallersCompanionDance` routes every body line through the core
+      `parseFigureLine`, so recognized moves structure and the rest fall back to
+      `custom` (parse-never-fails; beats + section label preserved). Two
+      intentional, flagged behavior changes: (1) the CC **text** adapter now
+      dialect-scrubs figure text like the other adapters (it previously did not),
+      and (2) recognized lines carry structured moves rather than `custom`. Still
+      **not validated against real CC figure notation** (the sample `.USR`
+      library has no `A1`–`B2`/`Moves` text) — real-figure validation for the
+      parser is anchored to the CallersBox/ContraDB fixtures instead, per the
+      phase brief.
+    - `Set`/`SetItem` → `Program` **builder** (`buildCcPrograms`) delivered and
+      **real-file-validated for FK linkage** — it joins on CC's own field values
+      `zk_Set_ID`/`zk_Dance_ID`, not the FileMaker record ids. The **app-layer
+      program persistence + undo wiring is now delivered** (#273):
+      `CallersCompanionUsrImporter` commits the built programs alongside the
+      dances in the same review/commit flow and rolls them back on undo, and
+      **program provenance dedupe** landed (#284) so re-importing updates existing
+      programs instead of duplicating them.
+    - What now ships beyond dances + programs: `Author` rows resolve to
+      **Choreographers** through the shared import pipeline (resolve-or-create,
+      no fabricated ids — see the 6.2–6.5 author-resolution sub-note above), so
+      migrated dances carry their choreographer links. `UserDefined_*` fields
+      import as **text custom fields** (#1890; previously folded into calling
+      notes because the pipeline could not create a definition, a limitation
+      rather than a recorded decision). Dances imported before #1890 keep the
+      `Label: value` lines in their calling notes; they are not migrated. A
+      re-import replaced the calling notes from the file, so those lines went
+      and the values arrived as typed fields; since 2026-10-30 a re-import
+      replaces only the choreography (INTAKE-7), so they stay.
+    - **Venue linking/minting delivered** (#687, PR #700): when venue-entity
+      mode is ON, `.USR` program commit now resolves each set's cleaned
+      `Location` text to a venue entity via the shared fingerprint path
+      (`venue_dedupe.dart`), mirroring the native archive importer's
+      fresh-mint-never-guess rule — unique fingerprint match → link, no
+      match → mint, weak/absent or ambiguous fingerprint → fresh-mint (never
+      guess). Mode OFF is unchanged (venue stays free text). A bare `.USR`
+      location can't produce a strong fingerprint, so same-import duplicate
+      locations are merged into a single venue via a this-commit-only
+      normalized-location-text match, while cross-import reuse stays
+      intentionally rare (a
+      deliberate never-mis-merge tradeoff). Original `venue` text is always
+      kept as a fallback label; newly minted venues are tracked as
+      `insertedVenueIds` and reverted on undo; re-importing an
+      already-linked program preserves `priorVenueId` and mints zero new
+      venues.
+    - **`Dance_Related` → `relatedDance` links delivered** (#688, PR #706):
+      the real `Dance_Related` table (`zk_Dance1_ID`/`zk_Dance2_ID`/
+      `zk_DanceRelatedID`/`zk_DanceRelatedID_PairID`) was confirmed against a
+      real `CallersCompanion2.USR` catalog, though that sample had zero
+      populated rows, so row shape is unvalidated and parsing stays
+      maximally defensive (parse-never-fails: missing/renamed table →
+      non-fatal warning + zero links). Links are directional only (no
+      symmetrize); an endpoint that wasn't imported is skipped with a
+      non-fatal `ImportIssue` rather than a dangling `targetDanceId`.
+      Fail-closed caps: `maxDanceRelatedRows=20000`,
+      `maxRelatedDancesPerDance=512`. Undo reverts created links.
+    - The free-text figure path is now **validated against real CC figure data**
+      (#559): the transcription does not live in the Dance row's `A1`–`C2`
+      columns (those are empty in the real library, which is why the importer
+      previously produced zero figures) but in the separate `Phrase` table.
+      `extractCcUsrArchive` now joins it, and the real-file test asserts all 40
+      dances in the sample `CallersCompanion2.USR` come across with a
+      Phrase-joined body (162 `Phrase` rows) rather than bodyless. `InsertCall`
+      call buttons also seed figure shorthands (#562), and the ingestion is
+      sanitized + fail-closed bounded (#561). The last source table confirmed
+      present in the real file, `Term`, is now mapped too:
+      - **`Term` → glossary import delivered** (#1023, #1869, #1874): the
+        reader pulls each `Term` row's name, definition, source and notes
+        out of a `.USR` file, and the import offers them as an opt-in,
+        previewed step after the shorthands, each added as one of the
+        user's own glossary terms with an Undo
+        ([design/imports.md](design/imports.md), user guide
+        [Imports & migration](user/imports.md)). User-added terms and
+        figures sync behind `glossary.v2` (#1876). This was the last
+        unmapped CC table for 6.5, so every table in this item is now
+        mapped. The maintainer called 6.5 done in #1904.
+- [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
+  - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
+  - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
+    `SourceAdapter`, `ProvenanceSource.json`) imports our canonical
+    `CompendiumArchive` JSON **per dance** through the standard import pipeline
+    (discover → fetch → parse → dedupe → commit). App-side wiring / review-queue
+    UI now delivered under 6.3, making JSON import user-reachable end to end.
+  - **Program sharing between devices delivered** (send #339; receive #298/#361):
+    a program can be shared as one self-contained `CompendiumArchive` bundle that
+    carries the program *and* every dance it references, handed to the OS share
+    sheet (AirDrop on Apple platforms, share intent elsewhere). The app is also a
+    **share target** — opening a received bundle (AirDrop / "Open with" / share
+    intent) launches the app and routes the program and its dances through the
+    same **import review/consent screen** as other imports (identity-first dedupe,
+    untrusted-input validation), so nothing is committed without your say-so
+    (#432). Platform intake wiring:
+    iOS declares `LSSupportsOpeningDocumentsInPlace` for the share-import type
+    (#372); macOS routes incoming files through a native bridge (#361/#377).
+
 ## General settings
 
 Cross-cutting application preferences, persisted across sessions via
@@ -455,9 +600,9 @@ defaults) live in the **Defaults** pane section below.
   first regression. It measures what the ARB validator deliberately does not —
   `validate` only requires a locale to be a *subset* of the template, so a missing
   key passed it by design, which is how a 100-string backlog accumulated unseen.
-  Two surfaces stay English by design for now — a small set of core service-layer
-  messages (#528) and the diagnostics-log export body (a maintainer support
-  artifact). Exported dance/program documents now follow the UI language (#529).
+  Two surfaces stayed English by design at the time — a small set of core
+  service-layer messages (#528, since localized in #573) and the diagnostics-log
+  export body (a maintainer support artifact). Exported dance/program documents now follow the UI language (#529).
   NOTE: the first-day-of-week preference is now live: the Programs list's "this
   week" header strip (`WeekdayHeaderStrip`) honors it, ordering its weekday
   columns from `FirstDayOfWeekScope`, and the Language & region settings

@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,14 +10,23 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
+import 'package:compendium_app/src/data/set_list_share_scope.dart';
+import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
+import 'package:compendium_app/src/data/venue_call_count_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
+import 'support/finders.dart';
 import 'support/test_repositories.dart';
+import 'support/tracking_settings.dart';
 import 'support/l10n_harness.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 /// Pumps the [SettingsScreen] and opens the Program section, wiring every scope
 /// the Program pane reads (venues, matrix-collision, and the two calling-history
@@ -27,17 +37,31 @@ Future<ValueNotifier<bool>> _pumpProgram(
   CompendiumRepositories repos, {
   bool initialExactBeatCollision = true,
   bool initialAutoCommit = false,
+  Size surface = const Size(1200, 2000),
+  double textScale = 1,
+  void Function(ValueNotifier<bool> autoCommit, ValueNotifier<int> venueCalls)?
+  onScopeNotifiers,
+  ValueNotifier<bool>? requireEventDate,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 1400));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
   final venueMode = ValueNotifier<bool>(false);
   final exactBeatCollision = ValueNotifier<bool>(initialExactBeatCollision);
   final requirePerformed = ValueNotifier<bool>(false);
+  final eventDate = requireEventDate ?? ValueNotifier<bool>(false);
+  if (requireEventDate == null) addTearDown(eventDate.dispose);
   final trackAllCallers = ValueNotifier<bool>(false);
+  final showPerformedToggles = ValueNotifier<bool>(true);
+  final markAllSetsStatus = ValueNotifier<bool>(true);
+  final shareTitle = ValueNotifier<bool>(true);
+  final shareCallerBand = ValueNotifier<bool>(true);
+  final shareDateVenue = ValueNotifier<bool>(true);
   final autoCommit = ValueNotifier<bool>(initialAutoCommit);
+  final venueCalls = ValueNotifier<int>(kVenueCallCountDefault);
+  onScopeNotifiers?.call(autoCommit, venueCalls);
+  addTearDown(venueCalls.dispose);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(dialect.dispose);
@@ -46,32 +70,49 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(exactBeatCollision.dispose);
   addTearDown(requirePerformed.dispose);
   addTearDown(trackAllCallers.dispose);
+  addTearDown(showPerformedToggles.dispose);
+  addTearDown(markAllSetsStatus.dispose);
+  addTearDown(shareTitle.dispose);
+  addTearDown(shareCallerBand.dispose);
+  addTearDown(shareDateVenue.dispose);
   addTearDown(autoCommit.dispose);
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: VenueEntityModeScope(
-                notifier: venueMode,
-                child: MatrixCollisionModeScope(
-                  notifier: exactBeatCollision,
-                  child: RequirePerformedForHistoryScope(
-                    notifier: requirePerformed,
-                    child: TrackHistoryForAllCallersScope(
-                      notifier: trackAllCallers,
-                      child: ProgramAutoCommitScope(
-                        notifier: autoCommit,
-                        child: child!,
+    TrackingScopes(
+      child: MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: VenueEntityModeScope(
+                  notifier: venueMode,
+                  child: MatrixCollisionModeScope(
+                    notifier: exactBeatCollision,
+                    child: RequirePerformedForHistoryScope(
+                      notifier: requirePerformed,
+                      child: RequireEventDateForHistoryScope(
+                        notifier: eventDate,
+                        child: TrackHistoryForAllCallersScope(
+                          notifier: trackAllCallers,
+                          child: ProgramAutoCommitScope(
+                            notifier: autoCommit,
+                            child: VenueCallCountScope(
+                              notifier: venueCalls,
+                              child:
+                                  (textScaleBuilder(
+                                    textScale,
+                                  )?.call(context, child)) ??
+                                  child!,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -80,8 +121,23 @@ Future<ValueNotifier<bool>> _pumpProgram(
             ),
           ),
         ),
+        home: ShowPerformedTogglesScope(
+          notifier: showPerformedToggles,
+          child: MarkAllSetsStatusScope(
+            notifier: markAllSetsStatus,
+            child: ShareSetListTitleScope(
+              notifier: shareTitle,
+              child: ShareSetListCallerBandScope(
+                notifier: shareCallerBand,
+                child: ShareSetListDateVenueScope(
+                  notifier: shareDateVenue,
+                  child: const SettingsScreen(),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
-      home: const SettingsScreen(),
     ),
   );
   await tester.pumpAndSettle();
@@ -93,6 +149,40 @@ Future<ValueNotifier<bool>> _pumpProgram(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Program venue call count survives 360 dp wide at 1.3x text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(
+      tester,
+      repos,
+      surface: const Size(360, 1400),
+      textScale: 1.3,
+    );
+    expect(tester.takeException(), isNull);
+    for (final key in const ['program-venue-call-count']) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        200,
+        scrollable: verticalScrollable(),
+      );
+      await tester.pumpAndSettle();
+      // A dropdown inside a ListTile's trailing slot cannot wrap.
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byKey(ValueKey(key)),
+        ),
+        findsNothing,
+        reason: key,
+      );
+      final box = tester.getRect(find.byKey(ValueKey(key)));
+      expect(box.left, greaterThanOrEqualTo(0), reason: key);
+      expect(box.right, lessThanOrEqualTo(360), reason: key);
+    }
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Program pane renders all four relocated subsections', (
     tester,
@@ -116,7 +206,12 @@ void main() {
       find.byKey(const ValueKey('settings-auto-size-perform')),
       findsOneWidget,
     );
-    // Calling history
+    // Calling history (below the fold: the list builds lazily)
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('general-track-history-for-all-callers')),
+      200,
+      scrollable: verticalScrollable(),
+    );
     expect(
       find.byKey(const ValueKey('general-require-performed-for-history')),
       findsOneWidget,
@@ -125,6 +220,138 @@ void main() {
       find.byKey(const ValueKey('general-track-history-for-all-callers')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('general-show-performed-toggles')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('"Show mark-performed toggles" defaults on, and flipping it '
+      'persists', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final tile = find.byKey(const ValueKey('general-show-performed-toggles'));
+    await tester.scrollUntilVisible(
+      tile,
+      200,
+      scrollable: verticalScrollable(),
+    );
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+    expect(find.text('Show mark-performed toggles'), findsOneWidget);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    expect(await repos.settings.get(kShowPerformedTogglesKey), isFalse);
+  });
+
+  testWidgets('the four tracking toggles show their defaults and persist', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final defaults = {
+      'general-recency-require-event-date': (true, kRecencyRequireEventDateKey),
+      'general-recency-require-performed': (false, kRecencyRequirePerformedKey),
+      'general-history-order-ignore-undated': (
+        false,
+        kHistoryOrderIgnoreUndatedKey,
+      ),
+      'general-history-order-ignore-unperformed': (
+        false,
+        kHistoryOrderIgnoreUnperformedKey,
+      ),
+    };
+    for (final entry in defaults.entries) {
+      final (initial, settingKey) = entry.value;
+      final tile = find.byKey(ValueKey(entry.key));
+      await tester.scrollUntilVisible(
+        tile,
+        200,
+        scrollable: verticalScrollable(),
+      );
+      await tester.ensureVisible(tile);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SwitchListTile>(tile).value,
+        initial,
+        reason: entry.key,
+      );
+      // Nothing is stored until the caller flips it.
+      expect(await repos.settings.get(settingKey), isNull, reason: entry.key);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(tile).value, !initial);
+      expect(await repos.settings.get(settingKey), !initial);
+    }
+    // The descriptions say the new rows never change the counts.
+    expect(find.textContaining('never the counts'), findsWidgets);
+  });
+
+  testWidgets('"Mark all performed sets the status" defaults on, and '
+      'flipping it persists', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final tile = find.byKey(const ValueKey('general-mark-all-sets-status'));
+    await tester.scrollUntilVisible(
+      tile,
+      200,
+      scrollable: verticalScrollable(),
+    );
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+    expect(find.text('Mark all performed sets the status'), findsOneWidget);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    expect(await repos.settings.get(kMarkAllSetsStatusKey), isFalse);
+  });
+
+  testWidgets('Sharing toggles default on, are labelled, and each persists '
+      'its own key', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    // Sharing sits under Programs, above Performance.
+    expect(find.text('Sharing'), findsOneWidget);
+    for (final (key, label, storeKey) in [
+      (
+        'settings-share-set-list-title',
+        'Include program title when sharing a set list',
+        kShareSetListIncludeTitleKey,
+      ),
+      (
+        'settings-share-set-list-caller-band',
+        'Include caller and band when sharing a set list',
+        kShareSetListIncludeCallerBandKey,
+      ),
+      (
+        'settings-share-set-list-date-venue',
+        'Include date and venue when sharing a set list',
+        kShareSetListIncludeDateVenueKey,
+      ),
+    ]) {
+      final tile = find.byKey(ValueKey(key));
+      await tester.scrollUntilVisible(
+        tile,
+        200,
+        scrollable: verticalScrollable(),
+      );
+      expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+      expect(find.text(label), findsOneWidget);
+      expect(await repos.settings.get(storeKey), isNull);
+
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+      expect(await repos.settings.get(storeKey), isFalse);
+    }
   });
 
   testWidgets('matrix-columns entry point opens the editor screen', (
@@ -211,6 +438,54 @@ void main() {
   );
 
   testWidgets(
+    'confirm-before-leaving-Perform toggle defaults on, is accessible, and '
+    'persists',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      final repos = openTestRepositories();
+
+      await _pumpProgram(tester, repos);
+
+      final toggle = find.byKey(
+        const ValueKey('settings-confirm-perform-exit'),
+      );
+
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      expect(find.text('Confirm before leaving Perform mode'), findsOneWidget);
+      expect(
+        tester.getSemantics(
+          find.descendant(of: toggle, matching: find.byType(Switch)),
+        ),
+        isSemantics(
+          hasToggledState: true,
+          isToggled: true,
+          hasTapAction: true,
+          isEnabled: true,
+        ),
+      );
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      expect(await repos.settings.get(kConfirmPerformExitKey), isFalse);
+
+      handle.dispose();
+    },
+  );
+
+  testWidgets('confirm-before-leaving-Perform toggle shows a stored off', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kConfirmPerformExitKey, false);
+
+    await _pumpProgram(tester, repos);
+
+    final toggle = find.byKey(const ValueKey('settings-confirm-perform-exit'));
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+  });
+
+  testWidgets(
     'program caller notes toggle defaults on, is accessible, and persists',
     (tester) async {
       final handle = tester.ensureSemantics();
@@ -269,6 +544,50 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('Program section reflects a restored auto-commit and venue call '
+      'count without reopening', (tester) async {
+    final repos = openTestRepositories();
+    late ValueNotifier<bool> autoCommit;
+    late ValueNotifier<int> venueCalls;
+    await _pumpProgram(
+      tester,
+      repos,
+      onScopeNotifiers: (a, v) {
+        autoCommit = a;
+        venueCalls = v;
+      },
+    );
+    final toggle = find.byKey(
+      const ValueKey('settings-auto-commit-program-changes'),
+    );
+    final dropdown = find.byKey(const ValueKey('program-venue-call-count'));
+    await tester.scrollUntilVisible(
+      dropdown,
+      200,
+      scrollable: verticalScrollable(),
+    );
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(
+      tester.widget<AppDropdownField<int>>(dropdown).initialValue,
+      kVenueCallCountDefault,
+    );
+
+    // What `reloadFromSettings` does after a restore: the live notifiers change.
+    autoCommit.value = true;
+    venueCalls.value = 8;
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<AppDropdownField<int>>(dropdown).initialValue, 8);
+    // The list builds lazily and the tracking rows below the dropdown lengthen
+    // it, so bring the toggle back into view before reading it.
+    await tester.scrollUntilVisible(
+      toggle,
+      -200,
+      scrollable: verticalScrollable(),
+    );
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+  });
+
   testWidgets('toggling program auto-commit persists the setting', (
     tester,
   ) async {
@@ -289,6 +608,41 @@ void main() {
       isTrue,
     );
     expect(await repos.settings.get(kAutoCommitProgramChangesKey), isTrue);
+  });
+
+  testWidgets('Require an event date defaults off; toggling it flips the live '
+      'scope and persists the setting (F6)', (tester) async {
+    final repos = openTestRepositories();
+    final requireEventDate = ValueNotifier<bool>(false);
+    addTearDown(requireEventDate.dispose);
+    await _pumpProgram(tester, repos, requireEventDate: requireEventDate);
+
+    final toggle = find.byKey(
+      const ValueKey('general-require-event-date-for-history'),
+    );
+    await tester.scrollUntilVisible(
+      toggle,
+      200,
+      scrollable: verticalScrollable(),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(
+      find.text('Require an event date for calling history'),
+      findsOneWidget,
+    );
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(requireEventDate.value, isTrue);
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    expect(await repos.settings.get(kRequireEventDateForHistoryKey), isTrue);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(requireEventDate.value, isFalse);
+    expect(await repos.settings.get(kRequireEventDateForHistoryKey), isFalse);
   });
 
   testWidgets('toggling auto-size off persists the setting', (tester) async {

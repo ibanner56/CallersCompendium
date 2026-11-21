@@ -145,6 +145,11 @@ void main() {
         // No stale "guessed column" warnings — the schema is confirmed.
         expect(archive.warnings.any((w) => w.contains('guessed')), isFalse);
 
+        // A healthy file knows its dances, so a set slot naming a dance
+        // deleted in CC can be left out (#1976); any reader warning would
+        // switch that off.
+        expect(archive.danceRecordIds, hasLength(40));
+
         // #559: every dance now carries its figure body, joined from the
         // separate `Phrase` table (the empty Dance-row A1..C2 columns yielded
         // zero figures before). No dance should come across bodyless.
@@ -166,8 +171,17 @@ void main() {
 
       expect(result.programs, hasLength(1));
       final program = result.programs.single;
-      // The single set's title derives from its Location.
-      expect(program.title, 'Example Set');
+      // The single set is titled as CC names it, `YYYY/MM/DD - Location`, or
+      // by its Location alone when it has no date (#1976).
+      final date = program.eventDate;
+      expect(
+        program.title,
+        date == null
+            ? 'Example Set'
+            : '${date.year.toString().padLeft(4, '0')}/'
+                  '${date.month.toString().padLeft(2, '0')}/'
+                  '${date.day.toString().padLeft(2, '0')} - Example Set',
+      );
 
       final resolved = program.slots.where((s) => s.danceId != null).length;
       // Every set item whose CC dance id exists among the 40 dances should

@@ -44,7 +44,7 @@ void main() {
       ),
       'partners cross trails across neighbors': Figure(move: 'cross_trails'),
       // roll_away now renders its added whom target.
-      'neighbors roll away partners': Figure(move: 'roll_away'),
+      'role1s roll away partners': Figure(move: 'roll_away'),
     };
     cases.forEach((expected, figure) {
       test('"$expected"', () {
@@ -69,7 +69,7 @@ void main() {
         renderer.renderCanonical(
           Figure(move: 'roll_away', params: {'whom': 'neighbors'}),
         ),
-        'neighbors roll away neighbors',
+        'role1s roll away neighbors',
       );
     });
   });

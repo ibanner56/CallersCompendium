@@ -11,11 +11,19 @@ import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/program_import_rollback.dart';
 import '../data/program_title_date.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_theme_extension.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_bar_text_action.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/app_date_picker.dart';
+import '../widgets/confirm_discard_changes.dart';
 
 /// How the user is choosing which ContraDB program to import.
 enum _ImportMode {
@@ -38,9 +46,18 @@ enum _ImportMode {
 /// Standalone note activities (announcements/waltz/break) are kept verbatim and
 /// never searched. Slot order matches the program exactly.
 ///
+/// Import shows its progress and can be cancelled. It stops at the first
+/// connection failure, and on a cancel, a failure, or the screen being left it
+/// creates no program and takes back every dance it imported, so a half-built
+/// program of notes never claims the archives had nothing.
+///
+/// Going back with a URL, a search or a fetched program on screen (including a
+/// shared link) asks first; going back while the import commits does not.
+///
 /// Pushed as a route; pops with the created program's id on success (null if the
 /// user backs out), mirroring [PlaintextProgramImportScreen]. Commit shows an
-/// undo SnackBar that hard-deletes the just-created program.
+/// undo SnackBar that hard-deletes the just-created program and the dances
+/// imported for it (docs/user/programs.md).
 class ContraDbProgramImportScreen extends StatefulWidget {
   const ContraDbProgramImportScreen({
     super.key,
@@ -120,6 +137,13 @@ class _ContraDbProgramImportScreenState
 
   bool _fetching = false;
   bool _committing = false;
+
+  /// The running import's `(done, total)` over the program's dances, or null
+  /// before its first report.
+  (int, int)? _commitProgress;
+
+  /// Whether the user asked the running import to stop.
+  bool _commitCancelRequested = false;
 
   /// Whether the most recent fetch attempt failed (drives the error UI).
   bool _fetchFailed = false;
@@ -358,8 +382,16 @@ class _ContraDbProgramImportScreenState
 
   Future<void> _commit() async {
     if (!_canCommit) return;
-    setState(() => _committing = true);
+    setState(() {
+      _committing = true;
+      _commitProgress = null;
+      _commitCancelRequested = false;
+    });
     final now = DateTime.now().toUtc();
+    // Every dance this attempt imports, so that anything short of a created
+    // program — a cancel, a failure, leaving the screen — takes them back out,
+    // and so the program's Undo can.
+    final imported = ProgramImportRollback(_repos);
 
     final List<ResolvedContraDbActivity> resolved;
     try {
@@ -369,9 +401,30 @@ class _ContraDbProgramImportScreenState
         callersBox: _callersBox,
         repos: _repos,
         now: now,
+        rollback: imported,
+        onProgress: (done, total) {
+          if (mounted) setState(() => _commitProgress = (done, total));
+        },
+        isCancelled: () => _commitCancelRequested || !mounted,
       );
+    } on ProgramImportCancelled {
+      // diagnostics: silent — user-initiated (or the screen was left), not a
+      // failure.
+      await _discard(imported);
+      _endCommit(
+        const ValueKey('contradb-program-cancelled-snackbar'),
+        (l10n) => l10n.importContraDbProgramCancelled,
+      );
+      return;
+    } on ProgramImportConnectionFailed {
+      // diagnostics: silent — an expected offline condition, said in the UI.
+      await _discard(imported);
+      _endCommit(
+        const ValueKey('contradb-program-offline-snackbar'),
+        (l10n) => l10n.importContraDbProgramConnectionFailed,
+      );
+      return;
     } catch (error, stackTrace) {
-      if (!mounted) return;
       if (kDebugMode) {
         debugPrint('ContraDB program resolve failed: $error\n$stackTrace');
       }
@@ -380,14 +433,10 @@ class _ContraDbProgramImportScreenState
         stackTrace,
         source: 'contradb_program_import_screen._commit.resolve',
       );
-      setState(() => _committing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          key: const ValueKey('contradb-program-resolve-error-snackbar'),
-          content: Text(
-            AppLocalizations.of(context).importContraDbResolveError,
-          ),
-        ),
+      await _discard(imported);
+      _endCommit(
+        const ValueKey('contradb-program-resolve-error-snackbar'),
+        (l10n) => l10n.importContraDbResolveError,
       );
       return;
     }
@@ -395,6 +444,16 @@ class _ContraDbProgramImportScreenState
     final id = uuidV4();
     final slots = buildContraDbProgramSlots(resolved, newSlotId: uuidV4);
     final caller = await _resolveCaller(_program!.contributor);
+    // Never create the program once the screen is gone (nobody would get its
+    // Undo), or once Cancel was pressed after the last dance came in.
+    if (!mounted || _commitCancelRequested) {
+      await _discard(imported);
+      _endCommit(
+        const ValueKey('contradb-program-cancelled-snackbar'),
+        (l10n) => l10n.importContraDbProgramCancelled,
+      );
+      return;
+    }
     // Capture ContraDB provenance so a later re-import of the same program can be
     // recognised (issue #586). The external id is the canonical numeric
     // /programs/N id derived defensively from the user's input; when it can't be
@@ -421,7 +480,6 @@ class _ContraDbProgramImportScreenState
     try {
       await _repos.programs.create(program);
     } catch (error, stackTrace) {
-      if (!mounted) return;
       if (kDebugMode) {
         debugPrint('ContraDB program import write failed: $error\n$stackTrace');
       }
@@ -430,26 +488,32 @@ class _ContraDbProgramImportScreenState
         stackTrace,
         source: 'contradb_program_import_screen._commit.write',
       );
-      setState(() => _committing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          key: const ValueKey('contradb-program-error-snackbar'),
-          content: Text(AppLocalizations.of(context).importProgramCreateError),
-        ),
+      // No program, so the dances imported for it go too.
+      await _discard(imported);
+      _endCommit(
+        const ValueKey('contradb-program-error-snackbar'),
+        (l10n) => l10n.importProgramCreateError,
       );
       return;
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      // Left while the program was being written: nobody was told it exists
+      // and there is no Undo to offer, so it goes, with its imported dances.
+      await _discardProgram(id, imported);
+      return;
+    }
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final linked = resolved.where((a) => a.isLinked).length;
     final notes = slots.length - linked;
-    // The program itself is new, and Undo hard-deletes it again. Neither needs
-    // a broadcast: every program view watches `programs` directly (issue #768),
-    // which is also what finally gave the phone Programs list a refresh path —
-    // it had no channel at all before.
+    // The program itself is new, and Undo hard-deletes it again, then takes
+    // back the dances imported for it (program first, so no slot is left
+    // pointing at a removed dance). Neither needs a broadcast: every program
+    // view watches `programs` directly (issue #768), which is also what
+    // finally gave the phone Programs list a refresh path — it had no channel
+    // at all before.
     showUndoSnackBar(
       messenger,
       key: const ValueKey('contradb-program-committed-snackbar'),
@@ -460,12 +524,65 @@ class _ContraDbProgramImportScreenState
         notes,
       ),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.hardDelete([id]);
+        await imported.rollBack(undoneProgramId: id);
       },
     );
     navigator.pop(id);
+  }
+
+  /// Leaves the committing state and, if the screen is still here, says why
+  /// with a snackbar keyed [key].
+  void _endCommit(Key key, String Function(AppLocalizations l10n) message) {
+    if (!mounted) return;
+    setState(() {
+      _committing = false;
+      _commitProgress = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(key: key, content: Text(message(AppLocalizations.of(context)))),
+    );
+  }
+
+  /// Takes back every dance [imported] holds. Never throws: it runs on paths
+  /// that are already reporting something else, or after the screen is gone,
+  /// so a failure can only be logged.
+  Future<void> _discard(
+    ProgramImportRollback imported, {
+    String? undoneProgramId,
+  }) async {
+    try {
+      await imported.rollBack(undoneProgramId: undoneProgramId);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'contradb_program_import_screen._discard',
+      );
+    }
+  }
+
+  /// Removes a program written after the screen was left, then the dances
+  /// imported for it. Never throws, as for [_discard].
+  Future<void> _discardProgram(
+    String id,
+    ProgramImportRollback imported,
+  ) async {
+    try {
+      await _repos.programs.hardDelete([id]);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'contradb_program_import_screen._discardProgram',
+      );
+      // The program may still link these dances, so they stay with it.
+      return;
+    }
+    await _discard(imported, undoneProgramId: id);
   }
 
   /// Maximum caller length accepted from a scraped contributor. Defense-in-depth
@@ -514,7 +631,7 @@ class _ContraDbProgramImportScreenState
     final initial = stored == null
         ? now
         : DateTime(stored.year, stored.month, stored.day);
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(now.year - 30),
@@ -528,68 +645,80 @@ class _ContraDbProgramImportScreenState
     }
   }
 
+  /// Whether backing out now would lose a pasted URL, a typed search or a
+  /// fetched program. Not while the import is being written.
+  bool get _hasInputToLose =>
+      !_committing &&
+      (_program != null ||
+          _urlController.text.trim().isNotEmpty ||
+          _searchController.text.trim().isNotEmpty);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.importContraDbTitle),
-        actions: [
-          TextButton(
-            key: const ValueKey('contradb-program-commit'),
-            onPressed: _canCommit ? _commit : null,
-            child: _committing
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(l10n.importAction),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SegmentedButton<_ImportMode>(
-                key: const ValueKey('contradb-program-mode'),
-                segments: [
-                  ButtonSegment(
-                    value: _ImportMode.url,
-                    icon: const Icon(Icons.link),
-                    label: Text(l10n.importContraDbPasteUrl),
-                  ),
-                  ButtonSegment(
-                    value: _ImportMode.search,
-                    icon: const Icon(Icons.search),
-                    label: Text(l10n.importContraDbSearchByName),
-                  ),
-                ],
-                selected: {_mode},
-                onSelectionChanged: _canFetch
-                    ? (selection) => _onModeChanged(selection.first)
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              if (_mode == _ImportMode.url)
-                ..._urlEntry()
-              else
-                ..._searchEntry(),
-              const SizedBox(height: 12),
-              TextField(
-                key: const ValueKey('contradb-program-title'),
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: l10n.importProgramTitleLabel,
-                  border: const OutlineInputBorder(),
+    // The URL and search fields have no setState listener of their own, so the
+    // guard listens to them directly.
+    return ListenableBuilder(
+      listenable: Listenable.merge([_urlController, _searchController]),
+      builder: (context, child) =>
+          DiscardChangesGuard(dirty: _hasInputToLose, child: child!),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.importContraDbTitle),
+          actions: [
+            AppBarTextAction(
+              key: const ValueKey('contradb-program-commit'),
+              label: l10n.importAction,
+              icon: Icons.download_done,
+              busy: _committing,
+              onPressed: _canCommit ? _commit : null,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SegmentedButton<_ImportMode>(
+                  key: const ValueKey('contradb-program-mode'),
+                  segments: [
+                    ButtonSegment(
+                      value: _ImportMode.url,
+                      icon: const Icon(Icons.link),
+                      label: Text(l10n.importContraDbPasteUrl),
+                    ),
+                    ButtonSegment(
+                      value: _ImportMode.search,
+                      icon: const Icon(Icons.search),
+                      label: Text(l10n.importContraDbSearchByName),
+                    ),
+                  ],
+                  selected: {_mode},
+                  onSelectionChanged: _canFetch
+                      ? (selection) => _onModeChanged(selection.first)
+                      : null,
                 ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(child: _buildBody()),
-            ],
+                const SizedBox(height: 12),
+                if (_mode == _ImportMode.url)
+                  ..._urlEntry()
+                else
+                  ..._searchEntry(),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const ValueKey('contradb-program-title'),
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    labelText: l10n.importProgramTitleLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (_committing) _buildCommitProgress(),
+                Expanded(child: _buildBody()),
+              ],
+            ),
           ),
         ),
       ),
@@ -646,6 +775,51 @@ class _ContraDbProgramImportScreenState
     ];
   }
 
+  /// The running import's progress and its Cancel.
+  Widget _buildCommitProgress() {
+    final l10n = AppLocalizations.of(context);
+    final progress = _commitProgress;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              value: progress == null || progress.$2 == 0
+                  ? null
+                  : progress.$1 / progress.$2,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                key: const ValueKey('contradb-program-progress'),
+                progress == null
+                    ? l10n.importResolving
+                    : l10n.importContraDbProgramProgress(
+                        progress.$1,
+                        progress.$2,
+                      ),
+              ),
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('contradb-program-cancel'),
+            onPressed: _commitCancelRequested
+                ? null
+                : () => setState(() => _commitCancelRequested = true),
+            child: Text(l10n.commonCancel),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Below the entry fields: the search results (search mode, before a program
   /// is fetched) or the fetched-program preview.
   Widget _buildBody() {
@@ -671,7 +845,7 @@ class _ContraDbProgramImportScreenState
     final String tooltip;
     final String badgeKey;
     if (marker.isImported) {
-      icon = Icons.check_circle;
+      icon = Icons.check_circle_outline;
       color = scheme.primary;
       label = l10n.importContraDbMarkerImported;
       final importedAt = marker.importedAt;
@@ -726,22 +900,11 @@ class _ContraDbProgramImportScreenState
       );
     }
     if (_searchError != null) {
-      return Center(
+      return LoadErrorView(
         key: const ValueKey('contradb-program-search-error'),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.importContraDbListError, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            FilledButton(
-              key: const ValueKey('contradb-program-search-retry'),
-              onPressed: _loadIndex,
-              child: Text(l10n.commonTryAgain),
-            ),
-          ],
-        ),
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.importContraDbListError,
+        onRetry: _loadIndex,
       );
     }
     if (_searchController.text.trim().isEmpty) {
@@ -751,7 +914,7 @@ class _ContraDbProgramImportScreenState
           l10n.importContraDbSearchPrompt,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.outline,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       );
@@ -795,21 +958,13 @@ class _ContraDbProgramImportScreenState
     final l10n = AppLocalizations.of(context);
     if (_fetchFailed) {
       final detail = _fetchErrorDetail;
-      return Center(
+      return LoadErrorView(
         key: const ValueKey('contradb-program-fetch-error'),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(
-              detail != null
-                  ? l10n.importContraDbFetchError(detail)
-                  : l10n.importContraDbFetchGenericError,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+        icon: LoadErrorView.errorGlyph(context),
+        message: detail != null
+            ? l10n.importContraDbFetchError(detail)
+            : l10n.importContraDbFetchGenericError,
+        onRetry: _fetchProgram,
       );
     }
 
@@ -821,7 +976,7 @@ class _ContraDbProgramImportScreenState
           l10n.importContraDbPastePrompt,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.outline,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       );
@@ -829,7 +984,11 @@ class _ContraDbProgramImportScreenState
 
     final activities = program.activities;
     if (activities.isEmpty) {
-      return Center(child: Text(l10n.importContraDbEmptyProgram));
+      return EmptyState(
+        key: const ValueKey('contradb-program-empty'),
+        icon: EmptyState.glyph(context, Icons.event_note_outlined),
+        title: l10n.importContraDbEmptyProgram,
+      );
     }
     final danceCount = activities.where((a) => a.isDance).length;
     final noteCount = activities.length - danceCount;
@@ -844,13 +1003,13 @@ class _ContraDbProgramImportScreenState
         if (markerBadge != null)
           Padding(
             key: const ValueKey('contradb-program-preview-marker'),
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: Align(alignment: Alignment.centerLeft, child: markerBadge),
           ),
         _buildEventDateRow(),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: Text(
             l10n.importContraDbActivityCount(
               activities.length,
@@ -930,18 +1089,22 @@ class _ContraDbProgramImportScreenState
         ),
         if (_dateAutoDetected && _eventDate != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Row(
               key: const ValueKey('contradb-program-date-detected-hint'),
               children: [
-                Icon(Icons.auto_awesome, size: 14, color: scheme.outline),
+                Icon(
+                  Icons.auto_awesome,
+                  size: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     l10n.importEventDateDetected,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: scheme.outline),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -968,7 +1131,7 @@ class _ContraDbProgramImportScreenState
           )
         : (
             Icons.sticky_note_2_outlined,
-            scheme.outline,
+            scheme.onSurfaceVariant,
             activity.text ?? '',
             null,
           );
@@ -976,10 +1139,16 @@ class _ContraDbProgramImportScreenState
       dense: true,
       leading: CircleAvatar(
         radius: 12,
-        backgroundColor: color.withValues(alpha: 0.15),
+        backgroundColor: color.withValues(
+          alpha: AppThemeExtension.statusTintAlpha,
+        ),
+        // The number is text, so it takes onSurface (AA on the tint) rather
+        // than the accent, which only clears AA on the bare surface.
         child: Text(
           '${index + 1}',
-          style: TextStyle(fontSize: 11, color: color),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
       ),
       title: Text(primary),

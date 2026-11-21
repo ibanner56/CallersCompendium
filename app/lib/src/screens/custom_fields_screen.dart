@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../widgets/reorder_move_buttons.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,16 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
+import '../widgets/confirm_discard_changes.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/app_dropdown_field.dart';
 import 'settings/settings_keys.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
 /// helper pattern (see `search/facet_labels.dart`): the enum lives in the
@@ -131,11 +141,15 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     final result = await showModalBottomSheet<CustomFieldDef>(
       context: context,
       isScrollControlled: true,
+      // A swipe would close the form without asking about unsaved changes: it
+      // pops the route directly, past the form's [DiscardChangesGuard].
+      enableDrag: false,
       builder: (_) => _CustomFieldForm(
         existing: existing,
         inUse: inUse,
         usedChoiceValues: usedChoiceValues,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (result != null) {
       final isNew = existing == null;
@@ -156,8 +170,45 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       // property the discard actually depends on. Patching `_defs` locally from
       // `result` would reintroduce the bug the original comment warned about,
       // because `result` carries the pre-adoption id.
-      // ignore: unused_result
-      await _repos.customFieldDefs.upsert(result);
+      try {
+        // ignore: unused_result
+        await _repos.customFieldDefs.upsert(result, localUserEdit: true);
+      } on DuplicateNaturalKeyError catch (error, stackTrace) {
+        // The key belongs to another definition, so nothing was written.
+        // Before #1348 the repository kept the old key and raised nothing: the
+        // screen's re-read then showed the un-renamed field with no
+        // explanation of why the rename had not taken.
+        //
+        // A **creation** onto a live key used to escape this catch entirely:
+        // the repository reached the insert and SQLite refused it with a raw
+        // `SqliteException`, so there was no snackbar, no diagnostic entry, and
+        // no field — the key validator checks format only, so nothing upstream
+        // stopped it either. The repository now refuses it with this same typed
+        // error.
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'custom_fields_screen._openForm',
+        );
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            key: const ValueKey('field-key-duplicate-snackbar'),
+            // Two outcomes, two sentences. The rename copy says the key was not
+            // changed, which on a creation would describe a field that does not
+            // exist; the creation copy says nothing was created. Neither may
+            // read better than what happened — the incumbent is untouched in
+            // both cases.
+            content: Text(
+              isNew
+                  ? l10n.customFieldsKeyDuplicateNew(result.key)
+                  : l10n.customFieldsKeyDuplicate(result.key),
+            ),
+          ),
+        );
+        return;
+      }
       // Show the one-time sharing disclosure when the user creates their very
       // first custom field. The latch is set before the dialog is awaited so a
       // crash during the dialog never re-shows it on next launch.
@@ -190,59 +241,69 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 
+  /// Deletes [def] at once and offers Undo, asking first only when "Confirm
+  /// before delete" is on (see `confirm_delete.dart`). A field still holding a
+  /// value on a live dance is not deleted: the repository refuses, and the
+  /// snackbar says why instead.
   Future<void> _delete(CustomFieldDef def) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: def.label)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.customFieldsDeleteTitle),
-        content: Text(l10n.customFieldsDeleteBody(def.label)),
-        actions: [
-          TextButton(
-            key: const ValueKey('delete-cancel'),
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            key: const ValueKey('delete-confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
+    final messenger = ScaffoldMessenger.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    final repos = _repos;
     try {
-      await _repos.customFieldDefs.delete(def.id);
-      // No reload: the delete tombstones the row and the stream re-emits.
-    } on StateError catch (e, st) {
+      await repos.customFieldDefs.delete(def.id);
+      // No reload: the delete tombstones the row and the stream re-emits;
+      // Undo's restore clears the tombstone and it re-emits again.
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('delete-success-snackbar'),
+        actionKey: const ValueKey('custom-field-delete-undo'),
+        message: l10n.commonDeletedSnack(def.label),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: accessibleNavigation,
+        // A new field given the same key since takes over this row (the key
+        // is unique, and creating adopts the tombstone), so a live row here
+        // is that new field: the restore refuses, in its own transaction,
+        // rather than report an Undo that brought nothing back.
+        onUndo: () => repos.customFieldDefs.restore(
+          def.id,
+          at: DateTime.now().toUtc(),
+          onlyIfDeleted: true,
+        ),
+      );
+    } on CustomFieldInUseException catch (e, st) {
       logCaughtError(e, st, source: 'custom_fields_screen._delete');
       if (!mounted) return;
-      // The repo throws StateError when values still exist on dances. Log the
-      // raw error for diagnostics only (CWE-209: never surface it in the UI);
-      // extract the dance count from the message to pluralize the clean message.
+      // The repo throws CustomFieldInUseException when values still exist on
+      // dances. Log the raw error for diagnostics only (CWE-209: never surface
+      // it in the UI); the typed count pluralizes the clean message.
       if (kDebugMode) {
         debugPrint('custom field delete blocked: $e\n$st');
       }
-      final countMatch = RegExp(r'(\d+) dance').firstMatch(e.message);
-      final String message;
-      if (countMatch != null) {
-        final n = int.tryParse(countMatch.group(1)!) ?? 0;
-        message = l10n.customFieldsDeleteInUse(def.label, n);
-      } else {
-        message = l10n.customFieldsDeleteInUseUnknown(def.label);
-      }
+      final message = l10n.customFieldsDeleteInUse(def.label, e.danceCount);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('delete-in-use-snackbar'),
           content: Text(message),
+        ),
+      );
+    } catch (e, st) {
+      // Any other failure used to escape unreported, so the row simply stayed
+      // and the caller had no idea why. Logged for diagnostics; the snackbar
+      // names the field and says to try again, never the raw error (CWE-209).
+      logCaughtError(e, st, source: 'custom_fields_screen._delete');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('delete-failed-snackbar'),
+          content: Text(l10n.customFieldsDeleteFailed(def.label)),
         ),
       );
     }
@@ -264,13 +325,18 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
               ),
       ),
       body: _buildBody(),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('add-field'),
-        heroTag: 'add-field',
-        onPressed: () => _openForm(),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.customFieldsNewField),
-      ),
+      // The floating New is for a list: the empty message carries its own
+      // New field button, so it waits until there is a field.
+      floatingActionButton: _loading || _loadError != null || _defs.isEmpty
+          ? null
+          : adaptiveExtendedFab(
+              context,
+              key: const ValueKey('add-field'),
+              heroTag: 'add-field',
+              onPressed: () => _openForm(),
+              icon: const Icon(Icons.add),
+              label: l10n.customFieldsNewField,
+            ),
     );
   }
 
@@ -280,29 +346,30 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.customFieldsLoadError),
-            const SizedBox(height: 8),
-            FilledButton(onPressed: _retry, child: Text(l10n.commonRetry)),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.customFieldsLoadError,
+        onRetry: _retry,
       );
     }
     if (_defs.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.customFieldsEmpty, textAlign: TextAlign.center),
-        ),
+      return EmptyState(
+        key: const ValueKey('custom-fields-empty'),
+        icon: EmptyState.glyph(context, Icons.tune_outlined),
+        title: l10n.customFieldsEmptyTitle,
+        body: l10n.customFieldsEmptyBody,
+        actions: [
+          FilledButton.icon(
+            key: const ValueKey('custom-fields-empty-add'),
+            onPressed: () => _openForm(),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.customFieldsNewField),
+          ),
+        ],
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.only(bottom: 88),
+      padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
       itemCount: _defs.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
@@ -372,6 +439,9 @@ class _FieldTile extends StatelessWidget {
 // Create / edit form (modal bottom sheet)
 // ---------------------------------------------------------------------------
 
+/// Closing the form with unsaved changes (Back, or a tap above it) asks first
+/// ([DiscardChangesGuard]); its Cancel button closes it without asking.
+
 class _CustomFieldForm extends StatefulWidget {
   const _CustomFieldForm({
     this.existing,
@@ -418,6 +488,31 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
     _showInList = def?.showInList ?? false;
     _searchable = def?.searchable ?? true;
     _shareable = def?.shareable ?? true;
+    _initialChoices = List.of(_choices);
+    _textFields = Listenable.merge([_labelController, _keyController]);
+  }
+
+  /// The choices as the form opened, for [_dirty]. The other values compare
+  /// against [widget.existing] or the new-field defaults set above.
+  late final List<String> _initialChoices;
+
+  /// Notifies on an edit to the label or key, so the back guard is rebuilt;
+  /// every other value changes through `setState`.
+  late final Listenable _textFields;
+
+  /// Whether closing now would lose a change to any value Save keeps.
+  bool get _dirty {
+    final def = widget.existing;
+    return _labelController.text.trim() != (def?.label ?? '') ||
+        _keyController.text.trim() != (def?.key ?? '') ||
+        _type != (def?.type ?? CustomFieldType.text) ||
+        // Save keeps choices only on a choice field; a type change is caught
+        // by the line above.
+        (_type == CustomFieldType.choice &&
+            !listEquals(_choices, _initialChoices)) ||
+        _showInList != (def?.showInList ?? false) ||
+        _searchable != (def?.searchable ?? true) ||
+        _shareable != (def?.shareable ?? true);
   }
 
   @override
@@ -459,9 +554,17 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
       Navigator.of(context).pop(def);
     } on ArgumentError catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'custom_fields_screen._save');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message.toString())));
+      if (!mounted) return;
+      // The model's message is developer English. The form validators catch
+      // an empty key and an empty choice list first, so this is the
+      // backstop: show the field's own localized error, or a generic one.
+      if (e.name == 'choices') {
+        setState(() => _choicesError = l10n.customFieldsValidatorMinChoice);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.customFieldsSaveFailed)));
+      }
     }
   }
 
@@ -501,137 +604,156 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final insets = MediaQuery.viewInsetsOf(context);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + insets.bottom),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _isNew
-                    ? l10n.customFieldsEditorNewTitle
-                    : l10n.customFieldsEditorEditTitle,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const ValueKey('cf-label'),
-                controller: _labelController,
-                decoration: InputDecoration(
-                  labelText: l10n.customFieldsLabelLabel,
-                  border: const OutlineInputBorder(),
+    return ListenableBuilder(
+      listenable: _textFields,
+      builder: (context, child) =>
+          DiscardChangesGuard(dirty: _dirty, child: child!),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg + insets.bottom,
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _isNew
+                      ? l10n.customFieldsEditorNewTitle
+                      : l10n.customFieldsEditorEditTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? l10n.customFieldsLabelRequired
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('cf-key'),
-                controller: _keyController,
-                enabled: _keyEditable,
-                decoration: InputDecoration(
-                  labelText: l10n.customFieldsKeyLabel,
-                  helperText: _keyEditable
-                      ? l10n.customFieldsKeyHelper
-                      : l10n.customFieldsKeyLocked,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const ValueKey('cf-label'),
+                  controller: _labelController,
+                  decoration: InputDecoration(
+                    labelText: l10n.customFieldsLabelLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? l10n.customFieldsLabelRequired
+                      : null,
                 ),
-                validator: (v) {
-                  final trimmed = v?.trim() ?? '';
-                  if (trimmed.isEmpty) return l10n.customFieldsKeyRequired;
-                  if (!RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(trimmed)) {
-                    return l10n.customFieldsKeyInvalid;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<CustomFieldType>(
-                key: const ValueKey('cf-type'),
-                initialValue: _type,
-                decoration: InputDecoration(
-                  labelText: l10n.customFieldsTypeFieldLabel,
-                  border: const OutlineInputBorder(),
-                  helperText: _typeEditable
-                      ? null
-                      : l10n.customFieldsTypeLocked,
-                ),
-                items: [
-                  for (final t in CustomFieldType.values)
-                    DropdownMenuItem(
-                      value: t,
-                      child: Text(customFieldTypeLabel(l10n, t)),
-                    ),
-                ],
-                onChanged: _typeEditable
-                    ? (v) {
-                        if (v != null) setState(() => _type = v);
-                      }
-                    : null,
-              ),
-              if (_type == CustomFieldType.choice) ...[
                 const SizedBox(height: 12),
-                _ChoicesEditor(
-                  choices: _choices,
-                  usedChoices: widget.usedChoiceValues,
-                  error: _choicesError,
-                  onAdd: _addChoice,
-                  onRemove: _removeChoice,
-                  onReorder: (oldIndex, newIndex) {
-                    setState(() {
-                      final item = _choices.removeAt(oldIndex);
-                      _choices.insert(newIndex, item);
-                    });
+                TextFormField(
+                  key: const ValueKey('cf-key'),
+                  controller: _keyController,
+                  enabled: _keyEditable,
+                  decoration: InputDecoration(
+                    labelText: l10n.customFieldsKeyLabel,
+                    helperText: _keyEditable
+                        ? l10n.customFieldsKeyHelper
+                        : l10n.customFieldsKeyLocked,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (v) {
+                    final trimmed = v?.trim() ?? '';
+                    if (trimmed.isEmpty) return l10n.customFieldsKeyRequired;
+                    if (!isValidCustomFieldKey(trimmed)) {
+                      return l10n.customFieldsKeyInvalid;
+                    }
+                    return null;
                   },
                 ),
-              ],
-              const SizedBox(height: 12),
-              SwitchListTile(
-                key: const ValueKey('cf-show-in-list'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.customFieldsShowInList),
-                subtitle: Text(l10n.customFieldsShowInListSubtitle),
-                value: _showInList,
-                onChanged: (v) => setState(() => _showInList = v),
-              ),
-              SwitchListTile(
-                key: const ValueKey('cf-searchable'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.customFieldsSearchable),
-                subtitle: Text(l10n.customFieldsSearchableSubtitle),
-                value: _searchable,
-                onChanged: (v) => setState(() => _searchable = v),
-              ),
-              SwitchListTile(
-                key: const ValueKey('cf-shareable'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.customFieldsShareable),
-                subtitle: Text(l10n.customFieldsShareableSubtitle),
-                value: _shareable,
-                onChanged: (v) => setState(() => _shareable = v),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    key: const ValueKey('cf-form-cancel'),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.commonCancel),
+                const SizedBox(height: 12),
+                AppDropdownField<CustomFieldType>(
+                  key: const ValueKey('cf-type'),
+                  value: _type,
+                  decoration: InputDecoration(
+                    labelText: l10n.customFieldsTypeFieldLabel,
+                    border: const OutlineInputBorder(),
+                    helperText: _typeEditable
+                        ? null
+                        : l10n.customFieldsTypeLocked,
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    key: const ValueKey('cf-form-save'),
-                    onPressed: _save,
-                    child: Text(l10n.commonSave),
+                  entries: [
+                    for (final t in CustomFieldType.values)
+                      AppDropdownEntry(
+                        value: t,
+                        label: customFieldTypeLabel(l10n, t),
+                      ),
+                  ],
+                  onChanged: _typeEditable
+                      ? (v) => setState(() => _type = v)
+                      : null,
+                ),
+                if (_type == CustomFieldType.choice) ...[
+                  const SizedBox(height: 12),
+                  _ChoicesEditor(
+                    choices: _choices,
+                    usedChoices: widget.usedChoiceValues,
+                    error: _choicesError,
+                    onAdd: _addChoice,
+                    onRemove: _removeChoice,
+                    onReorder: (oldIndex, newIndex) {
+                      setState(() {
+                        final item = _choices.removeAt(oldIndex);
+                        _choices.insert(newIndex, item);
+                      });
+                    },
                   ),
                 ],
-              ),
-            ],
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  key: const ValueKey('cf-show-in-list'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.customFieldsShowInList),
+                  subtitle: Text(l10n.customFieldsShowInListSubtitle),
+                  value: _showInList,
+                  onChanged: (v) => setState(() => _showInList = v),
+                ),
+                SwitchListTile(
+                  key: const ValueKey('cf-searchable'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.customFieldsSearchable),
+                  // A yes/no value is never text-indexed
+                  // (`customFieldIndexesValueText`), so its subtitle does not
+                  // promise the search bar.
+                  subtitle: Text(
+                    _type == CustomFieldType.boolean
+                        ? l10n.customFieldsSearchableSubtitleYesNo
+                        : l10n.customFieldsSearchableSubtitle,
+                  ),
+                  value: _searchable,
+                  onChanged: (v) => setState(() => _searchable = v),
+                ),
+                SwitchListTile(
+                  key: const ValueKey('cf-shareable'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.customFieldsShareable),
+                  subtitle: Text(l10n.customFieldsShareableSubtitle),
+                  value: _shareable,
+                  onChanged: (v) => setState(() => _shareable = v),
+                ),
+                const SizedBox(height: 16),
+                // An OverflowBar, not a Row: at large text a translated
+                // Cancel/Save pair is wider than the sheet, and stacks instead.
+                OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  spacing: 8,
+                  overflowSpacing: 8,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  children: [
+                    TextButton(
+                      key: const ValueKey('cf-form-cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                    FilledButton(
+                      key: const ValueKey('cf-form-save'),
+                      onPressed: _save,
+                      child: Text(l10n.commonSave),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -685,12 +807,11 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
         ),
         if (widget.error != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               widget.error!,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.error,
-                fontSize: 12,
               ),
             ),
           ),
@@ -710,7 +831,9 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
               return ListTile(
                 key: ValueKey('choice-$choice'),
                 dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxs,
+                ),
                 leading: ReorderableDragStartListener(
                   index: index,
                   child: const Icon(Icons.drag_handle),
@@ -728,6 +851,32 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                           color: Theme.of(context).colorScheme.secondary,
                         ),
                       ),
+                    ReorderMoveButtons(
+                      keyPrefix: 'choice-$choice',
+                      name: choice,
+                      onMoveUp: index == 0
+                          ? null
+                          : () {
+                              widget.onReorder(index, index - 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index,
+                                count: widget.choices.length,
+                              );
+                            },
+                      onMoveDown: index == widget.choices.length - 1
+                          ? null
+                          : () {
+                              widget.onReorder(index, index + 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index + 2,
+                                count: widget.choices.length,
+                              );
+                            },
+                    ),
                     IconButton(
                       key: ValueKey('remove-choice-$choice'),
                       icon: const Icon(Icons.remove_circle_outline),

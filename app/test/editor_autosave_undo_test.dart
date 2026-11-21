@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,8 +17,10 @@ import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/editor/editor_undo_stack.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 
+import 'support/dropdown.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
+import 'support/new_dance_draft.dart';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -41,7 +46,11 @@ Future<void> _pumpEditor(
   CompendiumRepositories repos, {
   String? danceId,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2400));
+  // Tall enough that More details, which grew with the meter, key and
+  // interpretation fields, lays out within the lazy ListView's cache extent;
+  // past it `ensureVisible` under-scrolls the last fields (as in
+  // dance_editor_screen_test.dart).
+  await tester.binding.setSurfaceSize(const Size(1200, 3200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
@@ -102,24 +111,13 @@ String _titleText(WidgetTester tester) {
 
 /// Reads the value a dropdown's own [FormFieldState] is holding — what the
 /// closed field displays, and deliberately independent of how it is keyed.
-T? _dropdownValue<T>(WidgetTester tester) => tester
-    .state<FormFieldState<T>>(find.byType(DropdownButtonFormField<T>))
-    .value;
+T? _dropdownValue<T>(WidgetTester tester) =>
+    tester.state<FormFieldState<T>>(findDropdown<T>()).value;
 
 /// Opens a dropdown and picks the item carrying [value], matching on the item's
 /// value rather than its localized label.
-Future<void> _pickFromDropdown<T>(WidgetTester tester, T value) async {
-  final field = find.byType(DropdownButtonFormField<T>);
-  await tester.ensureVisible(field);
-  await tester.tap(field);
-  await tester.pumpAndSettle();
-  await tester.tap(
-    find
-        .byWidgetPredicate((w) => w is DropdownMenuItem<T> && w.value == value)
-        .last,
-  );
-  await tester.pumpAndSettle();
-}
+Future<void> _pickFromDropdown<T>(WidgetTester tester, T value) =>
+    pickDropdownValue<T>(tester, findDropdown<T>(), value);
 
 /// Minimal [EditorSnapshot] for unit-test construction.
 EditorSnapshot _snap({
@@ -410,6 +408,114 @@ void main() {
       expect(restored.meanwhileSides![0].move, 'swing');
       expect(restored.meanwhileSides![1].move, 'allemande');
       expect(restored.toFigure(), draft.toFigure());
+      // A typed group count stays protected after an undo (AUTH-5).
+      expect(restored.beatsTouched, isTrue);
+      expect(restored.meanwhileSides![0].beatsTouched, isFalse);
+    });
+
+    test('a draft round-trips beatsTouched, its save time and baseline, and '
+        'the role terms its text is in (AUTH-5, AUTH-10, AUTH-17)', () {
+      final savedAt = DateTime.utc(2026, 10, 28, 15, 4, 5);
+      final base = DateTime.utc(2026, 10, 27, 9);
+      final snapshot = _snap(title: 'T').copyWith(
+        figureDrafts: const [
+          FigureDraftSnapshot(
+            id: 'typed',
+            move: 'swing',
+            params: {'beats': 12},
+            note: 'Larks go',
+            progression: false,
+            schemaVersion: 1,
+            beatsTouched: true,
+          ),
+          FigureDraftSnapshot(
+            id: 'derived',
+            move: 'swing',
+            params: {'beats': 8},
+            note: '',
+            progression: false,
+            schemaVersion: 1,
+          ),
+        ],
+        textDialect: Dialect.larksRobins,
+        savedAt: savedAt,
+        baseUpdatedAt: base,
+      );
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(
+        [for (final d in decoded.figureDrafts) d.beatsTouched],
+        [true, false],
+      );
+      expect(decoded.savedAt, savedAt);
+      expect(decoded.baseUpdatedAt, base);
+      expect(decoded.textDialect?.roles, Dialect.larksRobins.roles);
+      // The text is kept as typed; only a restore under other roles converts.
+      expect(decoded.figureDrafts.first.note, 'Larks go');
+    });
+
+    test('new-dance drafts are keyed under the editor draft prefix, which '
+        'backup excludes and the registry classifies', () {
+      expect(danceEditorDraftKey(kLegacyNewDanceDraftId), 'editor_draft:new');
+      expect(danceEditorDraftKey(kNewDanceDraftIdPrefix), 'editor_draft:new:');
+      expect(
+        classifySettingsKey('editor_draft:new:x')?.egress,
+        EgressClass.deviceScoped,
+      );
+      expect(isNewDanceEditorDraftKey('editor_draft:new'), isTrue);
+      expect(isNewDanceEditorDraftKey('editor_draft:new:x'), isTrue);
+      expect(isNewDanceEditorDraftKey('editor_draft:newer'), isFalse);
+      expect(isNewDanceEditorDraftKey('editor_draft:d1'), isFalse);
+      expect(isNewDanceEditorDraftKey('program_editor_draft:new'), isFalse);
+    });
+
+    test('unreadable text roles read as unknown, not as no roles', () {
+      final decoded = decodeDraft({
+        'v': 13,
+        'form': 'contra',
+        'formationShape': 'dupleImproper',
+        'progression': 'single',
+        'status': 'active',
+        'textRoles': {'role1': 'lark'},
+      });
+      expect(decoded.textDialect, isNull);
+    });
+
+    test('a draft written before F2 still decodes, with a stored count read '
+        'as typed and no save time, baseline or dialect', () {
+      final decoded = decodeDraft({
+        'v': 13,
+        'title': 'Old',
+        'form': 'contra',
+        'formationShape': 'dupleImproper',
+        'progression': 'single',
+        'status': 'active',
+        'figureDrafts': [
+          {
+            'id': 'a',
+            'move': 'swing',
+            'params': {'beats': 12},
+            'note': 'larks go',
+            'progression': false,
+            'sv': 1,
+          },
+          {
+            'id': 'b',
+            'move': null,
+            'params': <String, Object?>{},
+            'note': '',
+            'progression': false,
+            'sv': 1,
+          },
+        ],
+      });
+      expect(decoded.title, 'Old');
+      expect(
+        [for (final d in decoded.figureDrafts) d.beatsTouched],
+        [true, false],
+      );
+      expect(decoded.savedAt, isNull);
+      expect(decoded.baseUpdatedAt, isNull);
+      expect(decoded.textDialect, isNull);
     });
   });
 
@@ -433,6 +539,32 @@ void main() {
             .onPressed,
         isNull,
       );
+    });
+
+    testWidgets('a failing draft write shows the Draft not saved marker, '
+        'then clears it once a write succeeds', (tester) async {
+      final failing = openTestRepositoriesWithFailingSettings();
+      failing.settings.failWrites = false;
+      await _pumpEditor(tester, failing.repos);
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
+
+      failing.settings.failWrites = true;
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'First',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsOneWidget);
+
+      failing.settings.failWrites = false;
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Second',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
     });
 
     testWidgets('undo enabled after debounced text edit', (tester) async {
@@ -507,10 +639,10 @@ void main() {
     });
 
     // Issue #775. Four dropdowns carried a value-based key justified by the
-    // claim that `DropdownButtonFormField` never re-reads `initialValue`, so
-    // undo/redo needed a fresh subtree to resync. The claim is false —
-    // `_DropdownButtonFormFieldState.didUpdateWidget` calls `setValue` — but
-    // until now nothing tested the scenario it named: every test in this group
+    // claim that the dropdown never re-reads its value, so undo/redo needed a
+    // fresh subtree to resync. The claim was false — the field's
+    // `didUpdateWidget` calls `setValue` — but until then nothing tested the
+    // scenario it named: every test in this group
     // drove text fields or figures, never a dropdown. These pin it through a
     // real undo, so the resync is checkable rather than asserted in a comment.
     //
@@ -543,6 +675,26 @@ void main() {
         _dropdownValue<FormationShape>(tester),
         FormationShape.circleMixer,
       );
+    });
+
+    testWidgets('undo reverts the type dropdown; redo re-applies it '
+        '(issue #1418)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+      await _pickFromDropdown(tester, DanceForm.square);
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
+
+      await tester.tap(find.byKey(const ValueKey('undo-button')));
+      await tester.pumpAndSettle();
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+      await tester.tap(find.byKey(const ValueKey('redo-button')));
+      await tester.pumpAndSettle();
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
     });
 
     testWidgets('undo reverts the level dropdown all the way back to null', (
@@ -581,7 +733,7 @@ void main() {
       await _pumpEditor(tester, repos, danceId: 'd1');
       await _expandMoreDetails(tester);
 
-      expect(find.byType(DropdownButtonFormField<String?>), findsOneWidget);
+      expect(findDropdown<String?>(), findsOneWidget);
       expect(_dropdownValue<String?>(tester), isNull);
 
       await _pickFromDropdown<String?>(tester, 'lyrical');
@@ -670,6 +822,30 @@ void main() {
       );
     });
 
+    for (final (platform, undo, redo) in [
+      (TargetPlatform.android, 'Undo (Ctrl+Z)', 'Redo (Ctrl+Shift+Z)'),
+      (TargetPlatform.macOS, 'Undo (\u2318Z)', 'Redo (\u21e7\u2318Z)'),
+    ]) {
+      testWidgets('undo and redo tooltips name the $platform shortcut', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        debugDefaultTargetPlatformOverride = platform;
+        try {
+          await _pumpEditor(tester, repos);
+
+          String tooltipOf(String key) =>
+              tester.widget<IconButton>(find.byKey(ValueKey(key))).tooltip!;
+          expect(tooltipOf('undo-button'), undo);
+          expect(tooltipOf('redo-button'), redo);
+        } finally {
+          // Must be cleared before the test body returns: the binding checks
+          // foundation debug variables before any addTearDown callback runs.
+          debugDefaultTargetPlatformOverride = null;
+        }
+      });
+    }
+
     testWidgets('keyboard shortcut Ctrl+Z triggers undo', (tester) async {
       final repos = openTestRepositories();
       await _pumpEditor(tester, repos);
@@ -736,13 +912,13 @@ void main() {
         'Draft Title',
       );
       // Before debounce fires, no draft yet.
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
 
       // Advance debounce.
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.title, 'Draft Title');
     });
@@ -760,7 +936,7 @@ void main() {
 
         // Structural changes schedule autosave (debounced 500ms).
         await tester.pump(const Duration(milliseconds: 600));
-        expect(await repos.settings.contains('editor_draft:new'), isTrue);
+        expect(await hasNewDanceDraft(repos), isTrue);
       },
     );
 
@@ -773,12 +949,12 @@ void main() {
         'To Save',
       );
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
 
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     testWidgets('back navigation on a dirty editor prompts before discarding', (
@@ -792,7 +968,7 @@ void main() {
         'Will Discard',
       );
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
       // Backing out no longer silently discards: it shows the same
       // 'Discard changes?' confirmation the program editor uses.
@@ -803,7 +979,7 @@ void main() {
       // Still on the editor, and the draft is preserved until the user
       // explicitly confirms the discard — no silent data loss.
       expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
     });
 
     testWidgets(
@@ -826,7 +1002,7 @@ void main() {
         // Dialog dismissed, still editing, draft intact.
         expect(find.text('Discard changes?'), findsNothing);
         expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
-        expect(await repos.settings.contains('editor_draft:new'), isTrue);
+        expect(await hasNewDanceDraft(repos), isTrue);
       },
     );
 
@@ -841,7 +1017,7 @@ void main() {
         'Will Discard',
       );
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
       await tester.pageBack();
       await tester.pumpAndSettle();
@@ -851,7 +1027,7 @@ void main() {
       // Editor popped back to the launcher and the draft was cleared.
       expect(find.byKey(const ValueKey('title-field')), findsNothing);
       expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     testWidgets('restore dialog shown when draft exists for new dance', (
@@ -894,7 +1070,84 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_titleText(tester), '');
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
+    });
+
+    testWidgets('the restore prompt gives the draft\'s age, and warns when the '
+        'dance has changed since (AUTH-10)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd5', title: 'D5'));
+      final stored = (await repos.dances.getById('d5'))!;
+      await repos.settings.set(
+        'editor_draft:d5',
+        encodeDraft(
+          _snap(title: 'Pending').copyWith(
+            savedAt: DateTime.utc(2026, 10, 28, 15, 4),
+            baseUpdatedAt: stored.updatedAt.subtract(const Duration(hours: 1)),
+          ),
+        ),
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd5');
+
+      expect(
+        find.text(
+          'You have an unsaved draft for this dance. Would you like '
+          'to restore it?',
+        ),
+        findsOneWidget,
+      );
+      // Shown in local time, so the expected text is built the same way.
+      // The date is the system default's (the test device's region, en_US),
+      // the time the app language's.
+      final moment = DateTime.utc(2026, 10, 28, 15, 4).toLocal();
+      final shown =
+          '${DateFormat.yMd('en_US').format(moment)} '
+          '${DateFormat.jm('en').format(moment)}';
+      expect(find.text('Draft saved $shown.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('draft-changed-since')), findsOneWidget);
+    });
+
+    testWidgets('the restore prompt does not warn when the dance is as the '
+        'draft left it (AUTH-10)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd6', title: 'D6'));
+      final stored = (await repos.dances.getById('d6'))!;
+      await repos.settings.set(
+        'editor_draft:d6',
+        encodeDraft(
+          _snap(title: 'Pending').copyWith(
+            savedAt: DateTime.utc(2026, 10, 28, 15, 4),
+            baseUpdatedAt: stored.updatedAt,
+          ),
+        ),
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd6');
+
+      expect(find.text('Unsaved draft'), findsOneWidget);
+      expect(find.byKey(const ValueKey('draft-changed-since')), findsNothing);
+    });
+
+    testWidgets('a new dance is offered an abandoned new dance\'s draft by '
+        'name, not as "this dance" (AUTH-10)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        danceEditorDraftKey(kLegacyNewDanceDraftId),
+        encodeDraft(_snap(title: 'Abandoned')),
+      );
+
+      await _pumpEditor(tester, repos);
+
+      expect(
+        find.text(
+          'You have an unsaved draft of another new dance, '
+          '"Abandoned". Would you like to restore it instead of starting a '
+          'new one?',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('for this dance'), findsNothing);
     });
 
     testWidgets('draft keyed by danceId for an existing dance', (tester) async {
@@ -910,7 +1163,7 @@ void main() {
 
       expect(await repos.settings.contains('editor_draft:dance123'), isTrue);
       // 'new' key is NOT written.
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     testWidgets('partial/incomplete figure draft (null move) round-trips', (
@@ -932,7 +1185,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 600));
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.figureDrafts, hasLength(1));
       expect(decoded.figureDrafts.single.move, isNull);
@@ -956,6 +1209,42 @@ void main() {
       expect(_titleText(tester), 'Pending Draft');
     });
 
+    testWidgets('a draft restored after its author was merged saves the '
+        'author it was merged into', (tester) async {
+      const s = '00000000-0000-4000-8000-00000000000a';
+      const l = '00000000-0000-4000-8000-00000000000b';
+      const x = '00000000-0000-4000-8000-00000000000c';
+      final repos = openTestRepositories();
+      for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (x, 'Cat')]) {
+        // ignore: unused_result
+        await repos.choreographers.upsert(Choreographer(id: id, name: name));
+      }
+      await repos.dances.create(_dance(id: 'd99', title: 'D99'));
+      await repos.settings.set(
+        'editor_draft:d99',
+        encodeDraft(_snap(title: 'Pending').copyWith(authorIds: [l, x])),
+      );
+      // The Authors manager merges l into s before the draft is restored.
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.author,
+        intoId: s,
+        otherIds: [l],
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd99');
+      await tester.tap(find.byKey(const ValueKey('draft-restore')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d99');
+      expect(saved!.title, 'Pending');
+      // Saved as written, the draft would credit the tombstoned l, which the
+      // dance then hides, leaving only x.
+      expect(saved.authorIds, [s, x]);
+    });
+
     testWidgets('corrupt draft is silently discarded — no dialog', (
       tester,
     ) async {
@@ -968,7 +1257,7 @@ void main() {
       // No restore dialog should appear.
       expect(find.text('Unsaved draft'), findsNothing);
       // Key is cleaned up.
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     // Regression: fix #3 (updated) — v1 drafts are now forward-compatible
@@ -1032,7 +1321,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 600));
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.customValues['cf1'], 'my typed value');
     });

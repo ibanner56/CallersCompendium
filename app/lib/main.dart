@@ -1,14 +1,17 @@
 import 'dart:async';
-import 'dart:io' show Directory, File, Platform, exit, stderr;
+import 'dart:io' show Directory, File, Platform, exit;
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show TableUpdate;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind, kBackMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show MethodCall, MethodChannel, PlatformException;
 import 'package:path/path.dart' as p;
 
 import 'l10n/app_localizations.dart';
+import 'src/data/user_figures_scope.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/aggressive_beats_update_scope.dart';
 import 'src/data/application_shutdown_controller.dart';
@@ -16,17 +19,28 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
-import 'src/data/backup_controller_scope.dart';
+import 'src/data/backup_export_labels.dart';
+import 'src/data/backup_io.dart' show BackupSaver, saveBackupToFile;
+import 'src/data/backup_reminder.dart';
+import 'src/data/backup_service.dart' show exportBackupNow;
+import 'src/data/sync_writer_lifecycle_scope.dart';
 import 'src/data/callersbox_online.dart';
 import 'src/data/collection_filter_scope.dart';
+import 'src/data/collection_facets_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
+import 'src/data/dance_share_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
+import 'src/data/undo_prompt_duration_scope.dart';
 import 'src/data/contradb_online.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
+import 'src/data/desktop_open_path.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/ecd_conversion.dart';
+import 'src/data/editor_draft_shutdown_scope.dart';
+import 'src/data/file_dialog_labels.dart';
 import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/formation_colors_controller.dart';
 import 'src/data/formation_colors_scope.dart';
@@ -37,27 +51,38 @@ import 'src/data/locale_scope.dart';
 import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
 import 'src/data/online_search.dart';
-import 'src/data/online_search_labels.dart';
+import 'src/data/persisted_preference.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
+import 'src/data/require_event_date_for_history_scope.dart';
+import 'src/data/calling_history_tracking_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/default_program_caller_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
 import 'src/data/seed_service.dart';
+import 'src/data/mark_all_sets_status_scope.dart';
+import 'src/data/set_list_share_scope.dart';
 import 'src/data/matrix_collision_mode_scope.dart';
 import 'src/data/program_matrix_column_config_scope.dart';
 import 'src/data/program_auto_commit_scope.dart';
 import 'src/data/set_list_color_coding_scope.dart';
+import 'src/data/show_performed_toggles_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
 import 'src/data/shorthand_mappings_scope.dart';
 import 'src/data/single_instance_guard.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
+import 'src/data/capitalize_figures_scope.dart';
+import 'src/data/show_custom_figures_scope.dart';
+import 'src/data/calling_card_settings_scope.dart';
+import 'src/data/show_glossary_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
-import 'src/data/display_defaults.dart' show kCanonicalDiscouragedTermsKey;
+import 'src/data/display_defaults.dart'
+    show kCanonicalDiscouragedTermsKey, kDefaultProgramCallerKey;
 import 'src/data/venue_entity_mode_scope.dart';
 import 'src/data/venue_call_count_scope.dart';
 import 'src/data/walkthrough_snippet_library_controller.dart';
@@ -73,25 +98,50 @@ import 'src/screens/contradb_program_import_screen.dart';
 import 'src/screens/dance_detail_screen.dart';
 import 'src/screens/dance_reimport_flow.dart';
 import 'src/screens/import_review_screen.dart';
-import 'src/screens/online_import_variation_dialog.dart';
 import 'src/screens/settings_screen.dart'
     show
         kAppThemeKey,
         kAutoCommitProgramChangesKey,
         kColourDanceThemeKey,
+        kCollectionHiddenFacetsKey,
         kCollectionTileVisibleFieldsKey,
+        kEcdConvertPromptDismissedKey,
         kMatrixExactBeatCollisionKey,
+        kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
+        kHistoryOrderIgnoreUndatedKey,
+        kHistoryOrderIgnoreUnperformedKey,
+        kRecencyRequireEventDateKey,
+        kRecencyRequirePerformedKey,
+        kRequireEventDateForHistoryKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
         kTrackHistoryForAllCallersKey,
         kVenueCallCountKey,
         kVenueEntityModeKey;
+import 'src/theme/app_motion.dart';
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
+import 'src/sync/sync_controller.dart';
+import 'src/sync/sync_coordinator.dart';
+import 'src/sync/sync_network.dart';
+import 'src/sync/sync_scope.dart';
+import 'src/sync/synced_settings_reload.dart';
+import 'src/sync/sync_runtime.dart';
+import 'src/theme/destructive_button_style.dart';
+import 'src/theme/keyboard_dismiss.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
+import 'src/utils/undo_snack_bar.dart';
 import 'src/widgets/app_bootstrap.dart';
+import 'src/widgets/app_closing_overlay.dart';
+import 'src/widgets/app_menu_bar.dart';
+import 'src/widgets/app_shortcuts.dart';
+import 'src/widgets/command_palette.dart';
+import 'src/widgets/ecd_convert_prompt_dialog.dart';
+import 'src/widgets/focus_ring_layer.dart';
+import 'src/widgets/online_import_dialogs.dart';
+import 'src/widgets/online_import_snack_bar.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
 
@@ -103,7 +153,7 @@ const String _requestApplicationShutdownMethod = 'requestApplicationShutdown';
 Future<ResetResult> _resetDatabaseFile(File dbFile) =>
     performReset(dbFile: dbFile);
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   // Install the local, offline crash log and global error-capture stack (issue
   // #458) as the very first thing, so an error during startup itself is still
   // recorded. [CrashLogStore] resolves its directory lazily on first write, so
@@ -124,25 +174,42 @@ Future<void> main() async {
     // (which opens the on-device database) so two processes can't race the
     // migration / derived-rebuild marker and trip `database is locked`. The
     // guard takes an OS advisory lock in the app's private support directory;
-    // if another live instance already holds it, this launch exits before any
-    // database connection is opened. Crash-safe: the OS releases the advisory
-    // lock when the holder dies, so a crashed prior instance never bricks a
-    // relaunch. No-op off desktop (mobile owns single-instance; web has no
-    // `dart:io`) and in the headless test harness, which never runs `main`.
-    if (DesktopSingleInstance.isSupportedPlatform) {
-      final result = await DesktopSingleInstance().acquire();
-      if (result == SingleInstanceResult.alreadyRunning) {
-        stderr.writeln(
-          "Caller's Compendium is already running; focus the existing window. "
-          'Exiting this second launch to protect the database.',
-        );
-        exit(0);
-      }
+    // if another live instance already holds it, this launch asks that instance
+    // to bring its window forward over a loopback socket (ERR-05) and exits
+    // before any database connection is opened. Crash-safe: the OS releases the
+    // advisory lock when the holder dies, so a crashed prior instance never
+    // bricks a relaunch. No-op off desktop (mobile owns single-instance; web has
+    // no `dart:io`) and in the headless test harness, which never runs `main`.
+    // The raise request is ignored until a [WindowService] exists and has shown
+    // the window (the first launch shows it by itself); [raiseForwarder] follows
+    // the service when a Retry or reset replaces it.
+    //
+    // PLAT-3: on Windows and Linux a double-clicked `.ccshare` arrives as an
+    // argument. A second launch forwards it to the running instance; the
+    // first launch opens it once ready. [IncomingFileChannel] checks the path
+    // either way, and it only ever reaches import review.
+    final raiseForwarder = WindowRaiseForwarder();
+    final desktopOpenPath = desktopOpenPathFromArgs(args);
+    final incomingFileChannel = IncomingFileChannel(
+      initialDesktopPath: desktopOpenPath,
+    );
+    final singleInstance = DesktopSingleInstance.isSupportedPlatform
+        ? DesktopSingleInstance()
+        : null;
+    if (singleInstance != null &&
+        await handleSecondLaunch(
+              singleInstance,
+              onRaise: raiseForwarder.raise,
+              onOpen: incomingFileChannel.openDesktopPath,
+              openPath: desktopOpenPath,
+            ) ==
+            SecondLaunchOutcome.exitNow) {
+      exit(0);
     }
-    // Register the bundled font license texts (OFL) so Flutter's
-    // showLicensePage — reachable from Settings ▸ About ▸ View licenses —
-    // includes them.
-    registerBundledFontLicenses();
+    // Register the bundled font (OFL) and ported-code (fmptools, MIT) license
+    // texts so Flutter's showLicensePage — reachable from Settings ▸ About ▸
+    // View licenses — includes them.
+    registerBundledLicenses();
     // [AppData] is opened once here and handed to [CompendiumApp] (which owns
     // disposal) so we never open the database twice. The database itself opens
     // lazily on first use: the desktop window restore (which reads the persisted
@@ -151,38 +218,92 @@ Future<void> main() async {
     // AppBootstrap error/retry screen instead of throwing out of `main` before
     // `runApp` — which would leave a blank window with no way to recover.
     final appData = AppData(openAppDatabase());
-    final shutdownController = ApplicationShutdownController(appData.close);
+    final editorDraftShutdownController = EditorDraftShutdownController();
+    Future<void> closeApp() => flushEditorDraftsThenClose(
+      editorDraftShutdownController,
+      appData.close,
+    );
+
+    final shutdownController = ApplicationShutdownController(closeApp);
     _applicationTerminationChannel.setMethodCallHandler((
       MethodCall call,
     ) async {
       if (call.method != _requestApplicationShutdownMethod) {
         throw PlatformException(
           code: 'not_implemented',
-          message: 'Unsupported application lifecycle method: ${call.method}',
+          // Developer-facing platform-channel error, never shown in the UI.
+          message:
+              'Unsupported application lifecycle method: ${call.method}', // i18n-ignore
         );
       }
       await shutdownController.close();
     });
-    final windowService = WindowService(
-      appData.repositories.settings,
-      onClose: shutdownController.close,
-    );
+    Future<void> closeWindow() async {
+      await shutdownController.close();
+      // Remove the raise port file on a clean exit. A crash leaves it behind,
+      // which is harmless (the next launch overwrites it).
+      await singleInstance?.raiseChannel.close();
+    }
+
+    WindowService buildWindowService(SettingsRepository settings) =>
+        raiseForwarder.register(WindowService(settings, onClose: closeWindow));
+    final appWindowService = buildWindowService(appData.repositories.settings);
+    // Kept as a variable (not just `.call` torn off) so `_CompendiumAppState`
+    // can assign `onBeforeAppliedInvalidation` once its `SyncController`
+    // exists — this factory is built here, before that controller does.
+    final syncCoordinatorFactory = ConfiguredSyncCoordinatorFactory();
     runApp(
       CompendiumApp(
         appData: appData,
-        windowService: windowService,
+        windowService: appWindowService,
+        windowServiceFactory: buildWindowService,
         applicationShutdownController: shutdownController,
+        syncCoordinatorFactory: syncCoordinatorFactory.call,
+        productionSyncCoordinatorFactory: syncCoordinatorFactory,
+        editorDraftShutdownController: editorDraftShutdownController,
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
+          // Read from the unopened facade: the scope marker's expected value
+          // comes from the schema and the privacy registry, not the file.
+          repairMarkers: appData.repositories.oneTimeRepairMarkers,
           onSnapshotFailure: onSnapshotFailure,
         ),
+        releaseRepairSnapshotPin: () async {
+          final dbFile = await resolveDatabaseFile();
+          await releaseRepairSnapshotPin(
+            snapshotDir: Directory(
+              p.join(dbFile.parent.path, kDatabaseBackupsDirName),
+            ),
+          );
+        },
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
-        incomingFileChannel: IncomingFileChannel(),
+        incomingFileChannel: incomingFileChannel,
+        installPlatformMenuBar:
+            !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS,
       ),
     );
   }, crashReporter);
 }
+
+/// Test seam: the scope widget types [CompendiumApp] mounts above the
+/// navigator, outermost first, as the real wrapper list builds them.
+@visibleForTesting
+abstract interface class AppScopeTypesSource {
+  List<Type> get appScopeTypes;
+}
+
+/// How long closing the app waits for a running sync pass (FAIL-12).
+///
+/// A pass can make several requests, each bounded at 30 s, so on a bad link
+/// an unbounded wait could keep the window open for minutes. Giving up is safe: a
+/// production pass runs in a worker isolate on its own database connection,
+/// so closing the app's connection cannot cut into the pass's transaction,
+/// and exiting with the pass still running is the interruption the sync spec
+/// already requires to leave no partial apply (sync-implementation.md, W6;
+/// sync-spec.md §6.7).
+/// The pass that did not finish runs again on the next launch.
+const Duration kShutdownSyncPassWait = Duration(seconds: 10);
 
 /// Root widget. The on-device database is initially opened in [main] and
 /// injected; the reset flow can replace it with a fresh instance. This widget's
@@ -190,15 +311,19 @@ Future<void> main() async {
 /// window frame (no-op off desktop; forces the DB open), runs any pending schema
 /// migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
-/// runs a fast `PRAGMA quick_check` integrity probe once per launch
-/// ([CompendiumDatabase.quickCheck]; a failure warns the user but still opens
-/// the app), then performs a startup purge sweep that hard-deletes soft-deleted
-/// dances AND programs past the configured retention window
+/// then performs a startup purge sweep that hard-deletes soft-deleted
+/// dances AND programs past the configured retention window, and blanks the
+/// ones Device Sync has published, which cannot be erased
 /// ([DanceRepository.purgeDeleted] / [ProgramRepository.purgeDeleted]); the
 /// window is user-configurable (30 / 90 days / never — ROADMAP G.4), defaulting
-/// to 30 days, and the sweep is skipped entirely when set to never. The app
+/// to 30 days, and the sweep is skipped entirely when set to never. A failed
+/// read of the retention setting also skips that launch's sweep (it does not
+/// fall back to the 30-day default, which would purge what a "never" user meant
+/// to keep). The app
 /// then hands the repositories facade down to the Collection screen via
-/// [RepositoriesScope].
+/// [RepositoriesScope]. The once-per-launch `PRAGMA quick_check` integrity probe
+/// ([CompendiumDatabase.quickCheck]) is not part of that gated sequence: it runs
+/// after the first ready frame, and a failure only raises a warning banner.
 ///
 /// Startup is gated by [AppBootstrap]: the app shows a loading screen until the
 /// bootstrap future completes so no screen reads stale data, and an error
@@ -211,11 +336,14 @@ class CompendiumApp extends StatefulWidget {
     required this.windowService,
     this.initialRequirePerformedForHistory = false,
     this.migrationPreflight,
+    this.releaseRepairSnapshotPin,
     this.integrityCheck,
+    this.backupSaver,
     this.crashReporter,
     this.seedInitialCollection,
     this.incomingFileChannel,
     this.incomingFileReader,
+    this.incomingFileDeleter,
     this.incomingUrlFetcher,
     this.nowOverride,
     this.appDataFactory = _defaultAppDataFactory,
@@ -223,6 +351,15 @@ class CompendiumApp extends StatefulWidget {
     this.databaseFileResolver = resolveDatabaseFile,
     this.databaseResetter = _resetDatabaseFile,
     this.applicationShutdownController,
+    this.syncCoordinatorFactory,
+    this.productionSyncCoordinatorFactory,
+    this.syncNetworkClassifier = const ConnectivityPlusNetworkClassifier(),
+    this.syncDebounce = kSyncChangeDebounce,
+    this.syncPairingProbeFactory,
+    this.editorDraftShutdownController,
+    this.updateTemporaryDirectoryProvider,
+    this.shutdownSyncPassWait = kShutdownSyncPassWait,
+    this.installPlatformMenuBar = false,
   });
 
   /// The initially opened database + repositories facade. Injected from [main]
@@ -239,6 +376,55 @@ class CompendiumApp extends StatefulWidget {
   /// so native termination never closes a stale connection.
   final ApplicationShutdownController? applicationShutdownController;
 
+  /// How long closing the app waits for a sync pass that is still running
+  /// before it closes the database anyway. Injectable so a test need not wait
+  /// out the production bound. See [kShutdownSyncPassWait].
+  final Duration shutdownSyncPassWait;
+
+  /// Whether to install the macOS menu bar ([AppMenuBar], PLAT-8). [main] sets
+  /// it on macOS. It defaults to off because a widget test has no platform
+  /// menu channel, and setting menus there reports an error.
+  final bool installPlatformMenuBar;
+
+  /// Constructs the configured Device Sync coordinator after startup has
+  /// opened and migrated the database. W13 supplies the endpoint/configuration
+  /// surface; omitting this keeps Device Sync disabled.
+  final Future<SyncCoordinator?> Function(CompendiumRepositories repositories)?
+  syncCoordinatorFactory;
+
+  /// The same production factory as [syncCoordinatorFactory], exposed as an
+  /// object (rather than the bound `.call` closure above) so
+  /// `_CompendiumAppState` can assign its `onBeforeAppliedInvalidation` hook
+  /// once `SyncController` exists (that factory is built in `main`, before
+  /// this widget's state does). `null` in every test: they inject their own
+  /// [syncCoordinatorFactory] and construct a [SyncCoordinator] directly, so
+  /// this hook never applies to them.
+  final ConfiguredSyncCoordinatorFactory? productionSyncCoordinatorFactory;
+
+  /// Reports whether the connection is metered for *Sync only on WiFi*
+  /// (spec §6.12). Injected in widget tests, where the platform channel does
+  /// not answer under fake async.
+  final SyncNetworkClassifier syncNetworkClassifier;
+
+  /// The delay between a local change and the automatic pass it triggers.
+  /// Widget tests override this to something small; production uses the
+  /// documented default.
+  final Duration syncDebounce;
+
+  /// Test seam for the pairing screen's create/connect probe; production
+  /// builds a live [SyncHttpClient] against the endpoint the form supplies.
+  final SyncPairingProbeFactory? syncPairingProbeFactory;
+
+  /// Coordinates final draft persistence before ordinary application
+  /// termination. The reset flow deliberately bypasses this coordinator while
+  /// closing the database before deleting it.
+  final EditorDraftShutdownController? editorDraftShutdownController;
+
+  /// Where the update downloader's temp directories live (and where the
+  /// launch-time sweep looks for stale ones). Defaults to the platform temp
+  /// directory; a test injects one to observe the sweep.
+  final Future<Directory> Function()? updateTemporaryDirectoryProvider;
+
   /// Initial value for the history preference notifier. Exposed for widget
   /// tests that need to verify replacement resets a stale in-memory value.
   @visibleForTesting
@@ -248,7 +434,7 @@ class CompendiumApp extends StatefulWidget {
   /// forces the database open (see `migration_guard.dart`): it guards against
   /// opening a file written by a newer build (throws [DatabaseDowngradeError],
   /// routed to the [AppBootstrap] error screen) and snapshots the file before a
-  /// pending upgrade migration. It is handed a [SnapshotFailureDecision] seam so
+  /// pending upgrade migration or an owed one-time repair. It is handed a [SnapshotFailureDecision] seam so
   /// that, when the pre-migration snapshot fails, it can ask the user whether to
   /// proceed without a backup or abort (issue #442) — the app supplies
   /// [_CompendiumAppState._confirmProceedWithoutBackup], which pumps a blocking
@@ -258,11 +444,27 @@ class CompendiumApp extends StatefulWidget {
   final Future<void> Function(SnapshotFailureDecision onSnapshotFailure)?
   migrationPreflight;
 
-  /// Fast, once-per-launch data-integrity probe run during bootstrap. Returns
+  /// Run once `ensureMigrated` has succeeded: every one-time repair is done,
+  /// so the snapshot [migrationPreflight] pinned for an outstanding repair
+  /// debt is released into the ordinary rotation now, not on the next launch,
+  /// where a newer build owing a new repair would otherwise find the old pin
+  /// and not pin its own first copy. Best effort: a failure is logged, and the
+  /// next launch's preflight releases it if that launch owes no repair (one
+  /// that owes a new repair keeps the stale pin and pins nothing new). Injected
+  /// from [main]; left `null` in tests that don't exercise it.
+  final Future<void> Function()? releaseRepairSnapshotPin;
+
+  /// Once-per-launch data-integrity probe (`PRAGMA quick_check`), run after the
+  /// first frame so a large database does not delay the first screen. Returns
   /// `true` when the database is healthy; `false` triggers a (non-fatal)
   /// corruption warning. Defaults to [CompendiumDatabase.quickCheck]; injected
   /// in tests to exercise the warning path.
   final Future<bool> Function()? integrityCheck;
+
+  /// Save/share seam used by the overdue-backup reminder banner's Export backup
+  /// action. Defaults to [saveBackupToFile]; injected in tests so no real
+  /// file/share plugin is invoked, mirroring the General settings section.
+  final BackupSaver? backupSaver;
 
   /// Local, offline crash-log sink for global error capture (issue #458). The
   /// startup integrity probe routes a *thrown* failure here so a real
@@ -280,12 +482,13 @@ class CompendiumApp extends StatefulWidget {
   final Future<void> Function(CompendiumRepositories repos)?
   seedInitialCollection;
 
-  /// Delivers the path of a shared [CompendiumArchive] file the OS handed the
-  /// app (AirDrop / "Open with" / a share intent) so it can be imported and the
-  /// restored program auto-opened (issue #298, receive side). Injected from
-  /// [main] with a real [IncomingFileChannel]; left `null` in tests that don't
-  /// exercise intake, which disables the wiring entirely (no platform-channel
-  /// traffic), and can be given a fake channel to drive intake without the OS.
+  /// Delivers a shared [CompendiumArchive] file the OS handed the app (AirDrop /
+  /// "Open with" / a share intent), including whether native code staged an
+  /// app-owned copy for Dart to remove after intake (issue #298, receive side).
+  /// Injected from [main] with a real [IncomingFileChannel]; left `null` in
+  /// tests that don't exercise intake, which disables the wiring entirely
+  /// (no platform-channel traffic), and can be given a fake channel to drive
+  /// intake without the OS.
   final IncomingFileChannel? incomingFileChannel;
 
   /// Reads the bytes of an incoming shared file for [ArchiveIntakeService].
@@ -294,6 +497,12 @@ class CompendiumApp extends StatefulWidget {
   /// no real file I/O — real disk reads would be started inside the test's
   /// faked-time zone and never complete. Left `null` in production.
   final ArchiveByteReader? incomingFileReader;
+
+  /// Deletes an app-owned incoming staging copy after intake. Defaults to the
+  /// asynchronous filesystem deleter in production; injected in widget tests
+  /// so cleanup does not depend on real I/O completing inside fake async.
+  @visibleForTesting
+  final Future<void> Function(String path)? incomingFileDeleter;
 
   /// Program-page fetcher handed to the [ContraDbProgramImportScreen] opened
   /// from a shared URL (issue #343), so the screen's auto-fetch can be driven
@@ -329,10 +538,12 @@ class CompendiumApp extends StatefulWidget {
   State<CompendiumApp> createState() => _CompendiumAppState();
 }
 
-class _CompendiumAppState extends State<CompendiumApp> {
+class _CompendiumAppState extends State<CompendiumApp>
+    implements AppScopeTypesSource {
   late AppData _appData;
   late WindowService _windowService;
   late Future<void> _bootstrap;
+  late final EditorDraftShutdownController _editorDraftShutdownController;
 
   /// Determinate progress of the post-migration derived-index rebuild, surfaced
   /// on the [AppBootstrap] loading screen so a large-collection rebuild shows a
@@ -342,61 +553,263 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// forwards to the repository.
   final ValueNotifier<DerivedRebuildProgress?> _derivedRebuildProgress =
       ValueNotifier<DerivedRebuildProgress?>(null);
-  final ValueNotifier<Dialect> _dialectNotifier = ValueNotifier(
-    Dialect.larksRobins,
+  final ValueNotifier<DialectsByForm> _dialectNotifier = ValueNotifier(
+    DialectsByForm.defaults,
   );
-  final ValueNotifier<AppThemeSelection> _themeNotifier = ValueNotifier(
-    AppThemeSelection.system,
+  final _themeNotifier = PreferenceNotifier<AppThemeSelection>(
+    key: kAppThemeKey,
+    defaultValue: AppThemeSelection.system,
+    // The stored value is untrusted (issue #609): a non-string or an unknown
+    // name degrades to the System default.
+    decode: (Object? v) =>
+        AppThemeSelection.forName(v is String ? v : null) ??
+        AppThemeSelection.system,
+    encode: (v) => v.name,
   );
-  late final ValueNotifier<bool> _requirePerformedForHistoryNotifier =
-      ValueNotifier(widget.initialRequirePerformedForHistory);
-  final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
-      ValueNotifier(CollectionTileField.all);
-  final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
-    false,
+  // The constructor seam only seeds the first frame; reset and load go through
+  // the literal `false` default, so this is `late final` to read the widget.
+  late final _requirePerformedForHistoryNotifier = PreferenceNotifier<bool>(
+    key: kRequirePerformedForHistoryKey,
+    defaultValue: false,
+    initialValue: widget.initialRequirePerformedForHistory,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
-  final ValueNotifier<int> _venueCallCountNotifier = ValueNotifier(
-    kVenueCallCountDefault,
+  final _collectionTileFieldsNotifier =
+      PreferenceNotifier<Set<CollectionTileField>>(
+        key: kCollectionTileVisibleFieldsKey,
+        defaultValue: CollectionTileField.all,
+        decode: CollectionTileFieldsScope.decodeStored,
+        encode: (v) => v.map((f) => f.toJson()).toList(),
+      );
+  final _danceShareFieldsNotifier = PreferenceNotifier<Set<DanceShareField>>(
+    key: kProgramDanceShareFieldsKey,
+    defaultValue: DanceShareField.allExceptTunes,
+    decode: DanceShareFieldsScope.decodeStored,
+    encode: (v) => v.map((f) => f.toJson()).toList(),
   );
-  final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
+  final _collectionHiddenFacetsNotifier = PreferenceNotifier<Set<String>>(
+    key: kCollectionHiddenFacetsKey,
+    defaultValue: const <String>{},
+    decode: CollectionFacetsScope.decodeStored,
+    encode: CollectionFacetsScope.encode,
+  );
+  final _requireEventDateForHistoryNotifier = PreferenceNotifier<bool>(
+    key: kRequireEventDateForHistoryKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  // The four performance-tracking toggles. Recency-requires-performed has no
+  // default of its own: null follows the global setting until the caller sets it.
+  final _recencyRequireEventDateNotifier = PreferenceNotifier<bool>(
+    key: kRecencyRequireEventDateKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _recencyRequirePerformedNotifier = PreferenceNotifier<bool?>(
+    key: kRecencyRequirePerformedKey,
+    defaultValue: null,
+    decode: (Object? v) => v is bool ? v : null,
+    encode: (v) => v,
+  );
+  final _historyOrderIgnoreUndatedNotifier = PreferenceNotifier<bool>(
+    key: kHistoryOrderIgnoreUndatedKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _historyOrderIgnoreUnperformedNotifier = PreferenceNotifier<bool>(
+    key: kHistoryOrderIgnoreUnperformedKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _trackHistoryForAllCallersNotifier = PreferenceNotifier<bool>(
+    key: kTrackHistoryForAllCallersKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  // Live so Collection's caller-scoped counts follow an edit or a synced change
+  // without a restart (PRES-4). Trimmed on read, as the resolver trims it.
+  final _defaultProgramCallerNotifier = PreferenceNotifier<String>(
+    key: kDefaultProgramCallerKey,
+    defaultValue: '',
+    decode: (Object? v) => v is String ? v.trim() : '',
+    encode: (v) => v,
+  );
+  final _venueCallCountNotifier = PreferenceNotifier<int>(
+    key: kVenueCallCountKey,
+    defaultValue: kVenueCallCountDefault,
+    decode: venueCallCountFromStored,
+    encode: (v) => v,
+  );
+  final _sortIgnoreArticlesNotifier = PreferenceNotifier<bool>(
+    key: kSortIgnoreArticlesKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
   // Tri-state (issue #447): null = unset → follow the OS-level Reduce Motion
   // preference (MediaQuery.disableAnimations); true/false = explicit in-app
   // override. Resolved to an effective bool by ReduceMotionScope.of.
-  final ValueNotifier<bool?> _reduceMotionNotifier = ValueNotifier<bool?>(null);
-  final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
-    false,
+  final _reduceMotionNotifier = PreferenceNotifier<bool?>(
+    key: kReduceMotionKey,
+    defaultValue: null,
+    decode: (Object? v) => v is bool ? v : null,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _canonicalDiscouragedTermsNotifier = ValueNotifier(
-    true,
+  final _verboseFigureRenderingNotifier = PreferenceNotifier<bool>(
+    key: kVerboseFigureRenderingKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _aggressiveBeatsUpdateNotifier = ValueNotifier(
-    false,
+  final _canonicalDiscouragedTermsNotifier = PreferenceNotifier<bool>(
+    key: kCanonicalDiscouragedTermsKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _autoCommitProgramChangesNotifier = ValueNotifier(
-    false,
+  final _decimalTurnsNotifier = PreferenceNotifier<bool>(
+    key: kDecimalTurnsKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
-  final ValueNotifier<bool> _matrixExactBeatCollisionNotifier = ValueNotifier(
-    true,
+  final _capitalizeFiguresNotifier = PreferenceNotifier<bool>(
+    key: kCapitalizeFiguresKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
-  final ValueNotifier<MatrixColumnConfig> _programMatrixColumnsNotifier =
-      ValueNotifier(MatrixColumnConfig.empty);
-  final ValueNotifier<DateFormatSetting> _dateFormatNotifier = ValueNotifier(
-    DateFormatSetting.system,
+  final _showGlossaryNotifier = PreferenceNotifier<bool>(
+    key: kShowGlossaryKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
-  final ValueNotifier<FirstDayOfWeekPref> _firstDayOfWeekNotifier =
-      ValueNotifier(FirstDayOfWeekPref.system);
+  final _showCustomFiguresNotifier = PreferenceNotifier<bool>(
+    key: kShowCustomFiguresKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _callingCardSettingsNotifier = PreferenceNotifier<CallingCardSettings>(
+    key: kCallingCardSettingsKey,
+    defaultValue: CallingCardSettings.defaults,
+    decode: CallingCardSettings.fromJson,
+    encode: (v) => v.toJson(),
+  );
+  final _aggressiveBeatsUpdateNotifier = PreferenceNotifier<bool>(
+    key: kAggressiveBeatsUpdateKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _confirmBeforeDeleteNotifier = PreferenceNotifier<bool>(
+    key: kConfirmBeforeDeleteKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _undoPromptSecondsNotifier = PreferenceNotifier<int>(
+    key: kUndoPromptSecondsKey,
+    defaultValue: kUndoPromptDefaultSeconds,
+    decode: undoPromptSecondsFromStored,
+    encode: (v) => v,
+  );
+  final _venueEntityModeNotifier = PreferenceNotifier<bool>(
+    key: kVenueEntityModeKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _autoCommitProgramChangesNotifier = PreferenceNotifier<bool>(
+    key: kAutoCommitProgramChangesKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _colourDanceThemeNotifier = PreferenceNotifier<bool>(
+    key: kColourDanceThemeKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _setListColorCodingNotifier = PreferenceNotifier<bool>(
+    key: kSetListColorCodingKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _showPerformedTogglesNotifier = PreferenceNotifier<bool>(
+    key: kShowPerformedTogglesKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _markAllSetsStatusNotifier = PreferenceNotifier<bool>(
+    key: kMarkAllSetsStatusKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _shareSetListTitleNotifier = PreferenceNotifier<bool>(
+    key: kShareSetListIncludeTitleKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _shareSetListCallerBandNotifier = PreferenceNotifier<bool>(
+    key: kShareSetListIncludeCallerBandKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _shareSetListDateVenueNotifier = PreferenceNotifier<bool>(
+    key: kShareSetListIncludeDateVenueKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _matrixExactBeatCollisionNotifier = PreferenceNotifier<bool>(
+    key: kMatrixExactBeatCollisionKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _programMatrixColumnsNotifier = PreferenceNotifier<MatrixColumnConfig>(
+    key: kProgramMatrixColumnsKey,
+    defaultValue: MatrixColumnConfig.empty,
+    // A malformed blob falls back to empty (issue #935).
+    decode: (Object? v) =>
+        MatrixColumnConfig.tryDecode(v) ?? MatrixColumnConfig.empty,
+    encode: (v) => v.toJson(),
+  );
+  final _dateFormatNotifier = DateFormatPreferenceNotifier();
+  final _firstDayOfWeekNotifier = PreferenceNotifier<FirstDayOfWeekPref>(
+    key: kFirstDayOfWeekKey,
+    defaultValue: FirstDayOfWeekPref.system,
+    decode: firstDayOfWeekPrefFromStored,
+    encode: (v) => v.token,
+  );
 
   /// The user's chosen app-interface locale; `null` follows the system locale.
   /// Drives `MaterialApp.locale` directly, so it is included in the
   /// [Listenable.merge] below and the app re-renders in the selected language
   /// live when it changes. Loaded (and validated against
   /// [AppLocalizations.supportedLocales]) in [_loadPreferences].
-  final ValueNotifier<Locale?> _localeNotifier = ValueNotifier(null);
+  final _localeNotifier = PreferenceNotifier<Locale?>(
+    key: kLocaleKey,
+    defaultValue: null,
+    // The stored tag is untrusted (OWASP): only a supported locale resolves.
+    decode: (Object? v) =>
+        localeFromStored(v, AppLocalizations.supportedLocales),
+    encode: localeToTag,
+  );
 
   /// App-level "tap a tag → show the Collection filtered to it" coordinator
   /// (issue #414). Provided via [CollectionFilterScope] above the root
@@ -405,12 +818,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
       CollectionFilterController();
   late CustomThemesController _customThemes;
   late FormationColorsController _formationColors;
-  late DialectLibraryController _dialectLibrary;
+  late DialectLibraries _dialectLibrary;
 
   /// Owns the user's shorthand → figure(s) mappings (issue #420), consulted by
   /// the free-text entry path. Loaded during bootstrap; exposed via
   /// [ShorthandMappingsScope].
   late ShorthandMappingsController _shorthandMappings;
+  late UserFiguresController _userFigures;
 
   /// Owns the user's personal walkthrough snippet library (#411): per-figure
   /// step descriptions keyed by figure signature. Loaded during bootstrap;
@@ -421,6 +835,60 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Loaded during bootstrap; the auto-check (opt-in, default off) is kicked off
   /// once per launch after preferences load.
   late UpdateController _updateController;
+  late SyncController _syncController;
+
+  /// Starts a Device Sync pass when the app returns to the foreground (spec
+  /// §6.12). The rate limit and the §6.12 gate are the controller's
+  /// ([SyncController.onAppResumed]); this only forwards the event. Reads
+  /// [_syncController] at the event, so a controller rebuilt by
+  /// [_replaceDatabaseBackedServices] is the one asked.
+  late final AppLifecycleListener _syncLifecycleListener;
+
+  /// Writes editor drafts still waiting on their autosave debounce when the
+  /// app is hidden or paused (PLAT-19). On Android and iOS that is the last
+  /// chance before the OS may suspend or kill the process; there is no window
+  /// close there to flush them.
+  late final AppLifecycleListener _draftLifecycleListener;
+  StreamSubscription<Set<TableUpdate>>? _syncChangeSubscription;
+  SyncCoordinator? _syncCoordinator;
+  Future<void>? _syncCoordinatorDisposeFuture;
+  Future<void>? _syncWriterTail;
+
+  /// `true` for the span between a writer boundary ([_runSyncWriter] or
+  /// [_runSyncRecordWriter]) claiming exclusivity (just before disposing — or,
+  /// for a record writer, holding — whatever coordinator exists) and its own
+  /// `operation()` returning. Cleared in the writer's `finally` *before*
+  /// that same `finally` calls the writer's post-operation reconfigure, not
+  /// after that reconfigure completes: the hazard this flag closes is a sync
+  /// pass running concurrently with the writer's `operation()` itself (e.g. a
+  /// backup restore's raw writes), and that hazard is over the instant
+  /// `operation()` returns, so the flag does not need to — and does not —
+  /// survive into the writer's own reconfigure.
+  ///
+  /// A sync reconfiguration ([_configureSyncCoordinatorNow]) that resolves its
+  /// factory while this is true must not install (or start a pass on) the
+  /// coordinator it just built: the writer already owns exclusivity, and the
+  /// writer's own `finally` reconfigures once it is safe (a record writer
+  /// does too: the reconfigure's dispose took its held coordinator, so it has
+  /// none to put back). Without this check,
+  /// a reconfigure still awaiting `factory(...)` when a writer starts finds
+  /// nothing to dispose (the coordinator isn't installed yet), so the
+  /// writer's operation (e.g. a backup restore) can run concurrently with a
+  /// pass the just-resolved factory starts — the race spec §6.11 forbids.
+  bool _syncWriterExclusive = false;
+  bool _shutdownRequested = false;
+
+  /// Set when closing begins, so the app can say it is closing rather than
+  /// sit unresponsive while drafts are saved and sync finishes.
+  final ValueNotifier<bool> _closingNotifier = ValueNotifier(false);
+
+  /// The writer operation that is running, from just after its last
+  /// [_shutdownRequested] check until it returns. Shutdown waits for it whole:
+  /// it writes through this app's own connection, often in several
+  /// transactions. A writer that has not reached its operation yet sees
+  /// [_shutdownRequested] and throws before writing anything, so shutdown
+  /// does not wait for it, nor for the sync pass it may be waiting on.
+  Future<void>? _syncWriterOperation;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
@@ -428,6 +896,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// only shown once per successful bootstrap.
   bool _dataIntegrityOk = true;
   bool _corruptionBannerShown = false;
+
+  /// Guards the once-per-launch overdue-backup reminder banner (DAT-05). "Not
+  /// now" dismisses it for this launch only; nothing is persisted.
+  bool _backupReminderShown = false;
+
+  /// Completes once the deferred integrity probe has either passed or (on
+  /// failure) has posted its warning banner, so the backup reminder is always
+  /// queued *behind* the more important corruption warning rather than ahead
+  /// of it. Replaced on each bootstrap run.
+  Completer<void> _integrityGate = Completer<void>();
+
+  /// The reminder banner's own controller, so closing it never hides a
+  /// different banner that has since become current. Cleared when it closes.
+  ScaffoldFeatureController<MaterialBanner, MaterialBannerClosedReason>?
+  _backupReminderBanner;
 
   /// `true` when the once-per-launch integrity probe *threw* (as opposed to
   /// returning `false`). Kept distinct so the advisory banner can tell the user
@@ -439,16 +922,123 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// snackbars: a global navigator + messenger so the incoming-file handler can
   /// open the imported program and report results from outside the widget tree.
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// Lets the root-level Ctrl/Cmd-K action reach the shell (tab switching and
+  /// the palette-result routing stay the shell's).
+  final GlobalKey<AppShellState> _shellKey = GlobalKey<AppShellState>();
+
+  /// Tracks the live route stack so Perform is detected even when a dialog or
+  /// sheet of Perform's own is on top of it.
+  final _PerformRouteObserver _performObserver = _PerformRouteObserver();
+
+  /// Opens global search from any route, except while performing a program.
+  void _openGlobalSearch() {
+    if (_performObserver.performing) return;
+    _shellKey.currentState?.openSearch();
+  }
+
+  /// The root action for an app-wide command of the keyboard map and the
+  /// macOS menu bar (PLAT-7, PLAT-8). Like Ctrl-K, it does nothing while a
+  /// program or dance is being performed, so a stray key mid-event cannot
+  /// cover the card or ask to leave.
+  CallbackAction<T> _shellCommand<T extends Intent>(
+    void Function(AppShellState shell) run,
+  ) => CallbackAction<T>(
+    onInvoke: (_) {
+      if (_performObserver.performing) return null;
+      final shell = _shellKey.currentState;
+      if (shell != null) run(shell);
+      return null;
+    },
+  );
+
+  static bool get _isDesktop => switch (defaultTargetPlatform) {
+    TargetPlatform.windows ||
+    TargetPlatform.macOS ||
+    TargetPlatform.linux => true,
+    TargetPlatform.android ||
+    TargetPlatform.iOS ||
+    TargetPlatform.fuchsia => false,
+  };
+
+  /// Goes back one step for Esc, Ctrl/Cmd-W, the menu bar's Close and a
+  /// mouse's Back button ([GoBackIntent]).
+  ///
+  /// First it offers a dismiss to whatever is open, as Esc's default binding
+  /// would ([_offerDismiss]): a text field's toolbar, an autocomplete's
+  /// options, a drawer, a menu, or a sheet or dialog that a tap outside would
+  /// close. Failing that, a page leaves through [NavigatorState.maybePop],
+  /// which consults its `PopScope` exactly as the system back gesture does, so
+  /// an editor with unsaved changes asks first and Perform asks before it
+  /// closes unless its confirmation is turned off. A dialog that does not close on a tap outside stays: it is
+  /// waiting for an answer.
+  void _goBack() {
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused != null && _offerDismiss(focused)) return;
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null) return;
+    Route<dynamic>? top;
+    navigator.popUntil((route) {
+      top = route;
+      return true;
+    });
+    if (top is PageRoute) unawaited(navigator.maybePop());
+  }
+
+  /// Offers a dismiss to the nearest `DismissIntent` action above [context],
+  /// and returns whether something acted on it.
+  ///
+  /// Flutter's own dispatch cannot answer that. A text field and an
+  /// autocomplete handle `DismissIntent` by closing their toolbar or options
+  /// when one is showing, and otherwise pass the intent on to the next action
+  /// above them. On a page, the chain ends at an action that is disabled
+  /// (the Scaffold's drawer, with no drawer open, or the page route's own),
+  /// and a disabled action still stops the key. So Esc, bound to
+  /// `DismissIntent` as Flutter binds it, would do nothing in a text field.
+  ///
+  /// This sends [_DismissProbe] instead. It is a `DismissIntent`, so every
+  /// action treats it as one, but when an action passes it on, the lookup goes
+  /// by its own type and lands on the root's [_DismissProbeAction], which
+  /// continues the chain from where it was passed on. A chain that ends at a
+  /// disabled action, or at none, is one where nothing was open.
+  bool _offerDismiss(BuildContext context) {
+    final action = Actions.maybeFind<Intent>(
+      context,
+      intent: const DismissIntent(),
+    );
+    if (action == null) return false;
+    bool? passedOnAndHandled;
+    _dismissProbes.add((from) => passedOnAndHandled = _offerDismiss(from));
+    try {
+      final (enabled, _) = Actions.of(
+        context,
+      ).invokeActionIfEnabled(action, const _DismissProbe(), context);
+      if (!enabled) return false;
+    } finally {
+      _dismissProbes.removeLast();
+    }
+    return passedOnAndHandled ?? true;
+  }
+
+  /// Continuations for the [_DismissProbe]s in flight, innermost last.
+  final List<ValueChanged<BuildContext>> _dismissProbes = [];
+
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
   /// Subscription to files delivered while the app is running. Null when no
   /// [CompendiumApp.incomingFileChannel] was injected (intake disabled).
-  StreamSubscription<String>? _incomingFileSub;
+  StreamSubscription<IncomingFile>? _incomingFileSub;
 
   /// Subscription to URLs shared into the app while it is running (issue #343).
   /// Null when no [CompendiumApp.incomingFileChannel] was injected.
   StreamSubscription<String>? _incomingUrlSub;
+
+  /// App-owned staging paths still being processed. Disposal may race with
+  /// validation or the review route, so cleanup is idempotently shared by both
+  /// the intake future and [dispose].
+  final Set<String> _ownedIncomingPaths = <String>{};
+  bool _incomingIntakeDisposed = false;
 
   bool _incomingDanceImporting = false;
 
@@ -456,11 +1046,24 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// ready UI is first shown.
   bool _initialFileChecked = false;
 
+  /// Guards the one-time on-launch ECD-convert prompt so it is considered at
+  /// most once per launch — whether or not it ends up shown — after the
+  /// ready UI is first shown. See [_maybeShowEcdConvertPrompt].
+  bool _ecdConvertPromptChecked = false;
+
   @override
   void initState() {
     super.initState();
+    _editorDraftShutdownController =
+        widget.editorDraftShutdownController ?? EditorDraftShutdownController();
     _windowService = widget.windowService;
     _initializeDatabaseBackedServices(widget.appData);
+    _syncLifecycleListener = AppLifecycleListener(onResume: _onAppResumed);
+    _draftLifecycleListener = AppLifecycleListener(
+      onHide: _flushPendingEditorDrafts,
+      onPause: _flushPendingEditorDrafts,
+    );
+    widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
     // Listen for files opened while the app is running (AirDrop / "Open with"
     // on an already-launched app). The cold-start file is pulled once the ready
     // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
@@ -470,7 +1073,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       _incomingFileSub = channel.files.listen(_handleIncomingFile);
       _incomingUrlSub = channel.urls.listen(_handleIncomingUrl);
     }
-    _bootstrap = _startupSequence();
+    _bootstrap = _runBootstrap();
   }
 
   void _initializeDatabaseBackedServices(AppData appData) {
@@ -479,26 +1082,87 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _formationColors = FormationColorsController(
       _appData.repositories.settings,
     );
-    // The dialect library owns dialect state; the active dialect flows out
-    // through [_dialectNotifier] (read by every existing ActiveDialectScope
-    // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
-    _dialectLibrary = DialectLibraryController(_appData.repositories.settings);
+    // The dialect libraries (one per dance form) own dialect state; each
+    // form's active dialect flows out through [_dialectNotifier] (read by every
+    // ActiveDialectScope consumer) via [_syncActiveDialect].
+    _dialectLibrary = DialectLibraries(
+      _appData.repositories.settings,
+      programs: _appData.repositories.programs,
+    );
     _dialectLibrary.addListener(_syncActiveDialect);
     _shorthandMappings = ShorthandMappingsController(
       _appData.repositories.settings,
     );
+    _userFigures = UserFiguresController(_appData.repositories.userGlossary);
     _walkthroughSnippets = WalkthroughSnippetLibraryController(
       _appData.repositories.settings,
     );
     _updateController = UpdateController(
       _appData.repositories.settings,
       onMacosShutdown: _windowService.closeForUpdate,
+      temporaryDirectoryProvider: widget.updateTemporaryDirectoryProvider,
     );
+    _syncedSettingsReload = SyncedSettingsReload(
+      reload: () async {
+        // A reload a database replacement overtook has nothing left to load
+        // into: the controllers it would reach are disposed.
+        if (!mounted || !identical(appData, _appData)) return;
+        await _loadPreferences(includeDeviceState: false);
+      },
+      // Any read on the main connection will do: see [SyncedSettingsReload].
+      fence: () => _guardedControllerLoad(
+        'sync.settings_reload_fence',
+        () => appData.repositories.settings.contains(kShorthandMappingsKey),
+      ),
+    );
+    _syncController = SyncController(
+      settings: _appData.repositories.settings,
+      coordinator: () => _syncCoordinator,
+      reconfigure: _configureSyncCoordinator,
+      syncLocal: _appData.repositories.syncLocal,
+      runExclusive: _runSyncWriter,
+      pairingProbeFactory: widget.syncPairingProbeFactory,
+      classifier: widget.syncNetworkClassifier,
+      debounce: widget.syncDebounce,
+      onSettingsApplied: () => unawaited(_reloadSyncedSettings()),
+    );
+    // The production coordinator invalidates the main connection's live
+    // queries before its pass's own `coordinator.trigger()` call returns
+    // (issue: post-apply invalidation scheduling a redundant pass); route
+    // that signal through the controller so it can tell its own
+    // invalidation apart from a genuine local edit landing in the same
+    // instant, rather than scheduling a pointless follow-up pass after every
+    // pass that applied anything.
+    widget.productionSyncCoordinatorFactory?.onBeforeAppliedInvalidation =
+        _syncController.expectSyncAppliedInvalidation;
+    // Each attach mints a device ID inside the factory; that write is sync
+    // bookkeeping, not an edit that should schedule a second pass.
+    widget.productionSyncCoordinatorFactory?.onBeforeDeviceIdMinted =
+        _syncController.expectOwnSettingsWrite;
+    // Local writes schedule one debounced automatic pass (spec §6.12). Settings
+    // rows are reported separately because shareable preferences are sync
+    // records too, while the controller's own bookkeeping writes to that table
+    // must not re-trigger a pass.
+    _syncChangeSubscription = _appData.repositories.db.tableUpdates().listen((
+      updates,
+    ) {
+      final tables = {for (final u in updates) u.table};
+      if (tables.contains('settings')) {
+        _syncedSettingsReload.noteSettingsWrite();
+      }
+      _syncController.notifyTableUpdates(tables);
+    });
   }
 
   void _replaceDatabaseBackedServices() {
     // Controllers retain their SettingsRepository, so they must be recreated
     // with the replacement database rather than reusing closed repositories.
+    //
+    // Every preference notifier is reset to its default synchronously here,
+    // before the replacement bootstrap has read the stored values back, so on
+    // Retry or Reset the recovery screen can briefly re-theme to the system
+    // theme and English until the bootstrap applies them. Accepted: the screen
+    // is transient and nothing is lost, only shown in defaults for that moment.
     _resetAppPreferenceNotifiers();
     _windowService.dispose();
     _customThemes.dispose();
@@ -506,46 +1170,259 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
     _shorthandMappings.dispose();
+    _userFigures.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
+    unawaited(_syncChangeSubscription?.cancel());
+    _syncController.dispose();
+    _syncCoordinator = null;
 
     final appData = widget.appDataFactory();
-    widget.applicationShutdownController?.replaceCloseApp(appData.close);
     _windowService =
         widget.windowServiceFactory?.call(appData.repositories.settings) ??
         WindowService(
           appData.repositories.settings,
-          onClose: widget.applicationShutdownController?.close ?? appData.close,
+          onClose:
+              widget.applicationShutdownController?.close ?? _closeForShutdown,
         );
     _initializeDatabaseBackedServices(appData);
+    widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
   }
 
+  Future<void> _disposeSyncCoordinator() {
+    final existing = _syncCoordinatorDisposeFuture;
+    if (existing != null) return existing;
+
+    final coordinator = _syncCoordinator;
+    _syncCoordinator = null;
+    _syncController.attachCoordinator(null);
+    final future = Future<void>.sync(() async {
+      await coordinator?.dispose();
+    });
+    _syncCoordinatorDisposeFuture = future;
+    future
+        .whenComplete(() => _clearSyncCoordinatorDisposeFuture(future))
+        .ignore();
+    return future;
+  }
+
+  /// The writer boundary for a restore or an import: disposes the
+  /// coordinator, awaiting its in-flight pass, runs [operation], then rebuilds
+  /// the coordinator from current settings with an app-start pass (spec §6.11).
+  Future<T> _runSyncWriter<T>(Future<T> Function() operation) =>
+      _runSyncWriterBoundary(operation, keepCoordinator: false);
+
+  /// The writer boundary for a write that changes records the way an ordinary
+  /// local edit does — a sync review-queue resolution — rather than replacing
+  /// the library or the sync configuration.
+  ///
+  /// It is serialized with every other writer and, once its operation has
+  /// started, awaited by shutdown, and the operation still starts only after
+  /// the in-flight pass has finished: the
+  /// coordinator is held ([SyncCoordinator.hold]), so no pass starts until the
+  /// operation returns. A trigger arriving meanwhile — including one that
+  /// read the coordinator before the hold — is deferred, not refused, and
+  /// runs on [SyncCoordinator.release]. But the coordinator is kept rather
+  /// than rebuilt, and no pass of the writer's own follows: a rebuild would
+  /// start a full pass the next resolve then had to wait for, and would
+  /// discard its session state, so a declined "replace the collection" prompt
+  /// came back. The write's own table events schedule the usual debounced
+  /// pass. If a reconfigure or shutdown disposed the held coordinator
+  /// meanwhile, this falls back to [_runSyncWriter]'s rebuild.
+  Future<T> _runSyncRecordWriter<T>(Future<T> Function() operation) =>
+      _runSyncWriterBoundary(operation, keepCoordinator: true);
+
+  Future<T> _runSyncWriterBoundary<T>(
+    Future<T> Function() operation, {
+    required bool keepCoordinator,
+  }) async {
+    final prior = _syncWriterTail;
+    final release = Completer<void>();
+    final tail = release.future;
+    _syncWriterTail = tail;
+    try {
+      if (prior != null) await prior;
+      if (_shutdownRequested) {
+        throw StateError('cannot start a database writer during shutdown');
+      }
+      // Claimed before disposing so a reconfigure whose factory is still
+      // resolving cannot install a coordinator (or start a pass) once it
+      // returns — it must find `_syncWriterExclusive` true and back off. See
+      // the field doc for the race this closes.
+      _syncWriterExclusive = true;
+      SyncCoordinator? held;
+      try {
+        if (keepCoordinator) {
+          held = await _holdSyncCoordinator();
+        } else {
+          await _disposeSyncCoordinator();
+        }
+        if (_shutdownRequested) {
+          throw StateError('cannot start a database writer during shutdown');
+        }
+        return await _trackSyncWriterOperation(operation);
+      } finally {
+        // Released before the writer's own reconfigure so that call — unlike
+        // one racing in from outside — is free to install its coordinator.
+        _syncWriterExclusive = false;
+        if (!_shutdownRequested && mounted) {
+          if (held != null && identical(_syncCoordinator, held)) {
+            // Still installed, so nothing disposed it: let it run again,
+            // starting any trigger it deferred.
+            held.release();
+          } else {
+            await _configureSyncCoordinator();
+          }
+        }
+      }
+    } finally {
+      if (!release.isCompleted) release.complete();
+      if (identical(_syncWriterTail, tail)) _syncWriterTail = null;
+    }
+  }
+
+  /// Holds the live coordinator and waits for its running pass to finish, for
+  /// [_runSyncRecordWriter]. Returns it, or `null` when none is installed.
+  /// Called with [_syncWriterExclusive] already set, so no reconfigure can
+  /// install another while this waits. The coordinator stays installed, so
+  /// a trigger, or a decline of the replacement prompt, still reaches it.
+  /// [_disposeSyncCoordinator] disposes it as usual if a reconfigure or
+  /// shutdown supersedes it, which the writer sees as it no longer being
+  /// installed.
+  Future<SyncCoordinator?> _holdSyncCoordinator() async {
+    final disposing = _syncCoordinatorDisposeFuture;
+    if (disposing != null) await disposing;
+    final coordinator = _syncCoordinator;
+    if (coordinator == null) return null;
+    await coordinator.hold();
+    return coordinator;
+  }
+
+  void _clearSyncCoordinatorDisposeFuture(Future<void> future) {
+    if (identical(_syncCoordinatorDisposeFuture, future)) {
+      _syncCoordinatorDisposeFuture = null;
+    }
+  }
+
+  void _flushPendingEditorDrafts() {
+    if (_shutdownRequested) return;
+    unawaited(_editorDraftShutdownController.flushPending());
+  }
+
+  /// Runs [operation] as the current [_syncWriterOperation]. Call it
+  /// synchronously after the last [_shutdownRequested] check.
+  Future<T> _trackSyncWriterOperation<T>(Future<T> Function() operation) async {
+    final running = Completer<void>();
+    final tracked = running.future;
+    _syncWriterOperation = tracked;
+    try {
+      return await operation();
+    } finally {
+      running.complete();
+      if (identical(_syncWriterOperation, tracked)) {
+        _syncWriterOperation = null;
+      }
+    }
+  }
+
+  /// Closes the app's database for a window close or an OS terminate.
+  ///
+  /// The order matters (FAIL-12). A writer already inside its operation is
+  /// waited for whole, because it writes through this connection. Editor
+  /// drafts are flushed next, before anything waits on the network, so a
+  /// caller who gives up and kills the app still keeps them. Only then is the
+  /// sync pass waited for, and only for [CompendiumApp.shutdownSyncPassWait].
+  Future<void> _closeForShutdown() async {
+    _shutdownRequested = true;
+    if (mounted) _closingNotifier.value = true;
+    final operation = _syncWriterOperation;
+    if (operation != null) await operation;
+    await _editorDraftShutdownController.flushAll();
+    await _awaitSyncPassForShutdown();
+    await _appData.close();
+  }
+
+  /// Disposes the sync coordinator, waiting for its running pass for at most
+  /// [CompendiumApp.shutdownSyncPassWait]. Past the bound, the dispose carries
+  /// on unawaited; see [kShutdownSyncPassWait] for why that is safe.
+  Future<void> _awaitSyncPassForShutdown() async {
+    final dispose = _disposeSyncCoordinator();
+    try {
+      await dispose.timeout(widget.shutdownSyncPassWait);
+    } on TimeoutException catch (error, stackTrace) {
+      // Not a fault: the caller asked to close and the pass is still on the
+      // network. Logged so a slow close is diagnosable.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'main.shutdown_sync_wait',
+      );
+      dispose.ignore();
+    }
+  }
+
+  /// Every settings-backed preference, in one place: the reset and the load
+  /// iterate this list, so a preference listed here cannot be left out of
+  /// either. (The dialect is not here: it comes from the dialect library, not a
+  /// settings key.)
+  late final List<PreferenceNotifier<Object?>> _preferences = [
+    _requirePerformedForHistoryNotifier,
+    _requireEventDateForHistoryNotifier,
+    _recencyRequireEventDateNotifier,
+    _recencyRequirePerformedNotifier,
+    _historyOrderIgnoreUndatedNotifier,
+    _historyOrderIgnoreUnperformedNotifier,
+    _trackHistoryForAllCallersNotifier,
+    _defaultProgramCallerNotifier,
+    _sortIgnoreArticlesNotifier,
+    _reduceMotionNotifier,
+    _verboseFigureRenderingNotifier,
+    _canonicalDiscouragedTermsNotifier,
+    _decimalTurnsNotifier,
+    _capitalizeFiguresNotifier,
+    _showGlossaryNotifier,
+    _showCustomFiguresNotifier,
+    _callingCardSettingsNotifier,
+    _aggressiveBeatsUpdateNotifier,
+    _confirmBeforeDeleteNotifier,
+    _undoPromptSecondsNotifier,
+    _venueEntityModeNotifier,
+    _autoCommitProgramChangesNotifier,
+    _colourDanceThemeNotifier,
+    _setListColorCodingNotifier,
+    _showPerformedTogglesNotifier,
+    _markAllSetsStatusNotifier,
+    _shareSetListTitleNotifier,
+    _shareSetListCallerBandNotifier,
+    _shareSetListDateVenueNotifier,
+    _matrixExactBeatCollisionNotifier,
+    _themeNotifier,
+    _collectionTileFieldsNotifier,
+    _danceShareFieldsNotifier,
+    _collectionHiddenFacetsNotifier,
+    _venueCallCountNotifier,
+    _programMatrixColumnsNotifier,
+    _dateFormatNotifier,
+    _firstDayOfWeekNotifier,
+    _localeNotifier,
+  ];
+
   void _resetAppPreferenceNotifiers() {
-    _dialectNotifier.value = Dialect.larksRobins;
-    _themeNotifier.value = AppThemeSelection.system;
-    _requirePerformedForHistoryNotifier.value = false;
-    _collectionTileFieldsNotifier.value = CollectionTileField.all;
-    _trackHistoryForAllCallersNotifier.value = false;
-    _venueCallCountNotifier.value = kVenueCallCountDefault;
-    _sortIgnoreArticlesNotifier.value = true;
-    _reduceMotionNotifier.value = null;
-    _verboseFigureRenderingNotifier.value = false;
-    _decimalTurnsNotifier.value = false;
-    _aggressiveBeatsUpdateNotifier.value = false;
-    _confirmBeforeDeleteNotifier.value = false;
-    _venueEntityModeNotifier.value = false;
-    _autoCommitProgramChangesNotifier.value = false;
-    _colourDanceThemeNotifier.value = false;
-    _setListColorCodingNotifier.value = true;
-    _matrixExactBeatCollisionNotifier.value = true;
-    _programMatrixColumnsNotifier.value = MatrixColumnConfig.empty;
-    _dateFormatNotifier.value = DateFormatSetting.system;
-    _firstDayOfWeekNotifier.value = FirstDayOfWeekPref.system;
-    _localeNotifier.value = null;
+    _dialectNotifier.value = DialectsByForm.defaults;
+    for (final p in _preferences) {
+      p.reset();
+    }
   }
 
   void _startBootstrap() {
     _corruptionBannerShown = false;
+    _backupReminderShown = false;
+    _backupReminderBanner = null;
+    _integrityGate = Completer<void>();
+    // The deferred probe re-runs after this bootstrap succeeds; clear any
+    // verdict from a previous database so it cannot raise a stale banner.
+    _dataIntegrityOk = true;
+    _integrityProbeThrew = false;
     // Let AppBootstrap subscribe before running a replacement bootstrap, so a
     // synchronously failing preflight is still delivered to its recovery UI.
     final bootstrap = Completer<void>();
@@ -553,17 +1430,28 @@ class _CompendiumAppState extends State<CompendiumApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       try {
-        await _startupSequence();
+        await _runBootstrap();
         bootstrap.complete();
       } on Object catch (error, stackTrace) {
-        // diagnostics: silent — FutureBuilder receives and surfaces this
-        // bootstrap error in the recovery UI.
+        // diagnostics: silent — already logged (main.bootstrap) by
+        // `_runBootstrap`; the FutureBuilder surfaces it in the recovery UI.
         bootstrap.completeError(error, stackTrace);
       }
     });
   }
 
-  /// Mirrors the library's resolved active dialect into [_dialectNotifier] so
+  /// Runs [_startupSequence], recording any failure in the crash log (source
+  /// `main.bootstrap`) exactly once before rethrowing it to the recovery UI.
+  Future<void> _runBootstrap() async {
+    try {
+      await _startupSequence();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.bootstrap');
+      rethrow;
+    }
+  }
+
+  /// Mirrors each form's resolved active dialect into [_dialectNotifier] so
   /// every `ActiveDialectScope` consumer sees changes live.
   void _syncActiveDialect() {
     _dialectNotifier.value = _dialectLibrary.active;
@@ -575,48 +1463,105 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// confirms.
   ///
   /// The file is **untrusted input**: [ArchiveIntakeService] enforces the size
-  /// cap, validates the archive schema/version, and never throws — a bad file
-  /// resolves to a rejection message shown in a snackbar and **writes nothing**
-  /// (fail closed). A valid bundle is decoded Dart-side *before* any UI renders,
+  /// cap, validates that the file is a readable archive, and never throws — a
+  /// bad file resolves to a rejection message shown in a snackbar and **writes
+  /// nothing** (fail closed). A valid bundle is decoded Dart-side *before* any UI renders,
   /// then handed to [ImportReviewScreen], which previews it, applies per-entity
   /// dispositions, and commits (dances + programs + venues) only on the user's
-  /// confirmation — offering a transient Undo afterwards.
-  Future<void> _handleIncomingFile(String path) async {
-    final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
-    final validation = await intake.validateFromPath(path);
-    if (!mounted) return;
-
-    if (validation.isRejected) {
-      final messenger = _messengerKey.currentState;
-      final messengerContext = _messengerKey.currentContext;
-      if (messenger != null &&
-          messengerContext != null &&
-          messengerContext.mounted) {
-        final l10n = AppLocalizations.of(messengerContext);
-        messenger.showSnackBar(
-          SnackBar(
-            key: const ValueKey('shared-import-error'),
-            content: Text(
-              archiveIntakeRejectionMessage(l10n, validation.reason!),
-            ),
-          ),
-        );
-      }
+  /// confirmation — showing the import result, with Undo, afterwards.
+  Future<void> _handleIncomingFile(IncomingFile incomingFile) async {
+    _trackOwnedIncomingFile(incomingFile);
+    if (_incomingIntakeDisposed) {
+      await _cleanupOwnedIncomingFile(incomingFile.path);
       return;
     }
+    try {
+      // Native refused to stage an over-cap file, or a desktop open named a
+      // file the app won't read: there is no path to read or delete, so
+      // surface the same rejection intake would have produced.
+      final rejection = incomingFile.rejection;
+      if (rejection != null) {
+        if (!mounted) return;
+        _showIncomingFileRejection(switch (rejection) {
+          IncomingFileRejection.tooLarge =>
+            ArchiveIntakeRejectionReason.tooLarge,
+          IncomingFileRejection.unreadable =>
+            ArchiveIntakeRejectionReason.unreadable,
+        });
+        return;
+      }
+      final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
+      final validation = await intake.validateFromPath(incomingFile.path);
+      if (!mounted) return;
 
-    await _navigatorKey.currentState?.push(
-      MaterialPageRoute<void>(
-        builder: (_) => ImportReviewScreen(
-          sources: defaultImportSources(),
-          sharedBundle: SharedBundleImport(
-            json: validation.json!,
-            archive: validation.archive!,
-            entityCount: validation.entityCount,
+      if (validation.isRejected) {
+        _showIncomingFileRejection(validation.reason!);
+        return;
+      }
+
+      await _navigatorKey.currentState?.push(
+        MaterialPageRoute<void>(
+          builder: (_) => ImportReviewScreen(
+            sources: defaultImportSources(),
+            sharedBundle: SharedBundleImport(
+              json: validation.json!,
+              archive: validation.archive!,
+              entityCount: validation.entityCount,
+            ),
           ),
         ),
+      );
+    } finally {
+      // Lets the next coalesced desktop open through (PLAT-3).
+      widget.incomingFileChannel?.fileHandled(incomingFile);
+      await _cleanupOwnedIncomingFile(incomingFile.path);
+    }
+  }
+
+  void _showIncomingFileRejection(ArchiveIntakeRejectionReason reason) {
+    final messenger = _messengerKey.currentState;
+    final messengerContext = _messengerKey.currentContext;
+    if (messenger == null ||
+        messengerContext == null ||
+        !messengerContext.mounted) {
+      return;
+    }
+    final l10n = AppLocalizations.of(messengerContext);
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('shared-import-error'),
+        content: Text(archiveIntakeRejectionMessage(l10n, reason)),
       ),
     );
+  }
+
+  void _trackOwnedIncomingFile(IncomingFile incomingFile) {
+    if (incomingFile.appOwned) _ownedIncomingPaths.add(incomingFile.path);
+  }
+
+  Future<void> _cleanupOwnedIncomingFile(String path) async {
+    if (!_ownedIncomingPaths.remove(path)) return;
+    await _deleteIncomingFile(path);
+  }
+
+  Future<void> _deleteIncomingFile(String path) async {
+    try {
+      final deleter = widget.incomingFileDeleter;
+      if (deleter != null) {
+        await deleter(path);
+        return;
+      }
+      final stagedFile = File(path);
+      if (await stagedFile.exists()) {
+        await stagedFile.delete();
+      }
+    } on Object catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'main._handleIncomingFile.cleanup',
+      );
+    }
   }
 
   /// Handles a URL shared into the app from the OS share sheet / an
@@ -725,6 +1670,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
           key: ValueKey('incoming-dance-preview-loading'),
         ),
       ),
+      animationStyle: AppMotion.styleFor(navContext),
     );
 
     late OnlinePreview preview;
@@ -776,23 +1722,30 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
     if (!mounted || !navContext.mounted || imported == null) return;
     final danceId = imported.danceId;
+    Route<void>? landed;
     if (imported.danceCount == 1 && danceId != null) {
-      await navigator.push<void>(
-        MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(
-            danceId: danceId,
-            onReimport: _beginIncomingReimport,
-          ),
+      landed = MaterialPageRoute<void>(
+        builder: (_) => DanceDetailScreen(
+          danceId: danceId,
+          onReimport: _beginIncomingReimport,
         ),
       );
+      // Not awaited: the confirmation, and its Undo, belong on the dance's
+      // page, not after the user has left it (INTAKE-5).
+      unawaited(navigator.push(landed));
     }
-    if (!mounted || !navContext.mounted) return;
-    _messengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(
-          onlineImportMessage(AppLocalizations.of(navContext), imported),
-        ),
-      ),
+    final messenger = _messengerKey.currentState;
+    if (messenger == null) return;
+    showOnlineImportSnackBar(
+      messenger,
+      l10n: AppLocalizations.of(navContext),
+      result: imported,
+      repos: _appData.repositories,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(navContext),
+      onDanceRemoved: () {
+        final route = landed;
+        if (route != null && route.isCurrent) navigator.removeRoute(route);
+      },
     );
   }
 
@@ -810,51 +1763,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     }
     final l10n = AppLocalizations.of(navContext);
     try {
-      var imported = await service.import(_appData.repositories, preview.plan);
-      if (imported.kind == OnlineImportKind.needsConfirmation) {
-        final existingId = imported.danceId;
-        assert(existingId != null, 'needsConfirmation must carry a dance id');
-        if (existingId == null) return;
-        final existingTitle =
-            (await _appData.repositories.dances.getById(existingId))?.title ??
-            imported.title;
-        if (!mounted || !navContext.mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          navContext,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return;
-        imported = await service.import(
-          _appData.repositories,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      } else if (imported.kind == OnlineImportKind.needsConfirmationIdentical) {
-        final existingId = imported.danceId;
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry a dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await _appData.repositories.dances.getById(existingId))?.title ??
-            imported.title;
-        if (!mounted || !navContext.mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          navContext,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return;
-        imported = await service.import(
-          _appData.repositories,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      }
+      final imported = await resolveAndImportOnline(
+        navContext,
+        service: service,
+        repos: _appData.repositories,
+        preview: preview,
+        l10n: l10n,
+      );
+      if (imported == null || !mounted) return; // cancelled, or gone
       if (mounted && navigator.canPop()) navigator.pop(imported);
     } on UrlFetchException catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'main._importIncomingDance');
@@ -898,17 +1814,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (context == null || !context.mounted) return false;
 
     final l10n = AppLocalizations.of(context);
-    final sentence = snapshotCauseSentence(l10n, failure.cause);
-    final causeBlock = sentence.isEmpty ? '' : '\n\n$sentence';
     final proceed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationSnapshotConsentTitle),
-          content: Text(l10n.migrationSnapshotConsentBody(causeBlock)),
+          content: Text(migrationSnapshotConsentBody(l10n, failure)),
           actions: [
             // Safest choice is the default: Quit, autofocused so a keyboard
             // Enter/confirm aborts rather than proceeding without a backup.
@@ -924,6 +1838,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     // A dismissed dialog (blocked above, but belt-and-braces) is the safe
     // default: decline, so the guard fails closed.
@@ -932,9 +1847,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   Future<void> _startupSequence() async {
     // Data-safety preflight, before anything opens the database (Phase 7):
+    // move a database an earlier build left in a legacy location into place,
     // refuse to open a file written by a newer build (routes to the error
-    // screen) and snapshot the file before a pending upgrade migration. Runs
-    // first so no drift open — including the window restore below — precedes it.
+    // screen) and snapshot the file before a pending upgrade migration or a
+    // one-time repair `ensureMigrated` still owes. Runs first so no drift
+    // open — including the window restore below — precedes it.
     if (widget.migrationPreflight != null) {
       await widget.migrationPreflight!(_confirmProceedWithoutBackup);
     }
@@ -952,6 +1869,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
       onDerivedRebuildProgress: (progress) =>
           _derivedRebuildProgress.value = progress,
     );
+    try {
+      await widget.releaseRepairSnapshotPin?.call();
+    } catch (error, stackTrace) {
+      // Never fatal: a stale pin keeps one extra copy, and until a launch owing
+      // nothing releases it, stops a newer repair debt pinning its own.
+      logCaughtError(error, stackTrace, source: 'startup.release_snapshot_pin');
+    }
     // First-run seed (issue: "first launch is never empty"): insert exactly one
     // seed dance on a fresh, empty install so the collection is never empty,
     // and never again thereafter (idempotent via a settings latch; safe to skip
@@ -973,341 +1897,380 @@ class _CompendiumAppState extends State<CompendiumApp> {
         logCaughtError(error, stackTrace, source: 'main.first-run-seed');
       }
     }
-    // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
-    // `docs/design/storage.md` "Durability"). A failure is advisory — the app
-    // still opens, but [build] surfaces a corruption warning so the user can
-    // restore from a backup (Stage 1.7). A thrown probe (not just a `false`
-    // result) is treated as a failed check too, so startup continues and warns
-    // rather than blocking the whole app on the error/retry screen. (This is
-    // deliberately distinct from a DB-open failure during the window restore
-    // above, which stays fatal and routes to the error/retry screen.)
+    // Finish any permanent delete the user already chose (LIFE-2): erase the
+    // item, or blank it if Device Sync published it. This is the user's own
+    // decision rather than an expiry, so it runs whatever the retention
+    // setting. It catches items marked by a build that predates blanking, on
+    // this device or a peer. A failure is logged and retried next launch.
+    final sweepNow = (widget.nowOverride ?? () => DateTime.now().toUtc())();
     try {
-      _integrityProbeThrew = false;
-      _dataIntegrityOk = await _runIntegrityCheck();
+      await _appData.repositories.dances.removePermanentlyDeleted(
+        now: sweepNow,
+      );
     } catch (error, stackTrace) {
-      // The probe *threw* — an I/O error, a locked DB, a corruption-adjacent
-      // fault — which is distinct from a probe that merely *returned* false.
-      // This catch previously swallowed the error with zero diagnostic (issue
-      // #458, main.dart callout): log it (mirroring the first-run-seed path
-      // above) and route it into the local crash-log sink so a real underlying
-      // fault is capturable in the field rather than silently collapsing into
-      // the generic advisory banner. The `_integrityProbeThrew` flag preserves
-      // the "threw" vs "returned false" distinction for that banner.
-      _dataIntegrityOk = false;
-      _integrityProbeThrew = true;
-      if (kDebugMode) {
-        debugPrint('Integrity probe threw: $error\n$stackTrace');
-      }
-      logCaughtError(error, stackTrace, source: 'integrity-probe');
+      logCaughtError(error, stackTrace, source: 'startup.permanent_dances');
+    }
+    try {
+      await _appData.repositories.programs.removePermanentlyDeleted(
+        now: sweepNow,
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'startup.permanent_programs');
     }
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
     // auto-purge", so the startup sweep is skipped entirely.
-    final retention = softDeleteRetentionFromStored(
-      await _appData.repositories.settings.get(kSoftDeleteRetentionKey),
-    );
+    //
+    // An unreadable setting must not block startup, but it must not fall back to
+    // the 30-day default either: a user who chose "never" would then have
+    // deleted items purged that they meant to keep. So a failed read skips the
+    // sweep for this launch (the same as "never") and is logged.
+    Duration? retention;
+    try {
+      retention = softDeleteRetentionFromStored(
+        await _appData.repositories.settings.get(kSoftDeleteRetentionKey),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'startup.soft_delete_retention_read',
+      );
+    }
     if (retention != null) {
       // Share one `now` so dances and programs are swept against the same
       // cutoff. Both honor the retention promise shown in their Recently-Deleted
       // screens ("Auto-deleted in N days"); previously only dances were purged,
       // so soft-deleted programs accumulated forever (Stage 1.2).
+      //
+      // Housekeeping must not block opening: a purge is a write transaction,
+      // so a full disk or a file another process holds makes it throw, and the
+      // library is still readable. Each failure is logged and skipped, as the
+      // seed is, and the other kind is still swept. Nothing is lost by
+      // skipping; the next launch sweeps again.
       final now = (widget.nowOverride ?? () => DateTime.now().toUtc())();
-      await _appData.repositories.dances.purgeDeleted(
-        now: now,
-        retention: retention,
-      );
-      await _appData.repositories.programs.purgeDeleted(
-        now: now,
-        retention: retention,
-      );
+      try {
+        await _appData.repositories.dances.purgeDeleted(
+          now: now,
+          retention: retention,
+        );
+      } catch (error, stackTrace) {
+        logCaughtError(error, stackTrace, source: 'startup.purge_dances');
+      }
+      try {
+        await _appData.repositories.programs.purgeDeleted(
+          now: now,
+          retention: retention,
+        );
+      } catch (error, stackTrace) {
+        logCaughtError(error, stackTrace, source: 'startup.purge_programs');
+      }
     }
     await _loadPreferences();
+    await _configureSyncCoordinator();
     // Kick off the automatic background update check once per launch. It is a
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
     unawaited(_updateController.maybeAutoCheck());
+    // Housekeeping, not part of the opt-in check: delete update-download temp
+    // directories left from earlier runs (a successful download keeps its
+    // installer on purpose, so they would otherwise pile up). Local, silent,
+    // and age-guarded, so it needs no consent and cannot touch a live download.
+    unawaited(_updateController.sweepStaleDownloads());
+    // Scheduled only here, at the success tail, so a failed attempt that Retry
+    // re-runs never queues a probe and each successful bootstrap probes once.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_runDeferredIntegrityProbe());
+    });
+  }
+
+  /// Once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
+  /// `docs/design/storage.md` "Durability"), run after the first frame so a
+  /// large database does not delay the first screen. A failure is advisory —
+  /// the app is already open, and [_buildReadyApp] surfaces a corruption
+  /// warning so the user can restore from a backup (Stage 1.7). A thrown probe
+  /// (not just a `false` result) is treated as a failed check too, so it warns
+  /// rather than routing to the error/retry screen. (This is deliberately
+  /// distinct from a DB-open failure during the window restore in
+  /// [_startupSequence], which stays fatal.)
+  Future<void> _runDeferredIntegrityProbe() async {
+    var ok = true;
+    var threw = false;
+    try {
+      ok = await _runIntegrityCheck();
+    } catch (error, stackTrace) {
+      // The probe *threw* — an I/O error, a locked DB, a corruption-adjacent
+      // fault — which is distinct from a probe that merely *returned* false.
+      // Log it (mirroring the first-run-seed path) and route it into the local
+      // crash-log sink so a real underlying fault is capturable in the field
+      // rather than silently collapsing into the generic advisory banner. The
+      // `_integrityProbeThrew` flag preserves the "threw" vs "returned false"
+      // distinction for that banner.
+      ok = false;
+      threw = true;
+      if (kDebugMode) {
+        debugPrint('Integrity probe threw: $error\n$stackTrace');
+      }
+      logCaughtError(error, stackTrace, source: 'integrity-probe');
+    }
+    if (!mounted || ok) {
+      _completeIntegrityGate();
+      return;
+    }
+    // setState so [_buildReadyApp] raises the banner on the next build; that
+    // banner's post-frame callback completes the gate.
+    setState(() {
+      _integrityProbeThrew = threw;
+      _dataIntegrityOk = false;
+    });
+  }
+
+  void _completeIntegrityGate() {
+    if (!_integrityGate.isCompleted) _integrityGate.complete();
+  }
+
+  /// Reconfigurations run one at a time, in request order. An enable that is
+  /// still resolving its factory cannot then install a coordinator after a
+  /// later disable has already returned, and the last request always wins.
+  Future<void> _syncConfigureTail = Future<void>.value();
+
+  /// [startPass] is false only for pairing, which runs and observes its own
+  /// single pass (see [SyncController.completePairing]). Every other caller
+  /// wants the ordinary unawaited app-start trigger at the end of
+  /// [_configureSyncCoordinatorNow].
+  Future<void> _configureSyncCoordinator({bool startPass = true}) {
+    final run = _syncConfigureTail.then(
+      (_) => _configureSyncCoordinatorNow(startPass: startPass),
+    );
+    _syncConfigureTail = run.catchError((Object error, StackTrace stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-configure-queue');
+    });
+    return run;
+  }
+
+  Future<void> _configureSyncCoordinatorNow({required bool startPass}) async {
+    await _disposeSyncCoordinator();
+
+    final factory = widget.syncCoordinatorFactory;
+    if (factory == null || !mounted || _shutdownRequested) return;
+    SyncCoordinator? coordinator;
+    try {
+      coordinator = await factory(_appData.repositories);
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-configure');
+      return;
+    }
+    if (!mounted || _shutdownRequested || _syncWriterExclusive) {
+      // A writer boundary (backup restore / shared-archive import / sync
+      // review-queue resolution) claimed
+      // exclusivity while `factory(...)` above was still resolving. Installing
+      // this coordinator now — even without starting a pass — would let a
+      // concurrent trigger (e.g. "Sync Now") reach it mid-write. Dispose it
+      // unused; the writer's own `finally` reconfigures once it is done.
+      await coordinator?.dispose();
+      return;
+    }
+    _syncCoordinator = coordinator;
+    _syncController.attachCoordinator(coordinator);
+    if (coordinator == null || !startPass) return;
+    unawaited(_runSyncStart());
+  }
+
+  void _onAppResumed() {
+    if (_shutdownRequested) return;
+    unawaited(_runSyncResume());
+  }
+
+  Future<void> _runSyncResume() async {
+    try {
+      await _syncController.onAppResumed();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-resume');
+    }
+  }
+
+  Future<void> _runSyncStart() async {
+    try {
+      await _syncController.onAppStart();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-app-start');
+    }
   }
 
   /// Loads every persisted preference and app-local controller from the
   /// `settings` table into the live notifiers/controllers. Extracted from the
   /// startup sequence so a backup restore (ROADMAP G.5) can re-run exactly this
-  /// step — via [reloadFromSettings] — to refresh the UI without a relaunch.
-  Future<void> _loadPreferences() async {
-    // Load the persisted dialect library (custom dialects + active-name ref),
-    // migrating any legacy single-dialect blob one time, then seed the notifier
-    // with the resolved active dialect (defaults to Larks/Robins when unset).
-    await _dialectLibrary.load();
-    _dialectNotifier.value = _dialectLibrary.active;
-    // Load the persisted theme selection, defaulting to System when unset.
-    // Defensive (issue #609): the stored value is untrusted (a restored backup
-    // can smuggle a non-string under this key). Guard with `is String` instead
-    // of an unchecked `as String?` cast so a wrong-typed value degrades to the
-    // System default rather than throwing here and bricking startup on every
-    // subsequent launch.
-    final storedTheme = await _appData.repositories.settings
-        .get(kAppThemeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final themeName = storedTheme is String ? storedTheme : null;
-    final selection = AppThemeSelection.forName(themeName);
-    if (selection != null) _themeNotifier.value = selection;
-    // Load the "require mark-performed for calling history" setting (ROADMAP
-    // G.2), defaulting to off (false) when unset.
-    final requirePerformed = await _appData.repositories.settings.get(
-      kRequirePerformedForHistoryKey,
+  /// step — via [reloadFromSettings] — to refresh the UI without a relaunch,
+  /// and so can a sync pass that applied `settings` rows (#1828, via
+  /// [_reloadSyncedSettings], without the device-state controllers).
+  ///
+  /// Two phases: every read is awaited into a local first (each guarded, so one
+  /// unreadable key leaves that preference at its default instead of failing
+  /// startup), then a single synchronous block resets the notifiers and applies
+  /// every decoded value. There is no `await` between the reset and the last
+  /// assignment, so no frame is built between them: a restore never renders the
+  /// default theme or language while the reads are in flight. (Synchronous
+  /// notifier listeners still see the reset values for the instant before the
+  /// restored ones are assigned.)
+  ///
+  /// [includeDeviceState] `false` leaves out the update and Device Sync
+  /// controllers: none of their keys is classified `shareable`, so no sync
+  /// pass carries them and a reload after one has nothing to refresh there.
+  Future<void> _loadPreferences({bool includeDeviceState = true}) async {
+    // Phase 1: read everything.
+    // Load every dance form's dialect library (custom dialects + active-name
+    // ref), migrating any legacy single-dialect blob one time and renaming a
+    // dialect whose name is gendered. A failure leaves the
+    // Larks/Robins default; it is logged because the load can also write.
+    await _guardedControllerLoad(
+      'startup.dialect_library_load',
+      _dialectLibrary.load,
     );
-    if (requirePerformed is bool) {
-      _requirePerformedForHistoryNotifier.value = requirePerformed;
-    }
-    // Load the "track calling history for all callers" setting (issue #583),
-    // defaulting to off (false) when unset.
-    final trackAllCallers = await _appData.repositories.settings.get(
-      kTrackHistoryForAllCallersKey,
-    );
-    if (trackAllCallers is bool) {
-      _trackHistoryForAllCallersNotifier.value = trackAllCallers;
-    }
-    final venueCallCount = await _appData.repositories.settings.get(
-      kVenueCallCountKey,
-    );
-    _venueCallCountNotifier.value = venueCallCountFromStored(venueCallCount);
-    // Load the "ignore leading articles when sorting" setting, defaulting to
-    // on (true) when unset.
-    final sortIgnoreArticles = await _appData.repositories.settings.get(
-      kSortIgnoreArticlesKey,
-    );
-    if (sortIgnoreArticles is bool) {
-      _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
-    }
-    // Load the accessibility toggles (ROADMAP G.7). Reduce-motion is tri-state
+    // Every settings-backed preference (key, default and decoder live on each
+    // [PreferenceNotifier]). Every read is guarded, so one unreadable key leaves
+    // that preference at its default. The stored values are untrusted: a
+    // restored backup can smuggle any JSON type under a key, and each decoder
+    // degrades a wrong-typed value to its default. Reduce-motion is tri-state
     // (issue #447, WCAG 2.3.3): a stored `bool` is an explicit in-app override,
-    // while an absent key leaves the notifier `null` so the scope follows the
-    // OS-level Reduce Motion preference. Only coerce a genuine `bool` into an
-    // override so a missing key (or a read failure, coerced to `null` below)
-    // keeps "follow OS". The remaining toggles default to off (false) when
-    // unset; a read failure falls back so startup never blocks on a settings
-    // hiccup.
-    final reduceMotion = await _appData.repositories.settings
-        .get(kReduceMotionKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (reduceMotion is bool) _reduceMotionNotifier.value = reduceMotion;
-    final verboseFigures = await _appData.repositories.settings
-        .get(kVerboseFigureRenderingKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (verboseFigures is bool) {
-      _verboseFigureRenderingNotifier.value = verboseFigures;
-    }
-    final canonicalDiscouragedTerms = await _appData.repositories.settings
-        .get(kCanonicalDiscouragedTermsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _canonicalDiscouragedTermsNotifier.value =
-        canonicalDiscouragedTerms is! bool || canonicalDiscouragedTerms;
-    // Load the "show turns as decimals" display toggle (#368), off by default
-    // when unset. Opt-in, so a read failure or missing key stays off (keeps the
-    // fraction-glyph default). Coerced through `is bool` so a garbage stored
-    // value can never flip the toggle on.
-    final decimalTurns = await _appData.repositories.settings
-        .get(kDecimalTurnsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (decimalTurns is bool) {
-      _decimalTurnsNotifier.value = decimalTurns;
-    }
-    // Load the "aggressively recompute figure beats" toggle (#689), off by
-    // default when unset. Opt-in, so a read failure or missing/corrupt stored
-    // value keeps today's behavior (only recompute beats while untouched).
-    final aggressiveBeatsUpdate = await _appData.repositories.settings
-        .get(kAggressiveBeatsUpdateKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (aggressiveBeatsUpdate is bool) {
-      _aggressiveBeatsUpdateNotifier.value = aggressiveBeatsUpdate;
-    }
-    final confirmBeforeDelete = await _appData.repositories.settings
-        .get(kConfirmBeforeDeleteKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (confirmBeforeDelete is bool) {
-      _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
-    }
-    // Load the "venue entity mode" setting, off by default when unset. Opt-in,
-    // so a read failure or missing key keeps the simple free-text venue field.
-    final venueEntityMode = await _appData.repositories.settings
-        .get(kVenueEntityModeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (venueEntityMode is bool) {
-      _venueEntityModeNotifier.value = venueEntityMode;
-    }
-    // Load the opt-in program-editor auto-commit setting, off by default so
-    // existing editors continue to require explicit Save.
-    final autoCommitProgramChanges = await _appData.repositories.settings
-        .get(kAutoCommitProgramChangesKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — preference read failed; preserves
-    // explicit-save behavior.
-    if (autoCommitProgramChanges is bool) {
-      _autoCommitProgramChangesNotifier.value = autoCommitProgramChanges;
-    }
-    // Load the colour-tint easter egg (#307), off by default when unset. It is
-    // opt-in, so a read failure or missing key stays off.
-    final colourDanceTheme = await _appData.repositories.settings
-        .get(kColourDanceThemeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (colourDanceTheme is bool) {
-      _colourDanceThemeNotifier.value = colourDanceTheme;
-    } else {
-      _colourDanceThemeNotifier.value = false;
-    }
-    // Load the "colour-code set-list rows" Appearance setting (issue #270),
-    // defaulting to on (true) when unset. Defensive: a read failure keeps the
-    // on-by-default state so startup never blocks on a settings hiccup.
-    final setListColorCoding = await _appData.repositories.settings
-        .get(kSetListColorCodingKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (setListColorCoding is bool) {
-      _setListColorCodingNotifier.value = setListColorCoding;
-    }
-    // Load the Programs "flag exact beat overlap only" matrix-collision
-    // setting (issue #962), defaulting to on (true) when unset. Defensive: a
-    // read failure keeps the on-by-default state so startup never blocks on a
-    // settings hiccup.
-    final matrixExactBeatCollision = await _appData.repositories.settings
-        .get(kMatrixExactBeatCollisionKey)
-        .catchError((_) => null);
-    if (matrixExactBeatCollision is bool) {
-      _matrixExactBeatCollisionNotifier.value = matrixExactBeatCollision;
-    }
-    // Load the app-wide program-matrix column configuration (issue #935),
-    // defaulting to the empty config (today's default matrix) when unset. The
-    // codec tolerates a stored blob with dangling built-in ids; a malformed
-    // blob (via a hand-edited DB, say) falls back to empty via tryDecode rather
-    // than throwing during startup.
-    final programMatrixColumns = await _appData.repositories.settings
-        .get(kProgramMatrixColumnsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the empty (default) config below.
-    _programMatrixColumnsNotifier.value =
-        MatrixColumnConfig.tryDecode(programMatrixColumns) ??
-        MatrixColumnConfig.empty;
-    // Load the regional-format preference (ROADMAP G.8), defaulting to System
-    // when unset. Defensive: a read failure or garbage token resolves to the
-    // safe System default via the resolver. For the custom variant (#584) the
-    // raw pattern is loaded from a second key and validated on use; a
-    // missing/over-long/garbage pattern collapses back to System.
-    final dateFormat = await _appData.repositories.settings
-        .get(kDateFormatKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final dateFormatCustom = await _appData.repositories.settings
-        .get(kDateFormatCustomPatternKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _dateFormatNotifier.value = dateFormatSettingFromStored(
-      dateFormat,
-      dateFormatCustom,
+    // an absent key leaves it `null` so the scope follows the OS-level Reduce
+    // Motion setting.
+    final storedPreferences = <Object?>[
+      for (final p in _preferences)
+        await p.read(_appData.repositories.settings),
+    ];
+    // Locally-saved custom themes (and the active one), the per-formation label
+    // colour overrides (issue #367), the shorthand → figure(s) mappings (issue
+    // #420), the personal walkthrough snippet library (#411), the update-check
+    // preferences and the sync settings. Each decodes defensively; a failed or
+    // corrupt load degrades to that controller's empty/default state.
+    await _guardedControllerLoad(
+      'startup.custom_themes_load',
+      _customThemes.load,
     );
-    // Load the first-day-of-week preference (ROADMAP G.8), defaulting to System
-    // when unset. Defensive: a read failure or garbage token resolves to the
-    // safe System default via the resolver.
-    final firstDayOfWeek = await _appData.repositories.settings
-        .get(kFirstDayOfWeekKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
-      firstDayOfWeek,
+    await _guardedControllerLoad(
+      'startup.formation_colors_load',
+      _formationColors.load,
     );
-    // Load the app-language preference (ROADMAP G.8). SECURITY (OWASP): the
-    // stored tag is untrusted — [localeFromStored] only ever resolves it to a
-    // locale that is actually in [AppLocalizations.supportedLocales], and a
-    // missing/garbage value falls back to the system locale (`null`) without
-    // throwing, so a corrupted setting can never crash startup or select an
-    // unsupported locale.
-    final locale = await _appData.repositories.settings
-        .get(kLocaleKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _localeNotifier.value = localeFromStored(
-      locale,
-      AppLocalizations.supportedLocales,
+    await _guardedControllerLoad(
+      'startup.shorthand_mappings_load',
+      _shorthandMappings.load,
     );
-    // Load any locally-saved custom themes and the active one (if set).
-    await _customThemes.load();
-    // Load the user's per-formation label colour overrides (issue #367).
-    await _formationColors.load();
-    // Load the user's shorthand → figure(s) mappings (issue #420). Decoded
-    // defensively; a corrupt payload degrades to "no mappings".
-    await _shorthandMappings.load();
-    // Load the user's personal walkthrough snippet library (#411). Decoded
-    // defensively; a corrupt payload degrades to "no snippets".
-    await _walkthroughSnippets.load();
-    // Load the update-check preferences (beta opt-in, auto-check opt-in, and
-    // the dismissed banner version), all defaulting to the safe off/none state.
-    await _updateController.load();
-    // Load the collection tile visible fields preference (issue #767).
-    // Stored as a JSON list of CollectionTileField name strings.
-    // See CollectionTileFieldsScope.decodeStored for the three-case logic.
-    final storedTileFields = await _appData.repositories.settings
-        .get(kCollectionTileVisibleFieldsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _collectionTileFieldsNotifier.value =
-        CollectionTileFieldsScope.decodeStored(storedTileFields);
+    await _guardedControllerLoad(
+      'startup.walkthrough_snippets_load',
+      _walkthroughSnippets.load,
+    );
+    await _guardedControllerLoad(
+      'startup.user_figures_start',
+      _userFigures.start,
+    );
+    if (includeDeviceState) {
+      await _guardedControllerLoad(
+        'startup.update_load',
+        _updateController.load,
+      );
+      await _guardedControllerLoad('startup.sync_load', _syncController.load);
+    }
+    // Phase 2: reset, then apply every decoded value. Synchronous — no `await`
+    // from here to the end of the method.
+    _resetAppPreferenceNotifiers();
+    _dialectNotifier.value = _dialectLibrary.active;
+    for (var i = 0; i < _preferences.length; i++) {
+      _preferences[i].applyStored(storedPreferences[i]);
+    }
+  }
+
+  /// Runs a controller's `load()` so a failure does not fail startup (or a
+  /// backup restore). Each controller's `load()` is transactional — it reads
+  /// everything before it changes state — so a failure leaves the controller
+  /// exactly as it was (its defaults at startup, its pre-restore state on a
+  /// restore), never a mix. Logged, not silent: some loads also write (the
+  /// dialect library's first-run migration and gendered-name renames), and a
+  /// swallowed write failure
+  /// should still be diagnosable.
+  Future<void> _guardedControllerLoad(
+    String source,
+    Future<void> Function() load,
+  ) async {
+    try {
+      await load();
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: source);
+    }
   }
 
   /// Re-reads all preferences and app-local controllers from the (freshly
   /// restored) `settings` table so the live UI reflects a backup restore
   /// without a relaunch (ROADMAP G.5). Wired to the backup controls via
-  /// [BackupControllerScope].
+  /// [SyncWriterLifecycleScope].
   Future<void> reloadFromSettings() async {
     await _loadPreferences();
     if (mounted) setState(() {});
   }
 
+  /// Reloads the live preferences and controllers after a sync pass wrote
+  /// `settings` rows (#1828). See [SyncedSettingsReload] for the coalescing
+  /// and the guard against a racing local edit. Created with the
+  /// database-backed services, so a replaced database gets its own.
+  late SyncedSettingsReload _syncedSettingsReload;
+
+  Future<void> _reloadSyncedSettings() async {
+    final appData = _appData;
+    final reload = _syncedSettingsReload;
+    try {
+      await reload.request();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'sync.settings_reload');
+    }
+    if (mounted && identical(appData, _appData)) setState(() {});
+  }
+
   @override
   void dispose() {
+    _incomingIntakeDisposed = true;
+    for (final path in List<String>.of(_ownedIncomingPaths)) {
+      unawaited(_cleanupOwnedIncomingFile(path));
+    }
     unawaited(_incomingFileSub?.cancel());
     unawaited(_incomingUrlSub?.cancel());
+    unawaited(_disposeSyncCoordinator());
     widget.incomingFileChannel?.dispose();
+    _closingNotifier.dispose();
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
+    _requireEventDateForHistoryNotifier.dispose();
+    _recencyRequireEventDateNotifier.dispose();
+    _recencyRequirePerformedNotifier.dispose();
+    _historyOrderIgnoreUndatedNotifier.dispose();
+    _historyOrderIgnoreUnperformedNotifier.dispose();
     _collectionTileFieldsNotifier.dispose();
+    _danceShareFieldsNotifier.dispose();
+    _collectionHiddenFacetsNotifier.dispose();
     _trackHistoryForAllCallersNotifier.dispose();
+    _defaultProgramCallerNotifier.dispose();
     _venueCallCountNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
     _canonicalDiscouragedTermsNotifier.dispose();
     _decimalTurnsNotifier.dispose();
+    _capitalizeFiguresNotifier.dispose();
+    _showGlossaryNotifier.dispose();
+    _showCustomFiguresNotifier.dispose();
+    _callingCardSettingsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
+    _undoPromptSecondsNotifier.dispose();
     _venueEntityModeNotifier.dispose();
     _autoCommitProgramChangesNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
+    _showPerformedTogglesNotifier.dispose();
+    _markAllSetsStatusNotifier.dispose();
+    _shareSetListTitleNotifier.dispose();
+    _shareSetListCallerBandNotifier.dispose();
+    _shareSetListDateVenueNotifier.dispose();
     _matrixExactBeatCollisionNotifier.dispose();
     _programMatrixColumnsNotifier.dispose();
     _dateFormatNotifier.dispose();
@@ -1320,8 +2283,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
     _shorthandMappings.dispose();
+    _userFigures.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
+    unawaited(_syncChangeSubscription?.cancel());
+    _syncLifecycleListener.dispose();
+    _draftLifecycleListener.dispose();
+    _syncController.dispose();
     _windowService.dispose();
     super.dispose();
   }
@@ -1332,14 +2300,42 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<bool> _runIntegrityCheck() =>
       (widget.integrityCheck ?? _appData.db.quickCheck)();
 
-  void _retry() {
+  /// Retry from the generic startup-error screen. Rebuilds the database-backed
+  /// world (as the reset path does, minus the file deletion) because a failed
+  /// database open is cached by the drift connection and would rethrow on every
+  /// later query against the same [AppData].
+  Future<void> _retry() async {
+    // Retry stays tappable while the teardown below awaits; a second call would
+    // replace the replacement `AppData` without closing it and run the startup
+    // sequence twice.
+    if (_retrying) return;
+    _retrying = true;
+    try {
+      await _retryReopen();
+    } finally {
+      _retrying = false;
+    }
+  }
+
+  bool _retrying = false;
+
+  Future<void> _retryReopen() async {
+    await _disposeSyncCoordinator();
+    try {
+      await _appData.close();
+    } on Object catch (_) {
+      // diagnostics: silent — closing a connection whose open failed rethrows
+      // that same cached failure, which `_runBootstrap` already logged; it must
+      // not stop Retry from reopening a fresh connection.
+    }
+    if (!mounted) return;
     setState(() {
-      _corruptionBannerShown = false;
-      _bootstrap = _startupSequence();
+      _replaceDatabaseBackedServices();
+      _startBootstrap();
     });
   }
 
-  /// Back Up + Reset action for the below-floor recovery screen (issue #841).
+  /// Back up + reset action for the below-floor recovery screen (issue #841).
   ///
   /// Delegates the fail-closed snapshot logic to [performBackUpAndReset] (see
   /// `migration_guard.dart`): if the snapshot fails, shows a failure dialog and
@@ -1372,7 +2368,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorBackupFailedTitle),
           content: Text(
             causeText.isEmpty
@@ -1387,6 +2383,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       return; // Snapshot failed: do NOT wipe.
     }
@@ -1413,7 +2410,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       builder: (ctx) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorResetConfirmTitle),
           content: Text(pathLines.toString()),
           actions: [
@@ -1422,20 +2419,22 @@ class _CompendiumAppState extends State<CompendiumApp> {
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(l10n.commonCancel),
             ),
-            TextButton(
+            FilledButton(
+              style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(l10n.migrationBelowFloorBackUpAndReset),
+              child: Text(l10n.migrationBelowFloorResetConfirmAction),
             ),
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
     await _doReset(dbFile, l10n);
   }
 
-  /// Reset Only action for the below-floor recovery screen (issue #841).
+  /// Reset only action for the below-floor recovery screen (issue #841).
   ///
   /// The `error` parameter is unused here but matches the callback type
   /// (`void Function(DatabaseBelowFloorError)`) shared with [_backUpAndReset],
@@ -1452,7 +2451,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       builder: (ctx) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorResetConfirmTitle),
           content: Text(l10n.migrationBelowFloorResetOnlyConfirmBody),
           actions: [
@@ -1461,18 +2460,63 @@ class _CompendiumAppState extends State<CompendiumApp> {
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(l10n.commonCancel),
             ),
-            TextButton(
+            FilledButton(
+              style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(l10n.migrationBelowFloorResetOnly),
             ),
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
     final dbFile = await widget.databaseFileResolver();
     await _doReset(dbFile, l10n);
+  }
+
+  /// Settings ▸ Experimental ▸ Developer options ▸ reset: deletes the database
+  /// and restarts on an empty one, as a first launch would. Returns whether the
+  /// database was actually deleted.
+  ///
+  /// The user has already confirmed in the Settings dialog, so unlike the
+  /// below-floor recovery actions this asks nothing. It takes its own place in
+  /// the writer queue and holds [_syncWriterExclusive], so a restore, import or
+  /// review resolve already queued finishes first and nothing queued later, nor
+  /// a reconfigure, can touch the database while it is closed and deleted. It
+  /// skips the boundary's usual rebuild of the coordinator: [_doReset] replaces
+  /// the whole database-backed runtime. Pushed routes are popped first so none
+  /// outlives the services it was built on.
+  Future<bool> _resetToCleanInstall() async {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted || _shutdownRequested) return false;
+    final l10n = AppLocalizations.of(context);
+    final prior = _syncWriterTail;
+    final release = Completer<void>();
+    final tail = release.future;
+    _syncWriterTail = tail;
+    try {
+      if (prior != null) await prior;
+      if (!mounted || _shutdownRequested) return false;
+      _syncWriterExclusive = true;
+      // Shutdown waits for the whole reset, as it did for every writer before
+      // its sync wait was bounded: the reset closes and deletes the database.
+      return await _trackSyncWriterOperation(() async {
+        _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        await WidgetsBinding.instance.endOfFrame;
+        // Open editors persist their draft into the database on the way out;
+        // do it while the connection is still open rather than racing the
+        // close.
+        await _editorDraftShutdownController.flushAll();
+        final dbFile = await widget.databaseFileResolver();
+        return _doReset(dbFile, l10n);
+      });
+    } finally {
+      _syncWriterExclusive = false;
+      if (!release.isCompleted) release.complete();
+      if (identical(_syncWriterTail, tail)) _syncWriterTail = null;
+    }
   }
 
   /// Wipes the database file and reopens a fresh one, restarting the bootstrap
@@ -1482,9 +2526,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// testable deletion seam. On [ResetFailed], the database file is still
   /// present: reopen it and restart bootstrap so the user lands back on the
   /// recovery screen rather than a blank one.
-  Future<void> _doReset(File dbFile, AppLocalizations l10n) async {
+  Future<bool> _doReset(File dbFile, AppLocalizations l10n) async {
     // Close the database before deleting its file so the OS (particularly
     // Windows) does not hold a lock that prevents deletion.
+    await _disposeSyncCoordinator();
     await _appData.close();
     final result = await widget.databaseResetter(dbFile);
     if (result is ResetFailed) {
@@ -1496,8 +2541,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
           _startBootstrap();
         });
         final context = _navigatorKey.currentContext;
-        if (context != null && context.mounted) {
-          await showDialog<void>(
+        // Shown, not awaited: the developer reset runs inside the span
+        // shutdown waits for, and the closing overlay would cover this
+        // dialog's button, so a close while it is open would never finish.
+        // Not shown at all once closing has begun. While the dialog is up,
+        // the below-floor resets have returned, and the developer reset has
+        // released the writer queue and Settings has shown its failure
+        // snackbar. Both are safe: the database is already reopened, as on
+        // the success path.
+        if (context != null && context.mounted && !_shutdownRequested) {
+          final dialog = showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
               icon: const Icon(Icons.error_outline),
@@ -1511,18 +2564,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
                 ),
               ],
             ),
+            animationStyle: AppMotion.styleFor(context),
           );
+          unawaited(dialog);
         }
       }
-      return;
+      return false;
     }
-    if (!mounted) return;
+    if (!mounted) return false;
     // Deletion succeeded — reopen a fresh database-backed runtime and restart
     // bootstrap.
     setState(() {
       _replaceDatabaseBackedServices();
       _startBootstrap();
     });
+    return true;
   }
 
   /// Content shown once the bootstrap future succeeds. When the integrity probe
@@ -1532,50 +2588,427 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (!_dataIntegrityOk && !_corruptionBannerShown) {
       _corruptionBannerShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        if (!mounted) {
+          _completeIntegrityGate();
+          return;
+        }
         final messenger = ScaffoldMessenger.of(context);
+        final l10n = AppLocalizations.of(context);
         messenger.showMaterialBanner(
           MaterialBanner(
             content: Text(
               _integrityProbeThrew
-                  ? 'A database integrity check failed to complete, so your '
-                        'data could not be verified this launch. If problems '
-                        'persist, consider restoring from a backup. Technical '
-                        'details were saved to Settings ▸ Diagnostics.'
-                  : 'A database integrity check failed. Your local data may be '
-                        'corrupt — consider restoring from a backup.',
+                  ? l10n.startupIntegrityCheckIncomplete
+                  : l10n.startupIntegrityCheckFailed,
             ),
             leading: const Icon(Icons.warning_amber_outlined),
             actions: [
               TextButton(
                 onPressed: messenger.hideCurrentMaterialBanner,
-                child: const Text('Dismiss'),
+                child: Text(l10n.updateBannerDismiss),
               ),
             ],
           ),
         );
+        _completeIntegrityGate();
       });
     }
     // Cold start: the app may have been launched to open a shared file. Pull it
     // once now that the ready UI is shown, so the imported program opens over
     // the app shell (not the loading screen). No-op when intake isn't wired.
+    //
+    // The ECD-convert prompt is chained strictly *after* this intake settles,
+    // in the same post-frame callback, rather than scheduled independently:
+    // both flows can push a modal route, and `_openIncomingDancePreview`'s
+    // loading spinner is dismissed with a bare `navigator.pop()` that targets
+    // whatever is on top of the stack. Racing them let the ECD dialog land on
+    // top of that spinner, so its own pop closed the wrong route and orphaned
+    // the spinner permanently.
     final channel = widget.incomingFileChannel;
     if (channel != null && !_initialFileChecked) {
       _initialFileChecked = true;
+      _ecdConvertPromptChecked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
-        final path = await channel.initialFile();
-        if (mounted && path != null) await _handleIncomingFile(path);
-        if (!mounted) return;
-        // Cold start via a shared URL (issue #343): pull it once too. Files and
-        // URLs are mutually exclusive for a single launch, so at most one of
-        // these does anything.
-        final url = await channel.initialUrl();
-        if (mounted && url != null) await _handleIncomingUrl(url);
+        await _runColdStartIntake(channel);
+        if (!context.mounted) return;
+        await _maybeShowEcdConvertPrompt(context);
+        if (!context.mounted) return;
+        await _maybeShowBackupReminder(context);
       });
+    } else if (!_ecdConvertPromptChecked) {
+      _ecdConvertPromptChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _maybeShowEcdConvertPrompt(context);
+        if (!context.mounted) return;
+        await _maybeShowBackupReminder(context);
+      });
+    } else if (!_backupReminderShown) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowBackupReminder(context),
+      );
     }
-    return const AppShell();
+    return AppShell(key: _shellKey);
   }
+
+  /// Shows, once per launch, a [MaterialBanner] when the user's chosen backup
+  /// reminder cadence says a backup is overdue (DAT-05). Runs after the
+  /// cold-start intake and ECD prompt settle so it never races a modal route.
+  /// A settings read failure shows nothing. "Not now" hides it for this launch
+  /// only; no snooze is persisted.
+  Future<void> _maybeShowBackupReminder(BuildContext context) async {
+    if (_backupReminderShown) return;
+    _backupReminderShown = true;
+    // Wait for the deferred integrity probe (it runs after the first frame) so
+    // a failing probe's warning is current before the reminder is queued.
+    final gate = _integrityGate;
+    await gate.future;
+    if (!mounted || !context.mounted || !identical(gate, _integrityGate)) {
+      return;
+    }
+    final bool overdue;
+    try {
+      final settings = _appData.repositories.settings;
+      final cadence = backupReminderCadenceFromStored(
+        await settings.get(kBackupReminderCadenceKey),
+      );
+      if (cadence == BackupReminderCadence.off) return;
+      final lastBackupAt = lastBackupAtFromStored(
+        await settings.get(kLastBackupAtKey),
+      );
+      overdue = isBackupOverdue(
+        cadence: cadence,
+        lastBackupAt: lastBackupAt,
+        now: DateTime.now(),
+      );
+    } on Object {
+      // diagnostics: silent — advisory reminder; a settings read failure just
+      // shows nothing and must never break startup.
+      return;
+    }
+    if (!overdue || !mounted || !context.mounted) return;
+    final messenger = _messengerKey.currentState;
+    if (messenger == null) return;
+    final l10n = AppLocalizations.of(context);
+    final controller = messenger.showMaterialBanner(
+      MaterialBanner(
+        key: const ValueKey('backup-reminder-banner'),
+        content: Text(l10n.backupReminderBannerText),
+        leading: const Icon(Icons.backup_outlined),
+        actions: [
+          TextButton(
+            onPressed: () => _exportFromBackupReminder(l10n),
+            child: Text(l10n.backupReminderBannerExport),
+          ),
+          TextButton(
+            onPressed: () => _backupReminderBanner?.close(),
+            child: Text(l10n.backupReminderBannerNotNow),
+          ),
+        ],
+      ),
+    );
+    _backupReminderBanner = controller;
+    unawaited(
+      controller.closed.whenComplete(() {
+        if (identical(_backupReminderBanner, controller)) {
+          _backupReminderBanner = null;
+        }
+      }),
+    );
+  }
+
+  bool _backupReminderExporting = false;
+
+  Future<void> _exportFromBackupReminder(AppLocalizations l10n) async {
+    if (_backupReminderExporting) return;
+    _backupReminderExporting = true;
+    final messenger = _messengerKey.currentState;
+    try {
+      final delivered = await exportBackupNow(
+        _appData.repositories,
+        widget.backupSaver ?? saveBackupToFile,
+        DateTime.now(),
+      );
+      if (!delivered || !mounted) return;
+      _backupReminderBanner?.close();
+      messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
+    } on Object catch (e, st) {
+      logCaughtError(e, st, source: 'main.backupReminderExport');
+      messenger?.showSnackBar(
+        SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
+      );
+    } finally {
+      _backupReminderExporting = false;
+    }
+  }
+
+  Future<void> _runColdStartIntake(IncomingFileChannel channel) async {
+    if (!mounted) return;
+    final file = await channel.initialFile();
+    if (!mounted) {
+      if (file != null) {
+        _trackOwnedIncomingFile(file);
+        await _cleanupOwnedIncomingFile(file.path);
+      }
+      return;
+    }
+    if (file != null) await _handleIncomingFile(file);
+    if (!mounted) return;
+    // Cold start via a shared URL (issue #343): pull it once too. Files and
+    // URLs are mutually exclusive for a single launch, so at most one of
+    // these does anything.
+    final url = await channel.initialUrl();
+    if (mounted && url != null) await _handleIncomingUrl(url);
+  }
+
+  /// Offers, once per launch, to convert every live non-[DanceForm.ecd] dance
+  /// tagged "ECD" (case-insensitive) to [DanceForm.ecd] and drop the tag.
+  /// Skipped when the user has previously opted out via the dialog's "don't
+  /// show this again" checkbox, or when nothing in the collection currently
+  /// matches. Errors are caught and logged rather than surfaced — this is an
+  /// advisory convenience prompt, not part of the startup gate.
+  Future<void> _maybeShowEcdConvertPrompt(BuildContext context) async {
+    try {
+      if (!context.mounted) return;
+      final repos = _appData.repositories;
+      final dismissed = await repos.settings.get(kEcdConvertPromptDismissedKey);
+      if (dismissed == true || !context.mounted) return;
+      // Only decides whether to ask: the actual conversion re-resolves both
+      // the tag and the candidate set fresh, immediately before writing (see
+      // `convertDancesToEcd`), so this snapshot going stale while the dialog
+      // is up cannot force a wrong write.
+      final hasCandidate = await findEcdConvertCandidates(
+        repos,
+        await ecdTagIds(repos),
+      ).then((candidates) => candidates.isNotEmpty);
+      if (!hasCandidate || !context.mounted) return;
+      final result = await showEcdConvertPromptDialog(context);
+      if (result == null || !context.mounted) return;
+      if (result.dontShowAgain) {
+        await repos.settings.set(kEcdConvertPromptDismissedKey, true);
+      }
+      if (!result.convert || !context.mounted) return;
+      final now = (widget.nowOverride ?? () => DateTime.now().toUtc())();
+      final conversion = await convertDancesToEcd(repos, at: now);
+      if (!context.mounted || conversion.count == 0) return;
+      final l10n = AppLocalizations.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('ecd-convert-snackbar'),
+        actionKey: const ValueKey('ecd-convert-undo'),
+        message: l10n.startupEcdConvertSnackbar(conversion.count),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+        onUndo: () => _undoEcdConversion(repos, conversion, messenger, l10n),
+      );
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.ecd-convert-prompt');
+    }
+  }
+
+  /// Reverses the on-launch ECD conversion (INTAKE-15) and says how many
+  /// dances it put back, which is fewer than were converted when some were
+  /// edited in the meantime.
+  ///
+  /// Does not catch: a failure propagates to [showUndoSnackBar], which logs it
+  /// and shows the "Undo failed" snackbar (audit FAIL-6).
+  Future<void> _undoEcdConversion(
+    CompendiumRepositories repos,
+    EcdConversion conversion,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
+    final restored = await undoEcdConversion(
+      repos,
+      conversion,
+      at: (widget.nowOverride ?? () => DateTime.now().toUtc())(),
+    );
+    if (!mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('ecd-convert-undone-snackbar'),
+          content: Text(l10n.startupEcdConvertUndoneSnackbar(restored)),
+        ),
+      );
+  }
+
+  /// The widget types of [_appScopeWrappers], outermost first, read from the
+  /// real list so `test/app_scopes_test.dart` checks what is actually mounted
+  /// rather than a copy of it.
+  @override
+  List<Type> get appScopeTypes => [
+    for (final wrap in _appScopeWrappers())
+      wrap(const SizedBox.shrink()).runtimeType,
+  ];
+
+  /// The preference/controller scopes mounted above the navigator, outermost
+  /// first. `build` folds them (reversed) onto the `MaterialApp.builder` child.
+  /// New scopes are added here and to the expected list in
+  /// `test/app_scopes_test.dart`.
+  List<Widget Function(Widget child)> _appScopeWrappers() => [
+    (child) =>
+        RepositoriesScope(repositories: _appData.repositories, child: child),
+    (child) => UpdateScope(controller: _updateController, child: child),
+    (child) => SyncScope(controller: _syncController, child: child),
+    (child) => AppThemeScope(notifier: _themeNotifier, child: child),
+    (child) => CustomThemesScope(controller: _customThemes, child: child),
+    (child) => FormationColorsScope(controller: _formationColors, child: child),
+    (child) => DialectLibraryScope(libraries: _dialectLibrary, child: child),
+    (child) =>
+        ShorthandMappingsScope(controller: _shorthandMappings, child: child),
+    (child) => UserFiguresScope(controller: _userFigures, child: child),
+    (child) => WalkthroughSnippetLibraryScope(
+      controller: _walkthroughSnippets,
+      child: child,
+    ),
+    (child) =>
+        ActiveDialectScope.byForm(dialects: _dialectNotifier, child: child),
+    (child) => RequirePerformedForHistoryScope(
+      notifier: _requirePerformedForHistoryNotifier,
+      child: child,
+    ),
+    (child) => RequireEventDateForHistoryScope(
+      notifier: _requireEventDateForHistoryNotifier,
+      child: child,
+    ),
+    (child) => RecencyRequireEventDateScope(
+      notifier: _recencyRequireEventDateNotifier,
+      child: child,
+    ),
+    (child) => RecencyRequirePerformedScope(
+      notifier: _recencyRequirePerformedNotifier,
+      child: child,
+    ),
+    (child) => HistoryOrderIgnoreUndatedScope(
+      notifier: _historyOrderIgnoreUndatedNotifier,
+      child: child,
+    ),
+    (child) => HistoryOrderIgnoreUnperformedScope(
+      notifier: _historyOrderIgnoreUnperformedNotifier,
+      child: child,
+    ),
+    (child) => CollectionTileFieldsScope(
+      notifier: _collectionTileFieldsNotifier,
+      child: child,
+    ),
+    (child) => DanceShareFieldsScope(
+      notifier: _danceShareFieldsNotifier,
+      child: child,
+    ),
+    (child) => TrackHistoryForAllCallersScope(
+      notifier: _trackHistoryForAllCallersNotifier,
+      child: child,
+    ),
+    (child) => DefaultProgramCallerScope(
+      notifier: _defaultProgramCallerNotifier,
+      child: child,
+    ),
+    (child) =>
+        VenueCallCountScope(notifier: _venueCallCountNotifier, child: child),
+    (child) => SortIgnoreArticlesScope(
+      notifier: _sortIgnoreArticlesNotifier,
+      child: child,
+    ),
+    (child) => ReduceMotionScope(notifier: _reduceMotionNotifier, child: child),
+    (child) => VerboseFigureRenderingScope(
+      notifier: _verboseFigureRenderingNotifier,
+      child: child,
+    ),
+    (child) => CanonicalDiscouragedTermsScope(
+      notifier: _canonicalDiscouragedTermsNotifier,
+      child: child,
+    ),
+    (child) => DecimalTurnsScope(notifier: _decimalTurnsNotifier, child: child),
+    (child) => CapitalizeFiguresScope(
+      notifier: _capitalizeFiguresNotifier,
+      child: child,
+    ),
+    (child) => ShowGlossaryScope(notifier: _showGlossaryNotifier, child: child),
+    (child) => ShowCustomFiguresScope(
+      notifier: _showCustomFiguresNotifier,
+      child: child,
+    ),
+    (child) => CallingCardSettingsScope(
+      notifier: _callingCardSettingsNotifier,
+      child: child,
+    ),
+    (child) => AggressiveBeatsUpdateScope(
+      notifier: _aggressiveBeatsUpdateNotifier,
+      child: child,
+    ),
+    (child) => ConfirmBeforeDeleteScope(
+      notifier: _confirmBeforeDeleteNotifier,
+      child: child,
+    ),
+    (child) => ColourDanceThemeScope(
+      notifier: _colourDanceThemeNotifier,
+      child: child,
+    ),
+    (child) => SetListColorCodingScope(
+      notifier: _setListColorCodingNotifier,
+      child: child,
+    ),
+    (child) => ShowPerformedTogglesScope(
+      notifier: _showPerformedTogglesNotifier,
+      child: child,
+    ),
+    (child) => MarkAllSetsStatusScope(
+      notifier: _markAllSetsStatusNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListTitleScope(
+      notifier: _shareSetListTitleNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListCallerBandScope(
+      notifier: _shareSetListCallerBandNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListDateVenueScope(
+      notifier: _shareSetListDateVenueNotifier,
+      child: child,
+    ),
+    (child) => MatrixCollisionModeScope(
+      notifier: _matrixExactBeatCollisionNotifier,
+      child: child,
+    ),
+    (child) => ProgramMatrixColumnConfigScope(
+      notifier: _programMatrixColumnsNotifier,
+      child: child,
+    ),
+    (child) => DateFormatScope(notifier: _dateFormatNotifier, child: child),
+    (child) =>
+        FirstDayOfWeekScope(notifier: _firstDayOfWeekNotifier, child: child),
+    (child) => LocaleScope(notifier: _localeNotifier, child: child),
+    (child) => EditorDraftShutdownScope(
+      controller: _editorDraftShutdownController,
+      child: child,
+    ),
+    (child) => SyncWriterLifecycleScope(
+      runWrite: _runSyncWriter,
+      runRecordWrite: _runSyncRecordWriter,
+      resetToCleanInstall: _resetToCleanInstall,
+      onRestored: reloadFromSettings,
+      child: child,
+    ),
+    (child) => CollectionFilterScope(
+      controller: _collectionFilterController,
+      child: child,
+    ),
+    (child) =>
+        VenueEntityModeScope(notifier: _venueEntityModeNotifier, child: child),
+    (child) => ProgramAutoCommitScope(
+      notifier: _autoCommitProgramChangesNotifier,
+      child: child,
+    ),
+    (child) => CollectionFacetsScope(
+      notifier: _collectionHiddenFacetsNotifier,
+      child: child,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1583,177 +3016,235 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // custom theme — and both are MaterialApp properties, so the MaterialApp
     // must rebuild when either changes. The locale is likewise a MaterialApp
     // property (drives `locale:`), so it joins the merge too.
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        _themeNotifier,
-        _customThemes,
-        _localeNotifier,
-      ]),
-      builder: (context, _) {
-        final selection = _themeNotifier.value;
-        final activeCustom = _customThemes.active;
-        // Wiring cases (`ux-modernization.md` §4 / §4A / §4B):
-        //  • custom active — a locally-saved custom theme wins over the
-        //                    built-in selection; pin its scheme into both slots.
-        //  • system        — follow the OS via themeMode, Hearth light/dark.
-        //  • highContrast  — force the outline-driven HC theme into both slots.
-        //  • pinned        — any other built-in selection pins one concrete
-        //                    scheme into both slots.
-        final ThemeData lightTheme;
-        final ThemeData darkTheme;
-        final ThemeMode themeMode;
-        if (activeCustom != null) {
-          final pinned = AppTheme.fromScheme(activeCustom.toScheme());
-          lightTheme = pinned;
-          darkTheme = pinned;
-          themeMode = activeCustom.themeMode;
-        } else {
-          themeMode = selection.themeMode;
-          if (selection == AppThemeSelection.system) {
-            lightTheme = AppTheme.light;
-            darkTheme = AppTheme.dark;
-          } else if (selection.isHighContrast) {
-            lightTheme = AppTheme.highContrast;
-            darkTheme = AppTheme.highContrast;
-          } else {
-            final pinned = AppTheme.fromScheme(selection.scheme!);
+    // Above MaterialApp, not among the scopes folded into its builder: the
+    // Undo prompt reads it from the ScaffoldMessenger's context, and
+    // MaterialApp builds its ScaffoldMessenger above the builder.
+    return UndoPromptDurationScope(
+      notifier: _undoPromptSecondsNotifier,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          _themeNotifier,
+          _customThemes,
+          _localeNotifier,
+          // `themeAnimationStyle` and the `MediaQuery` override below both read it.
+          _reduceMotionNotifier,
+        ]),
+        builder: (context, _) {
+          final selection = _themeNotifier.value;
+          final activeCustom = _customThemes.active;
+          // Wiring cases (`ux-modernization.md` §4 / §4A / §4B):
+          //  • custom active — a locally-saved custom theme wins over the
+          //                    built-in selection; pin its scheme into both slots.
+          //  • system        — follow the OS via themeMode, Hearth light/dark.
+          //  • highContrast  — force the outline-driven HC theme into both slots.
+          //  • pinned        — any other built-in selection pins one concrete
+          //                    scheme into both slots.
+          final ThemeData lightTheme;
+          final ThemeData darkTheme;
+          final ThemeMode themeMode;
+          if (activeCustom != null) {
+            final pinned = AppTheme.fromScheme(activeCustom.toScheme());
             lightTheme = pinned;
             darkTheme = pinned;
+            themeMode = activeCustom.themeMode;
+          } else {
+            themeMode = selection.themeMode;
+            if (selection == AppThemeSelection.system) {
+              lightTheme = AppTheme.light;
+              darkTheme = AppTheme.dark;
+            } else if (selection.isHighContrast) {
+              lightTheme = AppTheme.highContrast;
+              darkTheme = AppTheme.highContrast;
+            } else {
+              final pinned = AppTheme.fromScheme(selection.scheme!);
+              lightTheme = pinned;
+              darkTheme = pinned;
+            }
           }
-        }
 
-        return MaterialApp(
-          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-          locale: _localeNotifier.value,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          navigatorKey: _navigatorKey,
-          scaffoldMessengerKey: _messengerKey,
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          highContrastTheme: AppTheme.highContrast,
-          highContrastDarkTheme: AppTheme.highContrast,
-          themeMode: themeMode,
-          builder: (context, child) => RepositoriesScope(
-            repositories: _appData.repositories,
-            child: UpdateScope(
-              controller: _updateController,
-              child: AppThemeScope(
-                notifier: _themeNotifier,
-                child: CustomThemesScope(
-                  controller: _customThemes,
-                  child: FormationColorsScope(
-                    controller: _formationColors,
-                    child: DialectLibraryScope(
-                      controller: _dialectLibrary,
-                      child: ShorthandMappingsScope(
-                        controller: _shorthandMappings,
-                        child: WalkthroughSnippetLibraryScope(
-                          controller: _walkthroughSnippets,
-                          child: ActiveDialectScope(
-                            notifier: _dialectNotifier,
-                            child: RequirePerformedForHistoryScope(
-                              notifier: _requirePerformedForHistoryNotifier,
-                              child: CollectionTileFieldsScope(
-                                notifier: _collectionTileFieldsNotifier,
-                                child: TrackHistoryForAllCallersScope(
-                                  notifier: _trackHistoryForAllCallersNotifier,
-                                  child: VenueCallCountScope(
-                                    notifier: _venueCallCountNotifier,
-                                    child: SortIgnoreArticlesScope(
-                                      notifier: _sortIgnoreArticlesNotifier,
-                                      child: ReduceMotionScope(
-                                        notifier: _reduceMotionNotifier,
-                                        child: VerboseFigureRenderingScope(
-                                          notifier:
-                                              _verboseFigureRenderingNotifier,
-                                          child: CanonicalDiscouragedTermsScope(
-                                            notifier:
-                                                _canonicalDiscouragedTermsNotifier,
-                                            child: DecimalTurnsScope(
-                                              notifier: _decimalTurnsNotifier,
-                                              child: AggressiveBeatsUpdateScope(
-                                                notifier:
-                                                    _aggressiveBeatsUpdateNotifier,
-                                                child: ConfirmBeforeDeleteScope(
-                                                  notifier:
-                                                      _confirmBeforeDeleteNotifier,
-                                                  child: ColourDanceThemeScope(
-                                                    notifier:
-                                                        _colourDanceThemeNotifier,
-                                                    child: SetListColorCodingScope(
-                                                      notifier:
-                                                          _setListColorCodingNotifier,
-                                                      child: MatrixCollisionModeScope(
-                                                        notifier:
-                                                            _matrixExactBeatCollisionNotifier,
-                                                        child: ProgramMatrixColumnConfigScope(
-                                                          notifier:
-                                                              _programMatrixColumnsNotifier,
-                                                          child: DateFormatScope(
-                                                            notifier:
-                                                                _dateFormatNotifier,
-                                                            child: FirstDayOfWeekScope(
-                                                              notifier:
-                                                                  _firstDayOfWeekNotifier,
-                                                              child: LocaleScope(
-                                                                notifier:
-                                                                    _localeNotifier,
-                                                                child: BackupControllerScope(
-                                                                  onRestored:
-                                                                      reloadFromSettings,
-                                                                  child: CollectionFilterScope(
-                                                                    controller:
-                                                                        _collectionFilterController,
-                                                                    child: VenueEntityModeScope(
-                                                                      notifier:
-                                                                          _venueEntityModeNotifier,
-                                                                      child: ProgramAutoCommitScope(
-                                                                        notifier:
-                                                                            _autoCommitProgramChangesNotifier,
-                                                                        child:
-                                                                            child!,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+          ThemeData reduceMotion(ThemeData theme) =>
+              _reduceMotionNotifier.value == true
+              ? AppTheme.withoutMotion(theme)
+              : theme;
+
+          return MaterialApp(
+            onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+            locale: _localeNotifier.value,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localeListResolutionCallback: (locales, supported) =>
+                resolveSystemLocale(locales, supported),
+            scrollBehavior: const AppScrollBehavior(),
+            navigatorKey: _navigatorKey,
+            navigatorObservers: [_performObserver],
+            scaffoldMessengerKey: _messengerKey,
+            // Replacing these drops Flutter's defaults (arrows, Escape, …), so
+            // spread them back in.
+            // Esc in [appShortcuts] replaces the default's binding; see
+            // [_goBack].
+            shortcuts: {
+              ...WidgetsApp.defaultShortcuts,
+              ...searchShortcuts,
+              ...appShortcuts,
+            },
+            actions: {
+              ...WidgetsApp.defaultActions,
+              OpenSearchIntent: CallbackAction<OpenSearchIntent>(
+                onInvoke: (_) {
+                  _openGlobalSearch();
+                  return null;
+                },
+              ),
+              // No root action for [SaveIntent]: only an editor saves.
+              NewDanceIntent: _shellCommand<NewDanceIntent>(
+                (s) => s.newDance(),
+              ),
+              ImportDancesIntent: _shellCommand<ImportDancesIntent>(
+                (s) => s.importDances(),
+              ),
+              OpenSettingsIntent: _shellCommand<OpenSettingsIntent>(
+                (s) => s.showSettings(),
+              ),
+              OpenGuideIntent: _shellCommand<OpenGuideIntent>(
+                (s) => s.showGuide(),
+              ),
+              FocusSearchIntent: _shellCommand<FocusSearchIntent>(
+                (s) => s.focusSearch(),
+              ),
+              GoBackIntent: CallbackAction<GoBackIntent>(
+                onInvoke: (_) {
+                  _goBack();
+                  return null;
+                },
+              ),
+              _DismissProbe: _DismissProbeAction(_dismissProbes),
+            },
+            // With the in-app Reduce motion switch on, every theme slot drops
+            // page transitions and the expansion-tile animation.
+            // The OS setting needs no help here: route and expansion
+            // controllers already shorten themselves when the platform asks.
+            theme: reduceMotion(lightTheme),
+            darkTheme: reduceMotion(darkTheme),
+            highContrastTheme: reduceMotion(AppTheme.highContrast),
+            highContrastDarkTheme: reduceMotion(AppTheme.highContrast),
+            themeMode: themeMode,
+            // The in-app Reduce motion switch, when set, wins over the OS in both
+            // directions. Flutter's own `AnimationController`s read the OS flag
+            // from the platform, not from `MediaQuery`, so what this can reach is
+            // the theme cross-fade (an explicit "on" turns it off here; with the
+            // switch unset the framework already follows the OS) and everything
+            // that reads `MediaQuery.disableAnimations`, such as animated images.
+            themeAnimationStyle: _reduceMotionNotifier.value == true
+                ? AnimationStyle.noAnimation
+                : null,
+            builder: (context, child) {
+              // The data layer opens native file dialogs without a context; give
+              // it the strings for the language now showing.
+              FileDialogLabels.bind(AppLocalizations.of(context));
+              final override = _reduceMotionNotifier.value;
+              final scoped = _appScopeWrappers().reversed.fold<Widget>(
+                child!,
+                (inner, wrap) => wrap(inner),
+              );
+              // Always present, so the tree keeps one shape whatever the switch says.
+              final media = MediaQuery.of(context);
+              final app = MediaQuery(
+                data: override == null
+                    ? media
+                    : media.copyWith(disableAnimations: override),
+                // Inside the override, so the closing overlay sees the in-app
+                // Reduce motion switch and shows a still icon for its spinner.
+                child: AppClosingOverlay(
+                  closing: _closingNotifier,
+                  child: Listener(
+                    // A mouse's Back button goes back, as Esc does (PLAT-7).
+                    // Desktop only: Android also turns that button into its
+                    // system back, which would go back a second time.
+                    onPointerDown: (event) {
+                      if (_isDesktop &&
+                          event.kind == PointerDeviceKind.mouse &&
+                          event.buttons & kBackMouseButton != 0) {
+                        _goBack();
+                      }
+                    },
+                    // Above every route, so dialogs and sheets get the ring
+                    // too.
+                    child: FocusRingLayer(child: scoped),
                   ),
                 ),
-              ),
+              );
+              return widget.installPlatformMenuBar
+                  ? AppMenuBar(child: app)
+                  : app;
+            },
+            home: AppBootstrap(
+              future: _bootstrap,
+              onRetry: _retry,
+              onBackUpAndReset: _backUpAndReset,
+              onResetOnly: _resetOnly,
+              builder: _buildReadyApp,
+              rebuildProgress: _derivedRebuildProgress,
             ),
-          ),
-          home: AppBootstrap(
-            future: _bootstrap,
-            onRetry: _retry,
-            onBackUpAndReset: _backUpAndReset,
-            onResetOnly: _resetOnly,
-            builder: _buildReadyApp,
-            rebuildProgress: _derivedRebuildProgress,
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
+  }
+}
+
+/// The dismiss [_CompendiumAppState._offerDismiss] sends. Being a
+/// [DismissIntent], it is handled as one; being its own type, it is found by
+/// [_DismissProbeAction] alone when an action passes it on.
+class _DismissProbe extends DismissIntent {
+  const _DismissProbe();
+}
+
+/// Receives a [_DismissProbe] that an action passed on, with the context it
+/// was passed on from, and hands both to the innermost probe in flight.
+class _DismissProbeAction extends ContextAction<_DismissProbe> {
+  _DismissProbeAction(this._probes);
+
+  final List<ValueChanged<BuildContext>> _probes;
+
+  @override
+  Object? invoke(_DismissProbe intent, [BuildContext? context]) {
+    if (_probes.isNotEmpty && context != null) _probes.last(context);
+    return null;
+  }
+}
+
+/// Keeps the navigator's live route stack, so "is a Perform route anywhere in
+/// it" does not depend on which route is on top (Perform opens unnamed dialogs
+/// and sheets over itself).
+class _PerformRouteObserver extends NavigatorObserver {
+  final List<Route<dynamic>> _routes = [];
+
+  bool get performing =>
+      _routes.any((route) => route.settings.name == performRouteName);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.add(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    final index = oldRoute == null ? -1 : _routes.indexOf(oldRoute);
+    if (index >= 0) {
+      if (newRoute == null) {
+        _routes.removeAt(index);
+      } else {
+        _routes[index] = newRoute;
+      }
+    } else if (newRoute != null) {
+      _routes.add(newRoute);
+    }
   }
 }

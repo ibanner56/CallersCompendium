@@ -4,30 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
-import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
-import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
-import '../support/test_repositories.dart';
-
-/// A [WindowService] whose restore does nothing — the plugin glue is untestable
-/// under `flutter test`, and these tests only exercise the locale wiring that
-/// follows the restore.
-class _NoopWindowService extends WindowService {
-  _NoopWindowService(super.settings);
-
-  @override
-  Future<void> initialize() async {}
-
-  @override
-  void dispose() {}
-}
-
-AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
-  addTearDown(appData.close);
-  return appData;
-}
+import '../support/full_app_harness.dart';
 
 Locale? _materialAppLocale(WidgetTester tester) =>
     tester.widget<MaterialApp>(find.byType(MaterialApp)).locale;
@@ -67,13 +46,13 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     await appData.repositories.settings.set(kLocaleKey, 'en');
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
       ),
     );
     await tester.pumpAndSettle();
@@ -87,7 +66,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     // Untrusted/corrupted value: must never select an unsupported locale or
     // throw — the app boots in the system locale (null).
     await appData.repositories.settings.set(kLocaleKey, 'zz-not-a-locale');
@@ -95,7 +74,7 @@ void main() {
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
       ),
     );
     await tester.pumpAndSettle();
@@ -103,4 +82,43 @@ void main() {
     expect(find.byType(AppShell), findsOneWidget);
     expect(_materialAppLocale(tester), isNull);
   });
+
+  // #1396: the startup integrity banner used to be hard-coded English, so a
+  // non-English user got an English warning about their data.
+  for (final threw in [false, true]) {
+    testWidgets('the integrity banner follows the app language '
+        '(${threw ? 'probe threw' : 'probe returned false'}) (#1396)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      await appData.repositories.settings.set(kLocaleKey, 'ja');
+      final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+      final en = await AppLocalizations.delegate.load(const Locale('en'));
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          integrityCheck: threw
+              ? () => throw StateError('quick_check failed to run')
+              : () async => false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final expected = threw
+          ? ja.startupIntegrityCheckIncomplete
+          : ja.startupIntegrityCheckFailed;
+      final english = threw
+          ? en.startupIntegrityCheckIncomplete
+          : en.startupIntegrityCheckFailed;
+      expect(find.text(expected), findsOneWidget);
+      expect(find.text(english), findsNothing);
+      expect(find.text(ja.updateBannerDismiss), findsOneWidget);
+      expect(find.text('Dismiss'), findsNothing);
+    });
+  }
 }

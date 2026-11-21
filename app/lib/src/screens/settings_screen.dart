@@ -16,6 +16,7 @@ import 'settings/general_section.dart';
 import 'settings/program_section.dart';
 import 'settings/regional_section.dart';
 import 'settings/updates_section.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Re-exported so existing consumers (`main.dart`, the Perform screens, tests)
 /// can keep importing the persistence keys from `settings_screen.dart`.
@@ -49,8 +50,10 @@ class SettingsScreen extends StatefulWidget {
   /// [pickBackupFile] (native open-file dialog).
   final BackupPicker? backupPicker;
 
-  /// Test seam for choosing an import file; defaults to [pickImportFile]
-  /// (native open-file dialog). Forwarded to [ImportReviewScreen].
+  /// Test seam for choosing an import file as canned text; when null the import
+  /// screen opens the native open-file dialog ([pickImportAnyFile]). Injecting
+  /// it skips extension-based source detection. Forwarded to
+  /// [ImportReviewScreen].
   final ImportPicker? importPicker;
 
   /// Test seam for fetching an import URL; defaults to [fetchImportUrl] (real
@@ -75,18 +78,21 @@ class SettingsScreen extends StatefulWidget {
   /// gathering them from the ambient repositories.
   final SensitiveTermsProvider? sensitiveTermsProvider;
 
-  /// Viewport width (logical px) at/above which the sidebar and content sit
-  /// side by side instead of the sidebar pushing a detail page.
-  static const double sideBySideBreakpoint = 720;
+  /// Narrowest the section sidebar gets in the side-by-side layout (logical
+  /// px). Settings renders inside [AppShell], so the app's [NavigationRail]
+  /// sits to the left of the sidebar; this keeps the two together near the
+  /// old full-screen Settings footprint.
+  static const double _sidebarMinWidth = 180;
 
-  /// Width (logical px) of the section sidebar in the side-by-side layout.
-  ///
-  /// Settings now renders inside [AppShell], so the app's Material 3
-  /// [NavigationRail] (default `minWidth` 80) sits to the left of this sidebar.
-  /// Trimmed from the pre-embed 260 by ~that rail width so the combined left
-  /// chrome matches the old full-screen Settings footprint. "Appearance" (the
-  /// longest section label) still fits without truncation at this width.
-  static const double _sideBySideSidebarWidth = 180;
+  /// Widest the section sidebar gets, so a long label (or very large text)
+  /// wraps between words, or falls back to the one-pane layout, rather than
+  /// squeezing the open section at the narrowest side-by-side window.
+  static const double _sidebarMaxWidth = 280;
+
+  /// What a sidebar tile spends beside its label: the Material 3 [ListTile]'s
+  /// 16 px start and 24 px end padding, the 24 px icon, and the 16 px gap
+  /// between icon and label.
+  static const double _sidebarTileChrome = 16 + 24 + 16 + 24;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -133,7 +139,9 @@ String _sectionLabel(BuildContext context, _SettingsSection section) {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  _SettingsSection _section = _SettingsSection.appearance;
+  /// The section the side-by-side layout shows: General, the first in the
+  /// sidebar, until another is chosen.
+  _SettingsSection _section = _SettingsSection.general;
 
   /// Builds the content pane for [section]. Each section is its own widget that
   /// owns its async I/O and load-race guards; this shell only routes to them and
@@ -166,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           sensitiveTermsProvider: widget.sensitiveTermsProvider,
         );
       case _SettingsSection.experimental:
-        return const ExperimentalSection();
+        return ExperimentalSection(backupSaver: widget.backupSaver);
       case _SettingsSection.about:
         return AboutSection(onOpenGuide: widget.onOpenGuide);
     }
@@ -183,14 +191,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  static final _whitespace = RegExp(r'\s+');
+
+  /// The sidebar's width: enough for its longest label on one line, in the
+  /// current language and text size, within
+  /// [SettingsScreen._sidebarMinWidth]..[SettingsScreen._sidebarMaxWidth].
+  /// A fixed width wrapped "Language & region" onto two lines.
+  ///
+  /// `null` when even the longest single *word* would not fit at the widest
+  /// sidebar (very large text, or a long word in another language): a label
+  /// may then wrap between words, but never inside one, so Settings shows its
+  /// one-pane layout instead.
+  double? _sidebarWidth(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodyLarge;
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    double measure(String text) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final width = painter.width;
+      painter.dispose();
+      return width;
+    }
+
+    var widestLabel = 0.0;
+    var widestWord = 0.0;
+    for (final s in _SettingsSection.values) {
+      final label = _sectionLabel(context, s);
+      final labelWidth = measure(label);
+      if (labelWidth > widestLabel) widestLabel = labelWidth;
+      for (final word in label.split(_whitespace)) {
+        if (word.isEmpty) continue;
+        final wordWidth = measure(word);
+        if (wordWidth > widestWord) widestWord = wordWidth;
+      }
+    }
+    const chrome = SettingsScreen._sidebarTileChrome;
+    if (widestWord + chrome > SettingsScreen._sidebarMaxWidth) return null;
+    return (widestLabel + chrome).ceilToDouble().clamp(
+      SettingsScreen._sidebarMinWidth,
+      SettingsScreen._sidebarMaxWidth,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final sideBySide =
-            constraints.maxWidth >= SettingsScreen.sideBySideBreakpoint;
+        // Side by side from the split width of the *window*, as Collection and
+        // Programs: between the rail and split widths every destination,
+        // Settings included, shows one pane beside the rail.
+        final sidebarWidth =
+            AppBreakpoints.showsSplit(context, constraints.maxWidth)
+            ? _sidebarWidth(context)
+            : null;
 
-        if (sideBySide) {
+        if (sidebarWidth != null) {
           return Scaffold(
             appBar: AppBar(
               title: Text(AppLocalizations.of(context).settingsTitle),
@@ -200,7 +260,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  width: SettingsScreen._sideBySideSidebarWidth,
+                  width: sidebarWidth,
                   child: _SettingsSidebar(
                     selected: _section,
                     onSelect: (s) => setState(() => _section = s),

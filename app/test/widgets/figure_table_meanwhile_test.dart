@@ -56,8 +56,9 @@ void main() {
 
     // The container's shared 8-beat count appears once; nothing derived from
     // the sub-figures' own (display-only, unused-for-counting) beats leaks in
-    // as a second row or a second beat label.
-    expect(find.textContaining('8 beats'), findsOneWidget);
+    // as a second row or a second beat label. The beat label is matched
+    // whole: the table's beat-mismatch warning (8 of 64) also says "8 beats".
+    expect(find.text('8 beats'), findsOneWidget);
     expect(find.textContaining('16 beats'), findsNothing);
   });
 

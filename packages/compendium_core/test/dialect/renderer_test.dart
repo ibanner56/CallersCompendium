@@ -3,13 +3,47 @@ import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
 
 void main() {
+  group('dancerTerms', () {
+    final r = FigureRenderer(contraTaxonomy);
+
+    test('the dialect\'s role terms in both numbers, and the dancer forms', () {
+      final terms = r.dancerTerms(Dialect.larksRobins);
+      expect(
+        terms,
+        containsAll([
+          'lark',
+          'larks',
+          'robin',
+          'robins',
+          'neighbor',
+          'neighbors',
+          'partner',
+          'partners',
+          'shadows',
+          'first lark',
+        ]),
+      );
+      expect(terms, isNot(contains('role1s')));
+      expect(terms.every((t) => t == t.toLowerCase() && t.trim() == t), isTrue);
+    });
+
+    test('a dialect\'s dancer substitution replaces the plain form', () {
+      final dialect = Dialect(
+        name: 'Test',
+        dancers: const {'neighbors': 'Neighbours'},
+      );
+      final terms = r.dancerTerms(dialect);
+      expect(terms, contains('neighbours'));
+    });
+  });
+
   final renderer = FigureRenderer(contraTaxonomy);
   final larks = Dialect.larksRobins;
 
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
       'partners swing': Figure(move: 'swing', params: {'who': 'partners'}),
-      'neighbors allemande right once': Figure(move: 'allemande'),
+      'neighbors allemande right 1½': Figure(move: 'allemande'),
       'neighbors allemande left 1½': Figure(
         move: 'allemande',
         params: {'hand': 'left', 'travel': 1.5},
@@ -250,6 +284,41 @@ void main() {
   });
 
   group('free-text rendering', () {
+    // An equal-but-not-identical copy of [larks]: callers build a fresh
+    // FigureRenderer/Dialect per call, so the cache must key on value.
+    Dialect larksCopy() => Dialect(
+      name: larks.name,
+      roles: Map.of(larks.roles),
+      moves: Map.of(larks.moves),
+      dancers: Map.of(larks.dancers),
+      moveWordings: Map.of(larks.moveWordings),
+      moveWordingBranches: Map.of(larks.moveWordingBranches),
+      discouragedTerms: List.of(larks.discouragedTerms),
+    );
+
+    test('a second render with the same dialect constructs no Substitutor', () {
+      final copy = larksCopy();
+      expect(copy, larks);
+      expect(identical(copy, larks), isFalse);
+      renderer.renderFreeText('role1s lead', larks); // warm
+      final before = Substitutor.debugConstructed;
+      expect(
+        renderer.renderFreeText('the role1s lead', copy),
+        'the larks lead',
+      );
+      expect(Substitutor.debugConstructed, before);
+    });
+
+    test('discouraged-term renders construct nothing on a second call', () {
+      final copy = larksCopy();
+      renderer.renderDiscouragedTerms('gents allemande', larks);
+      renderer.renderFreeTextWithCanonicalDiscouragedTerms('gents', larks);
+      final before = Substitutor.debugConstructed;
+      renderer.renderDiscouragedTerms('gents allemande', copy);
+      renderer.renderFreeTextWithCanonicalDiscouragedTerms('gents', copy);
+      expect(Substitutor.debugConstructed, before);
+    });
+
     test('substitutes role terms with case preservation', () {
       // Mid-sentence lowercase source token stays lowercase (the shipped
       // default term is lowercase, and case is carried from the source token).
@@ -332,6 +401,54 @@ void main() {
           larks,
         ),
         "larks' and robins' figures, larks' and robins' caller notes",
+      );
+    });
+
+    test('keeps a dialect\'s own role words that the table lists as '
+        'discouraged', () {
+      // "Ravens" is this dialect's role1; the table reads "ravens" as role2s,
+      // which would turn the author's own word into the other role.
+      final ravenDialect = Dialect(
+        name: 'Ravens/Robins',
+        roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('robin')},
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          "Ravens cross; the ravens' turn, then the raven's.",
+          ravenDialect,
+        ),
+        "Ravens cross; the ravens' turn, then the raven's.",
+      );
+      expect(
+        renderer.renderDiscouragedTerms('Ravens cross', ravenDialect),
+        'Ravens cross',
+      );
+      // Terms the dialect doesn't claim still read by the table.
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'gents cross',
+          ravenDialect,
+        ),
+        'ravens cross',
+      );
+    });
+
+    test('keeps a multi-word claimed role word exactly as typed', () {
+      // "lady" is in the table, so "lady birds" is a claimed word here; a
+      // mixed-case span such as "Lady Birds" must not come back lowercased.
+      final ladyBird = Dialect(
+        name: 'Lady Birds/Beetles',
+        roles: const {
+          'role1': RoleTerm('Lady Bird'),
+          'role2': RoleTerm('Beetle'),
+        },
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Lady Birds cross; LADY BIRDS wait; lady birds turn.',
+          ladyBird,
+        ),
+        'Lady Birds cross; LADY BIRDS wait; lady birds turn.',
       );
     });
 
@@ -447,7 +564,7 @@ void main() {
       );
       expect(
         renderer.render(container, larks),
-        'ROBINS pass right while neighbor allemande right once',
+        'ROBINS pass right while neighbor allemande right 1½',
       );
       final wholeLine = container.copyWith(
         wordingOverride: 'ROLE1S call together',
@@ -455,7 +572,7 @@ void main() {
       expect(renderer.render(wholeLine, larks), 'LARKS call together');
       expect(
         renderer.renderCanonical(wholeLine),
-        'partners swing meanwhile neighbors allemande right once',
+        'partners swing meanwhile neighbors allemande right 1½',
       );
     });
   });
@@ -497,6 +614,315 @@ void main() {
       );
     });
 
+    group('display word order differs from the canonical text', () {
+      test('pull by names the hand before the direction', () {
+        final figure = Figure(
+          move: 'pull_by',
+          params: {'where': 'across', 'hand': 'left'},
+        );
+        expect(renderer.render(figure, larks), 'pull by left across');
+        // Search/dedupe text keeps its order: no index rebuild is owed.
+        expect(renderer.renderCanonical(figure), 'pull by across left');
+      });
+
+      test('pull by keeps its subject and balance ahead of the move', () {
+        final figure = Figure(
+          move: 'pull_by',
+          params: {
+            'who': 'neighbors',
+            'balance': true,
+            'where': 'rightDiagonal',
+          },
+        );
+        expect(
+          renderer.renderSummary(figure, larks),
+          'neighbor balance & pull by right on right diagonal',
+        );
+      });
+
+      test('a set direction reads as a call on every move', () {
+        String line(String move, Map<String, Object?> params) =>
+            renderer.render(testFigure(move: move, params: params), larks);
+        expect(
+          line('pull_by', {'where': 'leftDiagonal'}),
+          'pull by right on left diagonal',
+        );
+        expect(line('pull_by', {'where': 'in'}), 'pull by right facing in');
+        expect(line('chain', {'where': 'up'}), 'robins chain facing up');
+        expect(
+          line('right_left_through', {'where': 'rightDiagonal'}),
+          'right left through on right diagonal',
+        );
+        expect(
+          line('pass_through', {'where': 'out'}),
+          'pass through facing out',
+        );
+        expect(
+          line('circular_hey', {'where': 'leftDiagonal'}),
+          'circular hey, neighbors pass right on left diagonal',
+        );
+        expect(
+          line('cross_trails', {'where': 'rightDiagonal'}),
+          'cross trails - partner on right diagonal passing right shoulders, '
+          'neighbor passing left shoulders',
+        );
+        // `across` and `along` read as themselves.
+        expect(line('pull_by', {'where': 'across'}), 'pull by right across');
+        expect(line('chain', {'where': 'along'}), 'robins chain along');
+        expect(
+          line('promenade', {'singleFile': true, 'where': 'leftDiagonal'}),
+          'single file promenade on left diagonal',
+        );
+        // The canonical text keeps the humanized token.
+        expect(
+          renderer.renderCanonical(
+            testFigure(move: 'chain', params: {'where': 'leftDiagonal'}),
+          ),
+          'role2s chain left diagonal',
+        );
+      });
+
+      test('a wording condition reads a direction in either form', () {
+        final chain = renderer.moveWordingVocabulary('chain', larks);
+        String? stored(String condition) =>
+            checkWording('[if $condition then x]', chain).stored;
+        expect(
+          stored('where is on right diagonal'),
+          stored('where is right diagonal'),
+        );
+        expect(stored('where is right diagonal'), isNotNull);
+        expect(stored('where is facing in'), stored('where is in'));
+        expect(stored('where is in'), isNotNull);
+      });
+
+      test('a saved hey wording keeps an article that agrees with it', () {
+        // The starting wording before the direction moved after the move.
+        final old = larks.copyWith(
+          moveWordings: {
+            'hey': '{who} start {article} {where} {length} {move}',
+          },
+        );
+        expect(
+          renderer.render(
+            testFigure(move: 'hey', params: {'where': 'along'}),
+            old,
+          ),
+          'robins start an along half hey',
+        );
+        expect(
+          renderer.render(
+            testFigure(move: 'hey', params: {'where': 'up'}),
+            old,
+          ),
+          'robins start a facing up half hey',
+        );
+        expect(
+          renderer.render(testFigure(move: 'hey'), old),
+          'robins start a half hey',
+        );
+      });
+
+      test('a hey and an ocean wave name the direction after the figure', () {
+        String line(String move, Map<String, Object?> params) =>
+            renderer.render(testFigure(move: move, params: params), larks);
+        expect(
+          line('hey', {'where': 'along'}),
+          startsWith('robins start a half hey along - '),
+        );
+        expect(
+          line('hey', {'where': 'in'}),
+          startsWith('robins start a half hey facing in - '),
+        );
+        expect(
+          line('pass_the_ocean', {'where': 'leftDiagonal'}),
+          startsWith('pass through to an ocean wave on left diagonal - '),
+        );
+      });
+
+      test("Rory O'More's balance follows its subject", () {
+        expect(
+          renderer.renderSummary(
+            testFigure(
+              move: 'rory_o_more',
+              params: {'who': 'role1s', 'balance': true},
+            ),
+            larks,
+          ),
+          "larks balance & Rory O'More right",
+        );
+        expect(
+          renderer.renderSummary(
+            testFigure(move: 'rory_o_more', params: {'balance': true}),
+            larks,
+          ),
+          "balance & Rory O'More right",
+        );
+      });
+
+      test('pull by seeds its wording editor in display order', () {
+        expect(
+          renderer.moveWordingTemplate('pull_by'),
+          '{who} {move} {hand} {where}',
+        );
+        expect(renderer.moveWordingSlots('pull_by'), {
+          'who',
+          'move',
+          'hand',
+          'where',
+        });
+      });
+
+      test('slide along set names the side after the verb', () {
+        final figure = Figure(move: 'slide_along_set');
+        expect(renderer.render(figure, larks), 'slide left along set');
+        expect(
+          renderer.render(
+            Figure(move: 'slide_along_set', params: {'slide': 'right'}),
+            larks,
+          ),
+          'slide right along set',
+        );
+        expect(renderer.renderCanonical(figure), 'slide along set left');
+      });
+
+      test('slide along set keeps a dialect name whole', () {
+        final dialect = Dialect(
+          name: 'Sashay',
+          moves: {'slide_along_set': 'sashay'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), dialect),
+          'sashay left',
+        );
+      });
+
+      test('slide along set starts a custom wording from {move}', () {
+        // The default line spells the name around the side, which a
+        // template cannot do with `{move}` whole; the editor and a copied
+        // figure start from `{move} {slide}` so a dialect's or a copy's own
+        // name still reaches the line.
+        expect(
+          renderer.moveWordingTemplate('slide_along_set'),
+          '{move} {slide}',
+        );
+        expect(renderer.moveWordingSlots('slide_along_set'), {'move', 'slide'});
+        expect(
+          renderer.moveWordingMissingSlots('slide_along_set', '{move} {slide}'),
+          isEmpty,
+        );
+        final renamed = Dialect(
+          name: 'Sashay',
+          moves: {'slide_along_set': 'sashay'},
+          moveWordings: {'slide_along_set': '{move} {slide}'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), renamed),
+          'sashay left',
+        );
+        // A caller who wants the default order writes it out.
+        final spelled = larks.copyWith(
+          moveWordings: {'slide_along_set': 'slide {slide} along set'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), spelled),
+          'slide left along set',
+        );
+        expect(
+          userFigureSeedFromMove(contraTaxonomy, 'slide_along_set')!.template,
+          contains('{move}'),
+        );
+      });
+
+      test('slide along set reads as a gerund in a modifier', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'slide_along_set'),
+          ],
+          beats: 8,
+        );
+        expect(
+          renderer.renderSummary(figure, larks),
+          contains('sliding left along set'),
+        );
+        // A wording that keeps the name whole keeps its own gerund.
+        expect(
+          renderer.renderSummary(
+            figure,
+            larks.copyWith(moveWordings: {'slide_along_set': '{move} {slide}'}),
+          ),
+          contains('sliding along the set left'),
+        );
+      });
+    });
+
+    test('a subject a plural verb agrees with stays plural', () {
+      String line(String move, Map<String, Object?> params) =>
+          renderer.render(testFigure(move: move, params: params), larks);
+      expect(
+        line('revolving_door', {'who': 'neighbors'}),
+        contains('- neighbors take right hands'),
+      );
+      expect(
+        line('box_circulate', {'who': 'neighbors'}),
+        contains('- neighbors cross while'),
+      );
+      expect(
+        line('poussette', {'who': 'neighbors'}),
+        contains('- neighbors pull neighbor back'),
+      );
+      expect(
+        line('hey', {'pass1': 'neighbors'}),
+        startsWith('neighbors start a half hey'),
+      );
+      expect(
+        line('form_a_long_wave', {'who': 'neighbors'}),
+        startsWith('neighbors dance in to a long wave'),
+      );
+      expect(
+        line('pass_the_ocean', {}),
+        contains('neighbors take right hands on the sides'),
+      );
+      expect(
+        line('pass_the_ocean', {'center': 'partners'}),
+        contains('partners catch left hands in the center'),
+      );
+      // A subject that only prefixes the move keeps the caller's singular.
+      expect(line('swing', {'who': 'neighbors'}), 'neighbor swing');
+      expect(
+        line('form_short_waves', {}),
+        contains('neighbor by the right on the sides'),
+      );
+    });
+
+    test('a sequence says a subject once whichever number each step uses', () {
+      String sequence(List<Figure> figures) =>
+          renderer.render(Figure.sequence(figures: figures, beats: 16), larks);
+      final wave = Figure(
+        move: 'form_a_long_wave',
+        params: {'who': 'neighbors'},
+      );
+      final balance = Figure(move: 'balance', params: {'who': 'neighbors'});
+      expect(
+        sequence([wave, balance]),
+        'neighbors dance in to a long wave in the center - balance the wave '
+        'and balance',
+      );
+      expect(
+        sequence([balance, wave]),
+        'neighbor balance and dance in to a long wave in the center - '
+        'balance the wave',
+      );
+      // A line the subject does not lead keeps the next step's subject.
+      expect(
+        sequence([
+          Figure(move: 'revolving_door', params: {'who': 'neighbors'}),
+          balance,
+        ]),
+        endsWith('on other side and neighbor balance'),
+      );
+    });
+
     test('figure eight puts fraction first and describes its direction', () {
       final figure = Figure(
         move: 'figure_8',
@@ -507,6 +933,79 @@ void main() {
         'ones half figure 8 down between twos',
       );
       expect(renderer.renderCanonical(figure), 'ones half figure 8');
+    });
+
+    test('figure eight with no stated direction defaults to above', () {
+      expect(
+        renderer.render(Figure(move: 'figure_8'), Dialect.canonical),
+        'ones half figure 8 up between twos',
+      );
+      // `none` stays a valid stored value: no direction clause.
+      expect(
+        renderer.render(
+          Figure(move: 'figure_8', params: {'where': 'none'}),
+          Dialect.canonical,
+        ),
+        'ones half figure 8',
+      );
+    });
+
+    group('double figure eight', () {
+      String show(Map<String, Object?> params, {Dialect? dialect}) =>
+          renderer.render(
+            testFigure(move: 'figure_8', params: {'double': true, ...params}),
+            dialect ?? Dialect.canonical,
+          );
+
+      test('leads up and the other pair casts the mirror way', () {
+        expect(
+          show({}),
+          'ones lead a double half figure 8 up between twos, '
+          'twos cast down the outside',
+        );
+        expect(
+          show({'where': 'below', 'who': 'twos'}),
+          'twos lead a double half figure 8 down between ones, '
+          'ones cast up the outside',
+        );
+      });
+
+      test('across casts to follow', () {
+        expect(
+          show({'where': 'across'}),
+          'ones lead a double half figure 8 across, twos cast to follow',
+        );
+      });
+
+      test('a pair with no inverse reads others in both clauses', () {
+        expect(
+          show({'who': 'partners'}),
+          'partner lead a double half figure 8 up between others, '
+          'others cast down the outside',
+        );
+      });
+
+      test('no direction states nothing to mirror, so no cast', () {
+        expect(show({'where': 'none'}), 'ones lead a double half figure 8');
+      });
+
+      test('the lead clause stays last, and false changes nothing', () {
+        expect(
+          show({'lead': 'twosRole1'}),
+          'ones lead a double half figure 8 up between twos, '
+          'twos cast down the outside, second role1 leading',
+        );
+        expect(show({'double': false}), 'ones half figure 8 up between twos');
+      });
+
+      test('canonical text is not affected by the toggle', () {
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'figure_8', params: {'double': true}),
+          ),
+          renderer.renderCanonical(Figure(move: 'figure_8')),
+        );
+      });
     });
 
     test('figure eight direction uses the effective default subject', () {
@@ -610,14 +1109,20 @@ void main() {
     test('spells out fraction params without camelCase', () {
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'fraction': 'threeQuarter'}),
+          Figure(
+            move: 'figure_8',
+            params: {'fraction': 'threeQuarter', 'where': 'none'},
+          ),
           larks,
         ),
         'ones three quarters figure 8',
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'fraction': 'full'}),
+          Figure(
+            move: 'figure_8',
+            params: {'fraction': 'full', 'where': 'none'},
+          ),
           larks,
         ),
         'ones the whole way figure 8',
@@ -713,7 +1218,7 @@ void main() {
     });
   });
 
-  // Issue #832. The four single-dancer identities are COMPOUND tokens, so the
+  // Issue #832. The single-dancer identities are COMPOUND tokens, so the
   // whole-token `roleTokens` membership test never matched them and their
   // embedded role was never substituted: every display path fell through to
   // `_humanize` and read "twos role2". The right construction already existed
@@ -740,6 +1245,11 @@ void main() {
         'onesRole2': ['first role2', 'first robin', 'first follow'],
         'twosRole1': ['second role1', 'second lark', 'second lead'],
         'twosRole2': ['second role2', 'second robin', 'second follow'],
+        // v39: the third and fourth couples' dancers.
+        'threesRole1': ['third role1', 'third lark', 'third lead'],
+        'threesRole2': ['third role2', 'third robin', 'third follow'],
+        'foursRole1': ['fourth role1', 'fourth lark', 'fourth lead'],
+        'foursRole2': ['fourth role2', 'fourth robin', 'fourth follow'],
       };
       for (final token in singleDancers) {
         test('$token under every shipped dialect', () {
@@ -773,7 +1283,7 @@ void main() {
 
       test('not spec-gated: the label is right with no spec to hand', () {
         // Unlike the `dialect.dancers` lookup, which needs a dancer-kind spec,
-        // these four are a closed structural vocabulary — like the role tokens
+        // these are a closed structural vocabulary — like the role tokens
         // above, they read correctly whatever the caller has.
         expect(
           FigureRenderer.displayToken('twosRole2', null, larks),
@@ -801,9 +1311,10 @@ void main() {
           FigureRenderer.displayToken('onesRole', dancerSpec, larks),
           'ones role',
         );
+        // v39 added the threes and fours, but there is no fifth couple.
         expect(
-          FigureRenderer.displayToken('threesRole1', dancerSpec, larks),
-          'threes role1',
+          FigureRenderer.displayToken('fivesRole1', dancerSpec, larks),
+          'fives role1',
         );
         // Case-sensitive: the canonical token is camelCase.
         expect(
@@ -865,7 +1376,7 @@ void main() {
       // `_renderValue` (template path): figure_8 renders `{who} {half} {move}`.
       final templateFigure = Figure(
         move: 'figure_8',
-        params: {'who': 'twosRole2'},
+        params: {'who': 'twosRole2', 'where': 'none'},
       );
       // `_displayDancer` (display base-line path): swing has a base renderer.
       final baseLineFigure = Figure(
@@ -973,7 +1484,8 @@ void main() {
           for (final e in heyDef.params.entries)
             e.key: e.key == 'meetTarget'
                 // Drop ONLY the `choices` narrowing, so the renderer takes its
-                // `?? ParamVocab.dancerSets` fallback — which admits the four.
+                // `?? ParamVocab.dancerSets` fallback — which admits the single
+                // dancers.
                 ? ParamSpec(e.value.kind, defaultValue: e.value.defaultValue)
                 : e.value,
         },
@@ -1076,11 +1588,11 @@ void main() {
           move: 'box_circulate',
           params: {'balance': true},
         ),
-        'partners box the gnat': Figure(
+        'neighbors box the gnat': Figure(
           move: 'box_the_gnat',
           params: {'balance': true},
         ),
-        'partners swat the flea': Figure(
+        'neighbors swat the flea': Figure(
           move: 'swat_the_flea',
           params: {'balance': true},
         ),
@@ -1118,11 +1630,53 @@ void main() {
     // invalid-fixture: these figures deliberately use pre-v35 move identifiers
     test('legacy pull-by aliases use canonical balance placement', () {
       for (final move in ['pull_by_dancers', 'pull_by_direction']) {
-        final summary = renderer.renderSummary(
-          Figure(move: move, params: {'balance': true}),
-          d,
+        final raw = Figure(move: move, params: {'balance': true});
+        final summary = renderer.renderSummary(raw, d);
+        // The balance clause sits directly before the move name, after any
+        // subject (`neighbor balance & pull by right`), exactly as it does for
+        // the normalised figure.
+        expect(summary, contains('balance & pull by right'), reason: move);
+        expect(
+          summary,
+          renderer.renderSummary(contraTaxonomy.normalizeFigureV35(raw), d),
+          reason: move,
         );
-        expect(summary, startsWith('balance &'), reason: move);
+      }
+    });
+
+    // invalid-fixture: these figures deliberately use pre-v35 move identifiers
+    test(
+      'legacy pull-by aliases DISPLAY alike before and after normalisation',
+      () {
+        // The alias pins (`who: neighbors` / `where: along`) exist so a v34 id
+        // stays VALID until normalised; they are not baked into the alias display
+        // name ("pull by"), so blanking the pinned slot made the un-normalised
+        // form render differently from the normalised one. This equivalence is
+        // DISPLAY-ONLY: the byte-stable canonical text is covered separately
+        // below and deliberately does NOT track the normalised form.
+        for (final move in ['pull_by_dancers', 'pull_by_direction']) {
+          final raw = Figure(move: move, params: {'beats': 2});
+          final normalised = contraTaxonomy.normalizeFigureV35(raw);
+          expect(normalised.move, 'pull_by', reason: move);
+          expect(
+            renderer.render(raw, d),
+            renderer.render(normalised, d),
+            reason: '$move display',
+          );
+        }
+      },
+    );
+
+    // invalid-fixture: these figures deliberately use pre-v35 move identifiers
+    test('legacy pull-by aliases keep their byte-stable canonical text', () {
+      // `renderCanonical` (search/dedupe identity) must not move for a row
+      // written before this PR: the alias pin-skip exception above is
+      // display-only, so canonical rendering keeps blanking the pinned
+      // `who`/`where` exactly as it did on origin/main, regardless of
+      // whether the figure has been normalised yet.
+      for (final move in ['pull_by_dancers', 'pull_by_direction']) {
+        final raw = Figure(move: move, params: {'beats': 2});
+        expect(renderer.renderCanonical(raw), 'pull by right', reason: move);
       }
     });
 
@@ -1244,7 +1798,7 @@ void main() {
         expect(renderer.renderSummary(figure, larks), 'LARKS call together');
         expect(
           renderer.renderCanonical(figure),
-          'partners swing modifier neighbors roll away partners',
+          'partners swing modifier role1s roll away partners',
         );
       });
 
@@ -1344,8 +1898,8 @@ void main() {
 
         expect(
           renderer.renderSummary(figure, Dialect.canonical),
-          'partner swing, partner boxing the gnat, balancing the ring, and '
-          'ones arching and diving',
+          'partner swing, neighbor boxing the gnat, balancing the ring, and '
+          'twos arching and diving',
         );
       });
 
@@ -1448,6 +2002,24 @@ void main() {
           renderer.renderSummary(figure, Dialect.canonical),
           contains('pulling by'),
         );
+      });
+
+      test('modifier gerundives inflect pass_by at its default shoulder', () {
+        // The move-name needle must be built from the EFFECTIVE params: with
+        // the shoulder left to its default, the raw-params needle expands `%S`
+        // to nothing ("pass by  shoulders") and never matches the rendered
+        // line, so the child was left un-gerundised.
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'pass_by', params: {'who': 'neighbors'}),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('neighbor passing by'));
+        expect(rendered, isNot(contains('neighbor pass by')));
       });
     });
 
@@ -1679,10 +2251,10 @@ void main() {
         // balance, so adding "balance &" is a strict improvement, not a new
         // divergence (the hand omission is pre-existing base behavior).
         final f = Figure(move: 'box_the_gnat', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partner balance & box the gnat');
+        expect(renderer.renderSummary(f, d), 'neighbor balance & box the gnat');
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partner balance and box the gnat',
+          'neighbor balance and box the gnat',
         );
         final g = Figure(move: 'box_the_gnat', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -1691,10 +2263,13 @@ void main() {
         // The alias renders under its own name, so the connective must splice
         // before the RENDERED alias name ("swat the flea"), not the target's.
         final f = Figure(move: 'swat_the_flea', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partner balance & swat the flea');
+        expect(
+          renderer.renderSummary(f, d),
+          'neighbor balance & swat the flea',
+        );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partner balance and swat the flea',
+          'neighbor balance and swat the flea',
         );
         final g = Figure(move: 'swat_the_flea', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -1957,7 +2532,7 @@ void main() {
             Figure(move: 'promenade', params: {'where': 'up'}),
             d,
           ),
-          'partner promenade up',
+          'partner promenade facing up',
         );
       });
       test('promenade gains target when set', () {
@@ -1976,16 +2551,47 @@ void main() {
           'partner promenade clockwise along to next neighbors',
         );
       });
-      test('pull_by drops the default "along"', () {
+      test('pull_by with no direction renders none', () {
+        // `where` defaults to the `unspecified` sentinel since v35, so a bare
+        // pull-by has nothing to silence; this pins the shape, not silencing.
         expect(renderer.render(Figure(move: 'pull_by'), d), 'pull by right');
       });
+      test('pull_by silences an explicit "along" on display only', () {
+        // ContraDB `set_direction_along`: "along" is the implied direction of
+        // a pull-by and is not spoken. The v35 sweep synthesised
+        // `where: along` onto every migrated `pull_by_direction`, so this is
+        // the shape every pre-0.4.0 import carries. Display drops the word;
+        // canonical text (search/dedupe identity) is deliberately unchanged.
+        final f = Figure(move: 'pull_by', params: {'where': 'along'});
+        expect(renderer.render(f, d), 'pull by right');
+        expect(renderer.renderSummary(f, d), 'pull by right');
+        expect(renderer.renderCanonical(f), 'pull by along right');
+      });
+      test(
+        'a normalised legacy pull_by_direction renders like a fresh one',
+        () {
+          // invalid-fixture: pre-v35 move id, normalised before rendering
+          final legacy = Figure(
+            move: 'pull_by_direction',
+            params: {'beats': 2},
+          );
+          final normalised = contraTaxonomy.normalizeFigureV35(legacy);
+          expect(normalised.move, 'pull_by');
+          expect(normalised.params['where'], 'along');
+          expect(renderer.render(normalised, d), 'pull by right');
+          expect(
+            renderer.render(normalised, d),
+            renderer.render(Figure(move: 'pull_by', params: {'beats': 2}), d),
+          );
+        },
+      );
       test('pull_by keeps a non-default direction', () {
         expect(
           renderer.render(
             Figure(move: 'pull_by', params: {'where': 'across'}),
             d,
           ),
-          'pull by across right',
+          'pull by right across',
         );
       });
       test('down_the_hall drops the default "forward" facing', () {
@@ -2634,9 +3240,9 @@ void main() {
       final cases = <String, Figure>{
         'role2s box circulate': Figure(move: 'box_circulate'),
         'partners cross trails across neighbors': Figure(move: 'cross_trails'),
-        'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
+        'role1s poussette neighbors half clockwise': Figure(move: 'poussette'),
         'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
-        'partners square through 4 places': Figure(move: 'square_through'),
+        'partners square through 2 places': Figure(move: 'square_through'),
         'role2s hey right': Figure(move: 'hey'),
         'ones dolphin hey right': Figure(move: 'dolphin_hey'),
         'role1s form long waves': Figure(move: 'form_long_waves'),
@@ -2647,7 +3253,7 @@ void main() {
           move: 'cross_trails',
           params: {'where': 'along'},
         ),
-        'ones poussette neighbors full counterclockwise': Figure(
+        'role1s poussette neighbors full counterclockwise': Figure(
           move: 'poussette',
           params: {'fraction': 'full', 'direction': 'counterclockwise'},
         ),
@@ -2655,9 +3261,9 @@ void main() {
           move: 'facing_star',
           params: {'direction': 'counterclockwise'},
         ),
-        'partners square through 2 places': Figure(
+        'partners square through 4 places': Figure(
           move: 'square_through',
-          params: {'places': 2},
+          params: {'places': 4},
         ),
       };
       cases.forEach((expected, figure) {
@@ -2704,7 +3310,7 @@ void main() {
       test('default renders who + direction + amount', () {
         expect(
           renderer.render(Figure(move: 'orbit'), d),
-          'ones orbit clockwise ½',
+          'role1s orbit clockwise ½',
         );
       });
       test('counterclockwise direction', () {
@@ -2713,13 +3319,13 @@ void main() {
             Figure(move: 'orbit', params: {'direction': 'counterclockwise'}),
             d,
           ),
-          'ones orbit counterclockwise ½',
+          'role1s orbit counterclockwise ½',
         );
       });
       test('verbose spells the amount out', () {
         expect(
           renderer.renderVerbose(Figure(move: 'orbit'), d),
-          'ones orbit clockwise halfway',
+          'role1s orbit clockwise halfway',
         );
       });
     });
@@ -2728,7 +3334,7 @@ void main() {
       test('default: second dir/shoulder are the structural inverse', () {
         expect(
           renderer.render(Figure(move: 'cross_trails'), d),
-          'cross trails - partner across the set right shoulders, neighbor along the set left shoulders',
+          'cross trails - partner across the set passing right shoulders, neighbor along the set passing left shoulders',
         );
       });
       test('dir=along mirrors to "across the set" for the second pair', () {
@@ -2737,7 +3343,7 @@ void main() {
             Figure(move: 'cross_trails', params: {'where': 'along'}),
             d,
           ),
-          'cross trails - partner along the set right shoulders, neighbor across the set left shoulders',
+          'cross trails - partner along the set passing right shoulders, neighbor across the set passing left shoulders',
         );
       });
     });
@@ -2746,7 +3352,7 @@ void main() {
       test('default: half + clockwise -> "back then left"', () {
         expect(
           renderer.render(Figure(move: 'poussette'), d),
-          'half poussette - ones pull neighbor back then left',
+          'half poussette - role1s pull neighbor back then left',
         );
       });
       test('full + counterclockwise -> "back then right"', () {
@@ -2758,7 +3364,7 @@ void main() {
             ),
             d,
           ),
-          'full poussette - ones pull neighbor back then right',
+          'full poussette - role1s pull neighbor back then right',
         );
       });
     });
@@ -2785,13 +3391,22 @@ void main() {
     });
 
     group('square_through (ContraDB squareThroughWords)', () {
-      test('default (4 places): embedded balance + "then repeat" tail', () {
+      test('default (2 places): embedded balance, no tail', () {
         expect(
           renderer.render(Figure(move: 'square_through'), d),
+          'square through two - partner balance & pull by right, then neighbor pull by left',
+        );
+      });
+      test('4 places: embedded balance + "then repeat" tail', () {
+        expect(
+          renderer.render(
+            Figure(move: 'square_through', params: {'places': 4}),
+            d,
+          ),
           'square through four - partner balance & pull by right, then neighbor pull by left, then repeat',
         );
       });
-      test('2 places: no tail', () {
+      test('2 places stated: no tail', () {
         expect(
           renderer.render(
             Figure(move: 'square_through', params: {'places': 2}),
@@ -2812,7 +3427,10 @@ void main() {
       test('balance:false drops the embedded balance', () {
         expect(
           renderer.render(
-            Figure(move: 'square_through', params: {'balance': false}),
+            Figure(
+              move: 'square_through',
+              params: {'balance': false, 'places': 4},
+            ),
             d,
           ),
           'square through four - partner pull by right, then neighbor pull by left, then repeat',
@@ -2820,7 +3438,10 @@ void main() {
       });
       test('verbose spells the embedded balance as "balance and"', () {
         expect(
-          renderer.renderVerbose(Figure(move: 'square_through'), d),
+          renderer.renderVerbose(
+            Figure(move: 'square_through', params: {'places': 4}),
+            d,
+          ),
           'square through four - partner balance and pull by right, then neighbor pull by left, then repeat',
         );
       });
@@ -2987,7 +3608,7 @@ void main() {
             ),
             d,
           ),
-          'cross trails - some imported group across the set right shoulders, along the set left shoulders',
+          'cross trails - some imported group across the set passing right shoulders, along the set passing left shoulders',
         );
       });
       test('poussette drops the direction clause for an unknown turn', () {
@@ -2997,7 +3618,7 @@ void main() {
             Figure(move: 'poussette', params: {'direction': 'sideways'}),
             d,
           ),
-          'half poussette - ones pull neighbor',
+          'half poussette - role1s pull neighbor',
         );
       });
       test('hey surfaces an unknown shoulder rather than blanking', () {
@@ -3148,7 +3769,7 @@ void main() {
           Dialect.canonical,
           decimals: true,
         ),
-        'ones orbit clockwise 0.5',
+        'role1s orbit clockwise 0.5',
       );
     });
 
@@ -3301,11 +3922,12 @@ void main() {
       // a naive line-search into marking the MOVE NAME and leaving the real
       // subject authoritative. box_circulate renders its move name BEFORE the
       // subject, so it is the canonical trap: `moves: {box_circulate:
-      // 'partner circulate'}` yields "partner circulate - partner cross …",
-      // where a `line.indexOf('partner')` finds the move-name "partner" first.
+      // 'partners circulate'}` yields "partners circulate - partners cross …"
+      // (the subject is plural: it agrees with "cross"), where a
+      // `line.indexOf('partners')` finds the move-name "partners" first.
       final dialect = Dialect(
         name: 'Trap',
-        moves: const {'box_circulate': 'partner circulate'},
+        moves: const {'box_circulate': 'partners circulate'},
       );
       final assumed = Figure(
         move: 'box_circulate',
@@ -3314,10 +3936,10 @@ void main() {
       );
       final out = renderer.render(assumed, dialect);
       // The move name is intact — the marker did NOT land inside it …
-      expect(out, contains('partner circulate -'));
-      expect(out, isNot(startsWith('partner (assumed) circulate')));
+      expect(out, contains('partners circulate -'));
+      expect(out, isNot(startsWith('partners (assumed) circulate')));
       // … and the marker trails the ACTUAL subject token instead.
-      expect(out, contains('partner (assumed) cross'));
+      expect(out, contains('partners (assumed) cross'));
       // Exactly one marker (no residue, no double-marking).
       expect('(assumed)'.allMatches(out).length, 1);
 
@@ -3330,11 +3952,88 @@ void main() {
         dialect,
       );
       expect(statedOut, isNot(contains('(assumed)')));
-      expect(statedOut, startsWith('partner circulate -'));
+      expect(statedOut, startsWith('partners circulate -'));
     });
   });
 
   group('global move wording templates', () {
+    group('forced slots ({!name})', () {
+      Dialect wording(String template) =>
+          Dialect.larksRobins.copyWith(moveWordings: {'chain': template});
+      Figure chain(String hand) =>
+          testFigure(move: 'chain', params: {'who': 'role2s', 'hand': hand});
+
+      test('plain {hand} hides the role-implied hand', () {
+        expect(
+          renderer.render(chain('right'), wording('{who} {hand} {move}')),
+          'robins chain',
+        );
+      });
+
+      test('{!hand} shows the role-implied hand', () {
+        expect(
+          renderer.render(chain('right'), wording('{who} {!hand} {move}')),
+          'robins right-hand chain',
+        );
+        expect(
+          renderer.render(chain('right'), wording('{who} [{!hand} ]{move}')),
+          'robins right-hand chain',
+        );
+      });
+
+      test(
+        '{!hand} still shows a contradicting hand and skips unspecified',
+        () {
+          expect(
+            renderer.render(chain('left'), wording('{who} {!hand} {move}')),
+            'robins left-hand chain',
+          );
+          expect(
+            renderer.render(
+              testFigure(move: 'chain', params: {'who': 'role2s'}),
+              wording('{who} {!hand} {move}'),
+            ),
+            'robins chain',
+          );
+        },
+      );
+
+      test('{!prefix} shows an alias-pinned param', () {
+        // The alias bakes `prefix: meltdown` into its name, so the generic
+        // slot pass blanks it; only the forced pass may surface it.
+        final dialect = Dialect.canonical.copyWith(
+          moveWordings: const {'swing': '{!prefix}'},
+        );
+        expect(
+          renderer.render(Figure(move: 'meltdown_swing'), dialect),
+          'meltdown',
+        );
+      });
+
+      test('canonical text is unchanged', () {
+        expect(
+          renderer.renderCanonical(chain('right')),
+          renderer.renderCanonical(
+            testFigure(move: 'chain', params: {'who': 'role2s'}),
+          ),
+        );
+      });
+
+      test('validator and slot analysis accept the bang form', () {
+        expect(
+          FigureRenderer.isValidMoveWordingTemplate('{who} {!hand} {move}'),
+          isTrue,
+        );
+        for (final bad in ['{!}', '{!!hand}', '{! hand}']) {
+          expect(FigureRenderer.isValidMoveWordingTemplate(bad), isFalse);
+        }
+        expect(
+          renderer.moveWordingMissingSlots('chain', '{who} {!hand} {move}'),
+          isNot(contains('hand')),
+        );
+      });
+    });
+
     test('persisted branch registry matches renderer contracts', () {
       for (final entry in kMoveWordingBranchKeys.entries) {
         expect(

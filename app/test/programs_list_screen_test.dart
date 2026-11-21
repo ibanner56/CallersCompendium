@@ -4,16 +4,19 @@ import 'package:drift/drift.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/screens/recently_deleted_screen.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 import 'package:compendium_app/src/widgets/weekday_header_strip.dart';
 
+import 'support/fab_clearance.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
@@ -55,7 +58,7 @@ Future<void> _pump(
       builder: (context, child) {
         final scoped = RepositoriesScope(repositories: repos, child: child!);
         return compact
-            ? AppShellSearchScope(openSearch: () async {}, child: scoped)
+            ? AppShellSearchScope(searchPrograms: () async {}, child: scoped)
             : scoped;
       },
       home: const ProgramsListScreen(),
@@ -70,6 +73,7 @@ List<String> _titlesInOrder(WidgetTester tester) => tester
     .toList();
 
 void main() {
+  group('type filter (ADR-006)', _formFilterTests);
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   testWidgets('compact import menu uses action labels and opens both sources', (
@@ -98,6 +102,51 @@ void main() {
     expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
   });
 
+  for (final compact in [false, true]) {
+    testWidgets('the ⋮ overflow is the last app-bar action '
+        '(${compact ? 'compact' : 'wide'})', (tester) async {
+      final repos = openTestRepositories();
+      // Sorting shows only once there is a program to sort.
+      await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+      await _pump(tester, repos, compact: compact);
+
+      final more = tester.getCenter(
+        find.byKey(const ValueKey('programs-more-actions')),
+      );
+      for (final key in ['programs-sort', 'programs-sort-direction']) {
+        expect(
+          more.dx,
+          greaterThan(tester.getCenter(find.byKey(ValueKey(key))).dx),
+          reason: '⋮ sits after $key, as on the Collection app bar',
+        );
+      }
+    });
+  }
+
+  testWidgets('the last program scrolls clear of the New program FAB', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await repos.programs.create(_program(id: 'p$n', title: 'Program $n'));
+    }
+    await _pump(tester, repos);
+
+    // Fling well past the end, so the list rests at its maximum extent.
+    for (var i = 0; i < 5; i++) {
+      await tester.drag(find.byType(ListView), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+    }
+
+    final lowestRowBottom = tester
+        .widgetList<ProgramListTile>(find.byType(ProgramListTile))
+        .map((t) => tester.getRect(find.byWidget(t)).bottom)
+        .reduce((a, b) => a > b ? a : b);
+    final fab = tester.getRect(find.byKey(const ValueKey('new-program')));
+    expect(lowestRowBottom, lessThanOrEqualTo(fab.top));
+  });
+
   testWidgets('wide import menu keeps source-only labels', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos);
@@ -110,12 +159,42 @@ void main() {
     expect(find.text('Import from ContraDB'), findsNothing);
   });
 
+  testWidgets('wide overflow menu opens Recently deleted', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Gone'));
+    await repos.programs.softDelete('p1', at: _now);
+    await _pump(tester, repos);
+
+    // The screen is generic, so `find.byType(RecentlyDeletedScreen)` would
+    // look for `RecentlyDeletedScreen<dynamic>` and never match the
+    // `RecentlyDeletedScreen<Program>` that is pushed.
+    final recentlyDeleted = find.byWidgetPredicate(
+      (w) => w is RecentlyDeletedScreen<Program>,
+    );
+    expect(recentlyDeleted, findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('programs-recently-deleted')));
+    await tester.pumpAndSettle();
+
+    expect(recentlyDeleted, findsOneWidget);
+    expect(find.text('Gone'), findsOneWidget);
+  });
+
   testWidgets('empty state teaches and offers New program', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos);
 
     expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
     expect(find.text('No programs yet'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('empty-state')),
+        matching: find.byType(BrandMark),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('empty-new-program')), findsOneWidget);
   });
 
@@ -248,10 +327,9 @@ void main() {
       },
     );
 
-    testWidgets('a fixed (non-"Last used") default always opens at its natural '
-        'direction, regardless of what was last used in the list', (
-      tester,
-    ) async {
+    testWidgets('a fixed (non-"Last used") default with no stored direction '
+        'opens at its natural direction, regardless of what was last used in '
+        'the list', (tester) async {
       final repos = openTestRepositories();
       await repos.settings.set(kDefaultProgramSortKey, ProgramSort.title.name);
       await repos.settings.set(kLastUsedProgramSortKey, ProgramSort.title.name);
@@ -265,6 +343,139 @@ void main() {
       await _pump(tester, repos);
 
       expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+    });
+
+    group('configurable direction of a fixed default (issue #1841)', () {
+      Future<void> seedTitles(CompendiumRepositories repos) async {
+        await repos.programs.create(_program(id: 'p1', title: 'Alpha'));
+        await repos.programs.create(_program(id: 'p2', title: 'Zeta'));
+      }
+
+      testWidgets('a fixed default opens in its stored direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultProgramSortKey,
+          ProgramSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        await _pump(tester, repos);
+
+        expect(_titlesInOrder(tester), ['Zeta', 'Alpha']);
+      });
+
+      testWidgets('a fixed default with a different sort key honours its '
+          'stored direction too (Event date, descending)', (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultProgramSortKey,
+          ProgramSort.eventDate.name,
+        );
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Zeta',
+            eventDate: DateTime.utc(2026, 5, 1),
+          ),
+        );
+        await repos.programs.create(
+          _program(
+            id: 'p2',
+            title: 'Alpha',
+            eventDate: DateTime.utc(2026, 3, 1),
+          ),
+        );
+
+        await _pump(tester, repos);
+
+        // Ascending would be Alpha (March) then Zeta (May).
+        expect(_titlesInOrder(tester), ['Zeta', 'Alpha']);
+      });
+
+      for (final bad in <Object?>['sideways', '', 7, true]) {
+        testWidgets('an unrecognised stored direction ($bad) falls back to '
+            'the natural direction without throwing', (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            kDefaultProgramSortKey,
+            ProgramSort.title.name,
+          );
+          await repos.settings.set(kDefaultProgramSortDirectionKey, bad);
+          await seedTitles(repos);
+
+          await _pump(tester, repos);
+
+          expect(tester.takeException(), isNull);
+          expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+        });
+      }
+
+      testWidgets('"Last used" ignores the stored default direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultProgramSortKey, kLastUsedSortSentinel);
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.settings.set(
+          kLastUsedProgramSortKey,
+          ProgramSort.title.name,
+        );
+        await repos.settings.set(
+          kLastUsedProgramSortDirectionKey,
+          SortDirection.ascending.name,
+        );
+        await seedTitles(repos);
+
+        await _pump(tester, repos);
+
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+      });
+
+      testWidgets('a late direction read does not clobber a direction the '
+          'user already chose in-session', (tester) async {
+        final opened = openTestRepositoriesWithDelayedSettingsRead();
+        final repos = opened.repos;
+        final settings = opened.settings;
+        await repos.settings.set(
+          kDefaultProgramSortKey,
+          ProgramSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        settings.holdNextRead(kDefaultProgramSortDirectionKey);
+        await _pump(tester, repos);
+        await settings.readStarted;
+
+        // Flip twice, ending on the natural (ascending) direction the stale
+        // read would overwrite with its stored descending.
+        await tester.tap(find.byKey(const ValueKey('programs-sort-direction')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('programs-sort-direction')));
+        await tester.pumpAndSettle();
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+
+        settings.releaseRead();
+        await tester.pumpAndSettle();
+
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+      });
     });
 
     testWidgets('changing the sort in-list persists it as last-used (key and '
@@ -561,5 +772,399 @@ void main() {
       expect(find.byType(ProgramListTile), findsOneWidget);
       expect(find.text('Keep Me'), findsOneWidget);
     });
+  });
+
+  group('with no programs', () {
+    testWidgets('nothing floats and nothing sorts: the empty state carries '
+        'New program', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos);
+
+      expect(find.byKey(const ValueKey('empty-new-program')), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(find.byKey(const ValueKey('programs-sort')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('programs-sort-direction')),
+        findsNothing,
+      );
+      // Import stays: it is a way to get the first program.
+      expect(find.byKey(const ValueKey('programs-import')), findsOneWidget);
+    });
+
+    testWidgets('the first program brings New, sort and direction back', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+      await _pump(tester, repos);
+
+      expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
+      expect(find.byKey(const ValueKey('programs-sort')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('programs-sort-direction')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  for (final c in fabClearanceCases) {
+    testWidgets('the floating New never covers the last program (${c.name})', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      for (var i = 0; i < 30; i++) {
+        final n = '$i'.padLeft(2, '0');
+        await repos.programs.create(_program(id: 'p$n', title: 'Program $n'));
+      }
+      await _pump(tester, repos);
+      await atPhoneSize(
+        tester,
+        width: c.width,
+        scale: c.scale,
+        keyboard: c.keyboard,
+      );
+      await tester.pumpAndSettle();
+
+      await expectFabClearsLastRow(
+        tester,
+        list: find.byType(ListView),
+        lastRow: find.widgetWithText(ProgramListTile, 'Program 29'),
+      );
+    });
+  }
+}
+
+/// The type filter: a program shows the forms of its dances, and a chip per
+/// set of forms keeps the programs of exactly that set (ADR-006).
+void _formFilterTests() {
+  Dance dance(String id, DanceForm form) =>
+      Dance(id: id, title: id, form: form, createdAt: _now, updatedAt: _now);
+
+  testWidgets('filters programs by the forms of their dances', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    await repos.programs.create(
+      _program(
+        id: 'p-contra',
+        title: 'Contra night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd',
+        title: 'English night',
+        slots: [ProgramSlot(id: 's2', position: 0, danceId: 'e')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-mixed',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's3', position: 0, danceId: 'c'),
+          ProgramSlot(id: 's4', position: 1, danceId: 'e'),
+        ],
+      ),
+    );
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
+    await _pump(tester, repos);
+
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsOneWidget);
+    expect(
+      find.textContaining(RegExp(r'^English \(ECD\) · ')),
+      findsOneWidget,
+      reason: 'the English program row names its form',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night']);
+
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra+ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Mixed night']);
+
+    // Tapping the chosen chip again shows every program.
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra+ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
+
+  testWidgets('offers no filter when every program has one set of forms', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'One',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c')],
+      ),
+    );
+    await repos.programs.create(_program(id: 'p2', title: 'Two'));
+    await _pump(tester, repos);
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
+    expect(find.byKey(const ValueKey('programs-form-match')), findsNothing);
+  });
+
+  /// A contra program, an English one and a mixed one.
+  Future<void> seed(CompendiumRepositories repos) async {
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    await repos.programs.create(
+      _program(
+        id: 'p-contra',
+        title: 'Contra night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd',
+        title: 'English night',
+        slots: [ProgramSlot(id: 's2', position: 0, danceId: 'e')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-mixed',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's3', position: 0, danceId: 'c'),
+          ProgramSlot(id: 's4', position: 1, danceId: 'e'),
+        ],
+      ),
+    );
+  }
+
+  testWidgets('Includes offers a chip per form and lists every program '
+      'that has it', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
+    await _pump(tester, repos);
+    final match = find.byKey(const ValueKey('programs-form-match'));
+    final mixedChip = find.byKey(const ValueKey('programs-form-contra+ecd'));
+    expect(match, findsOneWidget);
+
+    // Only is the default: Contra leaves out the mixed program.
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night']);
+    expect(mixedChip, findsOneWidget);
+
+    // Includes keeps the chosen chip and widens it to the mixed program. Its
+    // chips are single forms, so the mixed chip goes.
+    await tester.tap(
+      find.descendant(of: match, matching: find.text('Includes')),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
+    expect(mixedChip, findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night', 'Mixed night']);
+
+    // Back to Only, with English chosen: the mixed program drops out.
+    await tester.tap(find.descendant(of: match, matching: find.text('Only')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night']);
+
+    // A chip the other mode doesn't offer is dropped, not kept hidden.
+    await tester.tap(mixedChip);
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Mixed night']);
+    await tester.tap(
+      find.descendant(of: match, matching: find.text('Includes')),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
+    // …so switching back to Only doesn't bring it back.
+    await tester.tap(find.descendant(of: match, matching: find.text('Only')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
+
+  testWidgets('Includes offers a form that no program has on its own', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd',
+        title: 'English night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'e')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p-mixed',
+        title: 'Mixed night',
+        slots: [
+          ProgramSlot(id: 's2', position: 0, danceId: 'c'),
+          ProgramSlot(id: 's3', position: 1, danceId: 'e'),
+        ],
+      ),
+    );
+    await _pump(tester, repos);
+    final contraChip = find.byKey(const ValueKey('programs-form-contra'));
+    expect(contraChip, findsNothing, reason: 'no program is contra only');
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('programs-form-match')),
+        matching: find.text('Includes'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(contraChip);
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Mixed night']);
+    // Every program with dances has an English one, so an English chip would
+    // hide nothing: Includes offers none.
+    expect(find.byKey(const ValueKey('programs-form-ecd')), findsNothing);
+  });
+
+  testWidgets('an Includes filter left without a chip is dropped, not '
+      'revived', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await _pump(tester, repos);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('programs-form-match')),
+        matching: find.text('Includes'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
+
+    // The English program gains a contra dance: every program now has
+    // contra, so the Contra chip goes and every program is listed.
+    final english = (await repos.programs.getById('p-ecd'))!;
+    await repos.programs.update(
+      english.copyWith(
+        slots: [
+          ...english.slots,
+          ProgramSlot(id: 's5', position: 1, danceId: 'c'),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('programs-form-contra')), findsNothing);
+    expect(_titlesInOrder(tester), hasLength(3));
+
+    // A new English-only program brings the chip back, but not the filter.
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd2',
+        title: 'Another English night',
+        slots: [ProgramSlot(id: 's6', position: 0, danceId: 'e')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('programs-form-contra')), findsOneWidget);
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
+
+  testWidgets('a deleted dance stops counting at once', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await _pump(tester, repos);
+    expect(find.textContaining('Contra + English (ECD)'), findsWidgets);
+    // A write to the dance alone: the programs are untouched.
+    await repos.dances.softDelete('e', at: _now);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Contra + English (ECD)'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('programs-form-filter')),
+      findsNothing,
+      reason: 'every program with a live dance is now contra only',
+    );
+  });
+
+  testWidgets('the open program stays listed under a filter it fails', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    var hidden = 0;
+    await tester.binding.setSurfaceSize(const Size(600, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: ProgramsListScreen(
+          selectedProgramId: 'p-mixed',
+          onSelectedProgramHidden: () => hidden++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
+    expect(hidden, 0, reason: 'a chip does not close the open program');
+  });
+
+  testWidgets('a filter left without a chip is dropped', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
+    await _pump(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['Contra night']);
+    // The English dance goes: every program with a dance is contra, so no
+    // chips are offered, and the program with no dances is listed again.
+    await repos.dances.softDelete('e', at: _now);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
+    expect(_titlesInOrder(tester), hasLength(4));
+  });
+
+  testWidgets('a filter left with no programs is dropped, not revived', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos);
+    await _pump(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night']);
+    // The only English program gains a contra dance: the filter has nothing
+    // left to show, so every program is listed.
+    final english = (await repos.programs.getById('p-ecd'))!;
+    await repos.programs.update(
+      english.copyWith(
+        slots: [
+          ...english.slots,
+          ProgramSlot(id: 's5', position: 1, danceId: 'c'),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(3));
+    // A new English program does not bring the old filter back.
+    await repos.programs.create(
+      _program(
+        id: 'p-ecd2',
+        title: 'Another English night',
+        slots: [ProgramSlot(id: 's6', position: 0, danceId: 'e')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), hasLength(4));
   });
 }

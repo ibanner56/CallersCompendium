@@ -26,6 +26,7 @@ class PerformWalkthroughOverlay extends StatelessWidget {
     required this.renderer,
     required this.dialect,
     required this.onClose,
+    this.scrollController,
   });
 
   /// The dance's raw walkthrough text (may be empty — an empty state is shown).
@@ -35,6 +36,13 @@ class PerformWalkthroughOverlay extends StatelessWidget {
 
   /// Invoked when the caller dismisses the overlay (close button / scrim tap).
   final VoidCallback onClose;
+
+  /// Drives the body's scroll view, so a host that keeps keyboard focus
+  /// outside the overlay (the program screen's slot-navigation shortcuts) can
+  /// scroll the walkthrough with the arrow and page keys instead of letting
+  /// them fall through to the default scroll action, which cannot choose
+  /// between this scroll view and the card's.
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +117,7 @@ class PerformWalkthroughOverlay extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Flexible(
                         child: SingleChildScrollView(
+                          controller: scrollController,
                           child: Text(
                             text.isEmpty
                                 ? l10n.performWalkthroughEmpty

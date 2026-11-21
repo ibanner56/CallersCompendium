@@ -12,13 +12,21 @@ name: CI
 # `classify` checks only the new range when the previous head has a successful
 # Merge gate; otherwise it conservatively checks the whole PR diff. Pushes retain
 # the path filter because they do not provide the required PR status.
+#
+# `edited` is deliberately not among the PR types. It arrived with the Device
+# Sync tracking gate (#1138), whose job read the PR body and so had to re-run
+# when the body changed; that job was removed in #1338 when the tracking units
+# completed. Without it, editing a PR description no longer starts a second run
+# whose concurrency group cancels the first — which left a `Merge gate` failure
+# on the cancelled suite and forced the next run to re-classify the whole PR
+# diff rather than just the new range.
 on:
   push:
     branches: [main]
     paths-ignore:
       - '**.md'
   pull_request:
-    types: [opened, reopened, synchronize, edited]
+    types: [opened, reopened, synchronize]
 
 # Cancel superseded in-flight runs for the same PR (or ref, for pushes) so a
 # new push doesn't leave stale, redundant builds burning runner minutes.
@@ -46,6 +54,9 @@ jobs:
       app_tests_changed: ${{ steps.classify.outputs.app_tests_changed }}
       server_tests_changed: ${{ steps.classify.outputs.server_tests_changed }}
       builds_changed: ${{ steps.classify.outputs.builds_changed }}
+      apple_native_changed: ${{ steps.classify.outputs.apple_native_changed }}
+      docs_bundle_changed: ${{ steps.classify.outputs.docs_bundle_changed }}
+      changelog_changed: ${{ steps.classify.outputs.changelog_changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: github.event_name == 'pull_request'
@@ -68,6 +79,9 @@ jobs:
               echo 'app_tests_changed=true'
               echo 'server_tests_changed=true'
               echo 'builds_changed=true'
+              echo 'apple_native_changed=true'
+              echo 'docs_bundle_changed=true'
+              echo 'changelog_changed=true'
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -75,157 +89,13 @@ jobs:
             echo '::error::Pull request base or head SHA is unavailable.'
             exit 1
           fi
-          python3 - "$BASE_SHA" "$HEAD_SHA" "$BEFORE_SHA" <<'PY'
-          import json
-          import os
-          import subprocess
-          import sys
-          from urllib.error import HTTPError, URLError
-          from urllib.request import Request, urlopen
-
-          base, head, before = sys.argv[1:]
-          for label, ref in (
-              ('Pull request base', base),
-              ('Pull request head', head),
-          ):
-              resolved = subprocess.run(
-                  ['git', 'rev-parse', '--verify', '--quiet', f'{ref}^{{commit}}'],
-                  capture_output=True,
-                  check=False,
-              )
-              if resolved.returncode:
-                  detail = resolved.stderr.decode(errors='replace').strip()
-                  print(f'::error::{label} SHA does not resolve: {detail}')
-                  raise SystemExit(1)
-
-          def prior_merge_gate_succeeded(sha):
-              token = os.environ.get('GITHUB_TOKEN')
-              repository = os.environ.get('GITHUB_REPOSITORY')
-              if not token or not repository:
-                  print(
-                      '::notice::Cannot confirm the previous Merge gate; '
-                      'checking the full pull request diff.'
-                  )
-                  return False
-              request = Request(
-                  f'https://api.github.com/repos/{repository}/commits/{sha}/check-runs'
-                  '?check_name=Merge%20gate',
-                  headers={
-                      'Accept': 'application/vnd.github+json',
-                      'Authorization': f'Bearer {token}',
-                      'X-GitHub-Api-Version': '2022-11-28',
-                  },
-              )
-              try:
-                  with urlopen(request, timeout=10) as response:
-                      check_runs = json.load(response)['check_runs']
-              except (HTTPError, URLError, KeyError, json.JSONDecodeError) as error:
-                  print(
-                      '::notice::Cannot confirm the previous Merge gate '
-                      f'({error}); checking the full pull request diff.'
-                  )
-                  return False
-              return any(
-                  check_run.get('name') == 'Merge gate'
-                  and check_run.get('status') == 'completed'
-                  and check_run.get('conclusion') == 'success'
-                  and (check_run.get('app') or {}).get('slug') == 'github-actions'
-                  for check_run in check_runs
-              )
-
-          diff_range = f'{base}...{head}'
-          if before and before != head:
-              before_resolved = subprocess.run(
-                  ['git', 'rev-parse', '--verify', '--quiet', f'{before}^{{commit}}'],
-                  capture_output=True,
-                  check=False,
-              )
-              is_ancestor = subprocess.run(
-                  ['git', 'merge-base', '--is-ancestor', before, head],
-                  capture_output=True,
-                  check=False,
-              )
-              if (
-                  before_resolved.returncode == 0
-                  and is_ancestor.returncode == 0
-                  and prior_merge_gate_succeeded(before)
-              ):
-                  diff_range = f'{before}..{head}'
-                  print('Classifying only changes since the successful previous Merge gate.')
-
-          result = subprocess.run(
-              [
-                  'git',
-                  'diff',
-                  '--no-renames',
-                  '--name-only',
-                  '-z',
-                  diff_range,
-              ],
-              capture_output=True,
-              check=False,
-          )
-          if result.returncode:
-              detail = result.stderr.decode(errors='replace').strip()
-              print(f'::error::Unable to determine pull request changes: {detail}')
-              raise SystemExit(1)
-
-          paths = tuple(path for path in result.stdout.split(b'\0') if path)
-          if not paths:
-              print(
-                  '::error::Pull request has no changed paths; refusing to '
-                  'skip validation.'
-              )
-              raise SystemExit(1)
-
-          shared_runtime_paths = {
-              b'.fvmrc',
-              b'pubspec.yaml',
-              b'pubspec.lock',
-              b'analysis_options.yaml',
-              b'.github/workflows/_checks.yml',
-          }
-          core_test_driver_paths = {
-              b'tools/ci/run_core_tests_with_coverage.py',
-              b'tools/ci/check_core_coverage.py',
-              b'tools/ci/check_core_flutter_free.py',
-          }
-          validation_changed = any(not path.endswith(b'.md') for path in paths)
-          core_tests_changed = validation_changed and any(
-              path.startswith(b'packages/compendium_core/')
-              or path in shared_runtime_paths
-              or path in core_test_driver_paths
-              for path in paths
-          )
-          rubric_tests_changed = validation_changed and any(
-              path.startswith(b'packages/compendium_rubric/')
-              or path.startswith(b'packages/compendium_core/')
-              or path in shared_runtime_paths
-              for path in paths
-          )
-          app_tests_changed = validation_changed and any(
-              path.startswith(b'app/')
-              or path.startswith(b'packages/compendium_core/')
-              or path in shared_runtime_paths
-              for path in paths
-          )
-          server_tests_changed = validation_changed and any(
-              path.startswith(b'server/')
-              or path in shared_runtime_paths
-              for path in paths
-          )
-          builds_changed = app_tests_changed
-          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              for name, value in (
-                  ('validation_changed', validation_changed),
-                  ('core_tests_changed', core_tests_changed),
-                  ('rubric_tests_changed', rubric_tests_changed),
-                  ('app_tests_changed', app_tests_changed),
-                  ('server_tests_changed', server_tests_changed),
-                  ('builds_changed', builds_changed),
-              ):
-                  output.write(f'{name}={str(value).lower()}\n')
-          PY
+          # Decision logic lives in tools/ci/classify_changes.py so the
+          # path-to-guard routing can be exercised without a real Actions run.
+          # Its unit test, tools/ci/test_classify_changes.py, runs in
+          # _checks.yml's validate job and in tools/preflight.py -- a
+          # classifier edit is never Markdown-only, so validate always runs
+          # for one. See classify_changes.py for the path sets.
+          python3 tools/ci/classify_changes.py "$BASE_SHA" "$HEAD_SHA" "$BEFORE_SHA"
 
   checks:
     # Delegate to the reusable checks workflow so the same validation/test/guard
@@ -242,6 +112,47 @@ jobs:
       run_app_tests: ${{ needs.classify.outputs.app_tests_changed == 'true' }}
       run_server_tests: ${{ needs.classify.outputs.server_tests_changed == 'true' }}
 
+  # Reuses docs-bundle-check.yml's own checks (that workflow is not a required
+  # status, so its own failure can't block a merge). This job feeds the same
+  # result into merge-gate below for PRs that touch docs_bundle_changed paths.
+  # docs-bundle-check.yml itself is left running unchanged as a push-to-main
+  # safety net; duplicated execution on a relevant PR is accepted.
+  docs-bundle-gate:
+    name: User-docs bundle in sync
+    needs: classify
+    if: needs.classify.outputs.docs_bundle_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test the in-app user-docs sync checker
+        run: python3 tools/ci/test_sync_user_docs.py
+      - name: Guard in-app user-docs bundle single-source (docs/user == assets)
+        run: python3 tools/ci/sync_user_docs.py --check
+      - name: Guard hosted user guides (render + link/anchor integrity)
+        run: python3 tools/site/render_user_docs.py --check
+      - name: Test the hosted-guide renderer (escaping, links, anchors)
+        run: |
+          python3 tools/site/test_markdown_to_html.py
+          python3 tools/site/test_render_user_docs.py
+          python3 tools/site/test_privacy_policy.py
+
+  # Same shape as docs-bundle-gate above, for changelog-structure.yml.
+  changelog-structure-gate:
+    name: CHANGELOG validation
+    needs: classify
+    if: needs.classify.outputs.changelog_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test the changelog structure gate
+        run: python3 tools/ci/test_check_changelog_structure.py
+      - name: Test the changelog fragment compiler
+        run: python3 tools/release/test_compile_changelog_fragments.py
+      - name: Validate pending changelog fragments
+        run: python3 tools/release/compile_changelog_fragments.py --check
+      - name: Guard CHANGELOG structure (version order, no repeated category)
+        run: python3 tools/ci/check_changelog_structure.py
+
   build:
     name: Build (${{ matrix.target }})
     needs: [classify, checks]
@@ -252,8 +163,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Built inside the same ubuntu:22.04 container as release.yml's Linux
+          # leg, so main's push build proves the release toolchain still builds
+          # before a tag does. The container's glibc (2.35) is the documented
+          # floor; the runner it is scheduled on does not affect it.
+          # tools/ci/check_linux_build_runner.py enforces both workflows.
           - target: linux
             os: ubuntu-latest
+            container: ubuntu:22.04@sha256:5ec03bb3441e8b0bf3b4f9cd4629a1ae763010dc3035bb8da3ae6cf026486401
             build_args: linux --release
           - target: android
             os: ubuntu-latest
@@ -268,14 +185,40 @@ jobs:
             os: windows-latest
             build_args: windows --release
     runs-on: ${{ matrix.os }}
+    # Only the Linux leg sets matrix.container. For the others it evaluates to
+    # an empty string, which the runner treats as no container at all.
+    container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Linux desktop dependencies
+      # The container starts with only the base system and runs as root (no
+      # sudo). This runs before checkout because actions/checkout needs git
+      # 2.18 or later, or it downloads a tarball with no .git instead.
+      # Keep the package list the same as release.yml's.
+      - name: Install Linux build dependencies (ubuntu:22.04 container)
         if: matrix.target == 'linux'
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build libgtk-3-dev
-      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+          apt-get update
+          # git, curl, jq, unzip, xz-utils, zip: actions/checkout,
+          #   subosito/flutter-action and the Flutter tool.
+          # clang, cmake, ninja-build, pkg-config, libgtk-3-dev: Flutter's
+          #   Linux toolchain.
+          # libstdc++-12-dev: clang builds against the newest GCC installation
+          #   it finds. On its own it pulls in GCC 11; this makes it GCC 12,
+          #   as on the runner images these legs used to build on, so the C++
+          #   runtime the binaries need is unchanged.
+          # No JDK, deliberately. The jni plugin (pulled in by
+          #   path_provider_android) builds lib/libdartjni.so only when CMake
+          #   finds one. Builds on the runner images did, and shipped a file
+          #   no Linux code loads and that cannot load anyway: it needs
+          #   libjvm.so through a RUNPATH into the build machine's JDK.
+          # binutils, python3: tools/ci/check_linux_glibc_floor.py.
+          apt-get install -y --no-install-recommends \
+            ca-certificates git curl jq unzip xz-utils zip \
+            clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev \
+            binutils python3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         if: matrix.target == 'android'
         with:
           distribution: temurin
@@ -286,10 +229,155 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+      # Two git repositories here belong to a user other than the
+      # container's root: the workspace (created by the runner's user) and
+      # the Flutter SDK (extracted by root, keeping the archive's own uid).
+      # git refuses to work in either ("detected dubious ownership"), and the
+      # flutter tool runs git in its SDK on every invocation.
+      - name: Trust the workspace and Flutter SDK repositories (container)
+        if: matrix.target == 'linux'
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$FLUTTER_ROOT"
       - run: flutter pub get --enforce-lockfile
       - name: Build
         working-directory: app
         run: flutter build ${{ matrix.build_args }}
+      # The binaries need at most the glibc of the container that built them;
+      # this reads what they actually need and fails above the floor.
+      - name: Check the Linux bundle's glibc floor
+        if: matrix.target == 'linux'
+        run: python3 tools/ci/check_linux_glibc_floor.py app/build/linux/x64/release/bundle
+      # Native Swift tests (post-audit finding platform-7). `flutter build`
+      # never compiles the RunnerTests targets, so these steps are the only
+      # place the XCTest suites in app/ios/RunnerTests and
+      # app/macos/RunnerTests are built and run. On a PR they run only when
+      # classify's apple_native_changed is true: a path under app/ios/ or
+      # app/macos/, or .fvmrc, in a diff that is not Markdown-only (an
+      # all-Markdown diff skips validation and so the whole build job). On a
+      # push to main classify sets every output true, so they run on every
+      # push that gets past the '**.md' paths-ignore filter.
+      # tools/ci/check_apple_native_tests.py guards their shape.
+      #
+      # `--config-only --debug` writes the Debug Generated.xcconfig and the
+      # Swift package / plugin wiring that xcodebuild needs, without a second
+      # full Flutter build; the Debug configuration is what the Runner
+      # scheme's TestAction uses. Xcode is the runner image's default, the
+      # same one release.yml builds the shipped app with.
+      - name: Test native Swift code (iOS RunnerTests)
+        if: >-
+          matrix.target == 'ios' &&
+          needs.classify.outputs.apple_native_changed == 'true'
+        working-directory: app
+        timeout-minutes: 30
+        run: |
+          # GitHub runs an unspecified shell as `bash -e`, without pipefail.
+          set -o pipefail
+          xcodebuild -version
+          flutter build ios --config-only --debug --simulator
+          cd ios
+          # Ask xcodebuild which iOS simulators this scheme can actually run
+          # on (so the runtime is one the selected Xcode's SDK supports), then
+          # take an iPhone on the newest iOS. A hard-coded device name breaks
+          # whenever the runner image changes its simulator set.
+          udid="$(xcodebuild -showdestinations -workspace Runner.xcworkspace -scheme Runner \
+            | python3 -c '
+          import re, sys
+          best = None
+          for line in sys.stdin:
+              if "Ineligible destinations" in line:
+                  break
+              m = re.search(r"platform:iOS Simulator,.*?id:([0-9A-Fa-f-]{36}),.*?OS:([0-9.]+), name:(iPhone[^}]*?)\s*\}", line)
+              if m:
+                  key = (tuple(int(p) for p in m.group(2).split(".")), m.group(3))
+                  if best is None or key > best[0]:
+                      best = (key, m.group(1))
+          if best is None:
+              sys.exit("no iPhone simulator destination is available for the Runner scheme")
+          print("Testing on %s (iOS %s)" % (best[0][1], ".".join(map(str, best[0][0]))), file=sys.stderr)
+          print(best[1])
+          ')"
+          # Simulator builds need no signing; CODE_SIGNING_ALLOWED=NO keeps
+          # Xcode from looking for a development team the runner does not have.
+          # set +e so a failing run still reaches the summary below; its
+          # status is taken from PIPESTATUS, not from tee.
+          set +e
+          xcodebuild test \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Debug \
+            -destination "id=$udid" \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild-test.log"
+          status="${PIPESTATUS[0]}"
+          set -e
+          # Report the count whatever the outcome, then fail on xcodebuild's
+          # own status, or if it "succeeded" without running a test (a
+          # testable unticked in the scheme, say). Xcode 26 prints
+          # "Test case '...' passed"; older Xcode "Test Case".
+          log="$RUNNER_TEMP/xcodebuild-test.log"
+          passed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' passed" "$log" || true)"
+          failed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' failed" "$log" || true)"
+          echo "iOS RunnerTests: $passed passed, $failed failed" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::xcodebuild test exited with status $status."
+            exit "$status"
+          fi
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::xcodebuild test reported no passing iOS RunnerTests."
+            exit 1
+          fi
+      - name: Test native Swift code (macOS RunnerTests)
+        if: >-
+          matrix.target == 'macos' &&
+          needs.classify.outputs.apple_native_changed == 'true'
+        working-directory: app
+        timeout-minutes: 30
+        run: |
+          # GitHub runs an unspecified shell as `bash -e`, without pipefail.
+          set -o pipefail
+          xcodebuild -version
+          flutter build macos --config-only --debug
+          cd macos
+          # The project already signs ad hoc (CODE_SIGN_IDENTITY "-", no
+          # team), which is what a hosted test bundle needs to load into the
+          # app on Apple silicon; no override is required.
+          # set +e so a failing run still reaches the summary below; its
+          # status is taken from PIPESTATUS, not from tee.
+          set +e
+          xcodebuild test \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild-test.log"
+          status="${PIPESTATUS[0]}"
+          set -e
+          # Report the count whatever the outcome, then fail on xcodebuild's
+          # own status, or if it "succeeded" without running a test (a
+          # testable unticked in the scheme, say). Xcode 26 prints
+          # "Test case '...' passed"; older Xcode "Test Case".
+          log="$RUNNER_TEMP/xcodebuild-test.log"
+          passed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' passed" "$log" || true)"
+          failed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' failed" "$log" || true)"
+          echo "macOS RunnerTests: $passed passed, $failed failed" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::xcodebuild test exited with status $status."
+            exit "$status"
+          fi
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::xcodebuild test reported no passing macOS RunnerTests."
+            exit 1
+          fi
+      # The Kotlin JVM unit tests in app/android/app/src/test (the incoming
+      # share size cap, copy cleanup and cold-start vs warm routing). Neither
+      # `flutter build` nor `flutter test` compiles them. It runs after the
+      # build because that is what writes the Gradle wrapper (gitignored) and
+      # local.properties. tools/ci/check_android_unit_tests.py guards this step.
+      - name: Android unit tests
+        if: matrix.target == 'android'
+        working-directory: app/android
+        run: ./gradlew :app:testDebugUnitTest
 
   # PR-only single-source gate: a schemaVersion bump in compendium_core's
   # database.dart must ship a migration test/fixture in the same PR. Needs full
@@ -312,43 +400,83 @@ jobs:
       # declarations, 40.7 KiB and 19.4 KiB of history that every reader of
       # those files paid for to reach a one-line constant; moving them to
       # docs/design/ is only safe if a later bump cannot quietly append its
-      # entry nowhere. See tools/ci/check_version_history.py.
+      # entry nowhere. The sync wire version and the ECD taxonomy version are
+      # logged and gated the same way. See tools/ci/check_version_history.py.
       - name: Guard version bumps append their design-doc history entry
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_version_history.py "$BASE_SHA"
+      # Same base ref again, for the opposite mistake: a PR that bumps a
+      # versioned format when main already carries an unreleased vNext should
+      # have amended it. Compares the latest release tag, base and head, so it
+      # needs the tags this checkout's fetch-depth: 0 brings. See
+      # tools/ci/check_version_bump_policy.py.
+      - name: Guard version bumps do not stack on an unreleased vNext
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/ci/check_version_bump_policy.py "$BASE_SHA"
 
-  # Validate the checked-out PR state with the validator from the trusted base.
-  # A PR can change its own validator, so executing the head copy would let the
-  # change disable the ownership policy that is meant to constrain it.
-  tracking-gate:
-    name: Device Sync tracking gate
+  # PR-only advisory reports: they print and never fail. Deliberately not in
+  # Merge gate's needs, and the step is continue-on-error, so a bug in a report
+  # can never block a merge. Each needs the PR base, so each lives here rather
+  # than in _checks.yml. Their tests run in _checks.yml with the other tool suites.
+  advisories:
+    name: Advisory reports
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Validate Device Sync pull-request ownership
+          fetch-depth: 0 # full history so we can diff against the PR base
+      # A change under packages/compendium_core/lib/ with no `core` record in the
+      # PR's fragments: release prep compiles fragments and does not diff the
+      # tree, so the entry would be lost, and core's version bumps only when core
+      # entries exist. Advisory because a pure refactor owes none (maintainer's
+      # decision, #2230). See tools/ci/report_missing_core_changelog.py.
+      - name: Report core changes with no core changelog record (advisory)
+        continue-on-error: true
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          validator="$(mktemp "$RUNNER_TEMP/validate-pr.XXXXXX.py")"
-          trap 'rm -f "$validator"' EXIT
-          git show "$BASE_SHA:tools/tracking/validate_pr.py" > "$validator"
-          python3 "$validator" "$BASE_SHA" "$HEAD_SHA" "$GITHUB_EVENT_PATH" \
-            --root "$GITHUB_WORKSPACE"
-          python3 tools/tracking/validate.py
+        run: python3 tools/ci/report_missing_core_changelog.py "$BASE_SHA" "$HEAD_SHA"
+      # A changed figure definition with a same-named figure in another dance
+      # form's taxonomy (contra `box_the_gnat`, ECD `ecd_box_the_gnat`): the
+      # namesake may need the same change, or may legitimately differ, so this is
+      # a prompt to check and never a failure (maintainer's request, #2230). The
+      # forms come from taxonomy_registry.dart. See tools/ci/report_figure_namesakes.py.
+      - name: Report namesakes of changed figure definitions (advisory)
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 tools/ci/report_figure_namesakes.py "$BASE_SHA" "$HEAD_SHA"
+
+  # A PR that changes the Claude review workflow changes nothing else (unless
+  # its whole change bumps the action's pin, which claude.yml may then match):
+  # claude-code-action refuses to run when its workflow differs from main's (and
+  # still reports success), so anything riding along would merge without the
+  # Claude review it was meant to get. Whole-PR diff against the merge base, never the
+  # incremental range. See tools/ci/check_claude_workflow_isolation.py.
+  claude-workflow-isolation:
+    name: Claude workflow isolation
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history so we can diff against the PR base
+      - name: Test the Claude-workflow isolation gate
+        run: python3 tools/ci/test_check_claude_workflow_isolation.py
+      - name: Guard Claude workflow changes ship alone
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/ci/check_claude_workflow_isolation.py "$BASE_SHA"
 
   # This is the sole required status for main. It runs even when a dependency
   # fails or is skipped, so a cancelled or missing heavy job cannot look green.
   merge-gate:
     name: Merge gate
-    needs: [classify, checks, build, schema-guard, tracking-gate]
+    needs: [classify, checks, build, schema-guard, claude-workflow-isolation, docs-bundle-gate, changelog-structure-gate]
     if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
@@ -357,10 +485,14 @@ jobs:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           VALIDATION_CHANGED: ${{ needs.classify.outputs.validation_changed }}
           BUILDS_CHANGED: ${{ needs.classify.outputs.builds_changed }}
+          DOCS_BUNDLE_CHANGED: ${{ needs.classify.outputs.docs_bundle_changed }}
+          CHANGELOG_CHANGED: ${{ needs.classify.outputs.changelog_changed }}
           CHECKS_RESULT: ${{ needs.checks.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           SCHEMA_GUARD_RESULT: ${{ needs.schema-guard.result }}
-          TRACKING_GATE_RESULT: ${{ needs.tracking-gate.result }}
+          CLAUDE_ISOLATION_RESULT: ${{ needs.claude-workflow-isolation.result }}
+          DOCS_BUNDLE_GATE_RESULT: ${{ needs.docs-bundle-gate.result }}
+          CHANGELOG_GATE_RESULT: ${{ needs.changelog-structure-gate.result }}
         run: |
           set -u
           failed=0
@@ -381,7 +513,7 @@ jobs:
 
           require_success 'Classify changes' "$CLASSIFY_RESULT"
           require_success 'Schema migration gate' "$SCHEMA_GUARD_RESULT"
-          require_success 'Device Sync tracking gate' "$TRACKING_GATE_RESULT"
+          require_success 'Claude workflow isolation' "$CLAUDE_ISOLATION_RESULT"
 
           case "$VALIDATION_CHANGED" in
             true)
@@ -401,6 +533,24 @@ jobs:
             false) require_skipped 'Platform builds' "$BUILD_RESULT" ;;
             *)
               echo "::error::Classify changes produced invalid builds_changed output '$BUILDS_CHANGED'."
+              failed=1
+              ;;
+          esac
+
+          case "$DOCS_BUNDLE_CHANGED" in
+            true) require_success 'User-docs bundle in sync' "$DOCS_BUNDLE_GATE_RESULT" ;;
+            false) require_skipped 'User-docs bundle in sync' "$DOCS_BUNDLE_GATE_RESULT" ;;
+            *)
+              echo "::error::Classify changes produced invalid docs_bundle_changed output '$DOCS_BUNDLE_CHANGED'."
+              failed=1
+              ;;
+          esac
+
+          case "$CHANGELOG_CHANGED" in
+            true) require_success 'CHANGELOG validation' "$CHANGELOG_GATE_RESULT" ;;
+            false) require_skipped 'CHANGELOG validation' "$CHANGELOG_GATE_RESULT" ;;
+            *)
+              echo "::error::Classify changes produced invalid changelog_changed output '$CHANGELOG_CHANGED'."
               failed=1
               ;;
           esac

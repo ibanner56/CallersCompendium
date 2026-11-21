@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Caller's Compendium
+GenericName=Dance Organizer
+Comment=Your caller's box, in the palm of your hand
+Exec=compendium_app %f
+Icon=compendium_app
+StartupWMClass=org.callerscompendium.compendiumApp
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+Keywords=contra;dance;caller;choreography;program;
+MimeType=application/x-callerscompendium-share;

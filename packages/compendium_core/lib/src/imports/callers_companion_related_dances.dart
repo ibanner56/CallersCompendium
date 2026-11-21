@@ -37,30 +37,31 @@ class CcRelatedDanceLinksResult {
 /// - [danceIdByCcRowId]: the same CC-`zk_Dance_ID` → new-Compendium-dance-id
 ///   map `buildCcPrograms` uses, built from the just-committed
 ///   [ImportSession](`callers_companion_usr_import.dart`'s
-///   `_danceIdByCcRowId`) — so a pair can only resolve to a dance this
-///   session actually committed, never an arbitrary/stale id (OWASP: the CC
-///   `Dance_Related` ids are untrusted external data).
+///   `_danceIdByCcRowId`) plus the dances the caller passed as
+///   `earlierDanceIds` (written by the review's per-row Edit, and checked to
+///   still exist) — so a pair can only resolve to a dance this review
+///   committed, never an arbitrary/stale id (OWASP: the CC `Dance_Related` ids
+///   are untrusted external data).
 /// - [existingLinksByDanceId]: each candidate source dance's **current**
 ///   `relatedDance` links (fetched by the caller before this call), used to
 ///   dedupe against links a prior import of the same archive already added.
 ///
-///   **Honest caveat on when this actually fires:** `CallersCompanionUsrImporter`
-///   commits every CC dance through `ImportPipeline`'s `create`/`reimport`/
-///   `link`/`duplicate` actions, and ALL of them rebuild the dance's content —
-///   including its `links` — wholesale from the freshly-parsed draft (which
-///   never carries links; consistent with re-import's "overwrite, don't
-///   merge" philosophy for every other field). So by the time this builder's
-///   caller fetches a candidate source dance, its links have *already* been
-///   reset to empty by that same commit — [existingLinksByDanceId] is
-///   therefore, in the current wiring, always empty for every dance this
-///   builder can be asked about (a dance only becomes a candidate at all by
-///   resolving through [danceIdByCcRowId], which only ever names dances this
-///   very commit just rebuilt). Re-import duplication is thus already
-///   prevented structurally by that full-overwrite step, not by this dedupe
-///   check. The parameter and check are kept anyway — they are correct,
-///   cheap, independently unit-tested, and a safety net if the importer's
-///   commit path ever stops fully rebuilding a dance's links (e.g. a future
-///   change that merges rather than replaces).
+///   **When this actually fires:** `CallersCompanionUsrImporter` commits
+///   every CC dance through `ImportPipeline`. A dance it inserts is new and a
+///   `link` rebuilds the dance's content — including its `links` —
+///   wholesale from the freshly-parsed draft (which never carries links), so
+///   [existingLinksByDanceId] is empty for those. A `reimport` replaces only
+///   the choreography (INTAKE-7) and keeps the dance's links, but a
+///   re-imported dance gets no `Dance_Related` link at all (it is in
+///   [skippedSourceDanceIds]). The dedupe therefore matters for a dance from
+///   `earlierDanceIds` that was not re-imported: this commit did not rebuild
+///   it, and the person may have added a related link to it in the editor
+///   since, so the dedupe is what stops a second copy of the same link. For
+///   the rest it is a safety net.
+/// - [skippedSourceDanceIds]: committed dances that get no link from this
+///   file (the re-imported ones). A pair whose source resolves to one is left
+///   out silently, before its target is resolved, so it raises no
+///   unresolved-endpoint warning for a link that would be dropped anyway.
 ///
 /// **Directional only** (issue #688 decision): each `Dance_Related` row
 /// produces exactly one directed link, on the SOURCE dance, pointing at the
@@ -79,6 +80,7 @@ CcRelatedDanceLinksResult buildCcRelatedDanceLinks(
   CcUsrArchive archive, {
   required Map<String, String> danceIdByCcRowId,
   required Map<String, List<DanceLink>> existingLinksByDanceId,
+  Set<String> skippedSourceDanceIds = const {},
   String Function()? newId,
 }) {
   final mintId = newId ?? uuidV4;
@@ -90,6 +92,7 @@ CcRelatedDanceLinksResult buildCcRelatedDanceLinks(
 
   for (final pair in archive.relatedDancePairs) {
     final sourceDanceId = danceIdByCcRowId[pair.sourceRecordId];
+    if (skippedSourceDanceIds.contains(sourceDanceId)) continue;
     final targetDanceId = danceIdByCcRowId[pair.targetRecordId];
     if (sourceDanceId == null || targetDanceId == null) {
       final unresolved = sourceDanceId == null

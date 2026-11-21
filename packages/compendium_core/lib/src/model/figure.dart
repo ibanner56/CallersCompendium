@@ -35,7 +35,25 @@ const String meanwhileMove = 'meanwhile';
 /// is a structural id, not a taxonomy move, and is stable once serialized.
 const String modifierMove = 'modifier';
 
-/// Maximum number of children either structural container may hold.
+/// Reserved structural move id for a **sequence** container: two or more
+/// figures danced one after another and shown on one line ("balance and
+/// swing", "box the gnat, pull by, and orbit"). Ordinary sequence is still just
+/// the order of a dance's figures; this container exists so an ordered run can
+/// sit where one figure must, such as one side of a [meanwhileMove]. Like the
+/// other two, it is a structural id, not a taxonomy move, and is stable once
+/// serialized.
+const String sequenceMove = 'sequence';
+
+/// Every structural container move id. Anything that must treat the three
+/// kinds alike (codecs, sanitizers, validators) asks [isContainerMove] rather
+/// than listing them, so a kind cannot be missed at one site.
+const Set<String> containerMoves = {meanwhileMove, modifierMove, sequenceMove};
+
+/// Whether [move] is one of the [containerMoves].
+bool isContainerMove(Object? move) => containerMoves.contains(move);
+
+/// Maximum number of children a meanwhile or modifier container may hold (a
+/// sequence holds fewer: [kMaxSequenceFigures]).
 ///
 /// Real choreography never stacks more than a handful of simultaneous actions,
 /// so this is both a UX bound and a **security bound** on the untrusted archive
@@ -49,17 +67,59 @@ const int kMaxMeanwhileSides = 6;
 /// children.
 const int kMaxModifierFigures = kMaxMeanwhileSides;
 
+/// Maximum number of children a [sequenceMove] container may hold. Lower than
+/// the other containers' cap because a sequence must also fit in one phrase
+/// (`PhraseStructure.longestPhraseBeats`): four figures already divide 16
+/// beats into fours.
+const int kMaxSequenceFigures = 4;
+
+/// The child cap for the container kind [move]: [kMaxSequenceFigures] for a
+/// sequence, [kMaxMeanwhileSides] for the other two.
+int maxContainerChildren(String move) =>
+    move == sequenceMove ? kMaxSequenceFigures : kMaxMeanwhileSides;
+
 /// Maximum structural container depth accepted by the strict model and honored
 /// while decoding/sanitizing untrusted `params['figures']`.
 ///
-/// A root container may contain one opposite container, but that child may only
-/// contain ordinary figures. Same-kind nesting and deeper alternation are
-/// rejected by the model and dropped defensively by tolerant decoders.
+/// A root container may contain containers of the other kinds, but those
+/// children may only contain ordinary figures. Same-kind nesting and deeper
+/// alternation are rejected by the model and dropped defensively by tolerant
+/// decoders.
 const int kMaxContainerDepth = 2;
 
-/// Legacy name retained for callers that only need a defensive recursive bound.
-@Deprecated('Use kMaxContainerDepth for structural figure nesting.')
-const int kMaxMeanwhileDepth = 4;
+/// Key of a structural container's optional **title** in its `params`: a
+/// caller-meaningful name for the group ("flutterwheel") shown before the
+/// group's own wording as `"<title> - <rest>"`.
+///
+/// It lives in `params` rather than as a [Figure] field so it is additive for
+/// every build that predates it: the figure codec and Device Sync carry a
+/// container's params through untouched, so an older build keeps the title it
+/// cannot show instead of dropping it. Read it through [Figure.containerTitle],
+/// which normalizes it, never by hand.
+const String containerTitleKey = 'title';
+
+/// Upper bound on a container title's length, in UTF-16 code units. A title
+/// is a name, not prose; [normalizeContainerTitle] clamps (never rejects) so
+/// an oversized title from an untrusted file cannot fail an import.
+const int kMaxContainerTitleLength = 80;
+
+/// The stored form of a container title: [raw] with every run of whitespace
+/// (line breaks included) collapsed to one space, trimmed, and clamped to
+/// [kMaxContainerTitleLength] without splitting a surrogate pair. `null` when
+/// [raw] is not a string or holds nothing but whitespace, which means "no
+/// title".
+String? normalizeContainerTitle(Object? raw) {
+  if (raw is! String) return null;
+  final collapsed = raw.replaceAll(_titleWhitespace, ' ').trim();
+  if (collapsed.isEmpty) return null;
+  if (collapsed.length <= kMaxContainerTitleLength) return collapsed;
+  var end = kMaxContainerTitleLength;
+  final last = collapsed.codeUnitAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end -= 1;
+  return collapsed.substring(0, end).trimRight();
+}
+
+final RegExp _titleWhitespace = RegExp(r'\s+');
 
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
 
@@ -118,8 +178,10 @@ class Figure {
   /// math — a sub-figure's own `beats` is display-only and never counted).
   ///
   /// Enforces the structural caps for **programmatic** construction. A meanwhile
-  /// may contain ordinary figures or modifier containers, but never another
-  /// meanwhile and never a container below that nested modifier.
+  /// may contain ordinary figures or modifier or sequence containers, but never
+  /// another meanwhile and never a container below that nested one.
+  ///
+  /// Every container kind takes an optional [title]; see [_container].
   factory Figure.meanwhile({
     required List<Figure> figures,
     required int beats,
@@ -127,6 +189,7 @@ class Figure {
     bool progression = false,
     Map<String, Object?> extraParams = const {},
     String? wordingOverride,
+    String? title,
   }) {
     _validateContainer(
       containerMove: meanwhileMove,
@@ -141,14 +204,15 @@ class Figure {
       progression: progression,
       extraParams: extraParams,
       wordingOverride: wordingOverride,
+      title: title,
     );
   }
 
   /// Builds a **modifier** container: [figures.first] is the core figure and
   /// later figures are ordered modifiers sharing the container's beat count.
   ///
-  /// A modifier may contain ordinary figures or a meanwhile container, but not
-  /// another modifier and never a deeper container.
+  /// A modifier may contain ordinary figures or a meanwhile or sequence
+  /// container, but not another modifier and never a deeper container.
   factory Figure.modifier({
     required List<Figure> figures,
     required int beats,
@@ -156,6 +220,7 @@ class Figure {
     bool progression = false,
     Map<String, Object?> extraParams = const {},
     String? wordingOverride,
+    String? title,
   }) {
     _validateContainer(
       containerMove: modifierMove,
@@ -170,9 +235,50 @@ class Figure {
       progression: progression,
       extraParams: extraParams,
       wordingOverride: wordingOverride,
+      title: title,
     );
   }
 
+  /// Builds a **sequence** container: [figures] danced in order and shown on
+  /// one line. [beats] is the shared count, as for the other containers; the
+  /// editor keeps it equal to the sum of the children's own counts, except
+  /// for an English sequence that states its own span
+  /// (`ecdSequenceSpanIssue`). The model requires neither.
+  ///
+  /// Holds 2–[kMaxSequenceFigures] children. A sequence may contain ordinary
+  /// figures or a meanwhile or modifier container, but not another sequence
+  /// and never a deeper container.
+  factory Figure.sequence({
+    required List<Figure> figures,
+    required int beats,
+    String? note,
+    bool progression = false,
+    Map<String, Object?> extraParams = const {},
+    String? wordingOverride,
+    String? title,
+  }) {
+    _validateContainer(
+      containerMove: sequenceMove,
+      figures: figures,
+      beats: beats,
+    );
+    return _container(
+      move: sequenceMove,
+      figures: figures,
+      beats: beats,
+      note: note,
+      progression: progression,
+      extraParams: extraParams,
+      wordingOverride: wordingOverride,
+      title: title,
+    );
+  }
+
+  /// Shared body of the three container factories. [title] (or, when it is
+  /// null, an `extraParams[containerTitleKey]`) is stored normalized
+  /// ([normalizeContainerTitle]) under [containerTitleKey], and left out
+  /// altogether when it normalizes to nothing, so an untitled container's
+  /// params are exactly what they were before titles existed.
   static Figure _container({
     required String move,
     required List<Figure> figures,
@@ -181,17 +287,25 @@ class Figure {
     required bool progression,
     required Map<String, Object?> extraParams,
     String? wordingOverride,
-  }) => Figure(
-    move: move,
-    params: {
-      ...extraParams,
-      'beats': beats,
-      'figures': List<Figure>.unmodifiable(figures),
-    },
-    note: note,
-    progression: progression,
-    wordingOverride: wordingOverride,
-  );
+    String? title,
+  }) {
+    final normalizedTitle = normalizeContainerTitle(
+      title ?? extraParams[containerTitleKey],
+    );
+    return Figure(
+      move: move,
+      params: {
+        for (final entry in extraParams.entries)
+          if (entry.key != containerTitleKey) entry.key: entry.value,
+        'beats': beats,
+        'figures': List<Figure>.unmodifiable(figures),
+        containerTitleKey: ?normalizedTitle,
+      },
+      note: note,
+      progression: progression,
+      wordingOverride: wordingOverride,
+    );
+  }
 
   static void _validateContainer({
     required String containerMove,
@@ -205,11 +319,12 @@ class Figure {
         '$containerMove needs at least 2 children',
       );
     }
-    if (figures.length > kMaxMeanwhileSides) {
+    final cap = maxContainerChildren(containerMove);
+    if (figures.length > cap) {
       throw ArgumentError.value(
         figures.length,
         'figures',
-        '$containerMove allows at most $kMaxMeanwhileSides children',
+        '$containerMove allows at most $cap children',
       );
     }
     if (beats < 0) {
@@ -313,8 +428,12 @@ class Figure {
   /// figure and later children are modifiers.
   bool get isModifier => move == modifierMove;
 
-  /// Whether this is either structural container kind.
-  bool get isContainer => isMeanwhile || isModifier;
+  /// Whether this is a **sequence** container: ordered children shown on one
+  /// line.
+  bool get isSequence => move == sequenceMove;
+
+  /// Whether this is any structural container kind.
+  bool get isContainer => isContainerMove(move);
 
   /// The ordered children of a structural container, or empty for an ordinary
   /// figure. Downstream surfaces read this instead of hand-parsing
@@ -322,7 +441,8 @@ class Figure {
   ///
   /// The children are authoritative; their individual `beats` are display-only
   /// and MUST NOT be summed into section totals — the container's own [beats]
-  /// (`params['beats']`) is the single shared count.
+  /// (`params['beats']`) is the single shared count. (A sequence's editor
+  /// derives that count from its children's, but readers still use [beats].)
   List<Figure> get subFigures {
     final raw = params['figures'];
     if (raw is List) {
@@ -333,6 +453,13 @@ class Figure {
     }
     return const [];
   }
+
+  /// The container's optional title ([containerTitleKey]), normalized, or
+  /// null for an untitled container and for every ordinary figure: the key
+  /// means nothing outside a container, so a stray `title` param on a
+  /// taxonomy move or custom figure is never read as one.
+  String? get containerTitle =>
+      isContainer ? normalizeContainerTitle(params[containerTitleKey]) : null;
 
   /// Duration in beats; 0 when unset (taxonomy defaults apply at a higher
   /// layer) — 0 is also legitimate for formation labels.

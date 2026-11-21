@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
+import 'package:compendium_app/src/editor/free_text_composer_controller.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
+import 'package:compendium_app/src/widgets/dashed_border.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/figure_param_editors.dart';
 import 'package:compendium_app/src/widgets/import_gap_badge.dart';
@@ -11,6 +13,7 @@ import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -58,12 +61,14 @@ class _Host extends StatefulWidget {
     this.wireAddModifier = false,
     this.meanwhileAdder,
     this.freeTextAdder,
+    this.freeTextReplacer,
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.allowModifierSelection = true,
     this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
+    this.dialect,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
 
   final List<FigureDraft> drafts;
@@ -79,6 +84,7 @@ class _Host extends StatefulWidget {
   final bool wireAddModifier;
   final Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder;
   final int Function(List<Figure> figures)? freeTextAdder;
+  final int Function(FigureDraft draft, List<Figure> figures)? freeTextReplacer;
   final bool allowAdding;
   final bool allowDuplicating;
   final bool allowModifierSelection;
@@ -89,6 +95,7 @@ class _Host extends StatefulWidget {
   /// behavior unchanged.
   final bool aggressiveBeatsUpdate;
   final bool showWordingOverride;
+  final Dialect? dialect;
 
   @override
   State<_Host> createState() => _HostState();
@@ -132,6 +139,7 @@ class _HostState extends State<_Host> {
               moveParamDefaults: widget.moveParamDefaults,
               mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
+              dialect: widget.dialect,
               showWordingOverride: widget.showWordingOverride,
               allowAdding: widget.allowAdding,
               allowDuplicating: widget.allowDuplicating,
@@ -169,6 +177,21 @@ class _HostState extends State<_Host> {
                         () => widget.drafts.addAll(
                           figures.map(FigureDraft.fromFigure),
                         ),
+                      );
+                      return figures.length;
+                    }
+                  : null,
+              onReplaceWithFreeText: widget.freeTextEntry
+                  ? (draft, figures) {
+                      if (widget.freeTextReplacer != null) {
+                        return widget.freeTextReplacer!(draft, figures);
+                      }
+                      final index = widget.drafts.indexOf(draft);
+                      setState(
+                        () => widget.drafts.replaceRange(index, index + 1, [
+                          for (final figure in figures)
+                            FigureDraft.fromFigure(figure),
+                        ]),
                       );
                       return figures.length;
                     }
@@ -244,12 +267,14 @@ Future<void> _pump(
   bool wireAddModifier = false,
   Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder,
   int Function(List<Figure> figures)? freeTextAdder,
+  int Function(FigureDraft draft, List<Figure> figures)? freeTextReplacer,
   bool allowAdding = true,
   bool allowDuplicating = true,
   bool allowModifierSelection = true,
   bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
+  Dialect? dialect,
   Taxonomy? taxonomy,
   Size surfaceSize = const Size(1200, 2400),
 }) async {
@@ -274,12 +299,14 @@ Future<void> _pump(
       wireAddModifier: wireAddModifier,
       meanwhileAdder: meanwhileAdder,
       freeTextAdder: freeTextAdder,
+      freeTextReplacer: freeTextReplacer,
       allowAdding: allowAdding,
       allowDuplicating: allowDuplicating,
       allowModifierSelection: allowModifierSelection,
       showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
+      dialect: dialect,
     ),
   );
   await tester.pumpAndSettle();
@@ -364,6 +391,57 @@ void main() {
     await _selectMove(tester, 0, 'fac', 'facing_star');
 
     expect(find.text('backing up'), findsOneWidget);
+  });
+
+  testWidgets('picking forward and back starts a long lines (taxonomy v39)', (
+    tester,
+  ) async {
+    // Its default formation is long lines, and a forward and back in long
+    // lines is stored as long lines, so the row is one from the start.
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'forward and back', 'forward_and_back');
+
+    expect(drafts.single.move, 'long_lines');
+    // The figure it stores carries no formation: a build before taxonomy v39
+    // rejects the key, and drops a synced shorthand holding it.
+    final figure = drafts.single.toFigure()!;
+    expect(figure.move, 'long_lines');
+    expect(figure.params, isNot(contains('formation')));
+  });
+
+  testWidgets('a forward and back default applies when the pick routes', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(
+      tester,
+      drafts,
+      moveParamDefaults: const {
+        'forward_and_back': {'goBack': false},
+      },
+    );
+    await _selectMove(tester, 0, 'forward and back', 'forward_and_back');
+
+    expect(drafts.single.move, 'long_lines');
+    expect(drafts.single.params['goBack'], isFalse);
+  });
+
+  testWidgets('a forward and back default formation keeps the pick', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(
+      tester,
+      drafts,
+      moveParamDefaults: const {
+        'forward_and_back': {'formation': 'inARing'},
+      },
+    );
+    await _selectMove(tester, 0, 'forward and back', 'forward_and_back');
+
+    expect(drafts.single.move, 'forward_and_back');
+    expect(drafts.single.params['formation'], 'inARing');
   });
 
   testWidgets('move selector initializes modifier children', (tester) async {
@@ -482,6 +560,170 @@ void main() {
     expect(drafts.single.isMeanwhileGroup, isTrue);
     expect(drafts.single.meanwhileSides, hasLength(2));
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+  });
+
+  group('Add menu is operable from the keyboard alone (#1821)', () {
+    const addKey = ValueKey('figure-add');
+
+    // Focus the Add button by Tab from the top of the page, then open the
+    // menu with Space — no pointer event anywhere.
+    Future<void> openAddMenuByKeyboard(WidgetTester tester) async {
+      var guard = 0;
+      while (!(FocusManager.instance.primaryFocus?.debugLabel ?? '').contains(
+            'figure-add',
+          ) &&
+          guard++ < 80) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        contains('figure-add'),
+        reason: 'Tab should reach the Add button',
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-add-figure')), findsOneWidget);
+    }
+
+    testWidgets(
+      'Enter on the first item reaches the free-text box from an empty dance',
+      (tester) async {
+        final drafts = <FigureDraft>[];
+        await _pump(
+          tester,
+          drafts,
+          freeTextEntry: true,
+          wireAddMeanwhile: true,
+        );
+        await openAddMenuByKeyboard(tester);
+
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pumpAndSettle();
+
+        final field = find.byKey(const ValueKey('figure-free-text-field'));
+        expect(field, findsOneWidget);
+        final editable = tester.state<EditableTextState>(
+          find.descendant(of: field, matching: find.byType(EditableText)),
+        );
+        expect(editable.widget.focusNode.hasFocus, isTrue);
+      },
+    );
+
+    testWidgets('Down + Enter adds a meanwhile container', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true, wireAddMeanwhile: true);
+      await openAddMenuByKeyboard(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(drafts, hasLength(1));
+      expect(drafts.single.isMeanwhileGroup, isTrue);
+    });
+
+    testWidgets('Escape closes the menu and returns focus to Add', (
+      tester,
+    ) async {
+      await _pump(tester, <FigureDraft>[], wireAddMeanwhile: true);
+      await openAddMenuByKeyboard(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('figure-add-figure')), findsNothing);
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        contains('figure-add'),
+      );
+      expect(find.byKey(addKey), findsOneWidget);
+    });
+  });
+
+  group('Row ⋮ menu is operable from the keyboard alone (#1831)', () {
+    // Tab until the focused widget sits under the ⋮ button of row [index], then
+    // open the menu with Space — no pointer event anywhere.
+    Future<void> openRowMenuByKeyboard(WidgetTester tester, int index) async {
+      final menuKey = ValueKey('figure-$index-menu');
+      bool onMenuButton() {
+        var found = false;
+        FocusManager.instance.primaryFocus?.context?.visitAncestorElements((e) {
+          if (e.widget.key == menuKey) found = true;
+          return !found;
+        });
+        return found;
+      }
+
+      var guard = 0;
+      while (!onMenuButton() && guard++ < 120) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      expect(onMenuButton(), isTrue, reason: 'Tab should reach the ⋮ button');
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+      expect(find.byKey(ValueKey('figure-$index-cut')), findsOneWidget);
+    }
+
+    testWidgets('Enter activates the first enabled item (Move down on row 0)', (
+      tester,
+    ) async {
+      final drafts = [
+        FigureDraft(move: 'balance', params: {'beats': 4}),
+        FigureDraft(move: 'swing', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts);
+      await openRowMenuByKeyboard(tester, 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(drafts.map((d) => d.move), ['swing', 'balance']);
+    });
+
+    testWidgets(
+      'Down skips disabled items and Enter activates the one reached (Duplicate)',
+      (tester) async {
+        final drafts = [
+          FigureDraft(move: 'balance', params: {'beats': 4}),
+          FigureDraft(move: 'swing', params: {'beats': 8}),
+        ];
+        await _pump(tester, drafts);
+        await openRowMenuByKeyboard(tester, 1);
+
+        // Row 1 opens on Move up; Move down is disabled on the last row, so Down
+        // goes to Cut and Down again to Duplicate.
+        for (var i = 0; i < 2; i++) {
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+          await tester.pump();
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pumpAndSettle();
+
+        expect(drafts.map((d) => d.move), ['balance', 'swing', 'swing']);
+      },
+    );
+
+    testWidgets('Escape closes the menu and returns focus to the ⋮ button', (
+      tester,
+    ) async {
+      await _pump(tester, [FigureDraft(move: 'balance')]);
+      await openRowMenuByKeyboard(tester, 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('figure-0-cut')), findsNothing);
+      final focus = FocusManager.instance.primaryFocus!;
+      var onButton = false;
+      focus.context!.visitAncestorElements((e) {
+        if (e.widget.key == const ValueKey('figure-0-menu')) onButton = true;
+        return !onButton;
+      });
+      expect(onButton, isTrue);
+    });
   });
 
   testWidgets('Add menu hides unavailable container actions', (tester) async {
@@ -619,7 +861,7 @@ void main() {
       expect(drafts.single.params['who'], 'role2s');
       expect(drafts.single.params['hand'], 'right');
 
-      // Guards the cross-param reaction in _applyNonBeatsParamChange:
+      // Guards the cross-param reaction in core's applyParamChange:
       // deleting it would leave the stale "right" surviving a flip to
       // who=role1s, and "right" is not role1s's implied side.
       await _selectDropdownOption(tester, 'figure-0-who', 'larks');
@@ -691,6 +933,71 @@ void main() {
     await _selectDropdownOption(tester, 'figure-0-prefix', 'meltdown');
     expect(drafts.single.params['prefix'], 'meltdown');
     expect(drafts.single.beats, 16);
+  });
+
+  testWidgets('toggling balance on a flag move removes then adds 4 beats', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    // Entry is the balanced, 8-beat box (taxonomy v38).
+    expect(drafts.single.params['balance'], true);
+    expect(drafts.single.beats, 8);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], false);
+    expect(drafts.single.beats, 4);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], true);
+    expect(drafts.single.beats, 8);
+  });
+
+  testWidgets('balance toggle shifts a manually-set beats value by 4', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    // Entry is balanced; untick it so the toggle under test turns balance on.
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '6');
+    await tester.pumpAndSettle();
+    expect(drafts.single.beatsTouched, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 10);
+    expect(drafts.single.beatsTouched, isTrue);
+  });
+
+  testWidgets('balance toggle keeps beats within 0..64', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    // Entry is balanced; untick it so the first toggle below turns balance on.
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '64');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 64);
+
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '2');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 0);
   });
 
   testWidgets('a loaded figure preserves its beats through a non-beats edit', (
@@ -868,6 +1175,195 @@ void main() {
     });
   });
 
+  group('fraction amount (#2120, taxonomy v39)', () {
+    testWidgets('the amount shows only for other, which seeds and keeps one', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'figure_8',
+            params: const {'fraction': 'half', 'where': 'above', 'beats': 8},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      // A named fraction: no amount field.
+      expect(find.byKey(const ValueKey('figure-0-amount-value')), findsNothing);
+
+      // Picking "other amount…" stores other WITH an amount, never without.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'other amount…');
+      expect(drafts.single.params['fraction'], 'other');
+      expect(drafts.single.params['amount'], 1.5);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('figure-0-amount-value')))
+            .data,
+        '1.5×',
+      );
+
+      // Stepping the amount up. (Beats derived from the amount are pinned in
+      // core's param_change_rules_test; this figure states its beats, which
+      // the editor keeps as the caller's own.)
+      await tester.tap(find.byKey(const ValueKey('figure-0-amount-inc')));
+      await tester.pumpAndSettle();
+      expect(drafts.single.params['amount'], 1.75);
+
+      // Back to a named fraction: the field goes and the amount with it.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'full');
+      expect(find.byKey(const ValueKey('figure-0-amount-value')), findsNothing);
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+    });
+
+    testWidgets('a poussette shows the amount beside its inline fraction', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'half', 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      // Without expanding "More options": the fraction is inline here, and
+      // the amount it reveals must be too.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'other amount…');
+      expect(
+        find.byKey(const ValueKey('figure-0-amount-value')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a legacy poussette asks for its amount without expanding', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'other', 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('figure-0-amount-value')))
+            .data,
+        'choose a value',
+      );
+    });
+
+    testWidgets('the stepper never steps down into a named fraction', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'other', 'amount': 1.25, 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+      final dec = tester.widget<IconButton>(
+        find.byKey(const ValueKey('figure-0-amount-dec')),
+      );
+      expect(dec.onPressed, isNull);
+    });
+
+    testWidgets('a legacy other with no amount asks for one, filling nothing', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'figure_8',
+            params: const {'fraction': 'other', 'where': 'above', 'beats': 8},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      final label = tester.widget<Text>(
+        find.byKey(const ValueKey('figure-0-amount-value')),
+      );
+      expect(label.data, 'choose a value');
+      // Opening the editor stores nothing on the caller's behalf.
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+      expect(drafts.single.params['fraction'], 'other');
+
+      // The first step adopts the seed amount, not the 1¼ floor.
+      await tester.tap(find.byKey(const ValueKey('figure-0-amount-inc')));
+      await tester.pumpAndSettle();
+      expect(drafts.single.params['amount'], 1.5);
+    });
+  });
+
+  group('fraction amount beside the top level (#2120)', () {
+    testWidgets('a meanwhile side never stores other without an amount', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            FigureDraft(
+              move: 'figure_8',
+              params: {'fraction': 'half', 'where': 'above', 'beats': 8},
+            ),
+            FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      await _selectDropdownOption(
+        tester,
+        'figure-0-side-0-fraction',
+        'other amount…',
+      );
+      final side = drafts.single.meanwhileSides!.first;
+      expect(side.params['fraction'], 'other');
+      expect(side.params['amount'], 1.5);
+
+      await _selectDropdownOption(tester, 'figure-0-side-0-fraction', 'full');
+      expect(side.params['fraction'], 'full');
+      expect(side.params.containsKey('amount'), isFalse);
+    });
+
+    testWidgets('a saved other default is not applied to a new figure', (
+      tester,
+    ) async {
+      final drafts = [FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'figure_8': {'fraction': 'other', 'who': 'twos'},
+        },
+      );
+      await _selectMove(tester, 0, 'figure 8', 'figure_8');
+      expect(drafts.single.params['who'], 'twos');
+      expect(drafts.single.params['fraction'], isNot('other'));
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+    });
+  });
+
   group('promenade direction/destination visibility & reset (#989, v30)', () {
     testWidgets('direction resets outside the across/along plane', (
       tester,
@@ -947,7 +1443,7 @@ void main() {
       // Overridden param takes the configured value...
       expect(drafts.single.params['direction'], 'right');
       // ...while non-overridden params keep their taxonomy defaults.
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
       expect(drafts.single.params['beats'], 8);
     });
 
@@ -965,7 +1461,7 @@ void main() {
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.params['direction'], 'left');
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
     });
 
     testWidgets('stale v34 override key not in the move schema is ignored', (
@@ -993,7 +1489,48 @@ void main() {
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.params['direction'], 'left');
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
+    });
+
+    testWidgets(
+      'a balanceable move is seeded balanced, with the balanced beats',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'gnat', 'box_the_gnat');
+
+        // Entry offers the balanced, 8-beat box; the taxonomy default (what a
+        // figure that omits the param means) is unbalanced and 4 beats.
+        expect(drafts.single.params['balance'], isTrue);
+        expect(drafts.single.params['beats'], 8);
+        expect(drafts.single.params['who'], 'neighbors');
+      },
+    );
+
+    testWidgets('long waves are seeded balanced at 4 beats', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'long waves', 'form_long_waves');
+
+      expect(drafts.single.params['balance'], isTrue);
+      expect(drafts.single.params['beats'], 4);
+    });
+
+    testWidgets('a saved per-move default still wins over the entry default', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'box_the_gnat': {'balance': false, 'beats': 4},
+        },
+      );
+      await _selectMove(tester, 0, 'gnat', 'box_the_gnat');
+
+      expect(drafts.single.params['balance'], isFalse);
+      expect(drafts.single.params['beats'], 4);
     });
   });
 
@@ -1160,6 +1697,65 @@ void main() {
     expect(find.byKey(const ValueKey('figure-0-text')), findsOneWidget);
   });
 
+  // A custom figure never renders a wording override (renderer.dart:
+  // `figure.isCustom ? null : _renderWordingOverride`) and the editor hides the
+  // field for it, so an override left behind by a move change is invisible,
+  // persisted data. Every path that changes a draft's move must clear it (#1394).
+  testWidgets('top-level custom creation clears the wording override', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'})
+        ..wordingOverride = 'old wording',
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'scoop them up',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(drafts.single.move, customMove);
+    expect(drafts.single.wordingOverride, isNull);
+  });
+
+  for (final group in const ['meanwhile', 'modifier']) {
+    testWidgets('$group child custom creation clears the wording override', (
+      tester,
+    ) async {
+      List<FigureDraft> children() => [
+        FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8})
+          ..wordingOverride = 'old wording',
+        FigureDraft(move: 'roll_away', params: {'beats': 8}),
+      ];
+      final drafts = <FigureDraft>[
+        group == 'meanwhile'
+            ? FigureDraft(meanwhileSides: children())
+            : FigureDraft(modifierFigures: children()),
+      ]..single.params['beats'] = 8;
+      FigureDraft side() =>
+          (drafts.single.meanwhileSides ?? drafts.single.modifierFigures!)[0];
+      await _pump(tester, drafts, showWordingOverride: true);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-side-0-move-input')),
+        'scoop them up',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(side().move, customMove);
+      expect(side().params['text'], 'scoop them up');
+      expect(side().wordingOverride, isNull);
+    });
+  }
+
   testWidgets('whitespace-only submission does not create a custom figure', (
     tester,
   ) async {
@@ -1236,6 +1832,31 @@ void main() {
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
       'A2',
+    );
+  });
+
+  testWidgets('a group that will not be saved is left out of the Total', (
+    tester,
+  ) async {
+    // One side filled: the group builds no figure, so Save drops it, and its
+    // beats must not appear in the Total either (AUTH-2).
+    final halfFilled = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(),
+      ],
+    )..params['beats'] = 8;
+    final drafts = <FigureDraft>[
+      halfFilled,
+      FigureDraft(move: 'swing', params: {'beats': 16}),
+    ];
+
+    await _pump(tester, drafts);
+
+    expect(find.text('Total: 16 / 64 beats'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
+      'A1',
     );
   });
 
@@ -2002,6 +2623,79 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // Rewriting an unparsed custom's text (AUTH-14, October behaviour audit)
+  // -------------------------------------------------------------------------
+
+  testWidgets(
+    'editing an import-gap custom\'s text makes it the caller\'s own',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'petronella twice', 'beats': 8},
+          customOrigin: CustomOrigin.importGap,
+        ),
+      ];
+      await _pump(tester, drafts);
+      expect(find.byType(ImportGapBadge), findsOneWidget);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-text')),
+        'petronella, two full turns',
+      );
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.customOrigin, CustomOrigin.userEntered);
+      expect(drafts.single.toFigure()!.customOrigin, CustomOrigin.userEntered);
+      expect(find.byType(ImportGapBadge), findsNothing);
+    },
+  );
+
+  for (final group in const ['meanwhile', 'modifier']) {
+    testWidgets('editing an import-gap $group child\'s text makes it the '
+        'caller\'s own', (tester) async {
+      final drafts = <FigureDraft>[
+        group == 'meanwhile'
+            ? FigureDraft(
+                meanwhileSides: [
+                  FigureDraft(
+                    move: customMove,
+                    params: {'text': 'larks orbit', 'beats': 8},
+                    customOrigin: CustomOrigin.importGap,
+                  ),
+                  FigureDraft(move: 'swing', params: {'who': 'partners'}),
+                ],
+              )
+            : FigureDraft(
+                modifierFigures: [
+                  FigureDraft(move: 'swing', params: {'who': 'partners'}),
+                  FigureDraft(
+                    move: customMove,
+                    params: {'text': 'larks orbit', 'beats': 8},
+                    customOrigin: CustomOrigin.importGap,
+                  ),
+                ],
+              ),
+      ]..single.params['beats'] = 8;
+      final children =
+          drafts.single.meanwhileSides ?? drafts.single.modifierFigures!;
+      final child = group == 'meanwhile' ? children[0] : children[1];
+      final index = group == 'meanwhile' ? 0 : 1;
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(ValueKey('figure-0-side-$index-text')),
+        'larks orbit once',
+      );
+      await tester.pumpAndSettle();
+
+      expect(child.customOrigin, CustomOrigin.userEntered);
+    });
+  }
+
+  // -------------------------------------------------------------------------
   // Custom figure beats editor (#795)
   // -------------------------------------------------------------------------
 
@@ -2227,6 +2921,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('cut-banner')), findsNothing);
+  });
+
+  testWidgets('a cut figure is not faded; its state is a Cut badge, a dashed '
+      'outline and its semantics', (tester) async {
+    final handle = tester.ensureSemantics();
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    String summaryLabel(int i) => tester
+        .getSemantics(find.byKey(ValueKey('figure-$i-summary')))
+        .getSemanticsData()
+        .label;
+    expect(find.byKey(const ValueKey('figure-0-cut-badge')), findsNothing);
+    expect(summaryLabel(0), isNot(contains('Cut')));
+
+    await _tapMenuItem(tester, 0, 'cut');
+
+    // Full opacity: no Opacity widget above the row dims its text (a fade took
+    // the text below 4.5:1).
+    final row = find.byKey(const ValueKey('figure-0-summary'));
+    for (final opacity in tester.widgetList<Opacity>(
+      find.ancestor(of: row, matching: find.byType(Opacity)),
+    )) {
+      expect(opacity.opacity, 1.0);
+    }
+    // The state is carried by a Cut badge, a dashed outline, and semantics.
+    expect(find.byKey(const ValueKey('figure-0-cut-badge')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-cut-badge')),
+        matching: find.text('Cut'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widgetList<DashedBorder>(
+            find.ancestor(of: row, matching: find.byType(DashedBorder)),
+          )
+          .single
+          .dashed,
+      isTrue,
+    );
+    expect(summaryLabel(0), contains('Cut'));
+    // The other figure is untouched.
+    expect(find.byKey(const ValueKey('figure-1-cut-badge')), findsNothing);
+    expect(summaryLabel(1), isNot(contains('Cut')));
+    handle.dispose();
   });
 
   testWidgets('cut menu item is disabled on the cut figure itself', (
@@ -3014,6 +3759,32 @@ void main() {
     expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
   });
 
+  testWidgets('Escape in a parameter dropdown closes its menu, then the '
+      'editor', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    ];
+    await _pump(tester, drafts);
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    final who = find.byKey(const ValueKey('figure-0-who'));
+    await tester.tap(who);
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsWidgets);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsNothing);
+    expect(who, findsOneWidget, reason: 'the first Esc only closes the menu');
+
+    // With the menu closed, Esc is the figure editor's, as from its other
+    // controls: it collapses.
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(who, findsNothing);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
   testWidgets('Ctrl+Enter commits and opens the next figure', (tester) async {
     final drafts = <FigureDraft>[FigureDraft(), FigureDraft()];
     await _pump(tester, drafts);
@@ -3429,6 +4200,33 @@ void main() {
       expect(drafts.single.customOrigin, CustomOrigin.userEntered);
     });
 
+    testWidgets('a pasted line break becomes a space, not nothing (#1824)', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(fieldKey),
+        'neighbor balance & swing\r\npartner swing',
+      );
+      expect(
+        tester.widget<TextField>(find.byKey(fieldKey)).controller?.text,
+        'neighbor balance & swing partner swing',
+      );
+      // The field still submits on the keyboard's action; Enter is not a
+      // newline in it.
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(drafts, hasLength(1));
+      expect(
+        drafts.single.toFigure()!.params['text'],
+        'neighbor balance & swing partner swing',
+      );
+    });
+
     testWidgets('keeps input when the callback accepts no figures', (
       tester,
     ) async {
@@ -3446,6 +4244,29 @@ void main() {
         tester.widget<TextField>(find.byKey(fieldKey)).controller?.text,
         'meanwhile-only shorthand',
       );
+    });
+
+    testWidgets('role words from the active dialect parse (Follows chain)', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        dialect: Dialect.leadsFollows,
+      );
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'Follows chain');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, hasLength(1));
+      final figure = drafts.single.toFigure()!;
+      expect(figure.move, 'chain');
+      expect(figure.params['who'], 'role2s');
     });
 
     testWidgets('a `;`-compound line inserts multiple rows', (tester) async {
@@ -3523,6 +4344,74 @@ void main() {
       expect(drafts, hasLength(1));
     });
 
+    testWidgets('Finish adding adds a line still in the box, then closes it '
+        '(AUTH-1)', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Text>(
+              find.descendant(
+                of: find.byKey(doneKey),
+                matching: find.byType(Text),
+              ),
+            )
+            .data,
+        'Finish adding',
+      );
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.tap(find.byKey(doneKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(drafts, hasLength(1));
+      expect(drafts.single.toFigure()!.move, 'swing');
+    });
+
+    testWidgets('a replacement editor clears the pending flag the one it '
+        'replaced left behind', (tester) async {
+      final composer = FreeTextComposerController();
+      addTearDown(composer.dispose);
+      final drafts = <FigureDraft>[];
+      Widget host(Key key) => MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FigureListEditor(
+              key: key,
+              drafts: drafts,
+              taxonomy: contraTaxonomy,
+              phraseStructure: PhraseStructure.standard,
+              onChanged: () {},
+              onAdd: () {},
+              onDelete: (_) {},
+              freeTextEntry: true,
+              onAddFreeText: (figures) => figures.length,
+              freeTextComposerController: composer,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(const ValueKey('first')));
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.pumpAndSettle();
+      expect(composer.hasPendingLine, isTrue);
+
+      // A new key: the replacement attaches before the first is disposed,
+      // and the first's detach no longer clears the flag.
+      await tester.pumpWidget(host(const ValueKey('second')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(composer.hasPendingLine, isFalse);
+    });
+
     testWidgets('a blank submit closes the composer without inserting', (
       tester,
     ) async {
@@ -3539,9 +4428,8 @@ void main() {
       expect(drafts, isEmpty);
     });
 
-    testWidgets('editing an existing figure still uses the structured editor', (
-      tester,
-    ) async {
+    testWidgets('editing an existing figure still opens the structured '
+        'editor', (tester) async {
       final drafts = <FigureDraft>[
         FigureDraft.fromFigure(
           Figure(move: 'swing', params: const {'beats': 8}),
@@ -3549,11 +4437,122 @@ void main() {
       ];
       await _pump(tester, drafts, freeTextEntry: true);
 
-      // Opening an existing row never shows the free-text field; it opens the
-      // structured move input.
+      // Opening an existing row never shows the composer; it opens the
+      // structured move input, whose Enter on unmatched text runs the parser
+      // (below).
       await _openFigure(tester, 0);
       expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
       expect(find.byKey(fieldKey), findsNothing);
+    });
+
+    // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16) revisits
+    // the #419 ruling that a line typed into an existing row is a stated
+    // custom: with free text on, Enter on unmatched Move-box text runs the
+    // parser and replaces the row.
+    Future<void> submitInMoveBox(
+      WidgetTester tester,
+      int index,
+      String line,
+    ) async {
+      await _openFigure(tester, index);
+      await tester.enterText(
+        find.byKey(ValueKey('figure-$index-move-input')),
+        line,
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    List<FigureDraft> threeRows() => [
+      FigureDraft.fromFigure(
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+      ),
+      FigureDraft.fromFigure(
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+      ),
+      FigureDraft.fromFigure(
+        Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+      ),
+    ];
+
+    testWidgets('Enter on unmatched text in an existing row replaces it with '
+        'the parsed figures, in place, collapsed (#1177)', (tester) async {
+      final drafts = threeRows();
+      final kept = drafts[2];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await submitInMoveBox(tester, 1, 'circle left 3/4; turn alone');
+
+      expect(drafts.map((d) => d.move), [
+        'stand_still',
+        'circle',
+        'turn_alone',
+        'swing',
+      ]);
+      expect(drafts[3], same(kept));
+      // The replacements arrive collapsed, as composer rows do, with focus on
+      // the first of them.
+      expect(find.byKey(const ValueKey('figure-1-move-input')), findsNothing);
+      expect(
+        tester.binding.focusManager.primaryFocus?.debugLabel,
+        'figure-row-${drafts[1].id}',
+      );
+    });
+
+    testWidgets('an unrecognized line replaces the row with a badged '
+        'parser-gap custom (#1177)', (tester) async {
+      final drafts = threeRows();
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await submitInMoveBox(tester, 0, 'do a barrel roll into the sunset');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, customMove);
+      expect(drafts[0].customOrigin, CustomOrigin.importGap);
+      expect(find.byType(ImportGapBadge), findsOneWidget);
+    });
+
+    testWidgets('a replacement the list declines falls back to a stated '
+        'custom (#1177)', (tester) async {
+      final drafts = threeRows();
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        freeTextReplacer: (_, _) => 0,
+      );
+
+      await submitInMoveBox(tester, 0, 'circle left 3/4; turn alone');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, customMove);
+      expect(drafts[0].params['text'], 'circle left 3/4; turn alone');
+      expect(drafts[0].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('with free text off, unmatched text is still a stated custom '
+        '(#419)', (tester) async {
+      final drafts = threeRows();
+      await _pump(tester, drafts);
+
+      await submitInMoveBox(tester, 0, 'circle left 3/4; turn alone');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, customMove);
+      expect(drafts[0].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('text that matches a move still selects it (#1177)', (
+      tester,
+    ) async {
+      final drafts = threeRows();
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await submitInMoveBox(tester, 0, 'circle');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, 'circle');
     });
 
     testWidgets('Add appends a blank structured draft when disabled', (
@@ -3675,6 +4674,41 @@ void main() {
       expect(figure.isMeanwhile, isTrue);
       expect(figure.beats, 16);
       expect(figure.subFigures, hasLength(2));
+    });
+
+    // October behaviour audit, AUTH-11: a group's count started at 0 and
+    // never followed its sides.
+    testWidgets('the shared count follows the sides until one is typed', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(meanwhileSides: [FigureDraft(), FigureDraft()])
+          ..params['beats'] = 0,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      Future<void> pick(int side, String move) async {
+        await tester.enterText(
+          find.byKey(ValueKey('figure-0-side-$side-move-input')),
+          move,
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+      }
+
+      await pick(1, 'circle');
+      expect(drafts.single.beats, 8);
+      await pick(0, 'contra corners');
+      expect(drafts.single.beats, 16);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-meanwhile-beats')),
+        '12',
+      );
+      await tester.pumpAndSettle();
+      await pick(0, 'swing');
+      expect(drafts.single.beats, 12);
     });
 
     testWidgets('add side appends a 3rd concurrent figure', (tester) async {
@@ -3961,5 +4995,95 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('partners'), findsWidgets);
     });
+  });
+
+  // #1830: at phone width the Add/Done buttons beside the free-text field left
+  // it so narrow that the help below it was cut off with an ellipsis.
+  testWidgets('free-text box shows its whole help at phone width', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      <FigureDraft>[],
+      freeTextEntry: true,
+      surfaceSize: const Size(360, 800),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+
+    final help = find.textContaining('Enter adds it');
+    expect(help, findsOneWidget);
+    final paragraph = tester.renderObject<RenderParagraph>(help);
+    expect(paragraph.didExceedMaxLines, isFalse);
+    // And the field keeps the width of the box: the buttons sit beneath it.
+    final field = tester.getRect(
+      find.byKey(const ValueKey('figure-free-text-field')),
+    );
+    final add = tester.getRect(
+      find.byKey(const ValueKey('figure-free-text-submit')),
+    );
+    expect(add.top, greaterThanOrEqualTo(field.bottom));
+  });
+
+  // October behaviour audit, AUTH-2, maintainer decision
+  // AUTH-2-incomplete-rows = (b): a row Save leaves out says so on the row.
+  testWidgets('a group Save leaves out is marked on its row (AUTH-2)', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    FigureDraft swing() =>
+        FigureDraft(move: 'swing', params: {'who': 'neighbors', 'beats': 8});
+    await _pump(tester, [
+      swing(),
+      FigureDraft(meanwhileSides: [swing(), FigureDraft()]),
+      FigureDraft(),
+    ]);
+    const marker = 'Not complete, so Save leaves it out.';
+
+    expect(find.byKey(const ValueKey('figure-1-incomplete')), findsOneWidget);
+    expect(find.text(marker), findsOneWidget);
+    // A complete row, and a blank one that has nothing to lose, are not.
+    expect(find.byKey(const ValueKey('figure-0-incomplete')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-2-incomplete')), findsNothing);
+    // Read out with the row, whose label covers what it shows.
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('figure-1-summary'))).label,
+      contains(marker),
+    );
+    handle.dispose();
+  });
+
+  // AUTH-1: a group inside a group is drawn by a list of its own, whose Move
+  // boxes must still be reached by what settles the enclosing list's.
+  testWidgets('closing a row settles a Move box in a group nested inside it '
+      '(AUTH-1)', (tester) async {
+    final side = FigureDraft(move: 'swing', params: {'beats': 8});
+    final nested = FigureDraft(
+      meanwhileSides: [
+        side,
+        FigureDraft(move: 'roll_away', params: {'beats': 8}),
+      ],
+    )..params['beats'] = 8;
+    final modifier = FigureDraft(
+      modifierFigures: [
+        nested,
+        FigureDraft(move: 'orbit', params: {'beats': 8}),
+      ],
+    )..params['beats'] = 16;
+
+    await _pump(tester, [modifier]);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    final box = find.byKey(
+      const ValueKey('figure-0-nested-0-0-side-0-move-input'),
+    );
+    await tester.tap(box);
+    await tester.enterText(box, 'star');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    expect(side.move, 'star');
   });
 }

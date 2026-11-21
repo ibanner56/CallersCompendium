@@ -55,6 +55,7 @@ void main() {
               ),
             ],
             beats: 16,
+            title: 'Hollow Valley Spin',
           ),
           Figure.meanwhile(
             figures: [
@@ -62,6 +63,20 @@ void main() {
                 move: customMove,
                 params: const {'text': 'nested meanwhile custom text'},
                 note: 'nested meanwhile note',
+              ),
+              Figure(move: 'swing'),
+            ],
+            beats: 8,
+          ),
+          Figure.meanwhile(
+            figures: [
+              Figure.sequence(
+                figures: [
+                  Figure(move: 'balance'),
+                  Figure(move: 'swing'),
+                ],
+                beats: 8,
+                title: 'Twin Rivers Shuffle',
               ),
               Figure(move: 'swing'),
             ],
@@ -115,6 +130,8 @@ void main() {
       'nested modifier note', // nested figure note
       'nested meanwhile custom text', // nested custom figure params['text']
       'nested meanwhile note', // nested figure note
+      'Hollow Valley Spin', // container title
+      'Twin Rivers Shuffle', // nested container title
       'scoop them up gently', // figure note
       'commissioned for Sam', // custom-field value
       // Custom-field definitions.
@@ -135,6 +152,114 @@ void main() {
     ]) {
       expect(terms, contains(expected), reason: 'missing source: $expected');
     }
+  });
+
+  // The two branches below are the security-relevant half of #1347. Everywhere
+  // else in the app "we could not read it" is allowed to render as "there is
+  // nothing there"; here it must not, because the redaction set is what keeps
+  // user content out of a scrubbed diagnostic export. Dropping the raw text
+  // under-redacts, which fails open. Both branches were reachable but
+  // unasserted: replacing either with `break` left the whole suite green.
+  group('an undecodable stored list still contributes its raw text', () {
+    test('malformed tunes_json is collected verbatim', () async {
+      const raw = '["Whiskey Before Breakfast", 42]';
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Corrupt',
+          tunes: const ['placeholder'],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      // A list whose element is not a string: the failure is lazy, so the row
+      // loads as `UnreadableTunes` holding this text byte for byte.
+      await repos.db.customStatement(
+        'UPDATE dances SET tunes_json = ? WHERE id = ?',
+        [raw, 'd1'],
+      );
+
+      expect(await collectSensitiveTerms(repos), contains(raw));
+    });
+
+    test('malformed figures_json is collected verbatim', () async {
+      const raw = '[{"move":"swing","note":"scoop them up gently"';
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Corrupt',
+          figures: [Figure(move: 'swing')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repos.db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        [raw, 'd1'],
+      );
+
+      expect(await collectSensitiveTerms(repos), contains(raw));
+    });
+  });
+
+  test('collects the words of a figure of your own and of its uses '
+      '(#1023)', () async {
+    final repos = openTestRepositories();
+    await repos.userGlossary.upsert(
+      UserGlossaryEntry(
+        id: 'zoom-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoomies',
+        definition: 'A zoom.',
+        description: 'Fast.',
+        payload: const {
+          'form': 'contra',
+          'template': 'secret template wording {move} {where}',
+          'defaultBeats': 8,
+          'params': [
+            {'key': 'where', 'kind': 'text', 'default': 'secret default'},
+            {'key': 'loud', 'kind': 'flag', 'label': 'secret flag label'},
+            {
+              'key': 'style',
+              'kind': 'choice',
+              'choices': [
+                {'id': 'a', 'label': 'secret choice label'},
+              ],
+            },
+          ],
+        },
+        createdAt: DateTime.utc(2026, 10, 15),
+      ),
+    );
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Zoom Reel',
+        figures: [
+          userFigureUseFigure(
+            id: 'zoom-id',
+            args: const {'where': 'secret argument'},
+            text: 'zoomies',
+          ),
+        ],
+        createdAt: DateTime.utc(2026, 10, 15),
+        updatedAt: DateTime.utc(2026, 10, 15),
+      ),
+    );
+
+    final terms = await collectSensitiveTerms(repos);
+    expect(
+      terms,
+      containsAll([
+        'secret template wording {move} {where}',
+        'secret default',
+        'secret flag label',
+        'secret choice label',
+        'secret argument',
+      ]),
+    );
   });
 
   test('is fail-closed: a source read error propagates', () async {

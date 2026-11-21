@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/update/artifact_downloader.dart';
 import 'package:compendium_app/src/update/artifact_destination.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
@@ -14,6 +16,8 @@ import 'package:compendium_app/src/update/update_service.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:path/path.dart' as p;
 
 import '../support/test_repositories.dart';
 
@@ -22,6 +26,7 @@ String _manifest({
   String platform = 'macos',
   String arch = 'universal',
   String version = '0.2.0',
+  String host = 'example.com',
 }) =>
     '''
 {
@@ -34,7 +39,7 @@ String _manifest({
     {
       "platform": "$platform",
       "arch": "$arch",
-      "url": "https://example.com/CallersCompendium-$version-$platform-$arch.dmg",
+      "url": "https://$host/CallersCompendium-$version-$platform-$arch.dmg",
       "sha256": "abcd",
       "size": 1000
     }
@@ -69,6 +74,7 @@ void main() {
     ArtifactHandoff? handoff,
     ArtifactDestinationPicker? macosDestinationPicker,
     Future<void> Function()? onMacosShutdown,
+    Future<Directory> Function()? temporaryDirectoryProvider,
     UpdatePlatform platform = UpdatePlatform.macos,
     UpdateArch arch = UpdateArch.universal,
   }) {
@@ -101,7 +107,8 @@ void main() {
           macosDestinationPicker ??
           (artifact) async =>
               File('${tempDir.path}/macos-${downloadFileName(artifact.url)}'),
-      temporaryDirectoryProvider: () async => tempDir,
+      temporaryDirectoryProvider:
+          temporaryDirectoryProvider ?? () async => tempDir,
       onMacosShutdown: onMacosShutdown,
     );
   }
@@ -126,7 +133,7 @@ void main() {
     await c.installPendingMacosUpdate();
 
     expect(c.downloadStatus, AssistedDownloadStatus.completed);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
     expect(handoffs, hasLength(1));
     expect(handoffs.single.platform, UpdatePlatform.macos);
     expect(await handoffs.single.file.exists(), isTrue);
@@ -164,8 +171,7 @@ void main() {
     await c.startAssistedDownload();
 
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
-    expect(c.downloadError, isNotNull);
-    expect(c.downloadError, contains('security'));
+    expect(c.downloadFailure, UpdateDownloadFailure.checksumMismatch);
     expect(handoffs, isEmpty);
     expect(await captured!.exists(), isFalse); // deleted by the gate
   });
@@ -196,8 +202,47 @@ void main() {
     await c.startAssistedDownload();
 
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
-    expect(c.downloadError, isNotNull);
+    expect(c.downloadFailure, UpdateDownloadFailure.unreachable);
     expect(handoffs, isEmpty);
+  });
+
+  test('a download dir left behind by a still-open file is removed once the '
+      'downloader releases it', () async {
+    final repos = openTestRepositories();
+    final released = Completer<void>();
+    File? captured;
+    final c = controller(
+      repos,
+      manifestBody: _manifest(platform: 'windows', arch: 'x64'),
+      platform: UpdatePlatform.windows,
+      arch: UpdateArch.x64,
+      downloader:
+          (
+            artifact, {
+            required destination,
+            client,
+            onProgress,
+            cancelToken,
+          }) async {
+            captured = destination;
+            return DownloadOutcome.cancelled().withReleased(released.future);
+          },
+    );
+    addTearDown(c.dispose);
+    await c.load();
+    await c.checkNow();
+
+    await c.startAssistedDownload();
+    expect(c.downloadStatus, AssistedDownloadStatus.cancelled);
+
+    // On Windows the first removal fails while the downloader still has the
+    // file open; stand in for what it leaves behind.
+    final dir = captured!.parent..createSync(recursive: true);
+    released.complete();
+    for (var i = 0; i < 20 && dir.existsSync(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(dir.existsSync(), isFalse, reason: 'download dir left behind');
   });
 
   test('a Linux reveal handoff completes and reports revealed', () async {
@@ -217,7 +262,7 @@ void main() {
     await c.installPendingMacosUpdate();
 
     expect(c.downloadStatus, AssistedDownloadStatus.completed);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
     expect(c.handoffResult, HandoffResult.revealed);
   });
 
@@ -372,7 +417,7 @@ void main() {
       await c.installPendingMacosUpdate();
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadError, contains('View release'));
+      expect(c.downloadFailure, UpdateDownloadFailure.handoffFailed);
       // The per-attempt temp subdirectory (and its artifact) must be cleaned
       // up on a handoff failure — nothing is left behind for a subsequent
       // download attempt to collide with (issue #626 follow-up).
@@ -449,7 +494,7 @@ void main() {
     await pending;
 
     expect(c.downloadStatus, AssistedDownloadStatus.cancelled);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
   });
 
   test('mobile cannot assist-download (link only)', () async {
@@ -502,7 +547,7 @@ void main() {
     // Re-checking clears the terminal state so the affordance re-arms.
     await c.checkNow();
     expect(c.downloadStatus, AssistedDownloadStatus.idle);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
   });
 
   test('resetDownload clears a terminal state to idle', () async {
@@ -521,7 +566,7 @@ void main() {
 
     c.resetDownload();
     expect(c.downloadStatus, AssistedDownloadStatus.idle);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
   });
 
   group('"never throws" contract (a throwing seam fails closed)', () {
@@ -549,7 +594,7 @@ void main() {
         await c.installPendingMacosUpdate(); // must not rethrow
 
         expect(c.downloadStatus, AssistedDownloadStatus.failed);
-        expect(c.downloadError, isNotNull);
+        expect(c.downloadFailure, UpdateDownloadFailure.installFailed);
         expect(c.isDownloadInFlight, isFalse);
       },
     );
@@ -582,7 +627,7 @@ void main() {
       await c.installPendingMacosUpdate(); // must not rethrow
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadError, isNotNull);
+      expect(c.downloadFailure, UpdateDownloadFailure.installFailed);
       expect(c.isDownloadInFlight, isFalse);
       expect(await captured!.exists(), isFalse); // partial file cleaned up
     });
@@ -602,8 +647,361 @@ void main() {
       await c.installPendingMacosUpdate(); // must not rethrow
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadError, isNotNull);
+      expect(c.downloadFailure, UpdateDownloadFailure.installFailed);
       expect(c.isDownloadInFlight, isFalse);
     });
   });
+
+  group('the failure reason is typed, one per cause (#1396)', () {
+    ArtifactDownloader failing(DownloadOutcome outcome) =>
+        (
+          artifact, {
+          required destination,
+          client,
+          onProgress,
+          cancelToken,
+        }) async => outcome;
+
+    test('an unusable destination is destinationUnavailable', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        macosDestinationPicker: (artifact) async => throw StateError('no dir'),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationUnavailable);
+    });
+
+    test('a size mismatch is incomplete', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader: failing(DownloadOutcome.sizeMismatch('short')),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadFailure, UpdateDownloadFailure.incomplete);
+    });
+
+    test('a refused host is refusedHost', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader: failing(DownloadOutcome.refusedHost('elsewhere')),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadFailure, UpdateDownloadFailure.refusedHost);
+    });
+
+    test('a failed handoff off macOS is handoffFailed', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(platform: 'linux', arch: 'x64'),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
+        handoff: (file, platform) async => HandoffResult.failed,
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.handoffFailed);
+    });
+
+    for (final (outcome, expected) in [
+      (DownloadOutcome.httpError(404), UpdateDownloadFailure.serverError),
+      (
+        DownloadOutcome.fileFailure(
+          'write',
+          const FileSystemException('w', '/secret/path', OSError('full', 28)),
+        ),
+        UpdateDownloadFailure.diskFull,
+      ),
+      (
+        DownloadOutcome.fileFailure(
+          'write',
+          const FileSystemException('w', '/secret/path', OSError('denied', 13)),
+        ),
+        UpdateDownloadFailure.unwritable,
+      ),
+      (
+        DownloadOutcome.networkError('offline'),
+        UpdateDownloadFailure.unreachable,
+      ),
+    ]) {
+      test('${outcome.kind.name} is ${expected.name}, and the failure is '
+          'logged without a path', () async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+        final repos = openTestRepositories();
+        final c = controller(
+          repos,
+          manifestBody: _manifest(),
+          downloader: failing(outcome),
+        );
+        addTearDown(c.dispose);
+        await c.load();
+        await c.checkNow();
+
+        await c.startAssistedDownload();
+
+        expect(c.downloadFailure, expected);
+        expect(sink.records, hasLength(1));
+        expect(sink.records.single.$2, contains(expected.name));
+        expect(sink.records.single.$2, isNot(contains('/secret/path')));
+        expect(
+          sink.records.single.$1,
+          'update_controller.startAssistedDownload',
+        );
+      });
+    }
+
+    test('a fresh attempt and a reset both clear the reason', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader: failing(DownloadOutcome.refusedHost('elsewhere')),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+      await c.startAssistedDownload();
+      expect(c.downloadFailure, isNotNull);
+
+      c.resetDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.idle);
+      expect(c.downloadFailure, isNull);
+    });
+  });
+
+  group('an existing entity at the download path (security-5)', () {
+    // These run the REAL downloader (with a fake HTTP client), so its #626
+    // "refuse anything already at the destination" guard is what decides.
+    const allowedHost = 'release-assets.githubusercontent.com';
+    final body = 'n' * 1000; // the manifest's declared size
+
+    ArtifactDownloader realDownloader({
+      Future<void> Function(File destination)? before,
+      void Function(DownloadOutcome outcome)? onOutcome,
+    }) =>
+        (
+          artifact, {
+          required destination,
+          client,
+          onProgress,
+          cancelToken,
+        }) async {
+          if (before != null) await before(destination);
+          final outcome = await downloadArtifact(
+            artifact,
+            destination: destination,
+            client: MockClient((request) async => http.Response(body, 200)),
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          );
+          onOutcome?.call(outcome);
+          return outcome;
+        };
+
+    test('macOS: a regular file the user chose to Replace in the Save panel '
+        'is replaced, not reported as a network error', () async {
+      final repos = openTestRepositories();
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg')
+        ..writeAsStringSync('last month\'s image');
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) async => chosen,
+        downloader: realDownloader(),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadFailure, isNull);
+      expect(c.downloadStatus, AssistedDownloadStatus.awaitingMacosInstall);
+      expect(await chosen.readAsString(), body);
+    });
+
+    test('macOS: cancelling while the Save panel is open never deletes the '
+        'file it then returns', () async {
+      final repos = openTestRepositories();
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg')
+        ..writeAsStringSync('last month\'s image');
+      final picked = Completer<File?>();
+      var downloaderCalled = false;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) => picked.future,
+        downloader: realDownloader(
+          before: (_) async => downloaderCalled = true,
+        ),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      final run = c.startAssistedDownload();
+      c.cancelDownload();
+      picked.complete(chosen);
+      await run;
+
+      expect(c.downloadStatus, AssistedDownloadStatus.cancelled);
+      expect(downloaderCalled, isFalse);
+      expect(chosen.readAsStringSync(), 'last month\'s image');
+    });
+
+    test('macOS: a symlink at the chosen path is refused as occupied; the '
+        'link and its target are untouched', () async {
+      final repos = openTestRepositories();
+      final target = File('${tempDir.path}/elsewhere/keep.txt')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('do-not-touch');
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg');
+      Link(chosen.path).createSync(target.path);
+      var downloaderCalled = false;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) async => chosen,
+        downloader: realDownloader(
+          before: (_) async => downloaderCalled = true,
+        ),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationOccupied);
+      expect(downloaderCalled, isFalse);
+      expect(
+        FileSystemEntity.typeSync(chosen.path, followLinks: false),
+        FileSystemEntityType.link,
+      );
+      // Windows stores the target with its own separators, so compare paths,
+      // not strings.
+      expect(p.equals(Link(chosen.path).targetSync(), target.path), isTrue);
+      expect(target.readAsStringSync(), 'do-not-touch');
+    });
+
+    test('macOS: a directory at the chosen path is refused as occupied and '
+        'left with its contents', () async {
+      final repos = openTestRepositories();
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg');
+      final inside = File('${chosen.path}/inside.txt')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('keep');
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) async => chosen,
+        downloader: realDownloader(),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationOccupied);
+      expect(Directory(chosen.path).existsSync(), isTrue);
+      expect(inside.readAsStringSync(), 'keep');
+    });
+
+    test('off macOS the temp-dir guard is unchanged: an entity planted at the '
+        'download path is refused, never deleted first', () async {
+      final repos = openTestRepositories();
+      DownloadOutcome? seen;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(
+          platform: 'linux',
+          arch: 'x64',
+          host: allowedHost,
+        ),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
+        // A local attacker who wins the race into the random temp dir: the
+        // file is already there when the controller computes the path, so a
+        // controller that cleared the path on every platform would delete it
+        // and the download would succeed.
+        temporaryDirectoryProvider: () async =>
+            _PlantingTempDir(tempDir, 'CallersCompendium-0.2.0-linux-x64.dmg'),
+        downloader: realDownloader(onOutcome: (outcome) => seen = outcome),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(seen?.kind, DownloadResultKind.destinationOccupied);
+      expect(seen?.message, contains('already exists'));
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationUnavailable);
+    });
+  });
+}
+
+/// A temp root whose [createTemp] plants a regular file at [plantedName] in
+/// each new subdirectory, as an attacker racing the download would.
+class _PlantingTempDir implements Directory {
+  _PlantingTempDir(this._inner, this.plantedName);
+
+  final Directory _inner;
+  final String plantedName;
+
+  @override
+  String get path => _inner.path;
+
+  @override
+  Future<Directory> createTemp([String? prefix]) async {
+    final dir = await _inner.createTemp(prefix);
+    File('${dir.path}/$plantedName').writeAsStringSync('planted');
+    return dir;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _RecordingSink implements CrashLogSink {
+  final List<(String, String)> records = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    records.add((source, error.toString()));
+  }
 }

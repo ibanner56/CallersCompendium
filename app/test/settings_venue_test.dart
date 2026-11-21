@@ -104,4 +104,93 @@ void main() {
 
     expect(find.byType(VenueManagerScreen), findsOneWidget);
   });
+
+  group('turning venue records on offers to link typed programs (GIG-7)', () {
+    final now = DateTime.utc(2026, 1, 1);
+
+    Future<void> typedProgram(
+      CompendiumRepositories repos,
+      String id,
+      String venue, {
+      DateTime? deletedAt,
+    }) => repos.programs.create(
+      Program(
+        id: id,
+        title: id,
+        venue: venue,
+        deletedAt: deletedAt,
+        slots: const [],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    testWidgets('Link links live programs only and keeps the typed text', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await typedProgram(repos, 'live', 'grange  hall');
+      await typedProgram(repos, 'other', 'Town Hall');
+      await typedProgram(
+        repos,
+        'trashed',
+        'Grange Hall',
+        deletedAt: DateTime.utc(2026, 2, 1),
+      );
+      await _pumpProgram(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('general-venue-entity-mode')));
+      await tester.pumpAndSettle();
+      expect(find.text('Link earlier programs?'), findsOneWidget);
+      expect(find.textContaining('Grange Hall'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('venue-link-offer-confirm')));
+      await tester.pumpAndSettle();
+
+      final live = (await repos.programs.getById('live'))!;
+      expect(live.venueId, 'v1');
+      expect(live.venue, 'grange  hall');
+      expect((await repos.programs.getById('other'))!.venueId, isNull);
+      final trashed = (await repos.programs.getById(
+        'trashed',
+        includeDeleted: true,
+      ))!;
+      expect(trashed.venueId, isNull);
+      expect(find.text('Linked 1 program.'), findsOneWidget);
+    });
+
+    testWidgets('Not now links nothing and is not remembered', (tester) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await typedProgram(repos, 'live', 'Grange Hall');
+      await _pumpProgram(tester, repos);
+
+      final toggle = find.byKey(const ValueKey('general-venue-entity-mode'));
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('venue-link-offer-decline')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('live'))!.venueId, isNull);
+
+      // Off and on again: the offer returns, so no answer was stored.
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text('Link earlier programs?'), findsNothing);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text('Link earlier programs?'), findsOneWidget);
+    });
+
+    testWidgets('no offer when nothing matches', (tester) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await typedProgram(repos, 'live', 'Town Hall');
+      await _pumpProgram(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('general-venue-entity-mode')));
+      await tester.pumpAndSettle();
+      expect(find.text('Link earlier programs?'), findsNothing);
+    });
+  });
 }

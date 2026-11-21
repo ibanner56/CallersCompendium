@@ -1,8 +1,14 @@
-import 'package:meta/meta.dart';
-
+import '../model/enums.dart';
 import '../model/figure.dart';
+import '../model/phrase_structure.dart';
+import '../storage/figure_reparse.dart';
 import '../taxonomy/taxonomy.dart';
+import 'beat_implied_balance.dart';
+import 'ecd_bars.dart';
+import 'ecd_figure_parser.dart';
 import 'figure_front_end_fan_out.dart';
+import 'free_text_entry.dart';
+import '../taxonomy/user_figure_use.dart';
 
 /// Upper bound on the length of stored custom text we will feed back through
 /// the parser. Import-gap text is a single figure line (typically a few dozen
@@ -11,26 +17,6 @@ import 'figure_front_end_fan_out.dart';
 /// stored text may have originated from an online import, so per OWASP we treat
 /// it as untrusted even though it now lives locally.
 const int maxReparseTextLength = 2000;
-
-/// The result of re-parsing a figure list: the (possibly rewritten) [figures]
-/// and how many import-gap customs were [upgradedCount] to structured moves.
-@immutable
-class FigureReparseOutcome {
-  const FigureReparseOutcome({
-    required this.figures,
-    required this.upgradedCount,
-  });
-
-  /// The figure list after re-parsing. When [upgradedCount] is 0 this is the
-  /// input list, unchanged (identity preserved so callers can skip writes).
-  final List<Figure> figures;
-
-  /// Number of figures that were import-gap customs at input and now parse to
-  /// a structured taxonomy move.
-  final int upgradedCount;
-
-  bool get changed => upgradedCount > 0;
-}
 
 /// Re-runs the fan-out parser ([parseFigureLineFanOut]) over the stored text of
 /// every [CustomOrigin.importGap] custom figure in [figures], upgrading in place
@@ -57,18 +43,31 @@ class FigureReparseOutcome {
 ///   never-fails), so a malformed line degrades to custom rather than crashing.
 /// - When nothing changes the input list is returned unchanged (identity
 ///   preserved) so repository callers can cheaply skip the write.
+///
+/// An English line's leading bar range counts by [meter], or, with no meter
+/// stated, by [phraseStructure]'s beats per bar ([ecdMeterForBars]).
 FigureReparseOutcome reparseImportGapFigures(
   List<Figure> figures, {
   Taxonomy? taxonomy,
+  String? meter,
+  PhraseStructure? phraseStructure,
 }) {
+  if (phraseStructure != null) {
+    meter = ecdMeterForBars(meter, phraseStructure);
+  }
   List<Figure>? rewritten;
   var upgraded = 0;
 
   for (var i = 0; i < figures.length; i++) {
     final figure = figures[i];
     final result = figure.isContainer
-        ? _tryUpgradeContainer(figure, taxonomy, containerDepth: 1)
-        : _tryUpgradeLeaf(figure, taxonomy);
+        ? _tryUpgradeContainer(
+            figure,
+            taxonomy,
+            containerDepth: 1,
+            meter: meter,
+          )
+        : _tryUpgradeLeaf(figure, taxonomy, meter: meter);
     final replacement = result?.figure;
     if (replacement == null) continue;
     rewritten ??= List<Figure>.of(figures);
@@ -82,8 +81,8 @@ FigureReparseOutcome reparseImportGapFigures(
   );
 }
 
-/// Recurses into either structural container, calling [_tryUpgrade] on each
-/// leaf and itself on each legal opposite-kind child. If any descendant
+/// Recurses into any structural container, calling [_tryUpgrade] on each
+/// leaf and itself on each legal other-kind child. If any descendant
 /// upgrades, rebuilds the container preserving the container's [Figure.beats] —
 /// the group total is the authoritative section-math count and must not be
 /// replaced by child beats.
@@ -101,6 +100,7 @@ FigureReparseOutcome reparseImportGapFigures(
   Figure figure,
   Taxonomy? taxonomy, {
   required int containerDepth,
+  String? meter,
 }) {
   if (!figure.isContainer) return null;
   final children = figure.subFigures;
@@ -113,11 +113,13 @@ FigureReparseOutcome reparseImportGapFigures(
             child,
             taxonomy,
             containerDepth: containerDepth + 1,
+            meter: meter,
           )
         : _tryUpgradeLeaf(
             child,
             taxonomy,
             allowContainerReplacement: containerDepth < kMaxContainerDepth,
+            meter: meter,
           );
     final replacement = result?.figure;
     if (replacement == null ||
@@ -156,8 +158,9 @@ bool _isLegalContainerChild(Figure parent, Figure child) {
   Figure figure,
   Taxonomy? taxonomy, {
   bool allowContainerReplacement = true,
+  String? meter,
 }) {
-  final replacement = _tryUpgrade(figure, taxonomy);
+  final replacement = _tryUpgrade(figure, taxonomy, meter: meter);
   if (replacement == null ||
       (!allowContainerReplacement && replacement.isContainer)) {
     return null;
@@ -167,10 +170,13 @@ bool _isLegalContainerChild(Figure parent, Figure child) {
 
 /// Returns a structured replacement for [figure] if it is an import-gap custom
 /// whose stored text now parses to a structured move, else `null` (leave as-is).
-Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
+Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy, {String? meter}) {
   if (!figure.isCustom || figure.customOrigin != CustomOrigin.importGap) {
     return null;
   }
+  // A use of a figure of your own (#1023) is never an import gap, whatever
+  // its origin says: re-parsing its line would drop the reference.
+  if (hasUserFigureReferenceKeys(figure)) return null;
 
   final rawText = figure.params['text'];
   if (rawText is! String) return null;
@@ -184,18 +190,52 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   final rawBeats = figure.params['beats'];
   final beats = rawBeats is int && rawBeats > 0 ? rawBeats : 0;
 
+  final line = splitForReparse(text, beats);
+  if (line == null) return null;
+
+  // An English dance's line is read by the ECD grammar, never into a contra
+  // move (ADR-006 §5.1, W6). It does not see the dance's formation, so a
+  // ring's fraction ("circle half way") stays a note rather than a guessed
+  // count of places. A leading bar range counts in bars of [meter].
+  if (taxonomy?.form == DanceForm.ecd) {
+    final read = parseEcdFigureLine(
+      line.text,
+      beats: line.beats,
+      progression: figure.progression,
+      meter: meter,
+    );
+    if (read == null || read.isCustom) return null;
+    return read.copyWith(
+      note: _mergeNotes(figure.note, read.note),
+      walkthroughOverride: figure.walkthroughOverride,
+    );
+  }
   final parsed = parseFigureLineFanOut(
-    text,
-    beats: beats,
+    line.text,
+    beats: line.beats,
     progression: figure.progression,
     taxonomy: taxonomy,
+    // Same rule as free-text entry: a saved import-gap custom whose line only
+    // parses with a leftover move/`and back`/number note must stay custom, or
+    // this upgrade would undo the demotion that made it one.
+    demoteNoteTails: true,
   );
 
   // Keep the original when the re-parse is empty or still custom: an import-gap
   // figure that re-parses to custom stays exactly as it was (idempotent).
   if (parsed == null || parsed.isCustom) return null;
 
-  return parsed.copyWith(note: _mergeNotes(figure.note, parsed.note));
+  // Carry the authored per-figure walkthrough snippet across the upgrade: the
+  // editor persists one for a custom figure, and an "upgrade" must not discard
+  // user text. (A `wordingOverride` is never persisted on a custom, #1394, so
+  // there is nothing of it to carry.)
+  // The stored custom is a whole import line, so unless it is a `;` line its
+  // beats are the figure's own and imply a box circulate's or square
+  // through's balance as they do on import (#1975).
+  return beatImpliedBalance(line.text, parsed).copyWith(
+    note: _mergeNotes(figure.note, parsed.note),
+    walkthroughOverride: figure.walkthroughOverride,
+  );
 }
 
 /// Combines the [original] custom figure's note with the newly structured

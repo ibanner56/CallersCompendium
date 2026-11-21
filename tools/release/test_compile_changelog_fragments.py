@@ -44,25 +44,36 @@ _Nothing yet._
 """
 
 
+# Every CHANGELOG fixture below is written with newline="\n". The compiler
+# reads the changelogs back as BYTES (apply_release restores the originals
+# byte-exact) and requires the release-managed marker to be followed by "\n",
+# as it is in the real files (.gitattributes pins eol=lf). Path.write_text
+# without `newline` writes CRLF on Windows, so the marker check used to fail
+# inside the fixture rather than in the code under test, and this suite was
+# red on every Windows checkout while green in Linux CI.
+
 def write_fragment(directory: Path, identifier: str, contents: object) -> None:
     (directory / f"{identifier}.json").write_text(
         json.dumps(contents), encoding="utf-8"
     )
 
 
-def fixture_repo() -> tuple[tempfile.TemporaryDirectory[str], Path]:
+def fixture_repo(core_version: str = "0.2.0") -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    """A release-prep fixture. ``core_version`` is core's pubspec version; CORE's
+    changelog records only 0.1.0, so the default 0.2.0 is a bump that still needs
+    its core entry, and "0.1.0" is an unbumped core."""
     temporary = tempfile.TemporaryDirectory()
     root = Path(temporary.name)
     (root / "changelog.d").mkdir()
     (root / "app").mkdir()
     (root / "packages/compendium_core").mkdir(parents=True)
-    (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8")
+    (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8", newline="\n")
     (root / "app/pubspec.yaml").write_text(
         "name: compendium_app\nversion: 0.2.0\n", encoding="utf-8"
     )
-    (root / "packages/compendium_core/CHANGELOG.md").write_text(CORE, encoding="utf-8")
+    (root / "packages/compendium_core/CHANGELOG.md").write_text(CORE, encoding="utf-8", newline="\n")
     (root / "packages/compendium_core/pubspec.yaml").write_text(
-        "name: compendium_core\nversion: 0.2.0\n", encoding="utf-8"
+        f"name: compendium_core\nversion: {core_version}\n", encoding="utf-8"
     )
     return temporary, root
 
@@ -161,7 +172,7 @@ def cases() -> None:
         assert "A beta regression is fixed." in beta
 
         (root / "app/CHANGELOG.md").write_text(
-            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8"
+            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8", newline="\n"
         )
         try:
             compiler.check_pending_state(root)
@@ -172,7 +183,7 @@ def cases() -> None:
 
         for direct_content in ("Unexpected prose.", "### Unexpected heading"):
             (root / "app/CHANGELOG.md").write_text(
-                APP.replace("_Nothing yet._", direct_content), encoding="utf-8"
+                APP.replace("_Nothing yet._", direct_content), encoding="utf-8", newline="\n"
             )
             try:
                 compiler.check_pending_state(root)
@@ -182,7 +193,7 @@ def cases() -> None:
                 raise AssertionError(f"direct content passed: {direct_content}")
 
         (root / "app/CHANGELOG.md").write_text(
-            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8"
+            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8", newline="\n"
         )
         write_fragment(
             fragments,
@@ -208,7 +219,7 @@ def cases() -> None:
             raise AssertionError("write accepted a direct Unreleased edit")
         assert (root / "app/CHANGELOG.md").read_text(encoding="utf-8") == before
         assert (fragments / "103-write-guard.json").exists()
-        (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8")
+        (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8", newline="\n")
         before = (root / "app/CHANGELOG.md").read_text(encoding="utf-8")
         try:
             compiler.apply_release(
@@ -356,7 +367,7 @@ def cases() -> None:
     finally:
         temporary.cleanup()
 
-    temporary, root = fixture_repo()
+    temporary, root = fixture_repo(core_version="0.1.0")
     try:
         fragments = root / "changelog.d"
         for identifier, text in (
@@ -406,6 +417,103 @@ def cases() -> None:
         temporary.cleanup()
 
 
+def expect_error(fn, needle: str, what: str) -> None:
+    try:
+        fn()
+    except compiler.FragmentError as error:
+        assert needle in str(error), f"{what}: wrong message: {error}"
+    else:
+        raise AssertionError(f"{what}: accepted")
+
+
+def core_version_cases() -> None:
+    """Core's version bumps if and only if pending fragments carry core entries."""
+    core_entry = {"id": "200-core", "user_visible": False, "core": {"added": ["Add a codec."]}}
+    app_entry = {"id": "201-app", "user_visible": True, "app": {"fixed": ["A bug is fixed."]}}
+
+    # A bump with no core entry to record: refused, by version, at both PR and write time.
+    temporary, root = fixture_repo(core_version="0.2.0")
+    try:
+        write_fragment(root / "changelog.d", "201-app", app_entry)
+        fragments = compiler.load_fragments(root / "changelog.d")
+        expect_error(
+            lambda: compiler.check_core_version_recorded(root, fragments),
+            "0.2.0", "bumped core, no core entry (check)",
+        )
+        assert compiler.main(["--root", str(root), "--check"]) == 1, "--check accepted a bump with no core entry"
+        expect_error(
+            lambda: compiler.apply_release(
+                root=root, fragments=fragments, app_version="0.2.0",
+                core_version=None, release_date="2026-02-02",
+            ),
+            "has no [0.2.0] section", "bumped core, no core entry (write)",
+        )
+        assert (root / "changelog.d/201-app.json").exists(), "a refused write consumed a fragment"
+        # The number is the maintainer's: a different bumped number is refused the same way.
+        (root / "packages/compendium_core/pubspec.yaml").write_text(
+            "name: compendium_core\nversion: 9.9.9\n", encoding="utf-8"
+        )
+        expect_error(
+            lambda: compiler.check_core_version_recorded(root, fragments),
+            "9.9.9", "any bumped number",
+        )
+    finally:
+        temporary.cleanup()
+
+    # The same bump with its core entry pending: allowed, whatever the number is.
+    temporary, root = fixture_repo(core_version="0.2.0")
+    try:
+        write_fragment(root / "changelog.d", "200-core", core_entry)
+        compiler.check_core_version_recorded(root, compiler.load_fragments(root / "changelog.d"))
+        assert compiler.main(["--root", str(root), "--check"]) == 0
+    finally:
+        temporary.cleanup()
+
+    # Unbumped core (its section exists), with and without app-only entries: allowed.
+    temporary, root = fixture_repo(core_version="0.1.0")
+    try:
+        compiler.check_core_version_recorded(root, [])
+        write_fragment(root / "changelog.d", "201-app", app_entry)
+        compiler.check_core_version_recorded(root, compiler.load_fragments(root / "changelog.d"))
+        assert compiler.main(["--root", str(root), "--check"]) == 0
+    finally:
+        temporary.cleanup()
+
+    # A suffixed version can never have a section; the message says why.
+    temporary, root = fixture_repo(core_version="0.2.0-dev")
+    try:
+        expect_error(lambda: compiler.check_core_version_recorded(root, []), "bare X.Y.Z", "suffixed core version")
+    finally:
+        temporary.cleanup()
+
+    # An unreadable core pubspec is an error, not a pass.
+    temporary, root = fixture_repo(core_version="0.1.0")
+    try:
+        (root / "packages/compendium_core/pubspec.yaml").write_text("name: compendium_core\n", encoding="utf-8")
+        expect_error(lambda: compiler.check_core_version_recorded(root, []), "no version field", "no version")
+    finally:
+        temporary.cleanup()
+
+    # The half that was already enforced but never tested: core entries need the
+    # core version passed to --write to match core's pubspec.
+    temporary, root = fixture_repo(core_version="0.1.0")
+    try:
+        write_fragment(root / "changelog.d", "200-core", core_entry)
+        write_fragment(root / "changelog.d", "201-app", app_entry)
+        fragments = compiler.load_fragments(root / "changelog.d")
+        expect_error(
+            lambda: compiler.apply_release(
+                root=root, fragments=fragments, app_version="0.2.0",
+                core_version="0.2.0", release_date="2026-02-02",
+            ),
+            "core version must match", "core version differs from pubspec",
+        )
+        assert len(list((root / "changelog.d").glob("*.json"))) == 2, "a refused write consumed a fragment"
+    finally:
+        temporary.cleanup()
+
+
 if __name__ == "__main__":
     cases()
+    core_version_cases()
     print("OK: changelog fragment compiler tests passed")

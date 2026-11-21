@@ -1,10 +1,27 @@
 # Contributing to Caller's Compendium
 
-Thanks for helping build a community-maintained tool for dance callers! The
-best starting point is the [roadmap](docs/ROADMAP.md) and the design docs in
-[docs/design/](docs/design/). [docs/dev/README.md](docs/dev/README.md) maps
-which document answers which question — including which files are **generated**
-and must not be hand-edited.
+Thank you for helping build a community-maintained tool for dance callers.
+Contributions of every kind are welcome, and many of the most valuable ones
+need no code at all.
+
+## Ways to contribute
+
+- **Use it and tell us how it went.** Callers testing the app at real gigs are
+  the project's most important source of feedback — see the
+  [Beta guide](docs/beta/beta-guide.md) and [Feedback & beta](#feedback--beta)
+  below.
+- **Report bugs and suggest features** through the
+  [issue forms](https://github.com/ibanner56/CallersCompendium/issues/new/choose).
+- **Improve the user guides.** The [user docs](docs/user/) are plain Markdown;
+  the [style guide](docs/user/style-guide.md) explains the conventions.
+- **Share dance-notation expertise.** Interesting or unusual dances that stress
+  the figure model make excellent test cases.
+- **Translate the interface** — see [docs/dev/localization.md](docs/dev/localization.md).
+- **Write code.** Start with the [roadmap](docs/ROADMAP.md) and the design docs
+  in [docs/design/](docs/design/). [docs/dev/README.md](docs/dev/README.md) maps
+  which document answers which question — including which files are
+  **generated** and must not be hand-edited. The rest of this guide covers the
+  development workflow.
 
 Working through an agent? [`AGENTS.md`](AGENTS.md) is the resident guide, and
 [docs/dev/agents/](docs/dev/agents/) holds the per-phase chapters it points at.
@@ -12,11 +29,13 @@ Working through an agent? [`AGENTS.md`](AGENTS.md) is the resident guide, and
 ## Ground rules
 
 - Be kind. See our [Code of Conduct](CODE_OF_CONDUCT.md).
-- The project is **AGPL-3.0**; all contributions are accepted under that
+- The project is **AGPL-3.0-only**; all contributions are accepted under that
   license, together with the [App Store / managed-marketplace distribution
-  exception](LICENSE-EXCEPTION.md) (an AGPL-3.0 §7 additional permission) — so
+  exception](LICENSE-EXCEPTION.md) (an AGPL-3.0-only §7 additional permission) — so
   the app can be published on the App Store and Google Play while the source
-  stays fully AGPL-3.0.
+  stays fully AGPL-3.0-only.
+- If you port code from another project, its license notice must ship with the
+  port: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - Significant design changes start as a discussion or an ADR proposal
   (see below) — not as a surprise PR.
 
@@ -35,15 +54,113 @@ error paths, and edge cases. UI changes include widget tests where practical
 and must satisfy the [accessibility baseline](docs/research/accessibility-baseline.md)
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
+CI holds a line-coverage floor on both packages, generated sources excluded:
+`compendium_core` at 80% (`tools/ci/check_core_coverage.py`) and the app at 90%
+(`tools/ci/check_app_coverage.py`, which fails when the report is missing or
+empty rather than skipping). Both gate only what the tests load, so a file no
+test imports is not measured. The floors are a backstop, not the target: raise
+one when the measured number rises, and do not lower one to land a change.
+
+### Screenshots for UI changes
+A PR from an external contributor that changes anything a user can see includes
+screenshots of the change in its body. Without them the PR is not ready for
+review — a reviewer who cannot see the change cannot tell a fix from a
+regression. A PR opened by the maintainer (@ibanner56), or by an agent
+session working for them under any account, does not need them.
+
+- **What counts:** every surface whose appearance or wording changes — screens,
+  dialogs, navigation, empty and error states, platform chrome. Not just
+  layout; a renamed button or a new tooltip is a UI change.
+- **Before and after**, of the same surface at the same size, so the reviewer
+  can see what moved. A brand-new surface has no "before": the after shot is
+  enough.
+- **A short recording** instead of stills when the change is motion, timing, or
+  a transition (attach a `.gif` or `.mp4` to the body).
+- **Attached to the PR body**, not linked from the branch. A link to a file on
+  the branch stops resolving when the branch is deleted; an uploaded attachment
+  stays with the PR.
+- **The build that changed.** State the platform, window size, and build the
+  shot is from — a screenshot of a different platform or of a debug banner over
+  the area under review demonstrates nothing.
+
+When no device or simulator is available, a golden rendered with
+`fvm flutter test --update-goldens` is acceptable evidence if it covers the
+whole surface that changed; say in the body that it is a golden, and at which
+surface size.
+
+### Versioned formats: bank changes in the unreleased vNext
+Four version numbers mark formats other installs depend on:
+
+| Version | Declared in | Process |
+| --- | --- | --- |
+| `kCompendiumSchemaVersion` | `packages/compendium_core/lib/src/storage/database.dart` | [Database schema migrations](#database-schema-migrations) |
+| `contraTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart` | [Taxonomy version history](docs/design/figure-taxonomy.md#taxonomy-version-history) |
+| `syncWireVersion` | `packages/compendium_core/lib/src/sync/sync_codec.dart` | [sync-spec §7.2](docs/design/sync-spec.md#72-allow-list-validation), "An unreleased `v`"; [Wire version history](docs/design/sync-spec.md#wire-version-history) |
+| `ecdTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart` | [ECD taxonomy versions](docs/design/figure-taxonomy.md#ecd-taxonomy-versions) |
+
+A version is only worth a number once something outside `main` carries it.
+If the latest release tag carries an older value than `main`, that value is
+the unreleased *vNext*. Add your change to vNext rather than bumping again, so
+that every unreleased change ships together under one number (the maintainer's
+direction of 2026-10-13, recorded in the description of
+[#1752](https://github.com/ibanner56/CallersCompendium/pull/1752), which the
+authoring session wrote; there is no tracker comment). Bump only when the tag's
+value matches `main`'s.
+Check all four at once with:
+
+```sh
+git fetch --tags origin
+tag=$(git for-each-ref --sort=-creatordate --count=1 \
+  --format='%(refname:short)' 'refs/tags/v*')
+for ref in "$tag" origin/main; do
+  echo "$ref:"
+  git show "$ref":packages/compendium_core/lib/src/storage/database.dart \
+    | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart \
+    | grep -o 'contraTaxonomyVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/sync/sync_codec.dart \
+    | grep -o 'syncWireVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart \
+    | grep -o 'ecdTaxonomyVersion = [0-9]*'
+done
+```
+
+The wire version needs one more step. The Athenaeum server is deployed ahead
+of app releases and validates manifests with this same codec, so a server
+image built after a wire bump already enforces vNext. That doesn't make vNext
+shipped: amend it all the same, and redeploy the server before any client
+emits the amended form, as for any manifest change. Ask the maintainer what is
+deployed if you can't tell.
+
+A second bump is gated: `check_version_bump_policy.py` fails a PR that raises
+one of these four constants while `main` already carries a value above the
+latest release tag's, and names the constant. It compares tags only, never
+what is deployed. When you amend vNext rather than bump, none of the CI version
+gates (`check_schema_migration.py`, `check_version_history.py`,
+`check_version_bump_policy.py`) notices, because the constant does not move.
+Amending vNext's ledger entry and tests is on you. Anything run from source at
+vNext before your change (a dev database, a dev sync store) does not see it
+again. Recreate it rather than bumping.
+
 ### Database schema migrations
 The local database schema is versioned by `schemaVersion` in
 [`packages/compendium_core/lib/src/storage/database.dart`](packages/compendium_core/lib/src/storage/database.dart).
 When you change the schema:
 
-- Bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
+- **First check whether head has shipped**, as
+  [above](#versioned-formats-bank-changes-in-the-unreleased-vnext). If it has
+  not, add your change to vNext instead of bumping: see
+  [Adding to an unreleased version](#adding-to-an-unreleased-version) below.
+- When you do bump, bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
   migration test/fixture (`test/storage/migration_test.dart` and/or a
   `test/storage/fixtures/` fixture). CI **fails** a PR that bumps
-  `schemaVersion` without adding or changing such a test/fixture.
+  `schemaVersion` without adding or changing such a test/fixture. A test built
+  from a drift schema dump seeds its own rows, so it cannot notice a step that
+  corrupts existing data; the **floor** version therefore keeps a real
+  fixture captured from its release tag (`test/storage/fixtures/v39.sqlite`,
+  exercised by `real_release_fixture_test.dart`), and raising the floor
+  requires capturing the next one (see "Retiring a schema version" in
+  [`docs/design/storage.md`](docs/design/storage.md)).
 - Add a drift schema dump for the new version under
   [`packages/compendium_core/drift_schemas/`](packages/compendium_core/drift_schemas/README.md).
   `test/storage/schema_verification_test.dart` asserts that migrating from
@@ -52,7 +169,53 @@ When you change the schema:
   README there covers regeneration — note that `drift_dev` cannot run from this
   workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
-  data-format change and rides at least a MINOR version bump.
+  data-format change and rides at least a MINOR version bump. The release
+  workflow enforces it (`tools/ci/check_changelog_promoted.py`): a release on
+  the same `X.Y` line as the previous published tag, with `Z` above zero, `-beta`
+  included, fails if the schema rose, and a release never lowers it.
+
+#### Adding to an unreleased version
+
+When head is vNext, a change joins it rather than following it:
+
+- Put the DDL in the existing `if (from < N)` step for vNext, beside what is
+  already there. Guard it on the live schema (`pragma_table_info`,
+  `sqlite_master`) as the neighbouring steps do, so the step stays idempotent.
+- Extend vNext's group in `migration_test.dart` (upgrading from the last
+  *shipped* version), and amend vNext's entry in the
+  [schema version history](docs/design/storage.md#schema-version-history)
+  rather than adding one.
+- Regenerate vNext's dump and schema class as the
+  [drift_schemas README](packages/compendium_core/drift_schemas/README.md#amending-the-unreleased-head)
+  describes. `schema_verification_test.dart` fails while the committed dump
+  is stale.
+- Add a `data_migrations` entry to your own `changelog.d/` fragment. The
+  release notes give the schema range once, from the version the previous
+  release shipped to vNext.
+
+CI checks less here than for a bump. The constant does not move, so neither
+`check_schema_migration.py`, `check_version_history.py` nor
+`check_version_bump_policy.py` notices the change.
+The migration test and the ledger entry are on you.
+
+Only someone running a build from `main` can have a database already stamped
+vNext. `onUpgrade` does not re-run the step for it, so
+it lacks what you added, and the app fails on the first query that reads the new
+column or table. The default is to accept that: recreate such a database, or
+apply the DDL to it by hand. It is never a reason to bump.
+
+Repair it in code only when such files are already in use, as v39 was
+([#1760](https://github.com/ibanner56/CallersCompendium/pull/1760): a
+development build had stamped v39 before the step was complete, and every sync
+pass failed). The precedent is an idempotent `_ensureV<N>Schema` helper that
+both the `from < N` step and `beforeOpen` call, so the repair runs on every open
+of a file stamped `N` or later (`database.dart`, with
+`v39_partial_stamp_repair_test.dart`). v39 is now the floor, so its `from < 39`
+step is retired and only the `beforeOpen` call remains; a new repair of this
+kind would still call the helper from both. Weigh the cost: the helper runs on every
+open for as long as it stays, and v39 is the only step repaired this way today.
+`_ensureV40Schema` has no `beforeOpen` call, so copying that helper does not
+give you the repair.
 
 Old schema versions are **retired** once they fall below the oldest supported
 release: `kMinSupportedSchemaVersion` is the floor, a database stamped below it
@@ -76,13 +239,19 @@ an unclassified column or settings key. When you add one:
 
 - Add an entry to `fieldClassifications` (database columns, keyed
   `table.column` with the SQL names) or `settingsClassifications` (settings
-  keys declared as an exact constant, `const String kSomethingKey = ...`).
+  keys declared as an exact constant, `const String somethingKey = ...` — any
+  name ending in `Key`, with or without the app's `k` prefix).
   A settings key built at runtime from a prefix (`editor_draft:<id>`) is
-  declared as `const String kSomethingKeyPrefix = ...` instead, and classified
+  declared as `const String somethingKeyPrefix = ...` instead, and classified
   in `settingsPrefixClassifications` — the ratchet matches both declaration
   shapes.
-- Say **why** in the entry's `note` when the call is not obvious. A reviewer
-  should never have to guess why a personal-data field is `shareable`.
+- Say **why** in the entry's `note`. A reviewer should never have to guess why a
+  personal-data field is `shareable`, so a test
+  (`data_classification_note_test.dart`) fails without a note on every entry
+  that is not `shareable`, every `shareable` entry whose subject is not `none`,
+  and every third-party entry, in the three `compendium_core` registries. The
+  app-user preference settings, which share one note-free classification, are
+  the only exemption (`preferenceSettingKeys`).
 - Regenerate the catalogue:
   `fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart`
 - If you added a whole new table — including a raw or virtual one drift does not
@@ -146,7 +315,9 @@ catch body or a stray brace inside a string can't mis-count. Its `catch`/
 `on Type { }` detection is exact; its `.catchError`/`onError:` detection walks
 to the first unnested comma or closing bracket, which is correct for every
 shape in this codebase today but is a narrower guarantee — see the script's own
-docstring before assuming it can't be fooled by an unusual call shape.
+docstring before assuming it can't be fooled by an unusual call shape. Each
+`catch`/`on` clause is checked on its own: a log call in the `try` body, or the
+marker of an earlier clause, does not cover a later one.
 
 ### Architecture decisions
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
@@ -157,7 +328,10 @@ by opening a PR adding a `Proposed` ADR.
 - Stored data is always **canonical** (role IDs, canonical move names);
   user-facing terms go through the [dialect system](docs/design/dialect.md).
 - The figure taxonomy is versioned data — changes to it follow the process in
-  [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md).
+  [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md). A change
+  made while `contraTaxonomyVersion` is unreleased joins that version rather
+  than bumping it (see
+  [Versioned formats](#versioned-formats-bank-changes-in-the-unreleased-vnext)).
 
 ### User documentation
 The guides under [docs/user/](docs/user/) are the source of truth **and** ship
@@ -167,14 +341,16 @@ code as much as prose. Two rules:
 
 - Follow the [user-docs style guide](docs/user/style-guide.md) — voice,
   terminology, accessibility, and the hub's structure.
-- After editing any guide, run `python3 tools/ci/sync_user_docs.py --write` and
-  commit the regenerated `app/assets/docs/`. A CI check fails if they drift.
+- After editing any guide or guide image, run
+  `python3 tools/ci/sync_user_docs.py --write` and commit the regenerated
+  `app/assets/docs/`. A CI check fails if they drift.
 
 The hosted pages are **generated at publish time** by
 `tools/site/render_user_docs.py` and never committed, so there is nothing to
 regenerate for them — but a broken cross-link, an `#anchor` with no matching
-heading, two headings that collide on one anchor, or a link to a repo file that
-isn't in the tree all fail CI. Check your links locally with:
+heading, two headings that collide on one anchor, a link to a repo file that
+isn't in the tree, or an image with no alt text (or whose file is missing) all
+fail CI. Check your links and images locally with:
 
 ```sh
 python3 tools/site/render_user_docs.py --check
@@ -240,9 +416,10 @@ convention, how to add a string, and the full translation steps.
 
 ## Getting started
 
-The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a
+The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app, a
 pure-Dart domain core in `packages/compendium_core/` (which must not import
-Flutter — ADR-001, enforced in CI). Flutter is pinned to the version in
+Flutter — ADR-001, enforced in CI), and the pure-Dart Athenaeum server for
+Device Sync in [`server/`](server/README.md). Flutter is pinned to the version in
 [`.fvmrc`](.fvmrc), which is the **single source of truth** for the Flutter
 version: [FVM](https://fvm.app/) reads it to keep everyone on that exact SDK
 locally, and CI derives its Flutter version from the very same file (via
@@ -291,6 +468,43 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    fvm flutter analyze --fatal-infos                   # lint (CI treats infos as errors)
    (cd packages/compendium_core && fvm dart test)      # core unit tests
    (cd app && fvm flutter test)                        # app / widget tests
+   fvm dart analyze server && fvm dart test server/test # Athenaeum server
+   ```
+
+   The native Swift tests (`app/ios/RunnerTests`, `app/macos/RunnerTests`)
+   need a macOS host with Xcode and are not part of `preflight.py`. CI's
+   `Build (ios)` and `Build (macos)` jobs run both suites when
+   `tools/ci/classify_changes.py` sets `apple_native_changed`: the diff it
+   classifies changes a path under `app/ios/` or `app/macos/`, or `.fvmrc`,
+   **and** is not Markdown-only (it has at least one path that is not `.md`,
+   or one of the few Markdown files the classifier treats as code). An
+   all-Markdown change under `app/ios/` does not run them. For a PR update
+   after a green Merge gate, only the commits pushed since are classified,
+   unless they change no file (a merge of a base the branch already holds):
+   then the whole PR is.
+   They also run on every push to `main`, except a push whose files are all
+   Markdown, which `ci.yml`'s `paths-ignore: ['**.md']` filters out. To run
+   them locally:
+
+   ```sh
+   (cd app && fvm flutter build macos --config-only --debug)
+   xcodebuild test -workspace app/macos/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=macOS'
+   (cd app && fvm flutter build ios --config-only --debug --simulator)
+   xcodebuild test -workspace app/ios/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=iOS Simulator,name=<an installed iPhone>' \
+     CODE_SIGNING_ALLOWED=NO
+   ```
+
+   The Kotlin JVM unit tests for the Android share intake
+   (`app/android/app/src/test/`) are not run by preflight or `flutter test`:
+   they need the Android SDK and run in CI's Android build leg, after the
+   build. To run them by hand, build once (which writes the Gradle wrapper),
+   then:
+
+   ```sh
+   (cd app && fvm flutter build apk --debug)
+   (cd app/android && ./gradlew :app:testDebugUnitTest)
    ```
 
 4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
@@ -300,8 +514,12 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
    ```
 
-   which checks review freshness against the reviewer's own latest entry,
-   unresolved threads (with `totalCount`, so a truncated page is visible),
+   which checks review freshness against the reviewer's own latest review
+   (Claude by default, the review the `review: claude` label requests, read from
+   its latest entry with a `## Review verdict:` line; add
+   `--reviewer copilot` if you requested Copilot instead), unresolved threads (with `totalCount`, so a truncated page is visible),
+   for a Claude review that its latest `## Review verdict:` is `APPROVE` (a
+   `BLOCK` or `APPROVE-WITH-NITS` fails),
    checks on the current head, and that the PR closes exactly the issues you
    named — a branch name or a sentence containing a closing verb can create a
    link on its own. See
@@ -377,15 +595,12 @@ fvm flutter build apk --release          # or: appbundle
 fvm flutter build ios --release --no-codesign
 ```
 
-Getting the roadmap's open items moving — see [docs/ROADMAP.md](docs/ROADMAP.md)
-— plus doc review, design feedback, and test-corpus contributions (interesting
-dances that stress the figure model!) are all welcome. Open an issue or start a
-discussion.
-
 ## Reporting bugs / requesting features
 
-Use the issue templates. For dance-notation questions, include the dance's
-source (book/site/id) so we can look at the original.
+Use the [issue forms](https://github.com/ibanner56/CallersCompendium/issues/new/choose).
+For dance-notation questions, include the dance's source (book, site, or ID) so
+we can look at the original. Report security problems privately, as described
+in [SECURITY.md](SECURITY.md).
 
 ## Feedback & beta
 
@@ -408,6 +623,6 @@ telemetry**, so nothing is ever collected automatically. You decide what to shar
   [triage rubric](docs/beta/triage-rubric.md), which maps to the label taxonomy in
   [`.github/labels.yml`](.github/labels.yml) so you can follow an issue from
   `status: triage` to `status: fixed-pending-release`.
-- **Worried about your data?** Don't be — export a backup from
-  **Settings → General** first. Backup and restore are built in, so testing a
-  pre-release build never puts your collection at risk.
+- **Protecting your data.** Export a backup from **Settings → General** before
+  trying a new build. Backup and restore are built in, so you can always return
+  to a known-good copy of your collection.

@@ -34,6 +34,23 @@ const List<AthenaeumTableSchema> athenaeumTableSchemas = [
     'written_at': 'INTEGER NOT NULL',
     'body': 'BLOB NOT NULL',
   }, tableConstraint: 'PRIMARY KEY (id_key, epoch, device_id)'),
+  // One row per blob hash a stored manifest names, read from `records` when
+  // the manifest is written so GC need not decode manifest bodies (#1910).
+  AthenaeumTableSchema('manifest_refs', {
+    'id_key': 'TEXT NOT NULL',
+    'epoch': 'TEXT NOT NULL',
+    'device_id': 'TEXT NOT NULL',
+    'hash': 'TEXT NOT NULL',
+  }, tableConstraint: 'PRIMARY KEY (id_key, epoch, device_id, hash)'),
+  // The manifest etag each device's `manifest_refs` rows were read from. A
+  // manifest whose etag differs, or that has no row, is unindexed: written
+  // before the index existed, or by an earlier server image after a rollback.
+  AthenaeumTableSchema('indexed_manifests', {
+    'id_key': 'TEXT NOT NULL',
+    'epoch': 'TEXT NOT NULL',
+    'device_id': 'TEXT NOT NULL',
+    'etag': 'TEXT NOT NULL',
+  }, tableConstraint: 'PRIMARY KEY (id_key, epoch, device_id)'),
   AthenaeumTableSchema('blob_refs', {
     'id_key': 'TEXT NOT NULL',
     'epoch': 'TEXT NOT NULL',
@@ -57,6 +74,18 @@ const List<AthenaeumTableSchema> athenaeumTableSchemas = [
 const List<AthenaeumTableSchema> breakGlassTableSchemas = [
   AthenaeumTableSchema('break_glass_access', {
     'id_key': 'TEXT',
+    'accessed_at': 'INTEGER NOT NULL',
+  }),
+  // What one `--break-glass` invocation read: a manifest (`device_id`) or a
+  // blob (`hash`), in `epoch`. Written with its `break_glass_access` row before
+  // any byte is read. Never holds content. The retention sweep nulls every
+  // column but `kind` and `accessed_at` with the access row's `id_key`.
+  AthenaeumTableSchema('break_glass_reads', {
+    'kind': 'TEXT NOT NULL',
+    'id_key': 'TEXT',
+    'epoch': 'TEXT',
+    'device_id': 'TEXT',
+    'hash': 'TEXT',
     'accessed_at': 'INTEGER NOT NULL',
   }),
 ];

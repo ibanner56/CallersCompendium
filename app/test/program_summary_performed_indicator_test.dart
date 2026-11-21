@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
@@ -41,11 +42,17 @@ Future<void> _pumpWide(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
 
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: ActiveDialectScope(
-          notifier: ValueNotifier<Dialect>(Dialect.canonical),
-          child: child!,
+      // The read-only indicator is what rows show with "Show mark-performed
+      // toggles" off; with it on the toggle carries the state instead (see
+      // program_summary_performed_toggle_test.dart).
+      builder: (context, child) => ShowPerformedTogglesScope(
+        notifier: ValueNotifier<bool>(false),
+        child: RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: ValueNotifier<Dialect>(Dialect.canonical),
+            child: child!,
+          ),
         ),
       ),
       home: const ProgramsShell(),

@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -8,9 +7,16 @@ import 'package:share_plus/share_plus.dart';
 export '../export/share_file.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/calling_card_settings_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
-import '../diagnostics/error_log.dart';
+import '../data/dance_share_fields_scope.dart';
+import '../data/set_list_share_scope.dart';
+import '../export/calling_card_pdf.dart';
+import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
@@ -19,11 +25,21 @@ import '../export/share_sanitization.dart';
 import '../export/share_file.dart';
 import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
+import '../utils/slot_dance_title.dart';
+import 'calling_card_print.dart';
+import 'export_guard.dart';
 import 'program_figures_prompt_dialog.dart';
 import 'venue_contact_share_dialog.dart';
 
 /// Actions offered by the [ProgramExportMenu].
-enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
+enum _ExportAction {
+  shareText,
+  shareBundle,
+  copyText,
+  shareJson,
+  pdf,
+  callingCards,
+}
 
 /// Hands the shareable set list to the OS share sheet. Defaults to
 /// [SharePlus.instance.share]; overridable so tests can force a failure.
@@ -50,6 +66,10 @@ typedef PdfLayouter =
 ///   for a recipient without the app, an email attachment, or plain inspection.
 /// - **Export / print PDF** — hands a generated PDF to the OS print/save dialog
 ///   (`printing`, all platforms including Linux).
+/// - **Print calling cards** — only while Settings › Experimental › Calling
+///   cards is on, and gated on [danceFor] like the file actions: one small
+///   card per dance, in output order, each alternate after its primary, and
+///   numbered as the set list numbers them ([callingCardPlaces]).
 ///
 /// The two file actions are gated on [danceFor]: without a dance resolver there
 /// is nothing to embed.
@@ -64,6 +84,10 @@ class ProgramExportMenu extends StatelessWidget {
     this.venuesById = const {},
     this.danceFor,
     this.choreographerFor,
+    this.authorNamesOverrideFor,
+    this.tagFor,
+    this.publishedSourceFor,
+    this.customFieldFor,
     this.difficultyLevelFor,
     this.shareInvoker,
     this.bundleFileWriter,
@@ -91,9 +115,34 @@ class ProgramExportMenu extends StatelessWidget {
   /// reference and author attribution survives the round-trip. Optional and
   /// best-effort: an unresolved id is simply omitted from the bundle.
   final Choreographer? Function(String id)? choreographerFor;
+
+  /// A dance's author names, in credit order, when some of its authors are in
+  /// Recently deleted and so are missing from [danceFor]'s author ids; null
+  /// when the dance has no such author. Replaces the names [choreographerFor]
+  /// gives, for the text and PDF exports only, and names only: the share bundle
+  /// embeds author records, and a deleted author's record does not leave the
+  /// device with a program (see [choreographerFor]).
+  final List<String>? Function(String danceId)? authorNamesOverrideFor;
+
+  /// Resolves the difficulty level of the dance with this id (dance-keyed, not
+  /// level-keyed). Must cover every dance in the program, alternates included:
+  /// the share bundle is complete regardless of `hideAlternates`.
   final DifficultyLevel? Function(String danceId)? difficultyLevelFor;
 
+  /// Resolve the tags, published sources and custom-field definitions that the
+  /// bundled dances reference. Strict, unlike [choreographerFor]: an unresolved
+  /// id makes the share fail (nothing is written) instead of being skipped,
+  /// because a missing custom-field definition means its `shareable` flag is
+  /// unknown and a private value could otherwise leave the device. When `null`,
+  /// nothing resolves, so a dance carrying any tag, source or custom-field
+  /// value cannot be shared through this menu.
+  final Tag? Function(String id)? tagFor;
+  final PublishedSource? Function(String id)? publishedSourceFor;
+  final CustomFieldDef? Function(String id)? customFieldFor;
+
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
+  /// Not used on platforms where [isBundleShareUnsupported] (Linux) routes the
+  /// file actions to Save As.
   final ShareInvoker? shareInvoker;
 
   /// Test seam for the bundle temp-file write; defaults to
@@ -105,10 +154,16 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// Shared JSON delivery seam. When absent, the legacy share/file seams above
   /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
+  /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
-  String _formatDate(BuildContext context, DateTime date) =>
-      MaterialLocalizations.of(context).formatMediumDate(date);
+  String _formatDate(BuildContext context, DateTime date) => formatEventDate(
+    date,
+    DateFormatScope.of(context),
+    MaterialLocalizations.of(context),
+    AppLocalizations.of(context),
+  );
 
   /// Resolves a linked venue's display label for the **text** exports.
   ///
@@ -116,27 +171,88 @@ class ProgramExportMenu extends StatelessWidget {
   /// reading it straight off the stored record would put the venue's postal
   /// address — seven fields classified [EgressClass.deviceLocal] — into the
   /// shared/copied set list. The venue is therefore routed through
-  /// [sanitizeVenueForShare] first, exactly as the bundle and PDF paths do, and
-  /// the label collapses to the venue's public name (issue #853).
+  /// [resolveSanitizedVenueLabelParts] (which applies [sanitizeVenueForShare]),
+  /// exactly as the bundle and PDF builders do, and the label collapses to the
+  /// venue's public name (issue #853). An unresolvable link falls back to the
+  /// program's free-text venue, the same label the renderer would use anyway.
   ///
   /// No `include` set is threaded through: the six opt-in contact fields are
   /// not part of `displayName`, so there is nothing here for the consent dialog
   /// to grant, and the text export never prompts.
   String? _venueNameFor(String venueId) {
-    final venue = venuesById[venueId];
-    return venue == null ? null : sanitizeVenueForShare(venue).displayName;
+    return resolveSanitizedVenueLabelParts(venueId, program.venue, venuesById);
   }
 
-  String _plainText(BuildContext context) => programToPlainText(
-    program,
-    titleFor: titleFor,
-    venueNameFor: _venueNameFor,
-    formatDate: (d) => _formatDate(context, d),
-    labels: programExportLabels(AppLocalizations.of(context)),
-    renderer: FigureRenderer(contraTaxonomy),
-    dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
-    canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
-  );
+  /// Resolves [danceId]'s author names via [danceFor] + [choreographerFor] —
+  /// names only, never a [Choreographer] record (same privacy contract as
+  /// the per-dance card at [_plainTextWithFigures]). Works for any dance the
+  /// program references, not just the ones [_orderedExportDances] dedupes,
+  /// so it also resolves a dance with no figures (issue #1434: this is what
+  /// lets the author suffix reach a program whose dances have no figures at
+  /// all, which the figures-appendix opt-in never could).
+  List<String> _authorNamesFor(String danceId) {
+    final dance = danceFor?.call(danceId);
+    if (dance == null) return const [];
+    final override = authorNamesOverrideFor?.call(danceId);
+    if (override != null) return override;
+    return [
+      for (final id in dance.authorIds)
+        if (choreographerFor?.call(id)?.name case final String name
+            when name.isNotEmpty)
+          name,
+    ];
+  }
+
+  /// Names each slot's dance form in the set list when the program mixes
+  /// forms, as the program screens do (ADR-006 S5); null, naming none, when
+  /// its dances share one form or none resolves. A dance in Recently deleted
+  /// counts for nothing and names no form, as on the program screens.
+  String? Function(String danceId)? _formLabelFor(AppLocalizations l10n) {
+    final resolveDance = danceFor;
+    if (resolveDance == null) return null;
+    final forms = <DanceForm>{
+      for (final slot in program.slots)
+        if (slot.danceId case final id?)
+          if (resolveDance(id) case final dance? when !dance.isDeleted)
+            dance.form,
+    };
+    if (forms.length < 2) return null;
+    return (danceId) => switch (resolveDance(danceId)) {
+      final dance? when !dance.isDeleted => danceFormLabel(l10n, dance.form),
+      _ => null,
+    };
+  }
+
+  /// The dialect of each dance form, or the app defaults when no scope is
+  /// mounted (only in tests).
+  static DialectsByForm _dialects(BuildContext context) =>
+      ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults;
+
+  /// The shareable set-list text, under the Program › Sharing toggles. Only the
+  /// text actions (share, copy) go through here; the `.ccshare`/JSON bundle and
+  /// the PDF carry the program whole.
+  String _plainText(BuildContext context) {
+    final share = SetListShareOptions.of(context);
+    return programToPlainText(
+      program,
+      includeTitle: share.includeTitle,
+      includeCallerBand: share.includeCallerBand,
+      includeDateVenue: share.includeDateVenue,
+      titleFor: titleFor,
+      venueNameFor: _venueNameFor,
+      formatDate: (d) => _formatDate(context, d),
+      labels: programExportLabels(AppLocalizations.of(context)),
+      renderer: FigureRenderer(shippedTaxonomies.anyForm),
+      // The set list's own text (slot notes) has no dance form: contra's.
+      dialect: _dialects(context).forForm(DanceForm.contra),
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      authorNamesFor:
+          DanceShareFieldsScope.of(context).contains(DanceShareField.authors)
+          ? _authorNamesFor
+          : null,
+      formLabelFor: _formLabelFor(AppLocalizations.of(context)),
+    );
+  }
 
   /// Walks [program.outputGrouped] and yields every primary and alternate dance
   /// that can be resolved via [danceFor], in slot order, deduped by dance id.
@@ -147,105 +263,122 @@ class ProgramExportMenu extends StatelessWidget {
   List<({Dance dance, bool isAlternate})> _orderedExportDances() {
     final resolveDance = danceFor;
     if (resolveDance == null) return const [];
-    final seen = <String>{};
-    final result = <({Dance dance, bool isAlternate})>[];
-    for (final group in program.outputGrouped) {
-      final primaryId = group.primary.danceId;
-      if (primaryId != null && seen.add(primaryId)) {
-        final dance = resolveDance(primaryId);
-        if (dance != null) result.add((dance: dance, isAlternate: false));
-      }
-      for (final alt in group.alternates) {
-        final altId = alt.danceId;
-        if (altId != null && seen.add(altId)) {
-          final dance = resolveDance(altId);
-          if (dance != null) result.add((dance: dance, isAlternate: true));
-        }
-      }
-    }
-    return result;
+    return orderedProgramExportDances(program, resolveDance);
   }
 
-  /// Returns `true` if any dance reachable via [danceFor] in this program has
-  /// at least one figure. When `false` the "Include figures?" prompt is skipped
-  /// and all text/PDF paths proceed as set-list-only.
-  bool _hasFigures() =>
-      _orderedExportDances().any((e) => e.dance.figures.isNotEmpty);
+  /// Returns `true` if any dance reachable via [danceFor] in this program has a
+  /// card body to append ([DanceCardContent.hasBody]): figures, or calling
+  /// notes, a walkthrough, a hook or source citations among the selected
+  /// fields. When `false` the
+  /// "Include figures?" prompt is skipped and all text/PDF paths proceed as
+  /// set-list-only.
+  bool _hasFigures(Set<DanceShareField> fields) => _orderedExportDances().any(
+    (e) => DanceCardContent.hasBody(e.dance, fields),
+  );
 
   /// Asks whether to include figures in the current export.
   ///
   /// Returns `null` when the user cancels/dismisses (the caller MUST abort),
   /// `false` for "Set list only", `true` for "Set list and figures". When no
-  /// figures are available the prompt is skipped and `false` is returned
+  /// dance has a card to append the prompt is skipped and `false` is returned
   /// immediately.
   Future<bool?> _figuresConsent(BuildContext context) async {
-    if (!_hasFigures()) return false;
+    if (!_hasFigures(DanceShareFieldsScope.of(context))) return false;
     return ProgramFiguresPromptDialog.show(context);
+  }
+
+  /// Resolves the same four display strings for [dance]'s card that both the
+  /// text-path appended card and the PDF appendix card need (issue #1434):
+  /// author names (via [_authorNamesFor]), formation/level/status labels.
+  /// Shared so the two rendering paths can't drift on how a label is derived
+  /// — level label mirrors the dance_detail_screen pattern.
+  DanceCardLabels _cardLabelsFor(
+    BuildContext context,
+    Dance dance, {
+    required Dialect dialect,
+    required FigureRenderer renderer,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final String? levelLabel;
+    final difficultyLevel =
+        difficultyLevelFor?.call(dance.id) ??
+        DifficultyLevel.knownForId(dance.difficultyLevelId);
+    if (difficultyLevel != null) {
+      final base = danceLevelLabel(l10n, difficultyLevel);
+      levelLabel = dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
+    } else {
+      levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
+    }
+    final authorNames = _authorNamesFor(dance.id);
+    return (
+      authorNames: authorNames,
+      formationLabel: formationDisplayLabel(
+        l10n,
+        dance.formation,
+        renderer,
+        // The card's figures and notes take the same dialect, in
+        // `DanceCardContent.build`.
+        dialectForDance(dialect, title: dance.title, authorNames: authorNames),
+        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+          context,
+        ),
+      ),
+      levelLabel: levelLabel,
+      statusLabel: danceStatusLabel(l10n, dance.status),
+      sourceLines: danceSourceLines(
+        l10n,
+        dance,
+        (id) => publishedSourceFor?.call(id),
+      ),
+    );
   }
 
   /// The set-list text with full dance cards appended — one [danceToPlainText]
   /// card per dance (primary then alternates, deduped), each preceded by a
   /// separator line and (for alternates) the "Alternate" label.
   ///
-  /// Uses [ActiveDialectScope] for dialect-aware rendering, falling back to
-  /// [Dialect.larksRobins] when no scope is mounted (the fallback is reachable
-  /// only in tests; in the running app the scope is always provided — ruling 9).
+  /// Uses [ActiveDialectScope] for dialect-aware rendering, each dance in its
+  /// own form's dialect, falling back to [DialectsByForm.defaults] when no
+  /// scope is mounted (the fallback is reachable only in tests; in the running
+  /// app the scope is always provided — ruling 9).
   String _plainTextWithFigures(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final setList = _plainText(context);
     final danceLabels = danceExportLabels(l10n);
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final dialects = _dialects(context);
+    final renderer = UserFiguresScope.rendererOf(context);
     final buf = StringBuffer(setList);
     final alternate = l10n.exportIncludeFiguresAlternate;
+    final shareFields = DanceShareFieldsScope.of(context);
     for (final entry in _orderedExportDances()) {
       final dance = entry.dance;
-      if (dance.figures.isEmpty) continue;
+      if (!DanceCardContent.hasBody(dance, shareFields)) continue;
       buf.writeln();
       // Mark alternates on the separator line so the title from
       // danceToPlainText appears exactly once (ruling 8: mark, not duplicate).
       buf.writeln(entry.isAlternate ? '--- $alternate' : '---');
-      // Resolve metadata for the full dance card (ruling 6).
-      // authorNames: names only via choreographerFor — no deviceLocal fields
-      // (email/location/deceased) enter because the API accepts List<String>.
-      final authorNames = [
-        for (final id in dance.authorIds)
-          if (choreographerFor?.call(id)?.name case final String name
-              when name.isNotEmpty)
-            name,
-      ];
-      // Level label mirrors the dance_detail_screen pattern.
-      final String? levelLabel;
-      final difficultyLevel =
-          difficultyLevelFor?.call(dance.id) ??
-          DifficultyLevel.knownForId(dance.difficultyLevelId);
-      if (difficultyLevel != null) {
-        final base = danceLevelLabel(l10n, difficultyLevel);
-        levelLabel = dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
-      } else {
-        levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
-      }
+      final dialect = dialects.forDance(dance);
+      final cardLabels = _cardLabelsFor(
+        context,
+        dance,
+        dialect: dialect,
+        renderer: renderer,
+      );
       buf.writeln(
         danceToPlainText(
           dance,
-          authorNames: authorNames,
-          formationLabel: formationDisplayLabel(
-            l10n,
-            dance.formation,
-            renderer,
-            dialect,
-            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-              context,
-            ),
-          ),
-          levelLabel: levelLabel,
-          statusLabel: danceStatusLabel(l10n, dance.status),
+          authorNames: cardLabels.authorNames,
+          formationLabel: cardLabels.formationLabel,
+          levelLabel: cardLabels.levelLabel,
+          statusLabel: cardLabels.statusLabel,
           dialect: dialect,
           canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
             context,
           ),
           renderer: renderer,
           labels: danceLabels,
+          fields: shareFields,
+          sourceLines: cardLabels.sourceLines,
         ),
       );
     }
@@ -262,7 +395,10 @@ class ProgramExportMenu extends StatelessWidget {
         text: includeFigures
             ? _plainTextWithFigures(context)
             : _plainText(context),
-        subject: program.title,
+        // The subject line is the title too: leave it off with the title.
+        subject: SetListShareOptions.of(context).includeTitle
+            ? program.title
+            : null,
         sharePositionOrigin: origin,
       ),
     );
@@ -301,7 +437,9 @@ class ProgramExportMenu extends StatelessWidget {
   /// there is deliberately no second encoder, so the two can never drift.
   ///
   /// The bundle *carries* the program plus the full definition of every dance
-  /// its slots reference, and the receive side imports both.
+  /// its slots reference, together with the tags, sources and shareable
+  /// custom-field definitions those dances use, and the receive side imports
+  /// them. Custom fields marked not shareable are omitted, values included.
   Future<void> _shareBundle(
     BuildContext context,
     Rect? origin, {
@@ -310,18 +448,19 @@ class ProgramExportMenu extends StatelessWidget {
     final bundle = await _buildBundle(context, extension: extension);
     if (bundle == null) return;
 
-    final writeFile = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writeFile(bundle.json, bundle.fileName);
-
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [bundle.fileName],
-        subject: program.title,
-        sharePositionOrigin: origin,
-      ),
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final result = await shareOrSaveBundleFile(
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: program.title,
+      origin: origin,
+      shareInvoker: shareInvoker,
+      bundleFileWriter: bundleFileWriter,
+      saveInvoker: jsonExportDelivery?.saveInvoker,
     );
+    announceBundleSaved(messenger, l10n, result);
   }
 
   Future<({String json, String fileName})?> _buildBundle(
@@ -341,24 +480,22 @@ class ProgramExportMenu extends StatelessWidget {
     final json = buildProgramShareBundle(
       program,
       danceFor: resolveDance,
+      blankedDanceSlotText: AppLocalizations.of(
+        context,
+      ).programsBlankedDanceTitle,
       choreographerFor: choreographerFor ?? (_) => null,
       venueFor: (id) => venuesById[id],
-      difficultyLevelFor: (id) {
-        for (final dance in _orderedExportDances().map(
-          (entry) => entry.dance,
-        )) {
-          if (dance.difficultyLevelId == id) {
-            return difficultyLevelFor?.call(dance.id) ??
-                DifficultyLevel.knownForId(id);
-          }
-        }
-        return DifficultyLevel.knownForId(id);
-      },
+      tagFor: tagFor ?? (_) => null,
+      publishedSourceFor: publishedSourceFor ?? (_) => null,
+      customFieldFor: customFieldFor ?? (_) => null,
+      difficultyLevelFor: (dance) => difficultyLevelFor?.call(dance.id),
+      userFigureFor: UserFiguresScope.entryLookupOf(context),
       includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(
       program.title,
       extension: extension,
+      eventDate: program.eventDate,
     );
     return (json: json, fileName: fileName);
   }
@@ -387,43 +524,14 @@ class ProgramExportMenu extends StatelessWidget {
     );
     if (bundle == null || !context.mounted) return;
 
-    final delivery = _jsonDelivery;
-    final choice = await delivery.choose(context);
-    if (choice == null || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-
-    switch (choice) {
-      case JsonExportChoice.save:
-        await _guard(messenger, l10n.exportJsonSaveError, () async {
-          final result = await delivery.save(bundle.json, bundle.fileName);
-          if (result == null || !context.mounted) return;
-          final message = result.fileName == null
-              ? l10n.exportJsonSavedGeneric
-              : result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName!)
-              : l10n.exportJsonSavedTo(result.fileName!, result.path);
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        });
-      case JsonExportChoice.copy:
-        await _guard(messenger, l10n.exportJsonCopyError, () async {
-          await delivery.copy(bundle.json);
-          if (context.mounted) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.exportJsonCopied)),
-            );
-          }
-        });
-      case JsonExportChoice.share:
-        await _guard(messenger, l10n.exportJsonShareError, () {
-          return delivery.share(
-            json: bundle.json,
-            fileName: bundle.fileName,
-            subject: program.title,
-            sharePositionOrigin: origin,
-          );
-        });
-    }
+    await _jsonDelivery.deliver(
+      context,
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: program.title,
+      sharePositionOrigin: origin,
+      source: 'program_export_menu._guard',
+    );
   }
 
   Future<void> _copyText(BuildContext context) async {
@@ -446,6 +554,7 @@ class ProgramExportMenu extends StatelessWidget {
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
     final labels = programExportLabels(l10n);
+    final dateSetting = DateFormatScope.of(context);
 
     // Gate the venue's contact PII behind the same consent dialog the share
     // path uses. Contact fields are omit-by-default; a cancelled/dismissed
@@ -459,41 +568,116 @@ class ProgramExportMenu extends StatelessWidget {
     if (includeFigures == null) return;
     if (!context.mounted) return;
 
-    // Feed the PDF builder a venue already run through the single
-    // `sanitizeVenueForShare` primitive, so un-consented contact fields are
-    // physically absent — the renderer never needs its own redaction.
-    final venuesForPdf = venuesWithSanitizedContact(
-      venuesById,
-      program.venueId,
-      include: includeVenueContact,
-    );
-
     final List<({Dance dance, bool isAlternate})>? appendDances;
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final dialects = _dialects(context);
+    final renderer = UserFiguresScope.rendererOf(context);
     if (includeFigures) {
       appendDances = _orderedExportDances();
     } else {
       appendDances = null;
     }
 
+    // Resolve every context-dependent value up front (issue #1434): the PDF
+    // builder's own `build` callback runs after further internal awaits
+    // (font loading), so any BuildContext use must happen here, not inside a
+    // closure captured for later — mirrors the existing eager `labels`/
+    // `danceLabels` resolution just above.
+    final shareFields = DanceShareFieldsScope.of(context);
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final resolvedAuthorNamesFor = shareFields.contains(DanceShareField.authors)
+        ? _authorNamesFor
+        : null;
+    final formLabelFor = _formLabelFor(l10n);
+    final cardLabelsById = <String, DanceCardLabels>{
+      if (appendDances != null)
+        for (final entry in appendDances)
+          entry.dance.id: _cardLabelsFor(
+            context,
+            entry.dance,
+            dialect: dialects.forDance(entry.dance),
+            renderer: renderer,
+          ),
+    };
+
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
-      name: sanitizeExportName(program.title, fallback: 'program'),
+      name: programPdfJobName(
+        program.title,
+        fallback: 'program',
+        eventDate: program.eventDate,
+      ),
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
-        venuesById: venuesForPdf,
-        formatDate: localizations.formatMediumDate,
+        venuesById: venuesById,
+        includeVenueContact: includeVenueContact,
+        formatDate: (d) => formatEventDate(d, dateSetting, localizations, l10n),
         labels: labels,
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
-        dialect: dialect,
+        dialects: dialects,
         renderer: renderer,
-        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-          context,
-        ),
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        authorNamesFor: resolvedAuthorNamesFor,
+        formLabelFor: formLabelFor,
+        cardLabelsFor: appendDances == null
+            ? null
+            : (dance) => cardLabelsById[dance.id]!,
+        fields: shareFields,
+        // The paper the print dialog chose, not the builder's A4 default.
+        pageFormat: format,
       ),
+    );
+  }
+
+  /// One calling card per dance [_orderedExportDances] yields, numbered as
+  /// the set list numbers it ([callingCardPlaces]); an alternate is labelled
+  /// "Alternate" instead. Resolves every context-dependent value before the
+  /// print dialog's await, as [_exportPdf] does.
+  Future<void> _printCallingCards(
+    BuildContext context,
+    ScaffoldMessengerState messenger,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final dialects = _dialects(context);
+    final renderer = UserFiguresScope.rendererOf(context);
+    final places = callingCardPlaces(
+      program,
+      l10n.exportIncludeFiguresAlternate,
+    );
+    final entries = [
+      for (final entry in _orderedExportDances())
+        CallingCardEntry(
+          dance: entry.dance,
+          number: places[entry.dance.id] ?? '',
+          labels: _cardLabelsFor(
+            context,
+            entry.dance,
+            dialect: dialects.forDance(entry.dance),
+            renderer: renderer,
+          ),
+        ),
+    ];
+    return printCallingCards(
+      messenger: messenger,
+      l10n: l10n,
+      jobName: programPdfJobName(
+        program.title,
+        fallback: 'program',
+        eventDate: program.eventDate,
+      ),
+      entries: entries,
+      settings: CallingCardSettingsScope.of(context),
+      dialects: dialects,
+      renderer: renderer,
+      fields: DanceShareFieldsScope.of(context),
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      programTitle: program.title,
+      failureMessage: l10n.exportSetListError,
+      source: 'program_export_menu._printCallingCards',
+      pdfLayouter: pdfLayouter,
     );
   }
 
@@ -511,57 +695,45 @@ class ProgramExportMenu extends StatelessWidget {
         : null;
     switch (action) {
       case _ExportAction.shareText:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportShareSetListError,
           () => _shareText(context, origin),
+          source: 'program_export_menu._guard',
         );
       case _ExportAction.shareBundle:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportShareProgramError,
           () => _shareBundle(context, origin),
+          source: 'program_export_menu._guard',
         );
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.shareJson:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportJsonShareError,
           () => _exportJson(context, origin),
+          source: 'program_export_menu._guard',
         );
       case _ExportAction.pdf:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportSetListError,
           () => _exportPdf(context),
+          source: 'program_export_menu._guard',
         );
-    }
-  }
-
-  /// Runs [action], surfacing [failureMessage] as a [SnackBar] if it throws.
-  ///
-  /// A user who simply cancels a share/print sheet surfaces as a normal
-  /// (non-throwing) result, so only genuine failures are reported.
-  Future<void> _guard(
-    ScaffoldMessengerState messenger,
-    String failureMessage,
-    Future<void> Function() action,
-  ) async {
-    try {
-      await action();
-    } on Exception catch (e, st) {
-      logCaughtError(e, st, source: 'program_export_menu._guard');
-      if (kDebugMode) {
-        debugPrint('$failureMessage: $e\n$st');
-      }
-      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
+      case _ExportAction.callingCards:
+        await _printCallingCards(context, messenger);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final callingCards =
+        danceFor != null && CallingCardSettingsScope.of(context).enabled;
     return PopupMenuButton<_ExportAction>(
       key: const ValueKey('program-export-menu'),
       tooltip: l10n.exportTooltip,
@@ -580,8 +752,16 @@ class ProgramExportMenu extends StatelessWidget {
           PopupMenuItem<_ExportAction>(
             value: _ExportAction.shareBundle,
             child: ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: Text(l10n.exportShareProgramBundle),
+              leading: Icon(
+                isBundleShareUnsupported()
+                    ? Icons.save_alt_outlined
+                    : Icons.share_outlined,
+              ),
+              title: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportSaveProgramBundle
+                    : l10n.exportShareProgramBundle,
+              ),
               contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -613,7 +793,49 @@ class ProgramExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        if (callingCards)
+          PopupMenuItem<_ExportAction>(
+            key: const ValueKey('program-export-calling-cards'),
+            value: _ExportAction.callingCards,
+            // Nothing to print until the program holds a dance.
+            enabled: _orderedExportDances().isNotEmpty,
+            child: ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: Text(l10n.exportPrintCallingCards),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
       ],
     );
   }
+}
+
+/// The dances a program export appends (the PDF's "Include figures" pages and
+/// the text export's figures): every primary and alternate [resolveDance]
+/// resolves, in slot order, deduped by id, alternates tagged.
+///
+/// A dance another device permanently deleted ([isBlankedDance]) is left out:
+/// it has no figures, and its page would be titled "—". Its slot still reads
+/// "Deleted dance" in the set list (maintainer decision, 2026-11-05, row 49 of
+/// the follow-ups triage, option (a)).
+List<({Dance dance, bool isAlternate})> orderedProgramExportDances(
+  Program program,
+  Dance? Function(String danceId) resolveDance,
+) {
+  final seen = <String>{};
+  final result = <({Dance dance, bool isAlternate})>[];
+  void add(String? id, {required bool isAlternate}) {
+    if (id == null || !seen.add(id)) return;
+    final dance = resolveDance(id);
+    if (dance == null || isBlankedDance(dance)) return;
+    result.add((dance: dance, isAlternate: isAlternate));
+  }
+
+  for (final group in program.outputGrouped) {
+    add(group.primary.danceId, isAlternate: false);
+    for (final alt in group.alternates) {
+      add(alt.danceId, isAlternate: true);
+    }
+  }
+  return result;
 }

@@ -1,14 +1,16 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'coalesce_trailing.dart';
 
 /// A resolved custom-field row for display: the definition's [label] paired
-/// with its already-formatted [value].
-typedef CustomFieldDisplay = ({String label, String value});
+/// with its stored [value], which the screen formats for the active language
+/// with [formatCustomFieldValue].
+typedef CustomFieldDisplay = ({String label, Object value});
 
 /// Fully-hydrated data for the dance detail screen (`docs/design/ux.md` §2):
-/// the [dance] plus the resolved author/tag names, formatted custom fields,
+/// the [dance] plus the resolved author/tag names, custom-field values,
 /// related-dance titles, cited sources, and the cross-reference
 /// [DanceTitleLinker] used to link mentions of other dances.
 ///
@@ -100,25 +102,29 @@ class DanceDetailData {
   /// the pause into a single re-run on resume. So backpressure supplies a bound
   /// of its own, before this constant does anything.
   ///
-  /// The figures below describe a 10-write burst on in-memory sqlite in a
-  /// debug build, stated as numbers so deleting this window is a decision about
-  /// a known cost rather than about a description:
+  /// The figures below describe bursts on in-memory sqlite in a debug build,
+  /// stated as numbers so deleting this window is a decision about a known cost
+  /// rather than about a description:
   ///
   /// | burst shape | window | no window |
   /// |---|---|---|
-  /// | writes awaited one at a time | **1** | **2** |
-  /// | writes issued together (`Future.wait`) | 1 | 1 |
+  /// | 10 writes awaited one at a time | **1** | **2** |
+  /// | 40 writes awaited one at a time | **2** | **5** |
+  /// | 10 writes issued together (`Future.wait`) | 1 | 1 |
   ///
-  /// So what this constant buys on a sequential burst is the difference between
-  /// one re-read and two — not between one and ten. Backpressure already
-  /// collapses the burst to two before the window sees it.
+  /// The 10-write row was measured where this window was introduced; on a
+  /// slower host the same burst gave 2 and 2, which is why the test uses 40.
+  /// So what this constant buys on a sequential burst is a few re-reads, not
+  /// one per write: backpressure already collapses most of the burst before the
+  /// window sees it.
   ///
-  /// The second row is the reason the first is not stated more strongly.
+  /// The third row is the reason the sequential rows are not stated more
+  /// strongly.
   /// Concurrent writes commit close enough together that drift dispatches them
   /// as one update, so there is nothing left for a window to collapse. A window
   /// cannot beat a burst the database has already merged.
   ///
-  /// `dance_detail_data_watch_test.dart` asserts the first row as a strict
+  /// `dance_detail_data_watch_test.dart` asserts the 40-write row as a strict
   /// inequality, so removing the transformer fails a test rather than quietly
   /// leaving these figures equal.
   ///
@@ -276,7 +282,7 @@ class DanceDetailData {
       customFields: [
         for (final value in dance.customFields)
           if (defsById[value.fieldId] case final def?)
-            (label: def.label, value: _formatFieldValue(value.value)),
+            (label: def.label, value: value.value),
       ],
       relatedDanceTitles: relatedDanceTitles,
       tombstonedRelatedDanceIds: tombstonedRelatedDanceIds,
@@ -286,10 +292,21 @@ class DanceDetailData {
   }
 }
 
-String _formatFieldValue(Object value) {
-  if (value is bool) return value ? 'Yes' : 'No';
-  return value.toString();
+/// The text shown for a custom field's stored [value] on the dance detail
+/// screen: booleans read Yes/No in the app's language, anything else via
+/// [customValueText].
+String formatCustomFieldValue(AppLocalizations l10n, Object value) {
+  if (value is bool) return value ? l10n.commonYes : l10n.commonNo;
+  return customValueText(value);
 }
+
+/// A custom field's stored [value] as text. Numbers are stored as doubles, so a
+/// whole one (3.0) reads as 3 ([customNumberText]); anything else, a
+/// fractional number or one `toString` writes in exponent form (`1e+21`)
+/// included, is shown by `toString()`.
+/// Shared by the dance detail screen and the dance list's custom columns.
+String customValueText(Object value) =>
+    value is num ? customNumberText(value) : value.toString();
 
 /// Indexes other dances' titles so they can be recognised inside this dance's
 /// free text (hook / calling notes) and rendered as tappable cross-reference

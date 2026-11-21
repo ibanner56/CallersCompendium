@@ -100,6 +100,42 @@ void main() {
     expect(controller.bannerUpdate, isNotNull);
   });
 
+  test(
+    'a failed manual re-check keeps an update found earlier (B26)',
+    () async {
+      final repos = openTestRepositories();
+      // First answer: a newer manifest. Second answer: the fetch fails (null),
+      // as when the device has gone offline between the two presses.
+      final answers = <List<int>?>[utf8.encode(_stableManifest), null];
+      final controller = UpdateController(
+        repos.settings,
+        service: UpdateService(
+          fetcher: (channel, {http.Client? client}) async =>
+              answers.removeAt(0),
+          signatureFetcher: (channel, {http.Client? client}) async => 'sig',
+          signatureVerifier: (bytes, sig) async => true,
+        ),
+        currentVersion: SemVer.tryParse('0.1.0'),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      await controller.checkNow();
+      expect(controller.foundUpdate?.version.toString(), '0.2.0');
+
+      await controller.checkNow();
+
+      // The user is still told the check failed...
+      expect(controller.status, UpdateCheckStatus.couldNotCheck);
+      // ...but being offline is not evidence the release was withdrawn, so the
+      // update found a moment ago stays on offer.
+      expect(controller.foundUpdate?.version.toString(), '0.2.0');
+      expect(controller.bannerUpdate, isNotNull);
+    },
+  );
+
   test('routes the assisted-download destination through a fresh, '
       'unpredictable subdirectory rather than a predictable temp-dir path '
       '(issue #626)', () async {

@@ -35,10 +35,10 @@ class LingoDiscouragedHint extends StatelessWidget {
         final scheme = Theme.of(context).colorScheme;
         return Padding(
           // intentional: 2px optical inset, below the 4px AppSpacing grid
-          padding: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.only(top: AppSpacing.xxxs),
           child: Row(
             children: [
-              Icon(Icons.warning_outlined, size: 13, color: scheme.error),
+              Icon(Icons.warning_amber_outlined, size: 13, color: scheme.error),
               const SizedBox(width: AppSpacing.xxs),
               Flexible(
                 child: Semantics(

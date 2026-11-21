@@ -1,14 +1,28 @@
-# Glossary
+# App terms
 
 Plain-language definitions of the words used across these guides and in the app.
 The other guides link here the first time they use a term, so you can always
 check a meaning without losing your place. Terms are listed alphabetically.
+
+Looking for a dance figure instead? The app's **Glossary** describes the figures
+built into the app, in your own dialect, and also holds your own figures and
+terms — you can even copy a built-in figure as your own. Turn it on under **Settings ▸
+Experimental** (see [Settings](./settings.md#glossary-and-custom-figures)).
 
 ## Alt
 
 Short for *alternate*. An **alt** is a backup dance attached to a [slot](#slot)
 in a [program](#program) — a second choice you can swap in on the night if the
 planned dance isn't the right fit for the crowd or the moment.
+
+## Author
+
+The person who wrote a [dance](#dance) — a choreographer, in the wider contra
+world. In the app an author is a shared record rather than a line of text, so
+the details you add — their website and notes — follow every dance credited to
+them. Their **email**, **location**, and deceased mark are private: they are
+never included in anything you share with someone else, though your own backups
+keep them.
 
 ## Backup and restore
 
@@ -27,54 +41,98 @@ against what the dance's [phrase structure](#phrase-structure) expects.
 ## Bundle
 
 A single file holding a [program](#program) together with every [dance](#dance)
-it uses, and its [venue](#venue) — made with **Share (program + dances)**. Handing
-someone a bundle gives them the whole evening, not just a list of titles. Opening
-one takes you to the [import](#import) review screen, so nothing is added until
-you confirm. See [Share, print & export](./sharing.md).
-
-## Caller's Compendium
-
-The full name of the app — a free, open-source, local-first organizer for
-contra-dance callers. "The app" is a fine shorthand once you know what it means.
+it uses, and its [venue](#venue) — made with **Share program and dances**, and
+saved as a `.ccshare` file (or a [JSON file](#json-file) with the same content).
+Handing someone a bundle gives them the whole evening, not just a list of titles.
+Opening one takes you to the [import](#import) review screen, so nothing is added
+until you confirm. See
+[Share, print & export](./sharing.md#share-a-program-with-its-dances).
 
 ## The Caller's Box
 
 A community archive of contra dances (by Chris Page and Michael Dyck) that the
-app can [import](#import) from, either by online search or by pasting a link.
+app can [import](#import) from, either by searching it online or by pasting a
+dance's link or ID number.
 
-## Choreographer
+## Caller's Companion
 
-The person who wrote a [dance](#dance). In the app a choreographer is a shared
-record rather than a line of text, so the details you add — website, bio,
-permissions, and so on — follow every dance credited to them. Their **email** and
-**location** are private: kept on your device and never included in anything you
-export or share.
+Another app for organizing contra dances. If you are moving from it, Caller's
+Compendium can [import](#import) your library from its export files — a `.USR`
+file brings dances, figures, and past programs across in one pass — and can turn
+its call buttons into [shorthands](#shorthand) and offer its own glossary terms
+as Glossary terms. See
+[Imports & migration](./imports.md#bring-your-library-across-from-callers-companion).
+
+## Caller's Compendium
+
+The full name of the app — a free, open-source organizer for contra-dance
+callers that keeps your library on your own device. "The app" is a fine
+shorthand once you know what it means.
+
+## Calling history
+
+The list, on each [dance](#dance), of the [programs](#program) that include it,
+most recent first — so you can see when you last called it. The same history
+feeds the "called ×N" count, the **Last called** sort, and the **Calling
+history** filter. Settings decide what counts — for example, whether every
+program counts or only slots you have marked performed; an [alt](#alt) counts
+only once you mark it performed.
+See [Programs & matrix](./programs.md#track-what-you-have-called).
+
+## Canonical wording
+
+The plain, shared wording the app stores every dance in, underneath your
+[dialect](#dialect). Because every dance is stored this way, switching dialects
+never rewrites a dance, and search finds a dance whatever words you use. You can
+also pick **Canonical** as your dialect, or peek at a dance's canonical wording
+without switching — see
+[Dialect](./dialects.md#peek-at-the-canonical-wording).
 
 ## Collection
 
-Your whole library of [dances](#dance) — everything you've typed in or brought in
-from elsewhere, all in one place to browse, search, and organize.
+Your [dances](#dance) — everything you've typed in or brought in from elsewhere,
+all in one place to browse, search, and organize. Together with your programs and
+settings, your collection is part of your library.
 
 ## ContraDB
 
-An online database of contra dances that the app can [import](#import) from by
-pasting a link to a dance.
+An online database of contra dances that the app can [import](#import) from,
+either by searching it online or by pasting a dance's link or ID number.
 
 ## Custom field
 
 An extra piece of information you define yourself and attach to dances — beyond
 the built-in fields — so you can record and search on whatever matters to you.
+Each custom field has an **Include in sharing** setting that decides whether its
+values go along when you share a dance with someone else.
 
 ## Dance
 
 A single dance transcription in your [collection](#collection): its title,
 [figures](#figure), notes, and the other details that let you call it.
 
+## Device Sync
+
+An optional, experimental feature that keeps your library in step across your
+own devices. It is off until you turn it on in
+[Settings ▸ Experimental](./settings.md#device-sync), and while it is off the app
+sends nothing anywhere. Your devices connect using a sync phrase: it's the
+address of your shared library, so anyone who has it can open that library, and
+once someone else has it, it can't be taken back. Sync is not a backup — keep
+making [backups](#backup-and-restore) too.
+
 ## Dialect
 
 Your personal choice of role names and wording — for example **Larks/Robins** or
 **Leads/Follows** — applied everywhere the app shows text. It's *your words, your
-way*, not a fixed technical mapping.
+way*, not a fixed technical mapping. See [Dialect](./dialects.md).
+
+## Discouraged term
+
+A word you would rather not use, such as an older gendered role name. Each
+[dialect](#dialect) keeps its own list; the dance editor strikes these words
+through when you type them so you can reconsider, but never blocks or changes
+your text. See [Dialect](./dialects.md#discouraged-terms).
 
 ## Figure
 
@@ -90,8 +148,17 @@ contra term, used here the way callers already use it.
 ## Import
 
 Bringing dances into your collection from another source — [The Caller's
-Box](#the-callers-box), [ContraDB](#contradb), Caller's Companion, or a Caller's
-Compendium file. Imports *add* dances alongside what you already have.
+Box](#the-callers-box), [ContraDB](#contradb),
+[Caller's Companion](#callers-companion), or a Caller's Compendium file. Imports
+*add* dances alongside what you already have, and you review everything before
+it is added. See [Imports & migration](./imports.md).
+
+## JSON file
+
+A plain-text file format that almost any device can open. Caller's Compendium
+uses it for backups and offers it as an alternative to a `.ccshare` file when
+you share a dance or program — handy for someone who hasn't installed the app
+yet. See [Share, print & export](./sharing.md).
 
 ## Matrix
 
@@ -113,7 +180,7 @@ A dance in which you **change partners** each time through, so over the course
 of the dance you dance with many different people rather than staying with one
 partner. It's a property you can set on any dance in the editor, kept separate
 from the [formation](#formation): a mixer can be danced in many shapes, and not
-every circle dance is a mixer. (Nothing to do with an audio or kitchen mixer.)
+every circle dance is a mixer.
 
 ## Move
 
@@ -125,30 +192,56 @@ hey, or an allemande. The same move can appear as a figure in many dances.
 The large-print, high-contrast, stage-ready view you call from. It's built to be
 read at arm's length in dim light, one-handed, while you're on the floor.
 
+## Phrase structure
+
+How a dance's [beats](#beats) are grouped — the familiar A1 A2 B1 B2 of most
+contras, or something else. The app assumes the standard structure unless you
+write your own in the dance editor, and it uses whatever you set to tell you
+whether a dance's beats add up. An English dance's phrases can be named A, B
+and C, each with its own bars and played once or twice.
+
 ## Program
 
 An ordered set list for one event — a Saturday dance, a weekend, or a one-off
 gig. Its individual entries are [slots](#slot), and a backup choice on a slot is
 an [alt](#alt).
 
-## Phrase structure
-
-How a dance's [beats](#beats) are grouped — the familiar A1 A2 B1 B2 of most
-contras, or something else. The app assumes the standard structure unless you
-write your own in the dance editor, and it uses whatever you set to tell you
-whether a dance's beats add up.
-
 ## Progression
 
 How dancers move on to the next couple as a dance repeats. Like
 [formation](#formation), it's a plain contra term used here in the usual way.
 
+## Recently deleted
+
+Where a [dance](#dance) or [program](#program) goes when you delete it. Nothing
+is gone right away: open **Recently deleted** to restore an item, or remove it
+for good. Items are cleared automatically after the time you choose under
+**Settings ▸ General ▸ Recently deleted**, or kept until you remove them if you
+choose **Never**.
+
+## Sequence
+
+Two to four [figures](#figure) danced one after another and written as one line,
+such as *ones balance and swing*. Its beats are the total of its figures', and
+must fit in one phrase. A sequence is most useful as one side of a
+[meanwhile](#meanwhile). See
+[Write & edit dances](./authoring.md#sequence-figures).
+
+## Share file
+
+A single `.ccshare` file made with one of the **Share** actions. It carries a
+[dance](#dance), or a [program](#program) with its dances, so another Caller's
+Compendium user can [import](#import) it. Opening one takes you to the import
+review screen, so nothing is added until you confirm. The same content can be
+saved as a [JSON file](#json-file). See [Share, print & export](./sharing.md).
+
 ## Shorthand
 
 A short token you type during free-text figure entry that expands into one or more
 whole [figures](#figure) you have set up in advance. Shorthands are yours to
-define in **Settings › Defaults**, and an import from Caller's Companion can offer
-to seed them from your old call buttons. See
+define in **Settings ▸ Dialect ▸ Dance details & shorthands**, and an import from
+[Caller's Companion](#callers-companion) can offer to create them from your old
+call buttons. See
 [Write & edit dances](./authoring.md#figure-shorthands).
 
 ## Slot
@@ -162,18 +255,51 @@ backup choice.
 A saved sentence describing how you teach one particular [figure](#figure). Write
 one while editing a dance and the app remembers it, so **Fill from snippets** can
 pre-fill a [walkthrough](#walkthrough) for any dance using that figure. Your saved
-snippets live in **Settings › Defaults**. See
+snippets live under **Walkthrough snippets** in **Settings ▸ Dialect ▸ Dance
+details & shorthands**. See
 [Write & edit dances](./authoring.md#walkthrough).
+
+## Source
+
+Where a [dance](#dance) was published — a book, a collection, a magazine or a
+website. Like an [author](#author), a source is a shared record with its own
+details (its title, author and year among them), and each dance that cites it
+can add a page and number.
+You can filter your [collection](#collection) by source, and rename or merge
+sources in **Settings ▸ General ▸ Dances ▸ Sources**. See
+[Write & edit dances](./authoring.md#author-and-source-details-are-shared).
+
+## Tag
+
+A label of your own that you give a [dance](#dance) — often its "vibe" or
+category, such as *smooth* or *easy*. A dance can carry any number of tags, and
+a tag can have a color. Use tags to filter and group your
+[collection](#collection), and rename, merge, color or delete them in the
+**Tags** manager under **Settings ▸ General ▸ Dances ▸ Tags**. See
+[Collection & search](./collection.md#group-by-category-a-dances-vibe).
+
+## Unrecognized figure
+
+A line the app could not read as a known [figure](#figure). It is kept exactly
+as written, so nothing is thrown away. One that came from an import or a
+free-text line carries a badge, and **Re-check unrecognized figures** in
+Settings can try it again. One you typed with Free-text entry off, or one left
+behind by a figure of yours that was deleted, has no badge, and Re-check leaves
+it as it is. You can always rewrite any of them by hand. Not to be confused with
+*your own figures*, which you make yourself under **Custom Figures**. See
+[Write & edit dances](./authoring.md#unrecognized-figure).
 
 ## Venue
 
 Where a [program](#program) is held. A venue can be a simple free-text label, or
-a reusable **venue record** — a saved entity, like a [dance](#dance) or
-choreographer, that many programs can share. A venue record holds a name,
-address, contacts, schedule, sponsor, website, and price, edited in one place.
-Turn on **Use reusable venue records** in [Settings](./settings.md#venues) to
-link programs to saved venues; the free-text label and any linked record coexist
-losslessly.
+a reusable **venue record** that many programs can share and you edit in one
+place. A venue record holds a name, address, contacts, schedule, sponsor,
+website, price, and notes. Turn on **Use reusable venue records** in
+[Settings](./settings.md#venues) to link programs to saved venues; switching
+this on or off never discards your free-text label or a linked record. When you
+share a program, a venue's address is left out and its contact details are
+included only if you choose — see
+[What stays private](./sharing.md#what-stays-private).
 
 ## Walkthrough
 

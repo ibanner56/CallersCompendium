@@ -170,4 +170,41 @@ void main() {
       );
     });
   });
+
+  group('default limits admit a modelled ~20,000-dance library', () {
+    // Modelled from a Caller's Box-scale library (20,276 dances, ~4 phrases
+    // each) laid over the real CC file's shared reference data. See the
+    // `kMaxFmpSectors` / `kMaxFmpRecords` / `kMaxCcPhraseRows` dartdocs.
+    const danceRows = 20276;
+    const phraseRows = 82530;
+    const sharedReferenceRows = 16500; // MD_References + MD_Dances + friends
+    const authorRows = 1200;
+    // A heavy user's program history at the CC copy's ratio (684 sets and 6,443
+    // items per 1,015 dances), scaled to this library.
+    const programHistoryRows = 150000;
+    const modelledSectors = 61000; // ~237 MiB with FileMaker's own indexes
+
+    test('the sector guard admits the modelled file', () {
+      expect(kMaxFmpSectors, greaterThan(modelledSectors));
+    });
+
+    test('the record cap admits the modelled row count', () {
+      expect(
+        kMaxFmpRecords,
+        greaterThan(
+          danceRows +
+              phraseRows +
+              sharedReferenceRows +
+              authorRows +
+              programHistoryRows,
+        ),
+      );
+    });
+
+    test('the Phrase cap admits the modelled Phrase rows and stays inside the '
+        'record cap it is layered on', () {
+      expect(kMaxCcPhraseRows, greaterThan(phraseRows));
+      expect(kMaxCcPhraseRows, lessThan(kMaxFmpRecords));
+    });
+  });
 }

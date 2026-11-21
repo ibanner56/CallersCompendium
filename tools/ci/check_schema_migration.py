@@ -214,11 +214,11 @@ def main(argv: list[str]) -> int:
         return 0
 
     changed = _changed_paths(base, head)
-    has_evidence = any(
-        p == MIGRATION_TEST or p.startswith(EVIDENCE_DIRS) for p in changed
+    evidence = sorted(
+        p for p in changed if p == MIGRATION_TEST or p.startswith(EVIDENCE_DIRS)
     )
 
-    if not has_evidence:
+    if not evidence:
         _fail(
             f"schemaVersion changed ({old} -> {new}) but this PR adds/changes "
             "no migration test, fixture or schema dump. A schema bump must "
@@ -229,9 +229,18 @@ def main(argv: list[str]) -> int:
             code=1,
         )
 
+    # Say what was checked, not more. This gate asks whether SOME path under
+    # the evidence roots changed -- a whitespace edit to an old dump satisfies
+    # it -- not whether the change belongs to the new version. The per-version
+    # guarantee is the core suite's schema_verification_test.dart ("cover
+    # exactly the supported versions, floor to head"), which runs on every
+    # bump PR because a bump edits database.dart and so sets core_tests_changed.
     print(
-        f"OK: schemaVersion changed ({old} -> {new}) with migration "
-        "test/fixture/schema-dump evidence in the same PR."
+        f"OK: schemaVersion changed ({old} -> {new}) and the PR touches "
+        f"{len(evidence)} migration-evidence path(s): {', '.join(evidence)}. "
+        f"(Checked: some test/fixture/dump path changed. Not checked here: "
+        f"that it belongs to v{new} -- schema_verification_test.dart asserts "
+        "the dump range floor..head in the core suite.)"
     )
     return 0
 

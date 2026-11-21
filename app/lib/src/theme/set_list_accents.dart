@@ -1,23 +1,25 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'wcag.dart';
 
-/// Coarse "family" grouping of the 17 canonical [FormationShape]s, used to
+/// Coarse "family" grouping of the 18 canonical [FormationShape]s, used to
 /// drive the optional set-list row **accent colour** (issue #270).
 ///
-/// The families are deliberately few (six) so the palette stays small,
-/// mutually distinguishable, and easy to keep contrast-safe across the light
-/// and high-contrast themes. The accent is only ever a *redundant* cue — every
-/// row also carries its formation **text** and, for mixer-flagged dances, the
-/// mixer term appended to that text, which is what screen readers announce,
-/// per `docs/design/ux.md` §4 ("never colour alone").
+/// The families are deliberately few (six) so the palette stays small, mutually
+/// distinguishable, and easy to keep contrast-safe across the light and dark
+/// (including high-contrast) themes. The accent is only ever a *redundant* cue
+/// — every row also carries its formation **text** and, for mixer-flagged
+/// dances, the mixer term appended to that text, which is what screen readers
+/// announce, per `docs/design/ux.md` §4 ("never colour alone").
 ///
 /// Note: when [Dance.mixer] is `true`, the row accent is [FormationFamily.mixer]
 /// **regardless of the dance's shape** — see [setListAccentForShapeAndMixer].
 /// This means the family here describes the shape-to-family mapping only; the
-/// resolved accent for a specific dance must go through [setListAccentForDance]
-/// or [setListAccentForShapeAndMixer], not [setListAccentForShape].
+/// accent of a set-list row must go through [setListAccentForRow] (which also
+/// applies the user's own formation colour), not [setListAccentForShape].
+/// [setListAccentForShapeAndMixer] and [setListAccentForDance] are the
+/// shape-and-mixer-only resolutions, without the user's colour.
 enum FormationFamily {
   /// The bulk of contra dances: duple (improper/proper/indecent), becket, and
   /// generic longways sets.
@@ -43,26 +45,36 @@ enum FormationFamily {
 /// enum value so a new shape forces an explicit choice here.
 FormationFamily formationFamilyOf(FormationShape shape) => switch (shape) {
   FormationShape.dupleImproper ||
+  FormationShape.progressedImproper ||
   FormationShape.reverseProgressionImproper ||
   FormationShape.dupleProper ||
   FormationShape.dupleIndecent ||
   FormationShape.becketCw ||
   FormationShape.becketCcw ||
-  FormationShape.longways => FormationFamily.contraLongways,
+  FormationShape.longways ||
+  FormationShape.dupleMinor => FormationFamily.contraLongways,
   FormationShape.tripleMinor ||
-  FormationShape.triplet => FormationFamily.triple,
+  FormationShape.triplet ||
+  FormationShape.threeCoupleLongways => FormationFamily.triple,
   FormationShape.scatterMixer => FormationFamily.mixer,
   FormationShape.sicilianCircle ||
-  FormationShape.circleMixer => FormationFamily.sicilianCircle,
+  FormationShape.circleMixer ||
+  FormationShape.circle => FormationFamily.sicilianCircle,
   FormationShape.fourFaceFour ||
   FormationShape.threeFaceThree ||
-  FormationShape.grid => FormationFamily.bigSetSquare,
-  FormationShape.quadruplet || FormationShape.other => FormationFamily.other,
+  FormationShape.grid ||
+  FormationShape.square => FormationFamily.bigSetSquare,
+  FormationShape.quadruplet ||
+  FormationShape.fourCoupleLongways ||
+  FormationShape.fiveCoupleLongways ||
+  FormationShape.sixCoupleLongways ||
+  FormationShape.twoCoupleSet ||
+  FormationShape.other => FormationFamily.other,
 };
 
-/// Light-theme accent palette. Each hue clears WCAG ≥3:1 against the light
-/// surface / card backgrounds (measured ≥5:1) so the accent reads clearly
-/// while remaining a secondary cue.
+/// Light-canvas accent palette. Each hue clears WCAG ≥3:1 against every light
+/// theme's surface and card tier (`test/theme/palette_contrast_test.dart`) so
+/// the accent reads clearly while remaining a secondary cue.
 const Map<FormationFamily, Color> _lightAccents = {
   FormationFamily.contraLongways: Color(0xFF00696E),
   FormationFamily.triple: Color(0xFF6A3EA1),
@@ -72,10 +84,12 @@ const Map<FormationFamily, Color> _lightAccents = {
   FormationFamily.other: Color(0xFF545E6B),
 };
 
-/// High-contrast / dark-stage accent palette. Bright variants that clear WCAG
-/// ≥3:1 against the near-black high-contrast surface (measured ≥8:1), so the
-/// accent stays visible without competing with text for legibility.
-const Map<FormationFamily, Color> _highContrastAccents = {
+/// Dark-canvas accent palette, used by every dark theme and by high contrast
+/// (the light palette's deep hues sank into dark canvases). Bright
+/// variants that clear WCAG ≥3:1 against every dark theme's surface and card
+/// tier (`test/theme/palette_contrast_test.dart`), so the accent stays visible
+/// without competing with text for legibility.
+const Map<FormationFamily, Color> _brightAccents = {
   FormationFamily.contraLongways: Color(0xFF5AD6DE),
   FormationFamily.triple: Color(0xFFCBA6FF),
   FormationFamily.mixer: Color(0xFFFF9EC8),
@@ -84,12 +98,21 @@ const Map<FormationFamily, Color> _highContrastAccents = {
   FormationFamily.other: Color(0xFFCED4DC),
 };
 
+/// Whether the bright (dark-canvas) accent palette applies to the theme
+/// active at [context]: whenever that theme is dark. High contrast needs no
+/// separate test: the app's High contrast theme is dark, and the OS
+/// high-contrast setting swaps that theme in, so both reach here as dark. A
+/// light custom theme stays on the light palette even with High contrast
+/// still selected underneath it.
+bool setListAccentsBright(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark;
+
 /// The accent [Color] for a [FormationFamily] under the active theme, or `null`
 /// if the family has no defined accent (never happens for the current families,
-/// but keeps callers defensive). Pass [highContrast] `true` when either the
-/// app's high-contrast theme or the OS high-contrast setting is active.
-Color? setListAccent(FormationFamily family, {required bool highContrast}) =>
-    (highContrast ? _highContrastAccents : _lightAccents)[family];
+/// but keeps callers defensive). Pass [brightPalette] from
+/// [setListAccentsBright].
+Color? setListAccent(FormationFamily family, {required bool brightPalette}) =>
+    (brightPalette ? _brightAccents : _lightAccents)[family];
 
 /// Convenience: resolve a [FormationShape] straight to its themed accent.
 /// Shape-only — ignores the mixer flag. Use [setListAccentForShapeAndMixer]
@@ -98,8 +121,8 @@ Color? setListAccent(FormationFamily family, {required bool highContrast}) =>
 /// operate on shape identity alone (e.g. the formation-colour settings screen).
 Color? setListAccentForShape(
   FormationShape shape, {
-  required bool highContrast,
-}) => setListAccent(formationFamilyOf(shape), highContrast: highContrast);
+  required bool brightPalette,
+}) => setListAccent(formationFamilyOf(shape), brightPalette: brightPalette);
 
 /// Resolves the accent for a dance row, respecting the mixer flag (issue #732).
 ///
@@ -114,20 +137,41 @@ Color? setListAccentForShape(
 Color? setListAccentForShapeAndMixer(
   FormationShape shape,
   bool mixer, {
-  required bool highContrast,
+  required bool brightPalette,
 }) => setListAccent(
   mixer ? FormationFamily.mixer : formationFamilyOf(shape),
-  highContrast: highContrast,
+  brightPalette: brightPalette,
 );
+
+/// Resolves the accent for a set-list row when the user may have coloured the
+/// formation (PRES-12): the mixer accent always wins (a safety cue for the
+/// band, maintainer decision R2-pres12-mixer), then the user's own
+/// [userColor] for the shape where they set one, then the family tint.
+///
+/// [userColor] is `FormationColorsController.overrideFor(shape)`, applied as
+/// chosen in every theme, high contrast included: the same colour already
+/// highlights the formation on the dance tile, detail and Perform header
+/// regardless of theme, and here it paints only the row's 4 px edge, never
+/// text. Only an uncoloured shape falls through to the family tint, which is
+/// the one that switches palette on dark and high-contrast themes.
+Color? setListAccentForRow(
+  FormationShape shape,
+  bool mixer, {
+  required Color? userColor,
+  required bool brightPalette,
+}) => mixer
+    ? setListAccent(FormationFamily.mixer, brightPalette: brightPalette)
+    : userColor ??
+          setListAccent(formationFamilyOf(shape), brightPalette: brightPalette);
 
 /// Convenience: resolve a [Dance] straight to its themed accent.
 /// Delegates to [setListAccentForShapeAndMixer] with the dance's shape and
 /// mixer flag.
-Color? setListAccentForDance(Dance dance, {required bool highContrast}) =>
+Color? setListAccentForDance(Dance dance, {required bool brightPalette}) =>
     setListAccentForShapeAndMixer(
       dance.formation.shape,
       dance.mixer,
-      highContrast: highContrast,
+      brightPalette: brightPalette,
     );
 
 /// Resolves the color to use for a formation **label** (issue #367): the
@@ -140,10 +184,10 @@ Color? setListAccentForDance(Dance dance, {required bool highContrast}) =>
 Color? resolveFormationLabelColor(
   FormationShape shape, {
   required Map<FormationShape, Color> overrides,
-  required bool highContrast,
+  required bool brightPalette,
 }) =>
     overrides[shape] ??
-    setListAccentForShape(shape, highContrast: highContrast);
+    setListAccentForShape(shape, brightPalette: brightPalette);
 
 /// Picks a readable foreground (black or white) to lay over [background] for a
 /// formation-label highlight badge (issue #367), choosing whichever clears the

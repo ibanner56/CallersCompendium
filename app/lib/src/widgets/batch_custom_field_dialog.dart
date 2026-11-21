@@ -2,6 +2,13 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../screens/dance_editor/choice_option.dart';
+import '../screens/dance_editor/custom_field_editor.dart'
+    show showAddChoiceOptionDialog;
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import 'dirty_dialog_guard.dart';
+import 'app_dropdown_field.dart';
 
 /// The outcome of the batch edit-custom-field dialog: the chosen [def] plus
 /// either a type-respecting [value] to upsert across the selection, or
@@ -33,20 +40,27 @@ class BatchCustomFieldChoice {
 /// informational empty state with the confirm button disabled. Controls expose
 /// role + text labels (dropdowns, switches, labelled text fields) — never color
 /// alone. Returns the [BatchCustomFieldChoice], or `null` if cancelled.
+///
+/// When [repos] is given, a choice field offers the same inline "add an
+/// option" button as the dance editor; the new option is saved to the field
+/// definition at once (as there) and selected. Without it the button is hidden.
 Future<BatchCustomFieldChoice?> showBatchCustomFieldDialog(
   BuildContext context, {
   required List<CustomFieldDef> defs,
+  CompendiumRepositories? repos,
 }) {
   return showDialog<BatchCustomFieldChoice>(
     context: context,
-    builder: (_) => _BatchCustomFieldDialog(defs: defs),
+    builder: (_) => _BatchCustomFieldDialog(defs: defs, repos: repos),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
 class _BatchCustomFieldDialog extends StatefulWidget {
-  const _BatchCustomFieldDialog({required this.defs});
+  const _BatchCustomFieldDialog({required this.defs, this.repos});
 
   final List<CustomFieldDef> defs;
+  final CompendiumRepositories? repos;
 
   @override
   State<_BatchCustomFieldDialog> createState() =>
@@ -54,6 +68,9 @@ class _BatchCustomFieldDialog extends StatefulWidget {
 }
 
 class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
+  /// The definitions on offer: [widget.defs], with any choice field that gained
+  /// an option here replaced by its saved, updated definition.
+  late List<CustomFieldDef> _defs = widget.defs;
   CustomFieldDef? _selectedDef;
   bool _clear = false;
 
@@ -65,7 +82,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.defs.length == 1) _selectedDef = widget.defs.first;
+    if (_defs.length == 1) _selectedDef = _defs.first;
   }
 
   @override
@@ -118,6 +135,19 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
     );
   }
 
+  /// Saves [raw] as a new option of the selected choice field and selects it.
+  Future<AddChoiceResult> _addOption(CustomFieldDef def, String raw) async {
+    final outcome = await addChoiceOptionToDef(widget.repos!, def, raw);
+    final updated = outcome.def;
+    if (updated == null || !mounted) return outcome.result;
+    setState(() {
+      _defs = [for (final d in _defs) d.id == def.id ? updated : d];
+      _selectedDef = updated;
+      _choiceValue = outcome.option;
+    });
+    return AddChoiceResult.added;
+  }
+
   Widget _valueControl(CustomFieldDef def, AppLocalizations l10n) {
     switch (def.type) {
       case CustomFieldType.text:
@@ -157,19 +187,39 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
           onChanged: (v) => setState(() => _boolValue = v),
         );
       case CustomFieldType.choice:
-        return DropdownButtonFormField<String>(
+        final dropdown = AppDropdownField<String?>(
           key: ValueKey('batch-custom-field-value-${def.id}'),
-          initialValue: _choiceValue,
+          value: _choiceValue,
+          // Options the user typed: a list that grows.
+          filterable: true,
           decoration: InputDecoration(
             labelText: def.label,
             isDense: true,
             border: const OutlineInputBorder(),
           ),
-          items: [
+          entries: [
             for (final choice in def.choices ?? const <String>[])
-              DropdownMenuItem(value: choice, child: Text(choice)),
+              AppDropdownEntry<String?>(value: choice, label: choice),
           ],
           onChanged: (v) => setState(() => _choiceValue = v),
+        );
+        if (widget.repos == null) return dropdown;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: dropdown),
+            const SizedBox(width: 4),
+            IconButton(
+              key: ValueKey('batch-custom-field-add-option-${def.id}'),
+              icon: const Icon(Icons.add),
+              tooltip: l10n.customFieldsAddOptionTooltip(def.label),
+              onPressed: () => showAddChoiceOptionDialog(
+                context,
+                label: def.label,
+                onAddOption: (raw) => _addOption(def, raw),
+              ),
+            ),
+          ],
         );
     }
   }
@@ -178,59 +228,72 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final def = _selectedDef;
-    return AlertDialog(
-      key: const ValueKey('batch-custom-field-dialog'),
-      title: Text(l10n.collectionEditCustomField),
-      content: SizedBox(
-        width: 360,
-        child: widget.defs.isEmpty
-            ? Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(l10n.collectionBatchCustomFieldEmpty),
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DropdownButtonFormField<CustomFieldDef>(
-                    key: const ValueKey('batch-custom-field-key'),
-                    initialValue: _selectedDef,
-                    decoration: InputDecoration(
-                      labelText: l10n.collectionBatchCustomFieldKeyLabel,
-                      isDense: true,
-                      border: const OutlineInputBorder(),
+    // Typed work is the value text. Picking a field, a switch or a choice is a
+    // cheap pick, so it does not hold the dialog open.
+    return DirtyDialogGuard(
+      listenable: _textController,
+      // While Clear is on the value field is hidden, so its text is not
+      // something the user can see to lose.
+      isDirty: () => !_clear && _textController.text.isNotEmpty,
+      child: AlertDialog(
+        key: const ValueKey('batch-custom-field-dialog'),
+        title: Text(l10n.collectionEditCustomField),
+        content: SizedBox(
+          width: 360,
+          child: _defs.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  child: Text(l10n.collectionBatchCustomFieldEmpty),
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AppDropdownField<CustomFieldDef?>(
+                      key: const ValueKey('batch-custom-field-key'),
+                      value: _selectedDef,
+                      // The user's own custom fields: a list that grows.
+                      filterable: true,
+                      decoration: InputDecoration(
+                        labelText: l10n.collectionBatchCustomFieldKeyLabel,
+                        isDense: true,
+                        border: const OutlineInputBorder(),
+                      ),
+                      entries: [
+                        for (final d in _defs)
+                          AppDropdownEntry<CustomFieldDef?>(
+                            value: d,
+                            label: d.label,
+                          ),
+                      ],
+                      onChanged: _onDefChanged,
                     ),
-                    items: [
-                      for (final d in widget.defs)
-                        DropdownMenuItem(value: d, child: Text(d.label)),
-                    ],
-                    onChanged: _onDefChanged,
-                  ),
-                  const SizedBox(height: 12),
-                  if (def != null && !_clear) _valueControl(def, l10n),
-                  if (def != null)
-                    SwitchListTile(
-                      key: const ValueKey('batch-custom-field-clear'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(l10n.collectionBatchCustomFieldClearOption),
-                      value: _clear,
-                      onChanged: (v) => setState(() => _clear = v),
-                    ),
-                ],
-              ),
+                    const SizedBox(height: 12),
+                    if (def != null && !_clear) _valueControl(def, l10n),
+                    if (def != null)
+                      SwitchListTile(
+                        key: const ValueKey('batch-custom-field-clear'),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l10n.collectionBatchCustomFieldClearOption),
+                        value: _clear,
+                        onChanged: (v) => setState(() => _clear = v),
+                      ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('batch-custom-field-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('batch-custom-field-confirm'),
+            onPressed: _canConfirm ? _confirm : null,
+            child: Text(l10n.collectionBatchCustomFieldConfirm),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('batch-custom-field-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('batch-custom-field-confirm'),
-          onPressed: _canConfirm ? _confirm : null,
-          child: Text(l10n.collectionBatchCustomFieldConfirm),
-        ),
-      ],
     );
   }
 }

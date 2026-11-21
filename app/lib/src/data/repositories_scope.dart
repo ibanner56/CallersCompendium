@@ -29,6 +29,14 @@ class RepositoriesScope extends InheritedWidget {
     return scope.repositories;
   }
 
+  /// The repositories, or null when [context] has no [RepositoriesScope]
+  /// ancestor: for a surface whose stored data is optional, such as the
+  /// Glossary's notes and custom figures, under a test harness that has no
+  /// database.
+  static CompendiumRepositories? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<RepositoriesScope>()
+      ?.repositories;
+
   @override
   bool updateShouldNotify(RepositoriesScope oldWidget) =>
       oldWidget.repositories != repositories;

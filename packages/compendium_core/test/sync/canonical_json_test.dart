@@ -143,6 +143,18 @@ void main() {
       expect(() => canonicalJson(9007199254740993), throwsFormatException);
     });
 
+    test('rejects int64 max, which rounds up to 2^63 as a double', () {
+      expect(() => canonicalJson(9223372036854775807), throwsFormatException);
+    });
+
+    test('keeps the largest exact double below 2^63', () {
+      expect(canonicalJson(9223372036854774784), '9223372036854775000');
+    });
+
+    test('keeps the int64 minimum', () {
+      expect(canonicalJson(-9223372036854775808), '-9223372036854776000');
+    });
+
     test('keeps same-id records nested by kind', () {
       final records = {
         'records': {

@@ -297,4 +297,22 @@ void main() {
     expect(second.conflicting, hasLength(1));
     expect(controller.mappings, hasLength(1));
   });
+
+  test('a compound shorthand\'s token is taken too (#709)', () async {
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+    await controller.upsertCompound(
+      CompoundShorthand(
+        token: 'Sw',
+        compoundId: 'grl',
+        compoundName: 'grand pull',
+      ),
+    );
+    final partition = _partition([
+      CcInsertCall(label: 'Sw', text: 'neighbor swing', beats: 8),
+    ], existing: controller.takenTokens);
+    expect(partition.seedable, isEmpty);
+    expect(partition.conflicting, hasLength(1));
+  });
 }

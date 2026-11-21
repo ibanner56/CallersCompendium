@@ -192,6 +192,39 @@ def check_pending_state(root: Path) -> None:
             )
 
 
+def check_core_version_recorded(root: Path, fragments: list[Fragment]) -> None:
+    """Refuse a core version that has no changelog section and no core entry to make one.
+
+    ``packages/compendium_core`` bumps if and only if pending fragments carry
+    ``core`` entries. The "if" half is enforced when release prep writes
+    (``apply_release``); this is the "only if" half: with no pending core entry
+    the pubspec version is a record of a release that already happened, so its
+    section must already exist. A bump with nothing to record fails here, by
+    version. The number itself is the maintainer's choice and is never judged.
+    """
+    if any(item for fragment in fragments for item in fragment.core.values()):
+        return
+    version = _pubspec_version(root / CORE_PUBSPEC_PATH)
+    path = root / CORE_PATH
+    try:
+        changelog = path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise FragmentError(f"could not read {CORE_PATH}: {error}") from error
+    if _section_bounds(changelog, version) is None:
+        suffix_hint = (
+            ""
+            if VERSION.fullmatch(version)
+            else " (core's pubspec version must be a bare X.Y.Z, with no prerelease suffix or build metadata)"
+        )
+        raise FragmentError(
+            f"{CORE_PUBSPEC_PATH} is {version}{suffix_hint} but {CORE_PATH} has no [{version}] "
+            "section and no pending fragment has a core entry: a core version "
+            "bump needs a core entry to record. Revert the bump, or add the "
+            "core entry that justifies it (the version number is the "
+            "maintainer's choice)."
+        )
+
+
 def _section_bounds(changelog: str, version: str) -> tuple[int, int] | None:
     matches = list(SECTION.finditer(changelog))
     selected = [match for match in matches if match.group("version") == version]
@@ -339,6 +372,7 @@ def apply_release(
     """Compile after all inputs validate, then consume the fragments."""
     app_path, core_path = root / APP_PATH, root / CORE_PATH
     check_pending_state(root)
+    check_core_version_recorded(root, fragments)
     if _pubspec_version(root / APP_PUBSPEC_PATH) != app_version:
         raise FragmentError("app version must match app/pubspec.yaml before compilation")
     core_entries = sum(
@@ -409,6 +443,7 @@ def main(argv: list[str] | None = None) -> int:
         fragments = load_fragments(args.root / FRAGMENTS_PATH)
         if args.check:
             check_pending_state(args.root)
+            check_core_version_recorded(args.root, fragments)
             print(f"OK: {len(fragments)} changelog fragment(s) are valid.")
             return 0
         if not args.app_version or not args.release_date:

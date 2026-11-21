@@ -67,7 +67,8 @@ jobs:
       # a Markdown-only change breaking the site: a construct the renderer can't
       # handle, a cross-link to a guide that doesn't exist, a retitled heading
       # that orphans an #anchor, two headings that collide on one anchor, or a
-      # link to a repo file/folder that isn't in the tree. It also re-checks
+      # link to a repo file/folder that isn't in the tree, or an image with no
+      # alt text (outside fenced code) or whose file is missing. It also re-checks
       # every GitHub repo URL in the BUILT html (including the page shell's own
       # links, which bypass the link resolver) for existence and blob-vs-tree
       # form. Errors name the source .md file and the offending link.

@@ -1,10 +1,14 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
+import '../dialect/role_canonicalizer.dart';
+import '../dialect/substitution.dart';
 import '../model/enums.dart';
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/user_figure_use.dart';
 import 'filter.dart';
 import 'fts_query.dart';
 import 'search_enrichment.dart';
+import 'search_fold.dart';
 import 'search_sort.dart';
 import '../storage/calling_history_scope.dart';
 
@@ -30,6 +34,91 @@ class CompiledFilter {
 String escapeLikePattern(String term) =>
     term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
 
+/// The `dance_fts` / `dance_substring_fts` columns that hold text exactly as
+/// the caller typed it, so a raw (non-canonicalised) query can match them.
+/// `figures_text` is deliberately absent: it is stored canonicalised, so a raw
+/// role word would never match it (the canonical branch covers it).
+const _rawTextColumns = 'title authors sources custom_values hook notes';
+
+/// FTS5 `MATCH` expression restricting [query] to [_rawTextColumns]. The query
+/// is parenthesised so the column filter covers every term of a multi-term
+/// query, not only the first.
+String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
+
+/// One word of a free-text query, as typed and in canonical form
+/// (`FilterCompiler._searchWords`). `asTyped` is the canonical form without
+/// the dialect's move names, set only when it differs from `canonical`.
+typedef _SearchWord = ({String raw, String canonical, String? asTyped});
+
+/// A run of whitespace, where a free-text query splits into words.
+final _whitespace = RegExp(r'\s+');
+
+/// A letter or digit: what the token-prefix index (`unicode61`) keeps.
+final _letterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
+/// The canonical role tokens stored in `figures_text` (`dialect.dart`), which a
+/// caller never types and must not find by accident.
+const _internalRoleTokens = ['role1', 'role2', 'role1s', 'role2s'];
+
+/// Whether any term of [canonicalText] is a *fragment* of an internal role
+/// token — `ro`, `rol`, `ole`, `role` — rather than a whole token (a role word
+/// canonicalises to a whole one, and that must still find figures). While a
+/// caller types "Rolling Off a Log" or "Roodman" such a fragment would
+/// otherwise match the `role1s` in nearly every dance's figure text.
+///
+/// [prefix] selects the matching the index will apply to the term: the
+/// prefix index (queries of one or two characters) only reaches a token's
+/// start, the trigram index reaches anywhere inside it.
+///
+/// Such a query still searches `figures_text`, but only after the role tokens
+/// are removed from it ([_figureMatchWithoutRoleTokens]), so `rol` finds
+/// "roll away" and not every dance that has a `role1s`.
+bool _hasInternalRoleTokenFragment(
+  String canonicalText, {
+  required bool prefix,
+}) {
+  for (final term in canonicalText.toLowerCase().split(RegExp(r'\s+'))) {
+    if (term.isEmpty || _internalRoleTokens.contains(term)) continue;
+    for (final token in _internalRoleTokens) {
+      if (prefix ? token.startsWith(term) : token.contains(term)) return true;
+    }
+  }
+  return false;
+}
+
+/// `figures_text` with every internal role token removed (longest first, so
+/// `role1s` goes before `role1`).
+const _figuresTextWithoutRoleTokens =
+    "replace(replace(replace(replace(figures_text, 'role1s', ''), "
+    "'role2s', ''), 'role1', ''), 'role2', '')";
+
+/// The `LIKE` pattern (with `ESCAPE '\'`) that re-checks [text] against
+/// [_figuresTextWithoutRoleTokens] after an FTS match that a role token alone
+/// could have satisfied. A [prefix] query must start a word; the SQL pairs it
+/// with a leading space on the column. Otherwise it may sit anywhere.
+String _figureLikePattern(String text, {required bool prefix}) {
+  final escaped = escapeLikePattern(text.trim().toLowerCase());
+  return prefix ? '% $escaped%' : '%$escaped%';
+}
+
+/// The characters after which [_wordStarts] starts a word.
+final _wordSeparators = RegExp(r'[/(-]');
+
+/// [column] with a space before it and before each word inside it, where a
+/// word starts after a space, `/`, `-` or `(` ([_wordSeparators]), so a
+/// `LIKE '% x%'` pattern matches the start of any word. Close to the
+/// token-prefix index, which splits on every punctuation mark.
+String _wordStarts(String column) =>
+    "(' ' || replace(replace(replace($column, '/', ' '), '-', ' '), "
+    "'(', ' '))";
+
+/// The `figures_text` condition that matches an FTS query (bound first) and still
+/// holds with the role tokens removed (pattern bound second).
+String _figureMatchWithoutRoleTokens(String table, {required bool prefix}) =>
+    'id IN (SELECT dance_id FROM $table WHERE figures_text MATCH ? '
+    "AND (${prefix ? "' ' || " : ''}$_figuresTextWithoutRoleTokens) "
+    "LIKE ? ESCAPE '\\')";
+
 /// Compiles a [DanceFilter] tree into a single parameterized `SELECT id FROM
 /// dances …` (`docs/design/search.md` "SQL compilation").
 ///
@@ -40,7 +129,8 @@ String escapeLikePattern(String term) =>
 /// Dialect canonicalization happens at this boundary, once, before any bind is
 /// produced: full-text queries and role-valued figure params are run through
 /// [canonicalizeText], and move names are mapped back through the active
-/// dialect's move substitutions — mirroring how data was canonicalized on the
+/// dialect's move substitutions (except a built-in move id, which binds as
+/// given: see [_canonicalizeMove]) — mirroring how data was canonicalized on the
 /// way in, so a dialect user's query matches the canonical tokens stored in
 /// the derived indexes.
 ///
@@ -60,10 +150,13 @@ class FilterCompiler {
     // skipping templated (`%S`) substitutions which aren't reversible by a
     // plain word match. Conservative: unknown/unmapped moves pass through.
     // The enrichment's union move synonyms are layered underneath, so the
-    // active dialect's own move substitutions win where they overlap.
+    // active dialect's own move substitutions win where they overlap. A key
+    // naming a figure of your own ([isUserFigureKey]) is not a move, so its
+    // wording never maps a query back to it.
     final reverse = <String, String>{};
     reverse.addAll(this.enrichment.moveSynonyms);
     for (final entry in this.dialect.moves.entries) {
+      if (isUserFigureKey(entry.key)) continue;
       final display = entry.value;
       if (display.contains('%S')) continue;
       reverse[display.toLowerCase()] = entry.key;
@@ -75,6 +168,23 @@ class FilterCompiler {
   final SearchEnrichment enrichment;
   final Taxonomy? taxonomy;
   late final Map<String, String> _moveReverse;
+
+  /// The dialect's move names (and the enrichment's) as the search bar reads
+  /// them (FIND-4): each [_moveReverse] key → the taxonomy display name of the
+  /// move it names, which is how `figures_text` stores that move. `null`
+  /// without a [taxonomy] (no display names to map to) or when no key names a
+  /// move it knows; a key whose id it does not know is left out, so that word
+  /// is searched as typed.
+  late final Substitutor? _dialectMoveNames = () {
+    final t = taxonomy;
+    if (t == null) return null;
+    final names = <String, String>{
+      for (final e in _moveReverse.entries)
+        e.key:
+            ?(t.moves[e.value]?.displayName ?? t.aliases[e.value]?.displayName),
+    };
+    return names.isEmpty ? null : Substitutor(names, caseInsensitive: true);
+  }();
 
   /// Compiles [filter] with the given [sort] (default [SearchSort.title]) and
   /// [direction]. When [direction] is omitted it resolves to the sort key's
@@ -105,26 +215,52 @@ class FilterCompiler {
   }
 
   CompiledFilter _compileRelevance(FullTextFilter filter, SortDirection dir) {
-    final canonicalQuery = toFtsPrefixMatchQuery(
-      canonicalizeText(
-        filter.query,
-        dialect,
-        extraRoleSynonyms: enrichment.roleSynonyms,
-      ),
+    final canonicalText = canonicalizeText(
+      filter.query,
+      dialect,
+      extraRoleSynonyms: enrichment.roleSynonyms,
     );
-    final rawTitleQuery = toFtsPrefixMatchQuery(filter.query);
-    final query = '($canonicalQuery OR title : $rawTitleQuery)';
+    final canonicalQuery = toFtsPrefixMatchQuery(canonicalText);
+    final rawTextQuery = toFtsPrefixMatchQuery(filter.query);
+    final fragment = _hasInternalRoleTokenFragment(canonicalText, prefix: true);
+    final query =
+        '(${fragment ? _rawColumnsMatch(canonicalQuery) : canonicalQuery} '
+        'OR ${_rawColumnsMatch(rawTextQuery)})';
     // bm25 returns lower (more negative) for better matches, so ascending
     // (the default) is best-match-first; descending flips to worst-match-first.
-    final order = dir == SortDirection.descending
-        ? 'bm25(dance_fts) DESC'
-        : 'bm25(dance_fts)';
-    final sql =
-        'SELECT dance_fts.dance_id FROM dance_fts '
+    // Each branch scores its own rows and a dance found by several keeps its
+    // best (lowest) score, so the direction orders by that.
+    final direction = dir == SortDirection.descending ? ' DESC' : '';
+    final binds = <Object?>[query];
+    final branches = [
+      'SELECT dance_fts.dance_id AS dance_id, bm25(dance_fts) AS score '
+          'FROM dance_fts JOIN dances ON dances.id = dance_fts.dance_id '
+          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL',
+    ];
+    if (fragment) {
+      // The figure text arrives as a second, role-token-free branch.
+      binds
+        ..add(canonicalQuery)
+        ..add(_figureLikePattern(canonicalText, prefix: true));
+      branches.add(
+        'SELECT dance_fts.dance_id, bm25(dance_fts) FROM dance_fts '
         'JOIN dances ON dances.id = dance_fts.dance_id '
-        'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
-        'ORDER BY $order';
-    return CompiledFilter(sql, [query]);
+        'WHERE figures_text MATCH ? AND dances.deleted_at IS NULL '
+        "AND (' ' || $_figuresTextWithoutRoleTokens) LIKE ? ESCAPE '\\'",
+      );
+    }
+    // The meter, key and interpreters are not in the text index
+    // ([_musicAndInterpreterMatch]); a dance found only by them has no bm25
+    // score and takes 0, the worst a score can be (bm25 is never above 0):
+    // last in the default direction, first when it is flipped.
+    branches.add(
+      'SELECT id, 0 FROM dances WHERE deleted_at IS NULL AND '
+      '${_musicAndInterpreterMatch(filter.query.trim(), true, binds)}',
+    );
+    final sql =
+        'SELECT dance_id FROM (${branches.join(' UNION ALL ')}) '
+        'GROUP BY dance_id ORDER BY MIN(score)$direction';
+    return CompiledFilter(sql, binds);
   }
 
   /// SQL `ORDER BY` fragment for a [SearchSort] in [direction]. [SearchSort.author]
@@ -135,13 +271,16 @@ class FilterCompiler {
   ///
   /// [direction] flips only the *primary* comparison. The `IS NULL` guards keep
   /// NULL/absent values sorting **last** in both directions, and the trailing
-  /// `title COLLATE NOCASE` stays the ascending tiebreak. Ascending omits the
-  /// `ASC` keyword so the default fragments are byte-identical to before.
+  /// `title COLLATE NOCASE` stays the ascending tiebreak on every key that has
+  /// a primary column (the timestamp keys too: timestamps are stored at
+  /// one-second precision, so an import batch shares one instant). Ascending
+  /// omits the `ASC` keyword so the default fragments are byte-identical to
+  /// before.
   static String _orderBy(SearchSort sort, SortDirection direction) {
     final d = direction == SortDirection.descending ? ' DESC' : '';
     return switch (sort) {
-      SearchSort.recentlyAdded => 'created_at$d',
-      SearchSort.recentlyEdited => 'updated_at$d',
+      SearchSort.recentlyAdded => 'created_at$d, title COLLATE NOCASE',
+      SearchSort.recentlyEdited => 'updated_at$d, title COLLATE NOCASE',
       // Canonical PartialDate strings sort lexicographically == chronologically.
       // NULLs (no composed date) sort last; ties break by title.
       SearchSort.composedOn =>
@@ -200,6 +339,32 @@ class FilterCompiler {
         return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
             'JOIN published_sources ps ON ps.id = ds.source_id '
             'WHERE ds.source_id = ? AND ps.deleted_at IS NULL)';
+      case TunesFilter(:final query):
+        // `dances.tunes_json` is free-form stored text: it can be malformed,
+        // or valid JSON that is not a list of strings (#1347). Dart loads such
+        // a row as `UnreadableTunes`; here it must match nothing and, above
+        // all, must not abort the whole query — `json_each` over malformed
+        // text raises "malformed JSON" for every dance in the result set.
+        //
+        // A `CASE`, not an `AND` chain: SQLite is free to evaluate the operands
+        // of `AND` in any order, so `json_valid(..) AND EXISTS(json_each(..))`
+        // gives no guarantee the guard runs first. `CASE` evaluates its
+        // branches in order. The checks mirror `_tunesSourceFor`: parseable,
+        // a list, and every element a string. (`json_valid` is the strict
+        // RFC 8259 check, so JSON5 that `json_each` would accept is refused,
+        // as Dart's `jsonDecode` refuses it.)
+        binds.add(escapeLikePattern(query));
+        return 'CASE '
+            'WHEN NOT json_valid(dances.tunes_json) THEN 0 '
+            "WHEN json_type(dances.tunes_json) <> 'array' THEN 0 "
+            'WHEN EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
+            "WHERE j.type <> 'text') THEN 0 "
+            'ELSE EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
+            "WHERE j.value LIKE '%' || ? || '%' ESCAPE '\\') END";
+      case MeterFilter(:final meter):
+        return _musicValueMatch('meter', meter, binds);
+      case MusicalKeyFilter(:final musicalKey):
+        return _musicValueMatch('musical_key', musicalKey, binds);
       case TagFilter(:final tagId):
         // Joined to `tags` since schema v25 (#898). Tags have no referential
         // guard, so this is the one of these three where a tombstone with live
@@ -208,6 +373,15 @@ class FilterCompiler {
         return 'id IN (SELECT dt.dance_id FROM dance_tags dt '
             'JOIN tags t ON t.id = dt.tag_id '
             'WHERE dt.tag_id = ? AND t.deleted_at IS NULL)';
+      case UntaggedFilter():
+        // The `tags` join with `deleted_at IS NULL` is load-bearing, not
+        // decoration: a tag tombstone leaves its `dance_tags` rows in place, so
+        // a bare `NOT IN (SELECT dance_id FROM dance_tags)` would call a dance
+        // whose only tag was deleted *tagged* while its card shows no tag.
+        // `NOT IN` is NULL-safe: `dance_tags.dance_id` is NOT NULL (primary key).
+        return 'id NOT IN (SELECT dt.dance_id FROM dance_tags dt '
+            'JOIN tags t ON t.id = dt.tag_id '
+            'WHERE t.deleted_at IS NULL)';
       case FormFilter(:final form):
         binds.add(form.name);
         return 'form = ?';
@@ -232,20 +406,56 @@ class FilterCompiler {
         :final called,
         :final callerFilter,
         :final performedOnly,
+        :final requireEventDate,
+        :final tracking,
+        :final venue,
+        :final since,
+        :final currentProgramId,
       ):
         final caller = normalizeCallingHistoryCaller(callerFilter);
         if (caller != null) binds.add(caller);
         final performed = performedOnly
             ? ' AND ps.performed_at IS NOT NULL'
             : '';
+        final eventDate = requireEventDate
+            ? ' ${callingHistoryEventDateClause(requireEventDate: true, programTable: 'p').trimRight()}'
+            : '';
         final callerClause = caller == null
             ? ''
             : ' ${callingHistoryCallerClause(caller, callerColumn: 'p.caller').trimRight()}';
+        // The scopes narrow the slots the rules above select, so a negated
+        // scope is "no counted slot at V", never "a slot not at V". They
+        // follow the caller clause in the SQL, so their binds follow its bind.
+        final scopes = StringBuffer();
+        if (venue != null) {
+          if (venue.venueId case final venueId?) {
+            scopes.write(' AND p.venue_id = ?');
+            binds.add(venueId);
+          } else {
+            scopes.write(
+              ' AND p.venue_id IS NULL'
+              ' AND $callingHistoryVenueKeySqlFunction(p.venue) = ?',
+            );
+            binds.add(venue.typedVenue);
+          }
+        }
+        if (since != null) {
+          scopes.write(
+            ' AND ${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p', requireEventDate: tracking.recencyRequireEventDate, requirePerformed: tracking.recencyRequirePerformed)} >= ?',
+          );
+          binds.add(_calledSince(since));
+        }
+        if (currentProgramId != null) {
+          scopes.write(' AND p.id <> ?');
+          binds.add(currentProgramId);
+        }
         final exists =
             'EXISTS (SELECT 1 FROM program_slots ps '
             'JOIN programs p ON p.id = ps.program_id '
             'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL'
-            '$performed$callerClause)';
+            ' ${callingHistoryAlternateClause(slotTable: 'ps').trimRight()}'
+            '$performed$eventDate$callerClause'
+            '$scopes)';
         return called ? exists : 'NOT ($exists)';
       case RatingFilter(:final minimum):
         // Defensive: construction already asserts this, but never trust the
@@ -273,27 +483,194 @@ class FilterCompiler {
     }
   }
 
+  /// A free-text search (FIND-5): the query is split into words and every
+  /// word must match, each in any field, so "Kaynor petronella" finds a
+  /// Kaynor dance with a petronella in it. A term of several words — a role
+  /// ("Lady Birds"), a move ("do si do") or a dialect's move name — is one
+  /// word, so its spaces still have to match. Each word picks its own index
+  /// (one or two characters: the token-prefix `dance_fts`; more: the trigram
+  /// `dance_substring_fts`) and its own canonical-or-raw match
+  /// ([_compileFullTextWord]).
   String _compileFullText(
     FullTextScope scope,
     String rawQuery,
     List<Object?> binds,
   ) {
-    final isPrefix = ftsQueryScalarLength(rawQuery) <= 2;
+    final words = _searchWords(rawQuery);
+    // Nothing to search for (no words, or only short punctuation): one empty
+    // word, which matches nothing.
+    if (words.isEmpty) {
+      return _compileFullTextWord(scope, '', '', binds);
+    }
+    final predicates = [
+      for (final word in words) _compileWordForms(scope, word, binds),
+    ];
+    return predicates.length == 1
+        ? predicates.single
+        : '(${predicates.join(' AND ')})';
+  }
+
+  /// Splits [query] into the words [_compileFullText] ANDs, each as typed
+  /// (`raw`) and as the canonical text the figures are stored in
+  /// (`canonical`).
+  ///
+  /// Everything that rewrites the query is decided on the **whole** query
+  /// before it is split, so a word is never read out of its context:
+  /// - a role term, by [analyzeRoleTerms] ("lead down" keeps its verb, "mad
+  ///   robin" its move);
+  /// - a dialect's move name ([_dialectMoveNames]), which wins over a role
+  ///   word inside it;
+  /// - a taxonomy move name or keyword ([moveKeywordSpans]).
+  ///
+  /// Any of those that spans whitespace is kept as one word. The canonical
+  /// form then applies the role tokens and dialect move names that fall in the
+  /// word, followed by [canonicalizeMoveSearchText], as the whole query used
+  /// to.
+  List<_SearchWord> _searchWords(String query) {
+    final text = query.trim();
+    if (text.isEmpty) return const [];
+    final roles = analyzeRoleTerms(
+      text,
+      dialect,
+      extraRoleSynonyms: enrichment.roleSynonyms,
+    );
+    final dialectMoves = [
+      for (final m
+          in _dialectMoveNames?.matches(text) ??
+              const <({String text, int start})>[])
+        (start: m.start, end: m.start + m.text.length),
+    ];
+    final t = taxonomy;
+    final kept = List.filled(text.length, false);
+    void keep(int start, int end) => kept.fillRange(start, end, true);
+    for (final r in roles) {
+      keep(r.start, r.end);
+    }
+    for (final m in dialectMoves) {
+      keep(m.start, m.end);
+    }
+    if (t != null) {
+      for (final m in moveKeywordSpans(text, t)) {
+        keep(m.start, m.start + m.text.length);
+      }
+    }
+
+    bool inDialectMove(int start, int end) =>
+        dialectMoves.any((m) => start < m.end && m.start < end);
+
+    String canonical(int start, int end, {bool dialectNames = true}) {
+      final out = StringBuffer();
+      var i = start;
+      while (i < end) {
+        final move = dialectNames
+            ? dialectMoves.where((m) => m.start == i).firstOrNull
+            : null;
+        if (move != null) {
+          out.write(
+            _dialectMoveNames!.apply(text.substring(move.start, move.end)),
+          );
+          i = move.end;
+          continue;
+        }
+        // A role with no token (a case-folded match `RoleCanonicalizer` does
+        // not rewrite either) stays as typed.
+        final role = roles
+            .where(
+              (r) =>
+                  r.start == i &&
+                  r.kind == RoleSpanKind.role &&
+                  r.canonical != null &&
+                  !(dialectNames && inDialectMove(r.start, r.end)),
+            )
+            .firstOrNull;
+        if (role != null) {
+          out.write(role.canonical);
+          i = role.end;
+          continue;
+        }
+        out.write(text[i]);
+        i++;
+      }
+      final roleCanonical = out.toString();
+      final moveCanonical = t == null
+          ? roleCanonical
+          : canonicalizeMoveSearchText(roleCanonical, t);
+      // Stored figure text is single-spaced, so a kept term is too.
+      return moveCanonical.replaceAll(_whitespace, ' ');
+    }
+
+    final words = <_SearchWord>[];
+    int? wordStart;
+    for (var i = 0; i <= text.length; i++) {
+      final breaks =
+          i == text.length || (!kept[i] && _whitespace.hasMatch(text[i]));
+      if (!breaks) {
+        wordStart ??= i;
+      } else if (wordStart != null) {
+        final raw = text.substring(wordStart, i);
+        // A word of one or two characters with no letter or digit ("&",
+        // "-") has no token for the prefix index, so it would match no row
+        // and empty the whole AND; it constrains nothing, so it is dropped.
+        if (ftsQueryScalarLength(raw) > 2 || _letterOrDigit.hasMatch(raw)) {
+          final mapped = canonical(wordStart, i);
+          final unmapped = canonical(wordStart, i, dialectNames: false);
+          words.add((
+            raw: raw,
+            canonical: mapped,
+            asTyped: unmapped == mapped ? null : unmapped,
+          ));
+        }
+        wordStart = null;
+      }
+    }
+    return words;
+  }
+
+  /// A [word] whose dialect move names changed its canonical form matches
+  /// that form **or** its canonical form as typed, so a dialect that calls the
+  /// balance the ring "balance" still finds a plain balance by "balance"
+  /// (FIND-4 adds the dialect's meaning; it takes none away). Title and Author
+  /// read only the typed word, so they compile it once.
+  String _compileWordForms(
+    FullTextScope scope,
+    _SearchWord word,
+    List<Object?> binds,
+  ) {
+    final asTyped = word.asTyped;
+    final mapped = _compileFullTextWord(scope, word.raw, word.canonical, binds);
+    if (asTyped == null ||
+        scope == FullTextScope.title ||
+        scope == FullTextScope.author) {
+      return mapped;
+    }
+    final typed = _compileFullTextWord(scope, word.raw, asTyped, binds);
+    return '($mapped OR $typed)';
+  }
+
+  /// One word of a free-text search ([_compileFullText]): [raw] as typed and
+  /// [canonicalSearchText] in canonical form.
+  ///
+  /// In All fields the word matches its canonical form in any column **or** its
+  /// typed form in the verbatim columns ([_rawTextColumns]), so a title such as
+  /// "Hey Man", an author such as "Robin Hayden" or a note containing "ladies"
+  /// cannot be rewritten away by the role synonym map, while "Robin Hayden
+  /// swing" still finds Robin Hayden's dance with a swing in it.
+  /// `figures_text` stays canonical-only (it is stored canonicalised). The
+  /// word's own length picks the index, so a long word stays a literal
+  /// substring rather than falling back to unicode61 token semantics.
+  String _compileFullTextWord(
+    FullTextScope scope,
+    String raw,
+    String canonicalSearchText,
+    List<Object?> binds,
+  ) {
+    final isPrefix = ftsQueryScalarLength(raw) <= 2;
     final table = isPrefix ? 'dance_fts' : 'dance_substring_fts';
     final queryBuilder = isPrefix
         ? toFtsPrefixMatchQuery
         : toFtsSubstringMatchQuery;
-    final canonicalText = canonicalizeText(
-      rawQuery,
-      dialect,
-      extraRoleSynonyms: enrichment.roleSynonyms,
-    );
-    final canonicalQuery = queryBuilder(
-      taxonomy == null
-          ? canonicalText
-          : canonicalizeMoveSearchText(canonicalText, taxonomy!),
-    );
-    final rawTextQuery = queryBuilder(rawQuery);
+    final canonicalQuery = queryBuilder(canonicalSearchText);
+    final rawTextQuery = queryBuilder(raw);
 
     String columnMatch(String column, String query) {
       binds.add(query);
@@ -304,22 +681,150 @@ class FilterCompiler {
       case FullTextScope.title:
         return columnMatch('title', rawTextQuery);
       case FullTextScope.author:
-        return columnMatch('authors', rawTextQuery);
+        // The people who interpreted the dance count as its authors here.
+        final authors = columnMatch('authors', rawTextQuery);
+        return '($authors OR ${_interpreterMatch(raw, isPrefix, binds)})';
       case FullTextScope.figure:
         return columnMatch('figures_text', canonicalQuery);
       case FullTextScope.omni:
-        // Preserve canonical cross-field matching, but add a raw title-only
-        // branch so a title such as "Hey Man" cannot be rewritten away by the
-        // role synonym map. Both branches use the active prefix/substr index,
-        // so long queries remain literal substrings rather than falling back
-        // to unicode61 token semantics.
-        binds.add(canonicalQuery);
-        binds.add(rawTextQuery);
-        final canonical =
+        final rawMatch =
             'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-        final raw = 'id IN (SELECT dance_id FROM $table WHERE title MATCH ?)';
-        return '($canonical OR $raw)';
+        if (!_hasInternalRoleTokenFragment(
+          canonicalSearchText,
+          prefix: isPrefix,
+        )) {
+          binds.add(canonicalQuery);
+          binds.add(_rawColumnsMatch(rawTextQuery));
+          final canonical =
+              'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
+          final music = _musicAndInterpreterMatch(raw, isPrefix, binds);
+          return '($canonical OR $rawMatch OR $music)';
+        }
+        // The word is only a fragment of an internal role token (see
+        // [_hasInternalRoleTokenFragment]), so `figures_text` is matched only
+        // where the word still holds with the role tokens removed.
+        binds.add(_rawColumnsMatch(canonicalQuery));
+        binds.add(_rawColumnsMatch(rawTextQuery));
+        binds.add(canonicalQuery);
+        binds.add(_figureLikePattern(canonicalSearchText, prefix: isPrefix));
+        final canonicalColumns =
+            'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
+        final figures = _figureMatchWithoutRoleTokens(table, prefix: isPrefix);
+        final music = _musicAndInterpreterMatch(raw, isPrefix, binds);
+        return '($canonicalColumns OR $rawMatch OR $figures OR $music)';
     }
+  }
+
+  /// One word of an All fields search ([raw], as typed) against the dance's
+  /// meter, its key and the names of the people who interpreted it, in a
+  /// dance of any form (ADR-006 §9.2, F3: "meter and key MUST be
+  /// searchable"). These are read from the dance's own row and its live
+  /// interpreters, not from the text index, so they need no index rebuild and
+  /// follow a rename at once.
+  ///
+  /// A word of one or two characters ([prefix]) must start a word of the
+  /// value, where a word starts after a space, `/`, `-` or `(` ([_wordStarts];
+  /// "D" finds "D minor", "8" and "3/" find "6/8" and "3/2", "in" does not
+  /// find "D minor"), close to what the token-prefix index does; a longer word
+  /// may sit anywhere in it. Both sides are folded by [searchFoldSqlFunction]
+  /// (lowercased, accents removed), so "emile" finds "Émile" and "Émile"
+  /// finds "Emile", as the text index's `remove_diacritics` does.
+  String _musicAndInterpreterMatch(
+    String raw,
+    bool prefix,
+    List<Object?> binds,
+  ) {
+    final pattern = _foldedLikePattern(raw, prefix);
+    // A word with no letter or digit (or no word at all) would make a
+    // pattern that matches every value; it names no meter, key or person.
+    if (pattern == null) return '0';
+    String value(String column) => _foldedValue(column, prefix);
+    binds
+      ..add(pattern)
+      ..add(pattern);
+    // Two `id IN` subqueries, like the text-index branches beside them, so
+    // SQLite evaluates each once per word and probes its result, rather than
+    // testing every dance against each branch. Measured with
+    // `benchmark/search_benchmark.dart` (20,000 dances, none with a meter),
+    // a bare search took
+    // 0.47 ms before this match, 5.7 ms with the branches tested per row and
+    // 2.5 ms in this shape.
+    return "(id IN (SELECT id FROM dances WHERE (meter <> '' OR "
+        "musical_key <> '') AND (${value('meter')} LIKE ? ESCAPE '\\' "
+        "OR ${value('musical_key')} LIKE ? ESCAPE '\\')) "
+        'OR ${_interpreterMatch(raw, prefix, binds)})';
+  }
+
+  /// One word of a search ([raw], as typed) against the names of the people
+  /// who interpreted a dance, matched as [_musicAndInterpreterMatch] matches
+  /// a meter. All fields and the Author scope both read it, so an Author
+  /// search finds a dance by the person who interpreted it as well as by the
+  /// person who wrote it.
+  String _interpreterMatch(String raw, bool prefix, List<Object?> binds) {
+    final pattern = _foldedLikePattern(raw, prefix);
+    if (pattern == null) return '0';
+    binds.add(pattern);
+    // Joined to `choreographers` with `deleted_at IS NULL`, as the author
+    // leaf is, so a deleted interpreter matches nothing.
+    return 'id IN (SELECT di.dance_id FROM dance_interpreters di '
+        'JOIN choreographers c ON c.id = di.choreographer_id '
+        'WHERE c.deleted_at IS NULL '
+        "AND ${_foldedValue('c.name', prefix)} LIKE ? ESCAPE '\\')";
+  }
+
+  /// The `LIKE` pattern for one typed word against a folded value
+  /// ([_foldedValue]), or `null` when the word has no letter or digit.
+  ///
+  /// The word is folded the way the value is ([foldForSearch]). A short word
+  /// ([prefix]) has the same separators made spaces as the value it must
+  /// start a word of, then trimmed, so "/8" starts a word as "8" does.
+  static String? _foldedLikePattern(String raw, bool prefix) {
+    if (!_letterOrDigit.hasMatch(raw)) return null;
+    final word = foldForSearch(raw.trim());
+    return prefix
+        ? '% ${escapeLikePattern(word.replaceAll(_wordSeparators, ' ').trim())}%'
+        : '%${escapeLikePattern(word)}%';
+  }
+
+  /// [column] folded by [_folded], with its word starts marked
+  /// ([_wordStarts]) when [prefix].
+  static String _foldedValue(String column, bool prefix) {
+    final folded = '(${_folded(column)})';
+    return prefix ? _wordStarts(folded) : folded;
+  }
+
+  /// [column] folded as [foldForSearch] folds it, for a `LIKE`.
+  ///
+  /// An ASCII value (as many bytes as characters) is left as stored: `LIKE`
+  /// already ignores ASCII case, and the pattern is folded. Only any other
+  /// value calls [searchFoldSqlFunction], a Dart callback per row: called for
+  /// every row, it took an All fields search over 20,000 dances that all have
+  /// a meter from 8.9 ms to 36 ms (`benchmark/search_benchmark.dart`).
+  static String _folded(String column) =>
+      'CASE WHEN ${_isAscii(column)} THEN $column '
+      'ELSE $searchFoldSqlFunction($column) END';
+
+  /// Whether [column] holds only ASCII: as many bytes as characters.
+  static String _isAscii(String column) =>
+      'length($column) = length(CAST($column AS BLOB))';
+
+  /// A whole-value match of [column] (the meter or the key) against [value],
+  /// with both sides trimmed and folded ([searchFoldSqlFunction]). A blank
+  /// value matches nothing: it is not a meter or key the filter offers.
+  static String _musicValueMatch(
+    String column,
+    String value,
+    List<Object?> binds,
+  ) {
+    final folded = foldForSearch(value.trim());
+    if (folded.isEmpty) return '0';
+    binds.add(folded);
+    // `=` is case-sensitive, so an ASCII value is lowered here, and trimmed
+    // of the ASCII whitespace Dart's `trim` removes (tab to carriage return,
+    // and space), as the Meter and Key facets trim what they offer.
+    return "($column <> '' AND (CASE WHEN ${_isAscii(column)} "
+        'THEN lower(trim($column, char(9, 10, 11, 12, 13, 32))) '
+        'ELSE $searchFoldSqlFunction($column) END) = ?)';
   }
 
   String _customField(CustomFieldFilter f, List<Object?> binds) {
@@ -333,8 +838,23 @@ class FilterCompiler {
       );
     }
     final opPred = _customFieldOp(f, binds);
+    // Joined to `custom_field_defs` (#1358) so a tombstoned definition matches
+    // nothing, exactly as the author, source, tag and level leaves above
+    // already do. Soft-deleting a definition fires no FK cascade, so its
+    // `custom_field_values` rows survive and the bare subquery kept returning
+    // dances for a field the user deleted — while hydration
+    // (`DanceRepository._customFieldsForMany`) inner-joins the definition and
+    // hides those same values, so search and the record disagreed.
+    //
+    // Deliberately a JOIN rather than a second EXISTS: the shape
+    // `tools/ci/check_sync_invariants.py` ratchets is "every join through a
+    // soft-deletable parent carries `deleted_at IS NULL`", and a subquery with
+    // no join is invisible to it. The join binds nothing, so the bind order
+    // (`field_id`, then the operator's values) is unchanged.
     return 'EXISTS (SELECT 1 FROM custom_field_values v '
-        'WHERE v.dance_id = dances.id AND v.field_id = ? AND $opPred)';
+        'JOIN custom_field_defs d ON d.id = v.field_id '
+        'WHERE v.dance_id = dances.id AND v.field_id = ? '
+        'AND d.deleted_at IS NULL AND $opPred)';
   }
 
   String _customFieldOp(CustomFieldFilter f, List<Object?> binds) {
@@ -372,6 +892,25 @@ class FilterCompiler {
         final placeholders = List.filled(values.length, '?').join(', ');
         return 'v.value_text IN ($placeholders)';
     }
+  }
+
+  /// Checks a [CalledFilter.since] cutoff and returns it as its bind.
+  ///
+  /// The cutoff must be a calendar date stored the way an event date is,
+  /// UTC midnight, so a dated program compares `event_date >= cutoff`
+  /// exactly. A local or mid-day value would shift the boundary by the
+  /// device's offset, so it is rejected in every build, as an out-of-range
+  /// [RatingFilter] is.
+  DateTime _calledSince(DateTime since) {
+    if (!since.isUtc ||
+        since != DateTime.utc(since.year, since.month, since.day)) {
+      throw ArgumentError.value(
+        since,
+        'CalledFilter.since',
+        'must be a UTC calendar date, DateTime.utc(y, m, d)',
+      );
+    }
+    return since;
   }
 
   /// Compiles a [LevelFilter] against the configured difficulty vocabulary.
@@ -422,19 +961,40 @@ class FilterCompiler {
   String _then(FigureQuery before, FigureQuery after, List<Object?> binds) {
     final a = _figureClause(before, 'a', binds);
     final b = _figureClause(after, 'b', binds);
+    // `after` must IMMEDIATELY follow `before`, as in ContraDB's `then`
+    // (`SearchMatch#abuts?`: `(last + 1) % nfigures == other.first`): the next
+    // figure after `before`, and the first figure again after the last one, so
+    // a dance that opens and closes with an allemande matches
+    // `Then(allemande, allemande)`.
+    //
     // Correlate on `group_idx`, not `idx` (#748). A `meanwhile` container is
     // flattened into one `dance_figures` row per concurrent side (#590), and
     // the `{dance_id, idx}` PK forces those sides onto consecutive `idx`
-    // values — so `a.idx < b.idx` would treat two *simultaneous* sides as
-    // one-before-the-other, matching an `X while Y` container for both
-    // `Then(X, Y)` and `Then(Y, X)`. `group_idx` is shared by all rows
-    // flattened from one top-level figure (see `_insertDerivedRows`), so two
-    // concurrent sides share a group and the strict `<` excludes them in both
-    // directions, while a genuine sequence (distinct, increasing groups) still
-    // matches.
+    // values, so `idx` would treat two *simultaneous* sides as adjacent.
+    // `group_idx` is shared by all rows flattened from one top-level figure,
+    // except that a top-level `sequence` gives each child its own (see
+    // `_insertDerivedRows`). "The next figure" is therefore the next group that
+    // exists after `a`'s (the smallest larger `group_idx`, else the smallest
+    // overall: the wrap), not `group_idx + 1`, so a gap in the numbering could
+    // never hide a pair.
+    //
+    // A row is paired with a row of a DIFFERENT group, so two concurrent
+    // sides of one container, which share a group, are never read as
+    // one-after-the-other. The one exception is the dance ContraDB reads as
+    // a single figure: with exactly one group, `abuts?` pairs that figure
+    // with itself (`(0 + 1) % 1 == 0`), so a row may pair with ITSELF there
+    // (`a.idx = b.idx`). Two different rows of that group still do not pair.
+    // No separate count of groups is needed: `b` is forced to the next group
+    // after `a`'s, which is `a`'s own only when the dance has one group, so
+    // `a.idx = b.idx` can hold only there.
     return 'id IN (SELECT a.dance_id FROM dance_figures a '
         'JOIN dance_figures b ON a.dance_id = b.dance_id '
-        'AND a.group_idx < b.group_idx '
+        'AND (a.group_idx <> b.group_idx OR a.idx = b.idx) '
+        'AND b.group_idx = COALESCE('
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx), '
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id)) '
         'WHERE ($a) AND ($b))';
   }
 
@@ -472,7 +1032,7 @@ class FilterCompiler {
         throw ArgumentError.value(key, 'params key', 'illegal JSON path key');
       }
       parts.add("json_extract($alias.params_json, '\$.$key') = ?");
-      binds.add(_paramBind(leaf.params[key]));
+      binds.add(_paramBind(key, leaf.params[key]));
     }
     if (leaf.section != null) {
       parts.add('$alias.section = ?');
@@ -483,13 +1043,29 @@ class FilterCompiler {
 
   /// Canonicalizes a move name via the active dialect's (reversed) move
   /// substitutions. Unknown/unmapped names pass through unchanged.
-  String _canonicalizeMove(String move) =>
-      _moveReverse[move.toLowerCase()] ?? move;
+  ///
+  /// A built-in move's id names that move and is never mapped: the type-aheads
+  /// store ids, and a dialect may call another move by a built-in id's word
+  /// (`{swing: 'chain'}`). Mapping the id would make picking the built-in chain
+  /// search swings, and leave chain itself unsearchable under that dialect.
+  String _canonicalizeMove(String move) {
+    // An alias's id is a built-in id too (`long_lines`, a move until taxonomy
+    // v39, and every other alias the type-aheads offer).
+    final t = taxonomy;
+    if (t != null &&
+        (t.moves.containsKey(move) || t.aliases.containsKey(move))) {
+      return move;
+    }
+    return _moveReverse[move.toLowerCase()] ?? move;
+  }
 
   /// Prepares a figure-param value for binding against `json_extract`'s
   /// natural typing. Role-valued strings are canonicalized; booleans compare
-  /// against `json_extract`'s 1/0.
-  Object? _paramBind(Object? value) {
+  /// against `json_extract`'s 1/0. The id of a figure of your own
+  /// ([userFigureRefKey]) is bound as given: it is an id, not text, and
+  /// canonicalizing it could turn a role word inside it into a token.
+  Object? _paramBind(String key, Object? value) {
+    if (key == userFigureRefKey) return value;
     if (value is String) {
       return canonicalizeText(
         value,

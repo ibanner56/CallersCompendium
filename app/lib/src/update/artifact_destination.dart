@@ -10,7 +10,9 @@ library;
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
+import '../data/file_dialog_labels.dart';
 import 'update_config.dart';
 import 'update_manifest.dart';
 
@@ -25,24 +27,27 @@ typedef SaveLocationPicker =
       required List<XTypeGroup> acceptedTypeGroups,
     });
 
-const _macosUpdateTypeGroup = XTypeGroup(
-  label: "Caller's Compendium update",
-  extensions: ['dmg', 'zip'],
-  uniformTypeIdentifiers: ['com.apple.disk-image', 'public.zip-archive'],
+@visibleForTesting
+XTypeGroup macosUpdateTypeGroup() => XTypeGroup(
+  label: FileDialogLabels.current.fileDialogTypeMacosUpdate,
+  extensions: const ['dmg', 'zip'],
+  uniformTypeIdentifiers: const ['com.apple.disk-image', 'public.zip-archive'],
 );
 
 /// Opens the macOS native Save As panel and returns the selected destination.
 ///
 /// The caller writes the artifact directly to this path using its existing
-/// exclusive-create guard. Returning `null` means the user cancelled and no
-/// download should begin.
+/// exclusive-create guard. The panel has already asked the user to confirm
+/// replacing an existing file, so the caller first deletes a regular file at
+/// the path; a symbolic link or folder there is refused (security-5). Returning `null`
+/// means the user cancelled and no download should begin.
 Future<File?> pickMacosArtifactDestination(
   UpdateArtifact artifact, {
   SaveLocationPicker saveLocationPicker = _showMacosSaveLocation,
 }) async {
   final location = await saveLocationPicker(
     suggestedName: downloadFileName(artifact.url),
-    acceptedTypeGroups: const [_macosUpdateTypeGroup],
+    acceptedTypeGroups: [macosUpdateTypeGroup()],
   );
   return location == null ? null : File(location.path);
 }

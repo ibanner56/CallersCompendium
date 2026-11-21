@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,10 +14,14 @@ import 'package:compendium_app/src/data/first_day_of_week_scope.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 /// The live notifiers the Language & region controls read and mutate, seeded
 /// (with validation) from persisted settings — mirroring how `main.dart` wires
@@ -33,10 +38,11 @@ typedef _RegionalNotifiers = ({
 /// assert that a control change flows through to app-wide state.
 Future<_RegionalNotifiers> _pumpRegional(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 1200));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  CompendiumRepositories repos, {
+  Size surface = const Size(1200, 1200),
+  double textScale = 1,
+}) async {
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -64,32 +70,38 @@ Future<_RegionalNotifiers> _pumpRegional(
   addTearDown(firstDayOfWeek.dispose);
   addTearDown(locale.dispose);
 
+  // The scopes sit above the Navigator (as in the real app) so a narrow
+  // surface, where a section opens as a pushed route, still reaches them.
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: DateFormatScope(
-                notifier: dateFormat,
-                child: FirstDayOfWeekScope(
-                  notifier: firstDayOfWeek,
-                  child: LocaleScope(
-                    notifier: locale,
-                    child: const SettingsScreen(),
+      builder: (context, child) {
+        final scaled = textScaleBuilder(textScale)?.call(context, child);
+        return RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: DateFormatScope(
+                  notifier: dateFormat,
+                  child: FirstDayOfWeekScope(
+                    notifier: firstDayOfWeek,
+                    child: LocaleScope(
+                      notifier: locale,
+                      child: scaled ?? child!,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
+      home: const SettingsScreen(),
     ),
   );
   await tester.pumpAndSettle();
@@ -127,6 +139,40 @@ void main() {
     expect(find.text('Coming soon'), findsNothing);
   });
 
+  testWidgets('Language & region renders without overflow at 360x640 and 1.3x '
+      'text', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpRegional(
+      tester,
+      repos,
+      surface: const Size(360, 640),
+      textScale: 1.3,
+    );
+
+    expect(tester.takeException(), isNull);
+    for (final key in const [
+      'regional-language',
+      'regional-date-format',
+      'regional-first-day-of-week-dropdown',
+    ]) {
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
+      // A dropdown inside a ListTile's trailing slot cannot wrap.
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byKey(ValueKey(key)),
+        ),
+        findsNothing,
+        reason: key,
+      );
+      final box = tester.getRect(find.byKey(ValueKey(key)));
+      expect(box.left, greaterThanOrEqualTo(0), reason: key);
+      expect(box.right, lessThanOrEqualTo(360), reason: key);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the date-format dropdown shows the persisted value', (
     tester,
   ) async {
@@ -136,10 +182,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DateFormatPref>>(
+          .widget<AppDropdownField<DateFormatPref>>(
             find.byKey(const ValueKey('regional-date-format')),
           )
-          .value,
+          .initialValue,
       DateFormatPref.ymd,
     );
   });
@@ -262,10 +308,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DateFormatPref>>(
+          .widget<AppDropdownField<DateFormatPref>>(
             find.byKey(const ValueKey('regional-date-format')),
           )
-          .value,
+          .initialValue,
       DateFormatPref.custom,
     );
     expect(
@@ -288,10 +334,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<Locale?>>(
+          .widget<AppDropdownField<Locale?>>(
             find.byKey(const ValueKey('regional-language')),
           )
-          .value,
+          .initialValue,
       isNull,
     );
     expect(notifiers.locale.value, isNull);
@@ -321,10 +367,10 @@ void main() {
     expect(notifiers.locale.value, const Locale('en'));
     expect(
       tester
-          .widget<DropdownButton<Locale?>>(
+          .widget<AppDropdownField<Locale?>>(
             find.byKey(const ValueKey('regional-language')),
           )
-          .value,
+          .initialValue,
       const Locale('en'),
     );
   });
@@ -339,10 +385,10 @@ void main() {
     expect(notifiers.locale.value, const Locale('en'));
     expect(
       tester
-          .widget<DropdownButton<Locale?>>(
+          .widget<AppDropdownField<Locale?>>(
             find.byKey(const ValueKey('regional-language')),
           )
-          .value,
+          .initialValue,
       const Locale('en'),
     );
   });
@@ -370,10 +416,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<FirstDayOfWeekPref>>(
+          .widget<AppDropdownField<FirstDayOfWeekPref>>(
             find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
           )
-          .value,
+          .initialValue,
       FirstDayOfWeekPref.monday,
     );
     expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.monday);
@@ -401,10 +447,10 @@ void main() {
     expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.sunday);
     expect(
       tester
-          .widget<DropdownButton<FirstDayOfWeekPref>>(
+          .widget<AppDropdownField<FirstDayOfWeekPref>>(
             find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
           )
-          .value,
+          .initialValue,
       FirstDayOfWeekPref.sunday,
     );
   });
@@ -418,11 +464,42 @@ void main() {
     expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.system);
     expect(
       tester
-          .widget<DropdownButton<FirstDayOfWeekPref>>(
+          .widget<AppDropdownField<FirstDayOfWeekPref>>(
             find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
           )
-          .value,
+          .initialValue,
       FirstDayOfWeekPref.system,
     );
   });
+
+  testWidgets('a failed settings.set from a settings handler is logged, not '
+      'thrown', (tester) async {
+    final sources = <String>[];
+    installCaughtErrorLog(_RecordingSink(sources));
+    addTearDown(resetCaughtErrorLogForTesting);
+    final failing = openTestRepositoriesWithFailingSettings();
+    final notifiers = await _pumpRegional(tester, failing.repos);
+
+    await tester.tap(find.byKey(const ValueKey('regional-date-format')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Year-month-day (2026-07-15)').last);
+    await tester.pumpAndSettle();
+
+    // The write failed: no unhandled async error, one logged entry, and the
+    // live value still flipped first.
+    expect(tester.takeException(), isNull);
+    expect(sources, hasLength(1));
+    expect(sources.single, contains('persist'));
+    expect(notifiers.dateFormat.value, DateFormatSetting(DateFormatPref.ymd));
+  });
+}
+
+class _RecordingSink implements CrashLogSink {
+  _RecordingSink(this.sources);
+  final List<String> sources;
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+  }
 }

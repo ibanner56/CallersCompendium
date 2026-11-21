@@ -2,9 +2,12 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
-import 'dance_editor_controller.dart' show AddChoiceResult;
+import 'choice_option.dart' show AddChoiceResult;
+import '../../widgets/dirty_dialog_guard.dart';
+import '../../widgets/app_dropdown_field.dart';
 import 'lingo_discouraged_hint.dart';
 
 /// Renders the editor control for a single [CustomFieldDef], dispatching on its
@@ -88,7 +91,11 @@ class CustomFieldEditor extends StatelessWidget {
             validator: (value) {
               final text = value?.trim() ?? '';
               if (text.isEmpty) return null;
-              return parseFiniteNumber(text) == null ? 'Enter a number' : null;
+              return parseFiniteNumber(text) == null
+                  ? AppLocalizations.of(
+                      context,
+                    ).collectionBatchCustomFieldNumberInvalid
+                  : null;
             },
           ),
         );
@@ -101,14 +108,16 @@ class CustomFieldEditor extends StatelessWidget {
           onChanged: (v) => onValueChanged(v),
         );
       case CustomFieldType.choice:
-        final dropdown = DropdownButtonFormField<String?>(
+        final dropdown = AppDropdownField<String?>(
           key: ValueKey('custom-${def.id}-choice'),
-          initialValue: currentValue as String?,
+          value: currentValue as String?,
+          // Options the user typed: a list that grows.
+          filterable: true,
           decoration: InputDecoration(labelText: def.label),
-          items: [
-            const DropdownMenuItem(value: null, child: Text('—')),
+          entries: [
+            const AppDropdownEntry<String?>(value: null, label: '—'),
             for (final choice in def.choices ?? const <String>[])
-              DropdownMenuItem(value: choice, child: Text(choice)),
+              AppDropdownEntry<String?>(value: choice, label: choice),
           ],
           onChanged: (v) => onValueChanged(v),
         );
@@ -139,14 +148,27 @@ class CustomFieldEditor extends StatelessWidget {
   /// delegates to [onAddOption]. The input is capped at
   /// [kMaxCustomFieldChoiceLength] characters; empty and duplicate values are
   /// reported inline in the dialog rather than silently dropped.
-  Future<void> _promptAddOption(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) =>
-          _AddChoiceOptionDialog(label: def.label, onAddOption: onAddOption!),
-    );
-  }
+  Future<void> _promptAddOption(BuildContext context) =>
+      showAddChoiceOptionDialog(
+        context,
+        label: def.label,
+        onAddOption: onAddOption!,
+      );
 }
+
+/// Opens the "add an option" dialog for the `choice` field called [label] and
+/// reports a rejected value inline (empty, duplicate) instead of closing.
+/// Shared by the dance editor and the Collection's batch custom-field dialog.
+Future<void> showAddChoiceOptionDialog(
+  BuildContext context, {
+  required String label,
+  required Future<AddChoiceResult> Function(String raw) onAddOption,
+}) => showDialog<void>(
+  context: context,
+  builder: (dialogContext) =>
+      _AddChoiceOptionDialog(label: label, onAddOption: onAddOption),
+  animationStyle: AppMotion.styleFor(context),
+);
 
 /// Modal for adding a new option to a `choice` custom field from the dance
 /// editor (issue #373). A [StatefulWidget] so it owns its [TextEditingController]
@@ -209,37 +231,41 @@ class _AddChoiceOptionDialogState extends State<_AddChoiceOptionDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.customFieldsAddOptionTitle(widget.label)),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          key: const ValueKey('add-option-input'),
-          controller: _controller,
-          autofocus: true,
-          maxLength: kMaxCustomFieldChoiceLength,
-          decoration: InputDecoration(
-            labelText: l10n.customFieldsNewChoiceHint,
-            counterText: '',
-            errorText: _asyncError,
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.customFieldsAddOptionTitle(widget.label)),
+        content: Form(
+          key: _formKey,
+          child: TextFormField(
+            key: const ValueKey('add-option-input'),
+            controller: _controller,
+            autofocus: true,
+            maxLength: kMaxCustomFieldChoiceLength,
+            decoration: InputDecoration(
+              labelText: l10n.customFieldsNewChoiceHint,
+              counterText: '',
+              errorText: _asyncError,
+            ),
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? l10n.customFieldsChoiceEmpty
+                : null,
+            onFieldSubmitted: (_) => _submit(),
           ),
-          validator: (value) => (value == null || value.trim().isEmpty)
-              ? l10n.customFieldsChoiceEmpty
-              : null,
-          onFieldSubmitted: (_) => _submit(),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('add-option-confirm'),
+            onPressed: _submit,
+            child: Text(l10n.commonAdd),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('add-option-confirm'),
-          onPressed: _submit,
-          child: Text(l10n.commonAdd),
-        ),
-      ],
     );
   }
 }

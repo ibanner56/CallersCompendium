@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import 'dirty_dialog_guard.dart';
 
 /// Shows the batch **add tunes** picker for the Collection multi-select flow.
 ///
@@ -17,6 +20,7 @@ Future<Set<String>?> showBatchTunesDialog(BuildContext context) {
   return showDialog<Set<String>>(
     context: context,
     builder: (_) => const _BatchTunesDialog(),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -55,84 +59,88 @@ class _BatchTunesDialogState extends State<_BatchTunesDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      key: const ValueKey('batch-tunes-dialog'),
-      title: Text(l10n.collectionAddTunes),
-      content: SizedBox(
-        width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_tunes.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(l10n.collectionBatchTunesEmpty),
-              )
-            else
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final tune in _tunes)
-                      ListTile(
-                        key: ValueKey('batch-tunes-item-$tune'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.music_note_outlined),
-                        title: Text(tune),
-                        trailing: IconButton(
-                          key: ValueKey('batch-tunes-remove-$tune'),
-                          tooltip: l10n.collectionBatchTunesRemove(tune),
-                          icon: const Icon(Icons.close),
-                          onPressed: () => _removeTune(tune),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty || _tunes.isNotEmpty,
+      child: AlertDialog(
+        key: const ValueKey('batch-tunes-dialog'),
+        title: Text(l10n.collectionAddTunes),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_tunes.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  child: Text(l10n.collectionBatchTunesEmpty),
+                )
+              else
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final tune in _tunes)
+                        ListTile(
+                          key: ValueKey('batch-tunes-item-$tune'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.music_note_outlined),
+                          title: Text(tune),
+                          trailing: IconButton(
+                            key: ValueKey('batch-tunes-remove-$tune'),
+                            tooltip: l10n.collectionBatchTunesRemove(tune),
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () => _removeTune(tune),
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('batch-tunes-field'),
-                    controller: _controller,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: l10n.collectionBatchTunesFieldLabel,
-                      isDense: true,
-                      border: const OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _addTune(),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  key: const ValueKey('batch-tunes-add'),
-                  tooltip: l10n.collectionBatchTunesAddButton,
-                  icon: const Icon(Icons.add),
-                  onPressed: _addTune,
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('batch-tunes-field'),
+                      controller: _controller,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(
+                        labelText: l10n.collectionBatchTunesFieldLabel,
+                        isDense: true,
+                        border: const OutlineInputBorder(),
+                      ),
+                      onSubmitted: (_) => _addTune(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    key: const ValueKey('batch-tunes-add'),
+                    tooltip: l10n.collectionBatchTunesAddButton,
+                    icon: const Icon(Icons.add),
+                    onPressed: _addTune,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('batch-tunes-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('batch-tunes-confirm'),
+            onPressed: _tunes.isEmpty
+                ? null
+                : () => Navigator.of(context).pop(Set<String>.of(_tunes)),
+            child: Text(l10n.collectionBatchTunesConfirm),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('batch-tunes-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('batch-tunes-confirm'),
-          onPressed: _tunes.isEmpty
-              ? null
-              : () => Navigator.of(context).pop(Set<String>.of(_tunes)),
-          child: Text(l10n.collectionBatchTunesConfirm),
-        ),
-      ],
     );
   }
 }

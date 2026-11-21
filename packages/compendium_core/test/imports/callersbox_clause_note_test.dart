@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// Tests for the `;`-clause NOTE FALLBACK in [parseFigureLines]
 /// (`callersbox_figure_dialect.dart`) and the machinery it depends on:
@@ -55,7 +56,7 @@ List<Figure> _importFigures(List<String> figureLines) {
       permission: 'full',
     ),
   );
-  return draft.dance.figures;
+  return figuresOf(draft.dance);
 }
 
 void main() {
@@ -264,6 +265,64 @@ void main() {
     });
   });
 
+  group('note fallback — the host is the figure emitted before the clause', () {
+    // A note hangs on the last figure emitted BEFORE its clause. That used to be
+    // reconstructed from clause counts (`index - failuresBefore - 1`), which
+    // only agrees while every structured clause yields exactly one figure. The
+    // walk-forward fold (#733) consumes TWO clauses for ONE figure, so after a
+    // fold the count ran ahead of the figures: a trailing note indexed past the
+    // end (a RangeError that dropped the whole dance from an import), and a
+    // note between figures hung on the figure AFTER it — the very thing the
+    // fallback promises never to do.
+
+    test('a note after a fold and a later figure no longer throws', () {
+      final figures = _lines(
+        'Women walk forward; form long wave in center; '
+        '(8) Star right 3/4 [with N2]; men turn around',
+        beats: 2,
+      );
+      expect(figures.map((f) => f.move), ['form_a_long_wave', 'star']);
+      // The note hangs on the star, the last figure before it, after the star's
+      // own recognizer note.
+      expect(figures[0].note, isNull);
+      expect(figures[1].note, endsWith('turn around'));
+    });
+
+    test('a note between a fold and the next figure stays on the fold', () {
+      final figures = _lines(
+        'Women walk forward; form long wave in center; face down; '
+        '(8) Star right 3/4 [with N2]',
+        beats: 2,
+      );
+      expect(figures.map((f) => f.move), ['form_a_long_wave', 'star']);
+      expect(figures[0].note, 'face down');
+      expect(
+        figures[1].note,
+        isNot(contains('face down')),
+        reason: 'a note must never hang on the figure AFTER its clause',
+      );
+    });
+
+    test('two notes after a fold both stay on it', () {
+      final figures = _lines(
+        'Women walk forward; form long wave in center; face down; face up',
+        beats: 2,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.move, 'form_a_long_wave');
+      expect(figures.single.note, 'face down; face up');
+    });
+
+    test('without a fold the same note lands where it always did', () {
+      final figures = _lines(
+        'Ladies chain to partner; face down; (8) Star right 3/4 [with N2]',
+        beats: 2,
+      );
+      expect(figures.map((f) => f.move), ['chain', 'star']);
+      expect(figures[0].note, 'to partner; face down');
+    });
+  });
+
   group('note fallback — the allowlist is closed', () {
     test('an ineligible clause still collapses the whole line', () {
       for (final line in [
@@ -280,18 +339,25 @@ void main() {
       }
     });
 
-    test('the `cast … to place` family is NOT swept in by `return to place`', () {
-      // Deliberate: `cast` is the largest genuinely-undefined figure left, and
-      // note-ifying these lines would make them look handled and cause a future
-      // census of `cast` to under-count itself. `return to place` is matched as
-      // an EXACT phrase, which is what excludes them.
-      for (final line in [
-        'Partner swing; cast down to place',
-        'Partner swing; cast up to place',
-        'Partner swing; cast back to place',
+    test('a `cast … to place` clause is a cast, never a `return to place` '
+        'note', () {
+      // `return to place` is matched as an EXACT phrase, so these clauses are
+      // never swept into a note on the swing. Until taxonomy v40 (#770) that
+      // kept the whole line custom; now each clause is a `cast` of its own.
+      for (final (line, direction) in [
+        ('Partner swing; cast down to place', 'down'),
+        ('Partner swing; cast up to place', 'up'),
+        ('Partner swing; cast back to place', null),
       ]) {
-        _staysWholeCustom(line);
-        expect(_one(line).params['text'], contains('cast'));
+        final figures = parseFigureLines(
+          line,
+          beats: 8,
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(figures.map((f) => f.move), ['swing', 'cast'], reason: line);
+        expect(figures.first.note, isNull, reason: line);
+        expect(figures.last.params['direction'], direction, reason: line);
+        expect(figures.last.params['destination'], 'place', reason: line);
       }
     });
 
@@ -584,18 +650,20 @@ void main() {
 
     test('a cross-line fold PRESERVES the consumed figure\'s clause note', () {
       // `Balance the ring; face up` now structures to `balance_the_ring` + a
-      // note, is still a balance LINE, and folds into the following swing. The
-      // fold `copyWith`s the SURVIVOR, so without note propagation "face up"
-      // would be silently dropped — and it was, before this change: the old
-      // whole-custom balance line was consumed by the very same fold.
+      // note, is still a balance LINE, and folds into the following
+      // petronella (whose balance IS the ring's). The fold `copyWith`s the
+      // SURVIVOR, so without note propagation "face up" would be silently
+      // dropped — and it was, before this change: the old whole-custom
+      // balance line was consumed by the very same fold. (A ring balance no
+      // longer folds into a swing — that would make it the swing pair's.)
       final figures = _importFigures([
         '(4) Balance the ring; face up',
-        '(12) Partner swing',
+        '(4) Petronella',
       ]);
       expect(figures, hasLength(1));
-      expect(figures.single.move, 'swing');
-      expect(figures.single.params['prefix'], 'balance');
-      expect(figures.single.beats, 16); // 4 + 12, unchanged
+      expect(figures.single.move, 'petronella');
+      expect(figures.single.params['balance'], isTrue);
+      expect(figures.single.beats, 8); // 4 + 4, unchanged
       expect(figures.single.note, 'face up');
     });
 

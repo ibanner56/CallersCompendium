@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/reduce_motion_scope.dart';
+import '../theme/app_motion.dart';
+
+import '../theme/app_spacing.dart';
 
 /// A self-contained, opt-in **tap-tempo visual metronome** for Perform mode
 /// (issue #366, PM-scoped slice). The caller taps out the beat on a large
@@ -15,7 +19,7 @@ import '../../l10n/app_localizations.dart';
 /// * **No auto-detection** — tempo comes only from the caller's taps.
 ///
 /// The pulse is driven by a single reused [AnimationController] (a [Ticker]),
-/// independent of the Perform screens' elapsed-clock `Timer.periodic`. The
+/// independent of the Perform screens' elapsed-clock refresh timer. The
 /// controller is created once and only *rescheduled* (duration changed +
 /// restarted) when the BPM changes, so mid-run tempo changes never leak
 /// tickers. It is disposed with the widget.
@@ -60,7 +64,7 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
   /// controller repeats; it is never recreated on tempo change.
   late final AnimationController _pulse = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 500),
+    duration: AppMotion.long,
   );
 
   @override
@@ -165,8 +169,9 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    // The resolved setting — the in-app override wins over the OS flag in
+    // either direction, as the user guide promises — not the raw OS value.
+    final reduceMotion = ReduceMotionScope.of(context);
     final bpm = _bpm;
     final hasTempo = bpm != null;
 
@@ -177,8 +182,17 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
         ? l10n.performBpmSemantic(bpm)
         : l10n.performNoTempoSemantic;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+    // Scrolls when the content is taller than the sheet it is shown in: on a
+    // phone in landscape (or at large text) the sheet is capped well below the
+    // content's ~390px, and a bare Column overflows even at default text. The
+    // scroll view is shrink-wrapped, so a roomy sheet still sizes to content.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -186,7 +200,12 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
             children: [
               Icon(Icons.av_timer, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
-              Text(l10n.performTapTempo, style: theme.textTheme.titleLarge),
+              Expanded(
+                child: Text(
+                  l10n.performTapTempo,
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),

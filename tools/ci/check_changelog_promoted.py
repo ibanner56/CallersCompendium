@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Reject release tags whose fragments are not compiled into CHANGELOG history."""
+"""Reject release tags whose fragments are not compiled into CHANGELOG history.
+
+It also holds a release to the schema rule in ``CONTRIBUTING.md`` ("Never bump
+``schemaVersion`` in a PATCH release"): see :func:`_schema_step_errors`.
+"""
 
 from __future__ import annotations
 
@@ -15,8 +19,29 @@ from compile_changelog_fragments import FragmentError, fragment_paths
 
 SCHEMA_CONSTANT = "kCompendiumSchemaVersion"
 TAXONOMY_CONSTANT = "contraTaxonomyVersion"
+# A one-time repair's completion marker, by the naming convention every sweep
+# in `CompendiumRepositories.ensureMigrated` follows. A new one means the
+# release runs a pass over stored figures or text on upgrade, schema bump or
+# not, so the notes must say what it does.
+_DONE_MARKER = re.compile(r"'(__[a-z0-9_]+_done__)'")
 _CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
 _SELECTED_VERSION = re.compile(rf"^(?P<core>{_CORE})(?:-beta)?$")
+
+
+# A published release tag: ``v0.3.1``, ``v0.3.1-beta``, ``v0.1.0-beta.7``.
+# Same no-leading-zero ASCII core as ``_CORE``, so a tag and a version agree.
+_RELEASE_TAG = re.compile(
+    r"^v?(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\."
+    r"(?P<patch>0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+)
+
+
+def _release_core(ref: str) -> tuple[int, int, int] | None:
+    """``(major, minor, patch)`` of a ``vX.Y.Z[-suffix]`` tag, or None if it is not one."""
+    match = _RELEASE_TAG.fullmatch(ref)
+    if match is None:
+        return None
+    return (int(match["major"]), int(match["minor"]), int(match["patch"]))
 
 
 def _core_version(version: str) -> str:
@@ -54,7 +79,7 @@ def _schema_version(source: str) -> int | None:
     return _constant_version(source, SCHEMA_CONSTANT)
 
 
-def _previous_constant_version(ref: str, path: Path, constant: str) -> int | None:
+def _previous_source(ref: str, path: Path) -> str:
     result = subprocess.run(
         ["git", "show", f"{ref}:{path.as_posix()}"],
         check=False,
@@ -63,7 +88,11 @@ def _previous_constant_version(ref: str, path: Path, constant: str) -> int | Non
     )
     if result.returncode:
         raise ValueError(f"could not read {path} at previous ref {ref!r}")
-    return _constant_version(result.stdout, constant)
+    return result.stdout
+
+
+def _previous_constant_version(ref: str, path: Path, constant: str) -> int | None:
+    return _constant_version(_previous_source(ref, path), constant)
 
 
 def _previous_schema_version(ref: str, database: Path) -> int | None:
@@ -87,22 +116,27 @@ def _unreleased_has_items(changelog: str) -> bool:
     )
 
 
-def _migration_reaches(
-    section: str | None, target_version: int, keyword: str = "schema"
-) -> bool:
+def _data_migrations(section: str | None) -> str | None:
     if section is None:
-        return False
+        return None
     migration = re.search(
         r"^###[ \t]+Data\s*/\s*Migrations[ \t]*$(.*?)(?=^#{1,3}[ \t]+\S|\Z)",
         section,
         flags=re.IGNORECASE | re.MULTILINE | re.DOTALL,
     )
+    return None if migration is None else migration.group(1)
+
+
+def _migration_reaches(
+    section: str | None, target_version: int, keyword: str = "schema"
+) -> bool:
+    migration = _data_migrations(section)
     if migration is None:
         return False
     ends = re.findall(
         rf"\b{keyword}\b[^\n]*?(?:\bfrom\b[^\n]*?\bto\b|→|->)\s*"
         r"(?:version\s*)?(\d+)\b",
-        migration.group(1),
+        migration,
         flags=re.IGNORECASE,
     )
     return str(target_version) in ends
@@ -149,14 +183,23 @@ def validate(
         errors.append(
             f"could not read {SCHEMA_CONSTANT} from {database} at {previous_ref!r}."
         )
-    elif previous_schema != current_schema and not _migration_reaches(
-        _section(changelog_text, _core_version(version)), current_schema
-    ):
-        errors.append(
-            f"schema changed ({previous_schema} -> {current_schema}), but "
-            f"## [{core}]'s Data / Migrations section does "
-            f"not contain a schema range ending at {current_schema}."
+    else:
+        errors.extend(
+            _schema_step_errors(
+                version=version,
+                previous_ref=previous_ref,
+                previous_schema=previous_schema,
+                current_schema=current_schema,
+            )
         )
+        if previous_schema != current_schema and not _migration_reaches(
+            _section(changelog_text, core), current_schema
+        ):
+            errors.append(
+                f"schema changed ({previous_schema} -> {current_schema}), but "
+                f"## [{core}]'s Data / Migrations section does "
+                f"not contain a schema range ending at {current_schema}."
+            )
 
     errors.extend(
         _taxonomy_errors(
@@ -166,7 +209,93 @@ def validate(
             previous_ref=previous_ref,
         )
     )
+    errors.extend(
+        _repair_marker_errors(
+            changelog_text=changelog_text,
+            core=core,
+            schema_source=schema_source,
+            previous_source=_previous_source(previous_ref, database),
+        )
+    )
     return errors
+
+
+def _schema_step_errors(
+    *, version: str, previous_ref: str, previous_schema: int, current_schema: int,
+) -> list[str]:
+    """Hold a release to ``CONTRIBUTING.md``: never bump the schema in a PATCH release.
+
+    A schema change is a data-format change and rides at least a MINOR version
+    bump. A *patch release* is one whose ``X.Y`` is the previous published tag's
+    and whose ``Z`` is above zero, ``-beta`` included: ``0.3.0-beta`` ->
+    ``0.3.1-beta`` and ``0.3.1-beta`` -> ``0.3.1`` both are, ``0.3.0-beta`` ->
+    ``0.4.0-beta`` and a ``0.3.0-beta`` -> ``0.3.0`` promotion are not. The
+    schema must also never go down, at any step. Only the release being cut is
+    judged; earlier tags that broke the rule are not flagged again.
+
+    Two things this deliberately does not do. A minor's bare beta and its stable
+    promotion (``Z`` is 0) may differ in schema: that is a minor release, which
+    the rule allows. And the step is judged from the previous published tag the
+    release workflow selects (by creation date, among tags merged into ``HEAD``),
+    not from the version-order predecessor, so a later-created tag from another
+    line can stand in for it; that selection is the workflow's, unchanged here.
+
+    An increase against a previous ref that is not a ``vX.Y.Z`` tag cannot be
+    classified, and is refused rather than waved through.
+    """
+    tag = f"v{version}"
+    if current_schema < previous_schema:
+        return [
+            f"{SCHEMA_CONSTANT} went down: {previous_schema} at {previous_ref} -> "
+            f"{current_schema} in {tag}. A release never lowers the schema."
+        ]
+    if current_schema == previous_schema:
+        return []
+    current = _release_core(_core_version(version))
+    previous = _release_core(previous_ref)
+    if previous is None or current is None:
+        return [
+            f"{SCHEMA_CONSTANT} rose ({previous_schema} at {previous_ref} -> "
+            f"{current_schema} in {tag}), but {previous_ref!r} is not a vX.Y.Z "
+            "release tag, so this cannot be told from a patch release. Pass the "
+            "previous published tag as --previous-ref."
+        ]
+    if current[:2] == previous[:2] and current[2] > 0:
+        return [
+            f"{tag} is a PATCH release (same {current[0]}.{current[1]} line as "
+            f"{previous_ref}) but bumps {SCHEMA_CONSTANT} from {previous_schema} "
+            f"({previous_ref}) to {current_schema} ({tag}). Never bump the schema "
+            "in a PATCH release: a schema change rides at least a MINOR version "
+            "(CONTRIBUTING.md, \"Database schema migrations\"). Move the change "
+            "to the next minor release, or cut this release without it."
+        ]
+    return []
+
+
+def _repair_marker_errors(
+    *, changelog_text: str, core: str, schema_source: str, previous_source: str,
+) -> list[str]:
+    """A new one-time repair needs a Data / Migrations note.
+
+    Repairs ship as settings markers rather than schema bumps (a PATCH release
+    may not bump the schema), so neither version range above notices one. The
+    gate cannot judge the prose; it requires the section to exist and to be
+    non-empty, and the runbook says what it must describe.
+    """
+    added = sorted(
+        set(_DONE_MARKER.findall(schema_source))
+        - set(_DONE_MARKER.findall(previous_source))
+    )
+    if not added:
+        return []
+    migration = _data_migrations(_section(changelog_text, core))
+    if migration is not None and migration.strip():
+        return []
+    return [
+        f"new one-time repair marker(s) since the previous release "
+        f"({', '.join(added)}), but ## [{core}] has no Data / Migrations "
+        f"section describing what the pass does to stored data."
+    ]
 
 
 def _pending_fragments(directory: Path) -> list[str]:
@@ -183,11 +312,12 @@ def _taxonomy_errors(
     *, changelog_text: str, core: str, taxonomy: Path | None,
     previous_ref: str,
 ) -> list[str]:
-    """Taxonomy moves are user-visible even though nothing migrates.
+    """Taxonomy moves are user-visible even though the constant migrates nothing.
 
     ``contraTaxonomyVersion`` is a documentary marker — nothing reads it at
     runtime — but a bump means dances are categorised or matched differently,
-    which users notice. The runbook requires it in Data / Migrations alongside
+    which users notice. Any pass over stored data that ships with it is gated
+    by its own marker, checked by ``_repair_marker_errors``. The runbook requires it in Data / Migrations alongside
     the schema range.
     """
     if taxonomy is None or not taxonomy.exists():
@@ -255,8 +385,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"::error::{error}", file=sys.stderr)
         return 1
     print(
-        "OK: CHANGELOG compilation, heading count, and schema/taxonomy notes "
-        "are current."
+        "OK: CHANGELOG compilation, heading count, and schema/taxonomy/repair "
+        "notes are current."
     )
     return 0
 

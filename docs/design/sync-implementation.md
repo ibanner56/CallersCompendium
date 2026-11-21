@@ -8,10 +8,30 @@
 ## 1. Status
 
 **ADR-004 is `Accepted`; S1's prerequisite is satisfied.** The maintainer's
-ruling is recorded in the ADR. **No sync client, server or network code
-exists**, but the statement "everything apart from the schema migration is
-unstarted" is no longer true, and treating it as true would schedule the
-creation of artefacts that are already on `main`.
+ruling is recorded in the ADR.
+
+**Every work unit W0–W18 has landed.** The engine, the client
+(`app/lib/src/sync/`) and the Athenaeum server (`server/lib/src/`) are on
+`main`, merged via #1328 and the per-unit PRs behind it, and Device Sync is
+reachable from Settings ▸ Experimental. **`.github/tracking/adr-004/units/` is
+the per-unit record** — each unit's completion conditions, evidence and PRs live
+there, and this document deliberately does not keep a second copy that would
+drift from it.
+
+What remains is the checkpoint side, not the build: **C6** (beta) and **C7**
+(the ship gate) are outstanding. The checkpoint table below states what each
+requires; C7 in particular needs the server deployed ahead of the client
+release (S3).
+
+Nothing below should be read as scheduling work that is already on `main`.
+The unit cards are retained as the record of what each unit had to satisfy and
+why — they are the contract a reviewer checks the landed code against, not a
+queue.
+
+*Amended 2026-09-23 (#1345): this section used to state that none of the sync
+client, the server or the network code existed, which contradicted its own W13
+card below and would have scheduled the creation of artefacts already on `main`
+— the exact failure the sentence beside it warned about.*
 
 The §3.1 schema migration shipped first, tracked as
 [#898](https://github.com/ibanner56/CallersCompendium/issues/898) and delivered
@@ -20,14 +40,19 @@ serialised*, **S6**. That unit shipped its *migration* cleanly but not its
 *invariant*: §3.1's soft-delete join rule was violated in `main` when **W17**
 was written, which is why W17 exists.
 
-Three further pieces landed while this document was in review, each closing a
-repair issue raised by the review of this design:
+Three further units landed out of order, while this document was still in
+review, each closing a repair issue raised by the review of this design. They
+are called out here because their *order* is the part that is not inferable —
+not because they are the only units that have landed:
 
-| Landed | Closes | Unit | State |
-| --- | --- | --- | --- |
-| #1115 | #1109 | **W15** | Substantially done. Both policy files carry the operator-visibility and logged break-glass disclosures §8 requires. |
-| #1118 and follow-up W17 ratchet work | #1110 | **W17** | Complete: the soft-delete join rule, I1/I2 over raw and typed writes, certificate-hatch scan, shared-normalizer source scans, and the standing write-path routing gate are mutation-proven. |
-| #1119, #1124, #1137, #1143 | #1111, #1123 | **W18** | Complete: implementation and repository-backed tracking are complete; its write-path routing guard is retained as a W17-owned standing gate. |
+| Landed | Closes | Unit |
+| --- | --- | --- |
+| #1115, #1330 | #1109 | **W15** — the privacy-policy amendment |
+| #1118 and follow-up W17 ratchet work | #1110 | **W17** — the standing-invariant ratchets |
+| #1119, #1124, #1137, #1143 | #1111, #1123 | **W18** — shareable-text normalisation |
+
+All three are complete, as are the other sixteen; `.github/tracking/adr-004/`
+carries each one's conditions and evidence.
 
 **W18's final delta was corrective, not additive**, and that is the entry most
 likely to be misread. Its card below records the delivered implementation and
@@ -81,7 +106,7 @@ assumption about one of these six:
 4. **The two non-content-addressed JSON shapes** — `GET /v1/store` and
    `POST /v1/blobs/missing` (§5.2). These are the endpoints nothing *forced*
    into a schema, which is exactly why they were the last to get one.
-5. **Sync-ID normalisation and credential encoding** (§5.1, §8). Trim → NFC →
+5. **Sync-ID normalisation and header encoding** (§5.1, §8). Trim → NFC →
    locale-independent
    lowercase, applied identically by client and server before the HMAC — and
    then, on the wire, **base64url of the normalised UTF-8 bytes, unconditionally
@@ -282,8 +307,10 @@ and program content — which is precisely what the editor-draft keys held until
   `derivedRebuildRequiredKey`, since the repair is performed by the generic
   pre-check that reads it and not by the sweep. Both writers of
   `normalisation_skips` MUST take their `(table, column)` spelling from
-  **constants declared once and imported at all four sites**, which must be
-  created — the registry's identifiers are inline map keys today; and a
+  **constants declared once and imported at all four sites** — built in #1348 as
+  `NormalisationSkipColumn` and the `naturalKeyNormalisationColumns` list in
+  `storage/database.dart`, which the one-time pass's grouping set is now derived
+  from rather than re-typed; and a
   **structural** ratchet asserting that write paths route through the choke
   point — **written here and owned by W17 thereafter** (see the parallelism
   hazards): it asserts a standing property over every write path built after
@@ -355,7 +382,9 @@ naming the table rather than the value is the tell.
   set, a retry that rebuilds leaves no rebuild owed, both writers spell
   `(table, column)` identically, a restore re-runs the pass,
   `normalisation_skips` survives an epoch reset and a detach, an ordinary edit
-  to a blocked row succeeds, `settings.key` is untouched, a second run of the
+  to a blocked row succeeds when it leaves the value unchanged while a rename
+  onto an occupied value is refused visibly, `settings.key` is untouched, a
+  second run of the
   pass changes nothing, a row whose text the pass changed is still found by
   search, and the write-path ratchet catches a **newly added** writer that
   bypasses the choke point rather than a writer removed from a list; and, for
@@ -557,8 +586,10 @@ declares the constants once and imports them at all four sites rather than
 typing two literals and reconciling them afterwards.
 
 *Expect the rebuild to be blunter than the repair.* `runDerivedRebuild` is the
-only rebuild routine there is, and it clears and repopulates the dance FTS and
-figure tables for the whole library. Its indexed columns reach `choreographers`
+only whole-library rebuild routine there is (the other, #1023's
+`reindexDancesUsingUserFigure`, serves only the dances using one figure of
+your own), and it clears and repopulates the dance FTS and figure tables for
+the whole library. Its indexed columns reach `choreographers`
 through resolved author names, but neither `tags.name` nor `custom_field_defs`
 keys appear in either FTS schema — so a tag-only repair, the likeliest kind,
 pays a full recomputation for indexes that did not change. The spec permits
@@ -575,9 +606,17 @@ columns. The drift that matters needs no schema change at all.
 `UNIQUE` collision between two Unicode forms is a fact about this library, not
 about a store, so it survives an epoch reset and a detach. Clearing it on a
 `409` drops every owed repair while the completion marker still says the scan
-finished. Restore is the one event that clears it — along with the marker,
-because a restore brings in rows the scan never saw and no per-entry
+finished. Restore is the one event that clears the whole table — along with the
+marker, because a restore brings in rows the scan never saw and no per-entry
 revalidation can discover them.
+
+That is a statement about clearing the table *wholesale*, not about entries.
+Individual entries are discharged all the time and must be: the pass and its
+retry remove an entry once its row holds its target, and the retire-missing
+sweep removes one whose row was hard-deleted. Reading this paragraph as "only a
+restore ever removes a row from this table" is how #1346 shipped — with no entry
+ever cleared, so one recorded collision turned the one-time pass into a
+full-library scan on every launch.
 
 *The pass must be total, not all-or-nothing.* The existing one-time sweeps in
 `repositories.dart` write their completion marker only after the whole pass
@@ -657,7 +696,7 @@ which no local action can retract — so detach, epoch reset and restore all lea
 it alone. Clearing it on detach converts "the deletion sticks" into "the
 deletion silently reverts".
 
-#### W5 · Sync ID, authentication and the HTTP client
+#### W5 · Sync ID, request addressing and the HTTP client
 
 - **Serves** §5.1, §5.2, §5.3 (client half), §8.
 - **Inherits** W3 (what it sends and receives).
@@ -665,20 +704,22 @@ deletion silently reverts".
   strength **warning**; the structural rule and the **normalisation applied
   before the HMAC** (trim → NFC → locale-independent lowercase), written
   **once** as the shared definition W10 imports rather than reimplements, per
-  contract 5; the **base64url credential encoding** applied unconditionally to
+  contract 5; the **base64url sync-ID header encoding** applied unconditionally to
   every sync ID, which is what makes a non-English ID transmissible at all —
   `dart:io` throws `FormatException` on a raw header value carrying any code
   unit outside ASCII 32–127 — `café` throws, not only CJK — so the failure is a
-  local exception rather than a rejected request; bearer auth that
-  never puts the ID in a URL; and typed status handling — a first-time missing
-  store is distinct from a previously successful ID whose store disappeared,
+  local exception rather than a rejected request; the ID sent in the
+  `Authorization` header (`Bearer` scheme) and never in a URL; and typed
+  status handling — a first-time missing store is distinct from a previously successful ID whose store disappeared,
   and neither outcome creates a store; a **stale-epoch `409` from a manifest
-  `PUT`** forces fresh attach, while a `409` from `POST /v1/store` is reported
-  and stops and is never joined; `422` is surfaced and **never retried**; `429`
-  honours `Retry-After`.
+  `PUT`** forces fresh attach, while a `409` from a *pairing* `POST /v1/store`
+  is reported and stops and is never joined — on the §6.3 step 1 replacement
+  path the only possible creator is another holder of this device's own sync
+  ID, so there a `409` is adopted and fresh-attached instead; `422` is surfaced
+  and **never retried**; `429` honours `Retry-After`.
 
   W5 also owns **`sync_id` and `sync_device_id` as persisted settings keys, with
-  their classifications** — `accessControlData` and `protocolIdentifier` — and
+  their classifications** — `storeAddress` and `protocolIdentifier` — and
   therefore owns **adding those two members to `EgressClass`**. ADR-004 and spec
   §3.3 specify both classes; neither is in the Dart enum, deliberately, because
   a member with no registry entry is a member no ratchet exercises. Assigning
@@ -696,7 +737,8 @@ deletion silently reverts".
   replaces — so classifying them is not enough, and #923 settled that
   non-`shareable` does not imply backup-excluded here. A restored
   `sync_device_id` would give two devices one manifest; a restored `sync_id`
-  would put a bearer credential in a plaintext file.
+  would put a store address in a plaintext file, attaching whatever device
+  restores it to that store.
 - **Unblocks** W6, W8, W13, and **W10 for the sync-ID normalisation definition
   only** (contract 5).
 - **Done when** the ID bound cases pass (one code point over rejected, at the
@@ -706,8 +748,8 @@ deletion silently reverts".
   succeeding, since the naive implementation throws before the socket is touched
   — **and an all-ASCII ID and the base64url of that same ID resolve to two
   different stores**, which is what pins the encoding as unconditional, **and a
-  `302` to a foreign https host is refused with no credentialed request
-  issued**, as are a server presenting an untrusted certificate, a
+  `302` to a foreign https host is refused with no request carrying the sync
+  ID issued**, as are a server presenting an untrusted certificate, a
   `localhost`-prefixed public host such as `localhost.example.com`, **and the
   loopback addresses `http://[::1]` and `http://127.0.0.2`** (§9 *Client isolate
   and robustness*). Those last two are separate cases on purpose: a prefix test
@@ -724,7 +766,7 @@ deletion silently reverts".
 The strength score **warns and never blocks**, here or anywhere else, and is
 computed over the **normalised** ID rather than the string as typed — an
 estimator run on the raw form credits case and Unicode differences that
-normalisation collapses, and so reports a strength the credential does not
+normalisation collapses, and so reports a strength the ID does not
 have. Blocking has no safe home: the ID *is* the store address, joining means
 typing an existing one, and a newer client with a stricter estimator locks a
 user out of an ID an older client accepted, exactly as a stricter server would.
@@ -740,7 +782,7 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   strength estimator, which now follows from the score blocking nowhere at
   all).
 - **Inherits** W3 (schemas), and **W5 for the sync-ID normalisation and
-  credential-encoding definitions only** (contract 5).
+  header-encoding definitions only** (contract 5).
 
   That second edge is narrow by design — it gates the `id_key` derivation and
   nothing else, so the rest of this unit still runs beside W5 from C1, exactly
@@ -762,7 +804,7 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   and no conformance case behind it; the store, manifest and blob endpoints,
   **including `POST /v1/store` as a separate creation call that `GET` never
   performs**; strong quoted `ETag` equal to the manifest content hash, with
-  `If-None-Match`; permissive `Content-Type` handling; **base64url credential
+  `If-None-Match`; permissive `Content-Type` handling; **base64url sync-ID
   decoding that rejects malformed input with `401` rather than repairing it —
   never `U+FFFD` substitution, which maps distinct IDs onto one store**; **the
   failed store-resolution limits, per-IP and server-wide**, counting all four of
@@ -804,7 +846,7 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
 half of the programme and it is the *test fixture* for the expensive half: a
 merge engine developed against a mock server is a merge engine whose first
 contact with the real contract happens at the end. Start W10 at C1, after the
-shared W5 credential definition it needs, and treat "the client team has a real
+shared W5 sync-ID encoding definition it needs, and treat "the client team has a real
 server to run against" as the point of it rather than a side effect.
 
 #### W13 · Settings blade, pairing, triggers and user-facing obligations
@@ -822,7 +864,7 @@ server to run against" as the point of it rather than a side effect.
   pairing flow, which must work for a user reading an ID aloud over the phone;
   an explicit offer to export a backup before first connection, with no
   automatic export on either acceptance or refusal;
-  *Sync only on WiFi* defaulting to on, with a manual attempt on a metered
+  *Sync only on Wi-Fi* defaulting to on, with a manual attempt on a metered
   connection routing to the setting; the status surface;
   **`sync_exclude_imports`** and the publish-set filter it drives, including the
   §6.9 citation closure that keeps a cited imported dance published and the
@@ -838,9 +880,16 @@ server to run against" as the point of it rather than a side effect.
   everything except the two engine clauses it inherits.
 
 The W8 edge is narrow in the same sense as this document's other narrow edges:
-W8 produces the after-the-fact duplicate count and this unit owns the surface
-that shows it at the end of pairing, so the edge gates the report and not the
-blade. Without it the two halves of one screen are scheduled independently.
+W8 produces the after-the-fact duplicate count and this unit owns the surfaces
+that show it, so the edge gates the report and not the blade. Without it the two
+halves of one screen are scheduled independently. **The report is not scoped to
+pairing**, which this document originally scheduled it as: ADR-004 names the
+count as the mitigation for a merge the user is never shown, and a fresh attach
+also happens after a confirmed replacement, on a stale-epoch auto-join, and on
+the deferred continuation of a pairing pass the §6.12 gate suppressed — none of
+which has a pairing dialog to put it in. The status surface carries it for all
+of them (issue #1350); the pairing dialog remains the immediate report for the
+one path that has one.
 - **Done when** the enablement test proves the no-network-call property, not
   merely that the toggle renders, **and** the §9 *User-visible sync obligations*
   bucket is green — both `sync_exclude_imports` clauses (a cited imported dance
@@ -851,12 +900,43 @@ blade. Without it the two halves of one screen are scheduled independently.
   the decision available; confirmation creates once. The pre-connection backup
   offer is user-initiated and neither choice silently exports.
 
+**Delivery shape and placement (maintainer direction).** W13 is delivered as
+three dependency-ordered PRs, each owned by this unit: enablement and status
+(keys, classification, backup denylist, no-network gate, trigger policy, status
+surface); pairing and the §6.14 pairing-time obligations; and the
+`sync_exclude_imports` publish filter with the §6.13 hint. For the initial
+release the user-visible configuration lives in the **Experimental** settings
+pane rather than a new top-level pane. That is a deliberate, temporary
+departure from spec §6.1's "top-level Settings blade" and changes presentation
+only: every normative MUST is unchanged. Promoting it to a top-level pane is
+owed before public release (C7).
+
+All three PRs are complete: #1331 (enablement/status), #1332 (pairing/
+disclosures/replacement), and the `sync_exclude_imports` filter and §6.13
+hint. The filter withholds an imported dance from a device's own manifest
+only when it is not reachable, directly or transitively, from any record
+published independently of the filter (a non-imported dance, a program, or
+any other kind), walking citation edges forward from those roots — the
+reverse direction of `syncQuarantineClosure`'s dependents walk. This means an
+imported-only citation chain or cycle with no outside citer is withheld in
+full rather than only at its root, since none of its members is ever reached
+from a root. A tombstone is exempt regardless of provenance, since soft
+deletion leaves the dance's provenance row in place and deletion is not an
+upload-budget decision. Computed once per
+[`CompendiumSyncStorage.snapshot`](../../packages/compendium_core/lib/src/sync/sync_storage.dart)
+call and applied to `publication` only — `local` (inbound merge comparison)
+is untouched, which is also why a peer's imported dance is still applied
+and why a second pass does not re-request it: that convergence is ordinary
+W6 baseline behavior, already covered by W6's own test suite, and
+structurally unreachable by a filter that only ever nulls an entry in
+`publication`.
+
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
 feature whose configuration syncs is a loop. That holds for this unit's keys;
 it is **not** true of every key the feature introduces. `sync_device_id` is
-`protocolIdentifier` and `sync_id` is `accessControlData` (spec §6.1, §3.3):
+`protocolIdentifier` and `sync_id` is `storeAddress` (spec §6.1, §3.3):
 both travel on every request, and a card that called them `deviceScoped` would
-classify the bearer credential as never-transmittable while the protocol
+classify the store address as never-transmittable while the protocol
 requires it. Those two belong to W5, not here.
 
 **MUST NOT sync is only half of it: this unit's keys must also not travel in a
@@ -871,24 +951,44 @@ backup taken on a syncing device leaves sync off and makes no network call.
 #### W14 · A kind-agnostic review surface
 
 - **Serves** the review-queue surface required by §3.2.
-- **Inherits** W4 (`review_queue` is the storage this reviews).
-- **Produces** a generic keep-both-or-merge list. **No per-kind editors are
-  required**, which is the scope control on this unit. The one thing that is
-  not generic: for the four `UNIQUE` natural-key kinds, resolving **keep
-  both** MUST rename the surviving live row before the counterpart tombstone is
-  applied (§6.6 step 2). The index is not filtered on `deleted_at`, so without
-  the rename the resolution simply fails to write. That is a name prompt on an
-  otherwise kind-agnostic surface, not a per-kind editor.
+- **Inherits** W4 (`review_queue` is the storage this reviews) and W7 (the
+  production queue and collision machinery).
+- **Produces** a generic queue list. **No per-kind editors are required**, which
+  is the scope control on this unit. Mutating **merge** and **keep both**
+  actions are exposed for the §6.6 baseline-absence tombstone reason, the §6.6
+  **step-1** natural-key rename collisions (both the ordinary and the
+  shipped-difficulty variant), and W8's live-dance choreography ambiguity.
+  Other current or future reasons remain visible as retained/unsupported rows
+  with no mutating action. For the four `UNIQUE` natural-key kinds, resolving **keep both** MUST
+  rename a live row before the counterpart record is applied: the surviving
+  local row for a tombstone (§6.6 step 2), and the row that *holds the
+  colliding name* for a step-1 collision — which is `counterpart_id` there, not
+  `record_id`, because a step-1 row stores the candidate under `record_id`. A
+  W8 dance ambiguity's **keep both** similarly renames the local live dance.
+  The index is not filtered on `deleted_at`, so without the rename the
+  resolution simply fails to write. These are name prompts on an otherwise
+  kind-agnostic surface, not per-kind editors.
+
+  **Step-1 merge does not coalesce** (§6.6). Two pre-existing local rows are
+  involved, so the losing row's `deviceLocal` fields — a choreographer's email,
+  location and deceased marker — are not carried onto the survivor and exist
+  nowhere else. The surface warns before that merge rather than after it.
+
+  An actionable step-1 row therefore also carries a queue-time `local_hash`,
+  recorded against `record_id`, so the resolver can refuse a decision taken
+  against a record edited since it was queued.
 - **Unblocks** W8.
-- **Done when** a queued pair survives an app restart and can be resolved, and
-  a "keep both" resolution on a name collision leaves both rows stored.
+- **Done when** a queued supported pair survives an app restart and can be
+  resolved, unsupported reasons remain retained without mutation, and a "keep
+  both" resolution on a name collision leaves both rows stored.
 
 The existing `import_review_screen.dart` reviews **dances only**, and is driven
 by `ImportSession`, whose own doc comment says it is deliberately not persisted.
 Sync runs non-interactively with nobody watching, so there is no in-progress
-import to attach a decision to. This is new storage plus a new surface, not a
-reuse of proven machinery — the ADR corrects an earlier draft that implied
-otherwise.
+import to attach a decision to. This is a new resolver and surface over the
+existing persisted queue, not a new storage path and not a reuse of
+`ImportSession`/`ImportReviewScreen` — the ADR corrects an earlier draft that
+implied otherwise.
 
 #### W17 · Standing-invariant ratchets
 
@@ -1005,8 +1105,8 @@ what it protects.
 
 - **Serves** the ADR's *Blocking prerequisite*; §10.
 - **Inherits** nothing whatsoever.
-- **Produces** amended `docs/dev/store-submission/privacy-policy.md` **and** its
-  mirror `site/privacy/index.html`, changed together, with the effective date
+- **Produces** amended `site/privacy/index.html` **and** its hand-kept mirror
+  `docs/dev/store-submission/privacy-policy.md`, changed together, with the effective date
   bumped; the amendment MUST retire the dated no-cloud-sync claim, correct the
   "before it ships" undertaking to S7's gate, and **add** spec §8's affirmative
   disclosures — that the operator can see all store content except venue
@@ -1026,12 +1126,16 @@ what it protects.
   logged break-glass path exists with a stated 30-day linkability bound, and
   that structured venue address and contact fields do not travel while freeform
   venue notes do. That is this card's `Done when`, including the part a mere
-  retraction would not have satisfied. What remains is the check that the
-  effective date is bumped in the release that turns the feature on. **That
-  gates C6, not C7** — C6 is the beta, and the beta is where real user content
-  first leaves a device, which is the event S7 orders the amendment ahead of. C7
+  retraction would not have satisfied. The first beta is now ratified as
+  **v0.5.0-beta**, with an effective date of **September 21, 2026**. The
+  date must be live before any real user content leaves a device. **That gates
+  C6, not C7** — C6 is the beta, and the beta is where real user content first
+  leaves a device, which is the event S7 orders the amendment ahead of. C7
   re-checks it at public release, because the date must name the release that
-  actually ships.
+  actually ships. The policy's §9 moves the effective date whenever the policy
+  changes: after #2164 and #2173 changed its text, the maintainer moved it to
+  **November 12, 2026**, so September 21 is the beta's historical date, not
+  the one C7 checks for.
 
   **The scope this card was written against no longer exists.** #1086 removed
   the absolute claims ("We have no servers that receive or hold your content,
@@ -1043,8 +1147,9 @@ what it protects.
 
   This card is kept rather than struck because its `Done when` is still the
   thing C7 checks, and because the unit that verifies a disclosure is not the
-  unit that wrote it. What is left is one release-time action, not a document
-  repair.
+  unit that wrote it. What remains is the check that the deployed policy
+  carries a current effective date, one that precedes the transfer it covers
+  and is no earlier than the policy's latest change, not a document repair.
 
 Fully parallel with all code, and best done early: it is the cheapest unit in
 the programme and the only one that can block a release on its own.
@@ -1078,20 +1183,27 @@ the programme and the only one that can block a release on its own.
   keys by their **wire** spelling, and refuses a peer's `deviceScoped` setting.
   **Both spec-only egress classes are covered by that half**: a peer-supplied
   `sync_device_id` (`protocolIdentifier`) and a peer-supplied `sync_id`
-  (`accessControlData`) are never applied from a received record or envelope.
+  (`storeAddress`) are never applied from a received record or envelope.
   Their non-adoption vectors are **receive-only**, which is why they need naming
   here — the send side never emits either value, so every serialisation test in
   the suite passes against an implementation that adopts both. The missing-store
   vector preserves local content and baseline state and mutation-proves that
   automatic recreation fails.
+  The worker opens the database file on its **own connection**, so it and the
+  app are two writers against one file. Both therefore run
+  `applyCompendiumSqliteSetup` (WAL, a busy timeout and the `cc_venue_key`
+  SQL function); without the first two an
+  ordinary app write landing inside the pass's apply transaction fails with
+  "database is locked" rather than waiting. See *Durability* in
+  [storage.md](storage.md).
   The isolate half of *Client isolate and robustness* lands here too — a
   malformed date rejects one record without aborting the batch or escaping the
   isolate; **an interrupted pass leaves no partial apply**, which is §6.7's
   single apply transaction seen from outside — and, per §6.12, *not* that a
-  failed pass leaves local data untouched, since a failure between steps 7 and 8
+  failed pass leaves local data untouched, since a failure between steps 6 and 8
   keeps the applied content and leaves the baseline unadvanced; and **a blob
   `GET` returning `404` skips and reports the record and leaves the baseline
-  unadvanced** rather than deleting it (§6.3 step 6), **and a blob whose
+  unadvanced** rather than deleting it (§6.3 step 5), **and a blob whose
   envelope declares a different `(kind, id)` than the manifest entry it was
   fetched under is skipped and reported rather than applied under either
   identity** — the hash still verifies in that case, so no content-addressing
@@ -1144,16 +1256,37 @@ content conflict for W6's table rather than a reconciliation for this unit.
   surface).
 - **Produces** the union — **absence never deletes at attach, but an explicit
   tombstone with the greater `existenceAt` is applied** (§6.2 step 5, §6.4);
-  dedupe on `normalizeTitle` plus `_choreographyEquals`, with tombstones
-  excluded from candidacy entirely; `program_slots.dance_id` rewiring to the
-  survivor; epoch and baseline persistence; confirmed replacement attach after
-  W13 authorizes one successful `POST`; and the after-the-fact count
+  dedupe on `normalizeTitle` plus the shared `choreographyFingerprint`
+  contract, with tombstones excluded from candidacy entirely;
+  `program_slots.dance_id` rewiring to the survivor; epoch and baseline
+  persistence; confirmed replacement attach after W13 authorizes one
+  successful `POST`; and the after-the-fact count
   ("merged 412 duplicates"), which is the mitigation rather than a prompt.
+
+  Dedupe is the **exact normalized-title tier only**. Within a title group,
+  equal `choreographyFingerprint` merges silently and differing choreography is
+  deferred to `review_queue`; titles that are merely similar are not compared,
+  and those pairs simply remain two dances after attach.
+
+  The count reports **merges only**. A deferred pair is a question, not a
+  duplicate removed, so it must not inflate "merged N duplicates".
+
+  **A fuzzy title-and-author tier was specified, built, measured and removed**
+  (#1355). It caught only independently-arising near-title variants — the
+  motivating case is identical titles, which the tier above already handles —
+  and cost a measured 912.8 s over 11,500 dances inside the attach transaction,
+  plus roughly 0.64 review rows per dance. Spec §6.10 carries the measurement,
+  its counting rule, and the rejected alternatives; ADR-004's fresh-attach
+  section carries the amendment. Do not reinstate it from the older wording in
+  either document without reading those.
+
 - **Unblocks** **W13's attach-completion report only**. The count is surfaced
-  at the end of pairing, and pairing is W13's. This is the "what the user is
-  told" contract the serialisation rules already name between these two units;
-  it needed to be an edge, not only a caution, because nothing else sequences
-  the producer ahead of the surface that renders it.
+  after a fresh attach, and every surface that reports one is W13's — the
+  pairing dialog and, for the attaches that have no dialog, the status surface
+  (see W8's edge above and issue #1350). This is the "what the user is told"
+  contract the serialisation rules already name between these two units; it
+  needed to be an edge, not only a caution, because nothing else sequences the
+  producer ahead of the surface that renders it.
 - **Done when** the §9 *Dedupe* bucket is green, and so is the attach half of
   *Attach and restore* — an epoch mismatch produces a fresh attach, and the
   mismatch **itself** is never interpreted as a deletion. That is the whole of
@@ -1201,6 +1334,13 @@ and it merges records **silently**.
   with the baseline" clears neither, and the pass never re-runs over restored
   rows. The rule is over the **event**, not the mode: `RestoreMode.merge` writes
   unjudged rows exactly as `replace` does.
+- **Produces** a serialized backup UI lifecycle: the active coordinator is
+  disposed and awaited before `BackupService.restoreFromJson` writes, and a
+  replacement coordinator is created from current settings after the operation
+  completes, including refusal and failure paths. The shared
+  `CompendiumArchiveImporter` writer uses the same general sync-writer
+  lifecycle: the active coordinator is quiesced and awaited before the import
+  (and its Undo), then recreated from current settings afterwards.
 - **Unblocks** **W13**'s `sync_exclude_imports` filter, which reuses this
   unit's §6.9 citation closure and nothing else here.
 - **Done when** the §9 *Quarantine and repair* bucket is green, and so is the
@@ -1273,8 +1413,21 @@ the wire.
   for §8 — a deployment trusting the header unconditionally passes the
   two-honest-clients check and buys an attacker unlimited attempts against the
   ID's own strength, so testing only the first mutation gates the capacity
-  property and not the security one; and each of the four operational
-  prerequisites has been *exercised*, not merely written:
+  property and not the security one; **a fresh attach large enough to need
+  more than one `POST /v1/blobs/batch` completes in one pass through the
+  deployed proxy, and a burst of batches is refused `429` at the cost spec §5.4
+  sets for a batch**, which is the only check that the proxy passes the route
+  and its streamed, gzip-encoded response through — a proxy answering it `404`
+  or `405` still syncs, because the client falls back to one request per
+  record (spec §5.2), so nothing else would notice the attach taking sixteen
+  minutes instead of seconds — and that a limit enforced at the proxy, which
+  counts requests rather than batch cost, is not the one doing the bounding;
+  **a first publish large enough to need more than one `PUT /v1/blobs/batch`
+  stores every blob through the deployed proxy**, for the same reason on the
+  upload side: a proxy refusing a `PUT` there, or one with a request-body cap
+  below the batch's 2 MB, still syncs one record at a time;
+  and each of the four operational prerequisites has been *exercised*, not
+  merely written:
   - **Alerting** — a synthetic quota exhaustion and a synthetic GC failure each
     raise an alert that reaches a human, demonstrated on the running deployment.
   - **Retention proof** — a store left untouched past the disuse TTL is shown to
@@ -1332,6 +1485,7 @@ graph LR
   W7 --> W8[W8 attach + dedupe]
   W6 --> W9[W9 quarantine + restore]
   W4 --> W14[W14 review surface]
+  W7 --> W14
   W14 --> W8
   W8 -.attach report.-> W13
   W5 --> W13[W13 settings + pairing]
@@ -1371,8 +1525,10 @@ Everything else has slack, and the slack is worth spending deliberately:
 - **W10 runs beside W4 and W5**, from C1. It is off the *nominal* critical path
   and on the *practical* one, because W6 is far cheaper to build and far safer
   to trust against a real server than a mock.
-- **W13 and W14 run from C1** against fakes. They are leaves; W14 rejoins at W8,
-  and W13 rejoins at W6 + W9 for the `sync_exclude_imports` filter only.
+- **W13 runs from C1** against fakes and rejoins at W6 + W9 for the
+  `sync_exclude_imports` filter only. W14's production resolver and persisted
+  review surface begin after W7 and rejoin at W8; UI wiring may use fakes
+  during development but is not an independently scheduled deliverable.
 - **W15 runs whenever.** It should be done first, being the cheapest thing that
   can block a release — and under S7 it blocks the beta, not just the release.
 - **W17 runs first, or as near to first as anything does.** It is independent of
@@ -1468,9 +1624,9 @@ device an attacker's peer can write to. I added the ordering; it is my call, not
 a ruling, and I would not run a beta without it.
 
 **C4 is a prerequisite of C6 for the same reason, and was omitted the same
-way.** C6 gates the pairing surface, and the attach-completion report shown at
-the end of pairing is produced by W8, which C4 gates — so a C6 reached without
-C4 gates the surface while the thing it displays is still unbuilt. That C5 had
+way.** C6 gates the pairing surface, and the attach-completion report it shows
+is produced by W8, which C4 gates — so a C6 reached without C4 gates the surface
+while the thing it displays is still unbuilt. That C5 had
 to be added by hand is the precedent; leaving C4 implicit would have repeated
 it in the checkpoint immediately below the paragraph naming the problem. My
 call, on the same footing.
@@ -1609,7 +1765,7 @@ buckets. Ownership is now explicit:
 
 | §9 bucket | Owning unit(s) |
 | --- | --- |
-| Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) + **W5** (the client half of the base64url credential encoding, including the unconditional-encoding vector) + **W10** (the server half — decode, and `401` on malformed input) |
+| Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) + **W5** (the client half of the base64url sync-ID header encoding, including the unconditional-encoding vector) + **W10** (the server half — decode, and `401` on malformed input) |
 | Cross-kind identity | **W1** (the manifest's kind nesting) + **W4** (the baseline's `kind` column) + **W6** (the merge keeping two same-id records of different kinds apart) |
 | Merge | W6 |
 | Existence | W6 (the general baseline-absence guard on §6.4) + **W8** (the fresh-attach exclusion, which is §6.2's clause and cannot be asserted by a unit that never attaches) |
@@ -1621,7 +1777,7 @@ buckets. Ownership is now explicit:
 | Quarantine and repair | W9 |
 | Deletion | W7 |
 | Attach and restore | W8 (attach, including post-confirmation replacement attach) + W9 (restore) |
-| Server | **W5** (the sync-ID bound, typed missing-store outcomes, no-auto-create client rule and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits and the separate store-creation cap — each checked against the running configuration rather than the code, because a limit present in the source and absent from the deployment is exactly what these clauses exist to catch — not because they carry §8's bound, which rests on entropy) |
+| Server | **W5** (the sync-ID bound, typed missing-store outcomes, no-auto-create client rule and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits, the separate store-creation cap and the cost of a `POST /v1/blobs/batch` and of a `PUT /v1/blobs/batch` — each checked against the running configuration rather than the code, because a limit present in the source and absent from the deployment is exactly what these clauses exist to catch — not because they carry §8's bound, which rests on entropy) |
 | User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses, partial-venue hint, backup offer, create-or-connect choice, and missing-collection explanation and confirmation) |
 | Client isolate and robustness | W6 (isolate plus coalesced replacement-required pause) + W5 (redirect, certificate and loopback *behaviour*, client-side decompression abort and no-auto-create outcome) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause, §6.12 trigger clauses and network-silent replacement cancellation) |
 

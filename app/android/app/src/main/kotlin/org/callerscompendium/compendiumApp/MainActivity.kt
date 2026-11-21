@@ -6,7 +6,6 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
-import java.io.FileOutputStream
 
 /**
  * Receive-side share import (issues #298 + #343): forwards an incoming shared
@@ -15,7 +14,8 @@ import java.io.FileOutputStream
  *
  * - **File** (#298): a shared CompendiumArchive `.json` bundle (AirDrop-style
  *   share / "Open with"). The native side copies it into the app's private
- *   cache and hands Dart the **path** of that copy.
+ *   cache and hands Dart an ownership-marked payload containing the path of
+ *   that copy.
  * - **URL** (#343): a web page URL shared as `text/plain` from a browser (an
  *   `ACTION_SEND` with `EXTRA_TEXT`). The native side hands Dart the **raw URL
  *   string** verbatim.
@@ -28,19 +28,13 @@ class MainActivity : FlutterActivity() {
     private val channelName = "is.banner.callerscompendium/incoming_files"
     private var channel: MethodChannel? = null
 
-    /** Path captured from a launch (cold-start) intent, consumed once by the
-     * `getInitialFile` pull. */
-    private var pendingInitialPath: String? = null
-
-    /** URL captured from a launch (cold-start) intent, consumed once by the
-     * `getInitialUrl` pull. */
-    private var pendingInitialUrl: String? = null
-
-    /** Set once Dart pulls the cold-start payload. Before this, an incoming
-     * payload is the launch payload (retained for the pull); after it, an
-     * incoming payload is a warm event pushed on the stream — so exactly one
-     * import happens per payload, never a cold/warm double. */
-    private var initialPayloadPulled = false
+    // The size cap, the copy, and the cold-start vs warm routing live in
+    // IncomingFileStager.kt, free of Android types so src/test can unit-test
+    // them; this Activity only adapts Intent, Uri and MethodChannel onto them.
+    private val stager = IncomingFileStager()
+    private val router = IncomingPayloadRouter(
+        push = { method, argument -> channel?.invokeMethod(method, argument) },
+    )
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -48,18 +42,8 @@ class MainActivity : FlutterActivity() {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
         methodChannel.setMethodCallHandler { call, result ->
             when (call.method) {
-                "getInitialFile" -> {
-                    val path = pendingInitialPath
-                    pendingInitialPath = null
-                    initialPayloadPulled = true
-                    result.success(path)
-                }
-                "getInitialUrl" -> {
-                    val url = pendingInitialUrl
-                    pendingInitialUrl = null
-                    initialPayloadPulled = true
-                    result.success(url)
-                }
+                "getInitialFile" -> result.success(router.pullInitialFile())
+                "getInitialUrl" -> result.success(router.pullInitialUrl())
                 else -> result.notImplemented()
             }
         }
@@ -81,13 +65,7 @@ class MainActivity : FlutterActivity() {
         // mistaken for a file. The native side forwards the raw string verbatim;
         // Dart validates it as untrusted input.
         if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            val text = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()
-            if (text.isNullOrEmpty()) return
-            if (initialPayloadPulled) {
-                channel?.invokeMethod("urlShared", text)
-            } else {
-                pendingInitialUrl = text
-            }
+            router.onSharedText(intent.getStringExtra(Intent.EXTRA_TEXT))
             return
         }
         val uri: Uri? = when (intent.action) {
@@ -96,28 +74,14 @@ class MainActivity : FlutterActivity() {
             else -> null
         }
         if (uri == null) return
-        val path = copyToCache(uri) ?: return
-        if (initialPayloadPulled) {
-            channel?.invokeMethod("fileOpened", path)
-        } else {
-            pendingInitialPath = path
-        }
+        router.onFileStaged(copyToCache(uri))
     }
 
-    /** Copies the content of [uri] into a private cache file and returns its
-     * path, or `null` on any error (intake then simply does nothing — the
-     * native side never crashes the app). */
-    private fun copyToCache(uri: Uri): String? {
-        return try {
-            val dir = File(cacheDir, "incoming_share").apply { mkdirs() }
-            val name = uri.lastPathSegment?.substringAfterLast('/') ?: "bundle.json"
-            val dest = File(dir, "${System.nanoTime()}-$name")
-            contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(dest).use { output -> input.copyTo(output) }
-            } ?: return null
-            dest.absolutePath
-        } catch (e: Exception) {
-            null
+    /** Copies the content of [uri] into the private `incoming_share` cache
+     * directory, through [IncomingFileStager] (which holds the size cap and
+     * the cleanup). */
+    private fun copyToCache(uri: Uri): StagedCopy =
+        stager.stage(File(cacheDir, "incoming_share"), uri.lastPathSegment) {
+            contentResolver.openInputStream(uri)
         }
-    }
 }

@@ -5,18 +5,33 @@ import '../editor/editor_draft_codec.dart' show kDanceEditorDraftKeyPrefix;
 import '../editor/program_editor_draft_codec.dart'
     show kProgramEditorDraftKeyPrefix;
 import 'backup_document.dart';
+import 'backup_io.dart'
+    show BackupExportTooLargeException, BackupSaver, kMaxBackupFileBytes;
 import 'backup_reminder.dart';
 import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
 import 'custom_themes_controller.dart';
 import 'dialect_library_controller.dart';
-import '../screens/settings/settings_keys.dart'
-    show kSyncDeviceIdKey, kSyncIdKey;
+import '../update/update_config.dart' show kUpdateRetirementNoticeKey;
+import 'settings_keys.dart'
+    show
+        kSyncDeviceIdKey,
+        kSyncEnabledKey,
+        kSyncEndpointKey,
+        kSyncExcludeImportsKey,
+        kSyncIdKey,
+        kSyncLastSuccessAtKey,
+        kSyncLastUsedFingerprintKey,
+        kSyncWifiOnlyKey;
 import 'window_service.dart' show kWindowFrameKey;
 
-/// App-side declaration used by the settings classification ratchet. The
-/// storage-owned constant has the same value and remains the migration source
-/// of truth.
+/// App-side name for the denylist entry below; the storage-owned constant has
+/// the same value and remains the migration source of truth. The settings
+/// classification ratchet (`test/data/settings_classification_test.dart`)
+/// recognises any `\w*Key` declaration and already sees the storage-owned
+/// constant directly, so this duplicate is not what keeps the ratchet aware of
+/// the key — it exists only to give [kBackupSettingsDenylist] a name to
+/// reference below.
 const String kTaxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 const String kTaxonomyV34CanonicalRebuildDoneKey =
@@ -24,40 +39,108 @@ const String kTaxonomyV34CanonicalRebuildDoneKey =
 const String kTaxonomyV35FigureNormalizationDoneKey =
     '__taxonomy_v35_figure_normalization_done__';
 
-/// App-side declaration for the one-shot modifier-container canonical/FTS
-/// rebuild marker. The storage-owned constant remains the migration source of
-/// truth.
+/// App-side name for the one-shot modifier-container canonical/FTS rebuild
+/// marker's denylist entry; the storage-owned constant remains the migration
+/// source of truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey]
+/// for why this duplicate exists.
 const String kModifierContainerCanonicalRebuildDoneKey =
     '__modifier_container_canonical_rebuild_done__';
 
-/// App-side declaration for the storage-owned one-shot repair marker. The
-/// duplicate literal keeps the settings classification ratchet aware of this
-/// app-level backup policy, while the core constant remains the migration
-/// source of truth.
+/// App-side name for the one-shot taxonomy v37 canonical/FTS rebuild marker's
+/// denylist entry; the storage-owned constant remains the migration source of
+/// truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
+const String kTaxonomyV37CanonicalRebuildDoneKey =
+    '__taxonomy_v37_canonical_rebuild_done__';
+
+/// App-side name for the one-shot taxonomy v38 canonical/FTS rebuild marker's
+/// denylist entry; the storage-owned constant remains the migration source of
+/// truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
+const String kTaxonomyV38CanonicalRebuildDoneKey =
+    '__taxonomy_v38_canonical_rebuild_done__';
+
+/// App-side name for the one-shot taxonomy v39 canonical/FTS rebuild marker's
+/// denylist entry; the storage-owned constant remains the migration source of
+/// truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
+const String kTaxonomyV39CanonicalRebuildDoneKey =
+    '__taxonomy_v39_canonical_rebuild_done__';
+
+/// App-side name for the one-shot ECD taxonomy canonical/FTS rebuild marker's
+/// denylist entry; the storage-owned constant remains the migration source of
+/// truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
+const String kEcdTaxonomyCanonicalRebuildDoneKey =
+    '__ecd_taxonomy_canonical_rebuild_done__';
+
+/// App-side name for the storage-owned one-shot repair marker's denylist
+/// entry; the core constant remains the migration source of truth. See the
+/// note above [kTaxonomyV33CanonicalRebuildDoneKey] for why this duplicate
+/// exists.
 const String kCallersBoxRollAwayRoleRepairDoneKey =
     '__callersbox_roll_away_role_repair_done__';
+
+/// App-side name for the storage-owned one-shot derived-index repair marker's
+/// denylist entry (#1346). The core constant
+/// ([normalisationDerivedIndexRepairDoneKey]) remains the migration source of
+/// truth; see the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
+///
+/// Denylisted for the same reason as its siblings, and with one extra
+/// consequence worth naming: the repair recomputes *derived* rows from the
+/// source rows in the same database. Carrying the marker into a restore would
+/// tell a machine that has never run the repair that it already has.
+const String kNormalisationDerivedIndexRepairDoneKey =
+    '__normalisation_derived_index_repair_done__';
 
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
 /// Four reasons a key is excluded:
-/// - **structurally represented** — the dialect library and custom themes travel
-///   in their own typed sections of the [BackupDocument], so their raw settings
-///   blobs would be redundant (and could disagree with the typed sections):
-///   [kCustomDialectsKey], [kActiveDialectRefKey], [kActiveDialectKey],
-///   [kCustomThemesKey], [kActiveCustomThemeKey].
+/// - **structurally represented** — contra's dialect library and custom themes
+///   travel in their own typed sections of the [BackupDocument], so their raw
+///   settings blobs would be redundant (and could disagree with the typed
+///   sections): [kCustomDialectsKey], [kActiveDialectRefKey],
+///   [kActiveDialectKey], [kCustomThemesKey], [kActiveCustomThemeKey]. The
+///   other dance forms' dialect libraries ([customDialectsKeyFor]) are not
+///   listed: they travel in `app.settings` like any preference, checked by
+///   the restore schema, and their library reads them entry by entry.
 /// - **installation state / backup metadata** — geometry and backup bookkeeping
 ///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
-///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
-///   [kTaxonomyV33CanonicalRebuildDoneKey],
-///   [kTaxonomyV34CanonicalRebuildDoneKey],
-///   [kModifierContainerCanonicalRebuildDoneKey],
-///   [kTaxonomyV35FigureNormalizationDoneKey],
-///   [kCallersBoxRollAwayRoleRepairDoneKey].
-/// - **sync security state** — credentials and per-installation routing state
-///   must never be copied through a backup, even though their transport-specific
-///   privacy classes are not [EgressClass.deviceLocal]:
-///   [kSyncIdKey], [kSyncDeviceIdKey].
+///   [kWindowFrameKey], [kLastBackupAtKey], and every one-time migration /
+///   repair marker `ensureMigrated` writes. The reminder *cadence*
+///   (`backup_reminder_cadence`) is deliberately not here: it is a preference
+///   (off / weekly / monthly) and the reminder fires from [kLastBackupAtKey],
+///   which is the value that must stay local. It was denylisted from G.5
+///   (#167) until the 2026 audit found it `shareable` in the registry and
+///   "must not travel" here at once; the registry's reading was kept. Eight of
+///   those are named through app-side `k…` duplicates declared above; the
+///   other eleven are the core constants exported by `compendium_core`
+///   ([derivedRebuildRequiredKey], [purgeCorruptionRepairDoneKey],
+///   [sectionRuleVersionKey], [inversePairNormalisationDoneKey],
+///   [starPromenadeHandRemovalDoneKey],
+///   [gripSingleFileCanonicalInclusionDoneKey], [chainHandBackfillDoneKey],
+///   [promenadeTurnCircleWordingCanonicalRebuildDoneKey],
+///   [compactDosidoSeesawCanonicalRebuildDoneKey],
+///   [customFieldIndexRepairDoneKey], [customNumberIndexRepairDoneKey]) named
+///   directly — the settings ratchet no longer needs a `k`-prefixed twin to
+///   see a key, so no new duplicates are added. All nineteen are `_installState` in
+///   `settings_registry.dart`: a marker says a pass has run over *this*
+///   database's rows, which is false on any other install.
+///   [kUpdateRetirementNoticeKey] is installation state of the same kind: the
+///   end-of-life date announced for the build installed *here*.
+/// - **sync attachment state** — the store address this device is attached to,
+///   its per-attachment routing identifier, and the markers derived from
+///   addresses it has used. A backup restored onto another device must not
+///   silently attach it to someone else's store or clone a routing identity,
+///   so these never travel even though their transport-specific privacy
+///   classes are not [EgressClass.deviceLocal]:
+///   [kSyncIdKey], [kSyncDeviceIdKey], [kSyncLastUsedFingerprintKey].
+/// - **sync consent and preferences** — consent given on one device is not
+///   consent on another, so a restore must leave sync off (spec §6.1):
+///   [kSyncEnabledKey], [kSyncEndpointKey], [kSyncWifiOnlyKey],
+///   [kSyncExcludeImportsKey], [kSyncLastSuccessAtKey].
 const Set<String> kBackupSettingsDenylist = {
   kCustomDialectsKey,
   kActiveDialectRefKey,
@@ -66,14 +149,36 @@ const Set<String> kBackupSettingsDenylist = {
   kActiveCustomThemeKey,
   kWindowFrameKey,
   kLastBackupAtKey,
-  kBackupReminderCadenceKey,
+  kUpdateRetirementNoticeKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
   kTaxonomyV34CanonicalRebuildDoneKey,
   kModifierContainerCanonicalRebuildDoneKey,
   kTaxonomyV35FigureNormalizationDoneKey,
+  kTaxonomyV37CanonicalRebuildDoneKey,
+  kTaxonomyV38CanonicalRebuildDoneKey,
+  kTaxonomyV39CanonicalRebuildDoneKey,
+  kEcdTaxonomyCanonicalRebuildDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
+  kNormalisationDerivedIndexRepairDoneKey,
+  derivedRebuildRequiredKey,
+  purgeCorruptionRepairDoneKey,
+  sectionRuleVersionKey,
+  inversePairNormalisationDoneKey,
+  starPromenadeHandRemovalDoneKey,
+  gripSingleFileCanonicalInclusionDoneKey,
+  chainHandBackfillDoneKey,
+  promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+  compactDosidoSeesawCanonicalRebuildDoneKey,
+  customFieldIndexRepairDoneKey,
+  customNumberIndexRepairDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
+  kSyncLastUsedFingerprintKey,
+  kSyncEnabledKey,
+  kSyncEndpointKey,
+  kSyncWifiOnlyKey,
+  kSyncExcludeImportsKey,
+  kSyncLastSuccessAtKey,
 };
 
 /// Key *prefixes* excluded from backups. Some settings-table keys are dynamic
@@ -83,10 +188,22 @@ const Set<String> kBackupSettingsDenylist = {
 ///   neither user content nor preferences and must never travel in a backup.
 /// - [kProgramEditorDraftKeyPrefix] — the program-editor equivalent
 ///   (`program_editor_draft:<id>`); same device-local, transient rationale.
+/// - [syncCapabilityKeyPrefix] — each sync device's capability record
+///   (`sync_capabilities:<deviceId>`, #709). Synced, but only its own device
+///   may write it, apart from the tombstone written when it is removed from
+///   the store: a replace restore would delete the others' records or rewrite
+///   them with a newer stamp that beats their owners'.
 const Set<String> kBackupSettingsDenylistPrefixes = {
   kDanceEditorDraftKeyPrefix,
   kProgramEditorDraftKeyPrefix,
+  syncCapabilityKeyPrefix,
 };
+
+/// The deepest nesting of lists and maps a restored setting may have. The
+/// deepest value the app writes, figures inside shorthands with containers at
+/// most [kMaxContainerDepth] deep, is about a dozen levels, so this leaves a
+/// wide margin while staying far below what overflows the stack.
+const int kMaxBackupSettingDepth = 64;
 
 /// Whether a settings-table [key] is eligible to travel in a backup's
 /// `app.settings` map (and thus be fully replaced on restore).
@@ -112,6 +229,8 @@ class BackupRestoreOutcome {
     this.incompleteCore = false,
     this.integrityFailed = false,
     this.settingsFailed = false,
+    this.newerSchema = false,
+    this.missingAppSection = false,
   });
 
   final List<ArchiveError> errors;
@@ -137,13 +256,23 @@ class BackupRestoreOutcome {
   /// the UI say so specifically instead of a generic "invalid file".
   final bool integrityFailed;
 
+  /// Whether a replace was refused because the backup was written under a
+  /// newer schema than this build reads ([BackupReadResult.newerSchema]) —
+  /// restoring it would silently drop the fields this build doesn't know.
+  final bool newerSchema;
+
+  /// Whether a replace was refused because the backup has no `app` section
+  /// ([BackupReadResult.hasAppSection]), so it cannot say what the preferences,
+  /// themes and dialects should become. Nothing was written.
+  final bool missingAppSection;
+
   /// Whether the **core** content restored and committed successfully but the
   /// subsequent **app-settings** apply step failed (issue #608).
   ///
-  /// The core (dances/programs/etc.) and app settings (SharedPreferences-style
-  /// `settings` table) live in two independent stores that cannot share one
-  /// transaction, so once the core has committed it CANNOT be part of a settings
-  /// rollback. When the settings-apply step genuinely fails (the settings store
+  /// The core (dances/programs/etc.) is written in one transaction that commits
+  /// first; the app-local pieces (the SharedPreferences-style `settings` table
+  /// and, since #709, the user's glossary) are applied after it, so once the
+  /// core has committed it CANNOT be part of a settings rollback. When the settings-apply step genuinely fails (the settings store
   /// throws / is unavailable — as opposed to a single invalid value, which #609
   /// already degrades to its default), the owner-decided behavior is to KEEP the
   /// successfully-restored core (no disproportionate pre-restore snapshot /
@@ -166,20 +295,28 @@ class BackupRestoreOutcome {
 /// The service is UI-free and depends only on [CompendiumRepositories]: it reads
 /// core content through [ArchiveExporter] and the app-local pieces straight from
 /// the `settings` table (which the dialect/theme controllers keep current on
-/// every mutation), and applies a restore by writing core content through
-/// [ArchiveRestorer] (replace mode) and the app-local pieces back into `settings`.
+/// every mutation) and, since #709, the user's glossary repositories, and
+/// applies a restore by writing core content through [ArchiveRestorer] and the
+/// app-local pieces back where they were read from.
 ///
 /// Refreshing the live UI after a restore (reloading the dialect/theme
 /// controllers and re-reading the preference notifiers) is the caller's job —
 /// see the `onRestored` callback wired in `main.dart`.
 class BackupService {
-  BackupService(this._repos);
+  BackupService(this._repos, {BackupCodecRunner? codecRunner})
+    : _codecRunner = codecRunner ?? defaultBackupCodecRunner;
 
   final CompendiumRepositories _repos;
 
+  /// Where the encode/decode runs: a worker isolate in production, inline in
+  /// widget tests (fake async cannot pump an isolate).
+  final BackupCodecRunner _codecRunner;
+
   /// Builds a [BackupDocument] snapshot of the current app state.
   Future<BackupDocument> buildDocument({DateTime? createdAt}) async {
-    final core = await ArchiveExporter(_repos).export();
+    // One stamp for the envelope and the nested archive, so they agree.
+    final stamp = (createdAt ?? DateTime.now()).toUtc();
+    final core = await ArchiveExporter(_repos).export(exportedAt: stamp);
     final allSettings = await _repos.settings.all();
 
     final customDialects = _readDialects(allSettings[kCustomDialectsKey]);
@@ -193,19 +330,41 @@ class BackupService {
     };
 
     return BackupDocument(
-      createdAt: (createdAt ?? DateTime.now()).toUtc(),
+      createdAt: stamp,
       core: core,
       customDialects: customDialects,
       activeDialectRef: activeDialectRef is String ? activeDialectRef : null,
       customThemes: customThemes,
       activeCustomThemeId: activeThemeId is String ? activeThemeId : null,
       settings: settings,
+      glossaryEntries: await _repos.userGlossary.listAll(),
+      figureNotes: await _repos.figureNotes.listAll(),
     );
   }
 
-  /// Builds a backup and returns it as a JSON string.
-  Future<String> exportToJson({DateTime? createdAt}) async =>
-      encodeBackup(await buildDocument(createdAt: createdAt));
+  /// Builds a backup and returns it as a JSON string, encoded on a worker
+  /// isolate.
+  ///
+  /// Throws [BackupExportTooLargeException] when the encoded UTF-8 length
+  /// exceeds [maxBytes] (default [kMaxBackupFileBytes], the cap
+  /// `readBackupFile` enforces on restore), so the app never writes a backup it
+  /// would then refuse to read.
+  Future<String> exportToJson({
+    DateTime? createdAt,
+    int maxBytes = kMaxBackupFileBytes,
+  }) async {
+    final encoded = await encodeBackupSizedOnIsolate(
+      await buildDocument(createdAt: createdAt),
+      runner: _codecRunner,
+    );
+    if (encoded.byteLength > maxBytes) {
+      throw BackupExportTooLargeException(
+        sizeBytes: encoded.byteLength,
+        maxBytes: maxBytes,
+      );
+    }
+    return encoded.json;
+  }
 
   /// Records a successful backup by stamping [kLastBackupAtKey] with [at] (UTC).
   Future<void> recordBackup(DateTime at) =>
@@ -214,7 +373,8 @@ class BackupService {
   /// Decodes [json] and applies it to the live app.
   ///
   /// Core content is restored via [ArchiveRestorer]; the app-local dialects,
-  /// themes, and preference settings are written back into the `settings` table.
+  /// themes, and preference settings are written back into the `settings`
+  /// table, and the user's glossary into its own tables.
   /// Tolerant throughout: decode/restore problems are collected into the
   /// returned [BackupRestoreOutcome] rather than thrown.
   ///
@@ -233,10 +393,17 @@ class BackupService {
   ///     value written by a newer app version.
   ///   Committing a partially-decoded or reduced archive in replace mode would
   ///   swap the user's data for an incomplete copy — exactly the loss this
-  ///   guard prevents (issue #430). Such a restore returns
-  ///   [BackupRestoreOutcome.applied] `false` with the live app untouched.
+  ///   guard prevents (issue #430). A replace is likewise refused when the
+  ///   backup was written under a **newer schema**
+  ///   ([BackupReadResult.newerSchema]; unknown fields were dropped at decode)
+  ///   or has **no `app` section** ([BackupReadResult.hasAppSection]; it cannot
+  ///   say what preferences, themes and dialects should become). Such a restore
+  ///   returns [BackupRestoreOutcome.applied] `false` with the live app
+  ///   untouched.
   /// - [RestoreMode.merge] is **additive** and stays tolerant: it applies
-  ///   whatever decoded, keeping survivors and recording the rest.
+  ///   whatever decoded, keeping survivors and recording the rest. A newer
+  ///   schema is read best-effort with a warning. Settings, themes and dialects
+  ///   the backup does not describe are left as they are.
   ///
   /// A fatal envelope is refused in both modes. In replace mode, if the core
   /// restore itself fails it is rolled back atomically and this method returns
@@ -249,11 +416,22 @@ class BackupService {
   /// this returns `applied: true` with [BackupRestoreOutcome.settingsFailed]
   /// `true`. The caller surfaces a retryable error and can re-run only the
   /// settings apply via [retryApplySettings]; the exception is never rethrown.
+  ///
+  /// [decoded], when given, is the already-decoded result of [json] (e.g. the
+  /// one the restore dialog produced to summarise the file); the file is then
+  /// not decoded again. It must come from decoding the same [json].
+  ///
+  /// [onProgress] receives `(done, total)` from the core restore once the
+  /// backup has decoded (see [ArchiveRestorer.restore]); nothing is reported
+  /// for the decode itself or for a refusal before the core is touched.
   Future<BackupRestoreOutcome> restoreFromJson(
     String json, {
     RestoreMode mode = RestoreMode.replace,
+    BackupReadResult? decoded,
+    void Function(int done, int total)? onProgress,
   }) async {
-    final read = decodeBackup(json);
+    final read =
+        decoded ?? await decodeBackupOnIsolate(json, runner: _codecRunner);
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
@@ -281,10 +459,36 @@ class BackupService {
       );
     }
 
+    // Replace must also refuse a backup it cannot faithfully represent even
+    // though every entity decoded: one written by a newer schema (unknown
+    // fields were dropped, so richer live records would be swapped for reduced
+    // ones), or one with no `app` section (it describes no preferences, themes
+    // or dialects, so "absent" must not be read as "empty"). Merge is additive
+    // and stays best-effort; its settings apply skips whatever the file omits.
+    if (mode == RestoreMode.replace && read.newerSchema) {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+        newerSchema: true,
+      );
+    }
+    if (mode == RestoreMode.replace && !read.hasAppSection) {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+        missingAppSection: true,
+      );
+    }
+
     final doc = read.document;
-    final restoreResult = await ArchiveRestorer(
-      _repos,
-    ).restore(doc.core, mode: mode);
+    final restoreResult = await ArchiveRestorer(_repos).restore(
+      doc.core,
+      mode: mode,
+      backupCreatedAt: backupCreatedAt(doc),
+      onProgress: onProgress,
+    );
     errors.addAll(restoreResult.errors);
     warnings.addAll(restoreResult.warnings);
 
@@ -317,7 +521,7 @@ class BackupService {
     // routine "settings failed". Log the caught failure (guarded so it never
     // reaches a release build, per #617) so the failure isn't invisible.
     try {
-      await _applyAppSettings(doc, warnings);
+      await _applyAppSettings(read, warnings, errors: errors, mode: mode);
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply failed; outcome returned to caller (general_section._onRestoreBackup) which handles user surface.
       if (kDebugMode) {
@@ -351,16 +555,34 @@ class BackupService {
   /// JSON / missing core / failed checksum) yields `applied: false` and nothing
   /// is applied.
   ///
-  /// Idempotent: [_applyAppSettings] is a full REPLACE of the backup-eligible
-  /// settings keys (it removes stale eligible keys, then re-sets each backed-up
-  /// key), so running it once or several times converges to the same state.
-  /// This makes the retry safe to invoke repeatedly, and a settings-apply
-  /// failure that recurs is reported (again) as [BackupRestoreOutcome.applied]
-  /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown
-  /// (an [Error], i.e. a programming bug, is deliberately NOT caught so it
+  /// Idempotent: for each section the backup describes, [_applyAppSettings] is
+  /// a full REPLACE of that section (for settings: it removes stale eligible
+  /// keys, then re-sets each backed-up key) — except the user's glossary in a
+  /// merge, or when part of it could not be read, which is only added to —
+  /// and it leaves undescribed sections alone, so running it once or several
+  /// times converges to the same state. This makes the retry safe to invoke
+  /// repeatedly, and a settings-apply failure that recurs is reported (again)
+  /// as [BackupRestoreOutcome.applied] `true` with
+  /// [BackupRestoreOutcome.settingsFailed] `true` rather than thrown (an
+  /// [Error], i.e. a programming bug, is deliberately NOT caught so it
   /// surfaces; the caught [Exception] is logged in debug builds).
-  Future<BackupRestoreOutcome> retryApplySettings(String json) async {
-    final read = decodeBackup(json);
+  ///
+  /// [mode] is the mode the restore being retried ran in. It is required so a
+  /// retry can never delete glossary entries a merge restore would have kept.
+  Future<BackupRestoreOutcome> retryApplySettings(
+    String json, {
+    required RestoreMode mode,
+  }) async => retryApplySettingsFrom(
+    await decodeBackupOnIsolate(json, runner: _codecRunner),
+    mode: mode,
+  );
+
+  /// [retryApplySettings] over an already-decoded [read] (e.g. the one the
+  /// restore just produced), so the retry does not decode the whole file again.
+  Future<BackupRestoreOutcome> retryApplySettingsFrom(
+    BackupReadResult read, {
+    required RestoreMode mode,
+  }) async {
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
@@ -376,8 +598,18 @@ class BackupService {
       );
     }
 
+    // The retry is part of the restore, and it may come after a sync pass has
+    // run against the restored library: the coordinator was recreated when the
+    // core committed, and the retry is offered until the user takes it. That
+    // pass's baseline holds a peer's newer values, so writing the backup's
+    // settings and glossary over it at the backup's time would read as a local
+    // change that peers refuse, leaving this device diverged for good. Drop
+    // the baseline again, as the core restore does (sync-spec §6.11), so the
+    // next pass is a fresh attach that lets the newer copies win. Callers run
+    // this inside the sync-writer lifecycle, as they do the restore.
+    await _repos.syncLocal.clearBaseline();
     try {
-      await _applyAppSettings(read.document, warnings);
+      await _applyAppSettings(read, warnings, errors: errors, mode: mode);
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply retry failed; outcome returned to caller (general_section._retrySettingsRestore) which handles user surface.
       if (kDebugMode) {
@@ -398,46 +630,165 @@ class BackupService {
     );
   }
 
-  /// Writes the backup's app-local pieces into the `settings` table so the
-  /// dialect/theme controllers and preference notifiers pick them up on reload.
+  /// The user's own glossary (#709), when the backup describes it.
   ///
-  /// This is a **replace**: existing non-denylisted preference keys that are
-  /// absent from the backup are removed first, so restoring an older backup
-  /// can't leave stale preferences behind. Denylisted keys (device-local
-  /// geometry, backup metadata, and the structurally-represented dialect/theme
-  /// keys) are preserved and handled explicitly below.
-  Future<void> _applyAppSettings(
-    BackupDocument doc,
-    List<String> warnings,
-  ) async {
-    final settings = _repos.settings;
+  /// One transaction, so it is applied whole or not at all. A replace restore
+  /// replaces it: live entries and notes the backup does not hold are deleted
+  /// softly, leaving tombstones for sync to carry. A merge restore only adds
+  /// and updates, as a merge does for the collection. Either way nothing is
+  /// deleted when part of the section could not be read
+  /// ([BackupReadResult.glossaryComplete]), since what was lost cannot be told
+  /// apart from what the backup lacks.
+  ///
+  /// An entry or note the repository refuses (over a bound, a payload that
+  /// cannot be stored, or an id or kind sync could not carry, in a
+  /// hand-edited file) is skipped, its live copy kept, and reported as an
+  /// error so the restore says something was skipped.
+  ///
+  /// The glossary's total byte budget ([maxUserGlossaryBytes]) is *not*
+  /// applied: the entries and notes go in through the repositories' restore
+  /// paths, which keep every per-field check but not the total. A backup made
+  /// before there was a budget, holding more than it, restores whole (it
+  /// already fit the file cap), and the glossary can then be edited down but not
+  /// grown. Skipping its tail instead would lose the newest entries on the one
+  /// operation meant to bring data back.
+  ///
+  /// A backup made where the glossary was empty has no section (an empty one
+  /// would end v1's byte-for-byte compatibility), so restoring it leaves the
+  /// glossary here as it is rather than emptying it.
+  Future<void> _applyGlossary(
+    BackupReadResult read,
+    List<ArchiveError> errors, {
+    required RestoreMode mode,
+  }) => _repos.transaction(() async {
+    final doc = read.document;
+    final stamp = restoreStampFor(backupCreatedAt(doc));
+    final removeMissing = mode == RestoreMode.replace && read.glossaryComplete;
+    if (removeMissing) {
+      final keptIds = {for (final e in doc.glossaryEntries) e.id};
+      for (final live in await _repos.userGlossary.listAll()) {
+        if (!keptIds.contains(live.id)) {
+          await _repos.userGlossary.deleteFromRestore(live.id, at: stamp);
+        }
+      }
+      final keptNotes = {for (final n in doc.figureNotes) n.figureId};
+      for (final live in await _repos.figureNotes.listAll()) {
+        if (!keptNotes.contains(live.figureId)) {
+          await _repos.figureNotes.deleteFromRestore(live.figureId, at: stamp);
+        }
+      }
+    }
+    for (final entry in doc.glossaryEntries) {
+      try {
+        await _repos.userGlossary.upsertFromRestore(
+          entry,
+          backupCreatedAt: stamp,
+        );
+      } on UserGlossaryEntryInvalid catch (e) {
+        // diagnostics: silent — the skipped entry is reported in the restore outcome's errors.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'glossaryEntry',
+            entityId: entry.id,
+            message:
+                'glossary entry skipped: ${e.field} cannot be stored', // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+    }
+    for (final note in doc.figureNotes) {
+      try {
+        await _repos.figureNotes.setFromRestore(
+          note.figureId,
+          note.notes,
+          backupCreatedAt: stamp,
+        );
+      } on FigureNoteInvalid {
+        // diagnostics: silent — the skipped note is reported in the restore outcome's errors.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'figureNote',
+            entityId: note.figureId,
+            message:
+                'figure note skipped: cannot be stored', // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+    }
+  });
 
-    final existing = await settings.all();
-    final backedUp = doc.settings.keys.toSet();
-    for (final key in existing.keys) {
-      if (!isBackupEligibleSettingKey(key)) continue;
-      if (backedUp.contains(key)) continue;
-      await settings.remove(key);
+  /// Writes the backup's app-local pieces into the `settings` table so the
+  /// dialect/theme controllers and preference notifiers pick them up on reload,
+  /// and the user's glossary into its own tables ([_applyGlossary]).
+  ///
+  /// Each section the backup **describes** (`app.settings`, `app.dialects`,
+  /// `app.themes` present as objects — see [BackupReadResult.hasSettingsSection]
+  /// and siblings) is a **replace**: existing non-denylisted preference keys
+  /// absent from the backup are removed first, so restoring an older backup
+  /// can't leave stale preferences behind, and the dialect/theme libraries are
+  /// rewritten. A section the file does not describe is left untouched — absent
+  /// is not "empty" — so a backup lacking `app` (or one of its sections) never
+  /// clears live preferences, themes or dialects, in either restore mode.
+  /// Denylisted keys (device-local geometry, backup metadata, and the
+  /// structurally-represented dialect/theme keys) are preserved and handled
+  /// explicitly below.
+  Future<void> _applyAppSettings(
+    BackupReadResult read,
+    List<String> warnings, {
+    required List<ArchiveError> errors,
+    required RestoreMode mode,
+  }) async {
+    final doc = read.document;
+    final settings = _repos.settings;
+    // Every write below is stamped at the backup's creation time, not now, so
+    // a setting another device changed after the backup wins at the next sync
+    // instead of being overwritten on every device (SYNC-1).
+    final stamp = restoreStampFor(backupCreatedAt(doc));
+    Future<void> set(String key, Object? value) =>
+        settings.setFromRestore(key, value, at: stamp);
+    Future<void> remove(String key) =>
+        settings.removeFromRestore(key, at: stamp);
+
+    if (read.hasSettingsSection) {
+      final existing = await settings.all();
+      final backedUp = doc.settings.keys.toSet();
+      for (final key in existing.keys) {
+        if (!isBackupEligibleSettingKey(key)) continue;
+        if (backedUp.contains(key)) continue;
+        await remove(key);
+      }
     }
 
     // Dialect library: rewrite the custom list and the active ref, plus keep the
     // legacy full-blob key in sync for any reader that still resolves the active
     // dialect from it.
-    await settings.set(kCustomDialectsKey, [
-      for (final d in doc.customDialects) d.toJson(),
-    ]);
-    await settings.set(kActiveDialectRefKey, doc.activeDialectRef);
-    final active = Dialect.resolveByName(
-      doc.activeDialectRef,
-      candidates: doc.customDialects,
-    );
-    if (active != null) await settings.set(kActiveDialectKey, active.toJson());
+    if (read.hasDialectsSection) {
+      await set(kCustomDialectsKey, [
+        for (final d in doc.customDialects) d.toJson(),
+      ]);
+      await set(kActiveDialectRefKey, doc.activeDialectRef);
+      final active = Dialect.resolveByName(
+        doc.activeDialectRef,
+        candidates: doc.customDialects,
+      );
+      if (active != null) {
+        await set(kActiveDialectKey, active.toJson());
+      }
+    }
+
+    if (read.hasGlossarySection) {
+      await _applyGlossary(read, errors, mode: mode);
+    }
 
     // Custom themes: rewrite the list and the active id.
-    await settings.set(kCustomThemesKey, [
-      for (final t in doc.customThemes) t.toJson(),
-    ]);
-    await settings.set(kActiveCustomThemeKey, doc.activeCustomThemeId);
+    if (read.hasThemesSection) {
+      await set(kCustomThemesKey, [
+        for (final t in doc.customThemes) t.toJson(),
+      ]);
+      await set(kActiveCustomThemeKey, doc.activeCustomThemeId);
+    }
 
     // Preference settings: re-apply every backed-up key. The eligibility
     // predicate guards against a hand-edited or hostile backup smuggling a
@@ -452,17 +803,24 @@ class BackupService {
     // corrupt value gracefully instead of letting it reach an unchecked cast
     // and brick startup — while every valid key still restores. Unknown
     // (forward-compatible) keys have no schema and pass through unchanged.
+    //
+    // A value nested deeper than [kMaxBackupSettingDepth] is invalid too,
+    // whatever its key: storing it runs recursive normalisation and encoding,
+    // which a crafted value tens of thousands of levels deep would overflow,
+    // and a StackOverflowError is not caught as a failed restore step, so the
+    // restore would stop half-applied.
     for (final entry in doc.settings.entries) {
       if (!isBackupEligibleSettingKey(entry.key)) continue;
-      if (validateBackupSettingValue(entry.key, entry.value) == false) {
-        await settings.remove(entry.key);
+      if (jsonNestedDeeperThan(entry.value, kMaxBackupSettingDepth) ||
+          validateBackupSettingValue(entry.key, entry.value) == false) {
+        await remove(entry.key);
         warnings.add(
           'Skipped an invalid value for "${entry.key}" from the backup; '
           'using its default instead.',
         );
         continue;
       }
-      await settings.set(entry.key, entry.value);
+      await set(entry.key, entry.value);
     }
   }
 
@@ -499,4 +857,45 @@ class BackupService {
     }
     return result;
   }
+}
+
+/// When the backup in [doc] was made: its envelope's `createdAt`, or, for a
+/// file that lacks a usable one, its core archive's `exportedAt` (the writer
+/// puts the same instant in both). A file with neither decodes both as the
+/// Unix epoch, which is returned: a restore of it then loses to every other
+/// device's copy at the next sync, the safe direction when nothing says how
+/// old the backup is.
+DateTime backupCreatedAt(BackupDocument doc) =>
+    doc.createdAt.millisecondsSinceEpoch != 0
+    ? doc.createdAt
+    : doc.core.exportedAt;
+
+/// Suggested filename for an exported backup, dated in the device's local time
+/// (the day the user took it, not the UTC day) so backups sort and are easy to
+/// tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
+String backupFileName(DateTime when) {
+  final d = when.toLocal();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return 'callers-compendium-backup-${d.year}-${two(d.month)}-${two(d.day)}.json';
+}
+
+/// Builds the whole-app backup, hands it to [saver], and stamps the last-backup
+/// time on success. Shared by Settings › General and the overdue-backup
+/// reminder banner so both run the identical export.
+///
+/// Returns `false` (nothing stamped) when the user cancelled the save dialog or
+/// dismissed the share sheet. Throws on failure
+/// ([BackupExportTooLargeException] included); each caller owns its progress
+/// UI, error logging and snackbar.
+Future<bool> exportBackupNow(
+  CompendiumRepositories repos,
+  BackupSaver saver,
+  DateTime now,
+) async {
+  final service = BackupService(repos);
+  final json = await service.exportToJson(createdAt: now);
+  final delivered = await saver(json, backupFileName(now));
+  if (!delivered) return false;
+  await service.recordBackup(now);
+  return true;
 }

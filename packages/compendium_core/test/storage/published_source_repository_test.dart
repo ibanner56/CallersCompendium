@@ -96,4 +96,82 @@ void main() {
     await repo.delete('s1');
     expect(await repo.getById('s1'), isNull);
   });
+
+  group('permanent delete keeps a tombstoned dance whole (#1357)', () {
+    Future<int> sourceRows(String sourceId) async {
+      final rows = await (db.select(
+        db.danceSources,
+      )..where((t) => t.sourceId.equals(sourceId))).get();
+      return rows.length;
+    }
+
+    Future<void> seedTombstonedCitation() async {
+      await repo.upsert(PublishedSource(id: 's1', title: 'Cited'));
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Some Dance',
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+    }
+
+    test('tombstones the source instead of erasing it', () async {
+      // `dance_sources` is ON DELETE CASCADE, so erasing here destroyed the
+      // tombstoned dance's citation outright.
+      await seedTombstonedCitation();
+
+      await repo.delete('s1', permanent: true);
+
+      final row = await (db.select(
+        db.publishedSources,
+      )..where((t) => t.id.equals('s1'))).getSingleOrNull();
+      expect(row, isNotNull, reason: 'the row must survive the rollback');
+      expect(row!.deletedAt, isNotNull, reason: 'as a tombstone');
+      expect(await sourceRows('s1'), 1, reason: 'the citation must survive');
+      expect(
+        await repo.getById('s1'),
+        isNull,
+        reason: 'and still leave every live view, which is what undo needs',
+      );
+    });
+
+    test('a restored dance keeps its citation, once the source is restored '
+        'too', () async {
+      // `_sourcesForMany` inner-joins on
+      // `published_sources.deleted_at IS NULL`, so the dance-only restore shows
+      // nothing. Asserted so the release note's two-row requirement cannot
+      // quietly become "restoring the dance is enough".
+      await seedTombstonedCitation();
+
+      await repo.delete('s1', permanent: true);
+
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      expect(
+        (await dances.getById('d1'))!.sourceCitations,
+        isEmpty,
+        reason: 'a tombstoned source stays hidden until it is restored',
+      );
+
+      await repo.restore('s1', at: DateTime.utc(2026, 3));
+      expect(
+        (await dances.getById('d1'))!.sourceCitations.single.sourceId,
+        's1',
+      );
+    });
+
+    test('still erases an unreferenced, unpublished source', () async {
+      await repo.upsert(PublishedSource(id: 's1', title: 'Uncited'));
+
+      await repo.delete('s1', permanent: true);
+
+      final row = await (db.select(
+        db.publishedSources,
+      )..where((t) => t.id.equals('s1'))).getSingleOrNull();
+      expect(row, isNull, reason: 'a rollback still leaves nothing behind');
+    });
+  });
 }

@@ -8,7 +8,8 @@ import 'export_labels.dart';
 ///
 /// This lives in `compendium_core` and is intentionally **pure Dart**: it takes
 /// no Flutter/intl dependency so it can be unit-tested and reused by the app's
-/// share/copy path and by the PDF layout (which reuses the same field ordering).
+/// share/copy path. The PDF layout builds on the same [programHeaderLines] and
+/// [programSlotLine] output, so the two cannot drift.
 ///
 /// The set list is titles + metadata + slot notes only — **not** full per-dance
 /// figure breakdowns. The app layer optionally appends per-dance figure cards
@@ -19,7 +20,7 @@ import 'export_labels.dart';
 ///
 /// - [titleFor] resolves a slot's [ProgramSlot.danceId] to a dance title;
 ///   return `null` for an unknown/unavailable dance and the renderer falls back
-///   to [unknownDanceLabel].
+///   to [ProgramExportLabels.unknownDance] (`labels.unknownDance`).
 /// - [venueNameFor] resolves a linked venue entity's id ([Program.venueId]) to
 ///   its already-formatted display label; return `null` when the id doesn't
 ///   resolve. This keeps the renderer pure Dart (it never imports the `Venue`
@@ -28,8 +29,23 @@ import 'export_labels.dart';
 ///   callback is `null` (or returns `null`), the free-text label is used —
 ///   preserving the pre-venue-entity behavior.
 /// - [formatDate] formats [Program.eventDate]; defaults to an ISO `yyyy-MM-dd`
-///   date. The app passes a locale-aware formatter
-///   (`MaterialLocalizations.formatMediumDate`).
+///   date. The app passes `formatEventDate` under the
+///   user's Date format setting (System follows the device region's numeric
+///   date).
+/// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
+///   choreographer *names* (issue #1434) — same privacy contract as
+///   `danceToPlainText`'s `authorNames`: never a `Choreographer` record, so
+///   private contact fields have no path in. `null` (the default) omits the
+///   author suffix entirely, preserving the pre-#1434 slot-line format for
+///   every existing caller. When supplied, a slot whose resolver call returns
+///   an empty list (or all-blank names) also omits the suffix — this is
+///   independent of the figures-appendix opt-in, so it appears on every
+///   numbered dance, whether or not that dance has any figures.
+/// - [formLabelFor] resolves a slot's `danceId` to the display name of its
+///   dance form ("English"), already localized, or `null` to name none. The
+///   app names the form only when the program mixes forms (ADR-006 S5), as
+///   its program screens do; `null` (the default) never names it. The name
+///   leads the slot's parenthesised details.
 ///
 /// Layout:
 /// ```
@@ -39,16 +55,18 @@ import 'export_labels.dart';
 /// Caller: <caller>
 /// Level: <dancerLevel>
 ///
-/// 1. <dance title | free text>[ — <slot note>][ (guest: <x>; <n> min)][ [performed]]
+/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (<form>; guest: <x>; <n> min)]
 ///    ALT: <alt line, same format, no number>
 /// 2. ...
 ///
 /// Notes:
 /// <program notes>
 /// ```
-/// Primaries are numbered `1..n`; alternates (via [Program.grouped]) are
-/// indented under their primary with an `ALT:` prefix. A leading/orphaned alt
-/// still renders (grouping keeps it as a degenerate primary). Absent metadata
+/// Planned dances ([ProgramSlot.isPlannedDance]) are numbered `1..n`, so the
+/// last number is [Program.plannedDanceCount]; the break is printed without a
+/// number. Alternates (via [Program.grouped]) are indented under their primary
+/// with an `ALT:` prefix. A leading/orphaned alt still renders, unnumbered with
+/// an `ALT:` prefix (grouping keeps it as a degenerate primary). Absent metadata
 /// parts are omitted. An empty program renders the header only.
 String programToPlainText(
   Program program, {
@@ -59,79 +77,64 @@ String programToPlainText(
   FigureRenderer? renderer,
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
+  bool includeTitle = true,
+  bool includeCallerBand = true,
+  bool includeDateVenue = true,
 }) {
-  if (canonicalizeDiscouragedTerms && (renderer == null || dialect == null)) {
-    throw ArgumentError(
-      'renderer and dialect are required when canonicalizeDiscouragedTerms '
-      'is enabled',
-    );
-  }
-  final fmtDate = formatDate ?? _isoDate;
-  final lines = <String>[];
-
-  lines.add(program.title.trim());
-
-  // date · venue on one line (only the present parts). A resolvable linked
-  // venue's display label wins over the free-text label; either falls back to
-  // the other, and both to nothing (the venue part is then omitted).
-  final linkedVenue = program.venueId != null
-      ? venueNameFor?.call(program.venueId!)
-      : null;
-  final venueLabel = _has(linkedVenue)
-      ? linkedVenue!.trim()
-      : (_has(program.venue) ? program.venue!.trim() : null);
-  final dateVenue = <String>[
-    if (program.eventDate != null) fmtDate(program.eventDate!),
-    ?venueLabel,
+  _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
+  final lines = <String>[
+    if (includeTitle) program.title.trim(),
+    ...programHeaderLines(
+      program,
+      venueNameFor: venueNameFor,
+      formatDate: formatDate,
+      labels: labels,
+      renderer: renderer,
+      dialect: dialect,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      includeCallerBand: includeCallerBand,
+      includeDateVenue: includeDateVenue,
+    ),
   ];
-  if (dateVenue.isNotEmpty) lines.add(dateVenue.join(' · '));
-
-  if (_has(program.band)) lines.add('${labels.band}: ${program.band!.trim()}');
-  if (_has(program.caller)) {
-    lines.add('${labels.caller}: ${program.caller!.trim()}');
-  }
-  if (_has(program.dancerLevel)) {
-    final level =
-        !canonicalizeDiscouragedTerms || renderer == null || dialect == null
-        ? program.dancerLevel!.trim()
-        : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-            program.dancerLevel!.trim(),
-            dialect,
-          );
-    lines.add('${labels.level}: $level');
-  }
 
   final groups = program.outputGrouped;
   if (groups.isNotEmpty) {
-    lines.add('');
-    var n = 1;
+    // The blank line separates the slots from a header; with every header
+    // line switched off there is none to separate from.
+    if (lines.isNotEmpty) lines.add('');
+    var n = 0;
     for (final group in groups) {
-      final primary = _slotLine(
+      final primary = programSlotLine(
         group.primary,
         titleFor,
         labels,
         renderer: renderer,
         dialect: dialect,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        authorNamesFor: authorNamesFor,
+        formLabelFor: formLabelFor,
       );
-      lines.add('$n. $primary');
+      lines.add(setListPrimaryLine(group.primary, primary, labels, () => ++n));
       for (final alt in group.alternates) {
-        final alternate = _slotLine(
+        final alternate = programSlotLine(
           alt,
           titleFor,
           labels,
           renderer: renderer,
           dialect: dialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          authorNamesFor: authorNamesFor,
+          formLabelFor: formLabelFor,
         );
         lines.add('   ${labels.alt}: $alternate');
       }
-      n++;
     }
   }
 
   if (_has(program.notes)) {
-    lines.add('');
+    if (lines.isNotEmpty) lines.add('');
     lines.add('${labels.notes}:');
     lines.add(
       !canonicalizeDiscouragedTerms || renderer == null || dialect == null
@@ -146,22 +149,134 @@ String programToPlainText(
   return lines.join('\n');
 }
 
+/// The set-list line for a group's [primary] slot, whose rendered content is
+/// [line]: numbered with [nextNumber] when it is a planned dance
+/// ([ProgramSlot.isPlannedDance]), so the numbers count dances only (GIG-10).
+/// The break is printed unnumbered, and a leading alternate with no primary
+/// before it keeps its `ALT:` prefix rather than taking a dance number.
+///
+/// Shared by [programToPlainText] and the program PDF; [nextNumber] is called
+/// only for a numbered line.
+String setListPrimaryLine(
+  ProgramSlot primary,
+  String line,
+  ProgramExportLabels labels,
+  int Function() nextNumber,
+) {
+  if (primary.isPlannedDance) return '${nextNumber()}. $line';
+  if (primary.isAlt) return '${labels.alt}: $line';
+  return line;
+}
+
+void _requireCanonicalizationDeps(
+  bool canonicalizeDiscouragedTerms,
+  FigureRenderer? renderer,
+  Dialect? dialect,
+) {
+  if (canonicalizeDiscouragedTerms && (renderer == null || dialect == null)) {
+    throw ArgumentError(
+      'renderer and dialect are required when canonicalizeDiscouragedTerms '
+      'is enabled',
+    );
+  }
+}
+
+/// The program header lines under the title: `date · venue`, band, caller and
+/// level, each only when present (so an empty program yields an empty list).
+/// Throws [ArgumentError] when [canonicalizeDiscouragedTerms] is set without
+/// both [renderer] and [dialect], like [programToPlainText].
+///
+/// Shared by [programToPlainText] and the program PDF. [venueNameFor],
+/// [formatDate], [labels] and the discouraged-term parameters have the same
+/// contract as on [programToPlainText]; as there, the dancer level is only
+/// converted when [canonicalizeDiscouragedTerms] is set and both [renderer]
+/// and [dialect] are supplied. [includeDateVenue] and [includeCallerBand]
+/// (default `true`) omit the `date · venue` line and the band and caller lines.
+List<String> programHeaderLines(
+  Program program, {
+  String? Function(String venueId)? venueNameFor,
+  String Function(DateTime date)? formatDate,
+  ProgramExportLabels labels = const ProgramExportLabels(),
+  FigureRenderer? renderer,
+  Dialect? dialect,
+  bool canonicalizeDiscouragedTerms = false,
+  bool includeCallerBand = true,
+  bool includeDateVenue = true,
+}) {
+  _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
+  final fmtDate = formatDate ?? isoDate;
+  final lines = <String>[];
+
+  // date · venue on one line (only the present parts). A resolvable linked
+  // venue's display label wins over the free-text label; either falls back to
+  // the other, and both to nothing (the venue part is then omitted).
+  final linkedVenue = program.venueId != null
+      ? venueNameFor?.call(program.venueId!)
+      : null;
+  final venueLabel = _has(linkedVenue)
+      ? linkedVenue!.trim()
+      : (_has(program.venue) ? program.venue!.trim() : null);
+  final dateVenue = <String>[
+    if (program.eventDate != null) fmtDate(program.eventDate!),
+    ?venueLabel,
+  ];
+  if (includeDateVenue && dateVenue.isNotEmpty) {
+    lines.add(dateVenue.join(' · '));
+  }
+
+  if (includeCallerBand && _has(program.band)) {
+    lines.add('${labels.band}: ${program.band!.trim()}');
+  }
+  if (includeCallerBand && _has(program.caller)) {
+    lines.add('${labels.caller}: ${program.caller!.trim()}');
+  }
+  if (_has(program.dancerLevel)) {
+    final level =
+        !canonicalizeDiscouragedTerms || renderer == null || dialect == null
+        ? program.dancerLevel!.trim()
+        : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            program.dancerLevel!.trim(),
+            dialect,
+          );
+    lines.add('${labels.level}: $level');
+  }
+  return lines;
+}
+
 /// Builds the content of a single slot line (without the number or `ALT:`
-/// prefix): the dance title or free text, an optional per-slot note, an optional
-/// `(guest: …; N min)` suffix, and a trailing `[performed]` marker.
-String _slotLine(
+/// prefix): the dance title or free text, an optional author suffix, an
+/// optional per-slot note, an optional `(<form>; guest: …; N min)` suffix,
+/// each part only when present ([formLabelFor] as on [programToPlainText]).
+/// The
+/// slot's performed status is never rendered. Throws [ArgumentError] when
+/// [canonicalizeDiscouragedTerms] is set without both [renderer] and [dialect].
+String programSlotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
   ProgramExportLabels labels, {
   FigureRenderer? renderer,
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
 }) {
+  _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
+    // Author suffix (issue #1434): resolved independently of whether this
+    // dance has any figures, so it appears on every numbered dance rather
+    // than only the ones reachable via the figures-appendix opt-in.
+    final authorNames = authorNamesFor
+        ?.call(slot.danceId!)
+        .map((n) => n.trim())
+        .where((n) => n.isNotEmpty)
+        .toList();
+    if (authorNames != null && authorNames.isNotEmpty) {
+      buffer.write(' — ${labels.by(authorNames.join(', '))}');
+    }
     // On a dance slot, `text` is a per-slot caller note.
     if (_has(slot.text)) {
       final note =
@@ -186,21 +301,25 @@ String _slotLine(
     );
   }
 
+  final formLabel = slot.danceId == null
+      ? null
+      : formLabelFor?.call(slot.danceId!);
   final meta = <String>[
+    if (_has(formLabel)) formLabel!.trim(),
     if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
     if (slot.plannedTotalMinutes != null)
       labels.minutes(slot.plannedTotalMinutes!),
   ];
   if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
 
-  if (slot.performedAt != null) buffer.write(' [${labels.performed}]');
-
   return buffer.toString();
 }
 
 bool _has(String? value) => value != null && value.trim().isNotEmpty;
 
-String _isoDate(DateTime date) {
+/// Formats [date] as ISO `yyyy-MM-dd` — the default date format of the program
+/// exports.
+String isoDate(DateTime date) {
   final y = date.year.toString().padLeft(4, '0');
   final m = date.month.toString().padLeft(2, '0');
   final d = date.day.toString().padLeft(2, '0');

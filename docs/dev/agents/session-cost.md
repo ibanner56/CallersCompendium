@@ -74,8 +74,9 @@ pipe them through a filter. The main context should never hold a full test log.
 ### Batch review responses
 
 Fix everything from one review round in a single push, and read the round with
-`python3 tools/ci/check_pr_review_gates.py findings <N>` — one line per finding,
-including the suppressed block — rather than paginated review JSON. See
+`python3 tools/ci/check_pr_review_gates.py findings <N>` (add `--reviewer
+copilot` for a Copilot review) — one line per finding, with Claude's verdict or
+Copilot's suppressed block — rather than paginated review JSON. See
 [code-review.md](code-review.md#answering-findings).
 
 ### Fail early, locally
@@ -159,9 +160,10 @@ the `readsFrom` set below it, or a subscriber silently stops updating.
 
 Relocating a ledger creates exactly one new failure mode: a later bump appends
 its entry nowhere. Prefer a gate to a remembered rule, so the move shipped with
-`tools/ci/check_version_history.py`, which fails a PR that moves either constant
-without adding the matching entry. **Do not relocate a ledger without one** — a
-history that stops recording is worse than a history that is expensive to read.
+`tools/ci/check_version_history.py`, which fails a PR that moves any constant
+it covers without adding the matching entry. **Do not relocate a ledger without
+one** — a history that stops recording is worse than a history that is
+expensive to read.
 
 So the usable test is: *does this comment constrain the line it sits on, or does
 it record something already decided?* The first stays, however long. The second

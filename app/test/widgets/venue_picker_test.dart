@@ -20,6 +20,7 @@ Future<void> _pump(
   CompendiumRepositories repos, {
   String? initialSelectedVenueId,
   ValueChanged<String?>? onChanged,
+  String? programId,
 }) async {
   String? selectedVenueId = initialSelectedVenueId;
   await tester.pumpWidget(
@@ -33,6 +34,7 @@ Future<void> _pump(
             return Scaffold(
               body: VenuePicker(
                 selectedVenueId: selectedVenueId,
+                programId: programId,
                 onChanged: (id) {
                   setState(() => selectedVenueId = id);
                   onChanged?.call(id);
@@ -157,5 +159,52 @@ void main() {
     expect(venues.map((v) => v.name), contains('Town Hall'));
     expect(linked, venues.single.id);
     expect(find.byKey(const ValueKey('venue-picker-selected')), findsOneWidget);
+  });
+
+  testWidgets('creating a venue offers to link other programs typed with its '
+      'name, but not the program being edited', (tester) async {
+    final repos = openTestRepositories();
+    final now = DateTime.utc(2026);
+    for (final id in ['open', 'older']) {
+      await repos.programs.create(
+        Program(
+          id: id,
+          title: id,
+          venue: 'Town Hall',
+          slots: const [],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    }
+    await setScreenSize(tester, const Size(360, 720));
+    await _pump(tester, repos, programId: 'open');
+
+    await tester.tap(
+      find.byKey(const ValueKey('venue-picker-input')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('venue-picker-input')),
+      'Town Hall',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('venue-option-create:Town Hall')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('venue-editor-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Link earlier programs?'), findsOneWidget);
+    expect(find.textContaining('1 program'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('venue-link-offer-confirm')));
+    await tester.pumpAndSettle();
+
+    final venueId = (await repos.venues.listAll()).single.id;
+    expect((await repos.programs.getById('older'))!.venueId, venueId);
+    // The editor saves its own program with its own link.
+    expect((await repos.programs.getById('open'))!.venueId, isNull);
   });
 }

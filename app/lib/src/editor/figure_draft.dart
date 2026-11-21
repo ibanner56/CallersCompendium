@@ -6,7 +6,8 @@
 import 'package:compendium_core/compendium_core.dart';
 
 /// Mutable working state for a single figure while it is being edited in the
-/// dance editor. Committed to an immutable [Figure] on save via [toFigure].
+/// dance editor. Committed to immutable figures on save via [toFigures]: the
+/// one figure [toFigure] builds, or a compound placeholder's expansion.
 class FigureDraft {
   FigureDraft({
     String? id,
@@ -22,6 +23,8 @@ class FigureDraft {
     this.wordingOverride,
     this.meanwhileSides,
     this.modifierFigures,
+    this.sequenceFigures,
+    this.compound,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -31,7 +34,11 @@ class FigureDraft {
   /// `beats` value — that authored count is user-owned and never auto-filled
   /// over (see [beatsTouched]). A figure with no `beats` (older/partial data)
   /// stays untouched so it can still adopt the taxonomy default on the next
-  /// resync rather than remaining stuck at 0.
+  /// resync rather than remaining stuck at 0. A group's count is its sides'
+  /// to follow ([syncContainerBeats]) unless it differs from what they call
+  /// for ([sidesBeats]): a count that matches them, or a group's 0, is not
+  /// one the caller typed, so the group keeps following its sides after the
+  /// dance is saved and reopened.
   ///
   /// [assumedSubject] is preserved so an imported figure whose subject the
   /// parser DEFAULTED (#460) keeps its non-authoritative marker across an
@@ -40,7 +47,31 @@ class FigureDraft {
   ///
   /// When [figure] is a structural container, the draft is seeded from
   /// [Figure.subFigures] while preserving its container kind.
-  factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
+  factory FigureDraft.fromFigure(Figure figure) {
+    final draft = FigureDraft._fromFigure(figure);
+    // AUTH-11: see above.
+    if (draft.isSequenceGroup) {
+      // A sequence states a span of its own only where its steps don't add
+      // up to it, or some step has no timing ([sequenceSpanStated]).
+      final steps = figure.subFigures;
+      final total = steps.fold(0, (sum, step) => sum + step.beats);
+      draft.beatsTouched =
+          figure.params['beats'] is int &&
+          (figure.beats != total || !steps.every(stepStatesTiming));
+      // A step left untimed under a span is the caller's choice: nothing
+      // fills in a count for it.
+      if (draft.beatsTouched) {
+        for (final step in draft.sequenceFigures!) {
+          if (step.untimed) step.beatsTouched = true;
+        }
+      }
+    } else if (draft.isContainerDraft) {
+      draft.beatsTouched = figure.beats > 0 && figure.beats != draft.sidesBeats;
+    }
+    return draft;
+  }
+
+  factory FigureDraft._fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
     note: figure.note ?? '',
@@ -57,7 +88,200 @@ class FigureDraft {
     modifierFigures: figure.isModifier
         ? [for (final child in figure.subFigures) FigureDraft.fromFigure(child)]
         : null,
+    sequenceFigures: figure.isSequence
+        ? [for (final child in figure.subFigures) FigureDraft.fromFigure(child)]
+        : null,
   );
+
+  /// Seeds a draft from a figure parsed out of a free-text entry line (#419).
+  ///
+  /// The parser leaves `beats` absent when the line states no count, so that
+  /// the count is derived on read. A draft reads [beats] straight from its
+  /// params and would show 0, so each ordinary structured figure (and each
+  /// such child of a meanwhile/modifier container) has its params filled from
+  /// [Taxonomy.effectiveParams], `beats` included, the way picking a move in
+  /// the editor does. [beatsTouched] stays false for a derived count, so a
+  /// later param change still re-derives it; a stated count stays touched.
+  ///
+  /// [moveParamDefaults] are the user's Move defaults (DD.3), by move id, as
+  /// picking a move applies them (AUTH-7): each fills a parameter the line
+  /// did not state, and a stated one (`half hey`, `16 hey`) is kept. A
+  /// default count is the user's own, so it is touched. A custom keeps its
+  /// text as parsed; a container's sides each take their own move's defaults,
+  /// and its own shared count, unstated, follows them
+  /// ([syncContainerBeats]).
+  factory FigureDraft.fromFreeTextFigure(
+    Figure figure,
+    Taxonomy taxonomy, {
+    Map<String, Map<String, Object?>>? moveParamDefaults,
+  }) {
+    final draft = FigureDraft.fromFigure(figure);
+    _fillDerivedParams(draft, figure, taxonomy, moveParamDefaults);
+    return draft;
+  }
+
+  /// After [_fillDerivedParams] has given a typed English sequence's steps
+  /// their counts. A line typed with no count of its own has the span the
+  /// parser derives, its steps' counts at the taxonomy's defaults: such a
+  /// sequence counts its steps, at the counts just filled in (the user's Move
+  /// defaults included), as it reads back once saved
+  /// ([FigureDraft.fromFigure]). Any other span the line stated ("… back to
+  /// place (16)"), so each step the line gave no count is left untimed under
+  /// it, as the parser read it (ADR-006 §5.5).
+  ///
+  /// The parser gives a typed count and a derived one the same shape, so a
+  /// typed count equal to the steps' default total is read as no count: with
+  /// a Move default that changes a step's count, the sequence then counts
+  /// its steps rather than keeping the typed total. Telling the two apart
+  /// needs the parser to say whether the line stated its count.
+  static void _keepUntimedUnderSpan(
+    FigureDraft draft,
+    List<Figure> sources,
+    int span,
+    Taxonomy taxonomy,
+  ) {
+    final steps = draft.sequenceFigures!;
+    final derived = sources.fold(
+      0,
+      (sum, source) =>
+          sum +
+          (source.isContainer || stepStatesTiming(source)
+              ? source.beats
+              : (taxonomy.effectiveParams(source)['beats'] as int? ?? 0)),
+    );
+    if (span == derived) {
+      draft.beatsTouched = false;
+      draft.syncContainerBeats();
+      return;
+    }
+    for (var i = 0; i < steps.length; i++) {
+      if (sources[i].isContainer || stepStatesTiming(sources[i])) continue;
+      steps[i].params.remove('beats');
+      steps[i].beatsTouched = true;
+    }
+  }
+
+  static void _fillDerivedParams(
+    FigureDraft draft,
+    Figure figure,
+    Taxonomy taxonomy,
+    Map<String, Map<String, Object?>>? moveParamDefaults,
+  ) {
+    if (figure.isContainer) {
+      final children = draft.containerChildren;
+      final sources = figure.subFigures;
+      if (children == null || children.length != sources.length) return;
+      final span = draft.sequenceSpanStated ? draft.beats : null;
+      for (var i = 0; i < children.length; i++) {
+        _fillDerivedParams(
+          children[i],
+          sources[i],
+          taxonomy,
+          moveParamDefaults,
+        );
+      }
+      if (span != null) {
+        _keepUntimedUnderSpan(draft, sources, span, taxonomy);
+        return;
+      }
+      // A group typed with no count of its own follows its sides (AUTH-11).
+      if (draft.beats <= 0) {
+        draft.beatsTouched = false;
+        draft.syncContainerBeats();
+      }
+      return;
+    }
+    final defaults = _unstatedDefaults(figure, taxonomy, moveParamDefaults);
+    if (figure.isCustom) {
+      // Only a count: the text is what was typed.
+      if (defaults['beats'] case final beats?) {
+        draft.params['beats'] = beats;
+        draft.beatsTouched = true;
+      }
+      return;
+    }
+    if (figure.params.containsKey('beats')) {
+      draft.params.addAll(defaults);
+    } else {
+      draft.params
+        ..clear()
+        ..addAll(
+          taxonomy.effectiveParams(
+            figure.copyWith(params: {...figure.params, ...defaults}),
+          ),
+        );
+      // As picking the move does: no `amount` or `double` the line left unstated.
+      taxonomy.dropUnstatedParams(figure.move, draft.params);
+      draft.beatsTouched = defaults.containsKey('beats');
+    }
+    // A default `who` is the user's stated choice, as picking the move makes
+    // it (#460), not one the parser assumed.
+    if (defaults.containsKey('who')) draft.assumedSubject = false;
+    // As picking the move does (#976): a default `who` brings its hand.
+    if (defaults.containsKey('who') &&
+        !defaults.containsKey('hand') &&
+        !figure.params.containsKey('hand')) {
+      seedChainHand(figure.move, draft.params);
+    }
+  }
+
+  /// The user's Move defaults for [figure]'s move that the line left unstated,
+  /// limited to the move's own parameters, as picking it applies them. A
+  /// default count goes with the defaults it was saved beside: when the line
+  /// states one of them itself (`half hey` against a full-hey default of 16
+  /// beats), the count is left to follow what was typed. A subject the parser
+  /// assumed ([Figure.assumedSubject], #460) was not stated either.
+  static Map<String, Object?> _unstatedDefaults(
+    Figure figure,
+    Taxonomy taxonomy,
+    Map<String, Map<String, Object?>>? moveParamDefaults,
+  ) {
+    final overrides = moveParamDefaults?[figure.move];
+    final schema = taxonomy.resolve(figure.move)?.params;
+    if (overrides == null || schema == null) return const {};
+    final applicable = {
+      for (final entry in overrides.entries)
+        if (schema.containsKey(entry.key) &&
+            entry.key != 'text' &&
+            !skipsMoveDefault(entry.key, entry.value))
+          entry.key: entry.value,
+    };
+    bool stated(String key) =>
+        figure.params.containsKey(key) &&
+        !(key == 'who' && figure.assumedSubject);
+    final overruled = applicable.keys.any(
+      (key) => key != 'beats' && stated(key),
+    );
+    return {
+      for (final entry in applicable.entries)
+        if (!stated(entry.key) && !(entry.key == 'beats' && overruled))
+          entry.key: entry.value,
+    };
+  }
+
+  /// Gives the rows [rows] that replaced the row [replaced], whose move was
+  /// retyped, what it had beside its move, as picking a new move keeps them
+  /// (AUTH-9): its note goes on the first row, after a note typed with the
+  /// line, its walkthrough step too unless that row has one or is a
+  /// combination's (which has none of its own), and its progression mark on
+  /// the last row, unless a row already has one. This is how a combination's
+  /// row passes them on when it expands on Save.
+  static void carryRowExtras(FigureDraft replaced, List<FigureDraft> rows) {
+    final first = rows.first;
+    final note = replaced.note.trim();
+    if (note.isNotEmpty) {
+      final own = first.note.trim();
+      first.note = own.isEmpty ? note : '$own; $note';
+    }
+    if (replaced.walkthroughOverride case final step?
+        when first.walkthroughOverride == null &&
+            !first.isCompoundPlaceholder) {
+      first.walkthroughOverride = step;
+    }
+    if (replaced.progression && !rows.any((row) => row.progression)) {
+      rows.last.progression = true;
+    }
+  }
 
   /// Stable identity for widget keys across reorders/rebuilds.
   final String id;
@@ -74,9 +298,12 @@ class FigureDraft {
   /// Beats are auto-filled from the taxonomy: picking a move seeds the move's
   /// canonical default and clears this flag. Once the user edits the beats
   /// field directly (or the draft is seeded from a loaded figure that already
-  /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
-  /// `true` and the editor stops auto-filling beats so a manual override is
-  /// never silently overwritten.
+  /// carries an explicit `beats` via [FigureDraft.fromFigure], except a group
+  /// whose count is 0 or matches what its sides call for ([sidesBeats]),
+  /// which keeps following them, AUTH-11), this becomes `true` and the editor
+  /// stops auto-filling beats so a manual override is never silently
+  /// overwritten. (Exception: toggling a `balance` flag shifts
+  /// the count by 4 either way; see core's `applyParamChange`.)
   bool beatsTouched;
 
   /// Whether this figure's subject was ASSUMED by the import parser (the source
@@ -116,12 +343,53 @@ class FigureDraft {
   /// draft). `null` (the default) means an ordinary, non-grouped figure —
   /// today's ubiquitous case.
   ///
-  /// A child may itself carry the one legal opposite container kind.
+  /// A child may itself be a container of another kind.
   List<FigureDraft>? meanwhileSides;
 
   /// Non-null when this draft is a modifier container. The first child is the
   /// core figure; later children are modifiers.
   List<FigureDraft>? modifierFigures;
+
+  /// Non-null when this draft is a sequence container: children danced in
+  /// order and shown on one line. Unlike the other two kinds, a sequence's
+  /// count is normally not edited on the container: [beats] is the sum of its
+  /// children's, and `params['beats']` is not read. The exception is an
+  /// English dance's sequence that states its own span
+  /// ([sequenceSpanStated]).
+  ///
+  /// At most one of [meanwhileSides], [modifierFigures] and [sequenceFigures]
+  /// is non-null; [setContainer] keeps it so.
+  List<FigureDraft>? sequenceFigures;
+
+  /// Non-null when this row is one of the user's own compound figures (#709),
+  /// picked in the dance editor and not yet expanded. A placeholder exists only
+  /// in the editor and its autosave draft: [toFigures] expands it into the
+  /// figures it stands for when the dance is built, so it never reaches stored
+  /// dance data. While it is set, [move] is null and [params] holds nothing.
+  CompoundPlaceholder? compound;
+
+  /// Whether this draft is a compound placeholder; see [compound].
+  bool get isCompoundPlaceholder => compound != null;
+
+  /// A group's optional title as typed, or `''` for none: the name shown
+  /// before the group's own wording (`"<title> - <rest>"`). It is kept in
+  /// [params] under [containerTitleKey], as the built [Figure] keeps it, so
+  /// the autosave draft and every copy of [params] carry it with no field of
+  /// its own. Meaningless outside a group; turning a group back into one
+  /// figure replaces [params], which drops it.
+  String get containerTitle => switch (params[containerTitleKey]) {
+    final String title => title,
+    _ => '',
+  };
+
+  /// Sets the group's title; a blank [value] removes it.
+  set containerTitle(String value) {
+    if (value.trim().isEmpty) {
+      params.remove(containerTitleKey);
+    } else {
+      params[containerTitleKey] = value;
+    }
+  }
 
   /// Whether this draft is a meanwhile group. Mirrors [Figure.isMeanwhile].
   bool get isMeanwhileGroup => meanwhileSides != null;
@@ -129,29 +397,217 @@ class FigureDraft {
   /// Whether this draft is a modifier group. Mirrors [Figure.isModifier].
   bool get isModifierGroup => modifierFigures != null;
 
-  /// Whether this draft is either structural container kind.
-  bool get isContainerDraft => isMeanwhileGroup || isModifierGroup;
+  /// Whether this draft is a sequence group. Mirrors [Figure.isSequence].
+  bool get isSequenceGroup => sequenceFigures != null;
+
+  /// Whether this draft is any structural container kind.
+  bool get isContainerDraft => containerKind != null;
+
+  /// The container move id of this draft ([meanwhileMove], [modifierMove] or
+  /// [sequenceMove]), or null for an ordinary figure.
+  String? get containerKind => isMeanwhileGroup
+      ? meanwhileMove
+      : isModifierGroup
+      ? modifierMove
+      : isSequenceGroup
+      ? sequenceMove
+      : null;
+
+  /// The ordered children of a container draft, or null for an ordinary one.
+  List<FigureDraft>? get containerChildren =>
+      meanwhileSides ?? modifierFigures ?? sequenceFigures;
+
+  /// Makes this draft a container of [kind] holding [children], or an ordinary
+  /// draft when [kind] is null, clearing the other kinds' lists.
+  void setContainer(String? kind, List<FigureDraft>? children) {
+    meanwhileSides = kind == meanwhileMove ? children : null;
+    modifierFigures = kind == modifierMove ? children : null;
+    sequenceFigures = kind == sequenceMove ? children : null;
+  }
 
   /// Whether any descendant of this draft is a structural container.
   bool get hasNestedContainer {
-    final children = meanwhileSides ?? modifierFigures;
+    final children = containerChildren;
     return children?.any(
           (child) => child.isContainerDraft || child.hasNestedContainer,
         ) ??
         false;
   }
 
-  /// Whether this draft can be a direct child of the requested container kind.
+  /// Whether this draft can be a direct child of a container of [parentKind]
+  /// (a container move id).
   ///
-  /// Structural children must alternate kinds and may not introduce a third
-  /// container level.
-  bool canNestInContainer({required bool modifierParent}) {
-    if (!isContainerDraft) return true;
-    final oppositeKind = modifierParent ? isMeanwhileGroup : isModifierGroup;
-    return oppositeKind && !hasNestedContainer;
+  /// A nested container must be of another kind than its parent and may not
+  /// introduce a third container level.
+  ///
+  /// A compound placeholder never can: it stands for several figures, which
+  /// are not one side or one modifier child (#709).
+  bool canNestInContainer(String parentKind) {
+    if (isCompoundPlaceholder) return false;
+    final kind = containerKind;
+    if (kind == null) return true;
+    return kind != parentKind && !hasNestedContainer;
   }
 
-  int get beats => (params['beats'] as int?) ?? 0;
+  /// Whether [first] and [second], adjacent rows, can be grouped into a new
+  /// container of [kind]. A sequence must also fit in [sequenceBeatLimit]
+  /// beats, one phrase of the dance.
+  static bool canGroup(
+    String kind,
+    FigureDraft first,
+    FigureDraft second, {
+    required int sequenceBeatLimit,
+  }) =>
+      first.canNestInContainer(kind) &&
+      second.canNestInContainer(kind) &&
+      (kind != sequenceMove || first.beats + second.beats <= sequenceBeatLimit);
+
+  /// A new container of [kind] holding [first] and [second]. A meanwhile's or
+  /// modifier's shared count follows its children until the user types one
+  /// ([syncContainerBeats]); a new sequence's count is its children's sum,
+  /// until an English sequence states a span ([setSequenceSpan]).
+  static FigureDraft group(String kind, FigureDraft first, FigureDraft second) {
+    final group = FigureDraft()..setContainer(kind, [first, second]);
+    if (kind != sequenceMove) {
+      group.params['beats'] = first.beats;
+      group.syncContainerBeats();
+    }
+    return group;
+  }
+
+  /// Whether this container draft can become a container of [kind] in place:
+  /// it is another kind, its children fit [kind]'s cap and none of them is
+  /// itself a [kind] container, and, for a sequence, their counts fit in
+  /// [sequenceBeatLimit] beats.
+  bool canConvertContainerTo(String kind, {required int sequenceBeatLimit}) {
+    final children = containerChildren;
+    if (children == null || containerKind == kind) return false;
+    if (children.length > maxContainerChildren(kind)) return false;
+    if (children.any((child) => child.containerKind == kind)) return false;
+    return kind != sequenceMove ||
+        children.fold(0, (sum, child) => sum + child.beats) <=
+            sequenceBeatLimit;
+  }
+
+  /// Makes this container draft a [kind] container with the same children.
+  /// The shared count then follows the children as for any group
+  /// ([syncContainerBeats]); leaving a sequence, whose count nobody typed, it
+  /// starts from the total the sequence showed and follows them too.
+  /// Callers check [canConvertContainerTo] first.
+  ///
+  /// A sequence's own span ([sequenceSpanStated]) does not carry across: its
+  /// untimed steps take their default counts when it becomes another kind,
+  /// and another kind's typed count is not taken for a span when it becomes
+  /// a sequence, which then counts its steps.
+  void convertContainerTo(String kind) {
+    final children = containerChildren;
+    if (children == null) return;
+    if (isSequenceGroup) {
+      timeUntimedSteps();
+      params['beats'] = beats;
+      beatsTouched = false;
+    } else if (kind == sequenceMove) {
+      params.remove('beats');
+      beatsTouched = false;
+    }
+    setContainer(kind, children);
+    syncContainerBeats();
+  }
+
+  /// Whether this sequence states a span of its own, "A, B and C in bars
+  /// 1–4", rather than counting its steps (ADR-006 §5.5): its
+  /// `params['beats']`, once set by hand ([beatsTouched]). Its steps may then
+  /// carry no timing of their own. Only an English dance's editor offers a
+  /// span, and the dance editor clears it from every other form's sequences,
+  /// so a contra sequence always counts its steps.
+  bool get sequenceSpanStated =>
+      isSequenceGroup && beatsTouched && params['beats'] is int;
+
+  /// Sets this sequence's own span to [beats], or with null goes back to
+  /// counting its steps ([sequenceSpanStated]).
+  ///
+  /// Without a span, steps left untimed take their default counts
+  /// ([timeUntimedSteps]), so the total the sequence shows is what it saves.
+  void setSequenceSpan(int? beats) {
+    if (beats == null) {
+      params.remove('beats');
+      beatsTouched = false;
+      timeUntimedSteps();
+    } else {
+      params['beats'] = beats;
+      beatsTouched = true;
+    }
+  }
+
+  /// Gives each of this group's children that states no timing ([untimed])
+  /// its move's default count, as a figure picked outside a span gets: for
+  /// a step that leaves a sequence's span, by ungrouping or conversion, or
+  /// when the span is cleared or the dance's form has none. A child whose
+  /// move has no default count (a custom figure) stays untimed.
+  void timeUntimedSteps() {
+    for (final child in containerChildren ?? const <FigureDraft>[]) {
+      child.timeIfUntimed();
+    }
+  }
+
+  /// Gives this row its move's default count when it states no timing
+  /// ([timeUntimedSteps]).
+  void timeIfUntimed() {
+    final move = this.move;
+    if (!untimed || move == null) return;
+    // The move may be another form's, kept as it is.
+    final spec = shippedTaxonomies.anyForm.resolve(move)?.params['beats'];
+    if (spec?.defaultValue case final int beats) {
+      params['beats'] = beats;
+      beatsTouched = false;
+    }
+  }
+
+  /// Whether this ordinary row states no timing: a step of a sequence with
+  /// a span, entered without bars of its own ([stepStatesTiming]).
+  bool get untimed =>
+      !isContainerDraft && compound == null && params['beats'] is! int;
+
+  /// The draft's beat count. A compound placeholder's is the count its
+  /// expansion last had ([CompoundPlaceholder.beats]); a sequence's is its
+  /// span when it states one ([sequenceSpanStated]), otherwise the sum of its
+  /// children's ([sequenceFigures]).
+  int get beats {
+    if (compound case final compound?) return compound.beats;
+    if (sequenceFigures case final steps?) {
+      if (sequenceSpanStated) return params['beats']! as int;
+      return steps.fold(0, (sum, step) => sum + step.beats);
+    }
+    return (params['beats'] as int?) ?? 0;
+  }
+
+  /// The count a group's sides call for (AUTH-11): a modifier group's core's,
+  /// since the other figures say how the core is danced, or while the core
+  /// has none yet the longest side's; a meanwhile group's longest side's,
+  /// since its sides are danced at once. 0 for an ordinary row, for a
+  /// sequence (whose count is its steps' sum or its stated span, [beats]), or
+  /// for a group none of whose sides has a count yet.
+  int get sidesBeats {
+    final sides = meanwhileSides ?? modifierFigures;
+    if (sides == null || sides.isEmpty) return 0;
+    if (isModifierGroup && sides.first.beats > 0) return sides.first.beats;
+    return sides.fold(
+      0,
+      (longest, side) => side.beats > longest ? side.beats : longest,
+    );
+  }
+
+  /// Sets a group's shared count to [sidesBeats], while the caller has not
+  /// typed a count of their own ([beatsTouched]) and the sides call for one,
+  /// so the group follows its sides (AUTH-11). Returns whether the count
+  /// changed. Does nothing for an ordinary row.
+  bool syncContainerBeats() {
+    if (!isContainerDraft || beatsTouched) return false;
+    final derived = sidesBeats;
+    if (derived <= 0 || derived == beats) return false;
+    params['beats'] = derived;
+    return true;
+  }
 
   /// Returns an independent copy with a FRESH [id] (the stable-identity
   /// contract: a duplicate is a distinct row) and every other field copied
@@ -177,6 +633,10 @@ class FigureDraft {
     modifierFigures: modifierFigures
         ?.map((child) => child.clone())
         .toList(growable: true),
+    sequenceFigures: sequenceFigures
+        ?.map((child) => child.clone())
+        .toList(growable: true),
+    compound: compound?.copy(),
   );
 
   /// Whether this draft holds any content worth preserving even though it
@@ -191,12 +651,36 @@ class FigureDraft {
       walkthroughOverride != null ||
       wordingOverride != null;
 
+  /// Whether this is a row with no [move] but a note, such as one whose Move
+  /// box was cleared while retyping. [toFigures] keeps the note as a custom
+  /// figure rather than dropping the row and its note, as [toFigure] does for
+  /// such a side (#679 review). [toFigure] itself still returns null for it,
+  /// because callers read that as "no move chosen yet".
+  bool get keepsNoteWithoutMove =>
+      move == null &&
+      compound == null &&
+      !isContainerDraft &&
+      note.trim().isNotEmpty;
+
+  /// Whether Save leaves this row out although it is more than a blank row
+  /// (AUTH-2): a group that is not complete (a meanwhile, modifier or sequence
+  /// with fewer than two of its figures filled in, a modifier group with no
+  /// Core, or a group holding such a group), or a row with no move that holds
+  /// something other than a note. The editor marks the row and lists it under
+  /// Warnings. A blank row, with nothing chosen or typed, has nothing to lose
+  /// and is not counted.
+  bool get isIncomplete =>
+      toFigure() == null &&
+      !keepsNoteWithoutMove &&
+      (isContainerDraft || _hasUnsavedContent);
+
   /// Best-effort immutable figure for a meanwhile side that has no [move]
   /// chosen yet but does have [_hasUnsavedContent] (#679 review): rather than
   /// silently dropping the side out of the persisted container — losing the
   /// user's partial authoring the moment an autosave/undo snapshot fires —
   /// represent it as a [customMove] figure carrying whatever was entered so
-  /// far. Never called for a side whose [toFigure] already succeeds.
+  /// far, except [wordingOverride]: a custom figure never renders one, so it is
+  /// not carried (see [toFigure]). Never called for a side whose [toFigure] already succeeds.
   ///
   /// [canonicalizeNote] mirrors the parameter of the same name on [toFigure]
   /// — see its doc comment for why this is a callback rather than a direct
@@ -206,15 +690,49 @@ class FigureDraft {
     return Figure(
       schemaVersion: schemaVersion,
       move: customMove,
-      params: Map<String, Object?>.of(params),
+      params: _canonicalParams(customMove, canonicalizeNote),
       note: trimmedNote.isEmpty ? null : trimmedNote,
       progression: progression,
       customOrigin: customOrigin,
       assumedSubject: false,
       walkthroughOverride: walkthroughOverride,
-      wordingOverride: wordingOverride,
     );
   }
+
+  /// Copy of [params] for persistence. A custom figure's `params['text']` is
+  /// figure-like (one line beside structured figures), so it goes through the
+  /// same [canonicalizeNote] chokepoint as [note], unlike the dance-level prose
+  /// fields, which stay verbatim (#613). Re-saving already-canonical text is
+  /// idempotent (DIA-02).
+  Map<String, Object?> _canonicalParams(
+    String moveId,
+    String Function(String) canonicalizeNote,
+  ) {
+    final copy = Map<String, Object?>.of(params);
+    // A use of one of the user's own figures (#1023) keeps its line as the
+    // figure rendered it, canonical already: canonicalizing it again could
+    // change it, and a changed line no longer matches its check.
+    if (moveId == customMove &&
+        copy['text'] is String &&
+        userFigureUseOf(Figure(move: customMove, params: copy))?.attached !=
+            true) {
+      final text = copy['text']! as String;
+      if (text.isNotEmpty) {
+        copy['text'] = canonicalizeNote(text);
+      }
+    }
+    return copy;
+  }
+
+  /// [child] of a group whose count is [groupBeats]: a use of one of the
+  /// user's own figures (#1023) takes the group's count, the one its side
+  /// shows, so a `{beats}` in its wording reads the same in every render of
+  /// the dance and in the line it stores.
+  static Figure _withGroupBeats(Figure child, int groupBeats) =>
+      userFigureUseOf(child)?.attached == true &&
+          child.params['beats'] != groupBeats
+      ? child.copyWith(params: {...child.params, 'beats': groupBeats})
+      : child;
 
   /// Builds the immutable figure, or `null` when no move is chosen yet (or,
   /// for a structural container, when fewer than 2 children can be
@@ -229,9 +747,16 @@ class FigureDraft {
   /// how `hook`/`callingNotes`/`walkthrough` are canonicalized at the same
   /// `buildDance` boundary, issue #613/#715) while the default keeps today's
   /// plain-trim behavior for any other caller.
+  ///
+  /// A compound placeholder builds the figure it falls back to when it cannot
+  /// be expanded ([toFigures] expands it).
   Figure? toFigure({String Function(String) canonicalizeNote = _trimNote}) {
-    final children = meanwhileSides ?? modifierFigures;
-    if (children != null) {
+    if (compound case final compound?) {
+      return _compoundFallback(compound, canonicalizeNote);
+    }
+    final children = containerChildren;
+    final kind = containerKind;
+    if (children != null && kind != null) {
       // Never silently drop a child that the user has started authoring
       // (#679 review): only a genuinely untouched placeholder side (no move,
       // no note/params/walkthrough override) is skipped. An incomplete nested
@@ -257,30 +782,42 @@ class FigureDraft {
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()
       // from ever throwing even if that invariant is somehow violated.
-      final cappedChildren = readyChildren.length > kMaxMeanwhileSides
-          ? readyChildren.sublist(0, kMaxMeanwhileSides)
+      final cap = maxContainerChildren(kind);
+      final cappedChildren = readyChildren.length > cap
+          ? readyChildren.sublist(0, cap)
           : readyChildren;
+      // A sequence's children keep their own counts, which are its total
+      // unless it states a span of its own; the other kinds share one count
+      // that each child's use takes.
+      final groupBeats = kind == sequenceMove && !sequenceSpanStated
+          ? cappedChildren.fold(0, (sum, child) => sum + child.beats)
+          : beats;
+      final figures = [
+        for (final child in cappedChildren)
+          kind == sequenceMove ? child : _withGroupBeats(child, groupBeats),
+      ];
       final trimmedNote = canonicalizeNote(note);
       final extraParams = Map<String, Object?>.of(params)
         ..remove('beats')
         ..remove('figures');
-      final rebuilt = modifierFigures != null
-          ? Figure.modifier(
-              figures: cappedChildren,
-              beats: beats,
-              extraParams: extraParams,
-              note: trimmedNote.isEmpty ? null : trimmedNote,
-              progression: progression,
-              wordingOverride: _trimOptionalOverride(wordingOverride),
-            )
-          : Figure.meanwhile(
-              figures: cappedChildren,
-              beats: beats,
-              extraParams: extraParams,
-              note: trimmedNote.isEmpty ? null : trimmedNote,
-              progression: progression,
-              wordingOverride: _trimOptionalOverride(wordingOverride),
-            );
+      // The title is figure-like text, like a custom figure's, so it goes
+      // through the same [canonicalizeNote] chokepoint; the factory then
+      // stores it normalized, or drops it when nothing is left.
+      final rawTitle = extraParams.remove(containerTitleKey);
+      final build = switch (kind) {
+        modifierMove => Figure.modifier,
+        sequenceMove => Figure.sequence,
+        _ => Figure.meanwhile,
+      };
+      final rebuilt = build(
+        figures: figures,
+        beats: groupBeats,
+        extraParams: extraParams,
+        note: trimmedNote.isEmpty ? null : trimmedNote,
+        progression: progression,
+        wordingOverride: _trimOptionalOverride(wordingOverride),
+        title: rawTitle is String ? canonicalizeNote(rawTitle) : null,
+      );
       final trimmedWalkthrough = walkthroughOverride?.trim();
       return rebuilt.copyWith(
         schemaVersion: schemaVersion,
@@ -299,7 +836,12 @@ class FigureDraft {
     return Figure(
       schemaVersion: schemaVersion,
       move: id,
-      params: Map<String, Object?>.of(params),
+      // Without the value an alias listed as a move pins: a long lines the
+      // editor seeded with `formation: longLines` stores none (taxonomy v39).
+      params: shippedTaxonomies.anyForm.withoutListedAliasPins(
+        id,
+        _canonicalParams(id, canonicalizeNote),
+      ),
       note: trimmedNote.isEmpty ? null : trimmedNote,
       progression: progression,
       assumedSubject: assumedSubject,
@@ -307,7 +849,76 @@ class FigureDraft {
       walkthroughOverride: (trimmedOverride == null || trimmedOverride.isEmpty)
           ? null
           : trimmedOverride,
-      wordingOverride: _trimOptionalOverride(wordingOverride),
+      // A custom figure renders its own text and never applies a wording
+      // override (`renderer.dart`: `figure.isCustom ? null : ...`); the editor
+      // offers no field for one, so none is persisted (#1394).
+      wordingOverride: id == customMove
+          ? null
+          : _trimOptionalOverride(wordingOverride),
+    );
+  }
+
+  /// The figures this draft stands for when the dance is built: a compound
+  /// placeholder's expansion, or else the one figure [toFigure] builds (none
+  /// for a row with nothing chosen yet).
+  ///
+  /// [resolveCompound] looks a compound up by id, as it is now — an edit made
+  /// in the Glossary since the row was picked applies. A placeholder whose
+  /// compound is gone, no longer valid, or no longer accepts the row's
+  /// arguments becomes one custom figure bearing the compound's name, its last
+  /// beat count, and the row's note and progression mark, so the row is not
+  /// dropped; the values chosen for its parameters are not kept (#709). The placeholder's [note] goes on
+  /// the first expanded figure and its [progression] mark on the last.
+  List<Figure> toFigures({
+    required CompoundResolver resolveCompound,
+    String Function(String) canonicalizeNote = _trimNote,
+  }) {
+    final compound = this.compound;
+    if (compound == null) {
+      final figure =
+          toFigure(canonicalizeNote: canonicalizeNote) ??
+          (keepsNoteWithoutMove ? _bestEffortFigure(canonicalizeNote) : null);
+      return [?figure];
+    }
+    final expanded = expandPlaceholder(compound, resolveCompound);
+    if (expanded == null) {
+      return [_compoundFallback(compound, canonicalizeNote)];
+    }
+    final placed = [...expanded];
+    final note = canonicalizeNote(this.note);
+    if (note.isNotEmpty) {
+      final first = placed.first;
+      final own = first.note;
+      placed[0] = first.copyWith(
+        note: own == null || own.isEmpty ? note : '$own; $note',
+      );
+    }
+    if (progression) {
+      placed[placed.length - 1] = placed.last.copyWith(progression: true);
+    }
+    return placed;
+  }
+
+  /// The custom figure a placeholder becomes when it cannot be expanded.
+  ///
+  /// Its text is the compound's stored name, which is already canonical
+  /// glossary text: it does not go through [canonicalizeNote], whose rules
+  /// differ from glossary canonicalization and would alter it (#709).
+  Figure _compoundFallback(
+    CompoundPlaceholder compound,
+    String Function(String) canonicalizeNote,
+  ) {
+    final note = canonicalizeNote(this.note);
+    return Figure(
+      schemaVersion: schemaVersion,
+      move: customMove,
+      params: {
+        ...shippedTaxonomies.anyForm.effectiveParams(Figure(move: customMove)),
+        'text': compound.name,
+        if (compound.beats > 0) 'beats': compound.beats,
+      },
+      note: note.isEmpty ? null : note,
+      progression: progression,
     );
   }
 }
@@ -320,4 +931,57 @@ String _trimNote(String note) => note.trim();
 String? _trimOptionalOverride(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+/// Looks one of the user's compound figures up by its glossary entry id: its
+/// definition as it is now, or null when it is gone or no longer decodes.
+typedef CompoundResolver = CompoundDefinition? Function(String id);
+
+/// [compound]'s expansion with its arguments, or null when its compound is
+/// gone, invalid, or does not accept them.
+List<Figure>? expandPlaceholder(
+  CompoundPlaceholder compound,
+  CompoundResolver resolveCompound,
+) {
+  final definition = resolveCompound(compound.id);
+  if (definition == null) return null;
+  final expanded = expandCompound(
+    definition,
+    compound.args,
+    shippedTaxonomies.anyForm,
+  );
+  return expanded == null || expanded.isEmpty ? null : expanded;
+}
+
+/// One of the user's compound figures, as a dance-editor row holds it until
+/// the dance is saved (#709).
+class CompoundPlaceholder {
+  CompoundPlaceholder({
+    required this.id,
+    required this.name,
+    Map<String, Object?>? args,
+    this.beats = 0,
+  }) : args = args ?? <String, Object?>{};
+
+  /// The compound's glossary entry id ([UserGlossaryEntry.id]).
+  final String id;
+
+  /// The compound's name when it was picked, as stored: canonical glossary
+  /// text. It is what the row falls back to if the compound is deleted.
+  String name;
+
+  /// The value the row gives each of the compound's parameters, by key.
+  final Map<String, Object?> args;
+
+  /// The beats of the expansion when the row last expanded, so a fallback, the
+  /// phrase labels and the beat total have a count while the compound cannot
+  /// be read.
+  int beats;
+
+  CompoundPlaceholder copy() => CompoundPlaceholder(
+    id: id,
+    name: name,
+    args: Map<String, Object?>.of(args),
+    beats: beats,
+  );
 }

@@ -1,0 +1,422 @@
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/material.dart';
+
+import '../../l10n/app_localizations.dart';
+import '../data/repositories_scope.dart';
+import '../data/sync_writer_lifecycle_scope.dart';
+import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
+import '../widgets/dirty_dialog_guard.dart';
+import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
+import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
+
+/// Displays persisted sync decisions and exposes merge / keep-both actions for
+/// every reason the resolver supports: the §6.6 baseline-absence tombstone,
+/// §6.6 step-1 natural-key rename collisions, and fresh attach's live-dance
+/// choreography ambiguity. Reasons with no defined resolution stay visible as
+/// retained rows with no mutating action.
+class SyncReviewScreen extends StatefulWidget {
+  const SyncReviewScreen({super.key});
+
+  @override
+  State<SyncReviewScreen> createState() => _SyncReviewScreenState();
+}
+
+class _SyncReviewScreenState extends State<SyncReviewScreen> {
+  late SyncReviewQueueResolver _resolver;
+  Future<List<SyncReviewQueueItem>>? _future;
+
+  /// The item whose resolve is in flight, for its progress bar. While it is
+  /// set every item's actions are disabled, not just this one's: resolves
+  /// queue behind each other at the writer boundary, so a second tap would
+  /// otherwise re-enable the first item (and let it be submitted twice) and
+  /// have its `finally` clear the busy state of a resolve still waiting.
+  String? _busyKey;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_future != null) return;
+    final repositories = RepositoriesScope.of(context);
+    _resolver = SyncReviewQueueResolver(CompendiumSyncStorage(repositories));
+    _reload();
+  }
+
+  Future<List<SyncReviewQueueItem>> _load() async {
+    try {
+      return await _resolver.list();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'sync_review_screen._load');
+      rethrow;
+    }
+  }
+
+  void _reload() {
+    final future = _load();
+    if (!mounted) return;
+    setState(() {
+      _future = future;
+    });
+  }
+
+  String _itemKey(SyncReviewQueueItem item) =>
+      '${item.row.kind.name}:${item.row.recordId}:${item.row.counterpartId}';
+
+  String _candidateIdentity(AppLocalizations l10n, SyncReviewQueueItem item) {
+    final label = item.candidateLabel;
+    // `peerRecordId`, not `row.counterpartId`: a §6.6 step-1 row stores the
+    // candidate under `record_id` and the local name-holder under
+    // `counterpart_id`, so pairing the candidate's label with the counterpart
+    // id would describe one record with the other's identity.
+    final id = item.peerRecordId;
+    return label == null ? id : '$label ($id)';
+  }
+
+  Future<String?> _askForDistinctName(
+    BuildContext context,
+    SyncReviewQueueItem item,
+  ) => showDialog<String>(
+    context: context,
+    builder: (_) => _DistinctNameDialog(
+      currentNaturalKey: item.naturalKey,
+      normalize: item.isDanceAmbiguity
+          ? normalizeTitle
+          : (value) => normalizeShareableText(value).toLowerCase(),
+    ),
+    animationStyle: AppMotion.styleFor(context),
+  );
+
+  /// Warns before a merge that destroys device-local contact details.
+  ///
+  /// §6.6 forbids coalescing at step 1, so the losing choreographer's email,
+  /// location and deceased marker go with its row. They are stripped from
+  /// every shareable body, so no peer can hand them back — which is why this
+  /// is a confirmation rather than a caption.
+  Future<bool> _confirmContactFieldLoss(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.syncReviewMergeDiscardsContactsTitle),
+        content: Text(l10n.syncReviewMergeDiscardsContactsBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
+            key: const ValueKey('sync-review-merge-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.syncReviewMergeAction),
+          ),
+        ],
+      ),
+      animationStyle: AppMotion.styleFor(context),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _resolve(
+    SyncReviewQueueItem item,
+    SyncReviewAction action,
+  ) async {
+    if (_busyKey != null) return;
+    if (action == SyncReviewAction.merge && item.mergeDiscardsContactFields) {
+      if (!await _confirmContactFieldLoss(context)) return;
+      if (!mounted) return;
+    }
+    final distinctName = action == SyncReviewAction.keepBoth
+        ? await _askForDistinctName(context, item)
+        : null;
+    if (action == SyncReviewAction.keepBoth && distinctName == null) return;
+    if (!mounted) return;
+
+    final key = _itemKey(item);
+    setState(() {
+      _busyKey = key;
+    });
+    final l10n = AppLocalizations.of(context);
+    try {
+      // Read at call time, after the confirm / rename dialogs, so the write
+      // runs on whatever boundary is current when the tap is committed. Pair
+      // resolutions (tombstone, rename collision, dance ambiguity) only touch
+      // natural-key records and dances, never `setting`, so unlike the
+      // conflict sheet there is no `onRestored` refresh to call — and nothing
+      // the coordinator was built from changes, so the record boundary keeps
+      // it rather than rebuilding it with a full pass per resolve.
+      final runWrite = SyncWriterLifecycleScope.maybeOf(
+        context,
+      )?.runRecordWrite;
+      Future<void> write() => _resolver.resolve(
+        item: item,
+        action: action,
+        newNaturalKey: distinctName,
+      );
+      if (runWrite == null) {
+        await write();
+      } else {
+        await runWrite(write);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.syncReviewResolved)));
+      _reload();
+    } on SyncReviewException catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'sync_review_screen._resolve');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_failureMessage(l10n, error))));
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'sync_review_screen._resolve');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.syncReviewActionFailed)));
+    } finally {
+      if (mounted) setState(() => _busyKey = null);
+    }
+  }
+
+  String _failureMessage(
+    AppLocalizations l10n,
+    SyncReviewException error,
+  ) => switch (error.code) {
+    SyncReviewFailureCode.candidateInvalid => l10n.syncReviewCandidateInvalid,
+    SyncReviewFailureCode.candidateChanged => l10n.syncReviewCandidateChanged,
+    SyncReviewFailureCode.unsupportedReason => l10n.syncReviewUnsupportedReason,
+    SyncReviewFailureCode.targetMissing => l10n.syncReviewTargetMissing,
+    SyncReviewFailureCode.candidateAlreadyPresent =>
+      l10n.syncReviewCandidateAlreadyPresent,
+    SyncReviewFailureCode.nameRequired => l10n.syncReviewNameRequired,
+    SyncReviewFailureCode.nameNotDistinct => l10n.syncReviewNameNotDistinct,
+    SyncReviewFailureCode.invalidCustomFieldKey => l10n.customFieldsKeyInvalid,
+    SyncReviewFailureCode.counterpartDeleted =>
+      l10n.syncReviewCounterpartDeleted,
+    // Raised only by a conflict choice, which this screen does not list.
+    SyncReviewFailureCode.clockOutOfRange => l10n.syncConflictClockWrong,
+    SyncReviewFailureCode.combineUnavailable =>
+      l10n.syncConflictCombineUnavailable,
+    SyncReviewFailureCode.combineOverLimit =>
+      l10n.syncConflictCombineOverLimitError,
+  };
+
+  /// The explanation shown on an actionable row.
+  ///
+  /// Only reached when `isActionable`, which is what makes the trailing
+  /// tombstone case safe as an `else`: every other actionable reason is named
+  /// above it.
+  String _reasonLabel(AppLocalizations l10n, SyncReviewQueueItem item) {
+    if (item.isDanceAmbiguity) return l10n.syncReviewDanceAmbiguityReason;
+    if (item.isNaturalKeyRenameCollision) {
+      return l10n.syncReviewRenameCollisionReason;
+    }
+    return l10n.syncReviewTombstoneReason;
+  }
+
+  Widget _buildItem(BuildContext context, SyncReviewQueueItem item) {
+    final l10n = AppLocalizations.of(context);
+    final key = _itemKey(item);
+    final busy = _busyKey == key;
+    final anyBusy = _busyKey != null;
+    final actionable = item.isActionable;
+    return Card(
+      key: ValueKey('sync-review-item-$key'),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              syncRecordKindLabel(l10n, item.row.kind),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              l10n.syncReviewLocalRecord(item.localRecordId),
+              key: ValueKey('sync-review-local-$key'),
+            ),
+            Text(
+              l10n.syncReviewPeerRecord(_candidateIdentity(l10n, item)),
+              key: ValueKey('sync-review-peer-$key'),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              actionable
+                  ? _reasonLabel(l10n, item)
+                  : l10n.syncReviewUnsupportedReason,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (!actionable)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Text(
+                  l10n.syncReviewUnsupportedAction,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            if (actionable)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    FilledButton.tonal(
+                      key: ValueKey('sync-review-merge-$key'),
+                      onPressed: anyBusy
+                          ? null
+                          : () => _resolve(item, SyncReviewAction.merge),
+                      child: Text(l10n.syncReviewMergeAction),
+                    ),
+                    OutlinedButton(
+                      key: ValueKey('sync-review-keep-both-$key'),
+                      onPressed: anyBusy
+                          ? null
+                          : () => _resolve(item, SyncReviewAction.keepBoth),
+                      child: Text(l10n.syncReviewKeepBothAction),
+                    ),
+                  ],
+                ),
+              ),
+            if (busy)
+              const Padding(
+                padding: EdgeInsets.only(top: AppSpacing.sm),
+                child: LinearProgressIndicator(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.syncReviewTitle)),
+      body: FutureBuilder<List<SyncReviewQueueItem>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Center(
+              child: CircularProgressIndicator(
+                semanticsLabel: l10n.syncReviewLoading,
+              ),
+            );
+          }
+          if (snapshot.hasError) {
+            return LoadErrorView(
+              icon: LoadErrorView.errorGlyph(context),
+              message: l10n.syncReviewLoadFailed,
+              onRetry: _reload,
+            );
+          }
+          final items = snapshot.data ?? const <SyncReviewQueueItem>[];
+          if (items.isEmpty) {
+            return EmptyState(
+              key: const ValueKey('sync-review-empty'),
+              icon: EmptyState.glyph(context, Icons.task_alt_outlined),
+              title: l10n.syncReviewEmpty,
+            );
+          }
+          return ListView(
+            key: const ValueKey('sync-review-list'),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                ),
+                child: Text(l10n.syncReviewIntro),
+              ),
+              for (final item in items) _buildItem(context, item),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DistinctNameDialog extends StatefulWidget {
+  const _DistinctNameDialog({
+    required this.currentNaturalKey,
+    required this.normalize,
+  });
+
+  final String? currentNaturalKey;
+  final String Function(String) normalize;
+
+  @override
+  State<_DistinctNameDialog> createState() => _DistinctNameDialogState();
+}
+
+class _DistinctNameDialogState extends State<_DistinctNameDialog> {
+  final _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.syncReviewKeepBothTitle),
+        content: Form(
+          key: _formKey,
+          child: TextFormField(
+            controller: _controller,
+            autofocus: true,
+            decoration: InputDecoration(labelText: l10n.syncReviewNewNameLabel),
+            validator: (value) {
+              final normalized = value == null ? '' : value.trim();
+              if (normalized.isEmpty) return l10n.syncReviewNameRequired;
+              final current = widget.currentNaturalKey;
+              if (current != null && widget.normalize(normalized) == current) {
+                return l10n.syncReviewNameNotDistinct;
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('sync-review-keep-both-confirm'),
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                Navigator.of(context).pop(_controller.text);
+              }
+            },
+            child: Text(l10n.syncReviewKeepBothAction),
+          ),
+        ],
+      ),
+    );
+  }
+}

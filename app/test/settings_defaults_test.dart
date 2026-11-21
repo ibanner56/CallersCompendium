@@ -1,26 +1,42 @@
+import 'support/dropdown.dart';
+import 'support/finders.dart';
+import 'support/announcements.dart';
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/default_program_caller_scope.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
+import 'package:compendium_app/src/widgets/collection_picker.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -39,15 +55,132 @@ Dance _dance({required String id, required String title}) => Dance(
   updatedAt: _now,
 );
 
+AppLocalizations _l10n(WidgetTester tester) =>
+    AppLocalizations.of(tester.element(find.byType(Scaffold).first));
+
+/// Counts the transactions the database opens. `DifficultyLevelRepository.delete`
+/// runs inside one, so a count of zero means `delete` was never reached.
+class _TransactionCounter extends drift.QueryInterceptor {
+  int begun = 0;
+
+  @override
+  drift.TransactionExecutor beginTransaction(drift.QueryExecutor parent) {
+    begun++;
+    return parent.beginTransaction();
+  }
+}
+
+/// Holds the first write to the difficulty-level table open until released, so
+/// a test can tap again while a reorder is still being written.
+class _GateLevelWrites extends drift.QueryInterceptor {
+  Completer<void>? gate;
+
+  @override
+  Future<int> runUpdate(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    final held = gate;
+    if (held != null && statement.contains('difficulty_level')) {
+      gate = null;
+      await held.future;
+    }
+    return super.runUpdate(executor, statement, args);
+  }
+}
+
+/// A [SettingsRepository] whose reads can be held open per key. The value is
+/// captured *before* the gate, so a released read resolves with what storage
+/// held when the read began — exactly the late read a user edit must beat.
+class _GatedSettings extends SettingsRepository {
+  _GatedSettings(super.db);
+
+  final Map<String, Completer<void>> _gates = {};
+
+  Completer<void> hold(String key) => _gates[key] = Completer<void>();
+
+  @override
+  Future<Object?> get(String key) async {
+    final value = await super.get(key);
+    final gate = _gates[key];
+    if (gate != null) await gate.future;
+    return value;
+  }
+}
+
+class _ThrowingReadSettings extends SettingsRepository {
+  _ThrowingReadSettings(super.db, {required this.throwFor});
+
+  final Set<String> throwFor;
+
+  @override
+  Future<Object?> get(String key) {
+    if (throwFor.contains(key)) {
+      return Future<Object?>.error(StateError('read failed: $key'));
+    }
+    return super.get(key);
+  }
+}
+
+/// Counts and optionally fails the two dance reads the Defaults section makes:
+/// the titles-only projection and the full load behind `CollectionData`.
+class _CountingDances extends DanceRepository {
+  _CountingDances(CompendiumDatabase db) : super(db, contraTaxonomy);
+
+  bool failTitles = false;
+  bool failFullLoad = false;
+  int titleLoads = 0;
+  int fullLoads = 0;
+
+  @override
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) async {
+    titleLoads++;
+    if (failTitles) throw StateError('titles load failed');
+    return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
+
+  @override
+  Future<List<Dance>> listAll({bool includeDeleted = false}) async {
+    fullLoads++;
+    if (failFullLoad) throw StateError('full load failed');
+    return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+class _RecordingCrashLogSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+  }
+}
+
+Future<void> _openDifficultySection(WidgetTester tester) async {
+  await _scrollTo(tester, const ValueKey('defaults-difficulty-levels-section'));
+  await tester.tap(
+    find.byKey(const ValueKey('defaults-difficulty-levels-section')),
+  );
+  await tester.pumpAndSettle();
+}
+
 /// Pumps the settings screen on a wide surface backed by [repos] and opens the
 /// Defaults section.
 Future<void> _pumpDefaults(
   WidgetTester tester,
   CompendiumRepositories repos, {
   bool expandGroups = true,
+  ValueNotifier<Set<String>>? hiddenFacets,
+  // Tall enough for the whole expanded pane to build; the two sort-direction
+  // rows (issue #1841) pushed the move-defaults editor past the old 4500.
+  Size surface = const Size(1200, 6400),
+  double textScale = 1,
+  ValueNotifier<Set<DanceShareField>>? shareFields,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 4500));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -62,6 +195,10 @@ Future<void> _pumpDefaults(
     repos.settings,
   );
   await walkthroughSnippets.load();
+  final facetsNotifier = hiddenFacets ?? ValueNotifier<Set<String>>(const {});
+  if (hiddenFacets == null) addTearDown(facetsNotifier.dispose);
+  final defaultCaller = ValueNotifier<String>('');
+  addTearDown(defaultCaller.dispose);
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
@@ -69,32 +206,49 @@ Future<void> _pumpDefaults(
   addTearDown(shorthandMappings.dispose);
   addTearDown(walkthroughSnippets.dispose);
 
+  // The scopes sit above the Navigator (as in the real app) so a narrow
+  // surface, where a section opens as a pushed route, still reaches them.
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: AggressiveBeatsUpdateScope(
-                notifier: aggressiveBeatsUpdate,
-                child: ShorthandMappingsScope(
-                  controller: shorthandMappings,
-                  child: WalkthroughSnippetLibraryScope(
-                    controller: walkthroughSnippets,
-                    child: const SettingsScreen(),
+      builder: (context, child) {
+        final scaled = textScaleBuilder(textScale)?.call(context, child);
+        return RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: AggressiveBeatsUpdateScope(
+                  notifier: aggressiveBeatsUpdate,
+                  child: ShorthandMappingsScope(
+                    controller: shorthandMappings,
+                    child: WalkthroughSnippetLibraryScope(
+                      controller: walkthroughSnippets,
+                      child: CollectionFacetsScope(
+                        notifier: facetsNotifier,
+                        child: DefaultProgramCallerScope(
+                          notifier: defaultCaller,
+                          child: shareFields == null
+                              ? scaled ?? child!
+                              : DanceShareFieldsScope(
+                                  notifier: shareFields,
+                                  child: scaled ?? child!,
+                                ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
+      home: const SettingsScreen(),
     ),
   );
   await tester.pumpAndSettle();
@@ -190,6 +344,82 @@ void main() {
     },
   );
 
+  testWidgets('Defaults dropdown rows survive 360 dp wide at 2x text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(
+      tester,
+      repos,
+      // Tall enough that the group headers below the sort rows (now two rows
+      // taller with the direction toggles, issue #1841) stay on the surface.
+      surface: const Size(360, 5200),
+      textScale: 2,
+      expandGroups: false,
+    );
+    expect(tester.takeException(), isNull);
+
+    Future<void> expectOnScreen(String key) async {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        200,
+        scrollable: verticalScrollable(),
+      );
+      await tester.pumpAndSettle();
+      // A dropdown inside a ListTile's trailing slot cannot wrap.
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byKey(ValueKey(key)),
+        ),
+        findsNothing,
+        reason: key,
+      );
+      final box = tester.getRect(find.byKey(ValueKey(key)));
+      expect(box.left, greaterThanOrEqualTo(0), reason: key);
+      expect(box.right, lessThanOrEqualTo(360), reason: key);
+    }
+
+    // The direction toggles sit under their dropdown, so each is checked
+    // before scrolling past it. They are not dropdowns, so only the bounds
+    // of the row and its two labels apply.
+    Future<void> expectDirectionOnScreen(String key) async {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        200,
+        scrollable: verticalScrollable(),
+      );
+      await tester.pumpAndSettle();
+      for (final text in ['Ascending', 'Descending']) {
+        final box = tester.getRect(
+          find.descendant(
+            of: find.byKey(ValueKey(key)),
+            matching: find.text(text),
+          ),
+        );
+        expect(box.left, greaterThanOrEqualTo(0), reason: '$key $text');
+        expect(box.right, lessThanOrEqualTo(360), reason: '$key $text');
+      }
+    }
+
+    await expectOnScreen('defaults-collection-sort');
+    await expectDirectionOnScreen('defaults-collection-sort-direction');
+    await expectOnScreen('defaults-program-sort');
+    await expectDirectionOnScreen('defaults-program-sort-direction');
+    // The dance-form rows live in the authoring group, collapsed by default.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('defaults-authoring-group')),
+      200,
+      scrollable: verticalScrollable(),
+    );
+    await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
+    await tester.pumpAndSettle();
+    await expectOnScreen('defaults-dance-form');
+    await expectOnScreen('defaults-dance-formation');
+    await expectOnScreen('defaults-dance-progression');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('program and authoring groups start collapsed', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos, expandGroups: false);
@@ -232,6 +462,127 @@ void main() {
       expect(stored.last.text, 'Guest caller');
     },
   );
+
+  testWidgets('the dance-card picker offers Hook and Sources, off by default, '
+      'and persists them under the existing key (OUT-6)', (tester) async {
+    final repos = openTestRepositories();
+    final fields = ValueNotifier<Set<DanceShareField>>(
+      DanceShareField.allExceptTunes,
+    );
+    addTearDown(fields.dispose);
+    await _pumpDefaults(tester, repos, shareFields: fields);
+
+    for (final name in ['hook', 'sources']) {
+      final key = ValueKey('defaults-share-field-$name');
+      await _scrollTo(tester, key);
+      expect(tester.widget<CheckboxListTile>(find.byKey(key)).value, isFalse);
+      await tester.tap(find.byKey(key));
+      await tester.pumpAndSettle();
+    }
+
+    expect(
+      fields.value,
+      containsAll([DanceShareField.hook, DanceShareField.sources]),
+    );
+    expect(
+      (await repos.settings.get(kProgramDanceShareFieldsKey) as List),
+      containsAll(['hook', 'sources']),
+    );
+  });
+
+  group('default import tags (#1476)', () {
+    Future<void> openImportGroup(WidgetTester tester) async {
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('defaults-import-group')),
+      );
+      await tester.tap(find.byKey(const ValueKey('defaults-import-group')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('choosing and clearing a tag persists the selection', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final _ = await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final _ = await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
+      await _pumpDefaults(tester, repos);
+      await openImportGroup(tester);
+
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t1')));
+      await tester.pumpAndSettle();
+      expect(
+        tryDecodeDefaultImportTagNames(
+          await repos.settings.get(kDefaultImportTagNamesKey),
+        ),
+        ['No card'],
+      );
+
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t2')));
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t1')));
+      await tester.pumpAndSettle();
+      expect(
+        tryDecodeDefaultImportTagNames(
+          await repos.settings.get(kDefaultImportTagNamesKey),
+        ),
+        ['Smooth'],
+      );
+    });
+
+    testWidgets('at the cap the unchosen tags are disabled, so no visible '
+        'selection is left unsaved', (tester) async {
+      final repos = openTestRepositories();
+      for (var i = 0; i <= kMaxDefaultImportTags; i++) {
+        final _ = await repos.tags.upsert(
+          Tag(id: 't$i', name: 'Tag ${i.toString().padLeft(2, '0')}'),
+        );
+      }
+      await repos.settings.set(
+        kDefaultImportTagNamesKey,
+        encodeDefaultImportTagNames([
+          for (var i = 0; i < kMaxDefaultImportTags; i++)
+            'Tag ${i.toString().padLeft(2, '0')}',
+        ]),
+      );
+      await _pumpDefaults(tester, repos);
+      await openImportGroup(tester);
+
+      final extra = find.byKey(
+        ValueKey('defaults-import-tag-t$kMaxDefaultImportTags'),
+      );
+      await tester.ensureVisible(extra);
+      expect(tester.widget<FilterChip>(extra).onSelected, isNull);
+      final chosen = find.byKey(const ValueKey('defaults-import-tag-t0'));
+      await tester.ensureVisible(chosen);
+      expect(tester.widget<FilterChip>(chosen).onSelected, isNotNull);
+    });
+
+    testWidgets('a saved selection shows as chosen, and a deleted tag is '
+        'dropped on the next save', (tester) async {
+      final repos = openTestRepositories();
+      final _ = await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final _ = await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
+      await repos.settings.set(
+        kDefaultImportTagNamesKey,
+        encodeDefaultImportTagNames(['No card', 'Gone']),
+      );
+      await _pumpDefaults(tester, repos);
+      await openImportGroup(tester);
+
+      final chip = tester.widget<FilterChip>(
+        find.byKey(const ValueKey('defaults-import-tag-t1')),
+      );
+      expect(chip.selected, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t2')));
+      await tester.pumpAndSettle();
+      expect(
+        tryDecodeDefaultImportTagNames(
+          await repos.settings.get(kDefaultImportTagNamesKey),
+        ),
+        ['No card', 'Smooth'],
+      );
+    });
+  });
 
   testWidgets('Defaults appears as a settings section', (tester) async {
     final repos = openTestRepositories();
@@ -317,8 +668,310 @@ void main() {
       await repos.difficultyLevels.getById(DifficultyLevel.beginnerId),
       DifficultyLevel.beginner,
     );
-    expect(find.textContaining('must not be empty'), findsOneWidget);
+    final l10n = _l10n(tester);
+    expect(
+      find.text(l10n.settingsDefaultsDifficultyLevelEmpty),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Invalid argument'), findsNothing);
   });
+
+  testWidgets('deleting an in-use difficulty level shows a localised message', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Uses it',
+      ).copyWith(difficultyLevelId: DifficultyLevel.beginnerId),
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = _l10n(tester);
+    expect(
+      find.text(l10n.settingsDefaultsDifficultyLevelInUse('Beginner', 1)),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Bad state'), findsNothing);
+    expect(find.textContaining('difficulty-beginner'), findsNothing);
+    expect(
+      await repos.difficultyLevels.getById(DifficultyLevel.beginnerId),
+      DifficultyLevel.beginner,
+    );
+  });
+
+  testWidgets('deleting an in-use difficulty level never reaches the '
+      'repository delete (the pre-check refuses it)', (tester) async {
+    // The repository's own guard throws a DifficultyLevelInUse that renders the
+    // same text, so the message cannot tell the pre-check from the fallback.
+    // `delete` is the only thing here that opens a transaction.
+    final counter = _TransactionCounter();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(counter),
+      ),
+      contraTaxonomy,
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Uses it',
+      ).copyWith(difficultyLevelId: DifficultyLevel.beginnerId),
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+
+    final before = counter.begun;
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        _l10n(tester).settingsDefaultsDifficultyLevelInUse('Beginner', 1),
+      ),
+      findsOneWidget,
+    );
+    expect(counter.begun, before, reason: 'delete opened a transaction');
+  });
+
+  testWidgets('deleting an unused difficulty level does reach the repository '
+      'delete', (tester) async {
+    // Control for the test above: the same counter does see `delete`.
+    final counter = _TransactionCounter();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(counter),
+      ),
+      contraTaxonomy,
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+
+    final before = counter.begun;
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(counter.begun, greaterThan(before));
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id),
+      isNot(contains(DifficultyLevel.beginnerId)),
+    );
+  });
+
+  testWidgets('difficulty levels can be reordered with move buttons, not only '
+      'by dragging', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+    expect(before.length, greaterThan(2));
+
+    // The first level cannot move up; the last cannot move down.
+    IconButton button(String id, String dir) => tester.widget<IconButton>(
+      find.byKey(ValueKey('difficulty-level-$id-move-$dir')),
+    );
+    expect(button(before.first, 'up').onPressed, isNull);
+    expect(button(before.last, 'down').onPressed, isNull);
+
+    final announced = recordAnnouncements();
+    final firstLabel = (await repos.difficultyLevels.listAll()).first.label;
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before.first}-move-down')),
+    );
+    await tester.pumpAndSettle();
+
+    final after = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+    expect(after, [before[1], before[0], ...before.skip(2)]);
+    expect(announced, ['$firstLabel moved to position 2 of ${before.length}']);
+
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before.first}-move-up')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id).toList(),
+      before,
+    );
+  });
+
+  testWidgets('a second move while a reorder is being written is ignored', (
+    tester,
+  ) async {
+    final gated = _GateLevelWrites();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(gated),
+      ),
+      contraTaxonomy,
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+
+    final release = Completer<void>();
+    gated.gate = release;
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before[0]}-move-down')),
+    );
+    await tester.pump();
+    // The first write is still held open; the list already shows the move, so
+    // the former second level is now first. Moving it down would undo the
+    // first move if it were accepted.
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before[1]}-move-down')),
+    );
+    await tester.pump();
+
+    release.complete();
+    await tester.pumpAndSettle();
+
+    expect((await repos.difficultyLevels.listAll()).map((l) => l.id).toList(), [
+      before[1],
+      before[0],
+      ...before.skip(2),
+    ]);
+  });
+
+  testWidgets('deleting an unused difficulty level offers Undo, which brings '
+      'it back in place', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = _l10n(tester);
+    expect(
+      find.text(l10n.settingsDefaultsDifficultyLevelDeleted('Beginner')),
+      findsOneWidget,
+    );
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id),
+      isNot(contains(DifficultyLevel.beginnerId)),
+    );
+
+    await tester.tap(find.widgetWithText(SnackBarAction, l10n.commonUndo));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id).toList(),
+      before,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  group('adding a difficulty level', () {
+    final dialogField = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+
+    Future<void> openAddDialog(WidgetTester tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _openDifficultySection(tester);
+      await tester.tap(find.byKey(const ValueKey('difficulty-level-add')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a tap outside keeps the dialog once text is typed', (
+      tester,
+    ) async {
+      await openAddDialog(tester);
+      await tester.enterText(dialogField, 'Wizard');
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('Wizard'), findsOneWidget);
+    });
+
+    testWidgets('a tap outside still closes an untouched dialog', (
+      tester,
+    ) async {
+      await openAddDialog(tester);
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('Cancel still closes it with text typed', (tester) async {
+      await openAddDialog(tester);
+      await tester.enterText(dialogField, 'Wizard');
+
+      await tester.tap(find.text(_l10n(tester).commonCancel));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+  });
+
+  testWidgets(
+    'renaming a difficulty level to an existing label shows a localised message',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _openDifficultySection(tester);
+
+      await tester.enterText(
+        find.byKey(
+          const ValueKey(
+            'difficulty-level-label-${DifficultyLevel.intermediateId}',
+          ),
+        ),
+        'Beginner',
+      );
+      tester.binding.focusManager.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      final l10n = _l10n(tester);
+      expect(
+        find.text(l10n.settingsDefaultsDifficultyLevelDuplicate('Beginner')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Bad state'), findsNothing);
+    },
+  );
 
   testWidgets('failed difficulty rename resets the field', (tester) async {
     final repos = openTestRepositories();
@@ -394,10 +1047,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.title),
     );
     expect(
@@ -412,16 +1065,16 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('defaults-collection-sort')));
     await tester.pumpAndSettle();
-    // Pick "Author" from the opened dropdown menu (last matches the menu item).
-    await tester.tap(find.text('Author').last);
+    // Pick "Author" from the opened dropdown menu.
+    await tester.tap(dropdownEntry('Author'));
     await tester.pumpAndSettle();
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
@@ -441,10 +1094,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.lastCalled),
     );
   });
@@ -461,10 +1114,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
@@ -482,10 +1135,10 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
               find.byKey(const ValueKey('defaults-program-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(ProgramSort.title),
       );
     });
@@ -501,10 +1154,10 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
               find.byKey(const ValueKey('defaults-program-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(ProgramSort.eventDate),
       );
       expect(
@@ -524,13 +1177,272 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
               find.byKey(const ValueKey('defaults-program-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(ProgramSort.recentlyUpdated),
       );
     });
+  });
+
+  group('default sort direction (issue #1841)', () {
+    // Both lists share the control, so one table drives both. `other` is a
+    // second fixed sort whose natural direction differs from `sort`'s where
+    // possible, to prove the reset follows the new key.
+    final lists = [
+      (
+        name: 'Collection',
+        sortKey: 'defaults-collection-sort',
+        directionKey: 'defaults-collection-sort-direction',
+        settingsKey: kDefaultCollectionSortKey,
+        directionSettingsKey: kDefaultCollectionSortDirectionKey,
+        fixedSort: CollectionSort.title.name,
+        fixedNatural: SortDirection.ascending,
+        otherLabel: 'Recently added',
+        otherSort: CollectionSort.recentlyAdded.name,
+        otherNatural: CollectionSort.recentlyAdded.searchSort.defaultDirection,
+      ),
+      (
+        name: 'Programs',
+        sortKey: 'defaults-program-sort',
+        directionKey: 'defaults-program-sort-direction',
+        settingsKey: kDefaultProgramSortKey,
+        directionSettingsKey: kDefaultProgramSortDirectionKey,
+        fixedSort: ProgramSort.title.name,
+        fixedNatural: SortDirection.ascending,
+        otherLabel: 'Recently updated',
+        otherSort: ProgramSort.recentlyUpdated.name,
+        otherNatural: ProgramSort.recentlyUpdated.defaultDirection,
+      ),
+    ];
+
+    SortDirection selected(WidgetTester tester, String key) => tester
+        .widget<SegmentedButton<SortDirection>>(
+          find.descendant(
+            of: find.byKey(ValueKey(key)),
+            matching: find.byType(SegmentedButton<SortDirection>),
+          ),
+        )
+        .selected
+        .single;
+
+    for (final list in lists) {
+      group(list.name, () {
+        testWidgets('shows the natural direction, and writes nothing, when '
+            'untouched', (tester) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+
+          expect(find.byKey(ValueKey(list.directionKey)), findsOneWidget);
+          expect(selected(tester, list.directionKey), list.fixedNatural);
+          expect(await repos.settings.get(list.directionSettingsKey), isNull);
+        });
+
+        testWidgets('choosing Descending persists the direction name', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(ValueKey(list.directionKey)),
+              matching: find.text('Descending'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            SortDirection.descending.name,
+          );
+        });
+
+        testWidgets('a saved direction is reflected on reload', (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            list.directionSettingsKey,
+            SortDirection.descending.name,
+          );
+
+          await _pumpDefaults(tester, repos);
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+        });
+
+        testWidgets('an unrecognised saved direction shows the natural one', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(list.directionSettingsKey, 'sideways');
+
+          await _pumpDefaults(tester, repos);
+
+          expect(tester.takeException(), isNull);
+          expect(selected(tester, list.directionKey), list.fixedNatural);
+        });
+
+        testWidgets('is hidden under Last used, whose subtitle says it '
+            'remembers the direction', (tester) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Last used').last);
+          await tester.pumpAndSettle();
+
+          expect(find.byKey(ValueKey(list.directionKey)), findsNothing);
+          expect(
+            find.text('Opens with the sort and direction you last used.'),
+            findsOneWidget,
+          );
+          expect(
+            await repos.settings.get(list.settingsKey),
+            kLastUsedSortSentinel,
+          );
+        });
+
+        testWidgets('picking a fixed sort after Last used resets to its '
+            'natural direction, even with a stale one left stored', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(list.settingsKey, kLastUsedSortSentinel);
+          await repos.settings.set(
+            list.directionSettingsKey,
+            SortDirection.descending.name,
+          );
+          await _pumpDefaults(tester, repos);
+          expect(find.byKey(ValueKey(list.directionKey)), findsNothing);
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(list.otherLabel).last);
+          await tester.pumpAndSettle();
+
+          // Picking a fixed sort resets to that sort's natural direction, even
+          // though a descending value was left behind under Last used.
+          expect(selected(tester, list.directionKey), list.otherNatural);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            list.otherNatural.name,
+          );
+        });
+
+        testWidgets('changing the sort key resets the direction to the new '
+            "key's natural direction", (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(list.settingsKey, list.fixedSort);
+          // The opposite of the new sort's natural direction, so a carry-over
+          // would be visible.
+          final opposite = list.otherNatural == SortDirection.ascending
+              ? SortDirection.descending
+              : SortDirection.ascending;
+          await repos.settings.set(list.directionSettingsKey, opposite.name);
+          await _pumpDefaults(tester, repos);
+          expect(selected(tester, list.directionKey), opposite);
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(list.otherLabel).last);
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), list.otherNatural);
+          expect(await repos.settings.get(list.settingsKey), list.otherSort);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            list.otherNatural.name,
+          );
+        });
+
+        testWidgets('re-selecting the current sort keeps a chosen direction', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(ValueKey(list.directionKey)),
+              matching: find.text('Descending'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Re-picking the selected item keeps the direction (the dropdown
+          // does not report it, and the handler would ignore it if it did).
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Title').last);
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            SortDirection.descending.name,
+          );
+        });
+
+        testWidgets('a late direction read does not clobber a direction '
+            'chosen in-session', (tester) async {
+          final opened = openTestRepositoriesWithDelayedSettingsRead();
+          final repos = opened.repos;
+          final settings = opened.settings;
+          // The stale value equals the natural one the control starts on, so
+          // a late application is visible as a revert of the user's choice.
+          await repos.settings.set(
+            list.directionSettingsKey,
+            list.fixedNatural.name,
+          );
+
+          settings.holdNextRead(list.directionSettingsKey);
+          await _pumpDefaults(tester, repos);
+          await settings.readStarted;
+
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(ValueKey(list.directionKey)),
+              matching: find.text('Descending'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+
+          settings.releaseRead();
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+        });
+
+        testWidgets('a late direction read does not undo the reset caused by '
+            'changing the sort in-session', (tester) async {
+          final opened = openTestRepositoriesWithDelayedSettingsRead();
+          final repos = opened.repos;
+          final settings = opened.settings;
+          final opposite = list.otherNatural == SortDirection.ascending
+              ? SortDirection.descending
+              : SortDirection.ascending;
+          await repos.settings.set(list.directionSettingsKey, opposite.name);
+
+          settings.holdNextRead(list.directionSettingsKey);
+          await _pumpDefaults(tester, repos);
+          await settings.readStarted;
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(list.otherLabel).last);
+          await tester.pumpAndSettle();
+          expect(selected(tester, list.directionKey), list.otherNatural);
+
+          settings.releaseRead();
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), list.otherNatural);
+        });
+      });
+    }
   });
 
   group('"Last used" default-sort option (issue #895)', () {
@@ -550,10 +1462,10 @@ void main() {
 
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
                 find.byKey(const ValueKey('defaults-collection-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(CollectionSort.title),
         );
         expect(
@@ -577,10 +1489,10 @@ void main() {
 
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
                 find.byKey(const ValueKey('defaults-program-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(ProgramSort.title),
         );
         expect(
@@ -605,18 +1517,18 @@ void main() {
 
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
                 find.byKey(const ValueKey('defaults-collection-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(CollectionSort.title),
         );
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
                 find.byKey(const ValueKey('defaults-program-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(ProgramSort.title),
         );
       },
@@ -714,7 +1626,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
@@ -737,33 +1649,33 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
 
     expect(
       tester
-          .widget<DropdownButton<DanceForm>>(
+          .widget<AppDropdownField<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
-          .value,
-      DanceForm.contra,
+          .initialValue,
+      DanceForm.contra.name,
     );
     expect(
       tester
-          .widget<DropdownButton<FormationShape>>(
+          .widget<AppDropdownField<FormationShape>>(
             find.byKey(const ValueKey('defaults-dance-formation')),
           )
-          .value,
+          .initialValue,
       FormationShape.dupleImproper,
     );
     expect(
       tester
-          .widget<DropdownButton<Progression>>(
+          .widget<AppDropdownField<Progression>>(
             find.byKey(const ValueKey('defaults-dance-progression')),
           )
-          .value,
+          .initialValue,
       Progression.single,
     );
     expect(
@@ -839,32 +1751,32 @@ void main() {
     await repos.settings.set(kDefaultDancePhraseStructureKey, '8*8*1');
 
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
 
     expect(
       tester
-          .widget<DropdownButton<DanceForm>>(
+          .widget<AppDropdownField<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
-          .value,
-      DanceForm.ecd,
+          .initialValue,
+      DanceForm.ecd.name,
     );
     expect(
       tester
-          .widget<DropdownButton<FormationShape>>(
+          .widget<AppDropdownField<FormationShape>>(
             find.byKey(const ValueKey('defaults-dance-formation')),
           )
-          .value,
+          .initialValue,
       FormationShape.longways,
     );
     expect(
       tester
-          .widget<DropdownButton<Progression>>(
+          .widget<AppDropdownField<Progression>>(
             find.byKey(const ValueKey('defaults-dance-progression')),
           )
-          .value,
+          .initialValue,
       Progression.none,
     );
     expect(
@@ -883,7 +1795,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     expect(find.text('Starting figures'), findsOneWidget);
@@ -900,7 +1812,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(find.text('Meanwhile defaults'), findsOneWidget);
@@ -940,7 +1852,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     for (var i = 0; i < 4; i++) {
@@ -967,7 +1879,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.settings.set(kFreeTextEntryKey, true);
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
@@ -1000,7 +1912,7 @@ void main() {
   testWidgets('Starting figures can add a meanwhile template', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1020,7 +1932,7 @@ void main() {
   testWidgets('editing the template figure persists it', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
@@ -1047,7 +1959,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       // Delete one of the eight seeded figures: the shortened list persists.
@@ -1087,7 +1999,7 @@ void main() {
       ]),
     );
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
@@ -1112,7 +2024,7 @@ void main() {
         ]),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
@@ -1135,7 +2047,7 @@ void main() {
     testWidgets('editor renders with an add affordance', (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(find.text('Move defaults'), findsOneWidget);
@@ -1147,7 +2059,7 @@ void main() {
     ) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
@@ -1181,6 +2093,74 @@ void main() {
       });
     });
 
+    testWidgets('long lines is offered as a move, without its formation', (
+      tester,
+    ) async {
+      // An alias of forward and back since taxonomy v39, listed as a move: its
+      // default may not set the formation it pins.
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('move-defaults-add-picker-input')),
+        'long lines',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('move-defaults-add-picker-option-long_lines'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('move-default-card-long_lines')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('move-default-long_lines-goBack')),
+        findsWidgets,
+      );
+      expect(
+        find.byKey(const ValueKey('move-default-long_lines-formation')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a figure 8 default offers no amount and no other (#2120)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'figure_8': {'fraction': 'full'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('move-default-figure_8-fraction')),
+        findsWidgets,
+      );
+      expect(
+        find.byKey(const ValueKey('move-default-figure_8-amount-value')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('move-default-figure_8-fraction')).last,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('three quarter'), findsWidgets);
+      expect(find.textContaining('other amount'), findsNothing);
+    });
+
     testWidgets('facing star labels its who override backing up', (
       tester,
     ) async {
@@ -1192,7 +2172,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(find.text('backing up'), findsOneWidget);
@@ -1209,7 +2189,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       // The saved override renders its card on reload; reset beats to 8.
@@ -1231,6 +2211,152 @@ void main() {
       );
     });
 
+    testWidgets(
+      'a move override is a diff from what the editor offers on entry',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultMoveParamOverridesKey,
+          encodeMoveParamOverrides({
+            'box_the_gnat': {'beats': 12},
+          }),
+        );
+        await _pumpDefaults(tester, repos);
+        await tester.binding.setSurfaceSize(const Size(1200, 6400));
+        await tester.pumpAndSettle();
+
+        // box_the_gnat's entry beats are 8 (balanced), not its plain default of
+        // 4, so setting beats back to 8 is "no override".
+        await tester.enterText(
+          find.byKey(const ValueKey('move-default-box_the_gnat-beats')),
+          '8',
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          moveParamOverridesFromStored(
+            await repos.settings.get(kDefaultMoveParamOverridesKey),
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    testWidgets('unticking balance saves the beats that go with it', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'box_the_gnat': {'who': 'partners'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      // The key sits on the editor wrapper and on the switch inside it.
+      final balanceSwitch = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-box_the_gnat-balance'),
+      );
+
+      // The card starts at the entry state: balanced, 8 beats.
+      await tester.tap(balanceSwitch);
+      await tester.pumpAndSettle();
+
+      final saved = moveParamOverridesFromStored(
+        await repos.settings.get(kDefaultMoveParamOverridesKey),
+      );
+      // Saving `balance: false` alone would seed an unbalanced figure that
+      // still carries the balanced 8 beats.
+      expect(saved, {
+        'box_the_gnat': {'who': 'partners', 'balance': false, 'beats': 4},
+      });
+
+      // Ticking it again returns to the entry state, so only `who` is left.
+      await tester.tap(balanceSwitch);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'box_the_gnat': {'who': 'partners'},
+        },
+      );
+    });
+
+    testWidgets('ticking balance on form short waves saves its 4 beats', (
+      tester,
+    ) async {
+      // Its beats follow its balance (#1975) though it seeds none: saving
+      // `balance: true` alone would seed a balanced figure with 0 beats.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'form_short_waves': {'axis': 'rightDiagonal'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final balanceSwitch = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-form_short_waves-balance'),
+      );
+
+      await tester.tap(balanceSwitch);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'form_short_waves': {
+            'axis': 'rightDiagonal',
+            'balance': true,
+            'beats': 4,
+          },
+        },
+      );
+    });
+
+    testWidgets('unticking balance on a Rory O\'More saves its 4 beats', (
+      tester,
+    ) async {
+      // Its beats follow its balance (8 with, 4 without) though it seeds none.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'rory_o_more': {'slide': 'left'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Switch &&
+              w.key == const ValueKey('move-default-rory_o_more-balance'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'rory_o_more': {'slide': 'left', 'balance': false, 'beats': 4},
+        },
+      );
+    });
+
     testWidgets('removing a move override persists and hides its card', (
       tester,
     ) async {
@@ -1242,7 +2368,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -1273,7 +2399,7 @@ void main() {
       await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1301,6 +2427,216 @@ void main() {
       expect(stored.single.move, 'swing');
     });
 
+    testWidgets('with no template saved, the editor shows the empty start a '
+        'new dance gets (#1177)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('figure-0-summary')), findsNothing);
+      // Showing the default is not choosing it: nothing is persisted.
+      expect(
+        await repos.settings.contains(kDefaultDanceFiguresTemplateKey),
+        isFalse,
+      );
+    });
+
+    testWidgets('Enter on a line in a template row replaces the row with the '
+        'parsed figures (#1177)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'circle left 3/4; turn alone',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      );
+      expect(stored.map((f) => f.move), ['circle', 'turn_alone']);
+    });
+
+    // October behaviour audit, AUTH-9: as in the dance editor, a retyped row
+    // keeps what it had beside its move.
+    testWidgets('a retyped template row keeps its note and progression mark', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(
+            move: 'stand_still',
+            params: const {'beats': 8},
+            note: 'to new neighbors',
+            progression: true,
+          ),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'neighbors swing',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      ).single;
+      expect(stored.move, 'swing');
+      expect(stored.note, 'to new neighbors');
+      expect(stored.progression, isTrue);
+    });
+
+    testWidgets('a modifier-defaults row replaced at the cap keeps only the '
+        'figures that fit (#1177)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(
+        kDefaultModifierFiguresKey,
+        encodeModifierFigures([
+          for (var i = 0; i < kMaxModifierFigures; i++)
+            Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('modifier-default-0-summary')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'circle left 3/4; turn alone',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final stored = modifierFiguresFromStored(
+        await repos.settings.get(kDefaultModifierFiguresKey),
+      );
+      expect(stored, hasLength(kMaxModifierFigures));
+      expect(stored.first.move, 'circle');
+      expect(stored.skip(1).every((f) => f.move == 'stand_still'), isTrue);
+    });
+
+    testWidgets('a line with no stated count persists its derived beats in the '
+        'template (#1820)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-free-text-field')),
+        'neighbor balance & swing',
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      );
+      expect(stored.single.beats, 16);
+    });
+
+    testWidgets('Meanwhile side defaults persist the derived beats of a line '
+        'with no stated count (#1820)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultMeanwhileSideFiguresKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('meanwhile-side-free-text-field')),
+        'neighbor balance & swing',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('meanwhile-side-free-text-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        meanwhileSideFiguresFromStored(
+          await repos.settings.get(kDefaultMeanwhileSideFiguresKey),
+        ).single.beats,
+        16,
+      );
+    });
+
+    testWidgets('Modifier defaults persist the derived beats of a line with no '
+        'stated count (#1820)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultModifierFiguresKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('modifier-default-free-text-field')),
+        'neighbor balance & swing',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('modifier-default-free-text-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        modifierFiguresFromStored(
+          await repos.settings.get(kDefaultModifierFiguresKey),
+        ).single.beats,
+        16,
+      );
+    });
+
     testWidgets('Modifier defaults honor free-text entry and persist figures', (
       tester,
     ) async {
@@ -1309,7 +2645,7 @@ void main() {
       await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
@@ -1343,7 +2679,7 @@ void main() {
         await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
         await _pumpDefaults(tester, repos);
-        await tester.binding.setSurfaceSize(const Size(1200, 3000));
+        await tester.binding.setSurfaceSize(const Size(1200, 6400));
         await tester.pumpAndSettle();
         await _scrollTo(tester, const ValueKey('modifier-default-add'));
 
@@ -1368,7 +2704,7 @@ void main() {
     (tester) async {
       // Regression guard for #942: two feature PRs (#705, #567) each inserted
       // a new tile near the top of this subsection instead of at its
-      // documented position (docs/user/settings.md:264-287), splitting
+      // documented position (docs/user/settings.md:388-422), splitting
       // Free-text entry from Figure shorthands. This asserts the whole
       // subsection's rendered vertical order, not just that one adjacency.
       final repos = openTestRepositories();
@@ -1465,5 +2801,702 @@ void main() {
         );
       },
     );
+  });
+
+  group('Collection filters visibility (#1419)', () {
+    Key box(String id) => ValueKey('defaults-facet-$id');
+    bool ticked(WidgetTester tester, Key key) =>
+        tester.widget<CheckboxListTile>(find.byKey(key)).value ?? false;
+
+    testWidgets('offers one checkbox per built-in filter, all ticked', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos, expandGroups: false);
+
+      for (final id in CollectionFacetIds.builtIns) {
+        await _scrollTo(tester, box(id));
+        expect(ticked(tester, box(id)), isTrue, reason: id);
+      }
+    });
+
+    testWidgets('unticking hides the filter live and persists the hidden id', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+
+      await _scrollTo(tester, box(CollectionFacetIds.status));
+      await tester.tap(find.byKey(box(CollectionFacetIds.status)));
+      await tester.pumpAndSettle();
+
+      expect(hidden.value, {CollectionFacetIds.status});
+      expect(ticked(tester, box(CollectionFacetIds.status)), isFalse);
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), [
+        CollectionFacetIds.status,
+      ]);
+
+      // Ticking it again shows it and stores an empty list, not a stale id.
+      await tester.tap(find.byKey(box(CollectionFacetIds.status)));
+      await tester.pumpAndSettle();
+      expect(hidden.value, isEmpty);
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), isEmpty);
+    });
+
+    testWidgets('two taps before a rebuild both take effect', (tester) async {
+      final repos = openTestRepositories();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+      await _scrollTo(tester, box(CollectionFacetIds.tags));
+      await _scrollTo(tester, box(CollectionFacetIds.status));
+
+      // No pump between the taps: the second must build on the notifier's
+      // current value, not on the build-time snapshot the first also saw.
+      await tester.tap(find.byKey(box(CollectionFacetIds.status)));
+      await tester.tap(find.byKey(box(CollectionFacetIds.tags)));
+      await tester.pumpAndSettle();
+
+      expect(hidden.value, {
+        CollectionFacetIds.status,
+        CollectionFacetIds.tags,
+      });
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), [
+        CollectionFacetIds.status,
+        CollectionFacetIds.tags,
+      ]);
+    });
+
+    testWidgets('a filter hidden before the screen opens shows unticked', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.author});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+
+      await _scrollTo(tester, box(CollectionFacetIds.author));
+      expect(ticked(tester, box(CollectionFacetIds.author)), isFalse);
+      await _scrollTo(tester, box(CollectionFacetIds.tags));
+      expect(ticked(tester, box(CollectionFacetIds.tags)), isTrue);
+    });
+
+    testWidgets('each searchable custom field gets its own checkbox, by id', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'region_a',
+          label: 'Region',
+          type: CustomFieldType.choice,
+          choices: const ['north'],
+        ),
+      );
+      // Same label: the checkboxes must still be told apart by id.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'region_b',
+          label: 'Region',
+          type: CustomFieldType.text,
+        ),
+      );
+      // Not searchable, so the Filters panel has no section for it either.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f3',
+          key: 'private_note',
+          label: 'Private note',
+          type: CustomFieldType.text,
+          searchable: false,
+        ),
+      );
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+
+      await _scrollTo(tester, box('cf-f1'));
+      expect(find.byKey(box('cf-f2')), findsOneWidget);
+      expect(find.byKey(box('cf-f3')), findsNothing);
+
+      await tester.tap(find.byKey(box('cf-f2')));
+      await tester.pumpAndSettle();
+
+      // Only the second "Region" is hidden, under its type-agnostic id.
+      expect(hidden.value, {customFieldFacetId('f2')});
+      expect(ticked(tester, box('cf-f1')), isTrue);
+      expect(ticked(tester, box('cf-f2')), isFalse);
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), ['cf:f2']);
+    });
+  });
+
+  group('late settings reads never clobber a user edit', () {
+    // Each case: the key whose read is held open, the stored value it will
+    // eventually resolve with, the user's edit made while it is held, and the
+    // expectation that the edit survived the late read.
+    final cases =
+        <
+          ({
+            String name,
+            String key,
+            Object stored,
+            Future<void> Function(WidgetTester) edit,
+            void Function(WidgetTester) expectEdited,
+          })
+        >[
+          (
+            name: 'default collection sort',
+            key: kDefaultCollectionSortKey,
+            stored: CollectionSort.lastCalled.name,
+            edit: (tester) async {
+              await tester.tap(
+                find.byKey(const ValueKey('defaults-collection-sort')),
+              );
+              await tester.pumpAndSettle();
+              await tester.tap(dropdownEntry('Author'));
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
+                    find.byKey(const ValueKey('defaults-collection-sort')),
+                  )
+                  .initialValue,
+              const SortDefaultSetting.concrete(CollectionSort.author),
+            ),
+          ),
+          (
+            name: 'default program sort',
+            key: kDefaultProgramSortKey,
+            stored: ProgramSort.recentlyUpdated.name,
+            edit: (tester) async {
+              await tester.tap(
+                find.byKey(const ValueKey('defaults-program-sort')),
+              );
+              await tester.pumpAndSettle();
+              await tester.tap(find.text('Event date').last);
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
+                    find.byKey(const ValueKey('defaults-program-sort')),
+                  )
+                  .initialValue,
+              const SortDefaultSetting.concrete(ProgramSort.eventDate),
+            ),
+          ),
+          (
+            name: 'default caller',
+            key: kDefaultProgramCallerKey,
+            stored: 'Stored caller',
+            edit: (tester) async {
+              await tester.enterText(
+                find.byKey(const ValueKey('defaults-program-caller')),
+                'Typed caller',
+              );
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<TextField>(
+                    find.byKey(const ValueKey('defaults-program-caller')),
+                  )
+                  .controller
+                  ?.text,
+              'Typed caller',
+            ),
+          ),
+          (
+            name: 'default band',
+            key: kDefaultProgramBandKey,
+            stored: 'Stored band',
+            edit: (tester) async {
+              await tester.enterText(
+                find.byKey(const ValueKey('defaults-program-band')),
+                'Typed band',
+              );
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<TextField>(
+                    find.byKey(const ValueKey('defaults-program-band')),
+                  )
+                  .controller
+                  ?.text,
+              'Typed band',
+            ),
+          ),
+          (
+            name: 'default dance form',
+            key: kDefaultDanceFormKey,
+            stored: DanceForm.ecd.name,
+            edit: (tester) async {
+              await _scrollTo(tester, const ValueKey('defaults-dance-form'));
+              await tester.tap(
+                find.byKey(const ValueKey('defaults-dance-form')),
+              );
+              await tester.pumpAndSettle();
+              await tester.tap(find.text('Square').last);
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<AppDropdownField<String>>(
+                    find.byKey(const ValueKey('defaults-dance-form')),
+                  )
+                  .initialValue,
+              DanceForm.square.name,
+            ),
+          ),
+          (
+            name: 'default formation shape',
+            key: kDefaultDanceFormationShapeKey,
+            stored: FormationShape.longways.name,
+            edit: (tester) async {
+              await _scrollTo(
+                tester,
+                const ValueKey('defaults-dance-formation'),
+              );
+              await tester.tap(
+                find.byKey(const ValueKey('defaults-dance-formation')),
+              );
+              await tester.pumpAndSettle();
+              await tester.tap(find.text('Becket (CW)').last);
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<AppDropdownField<FormationShape>>(
+                    find.byKey(const ValueKey('defaults-dance-formation')),
+                  )
+                  .initialValue,
+              FormationShape.becketCw,
+            ),
+          ),
+          (
+            name: 'default progression',
+            key: kDefaultDanceProgressionKey,
+            stored: Progression.none.name,
+            edit: (tester) async {
+              await _scrollTo(
+                tester,
+                const ValueKey('defaults-dance-progression'),
+              );
+              await tester.tap(
+                find.byKey(const ValueKey('defaults-dance-progression')),
+              );
+              await tester.pumpAndSettle();
+              await tester.tap(find.text('Double').last);
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<AppDropdownField<Progression>>(
+                    find.byKey(const ValueKey('defaults-dance-progression')),
+                  )
+                  .initialValue,
+              Progression.double,
+            ),
+          ),
+          (
+            name: 'default phrase structure',
+            key: kDefaultDancePhraseStructureKey,
+            stored: '8*8*1',
+            edit: (tester) async {
+              await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+              await tester.enterText(
+                find.byKey(const ValueKey('defaults-dance-phrase')),
+                '6*8*2',
+              );
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              tester
+                  .widget<TextField>(
+                    find.byKey(const ValueKey('defaults-dance-phrase')),
+                  )
+                  .controller
+                  ?.text,
+              '6*8*2',
+            ),
+          ),
+          (
+            name: 'starting-figures template',
+            key: kDefaultDanceFiguresTemplateKey,
+            stored: encodeFigures([
+              Figure(move: 'stand_still', params: const {'beats': 16}),
+            ]),
+            edit: (tester) async {
+              await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+              await tester.pumpAndSettle();
+              await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
+              await tester.pumpAndSettle();
+            },
+            // Eight seeded figures minus the deleted one; the late read would
+            // have replaced them with the single stored figure.
+            expectEdited: (tester) {
+              expect(
+                find.byKey(const ValueKey('figure-6-summary')),
+                findsOneWidget,
+              );
+              expect(
+                find.byKey(const ValueKey('figure-7-summary')),
+                findsNothing,
+              );
+            },
+          ),
+          (
+            name: 'meanwhile side figures',
+            key: kDefaultMeanwhileSideFiguresKey,
+            stored: '[]',
+            edit: (tester) async {
+              await tester.tap(
+                find.byKey(const ValueKey('meanwhile-side-add')),
+              );
+              await tester.pumpAndSettle();
+            },
+            // Two seeded sides plus the added one; the late read would have
+            // replaced them with the stored empty list.
+            expectEdited: (tester) => expect(
+              find.byKey(const ValueKey('meanwhile-side-2-summary')),
+              findsOneWidget,
+            ),
+          ),
+          (
+            name: 'modifier figures',
+            key: kDefaultModifierFiguresKey,
+            stored: '[]',
+            edit: (tester) async {
+              await _scrollTo(tester, const ValueKey('modifier-default-add'));
+              await tester.tap(
+                find.byKey(const ValueKey('modifier-default-add')),
+              );
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) => expect(
+              find.byKey(const ValueKey('modifier-default-2-summary')),
+              findsOneWidget,
+            ),
+          ),
+          (
+            name: 'move param overrides',
+            key: kDefaultMoveParamOverridesKey,
+            stored: encodeMoveParamOverrides({
+              'swing': {'beats': 4},
+            }),
+            edit: (tester) async {
+              await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
+              await tester.pumpAndSettle();
+              await tester.enterText(
+                find.byKey(const ValueKey('move-defaults-add-picker-input')),
+                'circle',
+              );
+              await tester.pumpAndSettle();
+              await tester.tap(
+                find.byKey(
+                  const ValueKey('move-defaults-add-picker-option-circle'),
+                ),
+              );
+              await tester.pumpAndSettle();
+              await tester.enterText(
+                find.byKey(const ValueKey('move-default-circle-beats')),
+                '12',
+              );
+              await tester.pumpAndSettle();
+            },
+            // The stored override map names `swing`; the late read must not
+            // surface it over the user's own `circle` edit.
+            expectEdited: (tester) {
+              expect(
+                find.byKey(const ValueKey('move-default-card-circle')),
+                findsOneWidget,
+              );
+              expect(
+                find.byKey(const ValueKey('move-default-card-swing')),
+                findsNothing,
+              );
+            },
+          ),
+          (
+            name: 'starting-program template',
+            key: kDefaultStartingProgramKey,
+            stored: encodeStartingProgramTemplate([
+              const StartingProgramTemplateEntry(text: 'Stored note'),
+            ]),
+            edit: (tester) async {
+              await tester.tap(
+                find.byKey(const ValueKey('starting-program-insert-break')),
+              );
+              await tester.pumpAndSettle();
+            },
+            expectEdited: (tester) {
+              expect(find.text(Program.breakSlotText), findsOneWidget);
+              expect(find.text('Stored note'), findsNothing);
+            },
+          ),
+        ];
+
+    for (final c in cases) {
+      testWidgets('${c.name}: an edit made before the read resolves wins', (
+        tester,
+      ) async {
+        final db = openWidgetTestDatabase();
+        final settings = _GatedSettings(db);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          settings: settings,
+        );
+        await settings.set(c.key, c.stored);
+        final gate = settings.hold(c.key);
+        // A resolved gate must never leave the read hanging past the test.
+        addTearDown(() {
+          if (!gate.isCompleted) gate.complete();
+        });
+
+        await _pumpDefaults(tester, repos);
+        await tester.binding.setSurfaceSize(const Size(1200, 6400));
+        await tester.pumpAndSettle();
+
+        await c.edit(tester);
+        gate.complete();
+        await tester.pumpAndSettle();
+
+        c.expectEdited(tester);
+      });
+    }
+  });
+
+  testWidgets(
+    'every failed settings read falls back to the historical default',
+    (tester) async {
+      final db = openWidgetTestDatabase();
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: _ThrowingReadSettings(
+          db,
+          throwFor: {
+            kDefaultCollectionSortKey,
+            kDefaultProgramSortKey,
+            kDefaultProgramCallerKey,
+            kDefaultProgramBandKey,
+            kDefaultDanceFormKey,
+            kDefaultDanceFormationShapeKey,
+            kDefaultDanceProgressionKey,
+            kDefaultDancePhraseStructureKey,
+            kDefaultDanceFiguresTemplateKey,
+            kDefaultMeanwhileSideFiguresKey,
+            kDefaultModifierFiguresKey,
+            kDefaultMoveParamOverridesKey,
+            kFreeTextEntryKey,
+            kDefaultStartingProgramKey,
+          },
+        ),
+      );
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
+              find.byKey(const ValueKey('defaults-collection-sort')),
+            )
+            .initialValue,
+        const SortDefaultSetting.concrete(CollectionSort.title),
+      );
+      expect(
+        tester
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
+              find.byKey(const ValueKey('defaults-program-sort')),
+            )
+            .initialValue,
+        const SortDefaultSetting.concrete(ProgramSort.title),
+      );
+      await _scrollTo(tester, const ValueKey('defaults-dance-form'));
+      expect(
+        tester
+            .widget<AppDropdownField<String>>(
+              find.byKey(const ValueKey('defaults-dance-form')),
+            )
+            .initialValue,
+        DanceForm.contra.name,
+      );
+      expect(
+        tester
+            .widget<AppDropdownField<FormationShape>>(
+              find.byKey(const ValueKey('defaults-dance-formation')),
+            )
+            .initialValue,
+        FormationShape.dupleImproper,
+      );
+      expect(
+        tester
+            .widget<AppDropdownField<Progression>>(
+              find.byKey(const ValueKey('defaults-dance-progression')),
+            )
+            .initialValue,
+        Progression.single,
+      );
+      // The pre-seeded templates survive a failed read.
+      expect(find.byKey(const ValueKey('figure-7-summary')), findsOneWidget);
+      expect(find.byKey(const ValueKey('figure-8-summary')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('meanwhile-side-1-summary')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('meanwhile-side-2-summary')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('modifier-default-1-summary')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  group('starting-program dance titles and the full collection load', () {
+    late _RecordingCrashLogSink sink;
+
+    setUp(() {
+      sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+    });
+
+    Future<({CompendiumRepositories repos, _CountingDances dances})> open({
+      bool failTitles = false,
+      bool failFullLoad = false,
+    }) async {
+      final db = openWidgetTestDatabase();
+      final dances = _CountingDances(db)
+        ..failTitles = failTitles
+        ..failFullLoad = failFullLoad;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'First dance'));
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate([
+          const StartingProgramTemplateEntry(danceId: 'd1'),
+        ]),
+      );
+      dances.fullLoads = 0;
+      dances.titleLoads = 0;
+      return (repos: repos, dances: dances);
+    }
+
+    Future<void> rebuildThrice(WidgetTester tester) async {
+      // Each break insertion calls the section's setState, i.e. rebuilds it.
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(
+          find.byKey(const ValueKey('starting-program-insert-break')),
+        );
+        await tester.pumpAndSettle();
+      }
+    }
+
+    testWidgets('a failing titles load is logged once across rebuilds', (
+      tester,
+    ) async {
+      final opened = await open(failTitles: true);
+      await _pumpDefaults(tester, opened.repos);
+      await rebuildThrice(tester);
+
+      expect(
+        sink.sources.where(
+          (s) => s == 'defaults_section.starting_program_titles',
+        ),
+        hasLength(1),
+      );
+      expect(opened.dances.titleLoads, 1);
+    });
+
+    testWidgets('the starting-program list shows titles without loading the '
+        'collection', (tester) async {
+      final opened = await open(failFullLoad: true);
+      await _pumpDefaults(tester, opened.repos);
+
+      expect(find.text('First dance'), findsOneWidget);
+      expect(opened.dances.fullLoads, 0);
+      expect(sink.sources, isEmpty);
+    });
+
+    testWidgets('rebuilding never loads the full collection', (tester) async {
+      final opened = await open();
+      await _pumpDefaults(tester, opened.repos);
+      await rebuildThrice(tester);
+
+      expect(opened.dances.fullLoads, 0);
+      expect(opened.dances.titleLoads, 1);
+    });
+
+    testWidgets('opening the dance picker loads the full collection once', (
+      tester,
+    ) async {
+      final opened = await open();
+      await _pumpDefaults(tester, opened.repos);
+      await tester.tap(
+        find.byKey(const ValueKey('starting-program-add-dance')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CollectionPicker), findsOneWidget);
+      expect(opened.dances.fullLoads, 1);
+    });
+
+    testWidgets('a failed picker load is logged per tap and retried on the '
+        'next tap', (tester) async {
+      final opened = await open(failFullLoad: true);
+      await _pumpDefaults(tester, opened.repos);
+      final add = find.byKey(const ValueKey('starting-program-add-dance'));
+
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(find.byType(CollectionPicker), findsNothing);
+      expect(
+        sink.sources.where(
+          (s) => s == 'defaults_section.starting_program_picker',
+        ),
+        hasLength(1),
+      );
+
+      opened.dances.failFullLoad = false;
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(find.byType(CollectionPicker), findsOneWidget);
+      expect(opened.dances.fullLoads, 2);
+    });
   });
 }

@@ -1,0 +1,662 @@
+// The Device Sync pairing flow (spec §6.2, §6.14 items 1, 2, 3, 5, 6).
+import 'package:compendium_core/compendium_core.dart'
+    show SyncCapabilityPolicy, SyncId, generateSyncId;
+import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
+import '../../data/backup_export_labels.dart';
+import '../../data/backup_io.dart';
+import '../../data/backup_service.dart';
+import '../../data/repositories_scope.dart';
+import '../../diagnostics/error_log.dart';
+import '../../sync/sync_controller.dart';
+import '../../sync/sync_coordinator.dart' show SyncPassStatus;
+import '../../sync/sync_failure.dart';
+import '../../sync/sync_http_client.dart';
+import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
+import '../../theme/app_spacing.dart';
+import '../../widgets/confirm_discard_changes.dart';
+import '../../widgets/notice_card.dart';
+import 'sync_failure_labels.dart';
+
+/// Whether the user is creating a new store or attaching to one that already
+/// exists. The pairing surface must ask this explicitly and never infer it
+/// from a network response (spec §6.14 item 5).
+enum SyncPairingMode { create, connect }
+
+/// Pushes the pairing flow and returns once it has either connected
+/// (`sync_id` is persisted and the coordinator is being (re)built) or the user
+/// backed out. The caller does not need the return value; it exists so a
+/// caller that wants to know can await it.
+Future<void> showSyncPairingScreen(
+  BuildContext context, {
+  BackupSaver? backupSaver,
+}) {
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => SyncPairingScreen(backupSaver: backupSaver),
+    ),
+  );
+}
+
+class SyncPairingScreen extends StatefulWidget {
+  const SyncPairingScreen({
+    super.key,
+    this.backupSaver,
+    this.capabilityPolicy = SyncCapabilityPolicy.build,
+  });
+
+  /// Test seam for the pairing backup offer; defaults to [saveBackupToFile].
+  final BackupSaver? backupSaver;
+
+  /// What this build syncs that earlier builds cannot read (#709); a test
+  /// seam, defaulting to this build's policy.
+  final SyncCapabilityPolicy capabilityPolicy;
+
+  @override
+  State<SyncPairingScreen> createState() => _SyncPairingScreenState();
+}
+
+class _SyncPairingScreenState extends State<SyncPairingScreen> {
+  SyncPairingMode? _mode;
+  final _createController = TextEditingController();
+  final _connectController = TextEditingController();
+  final _endpointController = TextEditingController(text: kDefaultSyncEndpoint);
+  String? _fieldError;
+  bool _backupOffered = false;
+  bool _backupInProgress = false;
+  bool _busy = false;
+  SyncPairingProbe? _probe;
+
+  /// The phrase last offered by this screen (generated at open, or by
+  /// Generate another): what the create field holds until the user edits it.
+  late String _generatedPhrase;
+
+  @override
+  void initState() {
+    super.initState();
+    _generatedPhrase = generateSyncId().value;
+    _createController.text = _generatedPhrase;
+  }
+
+  @override
+  void dispose() {
+    _probe?.close?.call();
+    _createController.dispose();
+    _connectController.dispose();
+    _endpointController.dispose();
+    super.dispose();
+  }
+
+  void _chooseCreate() => setState(() => _mode = SyncPairingMode.create);
+
+  void _chooseConnect() => setState(() => _mode = SyncPairingMode.connect);
+
+  void _regenerate() => setState(() {
+    _generatedPhrase = generateSyncId().value;
+    _createController.text = _generatedPhrase;
+  });
+
+  /// Whether leaving now would drop typed input: a phrase to connect with, a
+  /// create phrase that is no longer the generated one, or an endpoint other
+  /// than the default. Compared as typed. Not guarded while [_busy]: the
+  /// fields are locked and the pairing is already in flight, matching the
+  /// other editors' no-guard-during-save rule.
+  bool get _hasTypedInput =>
+      !_busy &&
+      ((_mode == SyncPairingMode.connect &&
+              _connectController.text.isNotEmpty) ||
+          (_mode == SyncPairingMode.create &&
+              _createController.text != _generatedPhrase) ||
+          (_mode != null && _endpointController.text != kDefaultSyncEndpoint));
+
+  /// The phrase being created once it is structurally valid, for the advisory
+  /// strength warning. A phrase the user typed may be weak; §8 requires the
+  /// client to warn and forbids it from blocking, so this drives copy only.
+  SyncId? get _createCandidate => SyncId.tryParse(_createController.text);
+
+  /// The entered endpoint when it is valid and not the project-operated
+  /// server — a deliberate trust decision the form must warn about (spec §8).
+  Uri? get _customEndpoint {
+    final endpoint = tryParseSyncEndpoint(_endpointController.text);
+    if (endpoint == null || isDefaultSyncEndpoint(endpoint)) return null;
+    return endpoint;
+  }
+
+  Future<void> _offerBackup(bool accept) async {
+    if (_backupInProgress) return;
+    setState(() => _backupInProgress = true);
+    if (accept) {
+      final repos = RepositoriesScope.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      final l10n = AppLocalizations.of(context);
+      try {
+        final service = BackupService(repos);
+        final now = DateTime.now();
+        final json = await service.exportToJson(createdAt: now);
+        final saver = widget.backupSaver ?? saveBackupToFile;
+        final delivered = await saver(
+          json,
+          'callers-compendium-backup-${now.toUtc().toIso8601String().substring(0, 10)}.json',
+        );
+        if (delivered) await service.recordBackup(now);
+      } on Object catch (e, st) {
+        logCaughtError(e, st, source: 'sync_pairing_screen._offerBackup');
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
+          );
+        }
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _backupOffered = true;
+        _backupInProgress = false;
+      });
+    }
+  }
+
+  Future<void> _submit(SyncController controller) async {
+    final l10n = AppLocalizations.of(context);
+    final mode = _mode!;
+    final parsed = SyncId.tryParse(
+      mode == SyncPairingMode.create
+          ? _createController.text
+          : _connectController.text,
+    );
+    if (parsed == null) {
+      setState(() => _fieldError = l10n.settingsSyncPairingInvalidPhrase);
+      return;
+    }
+    final candidate = parsed.value;
+    final endpoint = tryParseSyncEndpoint(_endpointController.text);
+    if (endpoint == null) {
+      setState(() => _fieldError = l10n.settingsSyncPairingInvalidEndpoint);
+      return;
+    }
+
+    final probe = controller.probeFor(candidate, endpoint);
+    _probe = probe;
+    // Declared out here because every early return inside the try leaves
+    // pairing incomplete and skips the dialog entirely; only the assignment
+    // below reaches `_showCompletion`.
+    var outcome = SyncGateOutcome.notPaired;
+    setState(() {
+      _busy = true;
+      _fieldError = null;
+    });
+    // The busy spinner covers only the network probe and the persist step —
+    // never the completion dialog's own wait for the user to dismiss it,
+    // which would otherwise leave an indeterminate spinner running for as
+    // long as that dialog is open.
+    // Every branch below runs after a network await. Backing out of the
+    // screen meanwhile disposes it — and `dispose` force-closes the probe's
+    // client, so the in-flight request fails *immediately*, landing in the
+    // catch branch on a state that is no longer mounted. Hence the `mounted`
+    // checks before each setState.
+    try {
+      if (mode == SyncPairingMode.create) {
+        final SyncHttpResponse response;
+        try {
+          response = await probe.createStore();
+        } on Object catch (e, st) {
+          if (!mounted) return;
+          logCaughtError(e, st, source: 'sync_pairing_screen._submit.create');
+          setState(
+            () => _fieldError = _probeError(l10n, SyncFailure.fromError(e)),
+          );
+          return;
+        }
+        if (!mounted) return;
+        if (response.kind == SyncResponseKind.conflict) {
+          setState(() => _fieldError = l10n.settingsSyncPairingAlreadyInUse);
+          return;
+        }
+        if (!response.isSuccess) {
+          setState(
+            () => _fieldError = _probeError(
+              l10n,
+              SyncFailure.fromResponse(response, SyncFailureStep.createStore),
+            ),
+          );
+          return;
+        }
+      } else {
+        // Connecting never infers creation from a missing store (spec §5.2,
+        // §6.14 item 5): a 404 is reported and the request stops here.
+        final SyncStoreResult result;
+        try {
+          result = await probe.getStore(previouslyUsed: false);
+        } on Object catch (e, st) {
+          if (!mounted) return;
+          logCaughtError(e, st, source: 'sync_pairing_screen._submit.connect');
+          setState(
+            () => _fieldError = _probeError(l10n, SyncFailure.fromError(e)),
+          );
+          return;
+        }
+        if (!mounted) return;
+        if (result.isMissing) {
+          setState(() => _fieldError = l10n.settingsSyncPairingNotFound);
+          return;
+        }
+        if (!result.response.isSuccess) {
+          setState(
+            () => _fieldError = _probeError(
+              l10n,
+              SyncFailure.fromResponse(result.response, SyncFailureStep.lookup),
+            ),
+          );
+          return;
+        }
+      }
+
+      outcome = await controller.completePairing(candidate, endpoint);
+    } finally {
+      _probe?.close?.call();
+      _probe = null;
+      if (mounted) setState(() => _busy = false);
+    }
+    if (!mounted) return;
+    await _showCompletion(controller, outcome);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  /// The form error for a pairing request that did not succeed: what went
+  /// wrong, what to do, and the step and status to quote. Every failure used
+  /// to read "Device Sync isn't available right now" — true of an outage, and
+  /// misleading for a refused phrase or a server on the wrong version, which
+  /// no amount of waiting fixes.
+  String _probeError(AppLocalizations l10n, SyncFailure failure) => [
+    syncFailureExplanation(
+      l10n,
+      failure,
+      customServer: _customEndpoint != null,
+    ),
+    ?syncFailureDetails(l10n, failure),
+  ].join('\n');
+
+  /// What the completion dialog says about the first sync.
+  ///
+  /// [SyncController.completePairing] awaits that pass, so by the time this is
+  /// read the pass has already completed, already failed, or never ran — the
+  /// dialog must never claim one is in progress. The gate outcome and the pass
+  /// status answer different halves of the question and neither is sufficient
+  /// alone: a suppressed attempt ran no pass at all, so `lastResult` there
+  /// belongs to some earlier pass, or is null.
+  String _completionBody(
+    AppLocalizations l10n,
+    SyncController controller,
+    SyncGateOutcome outcome,
+  ) => switch (outcome) {
+    SyncGateOutcome.ran => switch (controller.lastResult) {
+      final result? when result.status == SyncPassStatus.completed =>
+        l10n.settingsSyncPairingCompleteBody,
+      // Pairing succeeded, so this still leads with that; what stopped the
+      // first sync follows, because "it will try again" is no help when the
+      // reason is one that retrying alone will not clear.
+      final result? => [
+        l10n.settingsSyncPairingCompleteFailed,
+        ?syncPassResultExplanation(
+          l10n,
+          result,
+          customServer: syncUsesCustomServer(controller.endpoint),
+        ),
+      ].join(' '),
+      null => l10n.settingsSyncPairingCompleteFailed,
+    },
+    SyncGateOutcome.suppressedMetered =>
+      l10n.settingsSyncPairingCompleteMetered,
+    SyncGateOutcome.suppressedOffline =>
+      l10n.settingsSyncPairingCompleteOffline,
+    // `disabled` and `notPaired` are reachable when the coordinator could not
+    // be built from the settings this call has just written. Pairing itself
+    // still succeeded, so this claims only that nothing has synced yet.
+    SyncGateOutcome.disabled ||
+    SyncGateOutcome.notPaired => l10n.settingsSyncPairingCompletePending,
+  };
+
+  Future<void> _showCompletion(
+    SyncController controller,
+    SyncGateOutcome outcome,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final duplicates = controller.mergedDuplicates;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        key: const ValueKey('sync-pairing-complete-dialog'),
+        title: Text(l10n.settingsSyncPairingComplete),
+        // Spec §6.14 item 3 requires the not-a-backup statement "wherever it
+        // reports success", and this dialog is a success report. It is the
+        // same string the status surface shows, deliberately: one fact, one
+        // wording.
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _completionBody(l10n, controller, outcome),
+              key: const ValueKey('sync-pairing-complete-state'),
+            ),
+            // Read from the controller's latch rather than `lastResult`: a
+            // pairing pass the §6.12 gate deferred has no result of its own,
+            // and the merge it will eventually do is reported on the status
+            // surface instead.
+            if (duplicates > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.settingsSyncMergedDuplicates(duplicates),
+                key: const ValueKey('sync-pairing-complete-duplicates'),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              l10n.settingsSyncNotBackup,
+              key: const ValueKey('sync-pairing-complete-not-backup'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('sync-pairing-complete-ok'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(MaterialLocalizations.of(context).okButtonLabel),
+          ),
+        ],
+      ),
+      animationStyle: AppMotion.styleFor(context),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final controller = SyncScope.of(context);
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        _createController,
+        _connectController,
+        _endpointController,
+      ]),
+      builder: (context, child) =>
+          DiscardChangesGuard(dirty: _hasTypedInput, child: child!),
+      child: Scaffold(
+        appBar: AppBar(title: Text(l10n.settingsSyncPairingTitle)),
+        body: SafeArea(
+          child: _mode == null
+              ? _buildChoice(l10n)
+              : _buildDetail(context, l10n, controller),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChoice(AppLocalizations l10n) {
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: Text(
+            l10n.settingsSyncPairingChooseHeading,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        Card(
+          child: ListTile(
+            key: const ValueKey('sync-pairing-create'),
+            leading: const Icon(Icons.add_circle_outline),
+            title: Text(l10n.settingsSyncPairingCreateTitle),
+            subtitle: Text(l10n.settingsSyncPairingCreateSubtitle),
+            onTap: _chooseCreate,
+          ),
+        ),
+        Card(
+          child: ListTile(
+            key: const ValueKey('sync-pairing-connect'),
+            leading: const Icon(Icons.link),
+            title: Text(l10n.settingsSyncPairingConnectTitle),
+            subtitle: Text(l10n.settingsSyncPairingConnectSubtitle),
+            onTap: _chooseConnect,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetail(
+    BuildContext context,
+    AppLocalizations l10n,
+    SyncController controller,
+  ) {
+    final theme = Theme.of(context);
+    final create = _mode == SyncPairingMode.create;
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      children: [
+        if (create) ...[
+          TextField(
+            key: const ValueKey('sync-pairing-phrase'),
+            controller: _createController,
+            enabled: !_busy,
+            autocorrect: false,
+            style: theme.textTheme.headlineSmall,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: l10n.settingsSyncPairingYourPhrase,
+              helperText: l10n.settingsSyncPairingYourPhraseHelper,
+              helperMaxLines: 3,
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('sync-pairing-regenerate'),
+            onPressed: _busy ? null : _regenerate,
+            child: Text(l10n.settingsSyncPairingRegenerate),
+          ),
+          // ADR-004 puts this warning *behind the offer* to replace the
+          // generated phrase, not after the replacement, so it is shown for as
+          // long as the field is editable rather than gated on the field
+          // having been edited. A warning that only appears once the user has
+          // typed their name into the box has already failed at the thing it
+          // exists to prevent. Advisory, like the strength warning beside it:
+          // neither ever blocks creation.
+          const SizedBox(height: AppSpacing.sm),
+          _Disclosure(
+            key: const ValueKey('sync-pairing-personal-info-warning'),
+            icon: Icons.person_off_outlined,
+            title: l10n.settingsSyncPairingPersonalInfoTitle,
+            body: l10n.settingsSyncPairingPersonalInfoBody,
+          ),
+          if (_createCandidate?.isBelowStrengthWarning ?? false) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _Disclosure(
+              key: const ValueKey('sync-pairing-weak-phrase-warning'),
+              icon: Icons.warning_amber_outlined,
+              kind: NoticeKind.warning,
+              title: l10n.settingsSyncPairingWeakPhraseTitle,
+              body: l10n.settingsSyncPairingWeakPhraseBody,
+            ),
+          ],
+        ] else ...[
+          TextField(
+            key: const ValueKey('sync-pairing-phrase-field'),
+            controller: _connectController,
+            enabled: !_busy,
+            decoration: InputDecoration(
+              labelText: l10n.settingsSyncPairingEnterPhrase,
+              hintText: l10n.settingsSyncPairingEnterPhraseHint,
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        TextField(
+          key: const ValueKey('sync-pairing-endpoint-field'),
+          controller: _endpointController,
+          enabled: !_busy,
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            labelText: l10n.settingsSyncPairingEndpointLabel,
+            helperText: l10n.settingsSyncPairingEndpointHelper,
+          ),
+        ),
+        if (_customEndpoint case final custom?) ...[
+          const SizedBox(height: AppSpacing.sm),
+          _Disclosure(
+            key: const ValueKey('sync-pairing-custom-endpoint-warning'),
+            icon: Icons.warning_amber_outlined,
+            kind: NoticeKind.warning,
+            title: l10n.settingsSyncPairingCustomEndpointTitle(custom.host),
+            body: l10n.settingsSyncPairingCustomEndpointBody,
+          ),
+        ],
+        const SizedBox(height: AppSpacing.lg),
+        // #709 consolidated spec, decision 13: a device on a build from before
+        // the capability gate cannot read a store that syncs gated data, and
+        // the gate cannot see it until it publishes a manifest. Shown only while this build
+        // advertises a capability, so it says nothing until there is one.
+        if (widget.capabilityPolicy.advertised.isNotEmpty) ...[
+          _Disclosure(
+            key: const ValueKey('sync-pairing-newer-data-disclosure'),
+            icon: Icons.system_update_outlined,
+            title: l10n.settingsSyncPairingNewerDataTitle,
+            body: l10n.settingsSyncPairingNewerDataBody,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        _Disclosure(
+          key: const ValueKey('sync-pairing-sharing-disclosure'),
+          icon: Icons.group_outlined,
+          title: l10n.settingsSyncPairingSharingTitle,
+          body: l10n.settingsSyncPairingSharingBody,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // Spec §8's threat model, which MUST be disclosed: whoever holds the
+        // phrase can read, write and DELETE. Outside the create/connect branch
+        // above because it is true of a phrase however this device came by it,
+        // and neither neighbouring card covers it — sharing is about two
+        // collaborators overwriting each other, and the card below is about
+        // the phrase being unrecoverable and impossible to take back.
+        //
+        // The icon is deliberately neither a lock nor a key. The phrase is
+        // where the shared library lives, not a secret in front of it, and a
+        // padlock would reinstate exactly the password reading this copy
+        // exists to correct.
+        _Disclosure(
+          key: const ValueKey('sync-pairing-bearer-disclosure'),
+          icon: Icons.folder_shared_outlined,
+          kind: NoticeKind.warning,
+          title: l10n.settingsSyncPairingBearerTitle,
+          body: l10n.settingsSyncPairingBearerBody,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // Same reasoning as above for the icon: this card says the phrase is
+        // recorded nowhere else and cannot be untold, which is about a one-way
+        // door rather than a key that no longer turns.
+        _Disclosure(
+          key: const ValueKey('sync-pairing-credential-disclosure'),
+          icon: Icons.report_outlined,
+          title: l10n.settingsSyncPairingCredentialTitle,
+          body: l10n.settingsSyncPairingCredentialBody,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (!_backupOffered)
+          Card(
+            key: const ValueKey('sync-pairing-backup-offer'),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsSyncPairingBackupOfferTitle,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(l10n.settingsSyncPairingBackupOfferBody),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      TextButton(
+                        key: const ValueKey('sync-pairing-backup-skip'),
+                        onPressed: _backupInProgress
+                            ? null
+                            : () => _offerBackup(false),
+                        child: Text(l10n.settingsSyncPairingBackupOfferSkip),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      FilledButton(
+                        key: const ValueKey('sync-pairing-backup-accept'),
+                        onPressed: _backupInProgress
+                            ? null
+                            : () => _offerBackup(true),
+                        child: _backupInProgress
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(l10n.settingsSyncPairingBackupOfferAccept),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (_fieldError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Text(
+              _fieldError!,
+              key: const ValueKey('sync-pairing-error'),
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+        const SizedBox(height: AppSpacing.lg),
+        FilledButton(
+          key: const ValueKey('sync-pairing-continue'),
+          onPressed: _busy || !_backupOffered
+              ? null
+              : () => _submit(controller),
+          child: _busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.settingsSyncPairingContinue),
+        ),
+      ],
+    );
+  }
+}
+
+/// One of the pairing screen's disclosures, boxed as a [NoticeCard] like the
+/// notices elsewhere: informational by default, [NoticeKind.warning] where the
+/// text warns of something the user could regret.
+class _Disclosure extends StatelessWidget {
+  const _Disclosure({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.kind = NoticeKind.info,
+  });
+
+  final IconData icon;
+  final NoticeKind kind;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return NoticeCard(kind: kind, icon: icon, title: title, child: Text(body));
+  }
+}

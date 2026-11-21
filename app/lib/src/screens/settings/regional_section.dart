@@ -1,13 +1,18 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
+
 import '../../data/date_format_scope.dart';
 import '../../data/custom_date_pattern.dart';
 import '../../data/first_day_of_week_scope.dart';
 import '../../data/locale_scope.dart';
 import '../../data/regional_formats.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The Language & region settings section (ROADMAP G.8): the app-language
 /// selector, the date-format preference, and the first-day-of-week preference.
@@ -64,9 +69,10 @@ class _RegionalSectionState extends State<RegionalSection> {
   Future<void> _applySetting(DateFormatSetting setting) async {
     DateFormatScope.notifierOf(context).value = setting;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDateFormatKey, setting.pref.token);
+    await persistSetting(repos.settings, kDateFormatKey, setting.pref.token);
     if (setting.pref == DateFormatPref.custom) {
-      await repos.settings.set(
+      await persistSetting(
+        repos.settings,
         kDateFormatCustomPatternKey,
         setting.customPattern ?? '',
       );
@@ -100,7 +106,7 @@ class _RegionalSectionState extends State<RegionalSection> {
     final repos = RepositoriesScope.of(context);
     // Persist the BCP-47 tag; empty string means "follow system" and is
     // validated back to null on load (see localeFromStored).
-    await repos.settings.set(kLocaleKey, localeToTag(value));
+    await persistSetting(repos.settings, kLocaleKey, localeToTag(value));
   }
 
   // Same instant-notifier-then-persist shape as date format / locale above:
@@ -110,7 +116,7 @@ class _RegionalSectionState extends State<RegionalSection> {
   Future<void> _onFirstDayOfWeekPrefChanged(FirstDayOfWeekPref pref) async {
     FirstDayOfWeekScope.notifierOf(context).value = pref;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kFirstDayOfWeekKey, pref.token);
+    await persistSetting(repos.settings, kFirstDayOfWeekKey, pref.token);
   }
 
   @override
@@ -195,8 +201,9 @@ class _RegionalView extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     // A live example of how today's date renders in the chosen format, shown as
     // the date-format control's subtitle so the choice is concrete. For a valid
-    // custom pattern this reflects the pattern; for an invalid one it falls back
-    // to the platform locale (system default), matching runtime behavior.
+    // custom pattern this reflects the pattern; for an invalid one, and for System
+    // default, it follows the device's region (not the app language), matching
+    // runtime behavior.
     final example = formatEventDate(
       DateTime.now(),
       dateFormat,
@@ -210,44 +217,42 @@ class _RegionalView extends StatelessWidget {
     return ListView(
       children: [
         SectionHeader(title: l10n.settingsRegionalLanguageHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsAppLanguageTitle),
           subtitle: Text(l10n.settingsAppLanguageSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<Locale?>(
+          dropdownBuilder: (expanded) => AppDropdownField<Locale?>(
+            compact: true,
+            fillWidth: expanded,
             key: const ValueKey('regional-language'),
+            // Null is System default, an entry like any other.
             value: locale,
-            // A null value (System default) is not matched to the null-valued
-            // menu item by DropdownButton — it renders the hint instead — so the
-            // hint carries the localized "System default" label for the closed
-            // button on first load and after choosing System default.
-            hint: Text(l10n.commonSystemDefault),
             onChanged: onLocaleChanged,
-            items: [
+            entries: [
               for (final option in localeOptions)
-                DropdownMenuItem<Locale?>(
+                AppDropdownEntry<Locale?>(
                   value: option,
-                  child: Text(_languageLabel(l10n, option)),
+                  label: _languageLabel(l10n, option),
                 ),
             ],
           ),
         ),
         SectionHeader(title: l10n.settingsRegionalFormatsHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsDateFormatTitle),
           subtitle: Text(l10n.settingsDateFormatSubtitle(example)),
           isThreeLine: true,
-          trailing: DropdownButton<DateFormatPref>(
+          dropdownBuilder: (expanded) => AppDropdownField<DateFormatPref>(
+            compact: true,
+            fillWidth: expanded,
             key: const ValueKey('regional-date-format'),
             value: dateFormat.pref,
-            onChanged: (value) {
-              if (value != null) onDateFormatPrefChanged(value);
-            },
-            items: [
+            onChanged: onDateFormatPrefChanged,
+            entries: [
               for (final pref in DateFormatPref.values)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: pref,
-                  child: Text(_dateFormatLabel(l10n, pref)),
+                  label: _dateFormatLabel(l10n, pref),
                 ),
             ],
           ),
@@ -258,7 +263,12 @@ class _RegionalView extends StatelessWidget {
         // the app's fall-back-to-system behavior is explained in context.
         if (isCustom)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -278,7 +288,7 @@ class _RegionalView extends StatelessWidget {
                   onChanged: onCustomPatternChanged,
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: AppSpacing.xxs),
                   child: Text(
                     l10n.settingsDateFormatCustomLegend,
                     key: const ValueKey('regional-date-format-custom-legend'),
@@ -291,22 +301,22 @@ class _RegionalView extends StatelessWidget {
         // Live control (ROADMAP G.8): honored by the Programs list's "this
         // week" header strip (WeekdayHeaderStrip), which reorders its columns
         // to match the chosen first day of week.
-        ListTile(
-          key: const ValueKey('regional-first-day-of-week'),
+        SettingsDropdownRow(
+          tileKey: const ValueKey('regional-first-day-of-week'),
           title: Text(l10n.settingsFirstDayOfWeekTitle),
           subtitle: Text(l10n.settingsFirstDayOfWeekSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<FirstDayOfWeekPref>(
+          dropdownBuilder: (expanded) => AppDropdownField<FirstDayOfWeekPref>(
+            compact: true,
+            fillWidth: expanded,
             key: const ValueKey('regional-first-day-of-week-dropdown'),
             value: firstDayOfWeek,
-            onChanged: (value) {
-              if (value != null) onFirstDayOfWeekPrefChanged(value);
-            },
-            items: [
+            onChanged: onFirstDayOfWeekPrefChanged,
+            entries: [
               for (final pref in FirstDayOfWeekPref.values)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: pref,
-                  child: Text(_firstDayOfWeekLabel(l10n, pref)),
+                  label: _firstDayOfWeekLabel(l10n, pref),
                 ),
             ],
           ),

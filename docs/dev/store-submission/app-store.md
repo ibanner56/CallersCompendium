@@ -13,8 +13,11 @@ and form answers are in [`listing-copy.md`](listing-copy.md).
 > `org.callerscompendium.compendiumApp`), and CI already archives, signs, and
 > uploads a build to **TestFlight internal testing** on every `v*` tag
 > (see [`../releasing.md`](../releasing.md#ios-testflight-via-app-store-connect-api)).
-> So a lot of Section 0–2 below is **confirm, not do**. The genuinely new work is
-> **Section 4 (external testing + Beta App Review)**.
+> So a lot of Section 0–2 below is **confirm, not do**. **Section 4 (external
+> testing + Beta App Review) is also done** — TestFlight external testing passed
+> Beta App Review and the public link is live:
+> <https://testflight.apple.com/join/REgW311w>. Section 5 (the path to a public
+> App Store listing) is the remaining new work.
 
 Legend: **[Gate]** = must pass before you can move on. **[Confirm]** = likely
 already true, verify it. **[One-time]** = account/setup step you do once.
@@ -89,9 +92,9 @@ need all of this for the eventual public release. Fill these in ASC → your app
 - [x] **[Gate]** **App Privacy** ("nutrition label") completed as **Data Not
   Linked to You → User Content → Other User Content → Used for App
   Functionality** — answers in
-  [`listing-copy.md`](listing-copy.md#app-privacy-apple). This disclosure
-  is for the pre-Sync build. Update the answer before any beta where the
-  opt-in Device Sync can transfer selected content.
+  [`listing-copy.md`](listing-copy.md#app-privacy-apple). This discloses the
+  selected content that the opt-in Device Sync transfers; it is not "Data Not
+  Collected".
 - [x] **[Gate]** **Age rating** questionnaire completed → expected **4+**. Answers
   in [`listing-copy.md`](listing-copy.md#age--content-rating).
 - [x] **[Confirm]** **Sign-in not required** to review the app (there is no login).
@@ -109,7 +112,7 @@ You must upload at least one screenshot set for **each device family you ship**:
   (matrix), Dialect, and Imports**. Use the Simulator at the exact device to get
   pixel-perfect frames.
 
-## 4. Open beta = TestFlight external testing — [the new work]
+## 4. Open beta = TestFlight external testing — [done]
 
 Internal testing (≤100 teammates, instant) is already live. "Open beta" is
 **external testing**, which adds Beta App Review and unlocks a **public link**.
@@ -122,20 +125,22 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   in [`listing-copy.md`](listing-copy.md#reviewer-notes-both-stores).
 - [x] Create an **External Testers** group: TestFlight → Groups → **+**. Name it
   e.g. "Public Beta – Callers".
-- [ ] Assign the processed **build** to that group.
-- [ ] **[Gate]** Submit the build for **Beta App Review** (happens automatically
+- [x] Assign the processed **build** to that group.
+- [x] **[Gate]** Submit the build for **Beta App Review** (happens automatically
   when you add the first build to an external group). Typical turnaround < 24h.
   A build stays usable for external testing for **90 days** from upload — plan to
   push fresh betas before expiry.
-- [ ] After approval, in the group's settings **Enable Public Link** and (optionally)
+- [x] After approval, in the group's settings **Enable Public Link** and (optionally)
   cap the tester count (max 10,000). Copy the link.
-- [ ] **[Confirm]** Test the public link on a device that has the **TestFlight**
+- [x] **[Confirm]** Test the public link on a device that has the **TestFlight**
   app installed — tapping the link should offer to install the beta with no
   UDID/email needed.
-- [ ] Publish the link where callers will find it — the beta guide, the project
-  site, and Discussions. Update
-  [`docs/beta/beta-guide.md`](../../beta/beta-guide.md) and the README's iOS
-  install note, which currently say iOS is "invited testers via TestFlight."
+- [x] Publish the link where callers will find it — the beta guide, the project
+  site, and Discussions. The public link is
+  <https://testflight.apple.com/join/REgW311w>.
+  [`docs/beta/beta-guide.md`](../../beta/beta-guide.md), the README's iOS
+  install note, the beta issue template, and the site now point to it instead of
+  "invited testers via TestFlight."
 - [ ] **[Optional]** Turn on **automatic distribution** so each new CI-uploaded
   build (after any required review) reaches external testers without manual steps.
 
@@ -151,6 +156,16 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   prompts**. Confirm none are triggered; if a plugin adds one, add the matching
   `Info.plist` purpose string or the build is rejected.
 - [x] **Support URL / privacy URL must resolve** — dead links are an easy reject.
+- [x] **Missing privacy manifest (ITMS-91053)** — App Store Connect refuses a
+  build whose own code uses a *required-reason API* without declaring it. Both
+  shipped targets carry one: `app/ios/Runner/PrivacyInfo.xcprivacy` (UserDefaults
+  `1C8F.1` for the App Group suite, file timestamps `C617.1` for the share queue
+  in the App Group container, and the Device Sync data type below) and
+  `app/ios/ShareExtension/PrivacyInfo.xcprivacy` (file timestamps `C617.1`).
+  `tools/ci/check_ios_privacy_manifest.py` fails CI when either target's Swift
+  starts using a category its manifest does not declare, or when a manifest
+  drops out of its target's Resources phase. Plugins declare their own use in
+  their own manifests; this one covers only the app's code.
 
 ## 5. Path to the public App Store (after beta) — [later]
 
@@ -174,7 +189,10 @@ Open beta does not require full App Review; the public store does. When ready:
 - [ ] Keep builds fresh (90-day TestFlight expiry).
 - [ ] Keep the privacy policy URL and support URL alive.
 - [ ] When you bump the app version, re-check the App Privacy answers still hold
-  and continue to describe the features actually available in that build.
+  and continue to describe the features actually available in that build. The
+  collected-data entry in `app/ios/Runner/PrivacyInfo.xcprivacy`
+  (`NSPrivacyCollectedDataTypeOtherUserContent`, not linked, not tracking, App
+  Functionality) mirrors those answers; change both together.
 
 ---
 
@@ -189,7 +207,7 @@ Open beta does not require full App Review; the public store does. When ready:
 | Upload path | CI: unsigned `xcodebuild archive`, manually signed `xcodebuild -exportArchive`, then `xcrun altool --upload-app` on a release tag |
 | Signing | Manual export with the App Store Connect API key (App Manager role), Apple Distribution certificate, and app/Share Extension provisioning profiles |
 | Export compliance | `ITSAppUsesNonExemptEncryption=false` — exempt (signatures + SHA-256 checksum only, no confidentiality crypto) |
-| Open beta = | TestFlight **external** testing + **public link** (after Beta App Review) |
+| Open beta = | TestFlight **external** testing + **public link** — **live**: <https://testflight.apple.com/join/REgW311w> |
 | Internal testers | ≤100, no review (already live) |
 | External testers | ≤10,000, Beta App Review, public link |
 | Build validity | 90 days per build for testing |

@@ -77,6 +77,10 @@ void main() {
         'no',
         'no',
         'no',
+        'no',
+        '0:00',
+        'on',
+        '0:00',
       ),
       'Program time 12:34, slot time 3:05',
     );
@@ -91,6 +95,10 @@ void main() {
         'no',
         'no',
         'no',
+        'no',
+        '0:00',
+        'on',
+        '0:00',
       ),
       'Program time 1:00, slot time 0:30, planned 1 minute: 0 walkthrough '
       'and 1 dance',
@@ -106,9 +114,52 @@ void main() {
         'yes',
         'yes',
         'yes',
+        'no',
+        '0:00',
+        'on',
+        '0:00',
       ),
       'Program time 12:34, slot time 9:00, planned 8 minutes: 3 walkthrough '
       'and 5 dance, walkthrough complete, over planned, paused',
+    );
+    // Manual walkthrough-end mark: each direction folds in its own clause.
+    String marked(String direction, String delta) => l10n.performTimingSemantic(
+      '5:00',
+      '4:10',
+      'yes',
+      8,
+      3,
+      5,
+      'yes',
+      'no',
+      'no',
+      'yes',
+      '4:10',
+      direction,
+      delta,
+    );
+    expect(
+      marked('over', '1:10'),
+      'Program time 5:00, slot time 4:10, planned 8 minutes: 3 walkthrough '
+      'and 5 dance, walkthrough ended at 4:10, 1:10 over plan, walkthrough '
+      'complete',
+    );
+    expect(marked('under', '0:50'), contains('0:50 under plan'));
+    expect(
+      marked('on', '0:00'),
+      contains('walkthrough ended at 4:10, on plan'),
+    );
+    expect(
+      l10n.performWalkthroughActual('4:10', 'over', '1:10'),
+      'walkthrough 4:10 (+1:10)',
+    );
+    expect(
+      l10n.performWalkthroughActual('2:00', 'under', '1:00'),
+      'walkthrough 2:00 (−1:00)',
+    );
+    expect(
+      l10n.performWalkthroughActual('3:00', 'on', '0:00'),
+      'walkthrough 3:00 (on plan)',
     );
 
     // Compound figure a11y label: import-gap text and note flow through

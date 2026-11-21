@@ -24,20 +24,26 @@ import '../../l10n/app_localizations.dart';
 /// falls back to [AppLocalizations.importIssueGeneric]. Exposed for the coverage
 /// test that guards against a silent English leak.
 const Set<String> mappedImportIssueCodes = {
+  'archive_custom_field_key_conflict',
+  'archive_newer_schema',
   'archive_program_empty_slot',
   'archive_program_unresolved_dance',
   'archive_program_unresolved_venue',
   'archive_read_error',
   'archive_read_warning',
+  'archive_related_dance_unresolved',
   'callersbox_direction_unmapped',
   'callersbox_formation_unclassified',
   'callersbox_phrase_structure_unreadable',
   'callersbox_progression_unmapped',
   'callersbox_search_tier',
+  'cc_bars_meter_unstated',
   'cc_date_assumed_mdy',
   'cc_date_reduced_precision',
   'cc_missing_title',
+  'cc_new_level',
   'cc_inactive_level',
+  'cc_program_deleted_dance',
   'cc_program_empty_slot',
   'cc_program_unparsed_date',
   'cc_program_unresolved_dance',
@@ -48,6 +54,8 @@ const Set<String> mappedImportIssueCodes = {
   'cc_unmapped_type',
   'cc_unparsed_date',
   'cc_unparsed_rating',
+  'cc_user_field_key_adjusted',
+  'cc_user_field_label_missing',
   'contradb_figures_unreadable',
   'contradb_formation_unclassified',
   'contradb_html_beats_unreadable',
@@ -57,6 +65,14 @@ const Set<String> mappedImportIssueCodes = {
   'contradb_move_fallback',
   'contradb_param_unmapped',
   'cc_related_dance_unresolved',
+  'duplicate_external_id_in_batch',
+  'usr_file_truncated',
+  'usr_figures_from_dance_rows',
+  'usr_phrase_groups_orphaned',
+  'usr_lines_dropped',
+  'usr_sets_skipped',
+  'usr_related_rows_skipped',
+  'usr_terms_skipped',
 };
 
 /// Localized message for an [ImportIssue] surfaced in the import review.
@@ -90,12 +106,39 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
     case 'archive_program_unresolved_dance':
     case 'cc_program_unresolved_dance':
       return l10n.importIssueProgramUnresolvedDance;
+    case 'cc_program_deleted_dance':
+      return l10n.importIssueProgramDeletedDance;
     case 'archive_program_unresolved_venue':
       return l10n.importIssueProgramUnresolvedVenue;
     case 'archive_read_error':
       return l10n.importIssueArchiveReadError;
     case 'archive_read_warning':
       return l10n.importIssueArchiveReadWarning;
+    case 'archive_newer_schema':
+      return l10n.importIssueArchiveNewerSchema;
+    case 'archive_custom_field_key_conflict':
+      // Both values are the receiver's own: their field's label, and their
+      // key plus a number. A clash between two of the file's own fields
+      // carries neither, so the file's text is never shown.
+      final label = data['label'];
+      final key = data['key'];
+      return label is String && key is String
+          ? l10n.importIssueArchiveCustomFieldKeyConflict(label, key)
+          : l10n.importIssueArchiveCustomFieldKeyConflictGeneric;
+    case 'usr_file_truncated':
+      return l10n.importIssueUsrFileTruncated;
+    case 'usr_figures_from_dance_rows':
+      return l10n.importIssueUsrFiguresFromDanceRows;
+    case 'usr_phrase_groups_orphaned':
+      return l10n.importIssueUsrPhraseGroupsOrphaned;
+    case 'usr_lines_dropped':
+      return l10n.importIssueUsrLinesDropped;
+    case 'usr_sets_skipped':
+      return l10n.importIssueUsrSetsSkipped;
+    case 'usr_related_rows_skipped':
+      return l10n.importIssueUsrRelatedRowsSkipped;
+    case 'usr_terms_skipped':
+      return l10n.importIssueUsrTermsSkipped;
     case 'callersbox_direction_unmapped':
       return l10n.importIssueDirectionUnmapped;
     case 'callersbox_formation_unclassified':
@@ -131,15 +174,24 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
     case 'cc_unmapped_level':
     case 'cc_inactive_level':
       return l10n.importIssueUnmappedLevel;
+    case 'cc_new_level':
+      final level = data['level'];
+      return level is String ? l10n.importIssueNewLevel(level) : null;
     case 'cc_unmapped_progression':
       return l10n.importIssueUnmappedProgression;
     case 'cc_unmapped_type':
       return l10n.importIssueUnmappedType;
+    case 'cc_bars_meter_unstated':
+      return l10n.importIssueBarsMeterUnstated;
     case 'cc_unparsed_date':
       final field = _dateField(l10n, data['field']);
       return field == null ? null : l10n.importIssueUnparsedDate(field);
     case 'cc_unparsed_rating':
       return l10n.importIssueUnparsedRating;
+    case 'cc_user_field_key_adjusted':
+      return l10n.importIssueCcUserFieldKeyAdjusted;
+    case 'cc_user_field_label_missing':
+      return l10n.importIssueCcUserFieldLabelMissing;
     case 'contradb_figures_unreadable':
       return l10n.importIssueFiguresUnreadable;
     case 'contradb_html_beats_unreadable':
@@ -168,22 +220,39 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
         );
       }
       return l10n.importIssueParamUnmapped;
+    case 'archive_related_dance_unresolved':
     case 'cc_related_dance_unresolved':
       return l10n.importIssueRelatedDanceUnresolved;
+    case 'duplicate_external_id_in_batch':
+      return l10n.importIssueDuplicateExternalIdInBatch;
     default:
       return null;
   }
 }
 
 /// Localized message for a per-record [ImportError] surfaced in the import
-/// review. Keyed on the [ImportError.stage] discriminator; the raw `message`
-/// (which may wrap opaque parser text) is never rendered — it stays on the
-/// error for logging only (CWE-209).
+/// review. Keyed on the typed [ImportError.code] first, falling back to the
+/// [ImportError.stage] discriminator for [ImportErrorCode.unknown]; the raw
+/// `message` (which may wrap opaque parser text or echo user content) is never
+/// rendered — it stays on the error for logging only (CWE-209).
 String importRecordErrorMessage(AppLocalizations l10n, ImportError error) =>
-    switch (error.stage) {
-      ImportStage.discover => l10n.importRecordErrorDiscover,
-      ImportStage.fetch => l10n.importRecordErrorFetch,
-      ImportStage.parse => l10n.importRecordErrorParse,
-      ImportStage.dedupe => l10n.importRecordErrorDedupe,
-      ImportStage.commit => l10n.importRecordErrorCommit,
+    switch (error.code) {
+      ImportErrorCode.emptyFile => l10n.importRecordErrorEmptyFile,
+      ImportErrorCode.notJson => l10n.importRecordErrorNotJson,
+      ImportErrorCode.notCompendiumArchive =>
+        l10n.importRecordErrorNotCompendiumArchive,
+      ImportErrorCode.notCallersBoxDance =>
+        l10n.importRecordErrorNotCallersBoxDance,
+      ImportErrorCode.notContraDbDance =>
+        l10n.importRecordErrorNotContraDbDance,
+      ImportErrorCode.notUsrDatabase => l10n.importRecordErrorNotUsrDatabase,
+      ImportErrorCode.fileTooLarge => l10n.importRecordErrorFileTooLarge,
+      ImportErrorCode.noDanceAtId => l10n.importRecordErrorNoDanceAtId,
+      ImportErrorCode.unknown => switch (error.stage) {
+        ImportStage.discover => l10n.importRecordErrorDiscover,
+        ImportStage.fetch => l10n.importRecordErrorFetch,
+        ImportStage.parse => l10n.importRecordErrorParse,
+        ImportStage.dedupe => l10n.importRecordErrorDedupe,
+        ImportStage.commit => l10n.importRecordErrorCommit,
+      },
     };

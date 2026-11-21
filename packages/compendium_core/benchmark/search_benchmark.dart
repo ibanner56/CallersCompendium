@@ -42,6 +42,8 @@ final _moves = [
   'right_left_through',
 ];
 final _sections = ['A1', 'A2', 'B1', 'B2'];
+final _meters = ['6/8', '3/2', '2/2', '9/8', '4/4', '3/4'];
+final _keys = ['D minor', 'G', 'A minor', 'D', 'E minor', 'C'];
 final _whos = ['partners', 'neighbors', 'role1s', 'role2s'];
 const int _authorCount = 60;
 const int _tagCount = 24;
@@ -56,7 +58,11 @@ Future<void> main() async {
     seedWatch.stop();
     stdout.writeln('Seeded in ${seedWatch.elapsedMilliseconds} ms.');
 
-    final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+    // The app's connection setup (WAL, busy timeout and `cc_venue_key`), so
+    // the benchmark times the connection the app opens.
+    final db = CompendiumDatabase(
+      NativeDatabase(File(dbPath), setup: applyCompendiumSqliteSetup),
+    );
     final dances = DanceRepository(db, contraTaxonomy);
     final count =
         (await db.customSelect('SELECT COUNT(*) AS c FROM dances').get()).single
@@ -69,6 +75,18 @@ Future<void> main() async {
       'bare FullText': (
         filter: const FullTextFilter('swing'),
         sort: SearchSort.relevance,
+      ),
+      'All fields, title sort': (
+        filter: const FullTextFilter('swing'),
+        sort: SearchSort.title,
+      ),
+      'All fields, accented word': (
+        filter: const FullTextFilter('mineur'),
+        sort: SearchSort.title,
+      ),
+      'Meter facet (two chips)': (
+        filter: const OrFilter([MeterFilter('6/8'), MeterFilter('9/8')]),
+        sort: SearchSort.title,
       ),
       'single facet (Form)': (
         filter: const FormFilter(DanceForm.contra),
@@ -195,8 +213,8 @@ Future<void> _seed(String dbPath) async {
   final insDance = raw.prepare(
     'INSERT INTO dances (id, title, form, formation_shape, progression, '
     'phrase_structure, figures_json, hook, calling_notes, status, tunes_json, '
-    'created_at, updated_at) '
-    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'meter, musical_key, created_at, updated_at) '
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
   );
   final insFigure = raw.prepare(
     'INSERT INTO dance_figures (dance_id, idx, move, beats, progression, '
@@ -238,6 +256,11 @@ Future<void> _seed(String dbPath) async {
       '',
       statuses[i % statuses.length].name,
       '[]',
+      // Every dance has a meter and a key, as in an English collection, so
+      // the meter, key and interpreter matches are timed on every row; one in
+      // twenty has a key outside ASCII, which takes the Dart fold.
+      _meters[i % _meters.length],
+      i % 20 == 0 ? 'Ré mineur' : _keys[i % _keys.length],
       now + i,
       now + i,
     ]);

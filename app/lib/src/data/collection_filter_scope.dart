@@ -1,11 +1,12 @@
 import 'package:flutter/widgets.dart';
 
-/// A pending "filter the Collection to this tag" request (issue #414).
+/// A pending "add this tag to the Collection's filter" request (issue #414,
+/// FIND-14).
 ///
 /// [seq] is a monotonically increasing token so that tapping the *same* tag
 /// twice still counts as a new request — listeners compare the seq they last
 /// applied rather than the tag id, so a repeat tap re-triggers navigation and
-/// re-applies the filter (e.g. after the user cleared it).
+/// re-adds the tag (e.g. after the user cleared it).
 @immutable
 class CollectionTagFilterRequest {
   const CollectionTagFilterRequest({required this.tagId, required this.seq});
@@ -26,14 +27,14 @@ class CollectionTagFilterRequest {
   int get hashCode => Object.hash(tagId, seq);
 }
 
-/// Coordinates a "tap a tag → show the Collection filtered to that tag" action
-/// (issue #414) across the app without coupling the tag chips (dance detail,
-/// list rows) to the Collection screen or the top-level shell.
+/// Coordinates a "tap a tag → add it to the Collection's filter" action
+/// (issue #414, FIND-14) across the app without coupling the tag chips (dance
+/// detail, list rows) to the Collection screen or the top-level shell.
 ///
 /// A tag chip calls [filterByTag]; the running [AppShell] switches to the
 /// Collection destination (and pops any pushed detail route), and the live
-/// `DanceListScreen` applies a single-tag filter — both by listening to this
-/// controller.
+/// `DanceListScreen` adds the tag to its Tags facet, keeping the rest of the
+/// search — both by listening to this controller.
 class CollectionFilterController extends ChangeNotifier {
   CollectionTagFilterRequest? _pending;
   int _seq = 0;
@@ -41,8 +42,8 @@ class CollectionFilterController extends ChangeNotifier {
   /// The most recent filter request, or `null` if none has been made yet.
   CollectionTagFilterRequest? get pending => _pending;
 
-  /// Requests that the Collection list be shown filtered to [tagId]. Notifies
-  /// listeners so the shell navigates and the list applies the filter.
+  /// Requests that [tagId] be added to the Collection list's filter. Notifies
+  /// listeners so the shell navigates and the list adds the tag.
   void filterByTag(String tagId) {
     _pending = CollectionTagFilterRequest(tagId: tagId, seq: ++_seq);
     notifyListeners();

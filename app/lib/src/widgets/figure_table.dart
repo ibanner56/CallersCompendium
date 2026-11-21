@@ -2,19 +2,28 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'bar_timing.dart';
 import '../data/verbose_figure_rendering_scope.dart';
+import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import 'import_gap_badge.dart';
+import 'selectable_content.dart';
+import 'warnings_card.dart';
 
 /// Read-only figure table grouped by derived phrase section (`docs/design/ux.md`
 /// §2). Each section (A1, A2, …) heads a group; rows show the rendered figure
 /// text (under [dialect]), a progression marker, and the beat count.
 ///
-/// Structured editing of these rows lands with roadmap 3.3b; here the table is
-/// display-only, shared by the dance detail view and the (read-only) figure
-/// section of the editor.
+/// When the figures' beats do not add up to [phraseStructure], the table
+/// opens with the same warning the editor shows ([WarningsCard]): the section
+/// labels are then derived from the wrong totals, and the detail view is where
+/// a saved dance is read (AUTH-12, October behaviour audit). Perform and print
+/// do not show it: a warning on stage is not something the caller can act on.
+///
+/// The table is display-only; the dance detail view shows it.
 class FigureTable extends StatelessWidget {
   const FigureTable({
     super.key,
@@ -35,12 +44,17 @@ class FigureTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     if (figures.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: Text(l10n.danceFiguresEmpty, style: theme.textTheme.bodyMedium),
       );
     }
 
-    final sectioned = deriveSections(figures, phraseStructure);
+    final warnings = <ValidationIssue>[];
+    final sectioned = deriveSections(
+      figures,
+      phraseStructure,
+      issues: warnings,
+    );
     // ROADMAP G.7: when "always verbose" is on, the visible row text uses the
     // spoken-style verbose rendering instead of the terse notation.
     final verbose = VerboseFigureRenderingScope.of(context);
@@ -48,7 +62,15 @@ class FigureTable extends StatelessWidget {
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final rows = <Widget>[];
+    final rows = <Widget>[
+      if (warnings.isNotEmpty) ...[
+        WarningsCard(
+          warnings: warnings,
+          beatsPerBar: BarTimingScope.maybeOf(context)?.beatsPerBar,
+        ),
+        const SizedBox(height: 8),
+      ],
+    ];
     String renderSummary(
       Figure figure, {
       bool verbose = false,
@@ -116,7 +138,10 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.sm,
+        bottom: AppSpacing.xxs,
+      ),
       child: Semantics(
         header: true,
         child: Text(
@@ -165,7 +190,8 @@ class _FigureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final beatsLabel = l10n.danceFigureBeats(beats);
+    // In bars for an English dance (ADR-006 §5.5).
+    final beatsLabel = timingLabel(context, beats);
     final semanticsLabel = [
       verboseText,
       if (isImportGap) l10n.importGapMessage,
@@ -181,7 +207,7 @@ class _FigureRow extends StatelessWidget {
         color: isImportGap
             ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.35)
             : null,
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -204,32 +230,44 @@ class _FigureRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    showVerbose ? verboseText : text,
-                    style: theme.textTheme.bodyLarge,
+                  SelectableLine(
+                    child: Text(
+                      capitalizeFirstLetter(
+                        showVerbose ? verboseText : text,
+                        capitalize: CapitalizeFiguresScope.of(context),
+                      ),
+                      style: theme.textTheme.bodyLarge,
+                    ),
                   ),
                   if (note != null && note!.trim().isNotEmpty)
-                    Text(
-                      note!.trim(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: theme.colorScheme.onSurfaceVariant,
+                    SelectableLine(
+                      child: Text(
+                        note!.trim(),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
+            // The badge and the beats are chrome around the figure, not part of
+            // it: leaving them selectable would copy a label and stray digits
+            // between lines.
             if (isImportGap) ...[
               const SizedBox(width: 8),
-              const ImportGapBadge(),
+              const SelectionContainer.disabled(child: ImportGapBadge()),
             ],
             const SizedBox(width: 8),
-            Text(
-              beatsLabel,
-              textAlign: TextAlign.end,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            SelectionContainer.disabled(
+              child: Text(
+                beatsLabel,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
           ],

@@ -40,6 +40,20 @@ class ShorthandMappingsScope
       .dependOnInheritedWidgetOfExactType<ShorthandMappingsScope>()
       ?.notifier;
 
+  /// Every shorthand token the user has, of every kind (figure shorthands,
+  /// the compound shorthands of #709 and the shorthands for new figures of
+  /// #1023), registering a rebuild dependency; empty outside a scoped tree. A
+  /// custom figure's name must not take one.
+  static List<String> tokensOf(BuildContext context) {
+    final controller = maybeOf(context);
+    if (controller == null) return const [];
+    return [
+      for (final m in controller.mappings) m.token,
+      for (final c in controller.compoundShorthands) c.token,
+      for (final u in controller.userFigureShorthands) u.token,
+    ];
+  }
+
   /// The controller for read-and-mutate use, without a rebuild dependency.
   static ShorthandMappingsController controllerOf(BuildContext context) {
     final scope = context

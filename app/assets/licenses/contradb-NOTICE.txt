@@ -1,0 +1,11 @@
+ContraDB
+Copyright (c) David Morse and ContraDB contributors
+Licensed under the GNU Affero General Public License, version 3 (AGPL-3.0).
+
+Source: https://github.com/contradb/contra
+
+Figure sentence structure and modifier phrasing in Caller's Compendium's
+dialect renderer follow ContraDB's libfigure (its words() functions, among them
+upOrDownTheHallWords, zigZagWords, longLinesWords, heyWords and gyreWords). No
+ContraDB source code is transcribed; the renderer's comments name the libfigure
+function each rendering follows.

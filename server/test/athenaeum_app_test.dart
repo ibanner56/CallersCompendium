@@ -187,7 +187,7 @@ void main() {
   });
 
   test(
-    'blob allow-list rejects non-shareable fields and tolerates new versions',
+    'blob allow-list rejects non-shareable and incomplete envelopes',
     () async {
       expect(
         (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
@@ -502,35 +502,38 @@ void main() {
       expect(opaqueGet.statusCode, 200);
       expect(await opaqueGet.bodyBytes(), equals(opaque));
 
-      final jsonOpaque = Uint8List.fromList(
+      final incompleteEnvelope = Uint8List.fromList(
         utf8.encode(
           jsonEncode({
             'kind': 'choreographer',
-            'id': 'json-opaque',
+            'id': 'incomplete-envelope',
             'body': {
-              'id': 'json-opaque',
-              'name': 'Opaque JSON',
+              'id': 'incomplete-envelope',
+              'name': 'Incomplete Envelope',
               'email': 'opaque@example.com',
             },
           }),
         ),
       );
-      final jsonOpaqueHash = sha256.convert(jsonOpaque).toString();
-      final jsonOpaquePut = await _send(
+      final incompleteEnvelopeHash = sha256
+          .convert(incompleteEnvelope)
+          .toString();
+      final incompleteEnvelopePut = await _send(
         'PUT',
-        '/v1/blobs/$jsonOpaqueHash',
+        '/v1/blobs/$incompleteEnvelopeHash',
         syncId: syncId,
-        body: jsonOpaque,
+        body: incompleteEnvelope,
         contentType: 'application/octet-stream',
       );
-      expect(jsonOpaquePut.statusCode, 201);
-      final jsonOpaqueGet = await _send(
+      expect(incompleteEnvelopePut.statusCode, 422);
+      await incompleteEnvelopePut.drain<void>();
+      final incompleteEnvelopeGet = await _send(
         'GET',
-        '/v1/blobs/$jsonOpaqueHash',
+        '/v1/blobs/$incompleteEnvelopeHash',
         syncId: syncId,
       );
-      expect(jsonOpaqueGet.statusCode, 200);
-      expect(await jsonOpaqueGet.bodyBytes(), equals(jsonOpaque));
+      expect(incompleteEnvelopeGet.statusCode, 404);
+      await incompleteEnvelopeGet.drain<void>();
 
       final deepOpaque = Uint8List.fromList(
         utf8.encode(
@@ -754,15 +757,35 @@ void main() {
       );
       expect(manifestTooLarge.statusCode, 413);
 
+      // These reject while the body is still streaming, so the server cancels
+      // it and dart:io destroys the socket. On Windows the resulting RST can
+      // discard the response before the client reads it; call the handler
+      // in-process to assert the response without depending on socket teardown.
+      Future<Response> streamedReject(
+        String method,
+        String path,
+        List<int> body, {
+        String contentType = 'application/json',
+        Map<String, String> headers = const {},
+      }) => app.call(
+        Request(
+          method,
+          Uri.parse('http://127.0.0.1$path'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+            'content-type': contentType,
+            ...headers,
+          },
+          body: body,
+        ),
+      );
       final deepJson = utf8.encode(
         '[' * (maxJsonDepth + 2) + ']' * (maxJsonDepth + 2),
       );
-      final tooDeep = await _send(
+      final tooDeep = await streamedReject(
         'POST',
         '/v1/blobs/missing',
-        syncId: syncId,
-        body: Uint8List.fromList(deepJson),
-        contentType: 'application/json',
+        deepJson,
       );
       expect(tooDeep.statusCode, 413);
 
@@ -771,22 +794,19 @@ void main() {
           jsonEncode({'hashes': List<int>.filled(maxMissingHashes + 1, 0)}),
         ),
       );
-      final tooMany = await _send(
+      final tooMany = await streamedReject(
         'POST',
         '/v1/blobs/missing',
-        syncId: syncId,
-        body: tooManyHashes,
-        contentType: 'application/json',
+        tooManyHashes,
       );
       expect(tooMany.statusCode, 413);
 
       final expanded = Uint8List.fromList(List<int>.filled(1024, 0x61));
       final compressed = Uint8List.fromList(gzip.encode(expanded));
-      final expansion = await _send(
+      final expansion = await streamedReject(
         'PUT',
         '/v1/blobs/${'b' * 64}',
-        syncId: syncId,
-        body: compressed,
+        compressed,
         contentType: 'application/octet-stream',
         headers: {'content-encoding': 'gzip'},
       );
@@ -798,16 +818,18 @@ void main() {
         gzip.encode(malformedSource),
       );
       malformedCompressed[10] ^= 0xff;
-      final malformedGzip = await _send(
+      final malformedGzip = await streamedReject(
         'PUT',
         '/v1/blobs/${'c' * 64}',
-        syncId: syncId,
-        body: malformedCompressed.sublist(0, malformedCompressed.length - 1),
+        malformedCompressed.sublist(0, malformedCompressed.length - 1),
         contentType: 'application/octet-stream',
         headers: {'content-encoding': 'gzip'},
       );
       expect(malformedGzip.statusCode, 400);
-      expect(await malformedGzip.body(), contains('malformed compressed body'));
+      expect(
+        await malformedGzip.readAsString(),
+        contains('malformed compressed body'),
+      );
     },
   );
 
@@ -854,6 +876,125 @@ void main() {
     expect(hidden.statusCode, 404);
   });
 
+  test('a manifest naming an unknown record kind is still rejected (#709): '
+      'only clients skip kinds they do not know (spec §4.5)', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    expect(created.statusCode, 201);
+    final epoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    final known = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: {
+        SyncRecordKind.dance: {'dance-one': 'a' * 64},
+      },
+    ).toJson();
+    final body = utf8.encode(
+      jsonEncode({
+        ...known,
+        'records': {
+          ...(known['records']! as Map<String, Object?>),
+          'futureKind': {'future-one': 'b' * 64},
+        },
+      }),
+    );
+    final response = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: Uint8List.fromList(body),
+      contentType: 'application/json; charset=utf-8',
+    );
+    expect(response.statusCode, 400);
+    final stored = await _send(
+      'GET',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+    );
+    expect(stored.statusCode, 404);
+  });
+
+  test('the glossary\'s record kinds are accepted, and validated against the '
+      'allow-list like every kind (#709)', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    expect(created.statusCode, 201);
+    final epoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    Future<int> put(Uint8List blob) async {
+      final response = await _send(
+        'PUT',
+        '/v1/blobs/${sha256.convert(blob)}',
+        syncId: syncId,
+        body: blob,
+        contentType: 'application/octet-stream',
+      );
+      await response.drain<void>();
+      return response.statusCode;
+    }
+
+    final entryBody = {
+      'id': 'entry-one',
+      'kind': 'compound',
+      'name': 'Grand chain',
+      'definition': 'A chain.',
+      'description': 'All the way round.',
+      'keywords': ['chain'],
+      'notes': null,
+      'payload': '{"params":[],"figures":[],"bindings":[]}',
+      'createdAt': '2026-09-01T00:00:00.000Z',
+    };
+    expect(
+      await put(
+        _recordBlob(kind: 'glossaryEntry', id: 'entry-one', body: entryBody),
+      ),
+      201,
+    );
+    expect(
+      await put(
+        _recordBlob(
+          kind: 'figureNote',
+          id: 'swing',
+          body: {'id': 'swing', 'notes': 'Keep it smooth.'},
+        ),
+      ),
+      201,
+    );
+    expect(
+      await put(
+        _recordBlob(
+          kind: 'glossaryEntry',
+          id: 'entry-two',
+          body: {...entryBody, 'id': 'entry-two', 'author': 'not shareable'},
+        ),
+      ),
+      422,
+      reason:
+          'a key the allow-list does not name is refused for these kinds '
+          'too',
+    );
+
+    final manifest = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: {
+        SyncRecordKind.glossaryEntry: {'entry-one': 'a' * 64},
+        SyncRecordKind.figureNote: {'swing': 'b' * 64},
+      },
+    );
+    final response = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: encodeSyncManifestUtf8(manifest),
+      contentType: 'application/json',
+    );
+    expect(response.statusCode, 201);
+  });
+
   test('blob uploads reject a body whose hash differs from the path', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final bytes = Uint8List.fromList([1, 2, 3]);
@@ -869,6 +1010,132 @@ void main() {
     final missing = await _send('GET', '/v1/blobs/$wrongHash', syncId: syncId);
     expect(missing.statusCode, 404);
   });
+
+  test('shipped request-rate limits are the ones spec §5.4 states', () {
+    const limits = AthenaeumBudgetLimits();
+    expect(limits.perIpRequestsPerSecond, 5);
+    expect(limits.perIpRequestBurst, 300);
+    expect(limits.perStoreRequestsPerSecond, 15);
+    expect(limits.perStoreRequestBurst, 600);
+  });
+
+  test(
+    'general client request budget limits successful sync requests',
+    () async {
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'client',
+        clock: () => DateTime.utc(2026, 9, 3),
+      );
+      Future<Response> request() => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      );
+      for (var attempt = 0; attempt < 300; attempt++) {
+        final response = await request();
+        expect(response.statusCode, 200);
+      }
+      final response = await request();
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      final heartbeat = await customApp.call(
+        Request('GET', Uri.parse('http://127.0.0.1/heartbeat')),
+      );
+      expect(heartbeat.statusCode, 200);
+    },
+  );
+
+  test(
+    'general client request budget refills at its configured rate',
+    () async {
+      var now = DateTime.utc(2026, 9, 3);
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'refill-client',
+        clock: () => now,
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestsPerSecond: 1,
+          perIpRequestBurst: 2,
+        ),
+      );
+      Future<Response> request() => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          },
+        ),
+      );
+
+      expect((await request()).statusCode, 200);
+      expect((await request()).statusCode, 200);
+      expect((await request()).statusCode, 429);
+      now = now.add(const Duration(seconds: 1));
+      expect((await request()).statusCode, 200);
+    },
+  );
+
+  test(
+    'general store request budget rejects before reading the body',
+    () async {
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (request) => request.headers['x-test-ip']!,
+        clock: () => DateTime.utc(2026, 9, 3),
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestBurst: 10,
+          perStoreRequestsPerSecond: 1 / 60,
+          perStoreRequestBurst: 1,
+        ),
+      );
+      Future<Response> storeRequest(String address) => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization, 'x-test-ip': address},
+        ),
+      );
+      expect((await storeRequest('store-client-0')).statusCode, 200);
+      expect((await storeRequest('store-client-1')).statusCode, 429);
+
+      var yielded = 0;
+      Stream<List<int>> body() async* {
+        yielded++;
+        yield Uint8List.fromList([1]);
+      }
+
+      final response = await customApp.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/${'0' * 64}'),
+          headers: {
+            'authorization': authorization,
+            'content-type': 'application/octet-stream',
+            'x-test-ip': 'store-client-2',
+          },
+          body: body(),
+        ),
+      );
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      expect(yielded, 0);
+    },
+  );
 
   test(
     'each failed store-resolution outcome consumes its own budget',
@@ -955,6 +1222,7 @@ void main() {
   test('failure-budget churn cannot reset an active address bucket', () async {
     final customApp = AthenaeumApp(
       config: app.config,
+      store: app.store,
       clientAddressResolver: (request) => request.headers['x-test-ip']!,
       budgetLimits: const AthenaeumBudgetLimits(
         perIpFailureBurst: maxFailedResolutionsPerIpBurst,
@@ -1020,6 +1288,303 @@ void main() {
       ),
     );
     expect(response.statusCode, 429);
+  });
+
+  test(
+    'the rightmost forwarded entry keys the budget, not a spoofed prefix',
+    () async {
+      final productionApp = AthenaeumApp(config: app.config, store: app.store);
+      Future<Response> failedRequest(String forwarded) => productionApp.call(
+        _requestWithPeer(
+          InternetAddress.loopbackIPv4,
+          forwardedAddress: forwarded,
+        ),
+      );
+
+      // A client that rotates the leftmost (client-supplied) entry still lands in
+      // the bucket of the address the proxy appended.
+      for (
+        var attempt = 0;
+        attempt < maxFailedResolutionsPerIpBurst;
+        attempt++
+      ) {
+        expect(
+          (await failedRequest('198.51.100.$attempt, 192.0.2.10')).statusCode,
+          401,
+        );
+      }
+      expect((await failedRequest('203.0.113.9, 192.0.2.10')).statusCode, 429);
+      // A different real client is not drained by the spoofed entries.
+      expect((await failedRequest('192.0.2.10, 192.0.2.11')).statusCode, 401);
+    },
+  );
+
+  test('repeated forwarded-for header lines resolve to the last entry', () async {
+    final productionApp = AthenaeumApp(config: app.config, store: app.store);
+    Future<Response> failedRequest(List<String> lines) => productionApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer ******', 'x-forwarded-for': lines},
+        context: {
+          'shelf.io.connection_info': _FakeConnectionInfo(
+            InternetAddress.loopbackIPv4,
+          ),
+        },
+      ),
+    );
+
+    // dart:io (verified) presents repeated lines joined in order with ", ", so
+    // a client line followed by the proxy's appended line keys on the proxy's.
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect(
+        (await failedRequest(['198.51.100.$attempt', '192.0.2.20'])).statusCode,
+        401,
+      );
+    }
+    expect(
+      (await failedRequest(['203.0.113.9', '192.0.2.20'])).statusCode,
+      429,
+    );
+  });
+
+  test('an unparseable rightmost entry falls back to the socket peer', () async {
+    final productionApp = AthenaeumApp(config: app.config, store: app.store);
+    Future<Response> failedRequest(String forwarded) => productionApp.call(
+      _requestWithPeer(
+        InternetAddress.loopbackIPv4,
+        forwardedAddress: forwarded,
+      ),
+    );
+
+    // Varying malformed values all draw on the one socket-peer bucket. If each
+    // malformed string were trusted as its own key, none would ever be limited.
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect(
+        (await failedRequest('192.0.2.12, not-an-address-$attempt')).statusCode,
+        401,
+      );
+    }
+    expect(
+      (await failedRequest('192.0.2.12, another-bad-value')).statusCode,
+      429,
+    );
+  });
+
+  group('per-IP key for IPv6 clients', () {
+    // Request row: the failure row is lifted so only the request bucket can
+    // refuse, and the clock is frozen so nothing refills.
+    AthenaeumApp requestRowApp() => AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      clock: () => DateTime.utc(2026, 10, 26),
+      budgetLimits: const AthenaeumBudgetLimits(
+        perIpRequestBurst: 3,
+        perIpFailureBurst: 100000,
+        perIpFailuresPerMinute: 100000,
+        serverWideFailuresPerMinute: 100000,
+      ),
+    );
+
+    // Failure row: the request row is lifted.
+    AthenaeumApp failureRowApp() => AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      budgetLimits: const AthenaeumBudgetLimits(
+        perIpRequestBurst: 100000,
+        perIpRequestsPerSecond: 100000,
+      ),
+    );
+
+    Future<int> status(AthenaeumApp target, String forwarded) async =>
+        (await target.call(
+          _requestWithPeer(
+            InternetAddress.loopbackIPv4,
+            forwardedAddress: forwarded,
+          ),
+        )).statusCode;
+
+    Future<void> drain(AthenaeumApp target, String forwarded, int n) async {
+      for (var i = 0; i < n; i++) {
+        expect(await status(target, forwarded), 401);
+      }
+    }
+
+    test('addresses in one /64 share a request bucket', () async {
+      final target = requestRowApp();
+      await drain(target, '2001:db8:1:2::1', 3);
+      expect(await status(target, '2001:db8:1:2::1'), 429);
+      expect(await status(target, '2001:db8:1:2:aaaa:bbbb:cccc:dddd'), 429);
+    });
+
+    test('addresses in one /64 share a failure bucket', () async {
+      final target = failureRowApp();
+      await drain(target, '2001:db8:1:2::1', maxFailedResolutionsPerIpBurst);
+      expect(await status(target, '2001:db8:1:2::1'), 429);
+      expect(await status(target, '2001:db8:1:2:aaaa:bbbb:cccc:dddd'), 429);
+    });
+
+    test('IPv6 socket peers are keyed on the /64 too', () async {
+      // A non-loopback peer ignores X-Forwarded-For, so this exercises the
+      // socket-peer branch rather than the forwarded one.
+      final target = requestRowApp();
+      Future<int> peerStatus(String peer) async => (await target.call(
+        _requestWithPeer(InternetAddress(peer), forwardedAddress: '192.0.2.1'),
+      )).statusCode;
+      for (var i = 0; i < 3; i++) {
+        expect(await peerStatus('2001:db8:1:2::1'), 401);
+      }
+      expect(await peerStatus('2001:db8:1:2::2'), 429);
+      expect(await peerStatus('2001:db8:1:3::1'), 401);
+    });
+
+    test('addresses in different /64s stay independent', () async {
+      final requests = requestRowApp();
+      await drain(requests, '2001:db8:1:2::1', 3);
+      expect(await status(requests, '2001:db8:1:2::1'), 429);
+      expect(await status(requests, '2001:db8:1:3::1'), 401);
+      expect(await status(requests, '2001:db9:1:2::1'), 401);
+
+      final failures = failureRowApp();
+      await drain(failures, '2001:db8:1:2::1', maxFailedResolutionsPerIpBurst);
+      expect(await status(failures, '2001:db8:1:3::1'), 401);
+      expect(await status(failures, '2001:db9:1:2::1'), 401);
+    });
+
+    test('IPv4-mapped clients are keyed per IPv4 address', () async {
+      // dart:io keeps ::ffff:a.b.c.d as a 16-byte IPv6 address whose /64 is
+      // 0:0:0:0 for every IPv4 client; masking it would make one global bucket.
+      final requests = requestRowApp();
+      await drain(requests, '::ffff:192.0.2.10', 3);
+      expect(await status(requests, '::ffff:192.0.2.10'), 429);
+      expect(await status(requests, '::ffff:192.0.2.11'), 401);
+      expect(await status(requests, '::ffff:c000:20a'), 429);
+      // A mapped client is the same client as its plain IPv4 form.
+      expect(await status(requests, '192.0.2.10'), 429);
+
+      final failures = failureRowApp();
+      await drain(
+        failures,
+        '::ffff:192.0.2.10',
+        maxFailedResolutionsPerIpBurst,
+      );
+      expect(await status(failures, '::ffff:192.0.2.11'), 401);
+      expect(await status(failures, '::ffff:192.0.2.10'), 429);
+    });
+
+    test('only the exact ::ffff:0:0/96 prefix is unwrapped as IPv4', () async {
+      // Bytes 10-11 are ffff here, but the leading bytes are not zero, so this
+      // is an ordinary IPv6 address and keys on its /64.
+      final target = requestRowApp();
+      await drain(target, '2001:db8::ffff:c000:201', 3);
+      expect(await status(target, '2001:db8::ffff:c000:202'), 429);
+    });
+
+    test('textual variants of one address share a key', () async {
+      final target = requestRowApp();
+      await drain(target, '2001:DB8::1', 3);
+      expect(await status(target, '2001:db8:0:0:0:0:0:1'), 429);
+      expect(await status(target, '2001:0db8::0:1'), 429);
+      // Numeric zone IDs parse on any host; named ones only if the interface
+      // exists. The key must not depend on the zone either way.
+      expect(await status(target, 'fe80::1%1'), 401);
+      await drain(target, 'fe80::1%1', 2);
+      expect(await status(target, 'fe80::1%7'), 429);
+      expect(await status(target, 'fe80::1'), 429);
+    });
+
+    test('an IPv6 key never collides with an IPv4 key', () async {
+      final target = requestRowApp();
+      await drain(target, '::1', 3);
+      expect(await status(target, '::1'), 429);
+      expect(await status(target, '127.0.0.1'), 401);
+      expect(await status(target, '0.0.0.1'), 401);
+    });
+
+    test('minting addresses inside one /64 grows no table', () async {
+      final target = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestBurst: 100000,
+          perIpRequestsPerSecond: 100000,
+          serverWideFailuresPerMinute: 100000,
+        ),
+      );
+      // Past the 1,000-entry server-wide failure table cap: were each address
+      // its own entry, a new honest address would now be refused.
+      for (var i = 0; i < 1100; i++) {
+        await status(target, '2001:db8:1:2::${i.toRadixString(16)}');
+      }
+      expect(await status(target, '2001:db8:1:ffff::1'), 401);
+      expect(await status(target, '192.0.2.1'), 401);
+    });
+
+    test('flooding one /64 cannot evict an honest request bucket', () async {
+      final target = requestRowApp();
+      await drain(target, '198.51.100.7', 3);
+      for (var i = 0; i < 10100; i++) {
+        await status(target, '2001:db8:1:2::${i.toRadixString(16)}');
+      }
+      // The honest bucket is still tracked, still empty.
+      expect(await status(target, '198.51.100.7'), 429);
+    });
+  });
+
+  group('encoded gzip bytes', () {
+    Future<Response> gzipRequest(
+      String method,
+      String path,
+      Stream<List<int>> body, {
+      Map<String, String> headers = const {},
+    }) => app.call(
+      Request(
+        method,
+        Uri.parse('http://127.0.0.1$path'),
+        headers: {
+          'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+          'content-type': 'application/json',
+          'content-encoding': 'gzip',
+          ...headers,
+        },
+        body: body,
+      ),
+    );
+    final emptyMember = gzip.encode(<int>[]);
+
+    test('empty gzip members beyond the ceiling are rejected', () async {
+      // Each member decodes to zero chunks, so only the encoded count can stop it.
+      final members = List<List<int>>.filled(200, emptyMember);
+      final response = await gzipRequest(
+        'POST',
+        '/v1/store',
+        Stream.fromIterable(members),
+      );
+      expect(response.statusCode, 413);
+    });
+
+    test(
+      'a declared gzip length beyond the ceiling is rejected up front',
+      () async {
+        final response = await gzipRequest(
+          'POST',
+          '/v1/store',
+          Stream.fromIterable([emptyMember]),
+          headers: {'content-length': '${maxGzipBytes + 1}'},
+        );
+        expect(response.statusCode, 413);
+      },
+    );
+
+    test('a valid gzip body within the ceiling is unaffected', () async {
+      final response = await gzipRequest(
+        'POST',
+        '/v1/store',
+        Stream.value(emptyMember),
+      );
+      // Empty decoded body: store creation proceeds past the body read.
+      expect(response.statusCode, 201);
+    });
   });
 
   test('quota failures emit a safe operational alert', () async {
@@ -1110,6 +1675,448 @@ void main() {
     }
   });
 
+  // Spec §7.1: `409` has exactly two sources — a stale-epoch manifest `PUT` and
+  // a `POST /v1/store` against an id_key that already has a store. No blob
+  // route may emit it. `PUT /v1/blobs/{hash}` used to answer `409 'stale blob
+  // epoch'` when `StoreEpochMismatch` escaped the quota preflight or the write,
+  // which the store raises only when its row has gone (a concurrent
+  // `DELETE /v1/store`, or a sweep reaping it, after the handler's own lookup).
+  // Two things were wrong: the status the spec reserves for resets, and the
+  // §5.4 accounting — a thrown `_RequestFailure` answers directly, so the
+  // store-not-found outcome was never charged to the failure budget the way
+  // every other unresolved-store request is. Both guards below therefore assert
+  // the status AND that the response was counted (#1359).
+  for (final stage in _BlobStoreLossStage.values) {
+    test(
+      'a blob PUT whose store vanished during ${stage.label} is a counted 404',
+      () async {
+        final dataDirectory = await Directory.systemTemp.createTemp(
+          'athenaeum-blob-loss-',
+        );
+        final lostStore = _StoreLosingItsRow(
+          stage,
+          config: app.config,
+          database: sqlite3.openInMemory(),
+          breakGlassDatabase: sqlite3.openInMemory(),
+          diagnosticDatabase: sqlite3.openInMemory(),
+        );
+        final credential = encodeSyncCredential(syncId);
+        // A burst of 2 makes the third failure the one that proves counting:
+        // an uncounted response would leave the budget untouched and answer
+        // 404 forever.
+        final customApp = _AuthenticatedApp(
+          AthenaeumApp(
+            config: app.config,
+            store: lostStore,
+            budgetLimits: const AthenaeumBudgetLimits(
+              perIpFailureBurst: 2,
+              perIpFailuresPerMinute: 2,
+            ),
+          ),
+          credential,
+        );
+        try {
+          expect(
+            (await customApp.call(
+              Request(
+                'POST',
+                Uri.parse('http://127.0.0.1/v1/store'),
+                headers: {'authorization': 'Bearer $credential'},
+              ),
+            )).statusCode,
+            201,
+          );
+          // A well-formed, allow-list-clean record: the `putBlob` stage is only
+          // reached by a body that passes validation, so the same payload
+          // exercises both stages.
+          final bytes = _recordBlob(
+            kind: 'choreographer',
+            id: 'c1',
+            body: {'id': 'c1', 'name': 'Alice Choreo'},
+          );
+          final hash = sha256.convert(bytes).toString();
+          Future<Response> upload() => customApp.call(
+            Request(
+              'PUT',
+              Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+              headers: {
+                'authorization': 'Bearer $credential',
+                'content-type': 'application/octet-stream',
+              },
+              body: bytes,
+            ),
+          );
+
+          final first = await upload();
+          expect(
+            first.statusCode,
+            404,
+            reason: 'a vanished store is not a conflict',
+          );
+          expect(jsonDecode(await first.readAsString()), {
+            'error': 'store not found',
+          });
+          expect((await upload()).statusCode, 404);
+          // Counted: the budget is now spent, so the next one sheds. A `409`
+          // raised through `_RequestFailure` never reaches the failure budget
+          // and this would still be 404.
+          expect(
+            (await upload()).statusCode,
+            429,
+            reason: 'the 404 must consume the §5.4 failure budget',
+          );
+        } finally {
+          lostStore.close();
+          await dataDirectory.delete(recursive: true);
+        }
+      },
+    );
+  }
+
+  // The manifest `PUT` had the same defect (#1925): `StoreEpochMismatch` meant
+  // both "row gone" and "different epoch", and both answered an uncounted 409.
+  // A gone store is now `StoreMissing` and a counted 404; a store recreated
+  // under a new epoch is still the 409 §7.1 reserves.
+  for (final stage in _ManifestStoreLossStage.values) {
+    test('a manifest PUT whose store vanished during ${stage.label} is a '
+        'counted 404', () async {
+      final lostStore = _StoreLosingManifestRow(
+        stage,
+        const StoreMissing(),
+        config: app.config,
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+      );
+      final credential = encodeSyncCredential(syncId);
+      final customApp = _AuthenticatedApp(
+        AthenaeumApp(
+          config: app.config,
+          store: lostStore,
+          budgetLimits: const AthenaeumBudgetLimits(
+            perIpFailureBurst: 2,
+            perIpFailuresPerMinute: 2,
+          ),
+        ),
+        credential,
+      );
+      try {
+        final created = await customApp.call(
+          Request(
+            'POST',
+            Uri.parse('http://127.0.0.1/v1/store'),
+            headers: {'authorization': 'Bearer $credential'},
+          ),
+        );
+        expect(created.statusCode, 201);
+        final epoch =
+            (jsonDecode(await created.readAsString())
+                    as Map<String, Object?>)['epoch']!
+                as String;
+        final bytes = encodeSyncManifestUtf8(
+          SyncManifest(
+            deviceId: 'device-one',
+            epoch: epoch,
+            writtenAt: DateTime.utc(2026, 9, 3),
+            records: const {},
+          ),
+        );
+        Future<Response> upload() => customApp.call(
+          Request(
+            'PUT',
+            Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+            headers: {
+              'authorization': 'Bearer $credential',
+              'content-type': 'application/json',
+            },
+            body: bytes,
+          ),
+        );
+
+        final first = await upload();
+        expect(
+          first.statusCode,
+          404,
+          reason: 'a vanished store is not a stale epoch',
+        );
+        expect(jsonDecode(await first.readAsString()), {
+          'error': 'store not found',
+        });
+        expect((await upload()).statusCode, 404);
+        expect(
+          (await upload()).statusCode,
+          429,
+          reason: 'the 404 must consume the §5.4 failure budget',
+        );
+      } finally {
+        lostStore.close();
+      }
+    });
+  }
+
+  // The store-raised mismatch is the 409 §7.1 reserves. Unlike the vanished
+  // store it is a reset the client must see, not an unresolved-store request,
+  // so it answers directly and is NOT charged to the failure budget: a third
+  // request with a burst of 2 is still a 409, not a 429.
+  for (final stage in _ManifestStoreLossStage.values) {
+    test(
+      'a manifest PUT whose epoch is stale at ${stage.label} is an uncounted '
+      '409',
+      () async {
+        final staleStore = _StoreLosingManifestRow(
+          stage,
+          const StoreEpochMismatch(),
+          config: app.config,
+          database: sqlite3.openInMemory(),
+          breakGlassDatabase: sqlite3.openInMemory(),
+          diagnosticDatabase: sqlite3.openInMemory(),
+        );
+        final credential = encodeSyncCredential(syncId);
+        final customApp = _AuthenticatedApp(
+          AthenaeumApp(
+            config: app.config,
+            store: staleStore,
+            budgetLimits: const AthenaeumBudgetLimits(
+              perIpFailureBurst: 2,
+              perIpFailuresPerMinute: 2,
+            ),
+          ),
+          credential,
+        );
+        try {
+          final created = await customApp.call(
+            Request(
+              'POST',
+              Uri.parse('http://127.0.0.1/v1/store'),
+              headers: {'authorization': 'Bearer $credential'},
+            ),
+          );
+          expect(created.statusCode, 201);
+          final epoch =
+              (jsonDecode(await created.readAsString())
+                      as Map<String, Object?>)['epoch']!
+                  as String;
+          final bytes = encodeSyncManifestUtf8(
+            SyncManifest(
+              deviceId: 'device-one',
+              epoch: epoch,
+              writtenAt: DateTime.utc(2026, 9, 3),
+              records: const {},
+            ),
+          );
+          Future<Response> upload() => customApp.call(
+            Request(
+              'PUT',
+              Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+              headers: {
+                'authorization': 'Bearer $credential',
+                'content-type': 'application/json',
+              },
+              body: bytes,
+            ),
+          );
+
+          final first = await upload();
+          expect(first.statusCode, 409);
+          expect(jsonDecode(await first.readAsString()), {
+            'error': 'stale manifest epoch',
+          });
+          expect((await upload()).statusCode, 409);
+          expect((await upload()).statusCode, 409);
+        } finally {
+          staleStore.close();
+        }
+      },
+    );
+  }
+
+  // Pins the handler's own body-epoch check (`manifest.epoch != current.epoch`),
+  // which a recreated store reaches before the store is called. The
+  // store-raised mismatch at the two catches is pinned by the injection tests
+  // above.
+  test('a manifest PUT into a recreated store is still a 409', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final oldEpoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final response = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: encodeSyncManifestUtf8(
+        SyncManifest(
+          deviceId: 'device-one',
+          epoch: oldEpoch,
+          writtenAt: DateTime.utc(2026, 9, 3),
+          records: const {},
+        ),
+      ),
+      contentType: 'application/json',
+    );
+    expect(response.statusCode, 409);
+  });
+
+  test('the store raises StoreMissing for a gone row, not a mismatch', () {
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    expect(
+      () => app.store.manifestUploadPreflight(
+        idKey: idKey,
+        epoch: 'a' * 32,
+        deviceId: 'device-one',
+      ),
+      throwsA(isA<StoreMissing>()),
+    );
+    expect(
+      () => app.store.putManifest(
+        idKey: idKey,
+        epoch: 'a' * 32,
+        deviceId: 'device-one',
+        etag: 'e',
+        writtenAt: 0,
+        body: Uint8List(0),
+        referencedHashes: const [],
+      ),
+      throwsA(isA<StoreMissing>()),
+    );
+  });
+
+  test('no blob route answers 409', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = _recordBlob(
+      kind: 'choreographer',
+      id: 'c1',
+      body: {'id': 'c1', 'name': 'Alice Choreo'},
+    );
+    final hash = sha256.convert(bytes).toString();
+    final otherHash = sha256.convert(Uint8List.fromList([9])).toString();
+
+    // Every blob-route outcome this suite can reach, externally and by
+    // injection. The external requests alone are NOT sufficient and this test
+    // was briefly wrong for exactly that reason: a `DELETE /v1/store` followed
+    // by an upload is caught by the handler's own `store.lookup` and answers
+    // 404 whether or not the `StoreEpochMismatch` branches below it say 409, so
+    // an external-only sweep stayed green against the unfixed code. The two
+    // store-loss stages are the only requests that reach those branches, so
+    // they are part of the sweep rather than a separate concern.
+    final statuses = <String, int>{};
+    Future<void> record(
+      String label,
+      Future<HttpClientResponse> response,
+    ) async => statuses[label] = (await response).statusCode;
+
+    await record(
+      'put',
+      _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+    await record(
+      'put again',
+      _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+    await record('get', _send('GET', '/v1/blobs/$hash', syncId: syncId));
+    await record(
+      'get absent',
+      _send('GET', '/v1/blobs/$otherHash', syncId: syncId),
+    );
+    await record(
+      'put mismatched body',
+      _send(
+        'PUT',
+        '/v1/blobs/$otherHash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    await record(
+      'put into a deleted store',
+      _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+
+    for (final stage in _BlobStoreLossStage.values) {
+      final lostStore = _StoreLosingItsRow(
+        stage,
+        config: app.config,
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+      );
+      final credential = encodeSyncCredential(syncId);
+      final lossApp = _AuthenticatedApp(
+        AthenaeumApp(config: app.config, store: lostStore),
+        credential,
+      );
+      try {
+        expect(
+          (await lossApp.call(
+            Request(
+              'POST',
+              Uri.parse('http://127.0.0.1/v1/store'),
+              headers: {'authorization': 'Bearer $credential'},
+            ),
+          )).statusCode,
+          201,
+        );
+        statuses['put losing the store at ${stage.label}'] =
+            (await lossApp.call(
+              Request(
+                'PUT',
+                Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+                headers: {
+                  'authorization': 'Bearer $credential',
+                  'content-type': 'application/octet-stream',
+                },
+                body: bytes,
+              ),
+            )).statusCode;
+      } finally {
+        lostStore.close();
+      }
+    }
+
+    expect(statuses, {
+      'put': 201,
+      'put again': 200,
+      'get': 200,
+      'get absent': 404,
+      'put mismatched body': 400,
+      'put into a deleted store': 404,
+      'put losing the store at the quota preflight': 404,
+      'put losing the store at the write': 404,
+    });
+    expect(
+      statuses.values,
+      everyElement(isNot(409)),
+      reason: '§7.1 reserves 409 for manifest PUT and POST /v1/store',
+    );
+  });
+
   test(
     'server-wide shedding preserves existing-store and resource behavior',
     () async {
@@ -1151,12 +2158,15 @@ void main() {
 
   test('creation cap does not hide an existing-store conflict', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    // One creation per address, so the server-wide row is what refuses the
+    // last one and not the per-address row in front of it (spec §5.4).
     for (var attempt = 0; attempt < maxStoreCreationsPerMinute - 1; attempt++) {
       expect(
         (await _send(
           'POST',
           '/v1/store',
           syncId: 'creation-$attempt-café-staple',
+          headers: {'x-test-ip': 'creator-$attempt'},
         )).statusCode,
         201,
       );
@@ -1166,6 +2176,7 @@ void main() {
         'POST',
         '/v1/store',
         syncId: 'over-cap-café-staple',
+        headers: {'x-test-ip': 'creator-over-cap'},
       )).statusCode,
       429,
     );
@@ -1195,7 +2206,7 @@ void main() {
       ),
     );
 
-    await expectLater(createRequest(), throwsA(isA<SqliteException>()));
+    expect((await createRequest()).statusCode, 500);
     database.execute('DROP TRIGGER fail_store_create');
     expect((await createRequest()).statusCode, 201);
   });
@@ -1204,15 +2215,19 @@ void main() {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final bytes = Uint8List.fromList(List<int>.generate(128, (i) => i));
     final hash = sha256.convert(bytes).toString();
+    // Each upload comes from its own address: one address may hold only
+    // [defaultMaxLargeBodiesInFlightPerIp] uploads at once, and whether eight
+    // from one address overlap depends on how the platform schedules them.
     final responses = await Future.wait(
       List.generate(
         8,
-        (_) => _send(
+        (i) => _send(
           'PUT',
           '/v1/blobs/$hash',
           syncId: syncId,
           body: bytes,
           contentType: 'application/octet-stream',
+          headers: {'x-test-ip': 'uploader-$i'},
         ),
       ),
     );
@@ -1257,6 +2272,7 @@ void main() {
         etag: rawBodyHash(body),
         writtenAt: manifest.writtenAt.millisecondsSinceEpoch ~/ 1000,
         body: body,
+        referencedHashes: const [],
       ),
       throwsA(isA<StoreEpochMismatch>()),
     );
@@ -1514,6 +2530,125 @@ void main() {
     );
     expect(response.statusCode, 404);
     expect(blobFile.existsSync(), isFalse);
+  });
+
+  test('a request drains as many cleanup jobs as its time budget allows, '
+      'not a fixed few', () async {
+    final customDirectory = await Directory.systemTemp.createTemp(
+      'athenaeum-request-retry-budget-',
+    );
+    final customConfig = AthenaeumConfig(
+      dataDirectory: customDirectory.path,
+      pepper: List<int>.filled(32, 0x42),
+    );
+    // A clock that never advances: the budget is never spent.
+    final customStore = AthenaeumStore(
+      config: customConfig,
+      elapsed: () => Duration.zero,
+    );
+    final customApp = AthenaeumApp(config: customConfig, store: customStore);
+    addTearDown(() async {
+      customStore.close();
+      await customDirectory.delete(recursive: true);
+    });
+    const queued = 4 * maxPendingDeletionRetriesPerRequest;
+    for (var index = 0; index < queued; index++) {
+      customStore.database.execute(
+        'INSERT INTO blob_deletion_jobs (id_key, epoch, hash, queued_at) '
+        'VALUES (?, ?, ?, ?)',
+        ['e' * 64, 'f' * 32, index.toRadixString(16).padLeft(64, '0'), 0],
+      );
+    }
+
+    final response = await customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer ${encodeSyncCredential(syncId)}'},
+      ),
+    );
+    expect(response.statusCode, 404);
+    expect(
+      customStore.database.select('SELECT 1 FROM blob_deletion_jobs'),
+      isEmpty,
+    );
+  });
+
+  group('request cleanup', () {
+    late Directory directory;
+    late AthenaeumConfig config;
+    setUp(() async {
+      directory = await Directory.systemTemp.createTemp(
+        'athenaeum-request-retry-bounds-',
+      );
+      config = AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      );
+    });
+    tearDown(() => directory.delete(recursive: true));
+
+    Future<void> request(AthenaeumStore store) async {
+      final response = await AthenaeumApp(config: config, store: store).call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': 'Bearer ${encodeSyncCredential(syncId)}'},
+        ),
+      );
+      expect(response.statusCode, 404);
+    }
+
+    void queue(AthenaeumStore store, int count) {
+      for (var index = 0; index < count; index++) {
+        final hash = index.toRadixString(16).padLeft(64, '0');
+        store.blobFile('e' * 64, 'f' * 32, hash)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync([1]);
+        store.database.execute(
+          'INSERT INTO blob_deletion_jobs (id_key, epoch, hash, queued_at) '
+          'VALUES (?, ?, ?, ?)',
+          ['e' * 64, 'f' * 32, hash, 0],
+        );
+      }
+    }
+
+    int queued(AthenaeumStore store) =>
+        store.database
+                .select('SELECT COUNT(*) AS n FROM blob_deletion_jobs')
+                .single['n']
+            as int;
+
+    test('stops once its time budget is spent', () async {
+      // Every job takes longer than the whole budget.
+      var elapsed = Duration.zero;
+      final store = AthenaeumStore(
+        config: config,
+        elapsed: () => elapsed += requestPendingDeletionBudget,
+      );
+      addTearDown(store.close);
+      queue(store, 10);
+      await request(store);
+      expect(queued(store), 9);
+    });
+
+    test('stops at the first job that fails, which keeps failing', () async {
+      var attempts = 0;
+      final store = AthenaeumStore(
+        config: config,
+        elapsed: () => Duration.zero,
+        deleteFile: (_) {
+          attempts++;
+          throw const FileSystemException('injected');
+        },
+      );
+      addTearDown(store.close);
+      queue(store, 10);
+      attempts = 0;
+      await request(store);
+      expect(attempts, 1);
+      expect(queued(store), 10);
+    });
   });
 
   test(
@@ -1852,6 +2987,99 @@ void main() {
     },
   );
 
+  test(
+    'manifest PUT over the byte quota returns 507 without storing',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'athenaeum-manifest-byte-quota-',
+      );
+      final customStore = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: directory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+        quotaLimits: const AthenaeumQuotaLimits(maxBytes: 10),
+      );
+      final customApp = AthenaeumApp(
+        config: customStore.config,
+        store: customStore,
+      );
+      addTearDown(() async {
+        customStore.close();
+        await directory.delete(recursive: true);
+      });
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      var pulled = 0;
+      Stream<List<int>> chunks(Uint8List body) async* {
+        for (final byte in body) {
+          pulled++;
+          yield [byte];
+        }
+      }
+
+      Future<Response> request(
+        String method,
+        String path, {
+        Uint8List? body,
+        bool declareLength = true,
+      }) => customApp.call(
+        Request(
+          method,
+          Uri.parse('http://127.0.0.1$path'),
+          headers: {
+            'authorization': authorization,
+            if (body != null) 'content-type': 'application/json',
+            if (body != null && declareLength)
+              'content-length': '${body.length}',
+          },
+          body: body == null ? null : chunks(body),
+        ),
+      );
+
+      final created = await request('POST', '/v1/store');
+      expect(created.statusCode, 201);
+      final epoch =
+          (jsonDecode(await created.readAsString())
+                  as Map<String, Object?>)['epoch']!
+              as String;
+      final body = encodeSyncManifestUtf8(
+        SyncManifest(
+          deviceId: 'device-a',
+          epoch: epoch,
+          writtenAt: DateTime.utc(2026, 9, 3),
+          records: const {},
+        ),
+      );
+      expect(body.length, greaterThan(20));
+      for (final declareLength in [true, false]) {
+        pulled = 0;
+        expect(
+          (await request(
+            'PUT',
+            '/v1/manifests/device-a',
+            body: body,
+            declareLength: declareLength,
+          )).statusCode,
+          507,
+          reason: 'declareLength=$declareLength',
+        );
+        // The over-quota body must be refused before it is buffered: a
+        // declared length is refused unread, a streamed one is cut off at
+        // the quota rather than read to the end.
+        expect(
+          pulled,
+          declareLength ? 0 : lessThan(body.length),
+          reason: 'declareLength=$declareLength',
+        );
+      }
+      final idKey = deriveIncomingSyncIdKey(syncId, customApp.config.pepper);
+      expect(customStore.manifest(idKey, epoch, 'device-a'), isNull);
+    },
+  );
+
   test('blob-count quota rejects the next unique upload', () async {
     final directory = await Directory.systemTemp.createTemp(
       'athenaeum-blob-quota-',
@@ -2020,6 +3248,7 @@ void main() {
       etag: 'a' * 64,
       writtenAt: 0,
       body: Uint8List.fromList([1]),
+      referencedHashes: const [],
     );
     var yielded = 0;
     Stream<List<int>> body() async* {
@@ -2323,7 +3552,7 @@ void main() {
     },
   );
 
-  test('sweep controller cancels its hourly callback on shutdown', () {
+  test('sweep controller cancels its hourly callback on shutdown', () async {
     final timer = _FakeTimer();
     late void Function() fire;
     var sweeps = 0;
@@ -2352,44 +3581,127 @@ void main() {
     );
     controller.start();
     fire();
+    await controller.running;
     expect(sweeps, 1);
     expect(app.store.lookup(expiredIdKey), isNull);
-    controller.stop();
+    await controller.stop();
     expect(timer.isActive, isFalse);
     fire();
     expect(sweeps, 1);
   });
 
-  test('sweep controller contains callback failures and emits an alert', () {
-    final timer = _FakeTimer();
-    late void Function() fire;
-    var attempts = 0;
-    final alerts = <AthenaeumOperationalAlert>[];
-    final controller = AthenaeumSweepController(
-      app.store,
-      sweep: () {
-        attempts++;
-        if (attempts == 1) throw StateError('injected sweep failure');
-      },
-      alertSink: alerts.add,
-      schedule: (interval, callback) {
-        fire = () {
-          if (timer.isActive) callback(timer);
-        };
-        return timer;
-      },
-    );
-    controller.start();
-    fire();
-    fire();
-    expect(attempts, 2);
-    expect(alerts.single.toJson(), {
-      'kind': 'sweep_failure',
-      'source': 'hourly_sweep',
-      'errorType': 'StateError',
-    });
-    controller.stop();
-  });
+  test(
+    'sweep controller contains callback failures and emits an alert',
+    () async {
+      final timer = _FakeTimer();
+      late void Function() fire;
+      var attempts = 0;
+      final alerts = <AthenaeumOperationalAlert>[];
+      final controller = AthenaeumSweepController(
+        app.store,
+        sweep: () {
+          attempts++;
+          if (attempts == 1) throw StateError('injected sweep failure');
+        },
+        alertSink: alerts.add,
+        schedule: (interval, callback) {
+          fire = () {
+            if (timer.isActive) callback(timer);
+          };
+          return timer;
+        },
+      );
+      controller.start();
+      fire();
+      await controller.running;
+      fire();
+      await controller.running;
+      expect(attempts, 2);
+      expect(alerts.single.toJson(), {
+        'kind': 'sweep_failure',
+        'source': 'hourly_sweep',
+        'errorType': 'StateError',
+      });
+      await controller.stop();
+    },
+  );
+
+  test(
+    'stopping the sweep controller stops its sweep at the next slice',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'athenaeum-sweep-stop-',
+      );
+      final config = AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      );
+      // Every unit of the sweep spends its whole slice.
+      var elapsed = Duration.zero;
+      final store = AthenaeumStore(
+        config: config,
+        elapsed: () => elapsed += const Duration(seconds: 1),
+      );
+      addTearDown(() async {
+        store.close();
+        await directory.delete(recursive: true);
+      });
+      final idKeys = [for (var index = 0; index < 5; index++) '$index' * 64];
+      for (final idKey in idKeys) {
+        store.create(idKey);
+      }
+      store.database.execute('UPDATE stores SET last_seen = 0');
+      final timer = _FakeTimer();
+      late void Function() fire;
+      final controller = AthenaeumSweepController(
+        store,
+        schedule: (interval, callback) {
+          fire = () => callback(timer);
+          return timer;
+        },
+      );
+      controller.start();
+      fire();
+      await controller.stop();
+      expect(idKeys.where((idKey) => store.lookup(idKey) != null), isNotEmpty);
+    },
+  );
+
+  test(
+    'sweep controller does not start a sweep while one is running',
+    () async {
+      final timer = _FakeTimer();
+      late void Function() fire;
+      var started = 0;
+      var release = Completer<void>();
+      final controller = AthenaeumSweepController(
+        app.store,
+        sweep: () {
+          started++;
+          return release.future;
+        },
+        schedule: (interval, callback) {
+          fire = () {
+            if (timer.isActive) callback(timer);
+          };
+          return timer;
+        },
+      );
+      controller.start();
+      fire();
+      fire();
+      expect(started, 1);
+      release.complete();
+      await controller.running;
+      release = Completer<void>();
+      fire();
+      expect(started, 2);
+      final stopped = controller.stop();
+      release.complete();
+      await stopped;
+      expect(controller.running, isNull);
+    },
+  );
 }
 
 extension on HttpClientResponse {
@@ -2479,6 +3791,113 @@ class _AuthenticatedApp {
 
   Future<Response> call(Request request) =>
       _app.call(request.change(headers: {'authorization': _authorization}));
+}
+
+/// Which step of `PUT /v1/blobs/{hash}` loses the store row underneath it.
+///
+/// Both raise [StoreEpochMismatch] from a real [AthenaeumStore] method, which
+/// is exactly what the store does when `lookup` finds no row
+/// (`athenaeum_store.dart` `blobUploadLimit`/`putBlob`). Injecting it is the
+/// only deterministic way to sit in the window between the handler's own
+/// lookup and the call: the race needs a concurrent `DELETE /v1/store` or a
+/// sweep reap landing mid-request.
+enum _BlobStoreLossStage {
+  quotaPreflight('the quota preflight'),
+  write('the write');
+
+  const _BlobStoreLossStage(this.label);
+
+  final String label;
+}
+
+class _StoreLosingItsRow extends AthenaeumStore {
+  _StoreLosingItsRow(
+    this.stage, {
+    required super.config,
+    required super.database,
+    required super.breakGlassDatabase,
+    required super.diagnosticDatabase,
+  });
+
+  final _BlobStoreLossStage stage;
+
+  @override
+  int blobUploadLimit(String idKey, String epoch, String hash) =>
+      stage == _BlobStoreLossStage.quotaPreflight
+      ? throw const StoreEpochMismatch()
+      : super.blobUploadLimit(idKey, epoch, hash);
+
+  @override
+  bool putBlob({
+    required String idKey,
+    required String epoch,
+    required String hash,
+    required Uint8List body,
+  }) => stage == _BlobStoreLossStage.write
+      ? throw const StoreEpochMismatch()
+      : super.putBlob(idKey: idKey, epoch: epoch, hash: hash, body: body);
+}
+
+/// Which step of the manifest `PUT` the store fails at. The wrapper raises
+/// [StoreMissing] (a concurrent `DELETE /v1/store` or sweep reap) or
+/// [StoreEpochMismatch] (the store recreated under a new epoch) from the real
+/// store's method, since only injection can sit in the window after the
+/// handler's own lookup (see [_BlobStoreLossStage]).
+enum _ManifestStoreLossStage {
+  quotaPreflight('the quota preflight'),
+  write('the write');
+
+  const _ManifestStoreLossStage(this.label);
+
+  final String label;
+}
+
+class _StoreLosingManifestRow extends AthenaeumStore {
+  _StoreLosingManifestRow(
+    this.stage,
+    this.error, {
+    required super.config,
+    required super.database,
+    required super.breakGlassDatabase,
+    required super.diagnosticDatabase,
+  });
+
+  final _ManifestStoreLossStage stage;
+  final Exception error;
+
+  @override
+  int manifestUploadPreflight({
+    required String idKey,
+    required String epoch,
+    required String deviceId,
+  }) => stage == _ManifestStoreLossStage.quotaPreflight
+      ? throw error
+      : super.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: deviceId,
+        );
+
+  @override
+  bool putManifest({
+    required String idKey,
+    required String epoch,
+    required String deviceId,
+    required String etag,
+    required int writtenAt,
+    required Uint8List body,
+    required Iterable<String> referencedHashes,
+  }) => stage == _ManifestStoreLossStage.write
+      ? throw error
+      : super.putManifest(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: deviceId,
+          etag: etag,
+          writtenAt: writtenAt,
+          body: body,
+          referencedHashes: referencedHashes,
+        );
 }
 
 Uint8List _recordBlob({

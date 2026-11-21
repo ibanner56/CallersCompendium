@@ -93,8 +93,47 @@ void main() {
         updatedAt: DateTime.utc(2026),
       ),
     );
-    await expectLater(repo.delete('f1'), throwsA(isA<StateError>()));
+    await expectLater(
+      repo.delete('f1'),
+      throwsA(isA<CustomFieldInUseException>()),
+    );
   });
+
+  test(
+    'delete throws CustomFieldInUseException carrying the live count',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        ),
+      );
+      for (final id in ['d1', 'd2', 'd3']) {
+        await dances.create(
+          Dance(
+            id: id,
+            title: 'Dance $id',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'x')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+      }
+      // A tombstoned dance keeps its value row but must not be counted.
+      await dances.softDelete('d3', at: DateTime.utc(2026, 2));
+      await expectLater(
+        repo.delete('f1'),
+        throwsA(
+          isA<CustomFieldInUseException>()
+              .having((e) => e.danceCount, 'danceCount', 2)
+              .having((e) => e.fieldId, 'fieldId', 'f1'),
+        ),
+      );
+    },
+  );
 
   test('delete succeeds once the referencing dance clears the value', () async {
     // ignore: unused_result
@@ -172,6 +211,116 @@ void main() {
 
     test('returns false for an unknown field id', () async {
       expect(await repo.isInUse('nonexistent'), isFalse);
+    });
+  });
+
+  group('permanent delete keeps a tombstoned dance whole (#1357)', () {
+    Future<int> valueRows(String fieldId) async {
+      final rows = await (db.select(
+        db.customFieldValues,
+      )..where((t) => t.fieldId.equals(fieldId))).get();
+      return rows.length;
+    }
+
+    Future<void> seedTombstonedValue() async {
+      // ignore: unused_result
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        ),
+      );
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Dance',
+          customFields: [CustomFieldValue(fieldId: 'f1', value: 'some note')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+    }
+
+    test('tombstones the definition instead of erasing it', () async {
+      // `custom_field_values` is ON DELETE CASCADE, so erasing here destroyed
+      // the tombstoned dance's value outright.
+      await seedTombstonedValue();
+
+      await repo.delete('f1', permanent: true);
+
+      final row = await (db.select(
+        db.customFieldDefs,
+      )..where((t) => t.id.equals('f1'))).getSingleOrNull();
+      expect(row, isNotNull, reason: 'the row must survive the rollback');
+      expect(row!.deletedAt, isNotNull, reason: 'as a tombstone');
+      expect(await valueRows('f1'), 1, reason: 'the value must survive too');
+      expect(
+        await repo.getById('f1'),
+        isNull,
+        reason: 'and still leave every live view, which is what undo needs',
+      );
+    });
+
+    test('a restored dance keeps its field value, once the definition is '
+        'restored too', () async {
+      // `_customFieldsForMany` inner-joins on
+      // `custom_field_defs.deleted_at IS NULL`, so a restore that does not
+      // revive the definition shows nothing. This once took two restores;
+      // since B9 the dance's own restore revives the definition, and
+      // `reviveReferences: false` (an archive merge) still takes two.
+      await seedTombstonedValue();
+
+      await repo.delete('f1', permanent: true);
+
+      await dances.restore(
+        'd1',
+        at: DateTime.utc(2026, 3),
+        reviveReferences: false,
+      );
+      expect(
+        (await dances.getById('d1'))!.customFields,
+        isEmpty,
+        reason: 'a tombstoned definition stays hidden until it is restored',
+      );
+
+      await repo.restore('f1', at: DateTime.utc(2026, 3));
+      final restored = (await dances.getById('d1'))!.customFields.single;
+      expect(restored.fieldId, 'f1');
+      expect(restored.value, 'some note');
+    });
+
+    test('restoring the dance revives the definition with it (B9)', () async {
+      await seedTombstonedValue();
+
+      await repo.delete('f1', permanent: true);
+
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      expect(await repo.getById('f1'), isNotNull);
+      final restored = (await dances.getById('d1'))!.customFields.single;
+      expect(restored.fieldId, 'f1');
+      expect(restored.value, 'some note');
+    });
+
+    test('still erases an unreferenced, unpublished definition', () async {
+      // ignore: unused_result
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        ),
+      );
+
+      await repo.delete('f1', permanent: true);
+
+      final row = await (db.select(
+        db.customFieldDefs,
+      )..where((t) => t.id.equals('f1'))).getSingleOrNull();
+      expect(row, isNull, reason: 'a rollback still leaves nothing behind');
     });
   });
 
@@ -344,6 +493,428 @@ void main() {
       );
       final loaded = await repo.getById('f1');
       expect(loaded!.choices, ['easy', 'medium', 'hard']);
+    });
+  });
+
+  group('creating onto a live natural key', _liveKeyCollisionOnCreate);
+
+  // The maintainer's trash-policy decision (2026-10-29, option b): a dance in
+  // Recently deleted does not protect what it uses. Every guard ignores it, and
+  // a field edit drops the trashed values that no longer fit instead.
+  group('trash does not protect a field', () {
+    final created = DateTime.utc(2026);
+    final trashed = DateTime.utc(2026, 2);
+    final edited = DateTime.utc(2026, 3);
+
+    Future<void> seedField(CustomFieldDef def) async {
+      // ignore: unused_result
+      await repo.upsert(def, at: created);
+    }
+
+    Future<void> seedDance(
+      String id,
+      Object value, {
+      bool inTrash = false,
+    }) async {
+      await dances.create(
+        Dance(
+          id: id,
+          title: id,
+          customFields: [CustomFieldValue(fieldId: 'f1', value: value)],
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      if (inTrash) await dances.softDelete(id, at: trashed);
+    }
+
+    Future<Map<String, String?>> valuesByDance() async {
+      final rows = await (db.select(
+        db.customFieldValues,
+      )..where((t) => t.fieldId.equals('f1'))).get();
+      return {
+        for (final row in rows)
+          row.danceId: row.valueText ?? row.valueNum?.toString(),
+      };
+    }
+
+    Future<DateTime> updatedAt(String danceId) async => (await (db.select(
+      db.dances,
+    )..where((t) => t.id.equals(danceId))).getSingle()).updatedAt;
+
+    CustomFieldDef field(
+      CustomFieldType type, {
+      List<String>? choices,
+      bool shareable = true,
+    }) => CustomFieldDef(
+      id: 'f1',
+      key: 'feel',
+      label: 'Feel',
+      type: type,
+      choices: choices,
+      shareable: shareable,
+    );
+    final text = field(CustomFieldType.text);
+    final choice = field(
+      CustomFieldType.choice,
+      choices: const ['driving', 'lyrical'],
+    );
+
+    test('isInUse ignores a value only a trashed dance holds', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+      expect(await repo.isInUse('f1'), isFalse);
+
+      await seedDance('live', 'another note');
+      expect(await repo.isInUse('f1'), isTrue);
+    });
+
+    test(
+      'listUsedChoiceValues ignores a choice only a trashed dance holds',
+      () async {
+        await seedField(choice);
+        await seedDance('trashed', 'lyrical', inTrash: true);
+        await seedDance('live', 'driving');
+        expect(await repo.listUsedChoiceValues('f1'), {'driving'});
+      },
+    );
+
+    test('a type change drops the trashed dance\'s value, so the dance still '
+        'reads and restores', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+
+      // ignore: unused_result
+      await repo.upsert(field(CustomFieldType.number), at: edited);
+
+      expect(await valuesByDance(), isEmpty);
+      // A text value under a number field does not decode: without the drop
+      // this read throws.
+      expect(
+        (await dances.getById('trashed', includeDeleted: true))!.customFields,
+        isEmpty,
+      );
+      await dances.restore('trashed', at: edited);
+      expect((await dances.getById('trashed'))!.customFields, isEmpty);
+    });
+
+    test('a type change restamps the trashed dance whose published body lost '
+        'the value', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+      final before = await updatedAt('trashed');
+
+      // ignore: unused_result
+      await repo.upsert(field(CustomFieldType.number), at: edited);
+
+      expect((await updatedAt('trashed')).isAfter(before), isTrue);
+    });
+
+    test(
+      'a private field\'s dropped value does not restamp the dance',
+      () async {
+        // Its value was never on the wire, so the body did not change (I2).
+        final private = field(CustomFieldType.text, shareable: false);
+        await seedField(private);
+        await seedDance('trashed', 'a note', inTrash: true);
+        final before = await updatedAt('trashed');
+
+        // ignore: unused_result
+        await repo.upsert(
+          field(CustomFieldType.number, shareable: false),
+          at: edited,
+        );
+
+        expect(await valuesByDance(), isEmpty);
+        expect(await updatedAt('trashed'), before);
+      },
+    );
+
+    // A peer's type change reaches this device through `writeFromSync`, which
+    // the local-write drop above did not cover, so the trashed dance kept a
+    // value its field no longer admits: unreadable, and unrestorable.
+    test('an inbound type change drops the trashed dance\'s value without '
+        'restamping it', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+      final before = await updatedAt('trashed');
+
+      await repo.writeFromSync(field(CustomFieldType.number), at: edited);
+
+      expect(await valuesByDance(), isEmpty);
+      expect(
+        (await dances.getById('trashed', includeDeleted: true))!.customFields,
+        isEmpty,
+      );
+      // §6.7 keeps an inbound write off the editor's path: the peer that made
+      // the change restamped its own copy of the dance, and that copy reaches
+      // this device as an ordinary newer edit.
+      expect(await updatedAt('trashed'), before);
+    });
+
+    test(
+      'an inbound choice removal drops it only from trashed dances',
+      () async {
+        await seedField(choice);
+        await seedDance('trashed-kept', 'driving', inTrash: true);
+        await seedDance('trashed-dropped', 'lyrical', inTrash: true);
+        await seedDance('live', 'lyrical');
+
+        await repo.writeFromSync(
+          field(CustomFieldType.choice, choices: ['driving']),
+          at: edited,
+        );
+
+        expect(await valuesByDance(), {
+          'trashed-kept': 'driving',
+          'live': 'lyrical',
+        });
+      },
+    );
+
+    test('removing a choice drops it only from trashed dances', () async {
+      await seedField(choice);
+      await seedDance('trashed-kept', 'driving', inTrash: true);
+      await seedDance('trashed-dropped', 'lyrical', inTrash: true);
+      await seedDance('live', 'driving');
+      final keptBefore = await updatedAt('trashed-kept');
+
+      // ignore: unused_result
+      await repo.upsert(
+        field(CustomFieldType.choice, choices: ['driving']),
+        at: edited,
+      );
+
+      expect(await valuesByDance(), {
+        'trashed-kept': 'driving',
+        'live': 'driving',
+      });
+      expect(
+        await updatedAt('trashed-kept'),
+        keptBefore,
+        reason: 'a dance whose value still fits keeps its body and its stamp',
+      );
+      expect((await updatedAt('trashed-dropped')).isAfter(keptBefore), isTrue);
+    });
+
+    test(
+      'a change between text and choice keeps a value that still fits',
+      () async {
+        await seedField(choice);
+        await seedDance('trashed', 'lyrical', inTrash: true);
+
+        // ignore: unused_result
+        await repo.upsert(field(CustomFieldType.text), at: edited);
+
+        expect(await valuesByDance(), {'trashed': 'lyrical'});
+      },
+    );
+
+    test(
+      'a change from text to choice drops a value outside the options',
+      () async {
+        await seedField(text);
+        await seedDance('trashed-kept', 'driving', inTrash: true);
+        await seedDance('trashed-dropped', 'a note', inTrash: true);
+
+        // ignore: unused_result
+        await repo.upsert(choice, at: edited);
+
+        expect(await valuesByDance(), {'trashed-kept': 'driving'});
+      },
+    );
+
+    test('a change between number and boolean drops the value', () async {
+      // Both store `value_num`, but 2.5 read as a boolean is `true`: the value
+      // would change under the dance rather than survive.
+      await seedField(field(CustomFieldType.number));
+      await seedDance('trashed', 2.5, inTrash: true);
+
+      // ignore: unused_result
+      await repo.upsert(field(CustomFieldType.boolean), at: edited);
+
+      expect(await valuesByDance(), isEmpty);
+    });
+
+    test('a live dance\'s value is never dropped by a field edit', () async {
+      // The editor locks the type while a live dance holds a value; this write
+      // is not where that is enforced, so it must leave live values alone.
+      await seedField(choice);
+      await seedDance('live', 'lyrical');
+
+      // ignore: unused_result
+      await repo.upsert(
+        field(CustomFieldType.choice, choices: ['driving']),
+        at: edited,
+      );
+
+      expect(await valuesByDance(), {'live': 'lyrical'});
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Creating a definition whose key a LIVE definition already holds.
+//
+// `_write` only consults `resolveNaturalKeyCollision` when `current != null`,
+// and a creation carries an id no row holds — so the #1348 decision was never
+// reached and the insert fell through to SQLite, which refused it with a raw
+// `SqliteException`. `CustomFieldDefRepository` is the one natural-keyed kind
+// whose screen lets a user reach that: the key field's validator checks format
+// only, and `custom_fields_screen._openForm` catches `DuplicateNaturalKeyError`
+// alone, so the field was silently not created.
+void _liveKeyCollisionOnCreate() {
+  late CompendiumDatabase db;
+  late CustomFieldDefRepository repo;
+
+  setUp(() {
+    db = openTestDatabase();
+    repo = CustomFieldDefRepository(db);
+  });
+  tearDown(() => db.close());
+
+  CustomFieldDef def(String id, String key, {String label = 'Mood'}) =>
+      CustomFieldDef(
+        id: id,
+        key: key,
+        label: label,
+        type: CustomFieldType.text,
+      );
+
+  test('refuses a creation onto a live key, typed, before any write', () async {
+    // ignore: unused_result
+    await repo.upsert(def('incumbent', 'mood'), at: DateTime.utc(2020));
+
+    await expectLater(
+      repo.upsert(def('newcomer', 'mood', label: 'Other')),
+      throwsA(
+        isA<DuplicateNaturalKeyError>()
+            .having((e) => e.table, 'table', 'custom_field_defs')
+            .having((e) => e.column, 'column', 'key')
+            .having((e) => e.value, 'value', 'mood')
+            .having((e) => e.holderId, 'holderId', 'incumbent'),
+      ),
+    );
+
+    // The incumbent is untouched and the newcomer does not exist. Asserting the
+    // whole row rather than its key: a takeover would rewrite the primary key,
+    // and a partial write would move `label` or `updated_at`.
+    final rows = await db.select(db.customFieldDefs).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.id, 'incumbent');
+    expect(rows.single.key, 'mood');
+    expect(rows.single.label, 'Mood');
+    expect(rows.single.updatedAt, DateTime.utc(2020).toLocal());
+    // A refusal leaves nothing to re-attempt, so it records no skip — the same
+    // rule `resolveNaturalKeyCollision` states for a colliding rename.
+    expect(
+      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+      isEmpty,
+    );
+  });
+
+  test('still ADOPTS a tombstoned holder rather than refusing', () async {
+    // The precondition for the whole guard: the refusal must discriminate live
+    // from tombstoned, or it breaks `adoptTombstonedNaturalKey`'s entire reason
+    // for existing (delete a field, create it again under a fresh UUID).
+    // ignore: unused_result
+    await repo.upsert(def('incumbent', 'mood'), at: DateTime.utc(2020));
+    await repo.delete('incumbent', at: DateTime.utc(2021));
+    expect(
+      (await (db.select(
+        db.customFieldDefs,
+      )..where((t) => t.id.equals('incumbent'))).getSingle()).deletedAt,
+      isNotNull,
+      reason: 'the fixture must actually be a tombstone, not a deleted row',
+    );
+
+    final written = await repo.upsert(
+      def('newcomer', 'mood', label: 'Revived'),
+      at: DateTime.utc(2022),
+    );
+    expect(written, 'incumbent', reason: 'the tombstone was adopted');
+    final live = await repo.listAll();
+    expect(live, hasLength(1));
+    expect(live.single.label, 'Revived');
+  });
+
+  test(
+    'a case-different key is not a collision and creates a second row',
+    () async {
+      // `custom_field_defs.key` carries a plain UNIQUE with no NOCASE collation,
+      // so "Mood" and "mood" are two keys. The guard must not widen to a
+      // case-insensitive rule the index does not implement.
+      // ignore: unused_result
+      await repo.upsert(def('incumbent', 'mood'));
+      // ignore: unused_result
+      await repo.upsert(def('newcomer', 'Mood', label: 'Other'));
+      expect(await repo.listAll(), hasLength(2));
+    },
+  );
+
+  test(
+    'writeFromSync keeps refusing with StateError, not the typed error',
+    () async {
+      // §6.7 owns identity for an inbound record: it reports the record to
+      // reconciliation and is never shown to anybody. The create-collision guard
+      // is `!fromSync` for exactly that reason, and this is what would catch a
+      // future simplification that drops the flag.
+      // ignore: unused_result
+      await repo.upsert(def('incumbent', 'mood'));
+      await expectLater(
+        repo.writeFromSync(def('inbound', 'mood')),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('wants a name held by'),
+          ),
+        ),
+      );
+    },
+  );
+
+  group('restore(onlyIfDeleted: true)', () {
+    final t0 = DateTime.utc(2026, 1, 1);
+    CustomFieldDef def(String id, String label) => CustomFieldDef(
+      id: id,
+      key: 'notes',
+      label: label,
+      type: CustomFieldType.text,
+    );
+
+    test('revives a tombstoned definition', () async {
+      // ignore: unused_result
+      await repo.upsert(def('f1', 'Notes'));
+      await repo.delete('f1', at: t0);
+
+      await repo.restore('f1', at: t0, onlyIfDeleted: true);
+
+      expect((await repo.getById('f1'))?.label, 'Notes');
+    });
+
+    test('refuses a row a new definition has adopted', () async {
+      // ignore: unused_result
+      await repo.upsert(def('f1', 'Notes'));
+      await repo.delete('f1', at: t0);
+      // Same key: the new definition adopts the tombstoned row.
+      // ignore: unused_result
+      await repo.upsert(def('f2', 'Remarks'));
+      final live = await repo.listAll();
+      expect([for (final d in live) d.label], ['Remarks']);
+
+      await expectLater(
+        repo.restore(live.single.id, at: t0, onlyIfDeleted: true),
+        throwsStateError,
+      );
+      expect([for (final d in await repo.listAll()) d.label], ['Remarks']);
+    });
+
+    test('refuses a definition that does not exist', () async {
+      await expectLater(
+        repo.restore('missing', at: t0, onlyIfDeleted: true),
+        throwsStateError,
+      );
     });
   });
 }

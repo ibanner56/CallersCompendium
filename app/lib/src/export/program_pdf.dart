@@ -6,8 +6,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import '../data/venue_label.dart';
+import 'pdf_page_furniture.dart';
 import 'program_figure_widgets.dart';
+import 'share_sanitization.dart';
 
 /// Loads the bundled Unicode font (Roboto, SIL OFL-1.1) used for PDF export.
 ///
@@ -25,6 +26,18 @@ import 'program_figure_widgets.dart';
 /// on-screen. These are pinned-axis instances of the exact same upstream
 /// Roboto (same family/copyright/license, see `Roboto-OFL.txt`), generated
 /// with `fonttools varLib.instancer`.
+///
+/// Roboto has no CJK glyphs, and the `pdf` package draws a placeholder box
+/// for any rune no font covers (printing a notice only inside an `assert`, so
+/// release builds are silent). The theme therefore carries a
+/// [pw.TextStyle.fontFallback] of `NotoSansJP-Regular-Subset.ttf` — a static
+/// (`fvar`-free) `fonttools subset` of Noto Sans JP (SIL OFL 1.1) holding
+/// Hiragana, Katakana, CJK/fullwidth punctuation and forms, and the JIS X 0208
+/// level 1 kanji (plus the kanji the app's own Japanese strings use). It is
+/// needed in *every* UI language, since a Japanese program or dance title
+/// prints in an English export too. Kanji outside the subset (JIS level 2,
+/// Simplified Chinese, Hangul) still draw as boxes. The fallback has no bold
+/// face, so CJK text inside a bold heading is drawn at regular weight.
 pw.ThemeData? _cachedTheme;
 
 Future<pw.ThemeData> loadProgramPdfTheme() async {
@@ -41,15 +54,40 @@ Future<pw.ThemeData> loadProgramPdfTheme() async {
   final regularFuture = rootBundle.load('assets/fonts/Roboto-Regular.ttf');
   final boldFuture = rootBundle.load('assets/fonts/Roboto-Bold.ttf');
   final italicFuture = rootBundle.load('assets/fonts/Roboto-Italic.ttf');
+  final cjkFuture = rootBundle.load(
+    'assets/fonts/NotoSansJP-Regular-Subset.ttf',
+  );
   return _cachedTheme = pw.ThemeData.withFont(
     base: pw.Font.ttf(await regularFuture),
     bold: pw.Font.ttf(await boldFuture),
     italic: pw.Font.ttf(await italicFuture),
+    fontFallback: [pw.Font.ttf(await cjkFuture)],
   );
 }
 
 /// The program-matrix PDF's marker glyphs (★ ▸ ✓), cached after first load.
 pw.Font? _cachedMatrixMarkerFont;
+
+/// Per-dance display labels for a figure-appendix card (issue #1434) — the
+/// same four strings `program_export_menu.dart` already resolves for the
+/// text-path card (`_plainTextWithFigures`): resolved author *names* (never
+/// a [Choreographer] record), and the app's human-readable facet labels.
+typedef DanceCardLabels = ({
+  List<String> authorNames,
+  String formationLabel,
+  String? levelLabel,
+  String statusLabel,
+  List<String> sourceLines,
+});
+
+/// One figure-appendix entry: the dance, whether it is an alternate, and its
+/// laid-out-ready [DanceCardContent] (`null` when the caller supplied no
+/// `cardLabelsFor`, i.e. title + figures only).
+typedef ProgramAppendixCard = ({
+  Dance dance,
+  bool isAlternate,
+  DanceCardContent? content,
+});
 
 /// Loads the bundled marker-glyph fallback font used by the program-matrix
 /// PDF (see `program_matrix_pdf.dart`, #633).
@@ -86,14 +124,21 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 /// [pw.MultiPage] so a long set list flows onto extra pages for a handout.
 ///
 /// - [titleFor] resolves a slot's dance id to a title (same contract as the
-///   text renderer); [unknownDanceLabel] is used when it returns null.
+///   text renderer); [ProgramExportLabels.unknownDance] (`labels.unknownDance`)
+///   is used when it returns null.
 /// - [formatDate] formats the event date; defaults to ISO `yyyy-MM-dd`.
 /// - [venuesById] maps venue ids to the loaded [Venue] records. When the
 ///   program links a resolvable venue ([Program.venueId]), its
 ///   [Venue.displayName] wins in the header date·venue line and a richer venue
-///   block (address, contacts, sponsor/website, schedule/price) is rendered
-///   below the metadata; otherwise the free-text [Program.venue] is used and no
-///   block is drawn. Defaults to empty, preserving the pre-venue-entity output.
+///   block (sponsor/website, schedule/price, and the contact lines the user
+///   consented to) is rendered below the metadata; otherwise the free-text
+///   [Program.venue] is used and no block is drawn. The builder runs the venue
+///   through [sanitizeVenueForShare] itself: the postal address is never
+///   printed, in the block or the header label. Defaults to empty, preserving
+///   the pre-venue-entity output.
+/// - [includeVenueContact] names the venue contact fields the user opted in to
+///   print (empty by default: none). Same contract as
+///   [buildProgramShareBundle].
 /// - [theme] supplies the Unicode font; when omitted it is loaded from the
 ///   bundled asset via [loadProgramPdfTheme].
 /// - [appendDances] — when non-null and non-empty, appends a figure appendix
@@ -101,9 +146,25 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   [buildFigureWidgets] (the same layout as the single-dance PDF but at a
 ///   smaller scale and without forced page breaks — [pw.MultiPage] paginates
 ///   naturally). Alternates in the list are labelled with [labels.alternate].
-///   Requires [dialect] and [renderer] when provided; both default sensibly
-///   ([dialect] falls back to [Dialect.larksRobins], [renderer] to a
-///   fresh [FigureRenderer] using [contraTaxonomy]).
+///   Each card reads in its own dance's form's dialect from [dialects]; the
+///   program's own text reads in contra's. Both [dialects] and [renderer]
+///   default sensibly ([dialects] falls back to [DialectsByForm.defaults],
+///   [renderer] to a fresh [FigureRenderer] using [TaxonomyRegistry.anyForm]).
+/// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
+///   author *names* for the numbered set-list line (issue #1434) — same
+///   contract as `programToPlainText`'s parameter of the same name. `null`
+///   (the default) omits the suffix, preserving the pre-#1434 slot-line
+///   format.
+/// - [formLabelFor] names a slot's dance form in its line, as
+///   `programToPlainText`'s parameter of the same name does.
+/// - [cardLabelsFor] resolves an appendix dance to the labels its card needs
+///   (issue #1434). `null` (the default) preserves the pre-#1434 appendix
+///   content exactly (title + figures only); when supplied, each appendix
+///   card is enriched to the same field set as [buildDancePdf] — a core
+///   [DanceCardContent] built with [fields] (defaults to
+///   [DanceShareField.allExceptTunes]) and laid out here, so the two builders
+///   can't drift.
+/// - [pageFormat] is the page size; defaults to A4.
 Future<Uint8List> buildProgramPdf(
   Program program, {
   required String? Function(String danceId) titleFor,
@@ -113,33 +174,76 @@ Future<Uint8List> buildProgramPdf(
   pw.ThemeData? theme,
   List<({Dance dance, bool isAlternate})>? appendDances,
   DanceExportLabels? danceLabels,
-  Dialect? dialect,
+  DialectsByForm? dialects,
   FigureRenderer? renderer,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
+  DanceCardLabels Function(Dance dance)? cardLabelsFor,
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  PdfPageFormat pageFormat = PdfPageFormat.a4,
+  Set<VenueContactField> includeVenueContact = const {},
 }) async {
-  final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
-  final resolvedDialect = dialect ?? Dialect.larksRobins;
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
+  final resolvedDialects = dialects ?? DialectsByForm.defaults;
+  // The program's own text (header, slot notes, program notes) belongs to no
+  // one dance form, so it reads in contra's dialect; each appended dance card
+  // reads in its own form's (ADR-006 §12.2, S3).
+  final resolvedDialect = resolvedDialects.forForm(DanceForm.contra);
 
-  final linkedVenue = program.venueId != null
-      ? venuesById[program.venueId!]
-      : null;
+  final venueText = programPdfVenueText(
+    program,
+    venuesById,
+    labels,
+    includeVenueContact: includeVenueContact,
+  );
 
-  final metaLines = <String>[
-    _dateVenue(program, fmtDate, venuesById),
-    if (_has(program.band)) '${labels.band}: ${program.band!.trim()}',
-    if (_has(program.caller)) '${labels.caller}: ${program.caller!.trim()}',
-    if (_has(program.dancerLevel))
-      '${labels.level}: ${canonicalizeDiscouragedTerms ? fig.renderFreeTextWithCanonicalDiscouragedTerms(program.dancerLevel!.trim(), resolvedDialect) : program.dancerLevel!.trim()}',
-  ].where((l) => l.isNotEmpty).toList();
+  final metaLines = programHeaderLines(
+    program,
+    venueNameFor: (_) => venueText.headerLabel,
+    formatDate: formatDate,
+    labels: labels,
+    renderer: fig,
+    dialect: resolvedDialect,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+  );
 
   final resolvedDanceLabels = danceLabels ?? const DanceExportLabels();
 
+  // `cardLabelsFor == null` keeps the pre-#1434 appendix (title + figures
+  // only): no content is built, so no gated block can be laid out.
+  final appendCards = <ProgramAppendixCard>[
+    for (final entry
+        in appendDances ?? const <({Dance dance, bool isAlternate})>[])
+      (
+        dance: entry.dance,
+        isAlternate: entry.isAlternate,
+        content: switch (cardLabelsFor?.call(entry.dance)) {
+          final card? => DanceCardContent.build(
+            entry.dance,
+            dialect: resolvedDialects.forDance(entry.dance),
+            authorNames: card.authorNames,
+            formationLabel: card.formationLabel,
+            levelLabel: card.levelLabel,
+            statusLabel: card.statusLabel,
+            renderer: fig,
+            labels: resolvedDanceLabels,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            fields: fields,
+            sourceLines: card.sourceLines,
+          ),
+          null => null,
+        },
+      ),
+  ];
+
   doc.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
+      pageFormat: pageFormat,
+      header: (context) => pdfRunningHeader(context, program.title.trim()),
+      footer: (context) => pdfPageFooter(context, labels.pageOf),
       build: (context) => [
         pw.Header(
           level: 0,
@@ -150,7 +254,7 @@ Future<Uint8List> buildProgramPdf(
         ),
         for (final line in metaLines)
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
-        if (linkedVenue != null) ..._venueBlock(linkedVenue, labels),
+        ..._venueBlock(venueText.blockLines, labels),
         if (program.outputGrouped.isNotEmpty) pw.SizedBox(height: 12),
         ..._slotWidgets(
           program,
@@ -159,6 +263,8 @@ Future<Uint8List> buildProgramPdf(
           renderer: fig,
           dialect: resolvedDialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          authorNamesFor: authorNamesFor,
+          formLabelFor: formLabelFor,
         ),
         if (_has(program.notes)) ...[
           pw.SizedBox(height: 12),
@@ -175,18 +281,19 @@ Future<Uint8List> buildProgramPdf(
                   )
                 : program.notes.trim(),
             style: const pw.TextStyle(fontSize: 12),
+            overflow: pw.TextOverflow.span,
           ),
         ],
-        if (appendDances != null && appendDances.isNotEmpty) ...[
+        if (appendCards.isNotEmpty) ...[
           pw.SizedBox(height: 16),
           pw.Text(
             labels.figures,
             style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
           ),
-          ..._figureAppendixWidgets(
-            appendDances,
+          ...programAppendixWidgets(
+            appendCards,
             fig,
-            resolvedDialect,
+            resolvedDialects,
             resolvedDanceLabels,
             labels,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
@@ -199,22 +306,43 @@ Future<Uint8List> buildProgramPdf(
   return doc.save();
 }
 
-/// Renders one compact dance-card block per entry in [dances] for the figure
+/// Renders one compact dance-card block per entry in the list for the figure
 /// appendix. Dance title is a bold sub-header; alternates are prefixed with
 /// [labels.alternate]. No forced page breaks — [pw.MultiPage] handles
 /// pagination naturally.
-List<pw.Widget> _figureAppendixWidgets(
-  List<({Dance dance, bool isAlternate})> dances,
+///
+/// Each entry's `content` is the field-gated card added by issue #1434 (author
+/// line, formation/level/mixer/status/phrase, calling notes, walkthrough,
+/// tunes), the same core [DanceCardContent] [buildDancePdf] lays out. A `null`
+/// `content` (no `cardLabelsFor`) preserves the pre-#1434 appendix exactly:
+/// title + figures only, regardless of the selected fields.
+@visibleForTesting
+List<pw.Widget> programAppendixWidgets(
+  List<ProgramAppendixCard> cards,
   FigureRenderer renderer,
-  Dialect dialect,
+  DialectsByForm dialects,
   DanceExportLabels danceLabels,
   ProgramExportLabels labels, {
   bool canonicalizeDiscouragedTerms = false,
 }) {
   final widgets = <pw.Widget>[];
-  for (final entry in dances) {
+  for (final entry in cards) {
     final dance = entry.dance;
-    if (dance.figures.isEmpty) continue;
+    final content = entry.content;
+    // A card needs something beneath its title: figures, or (with a built
+    // card) the selected calling notes or walkthrough. Without `content` this
+    // is the pre-#1434 figures-only appendix.
+    final hasBody =
+        switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures.isNotEmpty,
+          UnreadableFigures() => false,
+        } ||
+        (content != null &&
+            (content.callingNotes != null ||
+                content.walkthrough != null ||
+                content.hook != null ||
+                content.sourceLines.isNotEmpty));
+    if (!hasBody) continue;
     final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';
     widgets.add(pw.SizedBox(height: 10));
     widgets.add(
@@ -223,18 +351,93 @@ List<pw.Widget> _figureAppendixWidgets(
         style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
       ),
     );
+    if (content != null) {
+      if (content.authorNames.isNotEmpty) {
+        widgets.add(
+          pw.Text(
+            content.authorNames.join(', '),
+            style: const pw.TextStyle(fontSize: 12),
+          ),
+        );
+      }
+      for (final line in content.metaLines) {
+        widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
+      }
+      if (content.hook case final hook?) {
+        widgets.add(
+          pw.Text(
+            '${danceLabels.hook}: $hook',
+            style: const pw.TextStyle(fontSize: 11),
+          ),
+        );
+      }
+    }
     widgets.addAll(
       buildFigureWidgets(
         dance,
         renderer,
-        dialect,
+        // A built card carries the dance's own dialect (`dialectForDance`);
+        // without one only the title can say the dance requires larks and
+        // robins.
+        content?.dialect ??
+            dialectForDance(
+              dialects.forDance(dance),
+              title: dance.title,
+              authorNames: const [],
+            ),
         danceLabels,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       ),
     );
+    if (content != null) {
+      if (content.callingNotes case final notes?) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.callingNotes));
+        widgets.add(
+          pw.Text(
+            notes,
+            style: const pw.TextStyle(fontSize: 11),
+            overflow: pw.TextOverflow.span,
+          ),
+        );
+      }
+      if (content.walkthrough case final walkthrough?) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.walkthrough));
+        widgets.add(
+          pw.Text(
+            walkthrough,
+            style: const pw.TextStyle(fontSize: 11),
+            overflow: pw.TextOverflow.span,
+          ),
+        );
+      }
+      if (content.tuneNames.isNotEmpty) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.tunes));
+        widgets.add(
+          pw.Text(
+            content.tuneNames.join(', '),
+            style: const pw.TextStyle(fontSize: 11),
+          ),
+        );
+      }
+      if (content.sourceLines.isNotEmpty) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.sources));
+        for (final line in content.sourceLines) {
+          widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
+        }
+      }
+    }
   }
   return widgets;
 }
+
+pw.Widget _appendixHeading(String text) => pw.Text(
+  text,
+  style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+);
 
 List<pw.Widget> _slotWidgets(
   Program program,
@@ -243,68 +446,100 @@ List<pw.Widget> _slotWidgets(
   required FigureRenderer renderer,
   required Dialect dialect,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
+  String? Function(String danceId)? formLabelFor,
 }) {
   final widgets = <pw.Widget>[];
-  var n = 1;
+  var n = 0;
   for (final group in program.outputGrouped) {
-    final primary = _slotLine(
+    final primary = programSlotLine(
       group.primary,
       titleFor,
       labels,
       renderer: renderer,
       dialect: dialect,
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      authorNamesFor: authorNamesFor,
+      formLabelFor: formLabelFor,
     );
+    // Slot lines are direct `pw.Text(overflow: span)` children, spaced with
+    // `SizedBox`es: `pw.Padding` is not a `SpanningWidget`, so a note longer
+    // than a page inside one would make `MultiPage` throw.
+    widgets.add(pw.SizedBox(height: 2));
     widgets.add(
-      pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 2),
-        child: pw.Text('$n. $primary', style: const pw.TextStyle(fontSize: 13)),
+      pw.Text(
+        setListPrimaryLine(group.primary, primary, labels, () => ++n),
+        style: const pw.TextStyle(fontSize: 13),
+        overflow: pw.TextOverflow.span,
       ),
     );
+    widgets.add(pw.SizedBox(height: 2));
     for (final alt in group.alternates) {
-      final alternate = _slotLine(
+      final alternate = programSlotLine(
         alt,
         titleFor,
         labels,
         renderer: renderer,
         dialect: dialect,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        authorNamesFor: authorNamesFor,
+        formLabelFor: formLabelFor,
       );
+      widgets.add(pw.SizedBox(height: 1));
       widgets.add(
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(left: 20, top: 1, bottom: 1),
-          child: pw.Text(
-            '${labels.alt}: $alternate',
-            style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
-          ),
+        pw.Text(
+          '${labels.alt}: $alternate',
+          style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+          overflow: pw.TextOverflow.span,
         ),
       );
+      widgets.add(pw.SizedBox(height: 1));
     }
-    n++;
   }
   return widgets;
 }
 
-String _dateVenue(
+/// The venue text [buildProgramPdf] prints for [program]: the header
+/// date/venue label and the venue detail block's lines (empty when the program
+/// links no resolvable venue).
+///
+/// The venue goes through [sanitizeVenueForShare] here, so the postal address
+/// is never printed (in the block or in the header label) and a contact field
+/// is printed only when it is in [includeVenueContact]. Callers pass the raw
+/// venue; they need no redaction of their own.
+///
+/// Extracted so the redaction is testable without decoding PDF bytes; it is the
+/// single path [buildProgramPdf] draws from.
+@visibleForTesting
+({String? headerLabel, List<String> blockLines}) programPdfVenueText(
   Program program,
-  String Function(DateTime) fmtDate,
   Map<String, Venue> venuesById,
-) {
-  final parts = <String>[
-    if (program.eventDate != null) fmtDate(program.eventDate!),
-    ?resolveVenueLabel(program, venuesById),
-  ];
-  return parts.join(' · ');
+  ProgramExportLabels labels, {
+  Set<VenueContactField> includeVenueContact = const {},
+}) {
+  final linkedVenue = program.venueId != null
+      ? venuesById[program.venueId!]
+      : null;
+  return (
+    headerLabel: resolveSanitizedVenueLabelParts(
+      program.venueId,
+      program.venue,
+      venuesById,
+    ),
+    blockLines: linkedVenue == null
+        ? const []
+        : _venueLines(
+            sanitizeVenueForShare(linkedVenue, include: includeVenueContact),
+            labels,
+          ),
+  );
 }
 
-/// Renders the richer venue detail block shown when a program links a
-/// resolvable [Venue]. Each line/field is emitted only when present (relying on
-/// the model's trim/empty→null normalization) so an unset field never shows a
-/// placeholder. Values are drawn as plain PDF text — no markup interpolation —
-/// so stored venue text can't inject layout.
-List<pw.Widget> _venueBlock(Venue venue, ProgramExportLabels labels) {
-  final cityLine = venueLocalityLine(venue);
-
+/// The venue detail block's text lines for an already-sanitised [venue]: the
+/// descriptive fields, then the contact lines that survived the consent
+/// choice. Each line/field is emitted only when present (relying on the model's
+/// trim/empty→null normalization) so an unset field never shows a placeholder.
+List<String> _venueLines(Venue venue, ProgramExportLabels labels) {
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
     if (_has(venue.time)) '${labels.time}: ${venue.time}',
@@ -315,19 +550,18 @@ List<pw.Widget> _venueBlock(Venue venue, ProgramExportLabels labels) {
     if (_has(venue.website)) venue.website!,
   ];
 
-  final address = <String>[
-    if (_has(venue.address1)) venue.address1!,
-    if (_has(venue.address2)) venue.address2!,
-    if (cityLine.isNotEmpty) cityLine,
-    if (_has(venue.country)) venue.country!,
-  ];
-
   final contacts = <String>[
     _contactLine(venue.contact1Name, venue.contact1Phone, venue.contact1Email),
     _contactLine(venue.contact2Name, venue.contact2Phone, venue.contact2Email),
   ].where((l) => l.isNotEmpty).toList();
 
-  final lines = [...address, ...detail, ...contacts];
+  return [...detail, ...contacts];
+}
+
+/// Renders the venue detail block for [lines] (see [programPdfVenueText]).
+/// Values are drawn as plain PDF text — no markup interpolation — so stored
+/// venue text can't inject layout.
+List<pw.Widget> _venueBlock(List<String> lines, ProgramExportLabels labels) {
   if (lines.isEmpty) return const [];
 
   return [
@@ -342,32 +576,6 @@ List<pw.Widget> _venueBlock(Venue venue, ProgramExportLabels labels) {
   ];
 }
 
-/// Joins a US-style ZIP and its +4 add-on ("12345-6789"); returns the bare ZIP
-/// when there is no add-on, or `null` when neither is set.
-String? _postal(String? postalCode, String? plus4) {
-  final zip = postalCode?.trim();
-  final add = plus4?.trim();
-  if (zip == null || zip.isEmpty) return null;
-  return (add == null || add.isEmpty) ? zip : '$zip-$add';
-}
-
-/// Formats a venue's locality line as "City, ST 05602-1234": the city and
-/// state/province are comma-joined, and the postal code follows separated by a
-/// SPACE (US convention), never a comma. Any absent part is dropped, so a
-/// city-only venue is just "City" and a postal-only one is just the ZIP.
-/// Returns an empty string when none of the parts are present.
-@visibleForTesting
-String venueLocalityLine(Venue venue) {
-  final cityState = [
-    venue.city,
-    venue.stateProv,
-  ].whereType<String>().where((s) => s.isNotEmpty).join(', ');
-  return [
-    if (cityState.isNotEmpty) cityState,
-    ?_postal(venue.postalCode, venue.plus4),
-  ].join(' ');
-}
-
 /// Renders one contact as "name · phone · email", skipping empty parts; empty
 /// when the contact has no fields at all.
 String _contactLine(String? name, String? phone, String? email) => [
@@ -376,56 +584,4 @@ String _contactLine(String? name, String? phone, String? email) => [
   if (_has(email)) email!.trim(),
 ].join(' · ');
 
-/// Mirrors the plain-text slot-line format so the PDF and the emailable text
-/// stay in lockstep.
-String _slotLine(
-  ProgramSlot slot,
-  String? Function(String danceId) titleFor,
-  ProgramExportLabels labels, {
-  required FigureRenderer renderer,
-  required Dialect dialect,
-  bool canonicalizeDiscouragedTerms = false,
-}) {
-  final buffer = StringBuffer();
-
-  if (slot.danceId != null) {
-    final title = titleFor(slot.danceId!);
-    buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
-    if (_has(slot.text)) {
-      final note = canonicalizeDiscouragedTerms
-          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-              slot.text!.trim(),
-              dialect,
-            )
-          : slot.text!.trim();
-      buffer.write(' — $note');
-    }
-  } else {
-    final text = slot.text!.trim();
-    buffer.write(
-      slot.isPurgedDance != false || !canonicalizeDiscouragedTerms
-          ? text
-          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect),
-    );
-  }
-
-  final meta = <String>[
-    if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
-    if (slot.plannedTotalMinutes != null)
-      labels.minutes(slot.plannedTotalMinutes!),
-  ];
-  if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
-
-  if (slot.performedAt != null) buffer.write(' [${labels.performed}]');
-
-  return buffer.toString();
-}
-
 bool _has(String? value) => value != null && value.trim().isNotEmpty;
-
-String _isoDate(DateTime date) {
-  final y = date.year.toString().padLeft(4, '0');
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
-  return '$y-$m-$d';
-}

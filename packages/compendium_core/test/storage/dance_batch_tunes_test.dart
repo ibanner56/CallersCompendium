@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 
 import 'test_database.dart';
 import 'fixtures.dart';
+import '../figures_support.dart';
 
 void main() {
   late CompendiumDatabase db;
@@ -34,12 +35,12 @@ void main() {
 
         expect(changed, 2);
         // Existing tune preserved, additions appended.
-        expect((await dances.getById('a'))!.tunes, [
+        expect(tunesOf((await dances.getById('a'))!), [
           'Reel A',
           'Jig B',
           'Reel C',
         ]);
-        expect((await dances.getById('b'))!.tunes, ['Jig B', 'Reel C']);
+        expect(tunesOf((await dances.getById('b'))!), ['Jig B', 'Reel C']);
       },
     );
 
@@ -60,7 +61,7 @@ void main() {
         );
 
         expect(changed, 0);
-        expect((await dances.getById('a'))!.tunes, ['Reel A', 'Jig B']);
+        expect(tunesOf((await dances.getById('a'))!), ['Reel A', 'Jig B']);
       },
     );
 
@@ -74,7 +75,7 @@ void main() {
       );
 
       expect(changed, 1);
-      expect((await dances.getById('a'))!.tunes, ['Reel A', 'Jig B']);
+      expect(tunesOf((await dances.getById('a'))!), ['Reel A', 'Jig B']);
     });
 
     test('stamps updatedAt only on changed dances', () async {
@@ -110,7 +111,7 @@ void main() {
         ),
         0,
       );
-      expect((await dances.getById('a'))!.tunes, isEmpty);
+      expect(tunesOf((await dances.getById('a'))!), isEmpty);
     });
   });
 
@@ -132,10 +133,10 @@ void main() {
       final changed = await dances.clearTunesForMany(['a', 'b'], now: now);
 
       expect(changed, 2);
-      expect((await dances.getById('a'))!.tunes, isEmpty);
-      expect((await dances.getById('b'))!.tunes, isEmpty);
+      expect(tunesOf((await dances.getById('a'))!), isEmpty);
+      expect(tunesOf((await dances.getById('b'))!), isEmpty);
       // Un-listed dance keeps its tunes.
-      expect((await dances.getById('c'))!.tunes, ['Reel D']);
+      expect(tunesOf((await dances.getById('c'))!), ['Reel D']);
     });
 
     test('is idempotent — skips dances that already have no tunes', () async {
@@ -147,7 +148,7 @@ void main() {
       final changed = await dances.clearTunesForMany(['a', 'b'], now: now);
 
       expect(changed, 1);
-      expect((await dances.getById('a'))!.tunes, isEmpty);
+      expect(tunesOf((await dances.getById('a'))!), isEmpty);
     });
 
     test('no-op for empty ids and unknown ids', () async {
@@ -157,7 +158,7 @@ void main() {
 
       expect(await dances.clearTunesForMany(const [], now: now), 0);
       expect(await dances.clearTunesForMany(['does-not-exist'], now: now), 0);
-      expect((await dances.getById('a'))!.tunes, ['Reel A']);
+      expect(tunesOf((await dances.getById('a'))!), ['Reel A']);
     });
   });
 }

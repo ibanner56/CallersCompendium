@@ -7,9 +7,10 @@ import '../sync/sync_record_kind.dart';
 // Design: docs/design/storage.md. `dance_figures` is a derived, rebuildable
 // index over `dances.figures_json` (the authoritative store); `dance_fts` is
 // a second derived index, created as a raw FTS5 virtual table (see
-// database.dart) rather than a typed drift table, because it is
-// content-less (`content=''`) and only ever written by the repository layer
-// that also owns `dance_figures` — a typed table adds no safety there.
+// database.dart) rather than a typed drift table: it keys rows by an
+// UNINDEXED `dance_id` column rather than a contentless `content=''` rowid,
+// and it is only ever written by the repository layer that also owns
+// `dance_figures` — a typed table adds no safety there.
 //
 // ---------------------------------------------------------------------------
 // The sync timestamp triple (`updated_at`, `deleted_at`, `existence_at`)
@@ -24,7 +25,7 @@ import '../sync/sync_record_kind.dart';
 //                      discriminator. Advanced by any write that changes what
 //                      the record would serialise.
 //   * `deleted_at`   — **retention**: NULL means live, non-NULL is a
-//                      tombstone and starts the purge / "Recently Deleted"
+//                      tombstone and starts the purge / "Recently deleted"
 //                      countdown.
 //   * `existence_at` — which **existence transition** (live -> deleted, or
 //                      deleted -> live) happened later. Stamped *causally*,
@@ -65,6 +66,11 @@ class Dances extends Table {
   TextColumn get formationShape =>
       text().map(const EnumNameConverter(FormationShape.values))();
   TextColumn get formationDetail => text().nullable()();
+
+  /// ECD's proper/improper checkbox, `Formation.improper` (ADR-006 §12, F2).
+  /// Added in schema v42; existing rows read `false`, proper.
+  BoolColumn get formationImproper =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get progression =>
       text().map(const EnumNameConverter(Progression.values))();
 
@@ -81,6 +87,15 @@ class Dances extends Table {
   /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
   /// feed the derived `dance_figures`/`dance_fts` indexes.
   TextColumn get walkthrough => text().withDefault(const Constant(''))();
+
+  /// The tune's written meter, `Dance.meter`, as free text; `''` when not
+  /// given. Added in schema v42 (ADR-006 §12, F3).
+  TextColumn get meter => text().withDefault(const Constant(''))();
+
+  /// The tune's key, `Dance.musicalKey`, as free text; `''` when not given.
+  /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
+  /// reserves.
+  TextColumn get musicalKey => text().withDefault(const Constant(''))();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 
@@ -114,6 +129,12 @@ class Dances extends Table {
   /// [PartialDate] string (`YYYY` / `YYYY-MM` / `YYYY-MM-DD`); nullable.
   /// Added in schema v5. Distinct from the record stamp [createdAt].
   TextColumn get composedOn => text().nullable()();
+
+  /// Interpretation date at partial precision (`Dance.interpretedOn`), the
+  /// canonical [PartialDate] string like [composedOn]; nullable. Added in
+  /// schema v42 (ADR-006 §9.2): ECD dances are often reconstructed from their
+  /// original publication by a later interpreter.
+  TextColumn get interpretedOn => text().nullable()();
 
   /// Author revision date at partial precision, persisted as the canonical
   /// [PartialDate] string; nullable. Added in schema v5. Distinct from the
@@ -196,9 +217,32 @@ class DanceAuthors extends Table {
   ];
 }
 
+/// Ordered dance <-> choreographer join for the people who *interpreted* a
+/// dance (`Dance.interpreterIds`), shaped exactly like [DanceAuthors]: the
+/// same people list, `position` giving the credit order. Added in schema v42
+/// (ADR-006 §9.2).
+@DataClassName('DanceInterpreterRow')
+class DanceInterpreters extends Table {
+  TextColumn get danceId =>
+      text().references(Dances, #id, onDelete: KeyAction.cascade)();
+  TextColumn get choreographerId =>
+      text().references(Choreographers, #id, onDelete: KeyAction.cascade)();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {danceId, choreographerId};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {danceId, position},
+  ];
+}
+
 /// Derived, one row per figure, rebuilt from `dances.figures_json` on every
-/// dance write. Enables indexed structural search without a full scan
-/// (ContraDB's unqueryable-JSON-blob pitfall).
+/// dance write, and, for the dances using one of the user's own figures
+/// (#1023), from that figure's live definition in `user_glossary_entries`
+/// whenever it is written. Enables indexed structural search without a full
+/// scan (ContraDB's unqueryable-JSON-blob pitfall).
 @DataClassName('DanceFigureRow')
 class DanceFigures extends Table {
   TextColumn get danceId =>
@@ -206,13 +250,15 @@ class DanceFigures extends Table {
   IntColumn get idx => integer()();
 
   /// Correlation group: all rows flattened from one **top-level** figure share
-  /// this value, and it is monotonic across a dance's top-level figures. Unlike
+  /// this value, and it is monotonic across a dance's top-level figures — except
+  /// that each child of a top-level `sequence` container, being danced in
+  /// order, takes a group of its own. Unlike
   /// [idx] (unique per row, as the `{danceId, idx}` PK requires), [groupIdx] is
   /// deliberately **not** unique — the concurrent sides of a `meanwhile`
   /// container (flattened per side, #590) all carry the container's single
-  /// [groupIdx]. The `Then` sequence operator correlates on
-  /// `a.group_idx < b.group_idx` so two concurrent sides, sharing a group, are
-  /// never treated as one-before-the-other (#748). Added in schema v22; existing
+  /// [groupIdx]. The `Then` sequence operator pairs a row with the rows of the
+  /// next group after its own (wrapping from the last), so two concurrent
+  /// sides, sharing a group, are never treated as one-after-the-other (#748). Added in schema v22; existing
   /// rows default to 0 and are repopulated by the derived-index rebuild.
   IntColumn get groupIdx => integer().withDefault(const Constant(0))();
   TextColumn get move => text()();
@@ -220,6 +266,8 @@ class DanceFigures extends Table {
   BoolColumn get progression => boolean().withDefault(const Constant(false))();
 
   /// Figure `params` as JSON (queried via SQLite JSON1, `params_json ->> ...`).
+  /// A use of a figure of your own (#1023) keeps its reference here only
+  /// while it renders live from its figure.
   TextColumn get paramsJson => text().withDefault(const Constant('{}'))();
 
   /// Rendered canonical text (dialect-free); feeds `dance_fts.figures_text`.
@@ -246,12 +294,25 @@ class Programs extends Table {
   /// schema v14. A deliberately un-constrained soft reference (no drift
   /// `.references()`/FK): the free-text [venue] label and this entity link
   /// coexist non-destructively. Referential integrity is enforced at the app
-  /// layer instead of by a DB constraint — `ProgramRepository` rejects a write
-  /// whose non-null `venueId` has no matching venue (checked inside the write
-  /// transaction), and `VenueRepository.delete` atomically refuses to remove a
-  /// venue any program still references. Import paths resolve-or-null a dangling
-  /// `venueId` before persisting, so a bundle can carry a program whose venue
-  /// record is absent without tripping the write-time check.
+  /// layer instead of by a DB constraint — `ProgramRepository`'s live-venue
+  /// guard rejects an *interactive* `create`/`update` whose non-null `venueId`
+  /// newly names a venue that does not exist (checked inside the write
+  /// transaction; a save that leaves an already-dangling `venueId` unchanged is
+  /// tolerated), and `VenueRepository.delete`'s guard atomically refuses to
+  /// remove a venue any *live* program still references.
+  ///
+  /// That live-only guard is exactly why this column can end up dangling by
+  /// the ordinary path: soft-delete a program, then delete the venue it named
+  /// — the tombstoned program keeps its `venueId`, and nothing stops the venue
+  /// from going. Device Sync's inbound write paths
+  /// (`ProgramRepository.writeFromSync` and its two-phase siblings) can also
+  /// persist a dangling `venueId`, but by design rather than by gap: they skip
+  /// the guard entirely and write a peer's body verbatim, because nulling a
+  /// dangling reference there would change the peer's serialised content
+  /// without advancing its `updatedAt` (sync-spec.md §6.5, §6.7). The archive
+  /// restorer's import paths are not a third dangling-producing path — they
+  /// resolve-or-null a dangling `venueId` before persisting, so a restored
+  /// program never carries one.
   TextColumn get venueId => text().nullable()();
   TextColumn get band => text().nullable()();
   TextColumn get caller => text().nullable()();
@@ -261,6 +322,26 @@ class Programs extends Table {
       text().map(const EnumNameConverter(ProgramStatus.values))();
   BoolColumn get hideAlternates =>
       boolean().withDefault(const Constant(false))();
+
+  /// Name of the dialect Perform uses for this program (schema v37). `null`
+  /// (the default, and every program before v37) means Perform follows the
+  /// application dialect. A soft reference by **name** — dialects are
+  /// identified only by name (`Dialect.resolveByName`) — and deliberately not
+  /// validated at write time: a name that no longer resolves (the dialect was
+  /// deleted, or has not synced to this device yet) falls back to the
+  /// application dialect when Perform resolves it, so a dialect delete never
+  /// writes to programs. A dialect rename is carried to the programs that name
+  /// it by `ProgramRepository.renameDialect`.
+  TextColumn get dialectName => text().nullable()();
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (schema v38). `null` (every program before v38) means no pay is recorded.
+  /// Set together with [payCurrency] or not at all; never negative.
+  IntColumn get payMinorUnits => integer().nullable()();
+
+  /// ISO 4217 code for [payMinorUnits] (three uppercase letters); `null`
+  /// exactly when [payMinorUnits] is.
+  TextColumn get payCurrency => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
@@ -269,6 +350,13 @@ class Programs extends Table {
   /// file. Added in schema v25 (issue #898); `programs` already carried the
   /// other two.
   DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  /// When the caller archived the program (schema v42); `null` (every program
+  /// before v42) means it is not archived. Hides the program from the Programs
+  /// list and the Add to program sheet, nothing more: calling history still
+  /// counts it. Declared last because `ALTER TABLE ADD COLUMN` appends it there
+  /// on a migrated database, so a fresh one gets the same column order.
+  DateTimeColumn get archivedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -355,10 +443,13 @@ class Tags extends Table {
 
   /// Sync timestamp triple; see the note at the top of this file. Added in
   /// schema v25 (issue #898), which also converted `TagRepository.delete` from
-  /// a hard delete to a tombstone. Tags are the one converted kind with **no**
-  /// referential guard, so this is also the one whose `dance_tags` rows now
-  /// outlive the delete — every read that joins through `tags` filters on
-  /// `deleted_at IS NULL` for that reason.
+  /// a hard delete to a tombstone. Its *tombstoning* path is the one converted
+  /// kind's delete with **no** referential guard, so this is the one whose
+  /// `dance_tags` rows outlive the delete by ordinary use — every read that
+  /// joins through `tags` filters on `deleted_at IS NULL` for that reason. Its
+  /// `permanent: true` path is guarded like every sibling as of issue #1357:
+  /// that one erases, and `dance_tags` is `ON DELETE CASCADE`, so an unguarded
+  /// erase stripped the tag from live dances too.
   DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
@@ -482,9 +573,16 @@ class Venues extends Table {
 
   /// Sync timestamp triple; see the note at the top of this file. Added in
   /// schema v25 (issue #898), which also converted `VenueRepository.delete`
-  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] stays a
-  /// hard delete: it exists solely to roll back a just-committed import, and a
-  /// rollback must leave no trace to publish.
+  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] still
+  /// erases, because it exists solely to roll back a just-committed import and
+  /// a rollback should leave no trace to publish — but only for a venue that
+  /// was never published and that no surviving program still names. A
+  /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture),
+  /// **unless** a surviving program row still names it, in which case it is
+  /// left live: retention outranks forfeiture, because a tombstoned venue is
+  /// invisible to every venue read and orphans a live program's `venue_id`
+  /// exactly as an erasure would (issue #1357). Only a program restored from
+  /// Recently deleted brings a tombstoned venue back.
   DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
@@ -608,8 +706,10 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-/// Durable records for unique natural-key values that could not yet be
-/// normalized because another row occupies the transformed value.
+/// Durable addresses of rows the normalization pass could not yet rewrite:
+/// a unique natural-key value whose transformed form another row occupies, a
+/// settings value whose object keys transform to the same string, or a JSON
+/// column whose stored value cannot be transformed at all.
 @DataClassName('NormalisationSkipRow')
 class NormalisationSkips extends Table {
   TextColumn get tableNameValue => text().named('table_name')();
@@ -626,6 +726,19 @@ class NormalisationSkips extends Table {
 class BaselineState extends Table {
   IntColumn get id => integer().customConstraint('NOT NULL CHECK (id = 1)')();
   TextColumn get epoch => text()();
+
+  /// SHA-256 of the manifest this device last published in [epoch], encoded
+  /// with its `writtenAt` fixed, so it names exactly the device id, epoch and
+  /// records the server holds for this device (sync-spec §6.3 step 8). Null
+  /// until a publication succeeds, and cleared before every manifest `PUT`, so
+  /// a `PUT` whose outcome is unknown is never mistaken for one that landed.
+  TextColumn get publishedManifestHash => text().nullable()();
+
+  /// When the store last confirmed every blob that manifest names, as
+  /// milliseconds since the Unix epoch, UTC. Set with
+  /// [publishedManifestHash]; a pass older than the refresh interval checks
+  /// every blob again and republishes even an unchanged manifest.
+  IntColumn get publishedVerifiedAt => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -670,6 +783,28 @@ class PendingDeletions extends Table {
   Set<Column> get primaryKey => {kind, recordId};
 }
 
+/// What this device keeps of a synced record for a newer version of the app
+/// (spec §6.7): the parts of a peer's body it does not sync, put back verbatim
+/// whenever it shares the record again, so the newer field survives this
+/// device's own edits.
+///
+/// [payload] is canonical JSON. For an ordinary record it is the kept-parts
+/// tree from `partitionInboundRecordBody`; for a [wholeRecord] — a setting
+/// whose key this build does not sync — it is the peer's encoded blob itself,
+/// republished as it came.
+@DataClassName('RetainedSyncFieldsRow')
+class RetainedSyncFields extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  BoolColumn get wholeRecord =>
+      boolean().named('whole_record').withDefault(const Constant(false))();
+  TextColumn get payload => text()();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
+}
+
 /// Immutable candidates awaiting a user's conflict decision.
 @DataClassName('ReviewQueueRow')
 class ReviewQueue extends Table {
@@ -680,6 +815,7 @@ class ReviewQueue extends Table {
   TextColumn get reason => text()();
   TextColumn get candidateBlob => text().named('candidate_blob')();
   TextColumn get candidateHash => text().named('candidate_hash')();
+  TextColumn get localHash => text().named('local_hash').nullable()();
   DateTimeColumn get queuedAt => dateTime().named('queued_at')();
 
   @override
@@ -704,3 +840,81 @@ class PublishedRecords extends Table {
 // is marked superseded: the app imports directly from the source instead).
 // The table, its repository and its test were dropped in #782; nothing ever
 // wrote a row.
+
+/// The last verified manifest fetched from each peer, kept so the first pass
+/// after a restart can send `If-None-Match` and be answered `304` instead of
+/// downloading every peer's manifest again (sync-spec §5.2). A cache: any row
+/// can be dropped at any time and the next pass fetches that manifest in full.
+@DataClassName('PeerManifestRow')
+class PeerManifests extends Table {
+  /// The peer's per-attachment device id, as the store lists it.
+  TextColumn get peerId => text()();
+
+  /// The store epoch the manifest was fetched in. A row from another epoch is
+  /// never used.
+  TextColumn get epoch => text()();
+
+  /// The strong validator the server sent with the manifest, verbatim.
+  TextColumn get etag => text()();
+
+  /// The manifest as this device verified and decoded it, re-encoded
+  /// canonically.
+  TextColumn get body => text()();
+
+  @override
+  Set<Column> get primaryKey => {peerId};
+}
+
+/// The user's own glossary entries (#709, and #1023 after it): one table for
+/// every kind, so a single name check, search source, privacy classification
+/// and sync kind serve them all (approved by the maintainer on #695,
+/// https://github.com/ibanner56/CallersCompendium/issues/695#issuecomment-6177759097).
+///
+/// `kind` decides the payload: `compound` (a `CompoundDefinition`),
+/// `customFigure` (a `UserFigureDefinition`) or `term` (its dance form,
+/// `glossaryTermPayload`). Names are not unique: an entry arriving
+/// by sync or restore may share a name, and is kept and flagged for rename
+/// rather than refused (#709 consolidated spec, decision 6). Text columns hold canonical
+/// role tokens. Added in schema v40.
+@DataClassName('UserGlossaryEntryRow')
+class UserGlossaryEntries extends Table {
+  TextColumn get id => text()();
+  TextColumn get kind => text()();
+  TextColumn get name => text()();
+  TextColumn get definition => text()();
+  TextColumn get description => text()();
+
+  /// A JSON array of strings.
+  TextColumn get keywordsJson =>
+      text().named('keywords_json').withDefault(const Constant('[]'))();
+  TextColumn get notes => text().nullable()();
+
+  /// The kind-specific payload as JSON, or null for a kind with none.
+  TextColumn get payloadJson => text().named('payload_json').nullable()();
+
+  /// When the entry was first created; never moved by an edit.
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// The user's notes on shipped figures (#709), one row per shipped move or
+/// alias id. A separate table from [UserGlossaryEntries] because a note
+/// annotates a figure rather than defining one (decided on #695). A note whose
+/// id the taxonomy no longer has is kept and not shown. Text holds canonical
+/// role tokens. Added in schema v40.
+@DataClassName('FigureNoteRow')
+class FigureNotes extends Table {
+  TextColumn get figureId => text().named('figure_id')();
+  TextColumn get notes => text()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {figureId};
+}

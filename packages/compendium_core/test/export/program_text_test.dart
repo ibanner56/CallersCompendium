@@ -39,6 +39,110 @@ void main() {
   }[id];
 
   group('programToPlainText', () {
+    group('sharing toggles', () {
+      final full = program(
+        eventDate: DateTime.utc(2026, 7, 10),
+        venue: 'Town Hall',
+        band: 'The Band',
+        caller: 'Pat',
+        dancerLevel: 'Mixed',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+
+      test('default keeps every header line', () {
+        expect(
+          programToPlainText(full, titleFor: titles),
+          'Friday Contra\n'
+          '2026-07-10 · Town Hall\n'
+          'Band: The Band\n'
+          'Caller: Pat\n'
+          'Level: Mixed\n'
+          '\n'
+          "1. Rory O'More",
+        );
+      });
+
+      test('includeTitle: false drops only the title', () {
+        final text = programToPlainText(
+          full,
+          titleFor: titles,
+          includeTitle: false,
+        );
+        expect(text, isNot(contains('Friday Contra')));
+        expect(text, startsWith('2026-07-10 · Town Hall\n'));
+        expect(text, contains('Caller: Pat'));
+      });
+
+      test('includeCallerBand: false drops band and caller only', () {
+        final text = programToPlainText(
+          full,
+          titleFor: titles,
+          includeCallerBand: false,
+        );
+        expect(text, isNot(contains('Band:')));
+        expect(text, isNot(contains('Caller:')));
+        expect(text, contains('Friday Contra'));
+        expect(text, contains('2026-07-10 · Town Hall'));
+        expect(text, contains('Level: Mixed'));
+      });
+
+      test('includeDateVenue: false drops the date and venue line', () {
+        final text = programToPlainText(
+          full,
+          titleFor: titles,
+          includeDateVenue: false,
+        );
+        expect(text, isNot(contains('2026-07-10')));
+        expect(text, isNot(contains('Town Hall')));
+        expect(text, contains('Band: The Band'));
+        expect(text, contains('Friday Contra'));
+      });
+
+      test('all three off leaves level and the slots', () {
+        expect(
+          programToPlainText(
+            full,
+            titleFor: titles,
+            includeTitle: false,
+            includeCallerBand: false,
+            includeDateVenue: false,
+          ),
+          "Level: Mixed\n\n1. Rory O'More",
+        );
+      });
+
+      test('with no header left, nothing leads with a blank line', () {
+        final text = programToPlainText(
+          program(
+            notes: 'Bring water.',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          includeTitle: false,
+        );
+        expect(text, "1. Rory O'More\n\nNotes:\nBring water.");
+        expect(
+          programToPlainText(
+            program(notes: 'Bring water.'),
+            titleFor: titles,
+            includeTitle: false,
+          ),
+          'Notes:\nBring water.',
+        );
+      });
+
+      test('a linked venue is dropped with the date line too', () {
+        final text = programToPlainText(
+          program(venueId: 'v1', band: 'B'),
+          titleFor: titles,
+          venueNameFor: (_) => 'Linked Hall',
+          includeDateVenue: false,
+        );
+        expect(text, isNot(contains('Linked Hall')));
+        expect(text, contains('Band: B'));
+      });
+    });
+
     test('renders numbered primaries in position order', () {
       final text = programToPlainText(
         program(
@@ -120,6 +224,115 @@ void main() {
         titleFor: titles,
       );
       expect(text, contains('1. Rory O\'More — call slow'));
+    });
+
+    // Issue #1434: the slot line's author suffix is resolved independently
+    // of the figures-appendix opt-in, so it appears here on the base
+    // numbered set list (no `danceToPlainText` call involved at all).
+    group('authorNamesFor (issue #1434)', () {
+      test('omits the author suffix when the resolver is not supplied', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+        );
+        expect(text, contains('1. Rory O\'More'));
+        expect(text, isNot(contains('by')));
+      });
+
+      test('appends "— by <names>" when the resolver returns names', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (id) => id == 'd1' ? const ['Jane Smith'] : const [],
+        );
+        expect(text, contains('1. Rory O\'More — by Jane Smith'));
+      });
+
+      test('joins multiple resolved names with a comma', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane Smith', 'Bob Lee'],
+        );
+        expect(text, contains('by Jane Smith, Bob Lee'));
+      });
+
+      test('omits the suffix when the resolver returns an empty list', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const [],
+        );
+        expect(text, contains('1. Rory O\'More'));
+        expect(text, isNot(contains('by')));
+      });
+
+      test('omits the suffix when every resolved name is blank', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['  ', ''],
+        );
+        expect(text, isNot(contains('by')));
+      });
+
+      test('appears independently of whether the dance has figures — no '
+          '"Set list and figures" opt-in needed', () {
+        // This is the literal issue #1434 scenario: a figure-less program's
+        // plain (non-appended) set list still shows the author.
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane Smith'],
+        );
+        expect(text, isNot(contains('Figures:')));
+        expect(text, contains('by Jane Smith'));
+      });
+
+      test('applies to alternates too', () {
+        final text = programToPlainText(
+          program(
+            slots: [
+              ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+              ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+            ],
+          ),
+          titleFor: titles,
+          authorNamesFor: (id) => id == 'd2' ? const ['Bob Lee'] : const [],
+        );
+        expect(text, contains('ALT: The Nice Combination — by Bob Lee'));
+      });
+
+      test('renders "title — by <names> — note" ordering with a per-slot '
+          'note present', () {
+        final text = programToPlainText(
+          program(
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                text: 'call slow',
+              ),
+            ],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane Smith'],
+        );
+        expect(text, contains('1. Rory O\'More — by Jane Smith — call slow'));
+      });
     });
 
     test('canonicalizes prose only when enabled and preserves tombstones', () {
@@ -208,7 +421,7 @@ void main() {
       expect(text, isNot(contains('(')));
     });
 
-    test('marks performed slots', () {
+    test('does not render performed status', () {
       final text = programToPlainText(
         program(
           slots: [
@@ -218,9 +431,9 @@ void main() {
         ),
         titleFor: titles,
       );
-      expect(text, contains('1. Rory O\'More [performed]'));
+      expect(text, contains('1. Rory O\'More'));
       expect(text, contains('2. The Nice Combination'));
-      expect(text, isNot(contains('2. The Nice Combination [performed]')));
+      expect(text, isNot(contains('performed')));
     });
 
     test('renders header only for an empty program', () {
@@ -240,8 +453,32 @@ void main() {
         ),
         titleFor: titles,
       );
-      // The orphaned alt becomes a degenerate primary and is numbered.
-      expect(text, contains('1. Rory O\'More'));
+      // The orphaned alt becomes a degenerate primary. It is still an
+      // alternate, so it keeps its ALT prefix and takes no dance number.
+      expect(text, contains('ALT: Rory O\'More'));
+      expect(text, isNot(contains('1.')));
+    });
+
+    test('numbers planned dances only: the break is unnumbered (GIG-10)', () {
+      final text = programToPlainText(
+        program(
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+            ProgramSlot(id: 's3', position: 2, text: Program.breakSlotText),
+            ProgramSlot(id: 's4', position: 3, text: 'Waltz'),
+            ProgramSlot(id: 's5', position: 4, danceId: 'd2'),
+          ],
+        ),
+        titleFor: titles,
+      );
+      expect(text.split('\n').skip(2).toList(), [
+        '1. Rory O\'More',
+        '   ALT: The Nice Combination',
+        'Break',
+        '2. Waltz',
+        '3. The Nice Combination',
+      ]);
     });
 
     test('omits a leading/orphaned alt when hideAlternates is set', () {
@@ -257,9 +494,11 @@ void main() {
       expect(hidden, isNot(contains('Rory O\'More')));
       expect(hidden, contains('1. The Nice Combination'));
 
-      // With the flag off it still renders as a numbered degenerate primary.
+      // With the flag off it still renders, as an unnumbered alternate, and
+      // the planned dance keeps its number either way.
       final shown = programToPlainText(program(slots: slots), titleFor: titles);
-      expect(shown, contains('1. Rory O\'More'));
+      expect(shown, contains('ALT: Rory O\'More'));
+      expect(shown, contains('1. The Nice Combination'));
     });
 
     test(
@@ -416,6 +655,125 @@ void main() {
       // The dance line is exactly the title resolved by titleFor.
       expect(text, contains('1. Rory O\'More'));
       expect(seenIds, ['d1']);
+    });
+  });
+  group('shared header and slot-line helpers', () {
+    test('isoDate zero-pads to yyyy-MM-dd', () {
+      expect(isoDate(DateTime(2026, 3, 4)), '2026-03-04');
+    });
+
+    test('programHeaderLines is the block programToPlainText puts under the '
+        'title', () {
+      final p = program(
+        eventDate: DateTime(2026, 7, 10),
+        venue: 'Town Hall',
+        band: 'The Band',
+        caller: 'Pat',
+        dancerLevel: 'Mixed',
+      );
+      final header = programHeaderLines(p);
+      expect(header, [
+        '2026-07-10 · Town Hall',
+        'Band: The Band',
+        'Caller: Pat',
+        'Level: Mixed',
+      ]);
+      expect(programToPlainText(p, titleFor: titles).split('\n'), [
+        'Friday Contra',
+        ...header,
+      ]);
+    });
+
+    test('programHeaderLines prefers the resolved linked venue and is empty '
+        'for a bare program', () {
+      expect(
+        programHeaderLines(
+          program(venueId: 'v1', venue: 'Free text'),
+          venueNameFor: (id) => id == 'v1' ? ' Linked Hall ' : null,
+        ),
+        ['Linked Hall'],
+      );
+      expect(programHeaderLines(program()), isEmpty);
+    });
+
+    test('programSlotLine builds the line programToPlainText numbers', () {
+      final slot = ProgramSlot(
+        id: 's1',
+        position: 0,
+        danceId: 'd1',
+        text: 'slow',
+        guestCaller: 'Guest',
+        danceMinutes: 10,
+      );
+      final line = programSlotLine(
+        slot,
+        titles,
+        const ProgramExportLabels(),
+        authorNamesFor: (_) => const ['Jane'],
+      );
+      expect(
+        programToPlainText(
+          program(slots: [slot]),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane'],
+        ),
+        contains('1. $line'),
+      );
+    });
+
+    test(
+      'public helpers reject canonicalization without renderer and dialect',
+      () {
+        expect(
+          () => programHeaderLines(
+            program(dancerLevel: 'Mixed'),
+            canonicalizeDiscouragedTerms: true,
+          ),
+          throwsArgumentError,
+        );
+        expect(
+          () => programSlotLine(
+            ProgramSlot(id: 's1', position: 0, text: 'Waltz'),
+            titles,
+            const ProgramExportLabels(),
+            canonicalizeDiscouragedTerms: true,
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
+  });
+
+  group('the dance form on a slot line (ADR-006 S5)', () {
+    final mixed = program(
+      slots: [
+        ProgramSlot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 5),
+        ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ProgramSlot(id: 's3', position: 2, text: 'Break'),
+      ],
+    );
+
+    test('leads the details when a form is named', () {
+      final text = programToPlainText(
+        mixed,
+        titleFor: titles,
+        formLabelFor: (id) => id == 'd1' ? 'English' : 'Contra',
+      );
+      expect(text, contains("1. Rory O'More (English; 5 min)"));
+      expect(text, contains('2. The Nice Combination (Contra)'));
+      expect(text, contains('\nBreak'));
+      expect(text, isNot(contains('Break (')));
+    });
+
+    test('a null or blank name adds nothing', () {
+      expect(
+        programToPlainText(mixed, titleFor: titles, formLabelFor: (_) => null),
+        programToPlainText(mixed, titleFor: titles),
+      );
+      expect(
+        programToPlainText(mixed, titleFor: titles, formLabelFor: (_) => ' '),
+        programToPlainText(mixed, titleFor: titles),
+      );
     });
   });
 }

@@ -26,7 +26,7 @@ class DateFormatScope
   ///
   /// Returns [DateFormatSetting.system] (the default) when there is no
   /// [DateFormatScope] ancestor, so callers — and tests that don't wire the
-  /// scope — get the platform-locale medium date.
+  /// scope — get the platform-locale short (year-bearing) date.
   static DateFormatSetting of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<DateFormatScope>();
     return scope?.notifier?.value ?? DateFormatSetting.system;

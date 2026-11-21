@@ -199,7 +199,10 @@ void main() {
       expect(record.name, 'Simplicity Swing');
       expect(record.authors, ['Becky Hill']);
       expect(record.type, 'Contra');
-      expect(record.formation, 'Improper');
+      expect(record.contraForm, 'Improper');
+      expect(record.fromUsrColumns, isTrue);
+      // Read from the separate columns (#1972), not one combined string.
+      expect(record.formation, isNull);
       expect(record.level, 'Intermediate');
       expect(record.rating, '3');
       expect(record.composed, '2016');

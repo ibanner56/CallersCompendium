@@ -1,29 +1,44 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
+import '../diagnostics/error_log.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dialect_library_scope.dart';
+import '../data/perform_text_scale.dart';
+import '../data/program_dialect.dart';
 import '../data/repositories_scope.dart';
+import '../editor/program_slot_rebase.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
+import '../utils/slot_dance_title.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
+import 'perform_elapsed_clock.dart';
+import 'perform_exit.dart';
+import 'perform_full_screen.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
-    show kAutoSizePerformKey, kShowProgramSlotCallerNotesKey;
+    show
+        kAutoSizePerformDefault,
+        kAutoSizePerformKey,
+        kConfirmPerformExitDefault,
+        kShowProgramSlotCallerNotesKey;
+import '../theme/app_breakpoints.dart';
 
-/// Full-screen, large-print performance view for a whole [Program]
+/// Full-screen, large-print Perform mode for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
 ///
 /// Walks the program's ordered *groups* ([Program.grouped]) — a primary slot
@@ -33,22 +48,26 @@ import 'settings_screen.dart'
 /// Perform view. Navigation is available via on-screen prev/next buttons, giant
 /// edge hit zones, the keyboard (arrows / page keys), and a jump-to-slot
 /// overview. When a group has alternates, a one-tap control swaps which member
-/// is shown. Exit is a deliberate close button back to the editor.
+/// is shown. Exit is a deliberate close button back to the program's summary.
 ///
-/// In-view text size ([PerformSizeControls]) and the canonical ⇄ dialect toggle
-/// ([PerformDialectToggle]) are shared across all slots so the caller sets them
-/// once. This view is read-only: no destructive actions are reachable.
+/// In-view text size ([PerformSizeControls]) is shared across all slots so the
+/// caller sets it once. Canonical wording is one of the choices in the dialect
+/// quick-switch, so Perform has no separate canonical toggle. This view is
+/// read-only: no destructive actions are reachable.
 ///
-/// Exit is guarded (issue #434): a single stray tap on the close control (or a
-/// system back) can no longer drop the caller out mid-set — it asks for a
-/// deliberate confirmation first. The live position + running clock are handed
+/// Exit is guarded (issue #434): by default a single stray tap on the close
+/// control (or a system back) can no longer drop the caller out mid-set — it
+/// asks for a deliberate confirmation first, unless the caller turned that off
+/// in Settings. The live position + running clock are handed
 /// back through [onExit] on every teardown so the launching screen can resume
 /// Perform exactly where the caller left off.
 
 /// Snapshot of a Perform session's resumable state (issue #434). Purely a UI
 /// concern (never persisted to the domain model, per ADR-001): the launching
-/// screen holds the latest snapshot in memory so a re-entry restores the
-/// caller's place and clock instead of resetting to slot 1 with a fresh timer.
+/// screen, or for the Programs summary the Programs shell
+/// ([PerformResumeStore]), holds the latest snapshot in memory so a re-entry
+/// restores the caller's place and clock instead of resetting to slot 1 with
+/// a fresh timer.
 @immutable
 class PerformResumeState {
   const PerformResumeState({
@@ -56,6 +75,8 @@ class PerformResumeState {
     required this.elapsedSeconds,
     required this.slotStartSeconds,
     required this.paused,
+    this.walkthroughEndedAtSlotSeconds,
+    this.walkthroughEndedSlotId,
   });
 
   /// Navigable group index that was on screen.
@@ -71,17 +92,60 @@ class PerformResumeState {
   /// Whether the timers were paused when the view was left.
   final bool paused;
 
+  /// Slot-elapsed second at which the caller marked the current slot's
+  /// walkthrough as ended (issue #1659), or `null` when unmarked. Session-only,
+  /// like the rest of this snapshot: never written to the domain model.
+  final int? walkthroughEndedAtSlotSeconds;
+
+  /// Id of the slot (the selected alternate, not just its group) that
+  /// [walkthroughEndedAtSlotSeconds] belongs to. A re-entry restores only the
+  /// group index, so without this the mark would land on whichever slot is
+  /// shown first — the primary instead of a marked alternate, or a different
+  /// slot after the program was edited in between.
+  final String? walkthroughEndedSlotId;
+
   @override
   bool operator ==(Object other) =>
       other is PerformResumeState &&
       other.groupIndex == groupIndex &&
       other.elapsedSeconds == elapsedSeconds &&
       other.slotStartSeconds == slotStartSeconds &&
-      other.paused == paused;
+      other.paused == paused &&
+      other.walkthroughEndedAtSlotSeconds == walkthroughEndedAtSlotSeconds &&
+      other.walkthroughEndedSlotId == walkthroughEndedSlotId;
 
   @override
-  int get hashCode =>
-      Object.hash(groupIndex, elapsedSeconds, slotStartSeconds, paused);
+  int get hashCode => Object.hash(
+    groupIndex,
+    elapsedSeconds,
+    slotStartSeconds,
+    paused,
+    walkthroughEndedAtSlotSeconds,
+    walkthroughEndedSlotId,
+  );
+}
+
+/// The latest [PerformResumeState] of each program, by program id, for a
+/// holder that outlives the screen launching Perform (GIG-14).
+///
+/// The wide Programs summary pane is rebuilt whenever the window crosses the
+/// split breakpoint, for example when a tablet is rotated, while Perform,
+/// on the root navigator, carries on. A resume state kept in that pane would
+/// be lost with it, so the Programs shell keeps them here instead, and drops a
+/// program's state when that program is closed.
+class PerformResumeStore {
+  final Map<String, PerformResumeState> _states = {};
+
+  /// The resume state saved for [programId], or `null` when there is none.
+  PerformResumeState? operator [](String programId) => _states[programId];
+
+  /// Saves [state] as the resume state for [programId].
+  void operator []=(String programId, PerformResumeState state) =>
+      _states[programId] = state;
+
+  /// Drops the resume state saved for [programId], when that program is
+  /// closed, so the next Perform of it starts fresh.
+  void forget(String programId) => _states.remove(programId);
 }
 
 class PerformProgramScreen extends StatefulWidget {
@@ -97,8 +161,11 @@ class PerformProgramScreen extends StatefulWidget {
     this.initialElapsedSeconds = 0,
     this.initialSlotStartSeconds = 0,
     this.initialPaused = false,
+    this.initialWalkthroughEndedAtSlotSeconds,
+    this.initialWalkthroughEndedSlotId,
     this.onExit,
     this.onProgramChanged,
+    this.restoreIfUnchanged,
   });
 
   final Program program;
@@ -107,7 +174,7 @@ class PerformProgramScreen extends StatefulWidget {
   final List<DifficultyLevel> difficultyLevels;
 
   /// Freshly imported or created dances that may not yet be present in the
-  /// program editor's debounced collection snapshot.
+  /// opening screen's collection snapshot.
   final Map<String, Dance> danceOverrides;
 
   /// Fresh author names paired with [danceOverrides].
@@ -127,6 +194,15 @@ class PerformProgramScreen extends StatefulWidget {
   /// Whether the timers open paused (preserved across a re-entry).
   final bool initialPaused;
 
+  /// Slot-elapsed second of the manual "walkthrough ended" mark on the
+  /// [initialGroup] slot, preserved across a re-entry (issue #1659).
+  final int? initialWalkthroughEndedAtSlotSeconds;
+
+  /// Slot id the [initialWalkthroughEndedAtSlotSeconds] mark belongs to; the
+  /// mark is applied only when that slot is the one shown on entry (issue
+  /// #1659), and dropped otherwise.
+  final String? initialWalkthroughEndedSlotId;
+
   /// Called as the view is torn down — via the guarded close control, a system
   /// back, or any other pop — with the live position + clock (issue #434). The
   /// launching screen stores this so re-entering Perform resumes where the
@@ -135,23 +211,63 @@ class PerformProgramScreen extends StatefulWidget {
   final void Function(PerformResumeState state)? onExit;
 
   /// Persists an in-event adjustment (`docs/design/ux.md` §5). Called with the
-  /// new [Program] — a fresh `updatedAt` — after every reorder / insert / note /
-  /// mark-performed edit made from the "adjust" sheet. When null (e.g. an
-  /// unsaved draft with no owner to persist through), adjustments stay in-view
-  /// only. The screen always updates its own live state first, so the reading
-  /// view reflects the change regardless.
-  final Future<void> Function(Program updated)? onProgramChanged;
+  /// program as Perform showed it [before] the adjustment and the new
+  /// [Program] — a fresh `updatedAt` — after every reorder / insert / note /
+  /// mark-performed edit made from the "adjust" sheet, and after its Undo.
+  /// When null (e.g. an unsaved draft with no owner to persist through),
+  /// adjustments stay in-view only. The screen always updates its own live
+  /// state first, so the reading view reflects the change regardless.
+  ///
+  /// The owner writes only the change from [before] to [updated], and as a
+  /// compare-and-replace (GIG-6, `writePerformAdjustment`). When the stored
+  /// program had changed since Perform's copy was taken, for example by
+  /// Device Sync, it returns the program Perform should show instead: the
+  /// newer program with the adjustment applied. Perform then shows it and
+  /// tells the caller. Otherwise it returns `null`.
+  final Future<Program?> Function(Program before, Program updated)?
+  onProgramChanged;
+
+  /// Performs the "Program adjusted" Undo once this screen has closed:
+  /// reverses the change from [previous] to [adjusted] only if the owner's
+  /// program is still exactly what that adjustment left, and returns whether
+  /// it did.
+  ///
+  /// That Undo reverses only the adjustment's own change, so a change from
+  /// elsewhere that the adjustment was written on top of (GIG-6) stays. The
+  /// prompt can outlive this screen
+  /// (indefinitely with accessible navigation), and by the time it is tapped
+  /// the program may have been edited elsewhere; reversing the change then
+  /// could overwrite that edit. The
+  /// check and the restore must therefore be one atomic step on the owner's
+  /// side (for a stored program, [ProgramRepository.replaceIfUnchanged]), so
+  /// that no write can land between them (flows-1). When this returns false,
+  /// throws, or is null, the Undo is refused with a "no longer available"
+  /// message. While this screen is open the Undo is applied directly through
+  /// [onProgramChanged], without asking.
+  final Future<bool> Function(Program previous, Program adjusted)?
+  restoreIfUnchanged;
 
   @override
   State<PerformProgramScreen> createState() => _PerformProgramScreenState();
 }
 
 class _PerformProgramScreenState extends State<PerformProgramScreen>
-    with WidgetsBindingObserver, PerformWakelockMixin {
+    with WidgetsBindingObserver, PerformWakelockMixin, PerformFullScreenMixin {
   /// The live working copy of the program. In-event adjustments mutate this and
   /// persist through [PerformProgramScreen.onProgramChanged]; navigation and
   /// grouping recompute from it so the reading view reflects edits immediately.
   late Program _program = widget.program;
+
+  /// The latest [PerformProgramScreen.onProgramChanged] write, so an Undo
+  /// after exit checks the stored program only once that write has landed.
+  Future<void> _pendingPersist = Future<void>.value();
+
+  /// The adjustment whose Undo prompt [_undoPrompt] is showing: the program
+  /// before it and after it. Cleared once that Undo runs or its prompt
+  /// closes, so a later notice that the program changed elsewhere does not
+  /// offer it again.
+  ({Program previous, Program updated})? _undoable;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _undoPrompt;
 
   /// Cached navigable groups. [Program.grouped] walks the whole slot list and
   /// allocates a fresh unmodifiable list on every call, and the build/helpers
@@ -175,10 +291,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// size survives app relaunch instead of resetting to the default.
   double _textScale = kPerformDefaultScale;
 
-  /// When `true` figures render canonical role/move tokens; otherwise the
-  /// user's active dialect. Persisted across sessions (issue #449) and restored
-  /// on entry.
-  bool _canonicalView = false;
+  /// A dialect picked from the quick-switch **during this Perform session**,
+  /// while the program's own dialect is in force. Session-local on purpose: it
+  /// is never written to the program or to the application dialect, and it is
+  /// gone when this screen is (issue #1554).
+  String? _sessionDialectName;
 
   /// Whether the on-demand walkthrough overlay is currently shown for the active
   /// slot (issue #370). Session-scoped, default OFF, and NOT persisted across
@@ -186,21 +303,84 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// dance-slot's walkthrough; free-text-only slots have none.
   bool _showWalkthrough = false;
 
+  /// Scroll position of the open walkthrough overlay, driven by the arrow and
+  /// page keys while it is open (see the body's `CallbackShortcuts`).
+  final ScrollController _walkthroughScroll = ScrollController();
+
   void _toggleWalkthrough() {
     setState(() => _showWalkthrough = !_showWalkthrough);
   }
 
+  /// Scroll position of the card, when it overflows (auto-size off, or a
+  /// dance too long to fit even at the smallest auto-size). Each slot gets a
+  /// fresh scroll view, keyed on the slot in [build], so a slot always opens
+  /// at its top; nothing is kept in page storage either.
+  final ScrollController _cardScroll = ScrollController(
+    keepScrollOffset: false,
+  );
+
+  /// ↓ and Page Down (PLAT-10): scroll an overflowing card on, and move to the
+  /// next slot only once its end is showing. A page-turner pedal sends these
+  /// keys, so the pedal reads to the end of a long card before it turns the
+  /// page. → always moves straight on.
+  void _scrollCardOrGoNext() {
+    if (!_scrollCard(1)) _goNext();
+  }
+
+  /// ↑ and Page Up: the mirror of [_scrollCardOrGoNext], scrolling back to the
+  /// card's top before moving to the previous slot. ← always moves straight
+  /// back.
+  void _scrollCardOrGoPrev() {
+    if (!_scrollCard(-1)) _goPrev();
+  }
+
+  /// Scrolls the card most of a viewport in [direction], for the arrow and the
+  /// page keys alike: a pedal that sends arrows should not need ten presses
+  /// to reach the end. Returns false, scrolling nothing, when the card is
+  /// already at that end or does not scroll.
+  bool _scrollCard(int direction) => scrollPerformBy(_cardScroll, direction);
+
+  /// Keyboard scrolling for the open walkthrough overlay: [lines] of a fixed
+  /// step for the arrow keys, or a whole viewport (`page` set) for the page
+  /// keys. Focus stays on the screen's own node while the overlay is open, so
+  /// the framework's default scroll action never sees the overlay's scroll
+  /// view; this is what gives ↑/↓ their expected meaning there.
+  void _scrollWalkthrough(int direction, {bool page = false}) {
+    if (!_walkthroughScroll.hasClients) return;
+    final position = _walkthroughScroll.position;
+    final step = page ? position.viewportDimension * 0.8 : 64.0;
+    _walkthroughScroll.jumpTo(
+      (position.pixels + direction * step).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      ),
+    );
+  }
+
   /// Resolves the dance backing [slot], or `null` for a free-text-only slot or
-  /// an unresolved dance id.
+  /// an unresolved dance id (purged, or soft-deleted and not pre-resolved by
+  /// [resolveDeletedSlotDances]).
   Dance? _danceForSlot(ProgramSlot slot) => slot.danceId == null
       ? null
       : widget.danceOverrides[slot.danceId] ??
             widget.data.dancesById[slot.danceId];
 
+  /// Whether the program's dances are of more than one form, when each card
+  /// names its dance's form, as the builder and summary rows do (ADR-006 S5).
+  /// A dance in Recently deleted counts for nothing, as in
+  /// `programSlotForms`.
+  bool get _mixesForms =>
+      {
+        for (final slot in _program.slots)
+          if (_danceForSlot(slot) case final dance? when !dance.isDeleted)
+            dance.form,
+      }.length >
+      1;
+
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
   /// General setting (on by default) in [didChangeDependencies]; recomputes per
   /// slot as the shown dance/slot changes.
-  bool _autoSize = true;
+  bool _autoSize = kAutoSizePerformDefault;
 
   /// Guards the one-shot settings load in [didChangeDependencies] (auto-size
   /// plus the persisted Perform a11y prefs) so it runs exactly once.
@@ -219,7 +399,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// in-view, the async restore must not clobber that fresh choice.
   bool _textScaleUserSet = false;
   bool _stageModeUserSet = false;
-  bool _canonicalUserSet = false;
 
   /// Whether per-slot caller notes are shown above dance titles in program
   /// Perform. Defaults on and is persisted as a Program setting.
@@ -229,26 +408,61 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// display-only aid for the caller during an event: never persisted and never
   /// written back to the program (that is 5.3 territory).
   ///
-  /// A single [Timer.periodic] (1s) drives both the running program clock and
-  /// the per-slot elapsed. We accumulate whole seconds in [_elapsed] rather than
-  /// diffing wall-clock time so the readouts advance deterministically under
-  /// `tester.pump(Duration(...))`. The timer is independent of
-  /// [PerformWakelockMixin] (which only toggles the wake-lock in initState/
-  /// dispose and re-asserts it on resume), so the two do not interfere.
+  /// The running program clock and the per-slot elapsed both derive from
+  /// [_clock], which measures elapsed time rather than counting timer ticks
+  /// (post-audit integrity-6), so time the app spends suspended in the
+  /// background or asleep, or ticks lost to jank, still count. [_timer] only
+  /// refreshes [_elapsed] from [_clock] about once a second, and
+  /// [didChangeAppLifecycleState] refreshes it as soon as the app resumes.
+  /// `package:clock` is what keeps this deterministic under
+  /// `tester.pump(Duration(...))`: `fake_async` controls it in tests.
   ///
   /// Elapsed lives in a [ValueNotifier] rather than plain state so the per-second
-  /// tick rebuilds only the timing line (via a [ValueListenableBuilder] in
+  /// refresh rebuilds only the timing line (via a [ValueListenableBuilder] in
   /// [_buildTimingLine]) — not the whole card/figures, which would otherwise
   /// re-run `deriveSections`/`renderSummary` for every figure each second.
+  late final PerformElapsedClock _clock = PerformElapsedClock(
+    initialSeconds: widget.initialElapsedSeconds,
+    paused: widget.initialPaused,
+  );
   Timer? _timer;
   late final ValueNotifier<int> _elapsed = ValueNotifier<int>(
     widget.initialElapsedSeconds,
   );
 
+  /// Re-reads [_clock] into [_elapsed] and schedules the next refresh for when
+  /// the displayed second turns over. No timer is kept while paused.
+  void _refreshElapsed() {
+    _timer?.cancel();
+    _timer = null;
+    _elapsed.value = _clock.seconds;
+    if (_clock.isRunning) {
+      _timer = Timer(_clock.untilNextSecond, () {
+        if (mounted) _refreshElapsed();
+      });
+    }
+  }
+
   /// Value of [_elapsed] when the current group was entered; the per-slot
   /// elapsed is the difference. Reset to "now" on every navigation.
   late int _slotStartSeconds = widget.initialSlotStartSeconds;
   late bool _paused = widget.initialPaused;
+
+  /// Slot-elapsed second at which the caller tapped the dance-start button
+  /// (issue #1659), or `null` while unmarked. Session-only UI state (ADR-001):
+  /// never persisted, handed back through [PerformResumeState]. Follows the
+  /// per-slot timer exactly — [_resetSlotTimer] clears it.
+  late int? _walkthroughEndedAt = _restoredWalkthroughMark();
+
+  /// The resumed mark, or `null` when the slot now on screen is not the one it
+  /// was set on (a marked alternate re-enters as its primary; edits between
+  /// entries can move or remove the slot).
+  int? _restoredWalkthroughMark() {
+    final seconds = widget.initialWalkthroughEndedAtSlotSeconds;
+    final slotId = widget.initialWalkthroughEndedSlotId;
+    if (seconds == null || slotId == null || _groups.isEmpty) return null;
+    return _currentSlot.id == slotId ? seconds : null;
+  }
 
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
   /// Persisted across sessions (issue #449) and restored on entry.
@@ -264,12 +478,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_paused || !mounted) return;
-      // Bump the notifier only — the [ValueListenableBuilder] in the timing
-      // line rebuilds the clock text without rebuilding the card/figures.
-      _elapsed.value++;
-    });
+    // Sets the notifier only — the [ValueListenableBuilder] in the timing
+    // line rebuilds the clock text without rebuilding the card/figures.
+    _refreshElapsed();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Timers may not have fired while the app was away; show the full
+    // interval now rather than at the next refresh.
+    if (state == AppLifecycleState.resumed && mounted) _refreshElapsed();
   }
 
   @override
@@ -281,14 +500,20 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     widget.onExit?.call(
       PerformResumeState(
         groupIndex: _groupIndex,
-        elapsedSeconds: _elapsed.value,
+        elapsedSeconds: _clock.seconds,
         slotStartSeconds: _slotStartSeconds,
         paused: _paused,
+        walkthroughEndedAtSlotSeconds: _walkthroughEndedAt,
+        walkthroughEndedSlotId: _walkthroughEndedAt == null || _groups.isEmpty
+            ? null
+            : _currentSlot.id,
       ),
     );
     _timer?.cancel();
     _elapsed.dispose();
     _focusNode.dispose();
+    _walkthroughScroll.dispose();
+    _cardScroll.dispose();
     super.dispose();
   }
 
@@ -303,7 +528,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         .then((v) {
           // Don't clobber an in-view choice the user made before the read resolved.
           if (!mounted || _autoSizeUserSet) return;
-          final enabled = v is bool ? v : true;
+          final enabled = v is bool ? v : kAutoSizePerformDefault;
           if (enabled != _autoSize) setState(() => _autoSize = enabled);
         })
         .catchError((_) {
@@ -319,12 +544,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           setState(() {
             if (!_textScaleUserSet) _textScale = prefs.textScale;
             if (!_stageModeUserSet) _stageMode = prefs.stageMode;
-            if (!_canonicalUserSet) _canonicalView = prefs.canonicalView;
           });
         })
         .catchError((_) {
           // diagnostics: silent — a11y prefs load/parse failed; keeps defaults.
         });
+    loadConfirmPerformExit(context).then((value) {
+      if (mounted && value != _confirmExit) {
+        setState(() => _confirmExit = value);
+      }
+    });
     settings
         .get(kShowProgramSlotCallerNotesKey)
         .then((v) {
@@ -356,30 +585,59 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         ); // diagnostics: silent — stage-mode persist failed; best-effort.
   }
 
-  void _persistCanonicalView() {
-    _a11yPrefs
-        ?.saveCanonicalView(_canonicalView)
-        .catchError(
-          (_) {},
-        ); // diagnostics: silent — canonical-view persist failed; best-effort.
+  /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
+  void _resetSlotTimer() {
+    _refreshElapsed();
+    _slotStartSeconds = _elapsed.value;
+    _walkthroughEndedAt = null;
   }
 
-  /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
-  void _resetSlotTimer() => _slotStartSeconds = _elapsed.value;
+  /// Marks the walkthrough as ended (dance started) at the current slot-elapsed
+  /// second, or clears the mark (issue #1659). While paused the clock is frozen,
+  /// so the mark records the frozen value.
+  void _toggleDanceStart() => setState(() {
+    _refreshElapsed();
+    _walkthroughEndedAt = _walkthroughEndedAt == null
+        ? _slotElapsedFrom(_elapsed.value)
+        : null;
+  });
 
-  void _togglePause() => setState(() => _paused = !_paused);
+  void _togglePause() => setState(() {
+    _paused = !_paused;
+    _paused ? _clock.pause() : _clock.resume();
+    _refreshElapsed();
+  });
 
   // Re-entrancy guard (issue #666, parity with #612): true while the exit
   // confirmation dialog is showing.
   bool _exitDialogShowing = false;
 
+  /// Whether leaving asks first. Starts at the default (ask) and is replaced
+  /// by the stored setting once it loads, so an exit attempted before the
+  /// read resolves is still guarded.
+  bool _confirmExit = kConfirmPerformExitDefault;
+
+  /// Keys the Scaffold, which sits below [PerformStageTheme]: its context is
+  /// the one dialogs and sheets are opened from, so the exit dialog and the
+  /// metronome, jump and adjust sheets render in the stage theme rather than
+  /// the app theme.
+  final GlobalKey _stageKey = GlobalKey(debugLabel: 'perform-program-stage');
+
+  /// A context inside the stage theme, for [showDialog] and
+  /// [showModalBottomSheet]; falls back to this State's context before the
+  /// first build.
+  BuildContext get _stageContext => _stageKey.currentContext ?? context;
+
   /// Guards leaving Perform (issue #434). A single stray tap on the close
   /// control — or a system back / predictive-back gesture — must not drop the
-  /// caller out mid-set, so we require a deliberate confirmation first. The
+  /// caller out mid-set, so by default we require a deliberate confirmation
+  /// first ([showPerformExitDialog], shared with [PerformDanceScreen]). The
   /// dialog is fully accessible: keyed, labelled Cancel/Exit buttons with the
   /// confirm autofocused so keyboard users can Enter to confirm. Position and
   /// clock are preserved regardless (via [dispose] → [PerformProgramScreen.onExit]),
-  /// so confirming resumes on re-entry rather than losing the place.
+  /// so confirming resumes on re-entry rather than losing the place — which is
+  /// why the caller may turn the confirmation off in Settings ([_confirmExit],
+  /// making the close control and Back leave at once.
   ///
   /// [_exitDialogShowing] prevents re-entrancy (issue #666, parity with
   /// #612): without it, rapid taps on the close button (or repeated back
@@ -389,35 +647,23 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// so a later exit attempt isn't permanently blocked even if the dialog
   /// throws.
   Future<void> _confirmAndExit() async {
+    final navigator = Navigator.of(context);
+    if (!_confirmExit) {
+      // A direct pop (not `maybePop`) so it bypasses the PopScope in
+      // [_guardExit] rather than re-entering this method.
+      navigator.pop();
+      return;
+    }
     if (_exitDialogShowing) return;
     _exitDialogShowing = true;
     try {
-      final l10n = AppLocalizations.of(context);
-      final navigator = Navigator.of(context);
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          key: const ValueKey('perform-exit-dialog'),
-          title: Text(l10n.performExitTitle),
-          content: Text(l10n.performExitBody),
-          actions: [
-            TextButton(
-              key: const ValueKey('perform-exit-cancel'),
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(l10n.performExitCancel),
-            ),
-            FilledButton(
-              key: const ValueKey('perform-exit-confirm'),
-              autofocus: true,
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(l10n.performExitConfirm),
-            ),
-          ],
-        ),
+      final confirmed = await showPerformExitDialog(
+        _stageContext,
+        body: AppLocalizations.of(context).performExitBody,
       );
       // A direct pop (not `maybePop`) so it bypasses the PopScope in
       // [_guardExit] rather than re-triggering the confirmation.
-      if (confirmed == true) navigator.pop();
+      if (confirmed) navigator.pop();
     } finally {
       _exitDialogShowing = false;
     }
@@ -425,12 +671,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Wraps a Perform scaffold so an implicit pop (system back / predictive-back
   /// gesture) is intercepted and routed through the same [_confirmAndExit]
-  /// confirmation as the close control (issue #434). Applied to *both* the
+  /// confirmation as the close control (issue #434), while the confirmation is
+  /// on. Applied to *both* the
   /// populated and empty-state builds so a single tap / back never drops the
   /// caller out — the guard's contract holds regardless of slot count.
   Widget _guardExit({required Widget child}) {
     return PopScope(
-      canPop: false,
+      // With the confirmation turned off, Perform pops like any route, so
+      // gesture-driven back (the iOS edge swipe, which a non-poppable route
+      // disables) leaves at once too.
+      canPop: !_confirmExit,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _confirmAndExit();
@@ -527,21 +777,25 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final l10n = AppLocalizations.of(context);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      l10n.performShowingSlot(_slotLabel(l10n, slot)),
+      l10n.performShowingSlot(_slotLabel(l10n, slot, markDeleted: true)),
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
-  /// Display label for a slot: the dance title when it resolves, otherwise its
-  /// free text (or a neutral fallback).
+  /// Display label for a slot: the dance title when it resolves (suffixed with
+  /// the deleted marker when [markDeleted] and the dance is soft-deleted), "Dance
+  /// unavailable" for a dance id that resolves to nothing, otherwise its free
+  /// text (or a neutral fallback).
   String _slotLabel(
     AppLocalizations l10n,
     ProgramSlot slot, {
     bool convert = true,
+    bool markDeleted = false,
   }) {
     if (slot.danceId != null) {
       final dance = _danceForSlot(slot);
-      if (dance != null) return dance.title;
+      if (dance == null) return l10n.programsDanceUnavailable;
+      return slotDanceTitle(l10n, dance, markDeleted: markDeleted);
     }
     final rawText = slot.text?.trim();
     final text =
@@ -552,11 +806,20 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         ? rawText
         : widget.renderer.renderFreeTextWithCanonicalDiscouragedTerms(
             rawText,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            // A slot of text alone has no dance, so no form: contra's.
+            _effectiveDialect(context, DanceForm.contra, strict: false),
           );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
   }
+
+  /// [dialect], with lark and robin for the roles when [dance]'s
+  /// choreographer asked for them (`dialectForDance`).
+  Dialect _danceDialect(Dance dance, Dialect dialect) => dialectForDance(
+    dialect,
+    title: dance.title,
+    authorNames: _authorNamesFor(dance),
+  );
 
   List<String> _authorNamesFor(Dance dance) => [
     for (final id in dance.authorIds)
@@ -567,18 +830,24 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   Future<void> _openMetronomeSheet() {
     return showModalBottomSheet<void>(
-      context: context,
+      context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
   Future<void> _openJumpSheet() async {
     final target = await showModalBottomSheet<int>(
-      context: context,
+      context: _stageContext,
       showDragHandle: true,
       builder: (sheetContext) {
         final l10n = AppLocalizations.of(sheetContext);
+        // The set-list numbers (GIG-10): dances only, so a break takes none
+        // and the last number is the program's dance count.
+        final numbers = Program.danceNumbersForSlots([
+          for (final group in _groups) group.primary,
+        ]);
         return SafeArea(
           child: ListView.builder(
             key: const ValueKey('perform-jump-list'),
@@ -592,8 +861,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                   : null;
               return ListTile(
                 key: ValueKey('perform-jump-slot-$index'),
-                leading: CircleAvatar(child: Text('${index + 1}')),
-                title: Text(_slotLabel(l10n, group.primary)),
+                leading: CircleAvatar(
+                  child: numbers[index] == null
+                      ? const Icon(Icons.horizontal_rule)
+                      : Text('${numbers[index]}'),
+                ),
+                title: Text(_slotLabel(l10n, group.primary, markDeleted: true)),
                 subtitle: subtitle == null ? null : Text(subtitle),
                 selected: index == _groupIndex,
                 onTap: () => Navigator.of(sheetContext).pop(index),
@@ -602,6 +875,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (target != null && mounted) {
       setState(() {
@@ -621,12 +895,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// Swaps in an edited [updated] program: recomputes grouping, keeps the view
   /// on the exact slot that was on screen (by id — the selected alternate too,
   /// not just its primary) so the caller keeps reading the same dance after a
-  /// reorder/insert, and persists via [PerformProgramScreen.onProgramChanged].
+  /// reorder/insert, and, unless [persist] is false, persists via
+  /// [PerformProgramScreen.onProgramChanged].
   ///
   /// The per-slot timer keeps running while that slot is still on screen; it
   /// only resets when the previously visible slot is gone (e.g. removed), so
   /// timing (a 5.2 feature) is undisturbed by edits that leave it in place.
-  void _applyProgram(Program updated, {String? announce}) {
+  void _applyProgram(Program updated, {String? announce, bool persist = true}) {
+    final before = _program;
     final prevSlotId = _groups.isEmpty ? null : _currentSlot.id;
     setState(() {
       _program = updated;
@@ -659,7 +935,56 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       );
     }
     final onChanged = widget.onProgramChanged;
-    if (onChanged != null) unawaited(onChanged(updated));
+    if (persist && onChanged != null) {
+      final write = onChanged(before, updated);
+      _pendingPersist = write;
+      unawaited(
+        write.then((newer) {
+          if (newer != null) _showNewerProgram(updated, newer);
+        }),
+      );
+    }
+  }
+
+  /// Shows [newer], the stored program with the adjustment that produced
+  /// [adjusted] applied, after that adjustment's write found the program had
+  /// changed since Perform's copy was taken (GIG-6), and tells the caller.
+  /// Adjustments made while the write was in flight stay applied on top.
+  void _showNewerProgram(Program adjusted, Program newer) {
+    if (!mounted) return;
+    final shown = identical(_program, adjusted)
+        ? newer
+        : newer.copyWith(
+            slots: renumberSlots(
+              rebaseSlotEdits(
+                before: adjusted.slots,
+                after: _program.slots,
+                onto: newer.slots,
+              ),
+            ),
+          );
+    // Already stored: the owner wrote it.
+    _applyProgram(shown, persist: false);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final message = l10n.performProgramChangedElsewhere;
+    if (_undoable case final undoable?) {
+      _showUndoPrompt(
+        messenger,
+        message: message,
+        previous: undoable.previous,
+        updated: undoable.updated,
+      );
+    } else {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            key: const ValueKey('perform-program-changed-elsewhere'),
+            content: Text(message),
+          ),
+        );
+    }
   }
 
   /// Applies [updated] and offers a one-tap SnackBar undo restoring the
@@ -670,24 +995,127 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     required String announce,
   }) {
     final previous = _program;
+    _undoable = (previous: previous, updated: updated);
     _applyProgram(updated, announce: announce);
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    showUndoSnackBar(
+    _showUndoPrompt(
       ScaffoldMessenger.of(context),
       message: message,
-      undoLabel: l10n.commonUndo,
-      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () =>
-          _applyProgram(previous, announce: l10n.performAdjustmentUndone),
+      previous: previous,
+      updated: updated,
     );
+  }
+
+  /// Offers the Undo of the adjustment that turned [previous] into [updated].
+  void _showUndoPrompt(
+    ScaffoldMessengerState messenger, {
+    required String message,
+    required Program previous,
+    required Program updated,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final unavailableMessage = l10n.performUndoNoLongerAvailable;
+    final prompt = _undoPrompt = showUndoSnackBar(
+      messenger,
+      key: const ValueKey('perform-adjusted-undo'),
+      message: message,
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () {
+        // The snackbar lives on the app-root messenger, so it can outlive this
+        // screen (PRF-03). After unmount there is no view to update, and the
+        // program may have been edited since, so leave `setState`/`context`
+        // alone and restore only if nothing changed (flows-1).
+        if (!mounted) {
+          if (widget.onProgramChanged == null) return;
+          unawaited(
+            _undoAfterExit(
+              messenger: messenger,
+              pendingPersist: _pendingPersist,
+              previous: previous,
+              adjusted: updated,
+              restoreIfUnchanged: widget.restoreIfUnchanged,
+              unavailableMessage: unavailableMessage,
+            ),
+          );
+          return;
+        }
+        if (identical(_undoable?.updated, updated)) _undoable = null;
+        // Undo only the adjustment's own change: a newer program shown since
+        // (see [_showNewerProgram]) keeps what changed elsewhere.
+        _applyProgram(
+          _program.copyWith(
+            slots: renumberSlots(
+              rebaseSlotEdits(
+                before: updated.slots,
+                after: previous.slots,
+                onto: _program.slots,
+              ),
+            ),
+            updatedAt: DateTime.now().toUtc(),
+          ),
+          announce: l10n.performAdjustmentUndone,
+        );
+      },
+    );
+    unawaited(
+      prompt.closed.then((_) {
+        if (!identical(_undoPrompt, prompt)) return;
+        _undoPrompt = null;
+        _undoable = null;
+      }),
+    );
+  }
+
+  /// The "Program adjusted" Undo once Perform has closed: asks the owner to
+  /// restore [previous] atomically if the program is still what [adjusted]
+  /// left; otherwise leaves the program alone and says the undo is no longer
+  /// available. Uses only values captured while mounted.
+  static Future<void> _undoAfterExit({
+    required ScaffoldMessengerState messenger,
+    required Future<void> pendingPersist,
+    required Program previous,
+    required Program adjusted,
+    required Future<bool> Function(Program previous, Program adjusted)?
+    restoreIfUnchanged,
+    required String unavailableMessage,
+  }) async {
+    var restored = false;
+    try {
+      // The adjustment's own write must land before the stored copy is
+      // compared with it.
+      await pendingPersist;
+      restored =
+          restoreIfUnchanged != null &&
+          await restoreIfUnchanged(previous, adjusted);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'perform_program_screen._undoAfterExit',
+      );
+    }
+    if (restored) return;
+    // Same idiom as the program screens' failed-undo message: replace the
+    // spent prompt, then show the message on the next frame. A SnackBar is a
+    // live region, so screen readers announce it.
+    if (!messenger.mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..removeCurrentSnackBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(unavailableMessage)));
+    });
   }
 
   /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the
   /// reading view. The sheet edits a working copy (reorder remaining slots,
   /// insert a dance from quick-search, add an ad-hoc note, mark the current slot
-  /// performed) and returns the edited program on close; we then apply it live
-  /// with undo. Returning null (no change / dismissed) is a no-op.
+  /// performed) and hands back the edited program however it closes — Done,
+  /// swipe down, barrier tap or Back; we then apply it live with undo. A sheet
+  /// closed with no edits is a no-op.
   Future<void> _openAdjustSheet() async {
     // Build the picker's search enrichment from the full saved-dialect library
     // (presets + custom) so its search resolves saved-dialect vocabulary
@@ -699,23 +1127,35 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final enrichment = SearchEnrichment.fromDialects(
       library?.all ?? const <Dialect>[],
     );
-    final edited = await showModalBottomSheet<Program>(
-      context: context,
+    // The sheet reports every edit as it happens (null once the edits cancel
+    // out); [latest] keeps the last report so a sheet dismissed without Done
+    // (swipe down, barrier tap, Back) still commits its edits rather than
+    // discarding them. They
+    // are applied with the same undo as Done, so keeping them is cheap to
+    // reverse, while losing reorders made mid-gig is not.
+    Program? latest;
+    final returned = await showModalBottomSheet<Program>(
+      context: _stageContext,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => PerformAdjustSheet(
+        onEdited: (program) => latest = program,
         program: _program,
         currentGroupIndex: _groupIndex,
         currentSlotId: _currentSlot.id,
         data: widget.data,
         danceOverrides: widget.danceOverrides,
         authorNameOverrides: widget.authorNameOverrides,
-        dialect: _canonicalView
-            ? Dialect.canonical
-            : ActiveDialectScope.of(context),
+        // The picker reads a query in the form of the dance on screen.
+        dialect: _effectiveDialect(
+          context,
+          _danceForSlot(_currentSlot)?.form ?? DanceForm.contra,
+        ),
         enrichment: enrichment,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
+    final edited = returned ?? latest;
     if (edited == null || !mounted) return;
     final l10n = AppLocalizations.of(context);
     _applyWithUndo(
@@ -727,23 +1167,104 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => _buildContent(
-        context,
-        // Collapse the AppBar's secondary actions into an overflow menu on
-        // narrow widths (issue #433). LayoutBuilder reflects the actual
-        // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
-        // in widget tests).
-        wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+    return buildPerformFullScreenShortcuts(
+      child: LayoutBuilder(
+        builder: (context, constraints) => _buildContent(
+          context,
+          // Collapse the AppBar's secondary actions into an overflow menu on
+          // narrow widths (issue #433). LayoutBuilder reflects the actual
+          // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
+          // in widget tests).
+          wide: constraints.maxWidth >= AppBreakpoints.compact,
+        ),
+      ),
+    );
+  }
+
+  /// The program's own dialect for a dance of [form], or `null` when it has
+  /// none or its name does not resolve among [form]'s dialects. A program
+  /// names its dialect, and each form has its own dialects, so the name is
+  /// looked up in the library of the form of the dance on screen
+  /// (`resolveProgramDialect`). A `null` means Perform follows that form's
+  /// active dialect and the quick-switch keeps its app-wide behaviour.
+  /// Listens to the library, so renaming or deleting the dialect while
+  /// Perform is open takes effect live.
+  Dialect? _programDialect(BuildContext context, DanceForm form) {
+    final library = DialectLibraryScope.maybeOf(context);
+    if (library == null) return null;
+    return resolveProgramDialect(_program.dialectName, library.forForm(form));
+  }
+
+  /// The dialect Perform renders a dance of [form] with: the session pick,
+  /// else the program's dialect, else [form]'s active dialect. The session
+  /// pick and the program's dialect are names, each looked up among [form]'s
+  /// dialects.
+  /// [strict] keeps the existing `ActiveDialectScope.of` behaviour (throws
+  /// without the scope) for the call sites that had it.
+  Dialect _effectiveDialect(
+    BuildContext context,
+    DanceForm form, {
+    bool strict = true,
+  }) {
+    final programDialect = _programDialect(context, form);
+    if (programDialect != null) {
+      final library = DialectLibraryScope.maybeOf(context)!.forForm(form);
+      return resolveProgramDialect(_sessionDialectName, library) ??
+          programDialect;
+    }
+    return strict
+        ? ActiveDialectScope.of(context).forForm(form)
+        : (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+              .forForm(form);
+  }
+
+  /// The program title's type: the AppBar's usual `titleLarge` metrics, with no
+  /// colour, so the AppBar's own foreground colour (from whichever theme is
+  /// active) applies.
+  TextStyle _programTitleStyle(BuildContext context) {
+    final base = Theme.of(context).textTheme.titleLarge;
+    return TextStyle(
+      fontSize: base?.fontSize ?? 22,
+      height: base?.height ?? 1.27,
+      fontWeight: base?.fontWeight,
+      letterSpacing: base?.letterSpacing,
+    );
+  }
+
+  /// The title's text scaler: the system's, capped like the footer at
+  /// [kPerformChromeMaxTextScale].
+  TextScaler _chromeScaler(BuildContext context) => MediaQuery.textScalerOf(
+    context,
+  ).clamp(maxScaleFactor: kPerformChromeMaxTextScale);
+
+  /// Tall enough for two lines of the program title, and never shorter than
+  /// the standard toolbar. At the default text size two lines fit the standard
+  /// toolbar exactly, so it grows only with a larger text setting.
+  double _toolbarHeight(BuildContext context) {
+    final style = _programTitleStyle(context);
+    final line = _chromeScaler(context).scale(style.fontSize!) * style.height!;
+    return math.max(kToolbarHeight, 2 * line);
+  }
+
+  /// The program title in the AppBar. It wraps onto a second line rather than
+  /// truncating after a dozen characters on a phone (a 390 pt
+  /// screen showed only "Glen Echo Fr…"), and ellipsizes only beyond that.
+  Widget _buildProgramTitle(BuildContext context) {
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: _chromeScaler(context)),
+      child: Text(
+        widget.program.title,
+        key: const ValueKey('perform-program-title'),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        softWrap: true,
+        style: _programTitleStyle(context),
       ),
     );
   }
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final activeDialect = ActiveDialectScope.of(context);
-    final isCanonicalDialect = activeDialect == Dialect.canonical;
-    final dialect = _canonicalView ? Dialect.canonical : activeDialect;
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -755,6 +1276,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         enabled: _stageMode,
         child: _guardExit(
           child: Scaffold(
+            key: _stageKey,
             appBar: AppBar(
               leading: IconButton(
                 key: const ValueKey('perform-program-exit'),
@@ -762,7 +1284,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 icon: const Icon(Icons.close),
                 onPressed: _confirmAndExit,
               ),
-              title: Text(widget.program.title),
+              toolbarHeight: _toolbarHeight(context),
+              title: _buildProgramTitle(context),
             ),
             body: Center(child: Text(l10n.performNoSlots)),
           ),
@@ -780,6 +1303,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final slot = members[memberIndex];
     final activeDance = _danceForSlot(slot);
     final hasWalkthrough = activeDance?.walkthrough.trim().isNotEmpty ?? false;
+    // The dance on screen reads in its own form's dialect; a slot of text
+    // alone, with no dance, in contra's.
+    final form = activeDance?.form ?? DanceForm.contra;
+    final programDialect = _programDialect(context, form);
+    final dialect = _effectiveDialect(context, form);
 
     return ColourDanceTheme(
       title: _slotLabel(l10n, slot),
@@ -787,6 +1315,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         enabled: _stageMode,
         child: _guardExit(
           child: Scaffold(
+            key: _stageKey,
             appBar: AppBar(
               leading: IconButton(
                 key: const ValueKey('perform-program-exit'),
@@ -794,7 +1323,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 icon: const Icon(Icons.close),
                 onPressed: _confirmAndExit,
               ),
-              title: Text(widget.program.title),
+              toolbarHeight: _toolbarHeight(context),
+              title: _buildProgramTitle(context),
               // Responsive AppBar actions (issue #433): the full set shows
               // inline on tablets/large windows; on narrow phones the secondary
               // controls collapse into a "More actions" overflow so the toolbar
@@ -802,7 +1332,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               // (and the per-gig dialect quick-switch) stay inline.
               actions: buildPerformAppBarActions(
                 wide: wide,
-                leadingPrimary: const DialectQuickSwitch(),
+                leadingPrimary: programDialect == null
+                    ? DialectQuickSwitch(form: form)
+                    : DialectQuickSwitch(
+                        form: form,
+                        selectedName: dialect.name,
+                        onSelected: (name) =>
+                            setState(() => _sessionDialectName = name),
+                      ),
                 secondaryInline: [
                   IconButton(
                     key: const ValueKey('perform-adjust'),
@@ -838,6 +1375,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       icon: const Icon(Icons.swap_horiz),
                       onPressed: _swapAlternate,
                     ),
+                  ...performFullScreenInlineActions,
                   PerformSizeControls(
                     canDecrease: canDecrease,
                     onDecrease: _decreaseTextSize,
@@ -850,17 +1388,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       _autoSize = value;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformDialectToggle(
-                      canonical: _canonicalView,
-                      onChanged: (value) {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = value;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 overflowActions: [
                   PerformMenuAction(
@@ -898,6 +1425,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       label: l10n.performShowAlternate,
                       onSelected: _swapAlternate,
                     ),
+                  ...performFullScreenMenuActions,
                   PerformMenuAction(
                     menuKey: const ValueKey('decrease-text-size-menu'),
                     icon: Icons.text_decrease,
@@ -921,20 +1449,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       _autoSize = !_autoSize;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformMenuAction(
-                      menuKey: const ValueKey('perform-dialect-toggle-menu'),
-                      icon: Icons.groups,
-                      label: l10n.performShowCanonicalTerms,
-                      toggledOn: _canonicalView,
-                      onSelected: () {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = !_canonicalView;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 trailingPrimary: PerformStageToggle(
                   stageOn: _stageMode,
@@ -949,21 +1463,57 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               ),
             ),
             body: CallbackShortcuts(
-              bindings: <ShortcutActivator, VoidCallback>{
-                const SingleActivator(LogicalKeyboardKey.arrowRight): _goNext,
-                const SingleActivator(LogicalKeyboardKey.arrowDown): _goNext,
-                const SingleActivator(LogicalKeyboardKey.pageDown): _goNext,
-                const SingleActivator(LogicalKeyboardKey.arrowLeft): _goPrev,
-                const SingleActivator(LogicalKeyboardKey.arrowUp): _goPrev,
-                const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
-              },
+              // While the walkthrough overlay is open, slot navigation is
+              // paused on the keyboard exactly as the overlay's barrier pauses
+              // it for pointers (below): pressing ↓ to read further must not
+              // swap the dance underneath. The vertical keys scroll the
+              // walkthrough instead, ←/→ are consumed (left unbound they would
+              // reach the framework's default scroll action, which asserts
+              // when the card and the overlay both hold a scroll position),
+              // and Escape closes the overlay.
+              bindings: _showWalkthrough && hasWalkthrough
+                  ? <ShortcutActivator, VoidCallback>{
+                      const SingleActivator(LogicalKeyboardKey.escape):
+                          _toggleWalkthrough,
+                      const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                          _scrollWalkthrough(1),
+                      const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                          _scrollWalkthrough(-1),
+                      const SingleActivator(LogicalKeyboardKey.pageDown): () =>
+                          _scrollWalkthrough(1, page: true),
+                      const SingleActivator(LogicalKeyboardKey.pageUp): () =>
+                          _scrollWalkthrough(-1, page: true),
+                      const SingleActivator(LogicalKeyboardKey.arrowRight):
+                          () {},
+                      const SingleActivator(LogicalKeyboardKey.arrowLeft):
+                          () {},
+                    }
+                  : <ShortcutActivator, VoidCallback>{
+                      const SingleActivator(LogicalKeyboardKey.arrowRight):
+                          _goNext,
+                      const SingleActivator(LogicalKeyboardKey.arrowDown):
+                          _scrollCardOrGoNext,
+                      const SingleActivator(LogicalKeyboardKey.pageDown):
+                          _scrollCardOrGoNext,
+                      const SingleActivator(LogicalKeyboardKey.arrowLeft):
+                          _goPrev,
+                      const SingleActivator(LogicalKeyboardKey.arrowUp):
+                          _scrollCardOrGoPrev,
+                      const SingleActivator(LogicalKeyboardKey.pageUp):
+                          _scrollCardOrGoPrev,
+                    },
               child: Focus(
                 focusNode: _focusNode,
                 autofocus: true,
                 child: SafeArea(
                   child: Stack(
                     children: [
-                      Positioned.fill(child: _buildCard(slot, dialect)),
+                      Positioned.fill(
+                        child: KeyedSubtree(
+                          key: ValueKey(('perform-card', slot.id)),
+                          child: _buildCard(slot, dialect),
+                        ),
+                      ),
                       // Giant edge hit zones (>=44pt) for touch/mouse. Accessibility
                       // and keyboard use go through the prev/next buttons, so these
                       // are excluded from semantics to avoid double-announcing.
@@ -994,16 +1544,19 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                         ),
                       ),
                       // Walkthrough overlay sits ABOVE the edge hit zones so
-                      // reading it doesn't trigger prev/next navigation, and is
-                      // a sibling of the card — never routed through its
-                      // `_FitToHeight` — so it can't shrink the notation (#370).
+                      // reading it doesn't trigger prev/next navigation (the
+                      // keyboard bindings above are paused for the same
+                      // reason), and is a sibling of the card — never routed
+                      // through its `_FitToHeight` — so it can't shrink the
+                      // notation (#370).
                       if (_showWalkthrough && hasWalkthrough)
                         Positioned.fill(
                           child: PerformWalkthroughOverlay(
                             walkthrough: activeDance!.walkthrough,
                             renderer: widget.renderer,
-                            dialect: dialect,
+                            dialect: _danceDialect(activeDance, dialect),
                             onClose: _toggleWalkthrough,
+                            scrollController: _walkthroughScroll,
                           ),
                         ),
                     ],
@@ -1011,54 +1564,108 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 ),
               ),
             ),
-            bottomNavigationBar: BottomAppBar(
-              child: Row(
-                children: [
-                  _buildPauseButton(),
-                  IconButton(
-                    key: const ValueKey('perform-prev'),
-                    tooltip: l10n.performPreviousSlot,
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: _hasPrev ? _goPrev : null,
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Builder(
-                        // Resolve the text style from a context *below*
-                        // [PerformStageTheme] so the labels pick up the stage
-                        // theme's on-surface color (readable on the dark
-                        // BottomAppBar) when stage mode is on, rather than the
-                        // outer ambient theme.
-                        builder: (context) {
-                          final textTheme = Theme.of(context).textTheme;
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                l10n.performSlotPosition(
-                                  _groupIndex + 1,
-                                  _groups.length,
-                                ),
-                                key: const ValueKey('perform-position'),
-                                style: textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 2),
-                              _buildTimingLine(slot, textTheme),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    key: const ValueKey('perform-next'),
-                    tooltip: l10n.performNextSlot,
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: _hasNext ? _goNext : null,
-                  ),
-                ],
+            bottomNavigationBar: _buildFooter(slot),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The program footer: pause, previous, the position and timing readout,
+  /// next. It is chrome, so it follows the system text size only up to
+  /// [kPerformChromeMaxTextScale]: at an accessibility
+  /// size it no longer grows to triple height and squeezes the card the caller
+  /// is reading.
+  Widget _buildFooter(ProgramSlot slot) {
+    final l10n = AppLocalizations.of(context);
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: kPerformChromeMaxTextScale,
+      child: Builder(
+        builder: (context) => BottomAppBar(
+          // Grow with the (capped) system text size (A11Y-01): the fixed
+          // 80 px bar cannot hold the position + timing lines at large
+          // scales.
+          height: math.max(80.0, MediaQuery.textScalerOf(context).scale(80)),
+          child: Row(
+            children: [
+              _buildPauseButton(),
+              IconButton(
+                key: const ValueKey('perform-prev'),
+                tooltip: l10n.performPreviousSlot,
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _hasPrev ? _goPrev : null,
               ),
-            ),
+              Expanded(
+                child: Center(
+                  child: Builder(
+                    // Resolve the text style from a context *below*
+                    // [PerformStageTheme] so the labels pick up the stage
+                    // theme's on-surface color (readable on the dark
+                    // BottomAppBar) when stage mode is on, rather than the
+                    // outer ambient theme.
+                    builder: (context) {
+                      final textTheme = Theme.of(context).textTheme;
+                      // Each line scales down to the available width on its
+                      // own, so a long timing line (labels, planned minutes)
+                      // on a narrow phone never shrinks the position above
+                      // it. The outer FittedBox is only the fallback for a
+                      // height beyond the capped bar; the width it would
+                      // otherwise leave unbounded is pinned to the slot's.
+                      final readout = LayoutBuilder(
+                        builder: (context, constraints) => FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: constraints.maxWidth,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    l10n.performSlotPosition(
+                                      _groupIndex + 1,
+                                      _groups.length,
+                                    ),
+                                    key: const ValueKey('perform-position'),
+                                    style: textTheme.titleMedium,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                _buildTimingLine(slot, textTheme),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                      if (!_hasSeparateWalkthrough(slot)) {
+                        return readout;
+                      }
+                      // The dance-start toggle sits *outside* both
+                      // [FittedBox]es (this one and the one inside
+                      // [_buildTimingLine]) so the readout's narrow-phone
+                      // scale-down (issue #433) can never shrink it below
+                      // its 44px tap target (issue #1659).
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(child: readout),
+                          const SizedBox(width: 4),
+                          _buildDanceStartButton(context),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+              IconButton(
+                key: const ValueKey('perform-next'),
+                tooltip: l10n.performNextSlot,
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _hasNext ? _goNext : null,
+              ),
+            ],
           ),
         ),
       ),
@@ -1088,10 +1695,52 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
+  /// Whether [slot] has a separate walkthrough duration, which is what offers
+  /// the dance-start toggle (issue #1659). Zero minutes is "no walkthrough",
+  /// matching the automatic walkthrough-complete cue's own gate.
+  static bool _hasSeparateWalkthrough(ProgramSlot slot) =>
+      (slot.walkthroughMinutes ?? 0) > 0;
+
+  /// Icon-only, 44px round toggle that marks the walkthrough as ended and the
+  /// dance as started (issue #1659). Pressed state is never colour-only: the
+  /// glyph goes outlined → filled, the tooltip/label flips, and the state is
+  /// exposed as toggled — same single-node pattern as [_buildPauseButton].
+  /// [context] must sit below the stage theme so the colours follow it.
+  Widget _buildDanceStartButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final marked = _walkthroughEndedAt != null;
+    return MergeSemantics(
+      child: Semantics(
+        toggled: marked,
+        child: IconButton(
+          key: const ValueKey('perform-dance-start'),
+          tooltip: marked
+              ? l10n.performDanceStartUsed
+              : l10n.performDanceStartUnused,
+          isSelected: marked,
+          icon: const Icon(Icons.music_note_outlined),
+          selectedIcon: const Icon(Icons.music_note),
+          style: IconButton.styleFrom(
+            fixedSize: const Size(44, 44),
+            minimumSize: const Size(44, 44),
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: const CircleBorder(),
+            foregroundColor: marked ? scheme.onTertiary : scheme.onSurface,
+            backgroundColor: marked ? scheme.tertiary : Colors.transparent,
+            side: marked ? null : BorderSide(color: scheme.outline),
+          ),
+          onPressed: _toggleDanceStart,
+        ),
+      ),
+    );
+  }
+
   /// The running program clock, per-slot elapsed, and (when present) the
   /// split planned slot timing with walkthrough-transition and over-run cues.
   ///
-  /// Only this line rebuilds on each 1s tick: a [ValueListenableBuilder] listens
+  /// Only this line rebuilds on each per-second refresh: a [ValueListenableBuilder] listens
   /// to [_elapsed] so the clock/elapsed text updates without rebuilding the
   /// card/figures (which would re-run `deriveSections`/`renderSummary` per
   /// figure every second).
@@ -1106,19 +1755,38 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final danceMinutes = slot.danceMinutes;
     final plannedTotalMinutes = slot.plannedTotalMinutes;
     final style = textTheme.bodyMedium;
+    // The labels read as captions to the times beside them.
+    final labelStyle = textTheme.labelMedium;
 
     return ValueListenableBuilder<int>(
       valueListenable: _elapsed,
       builder: (context, elapsed, _) {
         final slotElapsed = _slotElapsedFrom(elapsed);
+        // A manual dance-start mark (issue #1659) replaces the clock-derived
+        // thresholds for this slot only: "walkthrough complete" follows the
+        // mark and "over" is measured from the mark plus the dance minutes.
+        // Unmarked slots keep exactly the elapsed-time rules.
+        final mark = _walkthroughEndedAt;
         final isOver =
             danceMinutes != null &&
-            slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60;
+            (mark == null
+                ? slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60
+                : slotElapsed > mark + danceMinutes * 60);
         final walkthroughComplete =
             !isOver &&
-            walkthroughMinutes != null &&
-            walkthroughMinutes > 0 &&
-            slotElapsed > walkthroughMinutes * 60;
+            (mark != null ||
+                (walkthroughMinutes != null &&
+                    walkthroughMinutes > 0 &&
+                    slotElapsed > walkthroughMinutes * 60));
+        // Expected-vs-actual: the slot time the walkthrough ended at against
+        // its planned minutes.
+        final plannedWalkthroughSeconds = (walkthroughMinutes ?? 0) * 60;
+        final markDelta = mark == null ? 0 : mark - plannedWalkthroughSeconds;
+        final markDirection = markDelta > 0
+            ? 'over'
+            : markDelta < 0
+            ? 'under'
+            : 'on';
 
         final label = l10n.performTimingSemantic(
           _formatDuration(elapsed),
@@ -1130,6 +1798,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           walkthroughComplete ? 'yes' : 'no',
           isOver ? 'yes' : 'no',
           _paused ? 'yes' : 'no',
+          mark != null ? 'yes' : 'no',
+          _formatDuration(mark ?? 0),
+          markDirection,
+          _formatDuration(markDelta.abs()),
         );
 
         return Semantics(
@@ -1144,7 +1816,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.timer_outlined, size: 16),
+                  // Each clock carries a short visible label: two bare "0:04"
+                  // readouts gave no hint which timed the evening and which
+                  // the dance. The words match the semantic label above
+                  // ("Program time …, slot time …"), and replace the generic
+                  // timer icon, which said only that these are clocks.
+                  Text(
+                    l10n.performProgramClockLabel,
+                    key: const ValueKey('perform-clock-label'),
+                    style: labelStyle,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     _formatDuration(elapsed),
@@ -1152,6 +1833,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     style: style,
                   ),
                   Text('  ·  ', style: style),
+                  Text(
+                    l10n.performSlotClockLabel,
+                    key: const ValueKey('perform-slot-elapsed-label'),
+                    style: labelStyle,
+                  ),
+                  const SizedBox(width: 4),
                   Text(
                     _formatDuration(slotElapsed),
                     key: const ValueKey('perform-slot-elapsed'),
@@ -1168,6 +1855,18 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       key: const ValueKey('perform-planned'),
                       style: style,
                     ),
+                    if (mark != null) ...[
+                      Text('  ·  ', style: style),
+                      Text(
+                        l10n.performWalkthroughActual(
+                          _formatDuration(mark),
+                          markDirection,
+                          _formatDuration(markDelta.abs()),
+                        ),
+                        key: const ValueKey('perform-walkthrough-actual'),
+                        style: style,
+                      ),
+                    ],
                     if (walkthroughComplete) ...[
                       const SizedBox(width: 4),
                       const Icon(Icons.directions_run, size: 16),
@@ -1198,25 +1897,54 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   Widget _buildCard(ProgramSlot slot, Dialect dialect) {
     if (slot.danceId != null) {
-      final dance = _danceForSlot(slot);
+      var dance = _danceForSlot(slot);
       if (dance != null) {
+        // From the dance's own title, before a deleted mark is added to it.
+        final danceDialect = _danceDialect(dance, dialect);
+        // A soft-deleted dance keeps its figures but says so in its title.
+        if (dance.isDeleted) {
+          dance = dance.copyWith(
+            title: slotDanceTitle(
+              AppLocalizations.of(context),
+              dance,
+              markDeleted: true,
+            ),
+          );
+        }
         return PerformCard(
           dance: dance,
           callerNote: _showProgramSlotCallerNotes == true ? slot.text : null,
           renderer: widget.renderer,
-          dialect: dialect,
+          dialect: danceDialect,
+          // The slot's note is the program's, not the dance's: it keeps the
+          // reader's dialect, as the summary and exports do.
+          callerNoteDialect: dialect,
           textScale: _textScale,
           autoSize: _autoSize,
           authorNames: _authorNamesFor(dance),
           difficultyLevel: _difficultyLevelFor(dance),
           fitScaleCache: _fitScaleCache,
+          scrollController: _cardScroll,
+          // A dance in Recently deleted names no form, as in the builder.
+          showForm: _mixesForms && !dance.isDeleted,
         );
       }
     }
     // Free-text-only slot (or an unresolved dance id): a simple large-print
-    // text card with no figures.
+    // text card with no figures. An unresolved id headlines "Dance unavailable";
+    // the caller's note rides underneath only when the display preference is on.
+    final l10n = AppLocalizations.of(context);
+    final note = slot.text?.trim();
     return PerformTextCard(
-      text: _slotLabel(AppLocalizations.of(context), slot, convert: false),
+      text: slot.danceId == null
+          ? _slotLabel(l10n, slot, convert: false)
+          : [
+              l10n.programsDanceUnavailable,
+              if (_showProgramSlotCallerNotes == true &&
+                  note != null &&
+                  note.isNotEmpty)
+                note,
+            ].join('\n'),
       textScale: _textScale,
       renderer: widget.renderer,
       dialect: dialect,
@@ -1227,6 +1955,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           CanonicalDiscouragedTermsScope.of(context),
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,
+      scrollController: _cardScroll,
     );
   }
 
@@ -1239,4 +1968,90 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     }
     return null;
   }
+}
+
+/// What [resolveDeletedSlotDances] resolved for Perform's override parameters.
+class DeletedSlotDances {
+  const DeletedSlotDances({
+    required this.dances,
+    required this.authorNames,
+    this.lookupFailed = false,
+  });
+
+  /// For [PerformProgramScreen.danceOverrides].
+  final Map<String, Dance> dances;
+
+  /// For [PerformProgramScreen.authorNameOverrides]: names of the authors of
+  /// [dances], including choreographers that are soft-deleted themselves.
+  final Map<String, String> authorNames;
+
+  /// Whether the dance read failed, so [dances] is empty because nothing was
+  /// read rather than because every id was purged.
+  final bool lookupFailed;
+}
+
+/// Soft-deleted dances behind [slots], keyed by id, with the names of their
+/// authors, for [PerformProgramScreen.danceOverrides] and
+/// [PerformProgramScreen.authorNameOverrides]. [CollectionData] excludes
+/// deleted dances, so without this a slot whose dance sits in Recently deleted
+/// would lose its figures mid-program; and it excludes deleted choreographers,
+/// so a deleted dance's deleted author would lose their credit line. Ids
+/// already in [data] are not duplicated, and purged ids are absent from the
+/// result. Authors already named by [data] are left to it.
+///
+/// Every program surface that resolves a slot's dance uses this, so a trashed
+/// dance reads the same in Perform, the builder's slot list and matrix
+/// (GIG-11). The summary, which loads its dances by id rather than from
+/// [CollectionData], reads them with the same `includeDeleted` lookup.
+///
+/// Never throws: Perform opened without this lookup before CS-06, and a caller
+/// mid-gig must still reach it. A failed dance read gives no overrides (the
+/// pre-CS-06 behaviour); a failed author read keeps the dances without the
+/// extra names. Either failure is logged.
+Future<DeletedSlotDances> resolveDeletedSlotDances(
+  DanceRepository dances,
+  ChoreographerRepository choreographers,
+  Iterable<ProgramSlot> slots,
+  CollectionData data,
+) async {
+  const source = 'perform_program_screen.resolveDeletedSlotDances';
+  final resolved = <String, Dance>{};
+  final attempted = <String>{};
+  try {
+    for (final slot in slots) {
+      final id = slot.danceId;
+      if (id == null || data.dancesById.containsKey(id)) continue;
+      if (!attempted.add(id)) continue;
+      final dance = await dances.getById(
+        id,
+        includeDeleted: true,
+        includeDeletedAuthors: true,
+      );
+      if (dance != null) resolved[id] = dance;
+    }
+  } on Object catch (e, st) {
+    logCaughtError(e, st, source: source);
+    return const DeletedSlotDances(
+      dances: {},
+      authorNames: {},
+      lookupFailed: true,
+    );
+  }
+  final authorNames = <String, String>{};
+  final missingAuthors = {
+    for (final dance in resolved.values)
+      for (final id in dance.authorIds)
+        if (!data.choreographerNames.containsKey(id)) id,
+  };
+  if (missingAuthors.isNotEmpty) {
+    try {
+      for (final c in await choreographers.listAll(includeDeleted: true)) {
+        if (missingAuthors.contains(c.id)) authorNames[c.id] = c.name;
+      }
+    } on Object catch (e, st) {
+      logCaughtError(e, st, source: source);
+      authorNames.clear();
+    }
+  }
+  return DeletedSlotDances(dances: resolved, authorNames: authorNames);
 }

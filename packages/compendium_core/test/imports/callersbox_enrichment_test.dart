@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// Coverage for the CallersBox/TCB figure-recognition enrichment (issue #553):
 /// the additive Gap-1 recognizers (roll away, cross trails, figure eight, form
@@ -23,12 +24,18 @@ void main() {
       expect(f.params['who'], 'role1s');
       expect(f.params['whom'], 'neighbors');
       expect(f.note, 'role2s roll right, role1s side-step left');
+      // The annotation states the roller, so it is not assumed.
+      expect(f.assumedSubject, isFalse);
     });
 
-    test('"Partner roll away (across)" → who=partners, dir dropped', () {
+    test('"Partner roll away (across)" → whom=partners, dir dropped', () {
+      // A relationship before "roll away" is whom the roll away is with
+      // (#1975); the roller is the taxonomy default, assumed.
       final f = _parse('Partner roll away (across)');
       expect(f!.move, 'roll_away');
-      expect(f.params['who'], 'partners');
+      expect(f.params['whom'], 'partners');
+      expect(f.params.containsKey('who'), isFalse);
+      expect(f.assumedSubject, isTrue);
     });
 
     test('ambiguous per-role annotations keep generic roll-away params', () {
@@ -40,8 +47,9 @@ void main() {
 
       for (final f in [noRoll, twoRolls, unsupported]) {
         expect(f!.move, 'roll_away');
-        expect(f.params['who'], 'neighbors');
-        expect(f.params.containsKey('whom'), isFalse);
+        expect(f.params['whom'], 'neighbors');
+        expect(f.params.containsKey('who'), isFalse);
+        expect(f.assumedSubject, isTrue);
       }
     });
 
@@ -251,6 +259,92 @@ void main() {
       expect(f.params['text'], 'Circulate: role2s cross, role2s loop right');
     });
 
+    // #2160: a clause-final `[with <dancer>]` / `[around <dancer>]` bracket
+    // after the loop clause. The figure keeps who/hand; the note is the
+    // bracket's canonical text only. That differs from #2160's suggestion (the
+    // raw bracket kept in the note, as before #1218) and from a bracketless
+    // line, whose note is the definition; it was chosen while implementing
+    // #2160, not decided on the issue.
+    const bracketAccepted = <String, String>{
+      'Circulate: women cross, men loop right [with N2]': 'with nextNeighbors',
+      'Circulate: women cross, men loop right [with shadow]': 'with shadows',
+      'Circulate: women cross, men loop right [around N2]':
+          'around nextNeighbors',
+    };
+    bracketAccepted.forEach((line, note) {
+      test('"$line" → box_circulate, note "$note"', () {
+        final f = _parse(line);
+        expect(f!.move, 'box_circulate');
+        expect(f.isCustom, isFalse);
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, note);
+      });
+    });
+
+    test('a bracketed circulate without a loop side leaves hand unset', () {
+      final f = _parse('Circulate: men cross, women loop [with N2]');
+      expect(f!.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+      expect(f.note, 'with nextNeighbors');
+    });
+
+    // The note `with nextNeighbors` must not read as a leftover or a balance
+    // after the circulate, or the fan-out would demote the figure and a
+    // re-parse of a stored custom would leave it custom (#2160).
+    group('a bracketed circulate through the fan-out', () {
+      const line = '(8) Circulate: women cross, men loop right [with N2]';
+      void expectBracketedCirculate(Figure f) {
+        expect(f.move, 'box_circulate');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, 'with nextNeighbors');
+      }
+
+      test('free-text entry reads it', () {
+        expectBracketedCirculate(parseFreeTextFigureEntry(line).single);
+      });
+
+      test('a stored import-gap custom of it upgrades, then is stable', () {
+        final original = customFigure(
+          'Circulate: women cross, men loop right [with N2]',
+          beats: 8,
+          origin: CustomOrigin.importGap,
+        );
+        final once = reparseImportGapFigures([original]);
+        expect(once.upgradedCount, 1);
+        expectBracketedCirculate(once.figures.single);
+        expect(reparseImportGapFigures(once.figures).upgradedCount, 0);
+      });
+    });
+
+    for (final line in const [
+      // Unresolvable dancer, or a head other than with/around.
+      'Circulate: women cross, men loop right [with phantom]',
+      'Circulate: women cross, men loop right [around phantom]',
+      'Circulate: women cross, men loop right [beside N2]',
+      'Circulate: women cross, men loop right [optional]',
+      'Circulate: women cross, men loop right []',
+      // More than one bracket, nested/unbalanced, or text after the bracket.
+      'Circulate: women cross, men loop right [with N2] trailing',
+      'Circulate: women cross, men loop right [with N2] [with N3]',
+      'Circulate: women cross, men loop right [[with N2]',
+      'Circulate: women cross, men loop right [with N2]]',
+      'Circulate: women cross, men loop right [with N2',
+      'Circulate: women [with N2] cross, men loop right',
+      // The #1218 guards still apply with a bracket present.
+      'Circulate: women cross, women loop right [with N2]',
+      'Circulate: women cross, men right [with N2]',
+      'Circulate: women cross, unknown loop right [with N2]',
+      'Circulate: partners cross, unknown loop right [with N2]',
+      'Circulate: women cross, men loop right garbage [with N2]',
+    ]) {
+      test('"$line" stays custom', () {
+        expect(_parse(line)!.isCustom, isTrue);
+      });
+    }
+
     test('balance ring + circulate folds balance into box_circulate', () {
       // The adapter cross-line merge folds a preceding balance line; here we
       // assert the circulate clause itself structures so the fold has a target.
@@ -282,6 +376,203 @@ void main() {
 
     test('bare "Weave the line" → zig_zag (default who)', () {
       expect(_parse('Weave the line')!.move, 'zig_zag');
+    });
+  });
+
+  group('weave the line slide direction (#1415)', () {
+    test('"(R;L to N2)" → slide right, annotation kept as the note', () {
+      final f = _parse('Weave the line with partner (R;L to N2)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params['who'], 'partners');
+      expect(f.params['slide'], 'right');
+      expect(f.note, 'R;L to N2');
+    });
+
+    test('"(L;R to N2)" → slide left (the two spellings differ)', () {
+      final f = _parse('Weave the line with partner (L;R to N2)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params['slide'], 'left');
+      expect(f.note, 'L;R to N2');
+    });
+
+    test('lowercase and spaced bracket reads the same', () {
+      final f = _parse('Weave the line with partner ( r ; l to n2)');
+      expect(f!.params['slide'], 'right');
+    });
+
+    test('a bare "(R;L)" sets the slide; all-uppercase shorthand gets no '
+        'note', () {
+      final f = _parse('Weave the line with partner (R;L)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params['slide'], 'right');
+      expect(f.note, isNull);
+    });
+
+    test('a bare lowercase "(r;l)" reads like "(R;L)": slide, no note', () {
+      final f = _parse('Weave the line with partner (r;l)');
+      expect(f!.params['slide'], 'right');
+      expect(f.note, isNull);
+    });
+
+    test('the pair is read through the plural entry point too', () {
+      final figures = _parseAll(
+        'Weave the line with partner (R;L to N2)',
+        beats: 6,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.params['slide'], 'right');
+      expect(figures.single.params['beats'], 6);
+    });
+
+    test('a non-mirrored pair "(R;R …)" keeps the default slide', () {
+      final f = _parse('Weave the line with partner (R;R to N2)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params.containsKey('slide'), isFalse);
+      expect(f.note, 'R;R to N2');
+    });
+
+    test('a longer pass list or a glued suffix is not a slide', () {
+      for (final line in [
+        'Weave the line with partner (R;L;R)',
+        'Weave the line with partner (R;L2)',
+        'Weave the line with partner (R)',
+      ]) {
+        final f = _parse(line);
+        expect(f!.move, 'zig_zag', reason: line);
+        expect(f.params.containsKey('slide'), isFalse, reason: line);
+      }
+    });
+
+    test('two slide-shaped brackets are ambiguous → default slide', () {
+      final f = _parse('Weave the line with partner (R;L) (L;R)');
+      expect(f!.params.containsKey('slide'), isFalse);
+    });
+
+    test('a bare "Weave the line" keeps the default slide', () {
+      expect(_parse('Weave the line')!.params.containsKey('slide'), isFalse);
+    });
+
+    test('a bracket on a line that is not a weave is left alone', () {
+      final f = _parse('Neighbor swing (R;L to N2)');
+      expect(f!.move, 'swing');
+      expect(f.params.containsKey('slide'), isFalse);
+    });
+  });
+
+  group('while → modifier (#1415)', () {
+    const b2 =
+        'In long lines, go forward and back while N2 neighbor roll away '
+        '(W roll L, M side-step R)';
+
+    void expectLongLinesRollAway(Figure f) {
+      expect(f.isModifier, isTrue);
+      expect(f.params['beats'], 8);
+      final sides = f.subFigures;
+      expect(sides.map((s) => s.move), ['long_lines', 'roll_away']);
+      expect(sides[1].params['whom'], 'nextNeighbors');
+      // Beats ride on the container only.
+      expect(sides.every((s) => !s.params.containsKey('beats')), isTrue);
+    }
+
+    test(
+      'dance 6026 B2 → modifier[long_lines, roll_away], container beats',
+      () {
+        final figures = _parseAll(b2, beats: 8);
+        expect(figures, hasLength(1));
+        expectLongLinesRollAway(figures.single);
+      },
+    );
+
+    test('the singular (reparse) fan-out reads the same line', () {
+      final f = parseFigureLineFanOut(b2, beats: 8);
+      expectLongLinesRollAway(f!);
+    });
+
+    test('a stored import-gap custom of the line upgrades, then is stable', () {
+      final original = customFigure(
+        b2,
+        beats: 8,
+        origin: CustomOrigin.importGap,
+      );
+      final once = reparseImportGapFigures([original]);
+      expect(once.upgradedCount, 1);
+      expectLongLinesRollAway(once.figures.single);
+      final twice = reparseImportGapFigures(once.figures);
+      expect(twice.upgradedCount, 0);
+    });
+
+    test('the plural free-text fan-out reads the same line', () {
+      // ContraDB ranks first and reads this line as
+      // `meanwhile[long_lines, custom]`; a container with a custom child must
+      // not count as a clean parse or it shadows TCB's modifier.
+      final figures = parseFigureLinesFanOut(b2, beats: 8);
+      expect(figures, hasLength(1));
+      expectLongLinesRollAway(figures.single);
+    });
+
+    test('slice is also a core', () {
+      final f = _parseAll(
+        'Slice left while N2 neighbor roll away',
+        beats: 8,
+      ).single;
+      expect(f.isModifier, isTrue);
+      expect(f.subFigures.map((s) => s.move), ['slice', 'roll_away']);
+    });
+
+    test('a `while` inside a bracket never splits the line', () {
+      final f = _parse(
+        'In long lines, go forward and back (W go forward while M go back)',
+        beats: 8,
+      );
+      expect(f!.isContainer, isFalse);
+    });
+
+    test('a bracketed `while` before the real one is not the boundary', () {
+      // A naive split on the first `while` would cut inside the bracket and
+      // leave both halves custom; the depth-aware split finds the top-level one.
+      final f = _parseAll(
+        'In long lines, go forward and back (W forward while M back) while '
+        'N2 neighbor roll away',
+        beats: 8,
+      ).single;
+      expect(f.isModifier, isTrue);
+      expect(f.subFigures.map((s) => s.move), ['long_lines', 'roll_away']);
+    });
+
+    test('a non-modifier pairing stays custom, not a meanwhile', () {
+      final figures = _parseAll(
+        'Larks swing while robins circle left',
+        beats: 8,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.isCustom, isTrue);
+    });
+
+    test('the reversed order is not classified', () {
+      final figures = _parseAll(
+        'N2 neighbor roll away while in long lines, go forward and back',
+        beats: 8,
+      );
+      expect(figures.single.isContainer, isFalse);
+      expect(figures.single.isCustom, isTrue);
+    });
+
+    test('a degenerate `while` (empty side) stays custom', () {
+      for (final line in [
+        'while N2 neighbor roll away',
+        'In long lines, go forward and back while',
+      ]) {
+        final figures = _parseAll(line, beats: 8);
+        expect(figures.single.isCustom, isTrue, reason: line);
+      }
+    });
+
+    test('a `||` line is still a meanwhile', () {
+      final f = _parseAll(
+        'In long lines, go forward and back || N2 neighbor roll away',
+        beats: 8,
+      ).single;
+      expect(f.isMeanwhile, isTrue);
     });
   });
 
@@ -389,9 +680,9 @@ void main() {
               '[{"name":"A1","figures":["(1-8) Neighbor swing","(9-16) Partner swing"]}]}',
         ),
       );
-      final swings = figs.dance.figures
-          .where((f) => f.move == 'swing')
-          .toList();
+      final swings = figuresOf(
+        figs.dance,
+      ).where((f) => f.move == 'swing').toList();
       expect(swings, hasLength(2));
       expect(swings[0].params['beats'], 8);
       expect(swings[1].params['beats'], 8);
@@ -419,16 +710,16 @@ void main() {
         '(6) Go up the hall',
         '(2) Bend the line',
       ]);
-      expect(d.figures.map((f) => f.move), ['down_the_hall', 'up_the_hall']);
-      expect(d.figures[0].params['ender'], 'turnCouple');
-      expect(d.figures[0].params['beats'], 8); // 6 + 2 summed
-      expect(d.figures[1].params['ender'], 'bendTheLine');
+      expect(figuresOf(d).map((f) => f.move), ['down_the_hall', 'up_the_hall']);
+      expect(figuresOf(d)[0].params['ender'], 'turnCouple');
+      expect(figuresOf(d)[0].params['beats'], 8); // 6 + 2 summed
+      expect(figuresOf(d)[1].params['ender'], 'bendTheLine');
     });
 
     test('standalone turn as couples structures without a hall', () {
       final d = importA2(['(8) Neighbor turn as couples']);
-      expect(d.figures.single.move, 'turn_as_couples');
-      expect(d.figures.single.params['who'], 'neighbors');
+      expect(figuresOf(d).single.move, 'turn_as_couples');
+      expect(figuresOf(d).single.params['who'], 'neighbors');
     });
   });
 }

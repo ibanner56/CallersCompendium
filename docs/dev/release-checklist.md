@@ -43,7 +43,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  manifest, any hardcoded constant).
 - [ ] `kCompendiumSchemaVersion` matches the schema actually shipped; if it moved
  since the last tag, a migration + migration test exists for every step.
- (Reminder: never bump schema in a patch release.)
+ (Never bump schema in a patch release; `check_changelog_promoted.py` refuses it.)
 - [ ] If `kCompendiumSchemaVersion` or `contraTaxonomyVersion` moved since the
  versioned CHANGELOG section was last compiled, that section has a **Data /
  Migrations** entry stating old → new and what the migration does. Each moved
@@ -88,6 +88,11 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Import/undo round-trips verified for each supported source (JSON, Caller's
  Box, ContraDB, CC .USR): import → undo restores prior state losslessly.
 - [ ] Fresh-install path works (DB created at current schema, no migration).
+- [ ] If `kMinSupportedSchemaVersion` rose since the last release: either
+ `tools/release/retirements.json` has an entry for the builds below the new
+ floor (`docs/dev/releasing.md`, "Announcing an end of life for older builds"),
+ committed before the tag, or the choice not to announce it is recorded in the
+ release decision.
 
 ## 3. Build & signing (Gate)
 - [ ] Android release build is SIGNED — on the **actual tag push**, or an explicit
@@ -118,6 +123,20 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  tag run's successful upload as this evidence rather than sending a duplicate.
  (Without all eight secrets the iOS leg is a clean skip; the API key needs the
  **App Manager** role or the upload fails.)
+- [ ] Android `.aab` reached Google Play — if `PLAY_SERVICE_ACCOUNT_JSON` is
+ configured, confirm the `Upload Android .aab to Google Play` step succeeded on
+ **that tag's** release run (not a `workflow_dispatch`, which never uploads),
+ then confirm the build in **Play Console → Test and release → App bundle
+ explorer** and, for the default `draft` status, review and roll out the release on
+ the chosen track by hand. Without the secret the step is a clean skip; download
+ the `android-aab` artifact and upload it manually instead.
+- [ ] Athenaeum server deployed **before** any client shipped — the
+ `deploy_server` job (`release-server` approval) succeeded on **that tag's**
+ run, ahead of `publish_mobile` and `pages`; it builds the tagged commit as
+ `callers-compendium-athenaeum:<version>` and waits for `/heartbeat`.
+- [ ] Update channel advanced **after** the draft was published — the `pages` job
+ (`release-manifest` approval) passed its public-release check, verified the
+ manifest signatures, and pushed `gh-pages`; `verify` was green first.
 - [ ] iOS **export compliance** needs no per-build action — `Info.plist` declares
  `ITSAppUsesNonExemptEncryption = false` (app uses only exempt encryption), so
  App Store Connect skips the "Missing Compliance" prompt automatically.
@@ -140,9 +159,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] **`pages-sig-gate` is green (Gate — issues #759, #810).**
  The post-publish `Assert gh-pages signature invariant` step in the `pages` job
  reports this synchronously — a red step means the published `<channel>.json.sig` is
- missing **or does not verify** against the pinned key (`kUpdateManifestPublicKey`);
- either failure causes the updater to silently report "no update" to all users on this
- channel. A stale signature from a previous release alongside an updated manifest also
+ missing **or does not verify** against any pinned key (`kUpdateManifestPublicKeys`);
+ either failure causes the updater to report nothing found to all users on this
+ channel (silently for the automatic check; a manual check says "Couldn't check"). A stale signature from a previous release alongside an updated manifest also
  fails (issue #810). The `gh-pages signature gate` workflow also runs daily (≤24h
  detection window for out-of-band changes); confirm no pending failures at
  **Actions → gh-pages signature gate**.
@@ -158,8 +177,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  the new version — `pages-site.yml` redeploys on merge to `main`, or run
  `gh workflow run pages-site.yml`.
 
-## 5. Licensing & attribution (Gate — AGPL-3.0)
-- [ ] LICENSE present and unchanged (AGPL-3.0).
+## 5. Licensing & attribution (Gate — AGPL-3.0-only)
+- [ ] LICENSE present and unchanged (AGPL-3.0-only).
 - [ ] Source-offer / repo link is reachable from the app (AGPL network clause).
 - [ ] Third-party/source attributions (ContraDB, The Caller's Box, Caller's
  Companion) are present where required; no bundled data violates its terms.
@@ -194,16 +213,59 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  result (e.g. search count, save confirmation).
 - [ ] **Text-scaling / reflow — Gate.** Set the platform's largest supported
  text-scaling setting and repeat: Collection list, Dance detail/card, Program
- builder, Settings. On **Android**, set font scale to **2.0×**; on **iOS**,
+ builder, Settings, the Dance editor (the Formation and Type dropdowns), Perform
+ and its Adjust sheet (Done stays on screen), the Tags manager (sort by
+ dance count), and the form dropdowns: a choice custom field with a long name
+ and long options (dance editor and the Collection batch edit), the Level,
+ Month and Day fields, a Program's Status, and the Settings matrix-column
+ dialogs. On **Android**, set font scale to **2.0×**; on **iOS**,
  set Dynamic Type to its **largest accessibility size**. **Pass**: no text is
  clipped, truncated without a way to reveal the rest, or overlapping other
  content; layouts reflow instead of overflowing off-screen.
+ (`app/test/a11y_guidelines_test.dart` sweeps the Collection, Programs list,
+ summary and builder, Perform and its Adjust sheet, the Dance editor's first
+ screenful, Dance detail (a long title, notes, a tag and a rating, scrolled to
+ the end), each Settings section page (scrolled to the end), and the Tags
+ manager at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
+ page is swept by its own case there, with an in-memory crash log, because the
+ app's on-disk one never settles in a widget test. The Settings sweep does not
+ open the collapsed sections on the Defaults page, and does not reach the
+ screens a Settings page pushes (the calling-card layout and matrix-column
+ editors, sync pairing and devices). The sweep reports `RenderFlex` overflows,
+ which is what a fixed-height Column or Row around text produces; a fixed-height
+ box that only clips one line of text raises none and is not caught. The editor's
+ Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.
+ `app/test/dropdown_large_text_test.dart` checks those form dropdowns for
+ overflow at 360 dp, 1.5× and 2.0× with long values (locale-dependent ones in
+ every shipped locale). In these dropdowns (custom-field names and options,
+ level names, matrix move names, Status) the closed field ellipsizes but the
+ open menu wraps, so the full text is always readable. The Month list only
+ ellipsizes (twelve short, ordered names). The floating label of a long
+ custom-field name can still be cut off.
+ These supplement this gate, not replace it.)
 - [ ] **Keyboard-only navigation (desktop) — Gate.** On a desktop build
  (macOS/Linux/Windows), unplug/ignore the mouse and complete the same core
  flows using Tab/Shift+Tab/Enter/Arrow keys only. **Pass**: every interactive
  element is reachable via Tab order, has a visible focus indicator at every
  step, no keyboard trap exists, and fast dance entry (roadmap power-user
  flow) is possible without the mouse.
+ (`app/test/keyboard_traversal_test.dart` walks the Collection, Dance detail,
+ Dance editor, Programs list, a program's summary and builder, Perform and
+ Settings (its sidebar and the General page, which is what a desktop window
+ shows) on a 1100×800 window with real Tab and Shift+Tab presses; the two
+ editors are walked both with their "More details" section collapsed (its
+ fields must stay out of the focus order) and opened. It fails on a
+ keyboard trap (the lazily built screens are walked a second time in a window
+ tall enough to build the whole form, where a loop of any size is caught; in the
+ ordinary window only a loop of under five controls is; the Program builder's
+ Matrix tab is not walked),
+ on a tappable control Tab never reaches, and on a Tab stop that gets no focus
+ ring from the app's `FocusRingLayer`; it reads that layer's
+ rectangle, not pixels, because Material's focus overlays do not appear in a
+ widget test's image. It does not check the ring's contrast
+ (`palette_contrast_test.dart` does), Enter/Space activation, text editing,
+ dialogs and menus, or fast dance entry. It supplements this gate, not
+ replaces it.)
 - [ ] **Deferred (advisory, not gating).** NVDA, Narrator, and Orca full
  screen-reader passes remain tracked as aspirational in
  [`accessibility-baseline.md`](../research/accessibility-baseline.md) but are
@@ -222,7 +284,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
   host-network Apache vhost.
 - [ ] Attach live staging evidence for quota and sweep alerts reaching a human,
   30-day retention removal with log-content absence, one authorized break-glass
-  access with exactly one separate audit row, and the lost-ID "not recoverable"
+  access with exactly one `break_glass_access` row and one `break_glass_reads`
+  row per item read in the separate audit database, and the lost-ID "not recoverable"
   support response.
 
 ## 9. Tag & publish

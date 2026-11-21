@@ -8,6 +8,8 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../screens/venue_editor_sheet.dart';
+import '../theme/app_spacing.dart';
+import 'link_typed_venues_offer.dart';
 import 'responsive_autocomplete.dart';
 
 /// A single-select picker over the reusable [Venue] records. Used by the
@@ -18,8 +20,9 @@ import 'responsive_autocomplete.dart';
 /// screen only has to hold the selected id, and so a venue written anywhere
 /// else reaches this list without being routed here (issue #768). Reports
 /// selection changes via [onChanged] (`null` clears the link). "Add new
-/// venue…" opens [VenueEditorSheet], upserts the result, **waits for it to
-/// arrive on the stream**, then selects it — see `_createNew` for why that
+/// venue…" opens [VenueEditorSheet], which upserts the venue before it closes
+/// (staying open if the write fails), **waits for it to arrive on the
+/// stream**, then selects it — see `_createNew` for why that
 /// wait is an ordering invariant rather than a freshness one. Follows the
 /// type-ahead + inline-create conventions of
 /// `NamePicker`/`CollectionPicker`.
@@ -28,6 +31,7 @@ class VenuePicker extends StatefulWidget {
     super.key,
     required this.selectedVenueId,
     required this.onChanged,
+    this.programId,
   });
 
   /// The currently linked venue id, or `null` when no venue is linked.
@@ -36,6 +40,10 @@ class VenuePicker extends StatefulWidget {
   /// Called with the newly selected venue id, or `null` when the link is
   /// cleared. The host persists the id onto the program.
   final ValueChanged<String?> onChanged;
+
+  /// The program this picker edits, left out of the offer to link older
+  /// programs with the same typed venue: the host saves its own link.
+  final String? programId;
 
   @override
   State<VenuePicker> createState() => _VenuePickerState();
@@ -142,10 +150,34 @@ class _VenuePickerState extends State<VenuePicker> {
 
   Future<void> _createNew(String seedName) async {
     // Prefill the sheet's name with what the user typed so inline-create is one
-    // step. The sheet returns the built venue (with a freshly minted id) or
-    // null on cancel; we upsert it, wait for it to arrive, then select it.
-    final created = await VenueEditorSheet.show(context, seedName: seedName);
-    if (created == null || !mounted) return;
+    // step. The sheet upserts the built venue (with a freshly minted id)
+    // through [save] before it closes, staying open if that write fails, and
+    // returns it, or null on cancel; we wait for it to arrive, then select it.
+    final repos = _repos;
+    ({String id, Completer<void> arrived})? pending;
+    Future<void> save(Venue venue) async {
+      // Listen for the venue before writing it, so its arrival is not missed.
+      final attempt = (id: venue.id, arrived: Completer<void>());
+      pending = attempt;
+      _pendingCreate = attempt;
+      try {
+        await repos.venues.upsert(venue, localUserEdit: true);
+      } catch (_) {
+        // diagnostics: silent — rethrown; VenueEditorSheet._save logs it and
+        // shows the error, and stays open for another try.
+        if (identical(_pendingCreate, attempt)) _pendingCreate = null;
+        pending = null;
+        rethrow;
+      }
+    }
+
+    final created = await VenueEditorSheet.show(
+      context,
+      seedName: seedName,
+      save: save,
+    );
+    final arrived = pending;
+    if (created == null || arrived == null || !mounted) return;
 
     // ## Why this waits, when the rest of the conversion deletes waits
     //
@@ -162,12 +194,15 @@ class _VenuePickerState extends State<VenuePicker> {
     // already render. The completer is settled by the listener, by the error
     // handler, and by `dispose` — every path that ends the wait settles it, the
     // same rule the program panes follow for their first-value futures.
-    final pending = (id: created.id, arrived: Completer<void>());
-    _pendingCreate = pending;
-    await _repos.venues.upsert(created);
-    await pending.arrived.future;
+    await arrived.arrived.future;
     if (!mounted) return;
     widget.onChanged(created.id);
+    if (!mounted) return;
+    await offerToLinkTypedVenues(
+      context,
+      venues: [created],
+      excludeProgramId: widget.programId,
+    );
   }
 
   @override
@@ -176,7 +211,7 @@ class _VenuePickerState extends State<VenuePicker> {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
             const SizedBox(
@@ -192,11 +227,11 @@ class _VenuePickerState extends State<VenuePicker> {
     }
     if (_error != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
             Expanded(child: Text(l10n.venueLoadError)),
-            TextButton(onPressed: _retry, child: Text(l10n.commonRetry)),
+            TextButton(onPressed: _retry, child: Text(l10n.commonTryAgain)),
           ],
         ),
       );

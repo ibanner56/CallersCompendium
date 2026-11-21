@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -11,8 +12,75 @@ import 'custom_theme.dart';
 /// The reader is forward-compatible in the spirit of the 6.6 core codec: it
 /// tolerates unknown keys, treats a missing version as the current one, and
 /// reads a newer version on a best-effort basis with a warning rather than
-/// failing.
-const int backupSchemaVersion = 1;
+/// failing — but flags it ([BackupReadResult.newerSchema]) so a destructive
+/// replace restore refuses it (`BackupService.restoreFromJson`).
+///
+/// v2 (#709) adds `app.glossary`: the user's own glossary entries and their
+/// notes on shipped figures. A backup is also stamped v2 when a program in it
+/// has pay or a Perform dialect ([backupSchemaVersionProgramPay]). Each is
+/// stamped only when present ([requiredBackupVersion]), so a backup with none
+/// of them still writes v1 byte for byte, and an older build refuses to
+/// replace-restore one that has them rather than silently dropping them.
+///
+/// v3 is stamped when a program in the backup is archived
+/// ([backupSchemaVersionArchivedPrograms]).
+const int backupSchemaVersion = backupSchemaVersionArchivedPrograms;
+
+/// The envelope version every backup carrying none of the conditional data
+/// in [requiredBackupVersion] is written under.
+const int backupSchemaVersionBase = 1;
+
+/// The envelope version a backup carrying `app.glossary` is written under.
+const int backupSchemaVersionGlossary = 2;
+
+/// The envelope version a backup is written under when a program in it has
+/// pay (`payMinorUnits`, `payCurrency`) or a Perform dialect (`dialectName`).
+///
+/// Those keys arrived in 0.6.0 with no archive version bump, so 0.5.2 to 0.5.4,
+/// which already refuse a newer backup, would restore such a backup and drop
+/// them without a word. The bump lives in this envelope rather than the core
+/// archive because the core version also stamps share files, and a bump there
+/// would make 0.7.0 and older refuse them at the share sheet (#1885).
+///
+/// The same number as [backupSchemaVersionGlossary] on purpose. 0.8.0, the
+/// first build that reads envelope v2, already reads these keys, so it and
+/// every later build restore such a backup as before; a new number would make
+/// them refuse it too. The cost falls on 0.6.0 and 0.7.0: they read these keys
+/// but also refuse v2, and no version number can tell them from 0.5.x.
+const int backupSchemaVersionProgramPay = 2;
+
+/// The envelope version a backup is written under when a program in it is
+/// archived (`archivedAt`, schema v42).
+///
+/// No build up to 0.10.0 reads `archivedAt`, and 0.8.0 to 0.10.0 accept
+/// envelope v2, so they would replace-restore such a backup and bring its
+/// archived programs back into the Programs list without a word. v3 makes 0.5.2
+/// to 0.10.0 refuse a replace-restore instead (a merge restore there stays
+/// best-effort, as for pay; builds before 0.5.2 do not check). A backup with
+/// no archived program keeps the version it had.
+const int backupSchemaVersionArchivedPrograms = 3;
+
+/// The envelope version [doc] must be written under so that no build that
+/// would silently drop part of it restores it: the highest version any of its
+/// conditional data needs, otherwise [backupSchemaVersionBase].
+///
+/// Each case is gated on the data actually being present, so a backup without
+/// it keeps the version older builds accept. Keep new cases in descending
+/// version order. `tools/ci/check_archive_key_versions.py` fails when an
+/// archive entity gains a key that names no case here or in the core
+/// `requiredSchemaVersion`.
+int requiredBackupVersion(BackupDocument doc) {
+  if (doc.core.programs.any((p) => p.archivedAt != null)) {
+    return backupSchemaVersionArchivedPrograms;
+  }
+  if (doc.hasGlossary) return backupSchemaVersionGlossary;
+  // `Program` keeps the two pay keys set together, so one stands for both.
+  final hasProgramPay = doc.core.programs.any(
+    (p) => p.payMinorUnits != null || p.dialectName != null,
+  );
+  if (hasProgramPay) return backupSchemaVersionProgramPay;
+  return backupSchemaVersionBase;
+}
 
 /// Current version of the backup **container** envelope (issue #536).
 ///
@@ -30,6 +98,12 @@ const int backupContainerVersion = 1;
 
 /// Maximum custom dialects restored from one backup.
 const int kMaxCustomDialects = 128;
+
+/// Maximum user glossary entries restored from one backup (#709).
+const int kMaxBackupGlossaryEntries = 5000;
+
+/// Maximum notes on shipped figures restored from one backup (#709).
+const int kMaxBackupFigureNotes = 5000;
 
 /// The only checksum algorithm the container understands. A backup that names
 /// anything else is refused rather than trusted.
@@ -53,9 +127,13 @@ class BackupDocument {
     this.customThemes = const [],
     this.activeCustomThemeId,
     this.settings = const {},
+    this.glossaryEntries = const [],
+    this.figureNotes = const [],
   });
 
-  /// The [backupSchemaVersion] this document was written under.
+  /// The `backupVersion` the file this document was read from carries. Only
+  /// decoding sets it: [backupToJson] ignores it and stamps
+  /// [requiredBackupVersion].
   final int schemaVersion;
 
   /// When the backup was produced (UTC).
@@ -82,6 +160,15 @@ class BackupDocument {
   /// key. The set of keys is chosen by the exporter (`backup_service.dart`),
   /// which excludes device-local and structurally-represented keys.
   final Map<String, Object?> settings;
+
+  /// The user's own glossary entries, live ones only (#709).
+  final List<UserGlossaryEntry> glossaryEntries;
+
+  /// The user's notes on shipped figures, live ones only (#709).
+  final List<FigureNote> figureNotes;
+
+  /// Whether this document carries `app.glossary`.
+  bool get hasGlossary => glossaryEntries.isNotEmpty || figureNotes.isNotEmpty;
 }
 
 /// Outcome of decoding a backup document: the recovered [document] plus any
@@ -97,6 +184,13 @@ class BackupReadResult {
     this.integrityFailed = false,
     this.coreHasErrors = false,
     this.coreDroppedEntities = 0,
+    this.newerSchema = false,
+    this.hasAppSection = false,
+    this.hasDialectsSection = false,
+    this.hasThemesSection = false,
+    this.hasSettingsSection = false,
+    this.hasGlossarySection = false,
+    this.glossaryComplete = true,
   });
 
   final BackupDocument document;
@@ -143,6 +237,44 @@ class BackupReadResult {
   /// An incomplete core must never drive a destructive replace restore.
   bool get coreIncomplete => coreDroppedEntities > 0;
 
+  /// Whether the backup was written under a newer schema than this build reads:
+  /// its `backupVersion` exceeds [backupSchemaVersion], or its core archive's
+  /// `schemaVersion` exceeds [archiveSchemaVersion]. Fields this build does not
+  /// know were silently dropped at decode, so the result is not a faithful copy
+  /// even when nothing else is flagged. A destructive replace must refuse it;
+  /// merge stays best-effort ([BackupService.restoreFromJson]).
+  final bool newerSchema;
+
+  /// Whether the file carried an `app` object at all. A backup without one
+  /// (legacy, hand-edited, third-party or truncated) describes no preferences,
+  /// themes or dialects, so replace refuses it rather than treat "absent" as
+  /// "empty".
+  final bool hasAppSection;
+
+  /// Whether `app.dialects` was an object. When false the restore leaves the
+  /// live dialect library and active dialect untouched.
+  final bool hasDialectsSection;
+
+  /// Whether `app.themes` was an object. When false the restore leaves the
+  /// live custom themes and active custom theme untouched.
+  final bool hasThemesSection;
+
+  /// Whether `app.settings` was an object. When false the restore leaves live
+  /// preference settings untouched (no stale-key removal either).
+  final bool hasSettingsSection;
+
+  /// Whether `app.glossary` was an object (#709). When false the restore
+  /// leaves the live glossary entries and figure notes untouched: absent is
+  /// not "empty", so restoring a backup made before them never clears them.
+  final bool hasGlossarySection;
+
+  /// Whether every glossary entry and figure note in `app.glossary` was read
+  /// (#709). When one could not be read, or the section was over its limit,
+  /// the restore adds what it read but removes nothing: an entry it could not
+  /// read has no id it could be matched against, so a live entry sharing it
+  /// must not be taken for one the backup lacks.
+  final bool glossaryComplete;
+
   bool get hasErrors => errors.isNotEmpty;
 }
 
@@ -156,11 +288,70 @@ class BackupReadResult {
 /// and refuses a payload that has been corrupted or altered.
 ///
 /// The nested core archive is emitted via the core codec's canonical
-/// [archiveToJson] in [ArchiveSerializationMode.backup] (structured JSON, not a
-/// double-encoded string), so the document retains every custom field and
-/// round-trips deterministically.
+/// [archiveToJson] in [ArchiveSerializationMode.backup] (structured JSON inside
+/// the payload, so the document retains every custom field and round-trips
+/// deterministically). The payload itself, however, is a **string inside** the
+/// container JSON: the container is double-encoded by design (#536) so the
+/// checksum covers exact bytes.
+///
+/// Synchronous: a library-sized document takes seconds. App code should call
+/// [encodeBackupOnIsolate]; this form stays for tests and callers that already
+/// hold the result.
 String encodeBackup(BackupDocument doc) =>
     jsonEncode(_wrapWithChecksum(encodeBackupPayload(doc)));
+
+/// Runs [work] and returns its result, possibly on another isolate. The seam
+/// that lets `testWidgets` (whose fake async never delivers an isolate's reply)
+/// run the codec inline; production uses [runBackupCodecOnIsolate].
+typedef BackupCodecRunner = Future<T> Function<T>(T Function() work);
+
+/// The production [BackupCodecRunner]: a short-lived worker via [Isolate.run].
+Future<T> runBackupCodecOnIsolate<T>(T Function() work) => Isolate.run(work);
+
+/// The runner a [BackupService] uses when none is injected. Widget tests that
+/// reach the service through the UI swap this for [runBackupCodecInline] (and
+/// restore it in a tear-down); production never reassigns it.
+BackupCodecRunner defaultBackupCodecRunner = runBackupCodecOnIsolate;
+
+/// Runs [work] on the calling isolate. For tests that cannot pump a real
+/// isolate.
+Future<T> runBackupCodecInline<T>(T Function() work) async => work();
+
+/// [encodeBackup] on a worker isolate, so exporting a large library does not
+/// freeze the UI. Also returns the UTF-8 byte length of the encoded string,
+/// measured on the worker, for the export size guard.
+Future<({String json, int byteLength})> encodeBackupSizedOnIsolate(
+  BackupDocument doc, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) => runner(() {
+  final json = encodeBackup(doc);
+  return (json: json, byteLength: utf8.encode(json).length);
+});
+
+/// [encodeBackup] on a worker isolate. See [encodeBackupSizedOnIsolate].
+Future<String> encodeBackupOnIsolate(
+  BackupDocument doc, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) async => (await encodeBackupSizedOnIsolate(doc, runner: runner)).json;
+
+/// [decodeBackup] on a worker isolate, so restoring a large backup does not
+/// freeze the UI. The result (document and findings) is returned by exit.
+Future<BackupReadResult> decodeBackupOnIsolate(
+  String json, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) => runner(() => decodeBackup(json));
+
+/// [decodeBackup] on a worker plus the UTF-8 byte length of [json], so the
+/// restore dialog can summarise a chosen file and hand the decoded result on to
+/// [BackupService.restoreFromJson] without a second decode. The result returns
+/// by exit, so the document is not copied onto the UI isolate. Does not throw
+/// for a malformed file: that is a fatal [BackupReadResult].
+Future<({BackupReadResult read, int sizeBytes})> decodeBackupSizedOnIsolate(
+  String json, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) => runner(
+  () => (read: decodeBackup(json), sizeBytes: utf8.encode(json).length),
+);
 
 /// Serializes just the [doc] payload (no container/checksum) to a JSON string.
 ///
@@ -197,7 +388,7 @@ bool _hexEquals(String a, String b) {
 
 /// The JSON object for [doc].
 Map<String, Object?> backupToJson(BackupDocument doc) => {
-  'backupVersion': doc.schemaVersion,
+  'backupVersion': requiredBackupVersion(doc),
   'createdAt': doc.createdAt.toUtc().toIso8601String(),
   'core': archiveToJson(doc.core, mode: ArchiveSerializationMode.backup),
   'app': {
@@ -210,8 +401,72 @@ Map<String, Object?> backupToJson(BackupDocument doc) => {
       'activeId': doc.activeCustomThemeId,
     },
     'settings': doc.settings,
+    if (doc.hasGlossary)
+      'glossary': {
+        'entries': [for (final e in doc.glossaryEntries) _glossaryEntryJson(e)],
+        'figureNotes': [
+          for (final n in doc.figureNotes)
+            {'figureId': n.figureId, 'notes': n.notes},
+        ],
+      },
   },
 };
+
+Map<String, Object?> _glossaryEntryJson(UserGlossaryEntry e) => {
+  'id': e.id,
+  'kind': e.kindName,
+  'name': e.name,
+  'definition': e.definition,
+  'description': e.description,
+  'keywords': e.keywords,
+  if (e.notes != null) 'notes': e.notes,
+  if (e.payload != null) 'payload': e.payload,
+  'createdAt': e.createdAt.toUtc().toIso8601String(),
+};
+
+/// A glossary entry read from a backup, or null when [raw] is not one. Field
+/// bounds, and what an id or kind may be, are the repository's: on restore it
+/// refuses an entry outside them, which is skipped and reported.
+UserGlossaryEntry? _glossaryEntryFromJson(Object? raw) {
+  if (raw is! Map) return null;
+  final id = raw['id'];
+  final kind = raw['kind'];
+  final name = raw['name'];
+  final definition = raw['definition'];
+  final description = raw['description'];
+  final rawCreatedAt = raw['createdAt'];
+  final createdAt = rawCreatedAt is String
+      ? DateTime.tryParse(rawCreatedAt)
+      : null;
+  final keywords = raw['keywords'];
+  final notes = raw['notes'];
+  if (id is! String ||
+      id.isEmpty ||
+      kind is! String ||
+      kind.isEmpty ||
+      name is! String ||
+      definition is! String ||
+      description is! String ||
+      createdAt == null ||
+      (keywords != null && keywords is! List) ||
+      (notes != null && notes is! String)) {
+    return null;
+  }
+  return UserGlossaryEntry(
+    id: id,
+    kindName: kind,
+    name: name,
+    definition: definition,
+    description: description,
+    keywords: [
+      for (final k in (keywords as List?) ?? const [])
+        if (k is String) k,
+    ],
+    notes: notes as String?,
+    payload: raw['payload'],
+    createdAt: createdAt.toUtc(),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Decoding
@@ -240,8 +495,11 @@ BackupReadResult _fatalBackup(String message) => BackupReadResult(
 
 /// Decodes a backup string into a [BackupDocument]. Forward-compatible and
 /// partial-failure tolerant: unknown keys are ignored, a newer `backupVersion`
-/// reads best-effort with a warning, and a malformed section is skipped and
-/// recorded in [BackupReadResult.errors] while the rest still loads.
+/// (or core `schemaVersion`) reads best-effort with a warning and sets
+/// [BackupReadResult.newerSchema], and a malformed section is skipped and
+/// recorded in [BackupReadResult.errors] while the rest still loads. Which
+/// `app` sections were actually present is reported on the result, because an
+/// absent section decodes to the same empty value as an empty one.
 ///
 /// Accepts two shapes (issue #536):
 /// - the current **container** — `{backupContainer, checksum, payload}` — whose
@@ -404,7 +662,9 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
 
   final rawVersion = root['backupVersion'];
   final version = rawVersion is int ? rawVersion : backupSchemaVersion;
+  var newerSchema = false;
   if (rawVersion is int && rawVersion > backupSchemaVersion) {
+    newerSchema = true;
     warnings.add(
       'backup written by a newer version ($rawVersion > $backupSchemaVersion); '
       'reading on a best-effort basis',
@@ -434,6 +694,8 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
   if (rawCore is Map) {
     final coreResult = archiveFromJson(rawCore.cast<String, Object?>());
     core = coreResult.archive;
+    // The decoded archive keeps the file's own `schemaVersion`.
+    if (core.schemaVersion > archiveSchemaVersion) newerSchema = true;
     coreHasErrors = coreResult.hasErrors;
     coreDroppedEntities = coreResult.droppedEntities.length;
     errors.addAll(coreResult.errors);
@@ -466,13 +728,23 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
   final customThemes = <CustomTheme>[];
   String? activeCustomThemeId;
   var settings = <String, Object?>{};
+  var hasAppSection = false;
+  var hasDialectsSection = false;
+  var hasThemesSection = false;
+  var hasSettingsSection = false;
+  var hasGlossarySection = false;
+  var glossaryComplete = true;
+  final glossaryEntries = <UserGlossaryEntry>[];
+  final figureNotes = <FigureNote>[];
 
   final rawApp = root['app'];
   if (rawApp is Map) {
+    hasAppSection = true;
     final app = rawApp.cast<String, Object?>();
 
     final rawDialects = app['dialects'];
     if (rawDialects is Map) {
+      hasDialectsSection = true;
       final dialects = rawDialects.cast<String, Object?>();
       final rawCustom = dialects['custom'];
       if (rawCustom is List) {
@@ -515,6 +787,7 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
 
     final rawThemes = app['themes'];
     if (rawThemes is Map) {
+      hasThemesSection = true;
       final themes = rawThemes.cast<String, Object?>();
       final rawCustom = themes['custom'];
       if (rawCustom is List) {
@@ -545,7 +818,74 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
 
     final rawSettings = app['settings'];
     if (rawSettings is Map) {
+      hasSettingsSection = true;
       settings = rawSettings.cast<String, Object?>();
+    }
+
+    // The user's own glossary (#709). Untrusted like every section: each
+    // entry is shape-checked here and bounded, and the repository enforces
+    // field bounds when it is restored.
+    final rawGlossary = app['glossary'];
+    if (rawGlossary is Map) {
+      hasGlossarySection = true;
+      void readError(String entityType, String message) {
+        glossaryComplete = false;
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.read,
+            entityType: entityType,
+            message: message, // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+
+      final rawEntries = rawGlossary['entries'];
+      if (rawEntries is! List) {
+        readError('glossaryEntry', 'glossary entries are not a list');
+      } else {
+        for (var index = 0; index < rawEntries.length; index++) {
+          if (index >= kMaxBackupGlossaryEntries) {
+            readError(
+              'glossaryEntry',
+              'glossary entry limit exceeded; remaining entries skipped',
+            );
+            break;
+          }
+          final entry = _glossaryEntryFromJson(rawEntries[index]);
+          if (entry == null) {
+            readError('glossaryEntry', 'a glossary entry could not be read');
+          } else {
+            glossaryEntries.add(entry);
+          }
+        }
+      }
+      final rawNotes = rawGlossary['figureNotes'];
+      if (rawNotes is! List) {
+        readError('figureNote', 'figure notes are not a list');
+      } else {
+        for (var index = 0; index < rawNotes.length; index++) {
+          if (index >= kMaxBackupFigureNotes) {
+            readError(
+              'figureNote',
+              'figure note limit exceeded; remaining notes skipped',
+            );
+            break;
+          }
+          final note = rawNotes[index];
+          final figureId = note is Map ? note['figureId'] : null;
+          final text = note is Map ? note['notes'] : null;
+          // A note with no visible text would be stored as empty, which
+          // deletes the live note, so it counts as unreadable instead.
+          if (figureId is String &&
+              figureId.isNotEmpty &&
+              text is String &&
+              sanitizeShareableText(text).trim().isNotEmpty) {
+            figureNotes.add(FigureNote(figureId: figureId, notes: text));
+          } else {
+            readError('figureNote', 'a figure note could not be read');
+          }
+        }
+      }
     }
   }
 
@@ -559,11 +899,20 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       customThemes: customThemes,
       activeCustomThemeId: activeCustomThemeId,
       settings: settings,
+      glossaryEntries: glossaryEntries,
+      figureNotes: figureNotes,
     ),
     errors: errors,
     warnings: warnings,
     fatal: coreFatal,
     coreHasErrors: coreHasErrors,
     coreDroppedEntities: coreDroppedEntities,
+    newerSchema: newerSchema,
+    hasAppSection: hasAppSection,
+    hasDialectsSection: hasDialectsSection,
+    hasThemesSection: hasThemesSection,
+    hasSettingsSection: hasSettingsSection,
+    hasGlossarySection: hasGlossarySection,
+    glossaryComplete: glossaryComplete,
   );
 }

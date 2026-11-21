@@ -1,7 +1,123 @@
+import 'dart:math';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'import and sync choreography fingerprints share one field contract',
+    () {
+      final dance = Dance(
+        id: 'fingerprint-dance',
+        title: 'Fingerprint dance',
+        createdAt: DateTime.utc(2026, 7, 15, 12),
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+      );
+      final body = syncBodyForEntity(SyncRecordKind.dance, dance);
+
+      expect(
+        choreographyFingerprintForDance(dance),
+        choreographyFingerprint(body),
+      );
+    },
+  );
+
+  test(
+    'the dance fingerprint ignores collections and cannot throw on them',
+    () {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final plain = Dance(
+        id: 'collection-dance',
+        title: 'Collection dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      // None of these is a choreography field, and the archive encoder throws
+      // on a non-finite custom-field number. `ImportPipeline` calls the
+      // fingerprint from a candidate loop that treats it as a predicate, so a
+      // throw here would abort auto-resolution rather than decline a match.
+      final decorated = plain.copyWith(
+        customFields: [CustomFieldValue(fieldId: 'field', value: double.nan)],
+        links: [
+          DanceLink(id: 'link', kind: LinkKind.video, url: 'https://x.test'),
+        ],
+        sourceCitations: [SourceCitation(sourceId: 'source')],
+        provenance: Provenance(
+          source: ProvenanceSource.manual,
+          importedAt: stamp,
+        ),
+      );
+
+      expect(
+        choreographyFingerprintForDance(decorated),
+        choreographyFingerprintForDance(plain),
+      );
+    },
+  );
+
+  final choreographyCases = <({String name, Dance Function(Dance) mutate})>[
+    (name: 'form', mutate: (dance) => dance.copyWith(form: DanceForm.ecd)),
+    (
+      name: 'formation',
+      mutate: (dance) =>
+          dance.copyWith(formation: const Formation(FormationShape.becketCw)),
+    ),
+    (
+      name: 'progression',
+      mutate: (dance) => dance.copyWith(progression: Progression.double),
+    ),
+    (
+      name: 'phrase structure',
+      mutate: (dance) => dance.copyWith(phraseStructure: '2*8*2'),
+    ),
+    (
+      name: 'figures',
+      mutate: (dance) => dance.copyWith(figures: [testFigure(move: 'balance')]),
+    ),
+    (name: 'hook', mutate: (dance) => dance.copyWith(hook: 'A different hook')),
+    (
+      name: 'calling notes',
+      mutate: (dance) => dance.copyWith(callingNotes: 'Different notes'),
+    ),
+    (
+      name: 'difficulty level',
+      mutate: (dance) =>
+          dance.copyWith(difficultyLevelId: 'difficulty-advanced'),
+    ),
+    (name: 'mixed level', mutate: (dance) => dance.copyWith(mixedLevel: true)),
+    (name: 'mixer', mutate: (dance) => dance.copyWith(mixer: true)),
+    (name: 'tunes', mutate: (dance) => dance.copyWith(tunes: const ['Jig'])),
+  ];
+
+  for (final choreographyCase in choreographyCases) {
+    test('fresh attach treats ${choreographyCase.name} as significant', () {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      Dance baseDance(String id, String title) =>
+          Dance(id: id, title: title, createdAt: stamp, updatedAt: stamp);
+      final left = baseDance('a-left', 'Shared dance');
+      final right = choreographyCase.mutate(
+        baseDance('b-right', 'The Shared Dance'),
+      );
+      SyncRecordBlob blobFor(Dance dance) => SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: dance.id,
+        updatedAt: stamp,
+        deletedAt: null,
+        existenceAt: stamp,
+        body: syncBodyForEntity(SyncRecordKind.dance, dance),
+      );
+
+      final plan = planFreshAttachDedupe([
+        SyncMergeCandidate.fromBlob(blobFor(left)),
+        SyncMergeCandidate.fromBlob(blobFor(right)),
+      ]);
+
+      expect(plan.merges, isEmpty);
+      expect(plan.ambiguities, hasLength(1));
+    });
+  }
+
   group('normalization', () {
     test('title folds case, punctuation, diacritics, articles', () {
       expect(normalizeTitle('The Nice Combination!'), 'nice combination');
@@ -61,6 +177,59 @@ void main() {
       expect(v.isReimport, isTrue);
       expect(v.targetDanceId, 'd1');
     });
+
+    test('verdictFor falls back to prior keys, in order, only when the '
+        'current key has no match', () {
+      final legacy = DedupeIndex([
+        DedupeEntry(
+          danceId: 'legacy',
+          title: 'Received Before',
+          source: ProvenanceSource.json,
+          externalId: '457',
+        ),
+        DedupeEntry(
+          danceId: 'current',
+          title: 'Received After',
+          source: ProvenanceSource.json,
+          externalId: 'contradb:457',
+        ),
+      ]);
+      // The current key wins when present.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'contradb:457',
+              priorExternalIds: const ['457'],
+              title: 'x',
+            )
+            .targetDanceId,
+        'current',
+      );
+      // Otherwise the prior key is tried.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'callersbox:457',
+              priorExternalIds: const ['457'],
+              title: 'x',
+            )
+            .targetDanceId,
+        'legacy',
+      );
+      // No prior key, no match: falls through to fuzzy, which finds nothing.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'callersbox:457',
+              title: 'x',
+            )
+            .isNewDance,
+        isTrue,
+      );
+    });
   });
 
   group('DedupeIndex fuzzy title + author', () {
@@ -72,6 +241,57 @@ void main() {
       ),
       DedupeEntry(danceId: 'd2', title: 'Trip to Nowhere'),
     ]);
+
+    test('titles that normalize to nothing never match each other', () {
+      // `normalizeTitle` keeps only [a-z0-9], so every non-Latin or
+      // punctuation-only title folds to ''. Two empty strings are equal, and
+      // an equality short-circuit scored them 1.0 — so every such dance was
+      // "ambiguous" against every other one (reviewer's red run:
+      // `query "月" -> d1(花):1.000`), across scripts included.
+      final nonLatin = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: '花', authorNames: ['Alice Smith']),
+        DedupeEntry(danceId: 'd2', title: 'Танец', authorNames: ['Bob Jones']),
+        DedupeEntry(danceId: 'd3', title: '★'),
+      ]);
+      expect(
+        nonLatin
+            .verdictFor(
+              source: ProvenanceSource.json,
+              title: '月',
+              authorNames: ['Alice Smith'],
+            )
+            .isNewDance,
+        isTrue,
+      );
+      expect(
+        nonLatin
+            .verdictFor(source: ProvenanceSource.json, title: '★')
+            .isNewDance,
+        isTrue,
+        reason: 'an empty normalized title carries no identity signal',
+      );
+      expect(nonLatin.fuzzyMatches('月', const []), isEmpty);
+    });
+
+    test('empty normalized titles never match, even at a near-zero threshold '
+        'with shared authors', () {
+      // `_similarity` scores an empty-vs-empty title 0.0, but
+      // `_combinedScore` still blends in an author-only contribution when
+      // both sides declare authors — 0.2 for a fully shared author set
+      // here. A caller-supplied `threshold` of 0 (or as high as 0.2) would
+      // then still surface the pair as a candidate despite the titles
+      // carrying no identity signal at all. `fuzzyMatches` must skip an
+      // empty-titled query or candidate before scoring, independent of how
+      // `threshold` is tuned — never falling back to a fuzzy match on
+      // authors alone.
+      final nonLatin = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: '花', authorNames: ['Alice Smith']),
+      ]);
+      expect(
+        nonLatin.fuzzyMatches('月', ['Alice Smith'], threshold: 0),
+        isEmpty,
+      );
+    });
 
     test('near-identical title is an ambiguous match', () {
       final v = index.verdictFor(
@@ -167,6 +387,103 @@ void main() {
     });
   });
 
+  group('a trailing article is fronted before comparing (#1976)', () {
+    final index = DedupeIndex([
+      DedupeEntry(
+        danceId: 'd1',
+        title: 'Bastringue, La',
+        authorNames: ['Jane Doe'],
+      ),
+      DedupeEntry(danceId: 'd2', title: 'Baby Rose, The (var)'),
+    ]);
+
+    test('a library-style title is a confident match for the fronted one', () {
+      final matches = index.fuzzyMatches('La Bastringue', ['Jane Doe']);
+      expect(matches.map((m) => m.danceId), ['d1']);
+      expect(matches.single.confident, isTrue);
+      expect(matches.single.score, 1.0);
+    });
+
+    test('and the other way round', () {
+      final fronted = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'La Bastringue',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final matches = fronted.fuzzyMatches('Bastringue, La', ['Jane Doe']);
+      expect(matches.single.confident, isTrue);
+    });
+
+    test('a comma-only difference still matches exactly', () {
+      final plain = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'Thanks Les',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final matches = plain.fuzzyMatches('Thanks, Les', ['Jane Doe']);
+      expect(matches.single.confident, isTrue);
+      expect(matches.single.score, 1.0);
+    });
+
+    test('a fronted title is never also a possible match', () {
+      final fronted = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'The Baby Rose',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      expect(
+        fronted.possibleTitleMatches('Baby Rose, The', ['Jane Doe']),
+        isEmpty,
+      );
+      expect(
+        fronted.possibleTitleMatches('Baby Rose, The (var)', ['Jane Doe']),
+        ['d1'],
+      );
+    });
+
+    test('an exact fronted entry is never pruned by its written length', () {
+      final short = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: 'Rose, The'),
+      ]);
+      expect(short.fuzzyMatches('Rose', const []).single.score, 1.0);
+    });
+
+    test('exact entries under both keys are all found, in entry order', () {
+      // d2 is listed under the query's plain key, d1 and d3 under its fronted
+      // key, so the union must be sorted for the scan to see all three.
+      final mixed = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: 'The Baby Rose', authorNames: ['X']),
+        DedupeEntry(danceId: 'd2', title: 'Baby Rose The', authorNames: ['X']),
+        DedupeEntry(danceId: 'd3', title: 'Baby Rose', authorNames: ['X']),
+      ]);
+      final matches = mixed.fuzzyMatches('Baby Rose, The', ['X']);
+      expect(matches.where((m) => m.confident).map((m) => m.danceId).toSet(), {
+        'd1',
+        'd2',
+        'd3',
+      });
+    });
+
+    test('the core-title key fronts it too', () {
+      final withAuthor = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd2',
+          title: 'Baby Rose, The (var)',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      expect(withAuthor.possibleTitleMatches('The Baby Rose', ['Jane Doe']), [
+        'd2',
+      ]);
+    });
+  });
+
   group('confident match (issue #685)', () {
     // Simulates one source recording the pair as split into two authors
     // (e.g. Caller's Box's Authors[] array) while an incoming record from a
@@ -251,4 +568,235 @@ void main() {
       expect(v.isAmbiguous, isTrue);
     });
   });
+
+  group('normalisation is precomputed', () {
+    test('the index normalises each entry at construction', () {
+      final index = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'The Café  Réel!',
+          authorNames: ['Zoë  O\'Brien', 'GENE Hubert', '★'],
+        ),
+        DedupeEntry(danceId: 'd2', title: 'An Ünïcode Reel'),
+        DedupeEntry(danceId: 'd3', title: '花', authorNames: ['Alice']),
+      ]);
+      final byId = {
+        for (final e in index.normalizedEntriesForTesting) e.danceId: e,
+      };
+      expect(byId['d1']!.normalizedTitle, 'cafe reel');
+      expect(byId['d1']!.normalizedAuthors, {'zoe o brien', 'gene hubert'});
+      expect(byId['d2']!.normalizedTitle, 'unicode reel');
+      expect(byId['d2']!.normalizedAuthors, isEmpty);
+      // Never scored: the empty title is kept (parallel to the entries) so the
+      // loop can skip it without re-normalising.
+      expect(byId['d3']!.normalizedTitle, isEmpty);
+    });
+
+    test('fuzzyMatches equals the per-entry re-normalising algorithm', () {
+      const seed = 25;
+      final rng = Random(seed);
+      const words = [
+        'the',
+        'a',
+        'an',
+        'nice',
+        'combination',
+        'trip',
+        'nowhere',
+        'café',
+        'reel',
+        'jig',
+        'ünï',
+        'Ørsted',
+        'swing',
+        'star',
+        "o'brien",
+        'x-y',
+        'hex',
+        'ladies',
+        'chain',
+        'Zoë',
+        'ñandú',
+        '1,2,3',
+        'sue',
+        'sew',
+      ];
+      const odd = ['花', 'Танец', '★', '!!!', '', '   ', 'THE', 'A'];
+      String title() {
+        if (rng.nextInt(12) == 0) return odd[rng.nextInt(odd.length)];
+        final n = 1 + rng.nextInt(4);
+        return List.generate(
+          n,
+          (_) => words[rng.nextInt(words.length)],
+        ).join(rng.nextBool() ? ' ' : '  ');
+      }
+
+      List<String> authors() => List.generate(
+        rng.nextInt(4),
+        (_) =>
+            '${words[rng.nextInt(words.length)]} '
+            '${words[rng.nextInt(words.length)]}',
+      );
+
+      final entries = [
+        for (var i = 0; i < 200; i++)
+          DedupeEntry(danceId: 'e$i', title: title(), authorNames: authors()),
+      ];
+      final index = DedupeIndex(entries);
+      final queries = [
+        for (var i = 0; i < 100; i++)
+          // Half the queries are near-copies of an existing entry.
+          if (i.isEven)
+            (title(), authors())
+          else
+            (
+              entries[rng.nextInt(entries.length)].title,
+              entries[rng.nextInt(entries.length)].authorNames,
+            ),
+      ];
+      for (final threshold in [0.0, 0.72, 1.0]) {
+        for (final (t, a) in queries) {
+          final expected = _referenceFuzzyMatches(entries, t, a, threshold);
+          final actual = index.fuzzyMatches(t, a, threshold: threshold);
+          final reason = 'seed=$seed threshold=$threshold query="$t" $a';
+          expect(
+            [for (final c in actual) c.danceId],
+            [for (final c in expected) c.danceId],
+            reason: reason,
+          );
+          expect(
+            [for (final c in actual) c.score],
+            [for (final c in expected) c.score],
+            reason: reason,
+          );
+          expect(
+            [for (final c in actual) c.confident],
+            [for (final c in expected) c.confident],
+            reason: reason,
+          );
+        }
+      }
+    });
+  });
+
+  group('length bound', () {
+    test('never drops a pair the unbounded oracle keeps', () {
+      final rng = Random(255);
+      const alphabet = 'abcdef gh';
+      // Lengths 1..60, skewed so many pairs differ a lot in length.
+      String title() {
+        final len = 1 + rng.nextInt(rng.nextBool() ? 8 : 60);
+        return List.generate(
+          len,
+          (_) => alphabet[rng.nextInt(alphabet.length)],
+        ).join();
+      }
+
+      List<String> authors() =>
+          List.generate(rng.nextInt(3), (_) => 'au${rng.nextInt(4)}');
+
+      final entries = [
+        for (var i = 0; i < 300; i++)
+          DedupeEntry(danceId: 'e$i', title: title(), authorNames: authors()),
+      ];
+      final index = DedupeIndex(entries);
+      for (var q = 0; q < 150; q++) {
+        final threshold = 0.5 + rng.nextDouble() * 0.5;
+        final qTitle = q.isEven ? title() : entries[q].title;
+        final qAuthors = authors();
+        final got = index.fuzzyMatches(qTitle, qAuthors, threshold: threshold);
+        final want = _referenceFuzzyMatches(
+          entries,
+          qTitle,
+          qAuthors,
+          threshold,
+        );
+        expect(
+          [for (final c in got) (c.danceId, c.score, c.confident)],
+          [for (final c in want) (c.danceId, c.score, c.confident)],
+          reason: 'title "$qTitle" at $threshold',
+        );
+      }
+    });
+
+    test('an exact-title entry far below the threshold stays confident', () {
+      final index = DedupeIndex([
+        DedupeEntry(danceId: 'x', title: 'Same', authorNames: ['Ann']),
+        DedupeEntry(danceId: 'y', title: 'Something Entirely Longer Than It'),
+      ]);
+      final hits = index.fuzzyMatches('same', ['ann'], threshold: 1.0);
+      expect(hits.map((c) => c.danceId), ['x']);
+      expect(hits.single.confident, isTrue);
+    });
+  });
+}
+
+/// The pre-precompute algorithm: re-normalises every entry on every query.
+/// Oracle for the equivalence test; scoring helpers are verbatim copies.
+List<DedupeCandidate> _referenceFuzzyMatches(
+  List<DedupeEntry> entries,
+  String title,
+  Iterable<String> authorNames,
+  double threshold,
+) {
+  final nTitle = normalizeTitle(title);
+  final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
+  if (nTitle.isEmpty) return const [];
+  final out = <DedupeCandidate>[];
+  for (final e in entries) {
+    final eTitle = normalizeTitle(e.title);
+    if (eTitle.isEmpty) continue;
+    final eAuthors = e.authorNames.map(normalizeAuthor).toSet()..remove('');
+    final titleSim = _refSimilarity(nTitle, eTitle);
+    final score = nAuthors.isEmpty || eAuthors.isEmpty
+        ? titleSim
+        : titleSim * 0.8 + _refJaccard(nAuthors, eAuthors) * 0.2;
+    final confident =
+        nTitle.isNotEmpty &&
+        nTitle == eTitle &&
+        nAuthors.isNotEmpty &&
+        eAuthors.isNotEmpty &&
+        nAuthors.intersection(eAuthors).isNotEmpty;
+    if (score >= threshold || confident) {
+      out.add(
+        DedupeCandidate(danceId: e.danceId, score: score, confident: confident),
+      );
+    }
+  }
+  out.sort((a, b) => b.score.compareTo(a.score));
+  return out;
+}
+
+double _refJaccard(Set<String> a, Set<String> b) {
+  if (a.isEmpty && b.isEmpty) return 1.0;
+  final inter = a.intersection(b).length;
+  final union = a.union(b).length;
+  return union == 0 ? 0.0 : inter / union;
+}
+
+double _refSimilarity(String a, String b) {
+  if (a.isEmpty || b.isEmpty) return 0.0;
+  if (a == b) return 1.0;
+  final dist = _refLevenshtein(a, b);
+  final maxLen = a.length > b.length ? a.length : b.length;
+  return 1.0 - dist / maxLen;
+}
+
+int _refLevenshtein(String a, String b) {
+  final prev = List<int>.generate(b.length + 1, (i) => i);
+  final curr = List<int>.filled(b.length + 1, 0);
+  for (var i = 0; i < a.length; i++) {
+    curr[0] = i + 1;
+    for (var j = 0; j < b.length; j++) {
+      final cost = a.codeUnitAt(i) == b.codeUnitAt(j) ? 0 : 1;
+      var m = prev[j + 1] + 1;
+      if (curr[j] + 1 < m) m = curr[j] + 1;
+      if (prev[j] + cost < m) m = prev[j] + cost;
+      curr[j + 1] = m;
+    }
+    for (var k = 0; k <= b.length; k++) {
+      prev[k] = curr[k];
+    }
+  }
+  return prev[b.length];
 }

@@ -81,12 +81,17 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
 - People: `N` neighbor (`N2`/`N3` future, `N0`/`N-1` past), `P` partner, `M`/`W`
   role, `S` shadow, `C1..C3` corners, `O` opposite, `TB` trail buddy, `1`/`2`
   ones/twos, `1CC/2CC` contra corners, `SRN` same-role neighbor.
-- Operators: `;` then · `,`/`||` while · `[]` who does it · `()` detail ·
+- Operators: `;` then · `,`/`||` while (a literal `while` also appears in
+  prose, e.g. `long lines … while N2 neighbor roll away (…)`; the importer reads
+  the core+modifier pairings only, #1415) · `[]` who does it · `()` detail ·
   `~` partial hey pass · `//` either-or · `&` in fractions (`1 & 1/2`) ·
   `" "` spoken vs `' '` literal-from-source.
 - Rotation amounts: allemandes in quarters (`allemande left 1 & 1/2`), circles/
   stars in full turns (`Circle left 3/4`), heys in fractions with pass lists
-  (`Hey 1/2 (WR;PL;MR;N2L~)`).
+  (`Hey 1/2 (WR;PL;MR;N2L~)`). Thirds and eighths also occur (`Star left 7/8`,
+  `Ones allemande right 1 & 2/3`); the importer rounds these to the nearest
+  quarter and keeps the source amount as the figure's note
+  (`docs/design/imports.md`).
 - Formation vocabulary (controlled, complete list on the search form): Duple Minor
   {Improper, Becket, Proper, Indecent, Reverse-progression improper, Progressed
   improper, Cross, Other}, Triple Minor, Three/Four Facing, Solo/Singlet/Doublet/
@@ -161,9 +166,12 @@ and `pull by direction`.
   English Country Dance. First corners are man one and woman two. Second corners
   are woman one and man two."
 
-The last two entries are why `C1`–`C3` are **not** mapped: `ParamVocab`'s
+The last two entries are why `C1`–`C3` were long **not** mapped: `ParamVocab`'s
 `firstCorners`/`secondCorners` model the ECD *First/second corners*, a different
-relationship from TCB's square corners. Mapping them would fabricate.
+relationship from TCB's square corners. Since taxonomy v38 they are mapped
+(#1975): the maintainer ruled that a square's corner is a contra first corner,
+and added `opposites` and `thirdCorners`, so C1, C2 and C3 are `firstCorners`,
+`opposites` and `thirdCorners`. `C4`+ is still declined.
 `P0`, `P2`–`P5` have vocabulary tokens (taxonomy v24, issue #732) and the
 importer now maps them (issue #732, PR E). `P6`+, every `P-n`,
 `N5`+/`N-1`/`S3`+ have no token, and `Ph*` (phantoms) / `TB*`
@@ -186,7 +194,7 @@ their pass count. The 196 declines break down as:
 
 | reason | lines | detail |
 |---|---|---|
-| unmappable pass code | 115 | square corners `C1`–`C7` 55 · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
+| unmappable pass code | 115 | square corners `C1`–`C7` 55 (`C1`–`C3` map since taxonomy v38, #1975; not re-measured) · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
 | leftover prose outside the pass list | 56 | a second parenthetical 17 · a `[…]` qualifier 16 · other prose/`;`-tail 9 · `Progressive grand right and left` 8 · `Same-role grand right and left` 6 |
 | no pass list at all | 3 | |
 | degenerate list (`(N1R)`, `(N1R;;N2L)`) | 2 | |
@@ -290,6 +298,13 @@ children. `Modified revolving door` (#19305) is the sharpest illustration: the
 bare `Revolving door` collapses to the taxonomy move, while the "Modified"
 variant decomposes and keeps its name in the note.
 
+*Since container titles:* the name is now kept as the **title of one
+sequence** holding the children (`Modified revolving door - …`) when the block
+has two to four figures that come through the cross-line merge untouched and
+fit one phrase of the dance, and the name fits a title. The first-child note above is the fallback for every other block
+(`Interrupted square through 2`, whose balance child folds into its square
+through, is one). See [imports.md](../design/imports.md) §1.
+
 Whole-corpus effect of #295 (grand right and left + the general compound rule),
 measured with `tool/tcb_coverage.dart` on the same mirror before and after:
 **75.09% → 76.24%** of figure lines structured.
@@ -380,6 +395,34 @@ sense and amount and never a facing.
 Substring search on title/author; controlled formation + progression filters;
 positive/negative figure-line matching with any/all modes; **per-phrase (A1..B2)
 figure search** (2023). Matches our roadmap search requirements almost 1:1.
+
+### Title punctuation and query encoding (verified live 2026-10-08)
+
+Title search matches punctuation exactly, and the catalogue stores only ASCII
+`'` and `"`: `?title='` matches 2,713 dances and `?title="` 38, while `’` `‘`
+`“` `”` `–` `—` `…` `` ` `` and `´` each match **0**, whether sent as UTF-8
+or as their windows-1252 bytes. Ellipses are spelled `...` (13 matches).
+`buildCallersBoxSearchUrl` therefore folds typographic punctuation to ASCII
+(`foldTitlePunctuation`) before sending, so `Rory O’More` finds `Rory O'More`.
+
+Accented letters are matched as **windows-1252** bytes: `?title=%E9` matches
+5 dances (`Déjà vu`, `PokéCon`, …) and the UTF-8 `%C3%A9` matches 0. Case-folding
+is ASCII-only: `d%E9j%E0` finds `Déjà vu` but `D%C9J%C0` finds nothing (ASCII
+title, author and figure-line matching ignore case: `GENE HUBERT` and
+`gene hubert` both match 178, `SWING` and `swing` both 14,657). Every accented
+letter TCB stores is lower-case: probing all 34 accented capitals and 35
+accented small letters of windows-1252 as `title=` and `author=` matched no
+capital at all; titles use `à á ä æ è é î ñ ö ø ü ß` (33 matches) and authors
+only `é ö` (7). So
+`buildCallersBoxSearchUrl` lower-cases title, author and figure lines and
+form-encodes them in windows-1252, the page's charset, rather than the UTF-8
+`Uri.https` would produce. A character windows-1252 lacks is sent as `&#N;`,
+which is what a browser submits through TCB's own form.
+
+Neither TCB nor ContraDB folds accents: `Deja vu` does not find `Déjà vu`, and
+ContraDB's `malort` does not find `Rory Malört`. ContraDB does case-fold
+accented letters (`MALÖRT` finds it) and accepts UTF-8, so it needs no
+encoding change.
 
 ### Results-page markers and paging (verified live 2026-08-06, issue #845)
 
@@ -480,9 +523,12 @@ centre/sides model ContraDB's ocean wave already uses. Long waves use
 `(<relationship-code><Hand>, <role> face in)`: 858 `women face in`, 568 `men face
 in`, 64 `twos face in`, 13 `ones face in`.
 
-Adjacency (why the mapping is safe): ~44% of these lines are followed by a move
-the existing forward balance-merge already claims (swing, petronella, rory,
-box the gnat, box circulate, slide); 1,091 are preceded by a wave-forming clause
+Adjacency (why the mapping is safe): ~44% of these lines are followed by a swing,
+petronella, rory, box the gnat, box circulate or slide. Of those, the forward
+balance-merge claims only the wave moves (box circulate, and slide via the
+Rory O'More fold); a balance wave before a swing / box the gnat / petronella is
+left to the promotion, because folding it would hand the wave's balance to the
+move's pair (see design/imports.md, "Fold 1"); 1,091 are preceded by a wave-forming clause
 (`Pass the ocean` ×395, `form wave of four …` ×~480, `form long wave …` ×~130);
 the remainder is the implicit case, dominated by allemandes.
 
@@ -536,9 +582,12 @@ were each checked in context and are genuine timing: dance 2957 writes
 `(3) Neighbor courtesy turn`, dance 14823 `(10) Star left 1 & 1/4` +
 `(6) Partner courtesy turn`.
 
-**`direction`:** stated on 10 lines; **all 10 say `clockwise`**.
-`counterclockwise` is unattested — consistent with the figure's mechanics (the
-couple wheels as a unit), so `clockwise` is a real default rather than a guess.
+**`direction`:** stated on 10 lines; **all 10 say `clockwise`**, and
+`counterclockwise` is unattested. A source names the rotation only when it is
+the unusual one, so those 10 lines are the mirrored turn (chiefly after a
+role1s' chain); the ordinary turn, and the taxonomy default since v37, is
+`counterclockwise`. (v23 read this census the other way and defaulted to
+`clockwise`.)
 
 **⚠️ The ending facing is a DANCER, not a direction.** Every in-line ending
 facing is a neighbor relationship — `, face N2` x8, `, face N3` x4, `, face N0`
@@ -939,6 +988,103 @@ should be measured against the real implementation when one exists.
 
 The harness itself was not committed, so this census is reproducible only by
 rebuilding it — the same gap every earlier census in this document has.
+
+### Figure-line census: cast (2026-11-19, issue #770, taxonomy v40)
+
+**Population — a live fetch, not the mirror.** The local mirror was not
+available, so this census fetched only the dances it needed. The by-line search
+(`index.php?pos_lines=cast&pos_mode=any_any&show_all`, one request) states
+**2,346** dances whose figures match "cast"; the **1,563** of them marked `Ⓕ`
+(`Permission: full`) were fetched one at a time from
+`dance.php?id=N&format=JSON`, at least 0.4 s apart, with no failures. Every
+fetched record parsed and reported `Permission: full`. The search's match is a
+substring match, so the population is every public dance with "cast" anywhere
+in a figure line — complete for the cast family, but not a sample of the corpus
+as a whole.
+
+Method: each record through the real `CallersBoxAdapter`, every figure encoded,
+once on `main` before v40 (`be3ff04c`) and once with all of v40 (the `cast`
+move, the `hand_cast` alias, and the `threes`/`fours` groups and role-number
+dancers), then compared figure by figure with containers recursed. "Cast
+lines" are leaf figures; a custom one counts when its text matches `\bcast`.
+The dances were fetched twice on 2026-11-19 (the second fetch measured the
+dancer additions), and the first fetch's counts reproduce exactly on the
+second.
+
+| | before v40 | the cast move alone | all of v40 |
+| --- | ---: | ---: | ---: |
+| figure lines mentioning a cast | 2,066 | 2,066 | 2,066 |
+| `custom` cast leaves | 2,060 | 469 | 443 |
+| `cast` figures | 0 | 1,455 | 1,481 |
+| `hand_cast` figures | 0 | 140 | 140 |
+
+With all of v40, 1,293 of the 1,563 dances change. In every one, the only
+figures removed are `custom` lines (1,673 of them), and the total beats of the
+dance are unchanged. Besides `cast` and `hand_cast`, the figures added are of
+two kinds:
+
+- **The other clauses of cast lines that now split or decompose**, e.g.
+  `Partner lead down; cast up to place`, `P1 partner roll away (…); women cast
+  back`, and the compound parent `Butterfly double figure eight 1/2:` in dances
+  7867 and 7868, which now decomposes into a sequence titled with that name.
+- **Lines that name the threes or a role-number dancer.** 80 lines in 53
+  dances that were `custom` only because of those dancers, e.g. `Threes
+  swing`, `role1 one turn alone`, `Threes lead up (past twos)`, `role2 one
+  orbit counterclockwise 1/2`. These name `threes` 39 times and a single
+  dancer 41 times; `fours` does not appear in this population.
+
+Together these are 26 `up_the_hall`, 10 `down_the_hall`, 7 `swing`, 7
+`turn_alone`, 6 `figure_8`, 6 `pass_by`, 2 `orbit`, and one each of
+`contra_corners`, `pull_by`, `balance`, `long_lines`, `do_si_do` and
+`roll_away`.
+
+The wording after the word `cast`, over all 2,066 lines: `down` 750, `off` 666,
+`up` 240, nothing 152 (137 of them a bare `Hand cast`), `back` 101,
+`clockwise` 58, `counterclockwise` 52, `right` 13, `around` 12, `left` 10.
+Beats on the 1,481 casts: 4 on 1,018, 8 on 191, 2 on 128, 3 on 75, 6 on 46,
+no other count above 3. Directions: `down` 1,234, `up` 155, `right` 63, `left`
+26, unstated 3. 68 of the shoulders are the adapter's assumption for a role's
+cast back that states none (21 `Women cast back to P2`, 17 `Women cast back ||
+Men go forward`, 8 `Women cast back`, 7 `Men cast back`, and 15 more across 13
+other wordings).
+
+What stays `custom` (443), by shape:
+
+| shape | lines | example |
+| --- | ---: | --- |
+| `;` lines whose other clauses do not structure | 207 | `Ones lead down through twos; separate; cast up to place` |
+| "others follow" / "inverting lines" riders | 95 | `Ones cast down to bottom, inverting lines. Others follow` |
+| inside a double figure eight | 26 | `Double figure eight (ones cross up, twos cast down)` |
+| other single-clause wordings | 26 | `Ones hand cast`, `Star cast off: role2s trade by right` |
+| `around the major set` | 25 | `Women cast counterclockwise around the major set (past N2) (men assist)` |
+| dancers no move reads | 23 | `Ends cast back to P2`, `Inside ends cast to outside ends`, `role1 two cast up (past M3), role1 three move down` |
+| an endpoint outside the destination list | 22 | `Twos cast up to ends of line of four` |
+| `behind <dancer>` | 13 | `Men allemande left 1/2 \|\| Women cast clockwise behind partner` |
+| a `(past …)` that is not a list of dancers | 6 | `Twos cast up (past ones and threes)`, `role2s cast up (past S; to partner)` |
+
+The "dancers no move reads" rows are not a cast gap: they name ends, a pair of
+named dancers, or a dancer and a second action, which no move reads either.
+(Before the v40 dancer additions this row was 49, and also held `Threes` and
+`role1 one` lines; those now read.)
+
+Re-check and free-text entry read through the fan-out across every front end,
+not the Caller's Box front end alone. Over the same lines, the fan-out and the
+Caller's Box front end agree on every cast; the only lines on which they differ
+are 3 promenade lines (`Ones promenade counterclockwise down to bottom (ones
+cast left). Others follow`), which differ the same way on `main`. The adapter
+alone then assumes the 68 shoulders above, by the maintainer's ruling, so a
+re-check of an older import leaves those 68 unstated where a fresh import
+states them.
+
+The glossary entries this rests on (`Glossary.htm`, read 2026-11-19): **Cast**
+("a rather fuzzy term … to individually go somewhere, on the outside of the
+set"), **Cast off** (unassisted or assisted, "depends on your community"),
+**Cast down** (the parenthesis lists the couples passed), **Hand cast** ("a cast
+off figure done with hands … very similar to a gate") and **Gate** ("similar to
+a hand cast"). ContraDB's `libfigure` defines no cast figure (0 matches for
+"cast" in `figure.es6` at `master`, read 2026-11-19).
+
+The harness was not committed, like the others in this document.
 
 ## Open questions
 

@@ -13,8 +13,9 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    It compiles to exactly one parameterized `SELECT` — never an in-memory scan,
    never N per-leaf queries stitched in Dart (ContraDB pitfall #2).
 2. **Search the derived indexes, not the JSON.** Structural predicates hit
-   `dance_figures`; short text prefixes hit `dance_fts`; longer literal
-   substrings hit `dance_substring_fts`; scalars hit `dances` columns. The
+   `dance_figures`; free text is matched word by word, a word of one or two
+   characters as a token prefix in `dance_fts` and a longer one as a literal
+   substring in `dance_substring_fts`; scalars hit `dances` columns. The
    authoritative `figures_json` is never parsed during search.
 3. **Canonical in, canonical matched.** Move names and free-text terms pass
    through `canonicalize()` at the compiler boundary, mirroring how data was
@@ -22,13 +23,229 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
    Collection text search may explicitly scope to raw title text, derived
    author names, or canonical figure text; Omni is the OR of the canonical
-   cross-field query and a raw-title fallback. Long queries keep the complete
-   input as one literal substring. Online collection search exposes the title,
+   cross-field query and a raw branch matching the query as typed over title,
+   authors, sources, custom values, hook and notes (never `figures_text`, which
+   is stored canonicalised), so a name or note containing a role word such as
+   "Robin" or "ladies" is found verbatim. Custom values are indexed only for a
+   live definition with `searchable` on, and never for a `boolean` one, whose
+   value would index as "true" or "false" (maintainer decision search-index
+   (a), 2026-10-29; `customFieldIndexesValueText`). The query is split into
+   words and every word must match, each in any field and each with its own
+   canonical-or-raw choice (2026-10-29, FIND-5; this reverses #1005's
+   one-phrase rule — see "Dialect canonicalization of input"). Online
+   collection search exposes the title,
    author, and figure criteria to Caller's Box and ContraDB, while by-phrase
    criteria remain available only to sources that support them. Caller's Box
    maps the free-text Figure criterion to global positive figure lines;
    ContraDB resolves Figure input against its exact canonical vocabulary and
-   selects its fixed `figure` filter.
+   selects its fixed `figure` filter. The Advanced builder's tree is also sent
+   to ContraDB, translated by `translateDanceFilterToContraDb` onto its
+   `lib/filter_dances.rb` array language (`and`, `or`, `no`, `&`, `not`,
+   `then`, `figure`) and combined with any text criterion under `and`. Figure
+   conditions in all/any/none groups and `ThenFilter` translate; `ThenFilter`
+   means the same as ContraDB's `then` (the second figure immediately follows
+   the first, wrapping from the last figure to the first; a dance of one
+   figure pairs that figure with itself on both sides). A tag, a phrase
+   section (ContraDB stores none), a move with no exact ContraDB counterpart
+   or an unknown move (in a figure or a `then` operand), or any
+   local-only leaf makes the search refuse with
+   `UrlFetchFailureReason.contraDbUnsupportedAdvanced` and send nothing: a
+   condition silently dropped would answer a wider question than the panel
+   shows. A figure's **parameters** do not refuse it (see *Figure
+   parameters* below). The refuse-rather-than-drop rule is the implementing
+   agent's, not the maintainer's; parameters are the one exception, by the
+   user's instruction.
+
+   **Moves translate by id, through an exact table.** A figure leaf carries
+   the Collection's move id (`do_si_do`), not a ContraDB name, so
+   `translateDanceFilterToContraDb` maps it through
+   `_contraDbForCollectionMove`, which holds only the moves where the importer
+   turns ContraDB's own rendering of exactly those figures into that move
+   (typed `custom` prose is a separate, documented gap: see below).
+   `pull_by` is
+   an `or` of ContraDB's two pull-bys. The importer keeps `see_saw` and
+   `swat_the_flea` apart from `do_si_do` and `box_the_gnat`, while ContraDB
+   stores both as the target move and answers `see saw` with an alias filter,
+   so `do_si_do` is sent as `["&", ["figure", "do si do"], ["not", ["figure",
+   "see saw"]]]`. A display name, a ContraDB spelling or a dialect term is
+   refused: the translator never sees the dialect. `meltdown_swing`, `custom`,
+   `star_promenade`, `allemande_orbit`, `pass_the_ocean`, `form_short_waves` (two
+   halves of ContraDB's one `form an ocean wave`) and the moves with no
+   ContraDB figure are refused.
+
+   **What the translation does and does not guarantee.** The translator sees
+   only the query, so it is exact only where the importer turns a ContraDB
+   figure into the same Collection figure one-to-one. It cannot be for a
+   ContraDB figure the importer restructures: a typed `custom` figure ("ones
+   swing while twos circle", "balance and swing") is one `custom` figure on
+   ContraDB but structured figures (flattened leaves, #590) here; `form an
+   ocean wave & balance` is one figure there and two here; a figure the
+   importer cannot read (`*-hand chain`, `star promenade`, a balanced `swat
+   the flea`) is a `custom` leaf here, so the Collection under-matches it; and
+   typed prose the importer structures (`ladles trade by the left shoulder`
+   becomes `pass_by`, which ContraDB files under `custom`) over-matches. An `allemande orbit` is one figure on ContraDB and
+   `meanwhile[allemande, orbit]` here, which is why an `allemande` query is
+   sent as `allemande` or `allemande orbit`. Under a figure-level `not` (such as a
+   Sequence side that is a "None of" group) it is sent as `allemande` alone:
+   the group's orbit row is not an allemande, so the Collection still matches
+   `not allemande` there, and ContraDB must not rule the orbit figure out. The importer half is
+   pinned for two of these only, by `contradb_advanced_translation_import_test.dart`:
+   the `allemande orbit` container and a typed `A while B` line. The others
+   (`form an ocean wave & balance`, `*-hand chain`, a balanced `swat the flea`,
+   `ladles trade by` becoming `pass_by`) are described from reading the
+   importer and are not pinned by any test.
+
+   The ContraDB half is derived by reading ContraDB's `lib/filter_dances.rb`
+   and `lib/search_match.rb`, not measured: no engine runs here and nothing in
+   the test suite contacts contradb.com. An earlier test-only Dart port of that
+   engine was dropped on the user's instruction in the working session of
+   2026-11-05 (functional parity, not a copy of ContraDB's source; the
+   instruction is not recorded elsewhere), so a change on ContraDB's side is
+   not caught by CI.
+   `packages/compendium_core/tool/check_contradb_translation_live.dart` is an
+   opt-in script (never run by CI) that sends one query per expression shape
+   the translator emits and reports whether the server accepts it; on 2026-11-05
+   it accepted all thirteen (`figure`, `or`, `and`, `no`, `&`, `not`, both alias
+   filters, the `do si do` and `box the gnat` `& not` forms, `pull_by`'s `or`,
+   and `then` with its wrap). It sends no undefined move name, so it cannot show
+   that a bad name would be rejected. It shows that ContraDB accepts the expressions, not that the dances it
+   returns are the right ones.
+
+   **Results come 20 at a time, as the list is scrolled.** The app asks ContraDB
+   for `titleA` order, `contraDbSearchCount` (20) rows per request. The first
+   request has offset 0; the list's last item (`OnlineMoreFooter`) is built only
+   once the end of the list is near the viewport, and then asks for the next page
+   (`OnlineSearchQuery.withOffset(pages * 20)`, `_loadMoreOnline` in the
+   Collection and the picker). One page is in flight at a time; a page for a
+   search that has since been replaced is dropped by the same sequence number as
+   the first page; a page that adds no new row ends it (`appendOnlinePage`,
+   `onlineHasMore`); a failed page shows a retry instead of asking again.
+   Whether more remain is the total when the source gave one (fewer rows shown
+   than that), else whether the page just fetched was full. The response's `numberMatching` is the whole match
+   count and does not change with the offset (checked live on 2026-11-06), so
+   `parseContraDbNumberMatching` reads it and `ContraDbOnline` puts it on every
+   row (`OnlineSearchResultRow.totalMatching`). `onlineResultCountLabel` then
+   says "Showing 20 of 143 online results" when the total exceeds what is
+   shown, and the plain count when it does not (a page that is exactly full of
+   exactly that many matches is complete). "Scroll down to load more" follows
+   the "of" line only while scrolling can load more: once paging has ended
+   short of the total, or a page has failed and waits for its Try again
+   button, the line has no such hint.
+
+   The total is used only when one response answered: an apostrophe query
+   sends the ASCII and curly spellings as two requests and merges the rows, so
+   up to 40 can show, and their totals are not added because a dance matching
+   both spellings would count twice. With no total (a merged query, a response
+   without `numberMatching`, or a malformed one) the fallback is the earlier
+   rule: a response that filled the page may have been cut off
+   (`mayHaveMore`, judged per response), and the count line says there may be
+   more ("There may be more: scroll down to load them", or just "There may be
+   more." after a failed page, so it never reads as a complete result while
+   Try again waits). Whether more may remain (`hasMore`) is taken from the
+   latest page only, so an earlier full page does not keep the wording once
+   the last one is in; `onlineResultCountLabel` takes that and `loadFailed` as
+   separate facts. An apostrophe query pages both spellings at the same offset
+   and merges each page's rows in as they arrive; rows are title-sorted within
+   a page, so the order is only approximate across page boundaries.
+   The footer is keyed by the search's sequence number and the row count, so a
+   new search never inherits the previous footer's "already asked" state; a
+   page still in flight for a replaced search is dropped and does not hold
+   paging for the new one. After the first page a failed spelling fails the
+   page (Try again), because both spellings page at the same offset and a page
+   that quietly lost one would be counted as loaded, ending paging early or
+   leaving a hole. The first page still tolerates a failed curly spelling (only
+   the ASCII spelling decides failure there), so its curly rows can be missing
+   if that one request failed; that is the earlier, deliberate behaviour.
+
+   **A repeated request is not sent again.** `ContraDbOnline` remembers the last
+   successful search for 60 seconds and answers an identical one from it,
+   because each ContraDB request scans every dance. "Identical" is every
+   spelling's filter, text, expression and offset **and** the parameters the
+   translation left out, because those change no expression sent but decide
+   the rows' `advancedPartlyApplied` note. An Advanced edit that changes
+   neither (an empty row added, a group re-labelled around one condition)
+   therefore costs no request. A failed search is not remembered, and neither
+   is one whose extra apostrophe spelling failed (the repeat asks for it
+   again).
+   Typing, Advanced and By phrase edits were already debounced (500 ms online);
+   that is unchanged.
+
+   **Figure parameters.** ContraDB takes a figure's parameters by position
+   after the move (`["figure", "swing", "partners", "*", 16]`).
+   `contradb_advanced_params.dart` maps each parameter the Collection and
+   ContraDB share onto its position and value spelling, from ContraDB's
+   `figure.js` / `param.js`, with each value mapping checked against the
+   importer on rendered figure lines (the renderings were composed by hand from
+   ContraDB's `*Words` functions, not fetched from contradb.com).
+
+   *Left out, not refused.* **Decided by the user, in the agent session that wrote this (2026-11-05; no issue or
+   comment records it, only that session):** support every
+   parameter ContraDB also has, and do not refuse a figure because some of its
+   parameters have no ContraDB counterpart. Such a parameter, or an app value
+   with no exact ContraDB value, is left out of the filter; the figure is still
+   searched by its other parameters. The translation returns the left-out names
+   (`ContraDbAdvancedExpression.ignoredParams`, `move.param`), `ContraDbOnline`
+   sets `OnlineSearchResultRow.advancedPartlyApplied` on every row, and the
+   count line adds a note after the count, because the search is then not the
+   one the panel describes: usually broader, but narrower under a negation
+   (**None of**), where a dropped condition makes the excluded set larger. The note rides on the rows, so a search that finds no
+   dances shows no note. A value of `unspecified` means "not set" and is not
+   reported. The parameters with no ContraDB counterpart, pinned by
+   `contradb_advanced_params_test.dart`: `balance.hand`, `butterfly_whirl.who`
+   and `.direction`, `circle.singleFile`, `contra_corners.custom`,
+   `figure_8.lead`, `form_long_waves.balance`/`whom`/`whomHand`, `gate.pair`/
+   `direction`/`travel`, `hey.meetTarget`/`pass2`, `mad_robin.direction`/`whom`,
+   `promenade.destination`/`singleFile`, `roll_away.halfSashay`,
+   `slice.by`/`return`, `swing.endFacing`, `turn_alone.custom`, `zig_zag.ender`.
+   Most are parameters the importer never sets (it sees only rendered prose).
+
+   *Mechanics that are easy to get wrong.* `*` means "any" at every formal
+   except a free-text one (`contra corners`, `turn alone`, position 1), which is
+   filled with `''`; an alias (`see saw`, `swat the flea`) pins its parameter
+   only when the filter has none, so an alias leaf with parameters pins it
+   itself; a position past a figure's last formal makes ContraDB raise (the
+   test checks every position against ContraDB's formal list); `beats` is the
+   last formal of each figure and is sent as an integer; `allemande` adds an
+   `allemande orbit` branch (positions of its own, no beats filter, and only for
+   a pair and a beats value of 8); `pull_by` is two ContraDB figures, each with
+   its own positions.
+
+   *Approximate on purpose, because ContraDB cannot say more.* ContraDB maps a
+   dancer to a category before comparing, so a `neighbors` filter also matches
+   stored previous, next, third and fourth neighbors, and `shadows` also second
+   shadows (over-match); the five dancer values that are only stored under
+   another category (`prevNeighbors`, `nextNeighbors`, `thirdNeighbors`,
+   `fourthNeighbors`, `secondShadows`) can never match and are left out. A hey
+   ricochet that is `true` over-matches when the first pass is not a pair. A
+   hey length of `half`, a down/up hall `forward` facing, a pass-through
+   `along`, a promenade `across` and its direction, and a long wave's `in` and
+   `balance` under-match, because the importer reads the figures ContraDB stores
+   differently as the default. A figure 8 `above` is stored two ways (`''` and
+   `above`), so it is an `or`. The `poussette` direction maps clockwise to
+   `true`, as ContraDB stores it: ContraDB renders a stored `true` as "back then
+   left", and the importer reads that as clockwise. *(Changed in #2121: the
+   importer used to read the sides the other way round, and this mapping was
+   inverted to round-trip through it.)*
+
+   *What is verified.* Positions against ContraDB's formal lists, the
+   left-out set, and every value mapping are pinned by unit tests; the opt-in
+   `tool/check_contradb_translation_live.dart` sent 31 expression shapes
+   (including one per parameter shape above) and ContraDB accepted all of them.
+   On 2026-11-06 the script was extended to print the figure text ContraDB
+   matched, and the implementing agent read it for each shape: the text agreed
+   with the condition (for example "full figure 8", "circle left 4 places",
+   "wrist grip", "ladles ricochet", "do si do 1½"). Two shapes return no dances
+   (`figure 8` below and full, and `down the hall` backward ending in a
+   circle); each of their conditions alone does match (9 below, 2 full, 4
+   circle, 2 backward), so those are rare combinations, not wrong values. The
+   poussette direction was checked the same way: ContraDB's `true` renders
+   "back then left" (53 dances) and `false` renders "back then right" (24),
+   which is what the mapping above relies on (clockwise → `true` → "back then
+   left"). This is a reading of rendered text by the
+   agent, not an automated test, and it does not settle which way the dancers
+   physically move.
+   The mappings and who decided them: the per-parameter mappings are the
+   implementing agent's, from a research pass over ContraDB's source.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.
@@ -55,6 +272,9 @@ sealed DanceFilter
   AuthorFilter(String choreographerId)
   SourceFilter(String query)                 // substring match on cited source title/author
   SourceIdFilter(String sourceId)            // identity match on cited source id
+  TunesFilter(String query)                  // substring over the dance's tunes (dances.tunes_json), #1420
+  MeterFilter(String meter)                  // whole meter, trimmed, case and accents folded (ADR-006 F3)
+  MusicalKeyFilter(String musicalKey)        // whole key, matched as MeterFilter matches a meter
   FormFilter(DanceForm form)                 // roadmap "Type": contra | ecd | square
   FormationFilter(FormationShape shape)      // shape only; free-text detail via FullTextFilter
   ProgressionFilter(Progression progression)
@@ -62,10 +282,13 @@ sealed DanceFilter
   LevelFilter(String difficultyLevelId, [LevelOp op = eq]) // ordered scale; see LevelOp below
   MixedLevelFilter(bool mixed)               // → dances.mixed_level
   MixerFilter(bool mixer)                    // → dances.mixer (issue #732)
-  CalledFilter(bool called, {String? callerFilter, bool performedOnly = false})
+  CalledFilter(bool called, {String? callerFilter, bool performedOnly = false,
+               bool requireEventDate = false, VenueKey? venue,
+               DateTime? since, String? currentProgramId})
                                                // → scoped calling-history EXISTS
   RatingFilter(int minimum)                  // minimum-star floor, 1..5
   TagFilter(String tagId)
+  UntaggedFilter()                           // dances with no live tag (issue #1422)
   CustomFieldFilter(CustomFieldDef def, CustomFieldOp op, Object? value)
 
   // structural leaf
@@ -101,10 +324,21 @@ sealed FigureQuery
   FigureAnd(List<FigureQuery>)   // all match the SAME figure row
   FigureOr(List<FigureQuery>)    // any matches the same figure row
   FigureNot(FigureQuery)         // this figure row does NOT match
+
+const anyFigure = FigureAnd([])  // matches every figure row
 ```
 
+`anyFigure` is the empty `FigureAnd`, which the compiler already reads as true
+(no clause to fail), given a name so the builder can offer it. A dance matches
+`FigureFilter(anyFigure)` when it has at least one figure, and `Then(anyFigure,
+x)` is "x, after whatever figure comes before it", wrapping from the last
+figure to the first like any other `then`. ContraDB has the same thing,
+`["figure", "*"]` (`filter_dances.rb`, the `'*' == filter_move` wildcard), and
+the translator maps one to the other; checked live on 2026-11-06 that
+`then(any figure, swing)` matches exactly the dances `swing` alone does.
+
 Rationale for the split (see *Open questions* for the flagged decision): a
-`ThenFilter` asks "does a figure matching X occur *before* a figure matching Y",
+`ThenFilter` asks "does a figure matching Y immediately follow a figure matching X",
 which is only meaningful for predicates evaluated **per `dance_figures` row**.
 Metadata leaves (`AuthorFilter`, `FullTextFilter`, `FormFilter`, …) are
 per-*dance*, not per-figure, so they have no position in the sequence and are
@@ -141,7 +375,10 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `AuthorFilter(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
 | `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%' \|\| ? \|\| '%' ESCAPE '\' OR ps.author LIKE '%' \|\| ? \|\| '%' ESCAPE '\')` (2 binds) |
 | `SourceIdFilter(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
-| `TagFilter(tid)` | `id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)` |
+| `TunesFilter(q)` | `CASE WHEN NOT json_valid(dances.tunes_json) THEN 0 WHEN json_type(dances.tunes_json) <> 'array' THEN 0 WHEN EXISTS (… json_each(dances.tunes_json) j WHERE j.type <> 'text') THEN 0 ELSE EXISTS (… json_each(dances.tunes_json) j WHERE j.value LIKE '%' \|\| ? \|\| '%' ESCAPE '\') END` (1 bind, LIKE-escaped). The `CASE` is load-bearing: `json_each` over malformed text raises for the whole query, and `AND` operand order is not guaranteed, so an undecodable list (`UnreadableTunes`) must be excluded by an *ordered* guard. Case folding is SQLite's `LIKE` (ASCII only). |
+| `MeterFilter(m)` / `MusicalKeyFilter(k)` | `(meter <> '' AND (CASE WHEN length(meter) = length(CAST(meter AS BLOB)) THEN lower(trim(meter, char(9, 10, 11, 12, 13, 32))) ELSE cc_fold(meter) END) = ?)` (and the same over `musical_key`), 1 bind: the trimmed value folded by `foldForSearch`. An ASCII value is lowered and trimmed of ASCII whitespace in SQL; any other is folded by `cc_fold`, which trims with Dart's `trim` first. A blank value compiles to `0`. |
+| `TagFilter(tid)` | `id IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE dt.tag_id = ? AND t.deleted_at IS NULL)` — a soft-deleted tag matches nothing, though its `dance_tags` rows survive the tombstone |
+| `UntaggedFilter()` | `id NOT IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE t.deleted_at IS NULL)` — no binds; a dance whose only tag is soft-deleted counts as untagged. `NOT IN` is NULL-safe because `dance_tags.dance_id` is `NOT NULL` (part of the primary key) |
 | `FormFilter(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
 | `FormationFilter(s)` | `formation_shape = ?` (enum `.name`) |
 | `ProgressionFilter(p)` | `progression = ?` (enum `.name`) |
@@ -150,9 +387,20 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `LevelFilter(l, lte/gte)` | `level_id IN (SELECT candidate.id FROM difficulty_levels candidate CROSS JOIN (SELECT position, id FROM difficulty_levels WHERE id = ?) target WHERE (candidate.position, candidate.id) <=/>= (target.position, target.id))` |
 | `MixedLevelFilter(b)` | `mixed_level = ?` (bind `1`/`0`) |
 | `MixerFilter(b)` | `mixer = ?` (bind `1`/`0`) |
-| `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`; an optional caller scope includes matching, NULL, and blank host callers, and `performedOnly` adds `performed_at IS NOT NULL` |
-| `CalledFilter(false, scope)` | `NOT (EXISTS …)` with the same caller, performed, and non-deleted-program scope |
+| `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`. An alternate slot matches only once it is marked performed (`callingHistoryAlternateClause`). An optional caller scope includes matching, NULL, and blank host callers; `performedOnly` adds `performed_at IS NOT NULL`, and `requireEventDate` adds `event_date IS NOT NULL`. The scopes narrow the same slots: `venue` adds `p.venue_id = ?` for a record key, or `p.venue_id IS NULL AND cc_venue_key(p.venue) = ?` for a typed one; `since` adds `<date> >= ?`, where `<date>` is `callingHistoryRecencyDateSql`: `COALESCE(p.event_date, ps.performed_at, p.updated_at)`, NULL (in no window) for a slot whose program has no event date while the tracking setting `recencyRequireEventDate` is on (the default), or that is not marked performed while `recencyRequirePerformed` is on. No end date; `currentProgramId` adds `p.id <> ?` |
+| `CalledFilter(false, scope)` | `NOT (EXISTS …)` with the same rules and scopes, so a scope reads "no counted slot at the venue, in the window", never "a slot elsewhere" |
 | `RatingFilter(n)` | `rating >= ?` (unrated dances excluded — NULL is not on the scale) |
+
+A `VenueKey` is the repeated-venues summary's key: `id:<venueId>` for a program
+linked to a venue record, else `text:<folded typed venue>`, so a typed "Grange"
+never matches the record "Grange" (N1-1). SQLite cannot fold the typed text the
+way the summary does (it cannot collapse whitespace runs, and its `LOWER` is
+ASCII-only), so `applyCompendiumSqliteSetup` registers `cc_venue_key(text)`, a
+Dart function, on every connection. A connection opened without that setup
+fails a typed-venue scope with "no such function". `since` must be a UTC
+calendar date, like a stored event date; the compiler rejects any other value.
+`ProgramRepository.calledVenues` lists the venue keys with a counted call, for
+the venue chooser. Design: [history-filters.md](history-filters.md).
 
 The Collection and Programs picker expose the calling-history facet only when
 the active caller/performed scope has at least one qualifying call. An entirely
@@ -165,13 +413,26 @@ all keyed/indexed on `dance_id`.
 
 ### Custom fields
 
-`CustomFieldFilter(def, op, value)` compiles to an `EXISTS` over the field's row:
+`CustomFieldFilter(def, op, value)` compiles to an `EXISTS` over the field's row,
+joined to the field's definition:
 
 ```sql
 EXISTS (SELECT 1 FROM custom_field_values v
+        JOIN custom_field_defs d ON d.id = v.field_id
         WHERE v.dance_id = dances.id AND v.field_id = ?
+          AND d.deleted_at IS NULL
           AND <op predicate>)
 ```
+
+The definition join is the soft-delete guard required of every read through a
+soft-deletable parent (sync-spec §3.1), matching the author, source, tag and
+level leaves above. Soft-deleting a definition fires no FK cascade, so its
+`custom_field_values` rows survive; without the join a tombstoned definition
+kept matching dances whose detail view no longer shows the value (#1358). It is
+written as a join rather than a second `EXISTS` so
+`tools/ci/check_sync_invariants.py`, which ratchets joins through soft-deletable
+parents, covers it. The join binds nothing, so the bind order below is
+unaffected.
 
 with `<op predicate>` selected by operator (all values bound):
 
@@ -212,6 +473,11 @@ EXISTS (SELECT 1 FROM dance_figures f
   existing `danceIdsWithFigure()` primitive, which compares pre-encoded JSON
   text; the compiler supersedes that primitive.
 - `section`, when present, binds the derived phrase label (`'B1'`, …).
+- A use of a figure of your own (#1023) is asked for as the index stores it:
+  `FigureLeaf('custom', params: {'userFigure': <id>})`. The index keeps that
+  key only while the use renders live from its definition, so a detached use,
+  or one whose figure is gone, is not found. The id is bound as given, never
+  canonicalized (below): it is an id, not prose.
 
 `FigureAnd` / `FigureOr` combine the *inner* clauses of a **single** `EXISTS`
 (all constraints on the same `f` row), joined by `AND` / `OR`. Negation has two
@@ -243,15 +509,33 @@ order; the top-level container supplies shared section/beat placement.
 
 The outer container's structural canonical render is also appended once to
 `dance_fts.figures_text` and `dance_substring_fts.figures_text`. This preserves
-searchability of structural tokens such as `meanwhile` and `modifier` without
-trying to JSON-encode in-memory nested `Figure` values. A second column,
-`group_idx`, is **shared** by every leaf flattened from one top-level figure
-(including leaves below an opposite nested container) and is monotonic across
-top-level figures; it is what the `ThenFilter` operator correlates on (see
-below), so simultaneous leaves — which share a group — are never read as
+searchability of structural tokens such as `meanwhile`, `modifier` and
+`sequence` without trying to JSON-encode in-memory nested `Figure` values. A
+second column, `group_idx`, is **shared** by every leaf flattened from one
+top-level figure (including leaves below a nested container) and is monotonic
+across top-level figures; it is what the `ThenFilter` operator correlates on
+(see below), so simultaneous leaves — which share a group — are never read as
 sequential. Ordered modifier children likewise remain one group for `Then`
 purposes; their order is represented by child order within the structural
 canonical text, not by sequential top-level groups.
+
+The exception is a **top-level `sequence`**, whose steps are danced in order:
+each step takes the next group (leaves below a step's own nested container
+share that step's group), so a "balance and swing" kept as one sequence
+matches `ThenFilter(balance, swing)` exactly as two adjacent figures would, and
+not `ThenFilter(swing, balance)`. Each step also takes the section it starts
+in, so a step that begins the next phrase is found in that phrase. In an
+English sequence that states one span for steps with no timing of their own
+(ADR-006 §5.5), those steps share what the timed ones leave of the span,
+evenly and in order, for placing them (`DanceRepository._sequenceStepBeats`).
+A share of 0 (a span already full) puts such a step where the step before it
+ends, so on a phrase boundary it takes the earlier phrase; the editor warns
+about that span (`sequence_span_mismatch`). A sequence **nested** in a meanwhile or
+modifier keeps its parent's single group: its steps are concurrent with the
+other side, and one integer cannot order them against both, so `Then` does not
+see inside it. For dances without a top-level sequence the groups are exactly
+the top-level indices they always were, so no derived-index rebuild was
+needed.
 
 **Concurrency vs. sequence in `ThenFilter` (#748, was a #590 limitation).** Because a
 container's concurrent sides get consecutive `idx` values, a positional
@@ -261,56 +545,110 @@ sequence: `ThenFilter(X, Y)` — and, symmetrically, `ThenFilter(Y, X)` — woul
 signal needed to separate "two sides of one container" from "two sequential
 figures" is not derivable from `idx`, `section` (sequential figures can share a
 phrase) or `beats` (each side stores its own), so it is carried explicitly as
-`group_idx`. `ThenFilter` correlates on `a.group_idx < b.group_idx`: two sides of one
+`group_idx`. `ThenFilter` correlates `a` with the **next** group after it
+(`b.group_idx` is the smallest larger `group_idx`, else the smallest overall),
+and pairs a row only with a row of a different group, or with itself (possible
+only in a one-group dance; see the `Then` section below): two sides of one
 container share a group and are excluded in **both** directions, while a real
-sequence (distinct, increasing groups) still matches. This was originally
+sequence of adjacent top-level figures matches. This was originally
 recorded as a limitation deferred to #594; #594 shipped without addressing it,
 so #748 tracked and fixed it.
 
 ### Sequence: `ThenFilter(before, after)`
 
-"A figure matching `before` occurs earlier in the dance than a figure matching
-`after`" → a self-join on `dance_figures.group_idx`:
+"A figure matching `after` immediately follows a figure matching `before`" →
+a self-join on `dance_figures.group_idx` against the next group:
 
 ```sql
 EXISTS (SELECT 1 FROM dance_figures a
         JOIN dance_figures b
           ON a.dance_id = b.dance_id
          AND a.dance_id = dances.id
-         AND a.group_idx < b.group_idx
+         AND (a.group_idx <> b.group_idx OR a.idx = b.idx)
+         AND b.group_idx = COALESCE(
+               (SELECT MIN(m.group_idx) FROM dance_figures m
+                 WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx),
+               (SELECT MIN(m.group_idx) FROM dance_figures m
+                 WHERE m.dance_id = a.dance_id))
         WHERE (<before applied to a>)
           AND (<after applied to b>))
 ```
 
+**Requested by the user on 2026-11-05 and implemented by the agent, not
+independently ratified by the maintainer:** `Then` means what ContraDB's
+`then` means (`lib/search_match.rb`: `abuts?` is
+`(last + 1) % nfigures == other.first`), so the Advanced builder and the
+ContraDB online search ask the same question. This replaces the earlier
+"occurs somewhere earlier" meaning (`a.group_idx < b.group_idx`). Two
+consequences: a figure between `before` and `after` ends a match, and the dance
+is read as a loop, so `Then(allemande, allemande)` matches a dance that opens
+and closes with an allemande, and in a two-figure dance both orders match.
+"The next figure" is the next group that exists, not `group_idx + 1`, so a gap
+in the numbering cannot hide a pair. `a.group_idx <> b.group_idx` keeps the
+concurrent sides of one `meanwhile` (which share a `group_idx`; see the flatten
+note above) from being read as one-after-the-other in a dance whose only group
+is that container, where the wrap would otherwise pair the group with itself.
+
+One exception, matching ContraDB: a dance with exactly one group is one
+figure to ContraDB, whose `abuts?` pairs a lone figure with itself
+(`(0 + 1) % 1 == 0`), so `Then(swing, swing)` matches a one-figure dance there.
+A row may therefore pair with **itself** (`a.idx = b.idx`); that can hold only
+when the dance has one group, because `b` is forced to the next group after
+`a`'s, which is `a`'s own only then, so no separate group count is needed.
+For a dance whose one figure is a typed `A while B` ContraDB sees one `custom`
+figure, so its answer differs from the Collection's per row (the structural
+gap above); the self-pair is exact only for a genuinely one-figure dance. Two *different* rows of that group, the concurrent sides of one
+container, still never pair, so #748 holds. **Decided by the agent**: the
+alternatives were to keep the divergence documented (the audit's pin) or to
+drop the guard, which breaks #748; the user approved follow-ups for the
+divergence but did not pick between them.
+
 `<before applied to a>` / `<after applied to b>` are the `FigureQuery` clauses
 compiled against aliases `a` and `b` respectively (same clause shapes as the
 `EXISTS` above, minus the `dance_id` correlation which the join supplies).
-`a.group_idx < b.group_idx` gives strict "before" while excluding the concurrent
-sides of one `meanwhile` (which share a `group_idx`; see the flatten note
-above); consecutive-only ("immediately then") is **not** in v1 (see *Open
-questions*). Nested `ThenFilter` is not supported in v1 — `ThenFilter` operands are
-`FigureQuery`, which excludes `ThenFilter` — keeping the compiled join to a single
-pair of aliases.
+Nested `ThenFilter` is not supported in v1 — `ThenFilter` operands are
+`FigureQuery`, which excludes `ThenFilter` — keeping the compiled join to a
+single pair of aliases.
 
 ### Combinators & sort
 
 `AndFilter`/`OrFilter` wrap children in `( … AND … )` / `( … OR … )`; `NotFilter(child)` emits
 `NOT (<child>)`.
 
-**Execution model — one SELECT, plus a post-fetch sort for two cases.** The
+**Execution model — one SELECT, plus a post-fetch sort for three cases.** The
 single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
-sort: `title COLLATE NOCASE` (the default), `updated_at DESC` (recently added/
-edited), and — only for a bare Omni `FullTextFilter` leaf with at most two
-Unicode scalar values — `bm25(dance_fts)` relevance. Two sorts are **not**
+sort: `title COLLATE NOCASE` (the default), `created_at DESC` / `updated_at
+DESC` (recently added / edited, each with a `title COLLATE NOCASE` tiebreak,
+since timestamps are stored at one-second precision and an import batch shares
+one instant), and — only for a bare Omni `FullTextFilter` leaf with at most two
+Unicode scalar values — `bm25(dance_fts)` relevance (each matching dance
+keeps its best score over the branches it is found by; see "Meter, key and
+interpreters" below). Three sorts are **not**
 expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
 
-- `author` — needs the author-name join/ordering; and
-- `last-called` — needs the separate `ProgramRepository.lastCalledByDance()`
-  query (as in 3.1).
+- `title` — SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
+  after Z. The Dart pass sorts by `titleSortKey` (leading article dropped when
+  the setting is on) or `foldForTitleMatch` (setting off), both of which strip
+  combining marks, so É files with E (FIND-15). The SQL `title COLLATE NOCASE`
+  stays as the base order for ties and for the other sorts' tiebreak. This is
+  **accent folding, not locale-aware collation**: NFD leaves Æ and Ø (no
+  decomposition) after Z and folds Danish Å to A, and non-English articles are
+  not ignored. Decided in the 2026-10-29 maintainer decisions
+  (`locale-sorting`, option a: fold accents, no new dependency);
+- `author` — needs the author-name join/ordering, and compares the same
+  accent-folded keys; and
+- `last-called` — needs a per-dance aggregate over `program_slots`/`programs`
+  (`DanceRepository._sortByLastCalled`), scoped by the same caller filter,
+  performed setting and alternate rule as the "called ×N" count, and ordered by
+  `COALESCE(event_date, performed_at, updated_at)`, the date the history list
+  orders by (GIG-2). The tracking settings `orderIgnoreUndated` and
+  `orderIgnoreUnperformed` (off by default) give a slot whose program has no
+  event date, or that is not marked performed, no date: Last called ignores it
+  (`callingHistoryDateSql`).
 
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
-requested sort is `author` or `last-called`, the id set it returns is reordered
+requested sort is `title`, `author` or `last-called`, the id set it returns is reordered
 by an explicit Dart post-processing step — not by the SQL. `bm25` relevance is
 available only for a bare short Omni `FullTextFilter`; scoped queries,
 long-substring queries, and any other tree fall back to the `title` default
@@ -340,7 +678,8 @@ WHERE deleted_at IS NULL
                 JOIN dance_figures b
                   ON a.dance_id = b.dance_id
                  AND a.dance_id = dances.id
-                 AND a.group_idx < b.group_idx
+                 AND (a.group_idx <> b.group_idx OR <a lone row pairs with itself>)
+                 AND b.group_idx = <next group after a's, wrapping>
                 WHERE (a.move = ? AND a.section = ?)  -- 'petronella','B1'
                   AND (b.move = ?)) )                 -- 'swing'
 ORDER BY title COLLATE NOCASE;
@@ -349,6 +688,11 @@ ORDER BY title COLLATE NOCASE;
 Binds, in emission order: `['contra', 'petronella', 'B1', 'swing']`.
 
 ## Schema v2 migration
+
+> **Historical.** This section records the v1 → v2 plan as it was written.
+> v2 is below the v20 floor (#837): no step here can fire, the
+> `test/storage/fixtures/v1.sqlite` fixture it calls for is gone, and the
+> indexes actually created are listed in `database.dart` (`searchIndexSql`).
 
 3.2 adds indexed section-aware figure search, which needs the derived phrase
 label persisted on each figure row. This is the project's **first real schema
@@ -374,8 +718,9 @@ derivation logic:
 
 `_rebuildDerived` iterates `dance.sectionedFigures` (instead of `figures`
 alone) and writes `section: Value(sectioned.label)` into each
-`DanceFiguresCompanion`. Labels come straight from `PhraseStructure.labels`
-(`A1 A2 B1 B2 …`); a figure whose start beat can't be labelled (empty structure
+`DanceFiguresCompanion`. Labels come from `PhraseStructure.labelAtBeat`, which
+derives each label from the phrase index without building the full `labels`
+list (`A1 A2 B1 B2 …`); a figure whose start beat can't be labelled (empty structure
 never happens — it defaults to standard 4×16) yields a non-null label in all
 current cases, but the column stays nullable to stay forward-compatible with
 future structureless forms.
@@ -408,11 +753,12 @@ future structureless forms.
 
 ```sql
 CREATE INDEX dance_figures_move_section ON dance_figures(move, section);
-CREATE INDEX dance_figures_dance_idx    ON dance_figures(dance_id, idx);
 ```
 
 - `(move, section)` serves the common `FigureFilter` leaf (`move = ? AND section = ?`).
-- `(dance_id, idx)` serves the `ThenFilter` self-join's ordering and correlation.
+- The `ThenFilter` self-join correlates on `dance_id`, which the implicit index
+  on the `{dance_id, idx}` primary key already serves; a separate
+  `(dance_id, idx)` index was planned here but never created.
 
 **Migration test** (`test/storage/migration_test.dart`, replacing the scaffold's
 placeholder note). Following the scaffold's own instructions for "when schema
@@ -438,27 +784,105 @@ Search input is canonicalized at the **compiler boundary**, once, before any
 bind is produced — so storage/search stay dialect-agnostic exactly as writes
 are ([dialect.md](dialect.md) "Canonicalization on input"):
 
-- **`FullTextFilter(query)`**: the query string is run through
-  `canonicalizeText(query, activeDialect)` before it becomes the `MATCH` bind,
-  so a dialect term ("robins", "gents") maps to the canonical role token stored
-  in `dance_fts.figures_text`. FTS operators the user typed (`AND`, `"…"`,
-  `*`) are preserved by the term-only, word-boundary substitutor.
+- **`FullTextFilter(query)`**: the query is split into words, and the
+  compiler ANDs one predicate per word (`filter_compiler.dart`,
+  `_searchWords`), so "Kaynor petronella" finds a Kaynor dance with a
+  petronella in it (2026-10-29, FIND-5). Everything that rewrites the query is
+  decided on the **whole** query first, so no word is read out of context:
+  - role terms, by the same rewriter as `canonicalizeText(query,
+    activeDialect)` (`analyzeRoleTerms`), so a dialect term ("robins", "gents")
+    maps to the canonical role token stored in `dance_fts.figures_text`, and
+    "lead down" under Leads/Follows keeps its verb;
+  - the active dialect's move names, and those of every saved dialect
+    (`SearchEnrichment.moveSynonyms`), map through the reverse move map to the
+    taxonomy display name the figure text stores, so "buzz" in a dialect that
+    calls the swing "buzz" finds the swing (2026-10-29, FIND-4). A dialect's
+    name wins over a role word inside it and over a taxonomy keyword. It adds
+    a meaning rather than replacing one: the word also matches its canonical
+    form as typed, ORed, so a dialect that calls the balance the ring
+    "balance" still finds a plain balance by "balance";
+  - taxonomy move names and keywords map to their display names
+    (`canonicalizeMoveSearchText`), as before. Where the search taxonomy
+    lays several dance forms together, the moves of its own form win a name
+    or keyword that another form also uses: a search over every dance reads
+    "hey" as contra does, and an ECD dance's taxonomy reads it as ECD does
+    (ADR-006).
+
+  A term of several words — a role ("Lady Birds"), a move ("do si do") or a
+  dialect's move name — stays one word, so its spaces must still match.
+  Each word then picks its own index (one or two characters: the token-prefix
+  `dance_fts`; more: the trigram `dance_substring_fts`), and in All fields
+  matches its canonical form in any column **or** its typed form in the
+  verbatim columns, so "Robin Hayden swing" finds Robin Hayden's dance with a
+  swing. A word of one or two characters with no letter or digit (`&`, `-`)
+  has no token for the prefix index and would empty the AND, so it is
+  dropped. A word keeps its punctuation, so `do-si-do` and `(swing` are still
+  literal substrings, and FTS operators the user typed (`AND`, `"…"`, `*`)
+  stay literal. Best match (`bm25`) is offered only for a whole query of at
+  most two characters, which is always one word.
+  A word that is only a *fragment* of an internal role token (`ro`, `rol`,
+  `ole`; not `roll`, not a whole `role1s`) would otherwise match the token in
+  nearly every dance, so in the all-fields search `figures_text` is matched
+  only where the text still holds with `role1`/`role2`/`role1s`/`role2s`
+  removed (`filter_compiler.dart`, `_figureMatchWithoutRoleTokens`). The
+  Figure scope is unchanged.
+- **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
+  also matches the dance's `meter`, its `musical_key` and the names of its
+  live interpreters (`dance_interpreters` joined to `choreographers` with
+  `deleted_at IS NULL`), in a dance of any form. They are read with a folded
+  `LIKE` (below) from those rows rather than from the text index
+  (`_musicAndInterpreterMatch`), as two `id IN` subqueries beside the index
+  branches, so they need no index column, no rebuild, and follow a rename at
+  once. Measured with `benchmark/search_benchmark.dart` (20,000 dances, every
+  one with a meter and a key, one in twenty with a key outside ASCII; median
+  of 25 runs on one machine), All fields `swing` took 3.1 ms before the
+  accent folding and 8.9 ms with it. Calling `cc_fold` on every row instead
+  took 36 ms, and testing each value with `GLOB` and lowering and trimming it
+  in SQL took 14.5 ms. All are inside the 50 ms target.
+  A word of one or two characters must start a word of the value, where a word
+  starts after a space, `/`, `-` or `(` ("D" finds "D minor", "8", "6/" and
+  "/8" find "6/8"; a separator the word starts or ends with is dropped), close to what the prefix index does (it splits on every
+  punctuation mark); a longer one may sit anywhere. A word with no letter or
+  digit matches none of them. Both sides are folded (`_folded`), so "emile"
+  finds "Émile" and the reverse, as the text index's `remove_diacritics`
+  does: the pattern in Dart (`foldForSearch`: lowercased, combining marks
+  removed, as `foldForTitleMatch` does), and the value in SQL. An ASCII value
+  (`length(x) = length(CAST(x AS BLOB))`) is left to `LIKE`, which ignores
+  ASCII case; any other value goes through the `cc_fold` SQL function
+  (`searchFoldSqlFunction`, registered per connection by
+  `applyCompendiumSqliteSetup`), a Dart callback, so it is called only for
+  the rows that need it. A connection opened without that
+  setup fails these searches with "no such function". The Author scope reads
+  the interpreters' names the same way (`_interpreterMatch`) beside the
+  `authors` column, so it finds a dance by who wrote it or who interpreted it
+  (Hudson, 2026-11-20); it does not read the meter or key. The Title and
+  Figure scopes read none of them.
+  Best match adds them as one more branch with a score of 0, the worst a
+  `bm25` score can be: a dance found only by its meter, key or interpreter
+  ranks after every dance the text index scored, and before them when the
+  direction is flipped.
 - **`FigureLeaf.move` / `FigureQuery` moves**: the move name is canonicalized
   to its taxonomy id before binding to `f.move = ?`. A caller who typed a
   dialect/synonym move name resolves to the same canonical `move` stored in
-  `dance_figures`.
+  `dance_figures`, except a name that is itself a built-in move id, which binds
+  as given (`_canonicalizeMove`): with `{swing: 'chain'}`, `chain` searches
+  chains. A dialect `moves` key naming a figure of your own
+  (`userFigure:<id>`, #1023) is not a move and is left out of this reverse
+  map and of `SearchEnrichment`'s, so its wording never rewrites a query's
+  move to a key no row has.
 - **`params` string values** that name roles (e.g. `who: 'robins'`) are
   canonicalized the same way before binding, matching the canonical params
-  written by the codec.
+  written by the codec. The `userFigure` id is the exception, bound as given.
 
 The active `Dialect` is passed into the compiler (the UI supplies the user's
 current dialect). Non-role prose and unknown terms are left verbatim
 (canonicalization is conservative — exact word-boundary matches only).
 
-## Query-builder UX (spec for 3.2c — not built in this PR)
+## Query-builder UX (3.2c)
 
 Every UX affordance maps to an AST node; the panel is a thin editor over the
-tree. This section specifies the mapping; the widget work is 3.2c.
+tree. This section specifies the mapping; the widget shipped as
+`app/lib/src/widgets/advanced_query_builder.dart`.
 
 | Affordance | AST |
 |---|---|
@@ -467,7 +891,9 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | One-tap facet: Formation | `FormationFilter(shape)` |
 | One-tap facet: Progression | `ProgressionFilter(progression)` |
 | One-tap facet: Author | `AuthorFilter(choreographerId)` |
-| One-tap facet: Tag(s) | `TagFilter(tagId)` (multiple tags AND-ed, or OR within the facet — see open Q) |
+| One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value), unlike the OR-within facets (Tags follows its **All tags / Any tag** choice, below); each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
+| One-tap facet: Meter, Key | `MeterFilter(meter)` / `MusicalKeyFilter(key)` per chip, OR-ed within each facet. A chip is one of the collection's distinct values (`distinctFolded`: trimmed, one spelling per value folded by `foldForSearch`); the leaf matches the column folded (in SQL for an ASCII value, else by `cc_fold`; see the leaves table) against the folded value bound, and never a blank meter or key. A picked value no dance still has stays as a chip so it can be removed (ADR-006 F3) |
+| One-tap facet: Tag(s) | `TagFilter(tagId)` per selected tag, combined by the facet's **All tags / Any tag** choice (`FacetSelections.tagsMatchAll`, Q7): AND-ed by default, OR-ed under **Any tag**. The choice shows once two tags are selected; selecting a second tag resets it to **All tags**, and later tags keep it. The facet's **Untagged** chip (issue #1422) is always an OR alternative: `OrFilter([AndFilter(tags), UntaggedFilter()])` under **All tags**, one flat OR group under **Any tag**. Without Untagged, all-of tags are flattened into the top-level AND. The chip shows exactly when the Tags section does |
 | One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |
 | One-tap facet: Mixed level | `MixedLevelFilter(true)` |
@@ -476,15 +902,30 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | One-tap facet: Custom field | `CustomFieldFilter(def, op, value)` — `def` is a `CustomFieldDef`; `op` is a `CustomFieldOp` |
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
-| Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
+| Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers, or the **Any figure** chip (`BuilderFigure.isAnyFigure`, folding to `anyFigure`, with no move, section or params) |
+| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
   UI is shown until the user opens **Advanced**, which reveals the nested
   group/figure/sequence editor (ez-query lesson).
-- **Figure row pickers**: `move` = taxonomy type-ahead (dialect-aware, same as
-  the editor); `params` = named-param pickers from the move's schema; `section`
-  = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
+- **Figure row pickers**: `move` = the dance editor's move type-ahead
+  (`MoveAutocomplete`), so Advanced and By phrase suggest what the editor
+  suggests, in the same ranking: matching the built-in name, the active
+  dialect's own name for the move, the id and the keywords, the move named
+  exactly first, at most eight. A dialect's move is shown by its dialect name
+  and stored as the canonical move id, the same figure leaf as the search
+  bar's reading of that name (no new query shape). With no dialect active only
+  built-in names match; a dialect name that collides with a built-in move's
+  offers both moves, as the editor does, and each searches its own move: the
+  compiler never maps a built-in move id through the dialect's names
+  (`FilterCompiler._canonicalizeMove`). Aliases are not offered (a figure leaf
+  matches the stored id; the search bar reads an alias's name as text), except
+  one listed as a move (`MoveAlias.listedAsMove`: `long_lines`, a move until
+  taxonomy v39), whose figures are stored under its own id; its pinned
+  `formation` is not offered as a param. The
+  By phrase chips read in the active dialect. `params` = named-param pickers
+  from the move's schema; `section` = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
 - **Sequence row**: two figure-row editors joined by "then"; each side is a
   `FigureQuery` (a figure leaf, or a `FigureAnd`/`FigureOr` group of figure leaves).
 - **Accessibility**: result counts are announced politely to AT via a live
@@ -499,8 +940,8 @@ in-memory scans.
 
 - The design meets this by construction: every predicate is either a `dances`
   column compare, an indexed `dance_id` subquery, or an `EXISTS`/self-join over
-  `dance_figures` served by the `(move, section)` and `(dance_id, idx)`
-  indexes. `figures_json` is never parsed at query time.
+  `dance_figures` served by the `(move, section)` index and the
+  `{dance_id, idx}` primary key. `figures_json` is never parsed at query time.
 - `json_extract` on `params_json` is evaluated only for figure rows already
   narrowed by the indexed `(move, section)` predicate, keeping it off the hot
   path.
@@ -554,22 +995,28 @@ Flagged for coordinator/user input before 3.2b:
    is offered only for a bare short Omni `FullTextFilter`; scoped,
    long-substring, and other trees use the fixed sort allow-list. A blended
    ranking can be revisited later.
-7. **Multi-tag facet semantics** *(minor)*. When the user picks several tags in
-   the Tag facet: AND (has all) or OR (has any)? Proposed: OR within a single
-   facet, AND across facets (standard faceted-search behaviour).
+7. **Multi-tag facet semantics** *(decided, FIND-14)*. When the user picks
+   several tags in the Tag facet: AND (has all) or OR (has any)? First shipped
+   as OR. The maintainer's 2026-10-30 decision on FIND-14 (entry R2-tag-tap in
+   `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`) made it
+   the user's choice: an **All tags / Any tag** toggle shown once two tags are selected,
+   **All tags** by default each time a second tag is added, later tags keeping
+   the current choice. The facet's **Untagged** chip (issue #1422) stays an OR
+   alternative in either mode, so `Untagged` + `TagA` + `TagB` under **All
+   tags** lists untagged dances plus dances with both tags, and the group still
+   ANDs with every other facet. The choice is session state, like every facet
+   selection; nothing persists it.
 8. **Migration rebuild wiring** *(implementation, 3.2b)*. Whether the v2
    backfill runs `rebuildAllDerived()` from within `onUpgrade` (needs
    repository/taxonomy access) or via inline SQL + a post-open integrity pass.
    No user-facing behaviour difference; noted so 3.2b picks the cleaner wiring.
 
-## Deferred to later PRs
+## Delivery
 
-- **3.2b** — core: the `DanceFilter`/`FigureQuery` types, `FilterCompiler`,
-  the v2 migration + column + indexes, the migration test, the benchmark
-  harness, and repository entry point (`search(DanceFilter) → List<String>`
-  ids, reusing the 3.1 ordering plumbing).
-- **3.2c** — app: the unified FTS bar + facet chips + Advanced tree builder,
-  wired to the compiler, with AT-announced result counts.
+Both follow-ups have shipped: **3.2b** (core — `DanceFilter`/`FigureQuery`,
+`FilterCompiler`, the v2 migration, the benchmark, `search(DanceFilter)`) and
+**3.2c** (app — FTS bar, facet chips, Advanced tree builder). See
+`ROADMAP-archive.md` item 3.2.
 
 ## Future leaves (CC parity backfill, ROADMAP 4b)
 

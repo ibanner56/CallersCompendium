@@ -1,4 +1,5 @@
-import 'dart:convert' show LineSplitter;
+import 'dart:convert' show LineSplitter, utf8;
+import 'dart:typed_data' show Uint8List;
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart'
@@ -110,8 +111,16 @@ class UserGuideDocs {
   List<String> get docIds => _docIds.toList()..sort();
 
   /// Reads the raw Markdown of a bundled guide.
-  Future<String> read(String docId) =>
-      _bundle.loadString('$_userDocsAssetDir/$docId');
+  ///
+  /// Decodes the bytes here rather than through [AssetBundle.loadString],
+  /// which hands a string of 50 KiB or more to a background isolate. That
+  /// isolate never completes under the widget-test binding, so a guide that
+  /// grew past the threshold stopped opening in tests. A guide is small enough
+  /// to decode on the UI isolate.
+  Future<String> read(String docId) async {
+    final data = await _bundle.load('$_userDocsAssetDir/$docId');
+    return utf8.decode(Uint8List.sublistView(data));
+  }
 
   /// Classifies a link [href] tapped while viewing [fromDocId].
   GuideLink resolveLink(String fromDocId, String href) {

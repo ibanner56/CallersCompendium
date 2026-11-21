@@ -9,11 +9,12 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+import 'title_article.dart';
 
 /// A [SourceAdapter] that migrates Caller's Companion (CC) dances from the
 /// **binary FileMaker Pro 12 `.USR`** file — the *headline* Phase 6.5
-/// migration path (`docs/design/imports.md` §2, `docs/ROADMAP.md` 6.5). It
-/// pairs the pure-Dart [readFmp12] container reader (validated byte-for-byte
+/// migration path (`docs/design/imports.md` §2, `docs/ROADMAP-archive.md` 6.5).
+/// It pairs the pure-Dart [readFmp12] container reader (validated byte-for-byte
 /// against real FileMaker files) with the CC-schema [readCcUsrArchive] layer,
 /// then feeds each CC `Dance` row through the shared
 /// [mapCallersCompanionDance] mapping — the exact same mapping the CC *text*
@@ -33,12 +34,13 @@ import 'structured_draft.dart';
 /// `externalId` = that CC dance id. That gives exact `(source, externalId)`
 /// dedupe/re-import and is the key that links `SetItem` rows to their dance
 /// (CC's `SetItem.zk_Dance_ID` references `Dance.zk_Dance_ID`, **not** the
-/// FileMaker record id). The `fetch` payload is a JSON object of that dance's
-/// **verbatim** CC column map (all columns, including ones this PR does not map)
-/// plus its id, so the in-memory record losslessly carries the whole source row
-/// through to `parse` and the follow-up phases (author resolution,
-/// custom-field defs, etc.). It is not persisted: that payload fed
-/// `provenance.raw_payload` until schema v21 dropped the column (#781).
+/// FileMaker record id). The `fetch` payload is a JSON object of that dance's CC
+/// column map plus its id — the columns the importer reads (see
+/// `kCcDanceColumnsRead` and the dance key), verbatim. It is not every column
+/// of the source row: CC's derived search/display helpers (`zk_SearchKey_*`,
+/// `zi_*`, `zz_*`, …) are never decoded, since nothing downstream reads them and
+/// they are most of a real `Dance` row's text. It is not persisted: that payload
+/// fed `provenance.raw_payload` until schema v21 dropped the column (#781).
 ///
 /// ## Scope
 ///
@@ -48,13 +50,58 @@ import 'structured_draft.dart';
 /// app-layer follow-up because [ImportPipeline] is dance-only (see the PR
 /// notes). Authors stay unresolved (names → notes + info issue), matching the
 /// other adapters and the queued author-resolution PR.
-class CallersCompanionUsrAdapter implements SourceAdapter {
-  CallersCompanionUsrAdapter({this.limits = const FmpReadLimits()});
+/// Turns a `.USR` file's [bytes] into a [CcUsrArchive] under [limits].
+///
+/// The adapter's default is [readCcUsrArchive] run synchronously. The type
+/// exists so the app can run the same read on a background isolate: parsing a
+/// library-sized file takes seconds and must not stall the UI. Implementations
+/// must throw exactly what [readCcUsrArchive] throws
+/// ([FmpFormatException], [FmpResourceLimitException]).
+typedef CcUsrArchiveReader =
+    Future<CcUsrArchive> Function(Uint8List bytes, FmpReadLimits limits);
+
+Future<CcUsrArchive> _readSynchronously(
+  Uint8List bytes,
+  FmpReadLimits limits,
+) async => readCcUsrArchive(bytes, limits: limits);
+
+class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
+  CallersCompanionUsrAdapter({
+    this.limits = const FmpReadLimits(),
+    CcUsrArchiveReader? reader,
+  }) : _reader = reader ?? _readSynchronously;
+
+  final CcUsrArchiveReader _reader;
+
+  /// The reader this adapter decodes files with (the synchronous
+  /// [readCcUsrArchive] unless one was injected).
+  CcUsrArchiveReader get reader => _reader;
+
+  CcUsrArchive? _discovered;
+
+  /// The archive [discover] last read, **without its dances**
+  /// ([CcUsrArchive.withoutDances]) — what
+  /// [CallersCompanionUsrImporter.commit] needs — or null before [discover] has
+  /// run — and again after a [discover] that failed, so it never describes a
+  /// different file than the last one asked about. Lets a caller commit without
+  /// decoding the file a second time.
+  CcUsrArchive? get discoveredArchive => _discovered;
+
+  /// The [ImportRequest.options] key that marks a file whose dances are
+  /// English Country Dances: the import asks the person once per `.USR`
+  /// (Hudson, 19 November 2026), since Caller's Companion types them
+  /// "Contra". Every dance that is not a square is then read as English
+  /// ([mapCallersCompanionDance]'s `englishDances`).
+  static const String englishDancesOption = 'englishDances';
 
   /// Structural bounds handed to [readCcUsrArchive]; exceeding one fails closed
   /// with a friendly "too large" [ImportError] (see [discover]). Defaults to the
   /// production ceilings; tests inject tiny values to exercise the guard.
   final FmpReadLimits limits;
+
+  /// Figures already parsed for a body line, shared by every dance this adapter
+  /// parses: a library repeats its stock calls thousands of times.
+  final CcFigureLineCache _lineCache = CcFigureLineCache();
 
   /// Version tag stamped onto each [RawRecord.sourceVersion].
   static const String sourceVersion = ccUsrSourceVersion;
@@ -62,12 +109,40 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
   @override
   ProvenanceSource get source => ProvenanceSource.callersCompanion;
 
+  List<ImportIssue> _batchWarnings = const [];
+
+  static const Map<String, String> _warningMessages = {
+    CcUsrWarningCodes.fileTruncated:
+        'The .USR file ends early; only part of it could be read.',
+    CcUsrWarningCodes.figuresFromDanceRows:
+        'Figures were read from the Dance rows because the Phrase table was '
+        'unreadable.',
+    CcUsrWarningCodes.phraseGroupsOrphaned:
+        'Some Phrase rows could not be attached to a dance and were skipped.',
+    CcUsrWarningCodes.linesDropped: 'Some over-long figure lines were dropped.',
+    CcUsrWarningCodes.setsSkipped:
+        'The Set or SetItem table was missing; programs may be incomplete.',
+    CcUsrWarningCodes.relatedRowsSkipped:
+        'Some related-dance rows were skipped.',
+  };
+
+  @override
+  List<ImportIssue> get batchWarnings => _batchWarnings;
+
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    // Drop what an earlier discovery left before starting this one. The
+    // pipeline turns a failed discovery into an error batch rather than
+    // rethrowing, so without this a reused adapter would keep the previous
+    // file's archive and a caller could commit that file's programs for this
+    // one.
+    _discovered = null;
+    _batchWarnings = const [];
     final bytes = _bytesOf(request);
+    final english = request.options[englishDancesOption] == true;
     final CcUsrArchive archive;
     try {
-      archive = readCcUsrArchive(bytes, limits: limits);
+      archive = await _reader(bytes, limits);
     } on FmpResourceLimitException {
       // Untrusted input that is too large / over-structured: fail closed with a
       // friendly message aligned with the archive intake path. The internal
@@ -75,25 +150,38 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.fileTooLarge,
         message: 'That file is too large to import.',
       );
     } on FmpFormatException catch (e) {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notUsrDatabase,
         message:
             'The file is not a readable Caller\'s Companion .USR '
             '(FileMaker 12) database: ${e.message}',
       );
     }
+    _discovered = archive.withoutDances();
+    _batchWarnings = [
+      for (final code in archive.warningCodes)
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: code,
+          // Logs only: the app localizes from [code].
+          message: _warningMessages[code] ?? code,
+        ),
+    ];
     return [
       for (final entry in archive.dances)
         DiscoveredRecord(
           source: source,
           externalId: entry.recordId,
+          // Fronted like the drafted title (#1976), so the two agree.
           label: (entry.record.name ?? '').trim().isEmpty
               ? null
-              : entry.record.name!.trim(),
+              : frontTrailingArticle(entry.record.name!.trim()),
           locator: {
             'rowId': entry.recordId,
             'columns': entry.rawColumns,
@@ -102,6 +190,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
             // so thread it through discover→fetch→parse explicitly — otherwise
             // `parse` would re-derive an empty body from the payload columns.
             'body': _encodeBody(entry.record.body),
+            if (english) 'english': true,
           },
         ),
     ];
@@ -118,6 +207,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       );
     }
     final body = record.locator['body'];
+    final english = record.locator['english'] == true;
     final payload = jsonEncode({
       'rowId': rowId,
       'columns': columns.map((k, v) => MapEntry('$k', '$v')),
@@ -125,6 +215,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       // than deriving an empty body from the columns. Absent on a legacy
       // locator — omitted so the payload stays backward compatible.
       if (body is List) 'body': body,
+      if (english) 'english': true,
     });
     return RawRecord(
       source: source,
@@ -139,6 +230,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
   StructuredDraft parse(RawRecord raw) {
     final Map<String, String> columns;
     List<CcBodySection>? bodyOverride;
+    var english = false;
     try {
       final decoded = jsonDecode(raw.payload);
       if (decoded is! Map || decoded['columns'] is! Map) {
@@ -153,6 +245,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       // from the A1..C2 columns instead (backward compatible).
       final rawBody = decoded['body'];
       if (rawBody is List) bodyOverride = _decodeBody(rawBody);
+      english = decoded['english'] == true;
     } on FormatException {
       throw parseError(
         source,
@@ -175,12 +268,17 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.parse,
         source: source,
+        code: ImportErrorCode.fileTooLarge,
         message: 'That file is too large to import.',
       );
     }
     // Figure text is scrubbed + structured by the shared parser (the mapping's
     // default scrub is the core `scrubFigureText` chokepoint).
-    final mapping = mapCallersCompanionDance(record);
+    final mapping = mapCallersCompanionDance(
+      record,
+      lineCache: _lineCache,
+      englishDances: english,
+    );
     return StructuredDraft(
       dance: mapping.dance,
       raw: raw,
@@ -203,6 +301,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
         throw ImportError(
           stage: ImportStage.discover,
           source: source,
+          code: ImportErrorCode.notUsrDatabase,
           message:
               'The Caller\'s Companion .USR payload was not valid base64; '
               'pass raw bytes via options["bytes"] or a base64 payload.',
@@ -212,6 +311,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     throw ImportError(
       stage: ImportStage.discover,
       source: source,
+      code: ImportErrorCode.emptyFile,
       message:
           'No Caller\'s Companion .USR file was provided (expected bytes in '
           'options["bytes"] or a base64 payload).',
@@ -227,7 +327,8 @@ List<Map<String, Object?>> _encodeBody(List<CcBodySection> body) => [
 ];
 
 /// Rebuilds the figure body from a decoded JSON payload, defensively. The
-/// payload is untrusted (it is persisted provenance that can be re-imported), so
+/// payload is untrusted (source-native content held in memory during fetch,
+/// not persisted since #781; see `raw_record.dart`), so
 /// every element is type-checked and malformed entries are skipped rather than
 /// throwing — mirroring the parse-never-fails posture of the rest of the import
 /// path. Downstream, each surviving line still flows through the mapping's

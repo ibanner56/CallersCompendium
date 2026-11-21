@@ -37,9 +37,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy', () {
-    test('contraTaxonomyVersion is 35', () {
-      expect(contraTaxonomyVersion, 35);
-      expect(tax.version, 35);
+    test('contraTaxonomyVersion is 40', () {
+      expect(contraTaxonomyVersion, 40);
+      expect(tax.version, 40);
     });
 
     test('mad_robin gains direction + whom, keeping who/travel/beats', () {
@@ -52,8 +52,8 @@ void main() {
         'role2s',
         'ones',
         'twos',
-        'firstCorners',
-        'secondCorners',
+        'threes',
+        'fours',
         'partners',
         'neighbors',
         'sameRoles',
@@ -63,6 +63,10 @@ void main() {
         'nextNeighbors',
         'thirdNeighbors',
         'fourthNeighbors',
+        'firstCorners',
+        'secondCorners',
+        'thirdCorners',
+        'opposites',
         'prevPartners',
         'nextPartners',
         'thirdPartners',
@@ -73,6 +77,10 @@ void main() {
         'onesRole2',
         'twosRole1',
         'twosRole2',
+        'threesRole1',
+        'threesRole2',
+        'foursRole1',
+        'foursRole2',
         ParamVocab.unspecified,
       ]);
       expect(def.params['who']!.validate(ParamVocab.unspecified), isTrue);

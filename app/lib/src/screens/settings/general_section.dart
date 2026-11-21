@@ -2,30 +2,53 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
+import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
-import '../../data/backup_controller_scope.dart';
+import '../../data/sync_writer_lifecycle_scope.dart';
+import '../../sync/sync_scope.dart';
+import '../../data/backup_document.dart'
+    show
+        BackupReadResult,
+        decodeBackupOnIsolate,
+        decodeBackupSizedOnIsolate,
+        defaultBackupCodecRunner;
+import '../../data/backup_export_labels.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
 import '../../data/confirm_before_delete_scope.dart';
+import '../../data/undo_prompt_duration_scope.dart';
 import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
+import '../../data/regional_formats.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
+import '../../data/date_format_scope.dart';
 import '../../data/decimal_turns_scope.dart';
+import '../../data/capitalize_figures_scope.dart';
 import '../../diagnostics/error_log.dart';
+import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/dirty_dialog_guard.dart';
+import '../../widgets/settings_action_row.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
+import '../ecd_migration_screen.dart';
 import '../reparse_custom_figures_screen.dart';
+import '../reference_manager_screen.dart';
+import '../tag_manager_screen.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -37,6 +60,7 @@ class GeneralSection extends StatefulWidget {
     this.backupPicker,
     this.importPicker,
     this.urlFetcher,
+    this.publishedCollectionService,
   });
 
   /// Test seam for delivering an exported backup file; defaults to
@@ -47,25 +71,36 @@ class GeneralSection extends StatefulWidget {
   /// [pickBackupFile] (native open-file dialog).
   final BackupPicker? backupPicker;
 
-  /// Test seam for choosing an import file; defaults to [pickImportFile]
-  /// (native open-file dialog). Forwarded to [ImportReviewScreen].
+  /// Test seam for choosing an import file as canned text; when null the import
+  /// screen opens the native open-file dialog ([pickImportAnyFile]). Injecting
+  /// it skips extension-based source detection. Forwarded to
+  /// [ImportReviewScreen].
   final ImportPicker? importPicker;
 
   /// Test seam for fetching an import URL; defaults to [fetchImportUrl] (real
   /// HTTP GET). Forwarded to [ImportReviewScreen].
   final UrlFetcher? urlFetcher;
 
+  /// Test seam for the published-collection catalog; defaults to a real
+  /// [PublishedCollectionService]. Forwarded to [ImportReviewScreen], so this
+  /// Import… offers the same sources as the Collection's (INTAKE-14).
+  final PublishedCollectionService? publishedCollectionService;
+
   @override
   State<GeneralSection> createState() => _GeneralSectionState();
 }
 
 class _GeneralSectionState extends State<GeneralSection> {
+  bool _restoreOperationInFlight = false;
+  bool _exportInFlight = false;
+
   /// Soft-delete retention window (ROADMAP G.4), as the stored `int` day count
   /// (`0` = never auto-purge). `null` = not yet loaded; the view shows the
   /// 30-day default until the read resolves.
   int? _softDeleteRetentionDays;
   bool _softDeleteRetentionRequested = false;
   bool _softDeleteRetentionUserSet = false;
+  int _softDeleteRetentionLoadGeneration = 0;
 
   /// Lazily loads the persisted soft-delete retention window (ROADMAP G.4) the
   /// first time the General section is built. Mirrors [_ensureAutoSizeLoaded]: a
@@ -73,11 +108,16 @@ class _GeneralSectionState extends State<GeneralSection> {
   void _ensureSoftDeleteRetentionLoaded(BuildContext context) {
     if (_softDeleteRetentionRequested) return;
     _softDeleteRetentionRequested = true;
+    final loadGeneration = ++_softDeleteRetentionLoadGeneration;
     final repos = RepositoriesScope.of(context);
     repos.settings
         .get(kSoftDeleteRetentionKey)
         .then((stored) {
-          if (!mounted || _softDeleteRetentionUserSet) return;
+          if (!mounted ||
+              loadGeneration != _softDeleteRetentionLoadGeneration ||
+              _softDeleteRetentionUserSet) {
+            return;
+          }
           setState(
             () => _softDeleteRetentionDays = _retentionSelectionFromStored(
               stored,
@@ -86,11 +126,28 @@ class _GeneralSectionState extends State<GeneralSection> {
         })
         .catchError((_) {
           // diagnostics: silent — retention setting read failed; falls back to built-in default.
-          if (!mounted || _softDeleteRetentionUserSet) return;
+          if (!mounted ||
+              loadGeneration != _softDeleteRetentionLoadGeneration ||
+              _softDeleteRetentionUserSet) {
+            return;
+          }
           setState(
             () => _softDeleteRetentionDays = kSoftDeleteRetentionDefaultDays,
           );
         });
+  }
+
+  /// Invalidates the cached retention read after a restore. Clear the value
+  /// immediately so the dropdown shows the built-in default while the fresh
+  /// read resolves; the generation guard prevents an older read from winning.
+  void _refreshSoftDeleteRetention() {
+    if (!mounted) return;
+    setState(() {
+      _softDeleteRetentionDays = null;
+      _softDeleteRetentionRequested = false;
+      _softDeleteRetentionUserSet = false;
+    });
+    _ensureSoftDeleteRetentionLoaded(context);
   }
 
   /// Maps a persisted retention value to the `int` the dropdown selects (one of
@@ -112,7 +169,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       _softDeleteRetentionDays = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kSoftDeleteRetentionKey, value);
+    await persistSetting(repos.settings, kSoftDeleteRetentionKey, value);
   }
 
   /// Backup-reminder cadence (ROADMAP G.5). `null` = not yet loaded; the view
@@ -155,19 +212,11 @@ class _GeneralSectionState extends State<GeneralSection> {
 
   Future<void> _onBackupCadenceChanged(BackupReminderCadence cadence) async {
     setState(() => _backupCadence = cadence);
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kBackupReminderCadenceKey, cadence.token);
-  }
-
-  /// Suggested filename for an exported backup, dated (UTC) so backups sort and
-  /// are easy to tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
-  String _backupFileName(DateTime when) => '${_backupFileStem(when)}.json';
-
-  String _backupFileStem(DateTime when) {
-    final d = when.toUtc();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return 'callers-compendium-backup-${d.year}-${two(d.month)}-${two(d.day)}';
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kBackupReminderCadenceKey,
+      cadence.token,
+    );
   }
 
   /// Builds the whole-app backup and hands it to the save/share seam, then
@@ -178,32 +227,78 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// cancels the native save/share dialog, this is a clean no-op: no snackbar,
   /// no stamped time.
   Future<void> _onExportBackup() async {
+    if (_exportInFlight) return;
+    _exportInFlight = true;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final saver = widget.backupSaver ?? saveBackupToFile;
 
+    // No done/total exists for an export (the encode is a single worker call),
+    // so the bar is indeterminate until the saver returns.
+    final closeProgress = _showBackupProgress(
+      key: const ValueKey('export-progress'),
+      idleLabel: l10n.backupExportInProgress,
+    );
     try {
-      final service = BackupService(repos);
       final now = DateTime.now();
-      final json = await service.exportToJson(createdAt: now);
-
-      final delivered = await saver(json, _backupFileName(now));
+      final delivered = await exportBackupNow(repos, saver, now);
+      closeProgress();
       if (!delivered) return;
-      await service.recordBackup(now);
       if (!mounted) return;
       setState(() {
         _backupPrefsRequested = true;
         _lastBackupAt = now.toUtc();
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
+      closeProgress();
       logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
+      );
+    } finally {
+      closeProgress();
+      _exportInFlight = false;
     }
+  }
+
+  /// Opens a non-dismissable progress dialog and returns the (idempotent)
+  /// callback that closes it. The dialog is a modal route, so the caller must
+  /// close it before showing a snackbar or returning.
+  ///
+  /// [progress] drives a determinate bar and [progressLabel] its text once it
+  /// holds a `(done, total)`; until then (and always when [progress] is null)
+  /// the bar is indeterminate and shows [idleLabel].
+  VoidCallback _showBackupProgress({
+    required Key key,
+    required String idleLabel,
+    ValueListenable<(int, int)?>? progress,
+    String Function(int done, int total)? progressLabel,
+  }) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _BackupProgressDialog(
+          key: key,
+          progress: progress,
+          idleLabel: idleLabel,
+          progressLabel: progressLabel,
+        ),
+        animationStyle: AppMotion.styleFor(context),
+      ),
+    );
+    var closed = false;
+    return () {
+      if (closed) return;
+      closed = true;
+      navigator.pop();
+    };
   }
 
   /// Prompts for a backup (file or pasted JSON) behind a destructive-replace
@@ -214,31 +309,71 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// restore: a corrupt or altered file is refused with a clean,
   /// non-destructive error and the restore never runs — zero entities written.
   Future<void> _onRestoreBackup() async {
+    if (_restoreOperationInFlight) return;
+    _restoreOperationInFlight = true;
+
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final picker = widget.backupPicker ?? pickBackupFile;
-    final onRestored = BackupControllerScope.maybeOf(context)?.onRestored;
-
-    final raw = await showDialog<String>(
-      context: context,
-      builder: (_) => _RestoreBackupDialog(picker: picker),
-    );
-    if (raw == null || raw.trim().isEmpty) return;
+    final writerLifecycle = SyncWriterLifecycleScope.maybeOf(context);
+    final onRestored = writerLifecycle?.onRestored;
+    final runWrite = writerLifecycle?.runWrite;
+    VoidCallback? closeProgress;
 
     try {
-      final outcome = await BackupService(repos).restoreFromJson(raw);
+      final choice = await showDialog<_RestoreChoice>(
+        context: context,
+        builder: (_) => _RestoreBackupDialog(picker: picker),
+        animationStyle: AppMotion.styleFor(context),
+      );
+      if (choice == null || choice.json.trim().isEmpty || !mounted) return;
+
+      // Shown before the lifecycle wrapper, which may wait for an active sync
+      // pass, so the screen never sits unchanged while the restore is pending.
+      // Indeterminate while the file is read; determinate from the first
+      // `(0, total)` the core restore reports.
+      final progress = ValueNotifier<(int, int)?>(null);
+      closeProgress = _showBackupProgress(
+        key: const ValueKey('restore-progress'),
+        idleLabel: l10n.backupRestorePreparing,
+        progress: progress,
+        progressLabel: l10n.backupRestoreProgress,
+      );
+
+      // A file the dialog already decoded is not decoded again; pasted text (or
+      // a file Replace was pressed on mid-decode) is decoded here, under the
+      // progress dialog. The result is kept for the settings retry below.
+      final read =
+          choice.read ??
+          await decodeBackupOnIsolate(
+            choice.json,
+            runner: defaultBackupCodecRunner,
+          );
+      final outcome = await _runRestoreLifecycle(
+        runWrite: runWrite,
+        operation: () => BackupService(repos).restoreFromJson(
+          choice.json,
+          decoded: read,
+          onProgress: (done, total) => progress.value = (done, total),
+        ),
+      );
       if (!outcome.applied) {
+        closeProgress();
         if (!mounted) return;
         // Distinguish the refusal reasons so the user gets an accurate message:
         // a failed integrity checksum (corrupt/altered file, #536), a
-        // valid-but-incomplete backup refused to protect live data (#430), or a
-        // genuinely unreadable file.
+        // valid-but-incomplete backup refused to protect live data (#430), a
+        // backup from a newer schema, a backup with no app section (replace
+        // would clear settings it never described), or a genuinely unreadable
+        // file.
         final String message;
         if (outcome.integrityFailed) {
           message = l10n.backupRestoreIntegrityFailed;
-        } else if (outcome.incompleteCore) {
+        } else if (outcome.incompleteCore || outcome.newerSchema) {
           message = l10n.backupRestoreIncompatibleVersion;
+        } else if (outcome.missingAppSection) {
+          message = l10n.backupRestoreMissingAppSection;
         } else {
           message = l10n.backupRestoreInvalidFile;
         }
@@ -246,7 +381,9 @@ class _GeneralSectionState extends State<GeneralSection> {
         return;
       }
       if (onRestored != null) await onRestored();
+      closeProgress();
       if (!mounted) return;
+      _refreshSoftDeleteRetention();
       // The core content committed and refreshed, but the separate settings
       // apply failed (#608). The restored dances/programs are safe; offer a
       // retry that re-applies ONLY the settings. Use an indefinite-duration
@@ -255,7 +392,14 @@ class _GeneralSectionState extends State<GeneralSection> {
       // localized — the raw exception is logged (debug-guarded) inside the
       // service, never shown here (CWE-209).
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        _showSettingsRestoreFailed(
+          messenger,
+          l10n,
+          repos,
+          read,
+          onRestored,
+          runWrite,
+        );
         return;
       }
       messenger.showSnackBar(
@@ -267,14 +411,28 @@ class _GeneralSectionState extends State<GeneralSection> {
           ),
         ),
       );
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
+      closeProgress?.call();
       logCaughtError(e, st, source: 'general_section._onRestoreBackup');
       if (kDebugMode) {
         debugPrint('Backup restore failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
+    } finally {
+      closeProgress?.call();
+      _restoreOperationInFlight = false;
     }
   }
+
+  /// Serializes the database restore with any coordinator-backed sync pass.
+  ///
+  /// The post-hook intentionally lives in [finally]: an integrity refusal,
+  /// settings-apply failure, thrown restore, or a partially successful
+  /// pre-hook must all leave the runtime with a usable coordinator.
+  Future<T> _runRestoreLifecycle<T>({
+    required Future<T> Function() operation,
+    SyncWriterCallback? runWrite,
+  }) => runWrite?.call(operation) ?? operation();
 
   /// Shows the retryable "core restored, settings failed" state (#608) as an
   /// indefinite snackbar carrying a "retry settings" action. Kept separate so
@@ -285,8 +443,9 @@ class _GeneralSectionState extends State<GeneralSection> {
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
-    String raw,
+    BackupReadResult read,
     Future<void> Function()? onRestored,
+    SyncWriterCallback? runWrite,
   ) {
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -297,7 +456,14 @@ class _GeneralSectionState extends State<GeneralSection> {
           label: l10n.backupRestoreSettingsRetryAction,
           onPressed: () {
             unawaited(
-              _retrySettingsRestore(messenger, l10n, repos, raw, onRestored),
+              _retrySettingsRestore(
+                messenger,
+                l10n,
+                repos,
+                read,
+                onRestored,
+                runWrite,
+              ),
             );
           },
         ),
@@ -307,7 +473,8 @@ class _GeneralSectionState extends State<GeneralSection> {
 
   /// Re-applies ONLY the settings portion of the backup (#608 retry path). The
   /// core is never touched. Shows the success confirmation ONLY when the retry
-  /// actually applied (`applied && !settingsFailed`); a recurring settings
+  /// actually applied (`applied && !settingsFailed`), and then the count of
+  /// skipped problems instead when the restore skipped any; a recurring settings
   /// failure re-shows the retryable snackbar, and an `applied: false` outcome
   /// (a now-fatal/altered envelope — defensive: the captured JSON already
   /// decoded once, so this is not normally reachable) surfaces the matching
@@ -316,16 +483,33 @@ class _GeneralSectionState extends State<GeneralSection> {
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
-    String raw,
+    BackupReadResult read,
     Future<void> Function()? onRestored,
+    SyncWriterCallback? runWrite,
   ) async {
     try {
-      final outcome = await BackupService(repos).retryApplySettings(raw);
+      // The restore this retries runs in the default mode, replace. The retry
+      // drops the sync baseline, so it is serialized with Device Sync as the
+      // restore is (sync-spec §6.11).
+      final outcome = await _runRestoreLifecycle(
+        runWrite: runWrite,
+        operation: () => BackupService(
+          repos,
+        ).retryApplySettingsFrom(read, mode: RestoreMode.replace),
+      );
       // Only refresh when something was actually applied.
       if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;
+      if (outcome.applied) _refreshSoftDeleteRetention();
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        _showSettingsRestoreFailed(
+          messenger,
+          l10n,
+          repos,
+          read,
+          onRestored,
+          runWrite,
+        );
         return;
       }
       if (!outcome.applied) {
@@ -343,15 +527,31 @@ class _GeneralSectionState extends State<GeneralSection> {
         );
         return;
       }
+      // Problems the restore skipped are refused again on every retry, so a
+      // retry that applied the settings still reports them rather than
+      // claiming the restore is now complete.
       messenger.clearSnackBars();
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
+        SnackBar(
+          content: Text(
+            outcome.hasErrors
+                ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
+                : l10n.backupRestoreSettingsRetried,
+          ),
+        ),
       );
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
       logCaughtError(e, st, source: 'general_section._retrySettingsRestore');
       if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
-      _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+      _showSettingsRestoreFailed(
+        messenger,
+        l10n,
+        repos,
+        read,
+        onRestored,
+        runWrite,
+      );
     }
   }
 
@@ -360,7 +560,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// [CallersBoxAdapter] ("The Caller's Box", which resolves a pasted dance URL
   /// or bare id to the `&format=JSON` endpoint before fetching), and the
   /// [ContraDbHtmlAdapter] ("ContraDB", which resolves a pasted dance URL or
-  /// bare id to the `contradb.com/dances/N` HTML page and scrapes it). The
+  /// bare id to the `contradb.com/dances/N` HTML page and scrapes it), and the
+  /// published collections, as the Collection's Import dances does. The
   /// screen is fully self-contained (plan → review → commit → undo); the live
   /// Collection now picks up its writes from the database stream directly.
   Future<void> _onImportDances() async {
@@ -370,6 +571,8 @@ class _GeneralSectionState extends State<GeneralSection> {
           sources: defaultImportSources(),
           picker: widget.importPicker,
           fetcher: widget.urlFetcher,
+          publishedCollectionService:
+              widget.publishedCollectionService ?? PublishedCollectionService(),
         ),
       ),
     );
@@ -386,6 +589,14 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
+  /// Opens the opt-in conversion of English dances stored with contra moves
+  /// (ADR-006 §12.1 F5), which previews and asks before it writes.
+  Future<void> _onEcdMigration() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const EcdMigrationScreen()));
+  }
+
   Future<void> _onPublishedCollections() =>
       pushPublishedCollectionCatalog(context);
 
@@ -394,7 +605,13 @@ class _GeneralSectionState extends State<GeneralSection> {
     // dance list re-sorts immediately, then persist in the background.
     SortIgnoreArticlesScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kSortIgnoreArticlesKey, value);
+    await persistSetting(repos.settings, kSortIgnoreArticlesKey, value);
+  }
+
+  Future<void> _onCapitalizeFiguresChanged(bool value) async {
+    CapitalizeFiguresScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kCapitalizeFiguresKey, value);
   }
 
   Future<void> _onReduceMotionChanged(bool value) async {
@@ -402,25 +619,31 @@ class _GeneralSectionState extends State<GeneralSection> {
     // notifier so animation-gated widgets rebuild immediately, then persist.
     ReduceMotionScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kReduceMotionKey, value);
+    await persistSetting(repos.settings, kReduceMotionKey, value);
   }
 
   Future<void> _onVerboseFigureRenderingChanged(bool value) async {
     VerboseFigureRenderingScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVerboseFigureRenderingKey, value);
+    await persistSetting(repos.settings, kVerboseFigureRenderingKey, value);
   }
 
   Future<void> _onDecimalTurnsChanged(bool value) async {
     DecimalTurnsScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDecimalTurnsKey, value);
+    await persistSetting(repos.settings, kDecimalTurnsKey, value);
   }
 
   Future<void> _onConfirmBeforeDeleteChanged(bool value) async {
     ConfirmBeforeDeleteScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kConfirmBeforeDeleteKey, value);
+    await persistSetting(repos.settings, kConfirmBeforeDeleteKey, value);
+  }
+
+  Future<void> _onUndoPromptSecondsChanged(int value) async {
+    UndoPromptDurationScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kUndoPromptSecondsKey, value);
   }
 
   @override
@@ -430,6 +653,8 @@ class _GeneralSectionState extends State<GeneralSection> {
     return _GeneralView(
       sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
       onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
+      capitalizeFigures: CapitalizeFiguresScope.of(context),
+      onCapitalizeFiguresChanged: _onCapitalizeFiguresChanged,
       reduceMotion: ReduceMotionScope.of(context),
       onReduceMotionChanged: _onReduceMotionChanged,
       verboseFigureRendering: VerboseFigureRenderingScope.of(context),
@@ -438,6 +663,8 @@ class _GeneralSectionState extends State<GeneralSection> {
       onDecimalTurnsChanged: _onDecimalTurnsChanged,
       confirmBeforeDelete: ConfirmBeforeDeleteScope.of(context),
       onConfirmBeforeDeleteChanged: _onConfirmBeforeDeleteChanged,
+      undoPromptSeconds: UndoPromptDurationScope.secondsOf(context),
+      onUndoPromptSecondsChanged: _onUndoPromptSecondsChanged,
       softDeleteRetentionDays:
           _softDeleteRetentionDays ?? kSoftDeleteRetentionDefaultDays,
       onSoftDeleteRetentionChanged: _onSoftDeleteRetentionChanged,
@@ -449,6 +676,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       onImportDances: _onImportDances,
       onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
+      onEcdMigration: _onEcdMigration,
     );
   }
 }
@@ -462,6 +690,8 @@ class _GeneralView extends StatelessWidget {
   const _GeneralView({
     required this.sortIgnoreArticles,
     required this.onSortIgnoreArticlesChanged,
+    required this.capitalizeFigures,
+    required this.onCapitalizeFiguresChanged,
     required this.reduceMotion,
     required this.onReduceMotionChanged,
     required this.verboseFigureRendering,
@@ -470,6 +700,8 @@ class _GeneralView extends StatelessWidget {
     required this.onDecimalTurnsChanged,
     required this.confirmBeforeDelete,
     required this.onConfirmBeforeDeleteChanged,
+    required this.undoPromptSeconds,
+    required this.onUndoPromptSecondsChanged,
     required this.softDeleteRetentionDays,
     required this.onSoftDeleteRetentionChanged,
     required this.backupCadence,
@@ -480,10 +712,13 @@ class _GeneralView extends StatelessWidget {
     required this.onImportDances,
     required this.onPublishedCollections,
     required this.onReparseCustomFigures,
+    required this.onEcdMigration,
   });
 
   final bool sortIgnoreArticles;
   final ValueChanged<bool> onSortIgnoreArticlesChanged;
+  final bool capitalizeFigures;
+  final ValueChanged<bool> onCapitalizeFiguresChanged;
   final bool reduceMotion;
   final ValueChanged<bool> onReduceMotionChanged;
   final bool verboseFigureRendering;
@@ -492,6 +727,11 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onDecimalTurnsChanged;
   final bool confirmBeforeDelete;
   final ValueChanged<bool> onConfirmBeforeDeleteChanged;
+
+  /// How long the Undo prompt stays, as the stored seconds
+  /// ([kUndoPromptUntilDismissed] = until closed).
+  final int undoPromptSeconds;
+  final ValueChanged<int> onUndoPromptSecondsChanged;
 
   /// Current soft-delete retention window as the stored `int` day count
   /// (`0` = never auto-purge — see [kSoftDeleteRetentionNever]).
@@ -513,12 +753,13 @@ class _GeneralView extends StatelessWidget {
 
   /// Opens the #417 re-check-custom-figures flow.
   final Future<void> Function() onReparseCustomFigures;
+  final Future<void> Function() onEcdMigration;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return ListView(
-      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+      keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsGeneralLibraryHeader),
         SwitchListTile(
@@ -528,6 +769,48 @@ class _GeneralView extends StatelessWidget {
           title: Text(l10n.settingsGeneralSortIgnoreArticlesTitle),
           subtitle: Text(l10n.settingsGeneralSortIgnoreArticlesSubtitle),
           isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-capitalize-figures'),
+          value: capitalizeFigures,
+          onChanged: onCapitalizeFiguresChanged,
+          title: Text(l10n.settingsGeneralCapitalizeFiguresTitle),
+          subtitle: Text(l10n.settingsGeneralCapitalizeFiguresSubtitle),
+          isThreeLine: true,
+        ),
+        ListTile(
+          key: const ValueKey('general-library-tags'),
+          leading: const Icon(Icons.label_outline),
+          title: Text(l10n.settingsGeneralLibraryTagsTitle),
+          subtitle: Text(l10n.settingsGeneralLibraryTagsSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const TagManagerScreen()),
+          ),
+        ),
+        ListTile(
+          key: const ValueKey('general-library-authors'),
+          leading: const Icon(Icons.person_outline),
+          title: Text(l10n.settingsGeneralLibraryAuthorsTitle),
+          subtitle: Text(l10n.settingsGeneralLibraryAuthorsSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const ReferenceManagerScreen.authors(),
+            ),
+          ),
+        ),
+        ListTile(
+          key: const ValueKey('general-library-sources'),
+          leading: const Icon(Icons.menu_book_outlined),
+          title: Text(l10n.settingsGeneralLibrarySourcesTitle),
+          subtitle: Text(l10n.settingsGeneralLibrarySourcesSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const ReferenceManagerScreen.sources(),
+            ),
+          ),
         ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),
         SwitchListTile(
@@ -562,38 +845,58 @@ class _GeneralView extends StatelessWidget {
           subtitle: Text(l10n.settingsGeneralConfirmBeforeDeleteSubtitle),
           isThreeLine: true,
         ),
+        SettingsDropdownRow(
+          title: Text(l10n.settingsGeneralUndoPromptTitle),
+          subtitle: Text(l10n.settingsGeneralUndoPromptSubtitle),
+          isThreeLine: true,
+          dropdownBuilder: (expanded) => AppDropdownField<int>(
+            key: const ValueKey('general-undo-prompt-seconds'),
+            compact: true,
+            fillWidth: expanded,
+            value: undoPromptSeconds,
+            onChanged: onUndoPromptSecondsChanged,
+            entries: [
+              for (final seconds in kUndoPromptSecondOptions)
+                AppDropdownEntry(
+                  value: seconds,
+                  label: l10n.settingsGeneralUndoPromptSeconds(seconds),
+                ),
+              AppDropdownEntry(
+                value: kUndoPromptUntilDismissed,
+                label: l10n.settingsGeneralUndoPromptUntilClosed,
+              ),
+            ],
+          ),
+        ),
         SectionHeader(title: l10n.settingsGeneralDeletedItemsHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsGeneralSoftDeleteRetentionTitle),
           subtitle: Text(l10n.settingsGeneralSoftDeleteRetentionSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<int>(
+          dropdownBuilder: (expanded) => AppDropdownField<int>(
             key: const ValueKey('general-soft-delete-retention'),
+            compact: true,
+            fillWidth: expanded,
             value: softDeleteRetentionDays,
-            onChanged: (value) {
-              if (value != null) onSoftDeleteRetentionChanged(value);
-            },
-            items: [
+            onChanged: onSoftDeleteRetentionChanged,
+            entries: [
               for (final days in kSoftDeleteRetentionDayOptions)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: days,
-                  child: Text(
-                    l10n.settingsGeneralSoftDeleteRetentionDays(days),
-                  ),
+                  label: l10n.settingsGeneralSoftDeleteRetentionDays(days),
                 ),
-              DropdownMenuItem(
+              AppDropdownEntry(
                 value: kSoftDeleteRetentionNever,
-                child: Text(l10n.settingsGeneralSoftDeleteRetentionNever),
+                label: l10n.settingsGeneralSoftDeleteRetentionNever,
               ),
             ],
           ),
         ),
         SectionHeader(title: l10n.settingsGeneralImportHeader),
-        ListTile(
+        SettingsActionRow(
           title: Text(l10n.importDances),
           subtitle: Text(l10n.settingsGeneralImportDancesSubtitle),
-          isThreeLine: true,
-          trailing: OutlinedButton.icon(
+          button: OutlinedButton.icon(
             key: const ValueKey('import-dances-button'),
             onPressed: onImportDances,
             icon: const Icon(Icons.file_download_outlined),
@@ -607,15 +910,24 @@ class _GeneralView extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: onPublishedCollections,
         ),
-        ListTile(
+        SettingsActionRow(
           title: Text(l10n.settingsGeneralReparseCustomFiguresTitle),
           subtitle: Text(l10n.settingsGeneralReparseCustomFiguresSubtitle),
-          isThreeLine: true,
-          trailing: OutlinedButton.icon(
+          button: OutlinedButton.icon(
             key: const ValueKey('reparse-custom-figures-button'),
             onPressed: onReparseCustomFigures,
             icon: const Icon(Icons.auto_fix_high_outlined),
             label: Text(l10n.settingsGeneralReparseCustomFiguresAction),
+          ),
+        ),
+        SettingsActionRow(
+          title: Text(l10n.settingsGeneralEcdMigrationTitle),
+          subtitle: Text(l10n.settingsGeneralEcdMigrationSubtitle),
+          button: OutlinedButton.icon(
+            key: const ValueKey('ecd-migration-button'),
+            onPressed: onEcdMigration,
+            icon: const Icon(Icons.auto_fix_high_outlined),
+            label: Text(l10n.settingsGeneralEcdMigrationAction),
           ),
         ),
         SectionHeader(title: l10n.settingsGeneralBackupRestoreHeader),
@@ -637,54 +949,55 @@ class _GeneralView extends StatelessWidget {
     final lastBackupLabel = lastBackupAt == null
         ? l10n.backupLastBackupNever
         : l10n.backupLastBackupDate(
-            MaterialLocalizations.of(
-              context,
-            ).formatMediumDate(lastBackupAt!.toLocal()),
+            formatEventDate(
+              lastBackupAt!.toLocal(),
+              DateFormatScope.of(context),
+              MaterialLocalizations.of(context),
+              l10n,
+            ),
           );
     return [
-      ListTile(
+      SettingsActionRow(
         title: Text(l10n.backupExportTitle),
         subtitle: Text(l10n.backupExportSubtitle),
-        isThreeLine: true,
-        trailing: FilledButton.tonalIcon(
+        button: FilledButton.tonalIcon(
           key: const ValueKey('backup-export-button'),
           onPressed: onExportBackup,
           icon: const Icon(Icons.file_upload_outlined),
           label: Text(l10n.backupExportAction),
         ),
       ),
-      ListTile(
+      SettingsActionRow(
         title: Text(l10n.backupRestoreTitle),
         subtitle: Text(l10n.backupRestoreSubtitle),
-        isThreeLine: true,
-        trailing: OutlinedButton.icon(
+        button: OutlinedButton.icon(
           key: const ValueKey('backup-restore-button'),
           onPressed: onRestoreBackup,
           icon: const Icon(Icons.file_download_outlined),
           label: Text(l10n.backupRestoreAction),
         ),
       ),
-      ListTile(
+      SettingsDropdownRow(
         title: Text(l10n.backupReminderTitle),
         subtitle: Text(lastBackupLabel),
-        trailing: DropdownButton<BackupReminderCadence>(
+        dropdownBuilder: (expanded) => AppDropdownField<BackupReminderCadence>(
+          compact: true,
+          fillWidth: expanded,
           key: const ValueKey('backup-reminder-cadence'),
           value: backupCadence,
-          onChanged: (value) {
-            if (value != null) onBackupCadenceChanged(value);
-          },
-          items: [
-            DropdownMenuItem(
+          onChanged: onBackupCadenceChanged,
+          entries: [
+            AppDropdownEntry(
               value: BackupReminderCadence.off,
-              child: Text(l10n.backupReminderOff),
+              label: l10n.backupReminderOff,
             ),
-            DropdownMenuItem(
+            AppDropdownEntry(
               value: BackupReminderCadence.weekly,
-              child: Text(l10n.backupReminderWeekly),
+              label: l10n.backupReminderWeekly,
             ),
-            DropdownMenuItem(
+            AppDropdownEntry(
               value: BackupReminderCadence.monthly,
-              child: Text(l10n.backupReminderMonthly),
+              label: l10n.backupReminderMonthly,
             ),
           ],
         ),
@@ -719,10 +1032,24 @@ class _GeneralView extends StatelessWidget {
   }
 }
 
+/// What the restore dialog hands back: the backup text, plus its decoded form
+/// when the dialog already produced it for a chosen file.
+class _RestoreChoice {
+  const _RestoreChoice(this.json, [this.read]);
+
+  final String json;
+  final BackupReadResult? read;
+}
+
 /// A modal that collects a backup to restore — either by choosing a file (via
 /// the injected [picker]) or by pasting JSON — behind an explicit,
-/// destructive-replace warning. Returns the chosen JSON string when the user
+/// destructive-replace warning. Returns a [_RestoreChoice] when the user
 /// confirms, or `null` if they cancel.
+///
+/// A chosen file is held in state and shown as a summary (date, counts, size)
+/// rather than poured into the paste box: laying out megabytes of text froze
+/// the dialog for seconds. The paste box is for pasted text only and is
+/// disabled while a file is held.
 class _RestoreBackupDialog extends StatefulWidget {
   const _RestoreBackupDialog({required this.picker});
 
@@ -736,10 +1063,36 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
   final TextEditingController _controller = TextEditingController();
   bool _picking = false;
 
+  /// The chosen file's text, set the moment the picker returns so Replace is
+  /// enabled before the decode finishes.
+  String? _pickedJson;
+
+  /// The decoded [_pickedJson] and its UTF-8 size; `null` while being read.
+  /// Handed on to the restore so the file is decoded once, not twice.
+  BackupReadResult? _read;
+  int? _sizeBytes;
+
+  /// Set when the decode itself threw: shown as unreadable, with the restore
+  /// left to own the refusal.
+  bool _decodeFailed = false;
+
+  /// Guards a slow summary decode against a newer pick or a Clear.
+  int _pickGeneration = 0;
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _clearFile() {
+    setState(() {
+      _pickGeneration++;
+      _pickedJson = null;
+      _read = null;
+      _sizeBytes = null;
+      _decodeFailed = false;
+    });
   }
 
   Future<void> _chooseFile() async {
@@ -748,68 +1101,235 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     try {
       final json = await widget.picker();
       if (!mounted || json == null) return;
-      _controller.text = json;
+      final generation = ++_pickGeneration;
+      setState(() {
+        _controller.clear();
+        _pickedJson = json;
+        _read = null;
+        _sizeBytes = null;
+        _decodeFailed = false;
+      });
+      try {
+        final decoded = await decodeBackupSizedOnIsolate(
+          json,
+          runner: defaultBackupCodecRunner,
+        );
+        if (!mounted || generation != _pickGeneration) return;
+        setState(() {
+          _read = decoded.read;
+          _sizeBytes = decoded.sizeBytes;
+        });
+      } on Object catch (e, stackTrace) {
+        logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+        if (!mounted || generation != _pickGeneration) return;
+        setState(() => _decodeFailed = true);
+      }
     } on BackupFileTooLargeException catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
       // Surface the size-cap refusal as a friendly message instead of letting
       // it crash the picker: the file was never read, so live data is safe.
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).backupFileTooLarge(
+              backupMegabytes(e.sizeBytes),
+              backupMegabytes(e.maxBytes),
+            ),
+          ),
+        ),
+      );
+    } on FormatException catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).backupRestoreInvalidFile),
+        ),
+      );
+    } on Object catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).backupChooseFileFailed),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _picking = false);
     }
   }
 
+  Widget _fileSummary(AppLocalizations l10n) {
+    final read = _read;
+    final String text;
+    if (read == null && !_decodeFailed) {
+      text = l10n.backupRestorePreparing;
+    } else if (read == null || read.fatal) {
+      text = l10n.backupFileUnreadable(
+        backupMegabytes(_sizeBytes ?? _pickedJson!.length),
+      );
+    } else {
+      final core = read.document.core;
+      text = l10n.backupFileSummary(
+        formatEventDate(
+          read.document.createdAt.toLocal(),
+          DateFormatScope.of(context),
+          MaterialLocalizations.of(context),
+          l10n,
+        ),
+        core.dances.where((d) => d.deletedAt == null).length,
+        core.programs.where((p) => p.deletedAt == null).length,
+        backupMegabytes(_sizeBytes!),
+      );
+    }
+    return Card(
+      key: const ValueKey('restore-file-summary'),
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: const Icon(Icons.description_outlined),
+        title: Text(text),
+        trailing: TextButton(
+          key: const ValueKey('restore-file-clear'),
+          onPressed: _clearFile,
+          child: Text(l10n.backupFileClearAction),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final hasContent = _controller.text.trim().isNotEmpty;
-    return AlertDialog(
-      key: const ValueKey('restore-backup-dialog'),
-      title: Text(l10n.backupRestoreTitle),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.backupRestoreDialogBody),
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton.icon(
-              key: const ValueKey('restore-choose-file'),
-              onPressed: _picking ? null : _chooseFile,
-              icon: const Icon(Icons.folder_open_outlined),
-              label: Text(l10n.backupChooseFileAction),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              key: const ValueKey('restore-paste-field'),
-              controller: _controller,
-              minLines: 3,
-              maxLines: 6,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: l10n.backupPasteJsonLabel,
+    final holdsFile = _pickedJson != null;
+    final hasContent = holdsFile || _controller.text.trim().isNotEmpty;
+    // Dirty as typed (not trimmed): whitespace the user pasted still counts.
+    // A chosen file counts too, so a stray tap does not drop it.
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _pickedJson != null || _controller.text.isNotEmpty,
+      child: AlertDialog(
+        key: const ValueKey('restore-backup-dialog'),
+        title: Text(l10n.backupRestoreTitle),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.backupRestoreDialogBody),
+              // A restore is stamped at the backup's creation time, so on a
+              // paired device anything changed since on a synced device wins at
+              // the next sync and comes back (SYNC-1, sync-spec §6.11). Paired
+              // rather than enabled: turning sync back on later syncs the same.
+              if (SyncScope.maybeOf(context)?.paired ?? false) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.backupRestoreDialogSyncNote,
+                  key: const ValueKey('restore-sync-note'),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                key: const ValueKey('restore-choose-file'),
+                onPressed: _picking ? null : _chooseFile,
+                icon: const Icon(Icons.folder_open_outlined),
+                label: Text(l10n.backupChooseFileAction),
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.sm),
+              if (holdsFile) ...[
+                _fileSummary(l10n),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              TextField(
+                key: const ValueKey('restore-paste-field'),
+                controller: _controller,
+                enabled: !holdsFile,
+                minLines: 3,
+                maxLines: 6,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.backupPasteJsonLabel,
+                ),
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('restore-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
+            key: const ValueKey('restore-confirm'),
+            onPressed: hasContent
+                ? () => Navigator.of(context).pop(
+                    holdsFile
+                        ? _RestoreChoice(_pickedJson!, _read)
+                        : _RestoreChoice(_controller.text),
+                  )
+                : null,
+            child: Text(l10n.backupReplaceAllDataAction),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('restore-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('restore-confirm'),
-          onPressed: hasContent
-              ? () => Navigator.of(context).pop(_controller.text)
-              : null,
-          child: Text(l10n.backupReplaceAllDataAction),
+    );
+  }
+}
+
+/// The modal shown while a backup is exported or restored. Not dismissable by
+/// the barrier or the back button; its owner closes it. See
+/// [_GeneralSectionState._showBackupProgress].
+class _BackupProgressDialog extends StatelessWidget {
+  const _BackupProgressDialog({
+    super.key,
+    required this.progress,
+    required this.idleLabel,
+    required this.progressLabel,
+  });
+
+  /// `(done, total)` once known; `null` (or a null notifier) = indeterminate.
+  final ValueListenable<(int, int)?>? progress;
+  final String idleLabel;
+  final String Function(int done, int total)? progressLabel;
+
+  Widget _body((int, int)? value) {
+    final total = value?.$2 ?? 0;
+    final label = progressLabel;
+    final determinate = value != null && total > 0 && label != null;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LinearProgressIndicator(value: determinate ? value.$1 / total : null),
+        const SizedBox(height: AppSpacing.md),
+        Semantics(
+          liveRegion: true,
+          child: Text(determinate ? label(value.$1, total) : idleLabel),
         ),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final source = progress;
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: SizedBox(
+          width: 320,
+          child: source == null
+              ? _body(null)
+              : ValueListenableBuilder<(int, int)?>(
+                  valueListenable: source,
+                  builder: (_, value, _) => _body(value),
+                ),
+        ),
+      ),
     );
   }
 }

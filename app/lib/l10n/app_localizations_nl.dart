@@ -20,6 +20,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een modifier-container is toegevoegd.';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement =>
+      'Een reeks-container is toegevoegd.';
+
+  @override
   String get navCollection => 'Collectie';
 
   @override
@@ -45,6 +49,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get navSettings => 'Instellingen';
 
   @override
+  String get navGlossary => 'Woordenlijst';
+
+  @override
   String get navGuide => 'Gids';
 
   @override
@@ -59,7 +66,34 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get appBootstrapPreparing => 'Je collectie voorbereiden';
+  String get menuFile => 'Archief';
+
+  @override
+  String get menuNewDance => 'Nieuwe dans';
+
+  @override
+  String get menuImportDances => 'Importeer dansen…';
+
+  @override
+  String get menuClose => 'Sluit';
+
+  @override
+  String get menuSettings => 'Instellingen…';
+
+  @override
+  String get menuView => 'Weergave';
+
+  @override
+  String get menuWindow => 'Venster';
+
+  @override
+  String get menuHelp => 'Help';
+
+  @override
+  String get menuUserGuide => 'Gebruikersgids';
+
+  @override
+  String get appBootstrapPreparing => 'Je bibliotheek voorbereiden';
 
   @override
   String get appBootstrapRebuildingIndex => 'Zoekindex opnieuw opbouwen';
@@ -70,15 +104,86 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get appBootstrapError => 'De collectie kon niet worden voorbereid.';
+  String get appBootstrapError =>
+      'Je bibliotheek kon niet worden voorbereid. Probeer het opnieuw.';
+
+  @override
+  String get appBootstrapCopyDetails => 'Details kopiëren';
+
+  @override
+  String get appBootstrapCopiedDetails => 'Gekopieerd';
+
+  @override
+  String get appBootstrapLogHint =>
+      'De details zijn ook naar het diagnoselogboek in de supportmap van de app geschreven.';
+
+  @override
+  String get appBootstrapReleasesLink => 'Releases-pagina openen';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Je gegevens gebruiken opslagformaat $fileVersionString. Deze versie van de app leest tot en met formaat $appVersionString.';
+  }
 
   @override
   String get migrationDowngradeMessage =>
-      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.';
+      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij en open haar daarna opnieuw.';
+
+  @override
+  String get migrationRelocationBothExist =>
+      'Caller’s Compendium is niet gestart, omdat opgeslagen gegevensbestanden zowel op de nieuwe locatie als in een map van een eerdere versie zijn gevonden. Er is niets gewijzigd of verwijderd. Bewaar de kopie die je wilt houden, verplaats de andere naar een andere plek en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” staan de locaties.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium is niet gestart, omdat opgeslagen gegevens in meer dan één map van eerdere versies zijn gevonden. Er is niets gewijzigd of verwijderd. Bewaar de kopie die je wilt houden, verplaats de andere naar een andere plek en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” staan de locaties.';
+
+  @override
+  String get migrationRelocationFailed =>
+      'Caller’s Compendium is niet gestart, omdat het verplaatsen van je opgeslagen gegevens naar de nieuwe locatie niet kon worden voltooid. Er is niets verwijderd. Maak ruimte vrij, sluit andere programma’s die de gegevens mogelijk gebruiken of controleer de maprechten en open de app daarna opnieuw om het opnieuw te proberen.';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium is niet gestart, omdat je map Documenten, waarin eerdere versies je opgeslagen gegevens bewaarden, niet bereikbaar was. Er is niets gewijzigd of aangemaakt. Staat Documenten op een ander station of in een netwerkmap, sluit die dan opnieuw aan en open de app daarna opnieuw. Heb je geen map Documenten, maak dan een lege aan en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” lees je meer.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Grootte en laatste wijziging van elke kopie (de grootste, meest recent gewijzigde kopie is meestal je bibliotheek):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'Nieuwe locatie';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Map Documenten';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Eerdere app-gegevensmap';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, laatst gewijzigd $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden bijgewerkt. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
+    return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden gewijzigd. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
   }
 
   @override
@@ -87,14 +192,26 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get migrationSnapshotCauseUnwritableBackupsDir =>
-      'Naar de automatische back-upmap kon niet worden geschreven.';
+      'Naar de map voor automatische back-ups kon niet worden geschreven.';
+
+  @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Een andere app heeft je bibliotheek geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen. Sluit elke andere app die je bibliotheek geopend heeft en probeer het dan opnieuw.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Voordat je opgeslagen gegevens worden gewijzigd, maakt Caller’s Compendium een automatische back-up zodat de wijzigingen ongedaan kunnen worden gemaakt als er iets misgaat. Een andere app heeft je bibliotheek nu geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen.\n\nAls je zonder back-up doorgaat en de wijzigingen worden onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, elke andere app sluiten die je bibliotheek geopend heeft, en Caller’s Compendium opnieuw openen om het nog eens te proberen.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium is niet gestart omdat een andere app je bibliotheek geopend heeft, waardoor de automatische back-up die vóór het wijzigen van je opgeslagen gegevens wordt gemaakt, je laatste wijzigingen zou missen. Sluit elke andere app die je bibliotheek geopend heeft en open Caller’s Compendium dan opnieuw — of open het opnieuw en kies om zonder back-up door te gaan.';
 
   @override
   String get migrationSnapshotConsentTitle => 'Kon je gegevens niet back-uppen';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Voordat je opgeslagen gegevens naar een nieuw formaat worden bijgewerkt, maakt Caller’s Compendium een automatische back-up zodat een mislukte update ongedaan kan worden gemaakt. Die back-up kon deze keer niet worden gemaakt.$cause\n\nAls je zonder back-up doorgaat en de update wordt onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.';
+    return 'Voordat je opgeslagen gegevens worden gewijzigd, maakt Caller’s Compendium een automatische back-up zodat de wijzigingen ongedaan kunnen worden gemaakt als er iets misgaat. Die back-up kon deze keer niet worden gemaakt.$cause\n\nAls je zonder back-up doorgaat en de wijzigingen worden onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.';
   }
 
   @override
@@ -113,6 +230,14 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorGetBridge(String bridgeTag) {
+    return '$bridgeTag ophalen';
+  }
+
+  @override
+  String get migrationBelowFloorStartFresh => 'Begin opnieuw';
+
+  @override
   String get migrationBelowFloorBackUpAndReset => 'Back-up maken + Resetten';
 
   @override
@@ -123,7 +248,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get migrationBelowFloorBackupFailedBody =>
-      'De back-up kon niet worden geschreven, dus je gegevens zijn niet gereset.';
+      'De back-up kon niet worden geschreven, dus je gegevens zijn niet gereset. Maak ruimte vrij en probeer het opnieuw.';
 
   @override
   String get migrationBelowFloorResetConfirmTitle => 'App-gegevens resetten?';
@@ -131,6 +256,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get migrationBelowFloorResetConfirmBody =>
       'Er is een back-up opgeslagen. Door te resetten worden je huidige gegevens vervangen door een nieuwe, lege database.';
+
+  @override
+  String get migrationBelowFloorResetConfirmAction => 'Resetten';
 
   @override
   String migrationBelowFloorBackupSavedAt(String backupPath) {
@@ -144,7 +272,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'Er wordt geen back-up gemaakt. Door opnieuw in te stellen worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
+      'Er wordt geen back-up gemaakt. Door te resetten worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get migrationBelowFloorWipeFailedTitle => 'Opnieuw instellen mislukt';
@@ -162,7 +290,55 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen worden verwijderd. Je kunt dit ongedaan maken.',
+      one: '1 dans wordt verwijderd. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen worden verwijderd, waarvan $notShown verborgen door je zoekopdracht. Je kunt dit ongedaan maken.',
+      one:
+          '1 dans wordt verwijderd. Je zoekopdracht verbergt hem. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verliezen dit programma uit hun callerhistorie.',
+      one: '1 dans verliest dit programma uit zijn callerhistorie.',
+    );
+    return '“$itemLabel” wordt verwijderd. $_temp0 Je kunt dit ongedaan maken.';
+  }
+
+  @override
+  String get colorEditHexInvalid =>
+      'Voer zes hexadecimale cijfers in, bijvoorbeeld #804020.';
+
+  @override
   String get colorEditHexLabel => 'Hex';
+
+  @override
+  String get colorEditChannelRed => 'Rood';
+
+  @override
+  String get colorEditChannelGreen => 'Groen';
+
+  @override
+  String get colorEditChannelBlue => 'Blauw';
 
   @override
   String get settingsTitle => 'Instellingen';
@@ -192,17 +368,1429 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimenteel';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Ontwikkelaarsopties';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Database resetten';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Alles op dit apparaat verwijderen en opnieuw beginnen, zoals bij een verse installatie.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Database resetten?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Hiermee wordt je hele bibliotheek op dit apparaat definitief verwijderd (elke dans, elk programma, elke instelling en notitie) en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Dit apparaat is verbonden met een synchronisatieopslag. Het verwijdert zichzelf eerst uit de opslag, zodat het niet als verweesd apparaat achterblijft. Alles wat het nog niet naar je andere apparaten heeft gesynchroniseerd, gaat verloren.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Ik begrijp dat dit niet ongedaan kan worden gemaakt en ik heb al een back-up gemaakt als ik die wil.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Database resetten';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Dit apparaat kon niet uit de synchronisatieopslag worden verwijderd, dus er is niets gereset. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'De database kon niet worden gereset. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
+
+  @override
+  String get glossaryTitle => 'Woordenlijst';
+
+  @override
+  String get glossarySearchHint => 'Figuren zoeken';
+
+  @override
+  String glossaryNoMatches(String query) {
+    return 'Geen figuren komen overeen met ‘$query’.';
+  }
+
+  @override
+  String get glossarySelectPrompt =>
+      'Selecteer een figuur om de definitie te zien.';
+
+  @override
+  String get glossaryCopyAsOwnFigure => 'Kopiëren naar Eigen figuren';
+
+  @override
+  String glossaryCustomCopiedFrom(String name) {
+    return 'Gekopieerd van $name';
+  }
+
+  @override
+  String get importCcTermsTitle => 'Termen in dit bestand';
+
+  @override
+  String get importCcTermsIntro =>
+      'Je Caller\'s Companion-bestand heeft eigen termen. Kies welke je als termen aan je woordenlijst toevoegt. Elke beschrijving begint als de definitie: bewerk een term om die, de definitie of de naam te wijzigen.';
+
+  @override
+  String get importCcTermsNameTaken =>
+      'Een figuur, afkorting of term heeft deze naam al. Geef hem een andere naam om hem toe te voegen, of laat hem weg.';
+
+  @override
+  String get importCcTermsNeedsDefinition =>
+      'Hij heeft geen definitie. Bewerk hem om er een te geven en hem toe te voegen.';
+
+  @override
+  String get importCcTermsIncomplete =>
+      'Hij heeft een naam, een definitie en een beschrijving nodig. Bewerk hem om ze in te vullen en hem toe te voegen.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Hij is langer dan een woordenlijstitem mag zijn. Bewerk hem om hem in te korten en toe te voegen.';
+
+  @override
+  String get importCcTermsEditTitle => 'Term bewerken';
+
+  @override
+  String importCcTermsEditLabel(String name) {
+    return '$name bewerken';
+  }
+
+  @override
+  String get importCcTermsSkip => 'Overslaan';
+
+  @override
+  String importCcTermsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count termen toevoegen',
+      one: '1 term toevoegen',
+      zero: 'Termen toevoegen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count termen aan je woordenlijst toegevoegd.',
+      one: '1 term aan je woordenlijst toegevoegd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count termen konden niet worden toegevoegd: ze zijn te lang, of je woordenlijst is vol.',
+      one:
+          '1 term kon niet worden toegevoegd: hij is te lang, of je woordenlijst is vol.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryTermSource(String source) {
+    return 'Bron: $source';
+  }
+
+  @override
+  String glossaryCustomShippedNameBody(String name) {
+    return 'De app heeft nu een eigen figuur met de naam $name. Geef de jouwe een andere naam, of zet je dansen over op de figuur van de app en verwijder de jouwe.';
+  }
+
+  @override
+  String get glossaryCustomRenameMine => 'Mijn figuur hernoemen';
+
+  @override
+  String get glossaryCustomSwitchToShipped =>
+      'Overzetten op de figuur van de app';
+
+  @override
+  String userFigureSwitchTitle(String name) {
+    return 'Overzetten op $name';
+  }
+
+  @override
+  String userFigureSwitchIntro(String name) {
+    return 'Kies welke parameter van $name elke parameter van je figuur wordt, en welke van de waarden elk van je opties wordt. Alles moet gekozen zijn voordat je kunt overzetten.';
+  }
+
+  @override
+  String userFigureSwitchParam(String param) {
+    return 'Je $param wordt';
+  }
+
+  @override
+  String userFigureSwitchChoice(String choice) {
+    return 'Je $choice wordt';
+  }
+
+  @override
+  String userFigureSwitchNoTarget(String name, String param) {
+    return '$name heeft niets wat je $param kan worden. Verwijder het eerst uit je figuur, of geef de jouwe liever een andere naam.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Elke parameter van $name die je $param kan worden, is al gekozen voor een andere van de jouwe. Kies daar eerst anders.';
+  }
+
+  @override
+  String get userFigureSwitchAction => 'Overzetten';
+
+  @override
+  String userFigureSwitchConfirmTitle(String name) {
+    return 'Overzetten op $name?';
+  }
+
+  @override
+  String userFigureSwitchConfirmUses(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen gebruiken je figuur en gaan $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
+      one:
+          '1 dans gebruikt je figuur en gaat $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
+      zero:
+          'Geen dans in je collectie gebruikt je figuur. Hij wordt uit je woordenlijst verwijderd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchConfirmDefaults =>
+      'Je standaardfiguren gebruiken hem ook en worden op dezelfde manier overgezet.';
+
+  @override
+  String userFigureSwitchConfirmShorthands(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zijn $count afkortingen voegen dan $name in.',
+      one: 'Zijn afkorting voegt dan $name in.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchFailed =>
+      'Er is niets overgezet: je figuur is gewijzigd of verdwenen. Open hem opnieuw om over te zetten.';
+
+  @override
+  String get glossaryNoDefinition => 'Nog geen definitie.';
+
+  @override
+  String glossaryVariantOf(String figure) {
+    return 'Een variant van $figure.';
+  }
+
+  @override
+  String glossaryNameWithDetail(String name, String detail) {
+    return '$name ($detail)';
+  }
+
+  @override
+  String get glossaryExample => 'Voorbeeld';
+
+  @override
+  String get glossaryParameters => 'Parameters';
+
+  @override
+  String get glossaryAlsoKnownAs => 'Ook bekend als';
+
+  @override
+  String get settingsExperimentalGlossaryHeader =>
+      'Woordenlijst en eigen figuren';
+
+  @override
+  String get settingsExperimentalShowGlossaryTitle => 'Woordenlijst tonen';
+
+  @override
+  String get settingsExperimentalShowGlossarySubtitle =>
+      'Voegt een woordenlijst van de ingebouwde figuren toe aan de navigatie, tussen Programma\'s en Instellingen.';
+
+  @override
+  String get settingsSyncHeader => 'Apparaatsynchronisatie';
+
+  @override
+  String get settingsSyncIntro =>
+      'Houd je bibliotheek gelijk op je eigen apparaten. Apparaatsynchronisatie staat uit totdat je het aanzet, en er wordt niets verzonden zolang het uit staat.';
+
+  @override
+  String get settingsSyncEnableTitle => 'Apparaatsynchronisatie aanzetten';
+
+  @override
+  String get settingsSyncEnableSubtitle =>
+      'Standaard uit. Als je het aanzet, wordt er niets verzonden totdat je een opslag hebt gekoppeld.';
+
+  @override
+  String get settingsSyncWifiOnlyTitle => 'Alleen synchroniseren via wifi';
+
+  @override
+  String get settingsSyncWifiOnlySubtitle =>
+      'Standaard aan. Bij mobiele data wacht de synchronisatie tot je op wifi zit.';
+
+  @override
+  String get settingsSyncExcludeImportsTitle =>
+      'Ongebruikte geïmporteerde dansen overslaan';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      'Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd, en als je het weer uitzet, worden de overgeslagen dansen opnieuw geüpload.';
+
+  @override
+  String get settingsSyncStatusHeader => 'Status';
+
+  @override
+  String get settingsSyncIdTitle => 'Je synchronisatiezin';
+
+  @override
+  String get settingsSyncIdMasked => 'Verborgen';
+
+  @override
+  String get settingsSyncIdShow => 'Synchronisatiezin tonen';
+
+  @override
+  String get settingsSyncIdHide => 'Synchronisatiezin verbergen';
+
+  @override
+  String get settingsSyncIdCopy => 'Synchronisatiezin kopiëren';
+
+  @override
+  String get settingsSyncIdCopied =>
+      'Synchronisatiezin gekopieerd. Iedereen die hem heeft, kan je gedeelde bibliotheek openen, dus plak hem alleen op een apparaat dat van jou is.';
+
+  @override
+  String get settingsSyncIdCaution =>
+      'Voer hem in op je andere apparaat om dat te verbinden. Daar staat je gedeelde bibliotheek, dus iedereen die hem heeft, kan die bibliotheek openen: alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen. Overstappen op een andere zin betekent alle apparaten ernaartoe verplaatsen.';
+
+  @override
+  String get settingsSyncStatusNotPaired =>
+      'Nog niet gekoppeld aan een opslag.';
+
+  @override
+  String get settingsSyncStatusNeverSynced =>
+      'Gekoppeld. Nog niet gesynchroniseerd.';
+
+  @override
+  String settingsSyncStatusLastSynced(String when) {
+    return 'Laatst gesynchroniseerd: $when';
+  }
+
+  @override
+  String settingsSyncEndpointStatus(String url) {
+    return 'Synchroniseert met $url';
+  }
+
+  @override
+  String settingsSyncCustomEndpointStatus(String url) {
+    return 'Synchroniseert met een aangepaste server: $url';
+  }
+
+  @override
+  String settingsSyncMergedDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dubbele dansen gevonden en samengevoegd.',
+      one: '$count dubbele dans gevonden en samengevoegd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncStatusSyncing => 'Synchroniseren…';
+
+  @override
+  String get settingsSyncStatusFailed =>
+      'De laatste synchronisatie is mislukt.';
+
+  @override
+  String get settingsSyncStatusSettingsUnreadable =>
+      'De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus de hier getoonde instellingen kunnen verouderd zijn, en apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.';
+
+  @override
+  String get settingsSyncFailureUnreachable =>
+      'Kan de synchronisatieserver niet bereiken.';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'Controleer of dit apparaat online is. Als je een eigen server gebruikt, controleer dan of die draait en of het adres klopt.';
+
+  @override
+  String get settingsSyncFailureTimedOut =>
+      'De synchronisatieserver deed te lang over een antwoord.';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      'Een trage of onstabiele verbinding is meestal de oorzaak. Probeer het opnieuw als de verbinding beter is.';
+
+  @override
+  String get settingsSyncFailureServerError =>
+      'De synchronisatieserver liep zelf tegen een probleem aan.';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'Er is niets mis met dit apparaat of je bibliotheek. Wacht even en probeer het opnieuw. Blijft het gebeuren, laat het dan weten aan wie de server beheert en geef de details door die hier staan.';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      'De synchronisatieserver vroeg dit apparaat het rustiger aan te doen.';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      'Hij kreeg te veel verzoeken in korte tijd. Wacht een paar minuten voordat je het opnieuw probeert.';
+
+  @override
+  String get settingsSyncFailureStoreFull =>
+      'De synchronisatieserver kan nu even niets meer opslaan.';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      'Wijzigingen van dit apparaat kunnen pas worden opgeslagen als er ruimte is. Als je Ongebruikte geïmporteerde dansen overslaan aanzet, kan dit apparaat minder uploaden. Als je een eigen server gebruikt, verhoog dan de opslaglimiet of maak schijfruimte vrij.';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'Iets wat dit apparaat probeerde te uploaden is groter dan de synchronisatieserver accepteert.';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      'Als je een grote geïmporteerde collectie hebt, kan het aanzetten van Ongebruikte geïmporteerde dansen overslaan die onder de limiet brengen. Als je een eigen server gebruikt, controleer dan de limiet voor uploadgrootte.';
+
+  @override
+  String get settingsSyncFailureRejected =>
+      'De synchronisatieserver weigerde wat dit apparaat stuurde.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'Deze versie van de app is nieuwer dan de synchronisatieserver. Je wijzigingen zijn hier opgeslagen en worden gesynchroniseerd zodra de server is bijgewerkt.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Werk je synchronisatieserver bij zodat die past bij deze versie van de app.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'Wachten op synchronisatie. Je wijzigingen zijn hier opgeslagen.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Je opslag is bijna vol.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports =>
+      'Ongebruikte geïmporteerde dansen overslaan';
+
+  @override
+  String settingsSyncNoticeNewerVersionItems(String items) {
+    return 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $items te ontvangen. Als je ze hier bewerkt voordat je bijwerkt, kunnen de wijzigingen van het andere apparaat daarin verloren gaan.';
+  }
+
+  @override
+  String settingsSyncNoticeCountDance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountProgram(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountChoreographer(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count auteurs',
+      one: '1 auteur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountTag(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tags',
+      one: '1 tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountCustomField(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count aangepaste velden',
+      one: '1 aangepast veld',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountDifficulty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moeilijkheidsgraden',
+      one: '1 moeilijkheidsgraad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountPublishedSource(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gepubliceerde bronnen',
+      one: '1 gepubliceerde bron',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountVenue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count locaties',
+      one: '1 locatie',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountSetting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count instellingen',
+      one: '1 instelling',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count van je eigen figuren',
+      one: '1 van je eigen figuren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'je notities bij $count figuren',
+      one: 'je notities bij 1 figuur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen. Als je hier iets bewerkt dat het heeft gewijzigd voordat je bijwerkt, kunnen de wijzigingen ervan verloren gaan.';
+
+  @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Bewaard voor een nieuwere versie van de app: $items. Deze worden nog steeds gesynchroniseerd, met details die deze versie niet kan tonen. Werk de app op dit apparaat bij om ze te zien.';
+  }
+
+  @override
+  String get settingsSyncCopyDetails => 'Details kopiëren';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Details gekopieerd.';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      'De synchronisatieserver accepteerde de synchronisatiezin van dit apparaat niet.';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'Vergelijk de zin met die op je andere apparaat en controleer of het serveradres klopt.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      'De synchronisatieserver stuurde een antwoord waar deze app niets mee kon.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      'Als je een eigen server gebruikt, controleer dan het adres en of het een versie is die deze app ondersteunt. Werk anders de app bij en probeer het later opnieuw.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      'Kan niet lezen wat een van je andere apparaten het laatst heeft gedeeld.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'Om verbinding te maken met een opslag is de nieuwste lijst van elk apparaat erop nodig. Open de app op je andere apparaten, laat ze synchroniseren en probeer het dan opnieuw. Is een apparaat voorgoed weg, verwijder het dan onder Andere apparaten.';
+
+  @override
+  String get settingsSyncFailureInternal =>
+      'Synchroniseren is gestopt door een probleem in de app.';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      'Dit is geen probleem met je verbinding of de server. Probeer het opnieuw. Blijft het gebeuren, exporteer dan het log via Instellingen ▸ Diagnostics en voeg het toe wanneer je het probleem meldt.';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'Gestopt tijdens het opzoeken van de opslag.',
+      'download': 'Gestopt tijdens het downloaden van je andere apparaten.',
+      'upload':
+          'Gestopt tijdens het uploaden van de wijzigingen van dit apparaat.',
+      'publish':
+          'Gestopt tijdens het publiceren van de wijzigingen van dit apparaat.',
+      'createStore': 'Gestopt tijdens het aanmaken van de opslag.',
+      'other': 'Halverwege gestopt.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'Statuscode van de server: $code.';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return 'Details: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return 'De synchronisatie is niet afgerond. $explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return 'Betreft: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind ‘$name’';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind, niet op dit apparaat';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind ‘$name’ (bevat figuren die alleen een nieuwere versie kan lezen)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind niet op dit apparaat (bevat figuren die alleen een nieuwere versie kan lezen)';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'en nog $count',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Van $count andere apparaten.',
+      one: 'Van 1 ander apparaat.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'Kan de apparatenlijst niet laden. $explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message $explanation';
+  }
+
+  @override
+  String get settingsSyncStatusStaleStore =>
+      'Deze opslag is sinds je laatste synchronisatie vervangen door een ander apparaat. De volgende synchronisatie sluit zich aan bij de nieuwe.';
+
+  @override
+  String get settingsSyncStatusStoreUnavailable =>
+      'Deze opslag is mogelijk verlopen door inactiviteit of verwijderd.';
+
+  @override
+  String get settingsSyncStatusStoreNotFound =>
+      'Geen opslag heeft deze synchronisatiezin. Vergelijk hem met je andere apparaat.';
+
+  @override
+  String get settingsSyncStatusPaused =>
+      'Synchronisatie is gepauzeerd omdat de opslag die dit apparaat gebruikte niet meer bestaat. Tik op Nu synchroniseren om opnieuw te beslissen.';
+
+  @override
+  String get settingsSyncNoticeDivergence =>
+      'Sommige items zijn op twee apparaten op hetzelfde moment gewijzigd en verschillen nog steeds. Staan ze onder Synchronisatiebeslissingen, kies dan daar; bewerk er anders één om dit op te lossen.';
+
+  @override
+  String get syncConflictTitle => 'Kies welke versie je wilt bewaren';
+
+  @override
+  String get syncConflictIntro =>
+      'Deze zijn op meer dan één apparaat gewijzigd, en de app kan niet bepalen welke wijziging moet winnen. Beide versies blijven bewaard tot je kiest.';
+
+  @override
+  String get syncConflictThisDevice => 'Dit apparaat';
+
+  @override
+  String get syncConflictOtherDevice => 'Een ander apparaat';
+
+  @override
+  String syncConflictOtherDeviceNumbered(int number) {
+    return 'Een ander apparaat ($number)';
+  }
+
+  @override
+  String get syncConflictKeepAllThisDevice => 'Alles van dit apparaat bewaren';
+
+  @override
+  String get syncConflictKeepAllOtherDevice =>
+      'Alles van het andere apparaat bewaren';
+
+  @override
+  String get syncConflictApply => 'Selectie bewaren';
+
+  @override
+  String get syncConflictDecideLater => 'Annuleren';
+
+  @override
+  String get syncConflictShowDifferences => 'Verschillen tonen';
+
+  @override
+  String syncConflictChangedAt(String when) {
+    return 'Gewijzigd op $when';
+  }
+
+  @override
+  String get syncConflictOnlyHereHeader => 'Alleen op dit apparaat';
+
+  @override
+  String get syncConflictOnlyThereHeader => 'Alleen op het andere apparaat';
+
+  @override
+  String get syncConflictDifferentHeader => 'Verschillend op elk apparaat';
+
+  @override
+  String syncConflictSameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Nog $count zijn op beide gelijk',
+      one: 'Nog 1 is op beide gelijk',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count alleen op dit apparaat',
+      one: '1 alleen op dit apparaat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyThere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count alleen op het andere apparaat',
+      one: '1 alleen op het andere apparaat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryChanged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count verschillend',
+      one: '1 verschillend',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictDiffersInFields(String fields) {
+    return 'Verschilt in: $fields';
+  }
+
+  @override
+  String syncConflictComparedWith(String version) {
+    return 'Vergeleken met $version';
+  }
+
+  @override
+  String get syncConflictNothingToShow =>
+      'Deze versies verschillen alleen in details die hier niet worden getoond.';
+
+  @override
+  String get syncConflictFiguresUnreadable =>
+      'De figuren kunnen hier niet worden vergeleken.';
+
+  @override
+  String get syncConflictSlotsReordered =>
+      'Dezelfde dansen, in een andere volgorde.';
+
+  @override
+  String get syncConflictSlotsDetailsDiffer =>
+      'Dezelfde dansen, met andere details zoals tijden of alternatieven.';
+
+  @override
+  String get syncConflictUnknownItem => 'Niet op dit apparaat';
+
+  @override
+  String syncConflictVersionLine(String device, String value) {
+    return '$device: $value';
+  }
+
+  @override
+  String syncConflictFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get syncConflictFieldName => 'Naam';
+
+  @override
+  String get syncConflictCombineBoth => 'Beide combineren';
+
+  @override
+  String syncConflictCombineSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Bewaart alle $count items van beide apparaten',
+      one: 'Bewaart het ene item van beide apparaten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictCombineOverLimit(int count, int limit) {
+    return 'Combineren kan niet: samen zouden het er $count zijn, en deze lijst bevat er hoogstens $limit.';
+  }
+
+  @override
+  String get syncConflictCombinePickEach =>
+      'Beide apparaten hebben deze gewijzigd. Kies voor elk welke je wilt bewaren:';
+
+  @override
+  String get syncConflictCombineUnavailable =>
+      'Deze kunnen niet worden gecombineerd, dus er is niets gewijzigd.';
+
+  @override
+  String get syncConflictCombineOverLimitError =>
+      'Samen zou dit meer zijn dan deze lijst kan bevatten, dus er is niets gewijzigd.';
+
+  @override
+  String get syncConflictSaved => 'Je keuzes zijn opgeslagen.';
+
+  @override
+  String get syncConflictUndo => 'Ongedaan maken';
+
+  @override
+  String get syncConflictReconsiderIntro =>
+      'Kies opnieuw tussen de versies die je had. Er verandert niets tot je opslaat.';
+
+  @override
+  String get syncConflictUndoChanged =>
+      'Na je keuze is er iets nieuwers binnengekomen, dus er is niets gewijzigd.';
+
+  @override
+  String get syncConflictFieldProvenance => 'Herkomst';
+
+  @override
+  String get syncConflictFieldColour => 'Kleur';
+
+  @override
+  String get syncConflictThemeBrightness => 'Licht of donker';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'doorloop: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'formulering: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (andere details verschillen)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'in de groep verwante dansen';
+
+  @override
+  String get syncConflictValueNotSet => 'Niet ingesteld';
+
+  @override
+  String get syncConflictValueOn => 'Aan';
+
+  @override
+  String get syncConflictValueOff => 'Uit';
+
+  @override
+  String syncConflictValueItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+      zero: 'Geen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictValueNamesAndMore(String names, int count) {
+    return '$names en nog $count';
+  }
+
+  @override
+  String get syncConflictNone => 'Er valt nu niets te kiezen.';
+
+  @override
+  String get syncConflictClockWrong =>
+      'De datum en tijd van dit apparaat lijken niet te kloppen, dus je keuze kon niet worden opgeslagen. Corrigeer de datum en tijd en probeer het opnieuw.';
+
+  @override
+  String get syncConflictFailed =>
+      'Je keuze kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get syncSettingActiveCustomTheme => 'Gebruikt aangepast thema';
+
+  @override
+  String get syncSettingActiveDialect => 'Gebruikt dialect';
+
+  @override
+  String get syncSettingLastCollectionSort =>
+      'Sortering van de collectie (laatst gebruikt)';
+
+  @override
+  String get syncSettingLastCollectionSortDirection =>
+      'Sorteerrichting van de collectie (laatst gebruikt)';
+
+  @override
+  String get syncSettingLastProgramSort =>
+      'Sortering van programma\'s (laatst gebruikt)';
+
+  @override
+  String get syncSettingLastProgramSortDirection =>
+      'Sorteerrichting van programma\'s (laatst gebruikt)';
+
+  @override
+  String get syncSettingDefaultCollectionSortDirection =>
+      'Sorteerrichting van de collectie (standaard)';
+
+  @override
+  String get syncSettingDefaultProgramSortDirection =>
+      'Sorteerrichting van programma\'s (standaard)';
+
+  @override
+  String get syncSettingPerformStageTheme => 'Podiumthema in Uitvoeren';
+
+  @override
+  String settingsSyncConflictsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count items zijn op twee apparaten gewijzigd en wachten op je keuze.',
+      one: '1 item is op twee apparaten gewijzigd en wacht op je keuze.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Kon niet controleren op conflicten. Probeer het opnieuw.';
+
+  @override
+  String commonSyncNowConflictsTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Nu synchroniseren ($count items wachten op je keuze)',
+      one: 'Nu synchroniseren (1 item wacht op je keuze)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeKeptLocalCreation =>
+      'Iets dat op dit apparaat is gemaakt, zou zijn verwijderd door een ander apparaat dat het nooit had gezien. Het is hier in plaats daarvan bewaard.';
+
+  @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Sommige items op dit apparaat hebben een datum die de app niet kan vertrouwen, dus ze worden niet naar je andere apparaten gestuurd. Controleer de datum en tijd op dit apparaat en bewerk daarna een van de items om het een nieuwe datum te geven.';
+
+  @override
+  String get settingsSyncNoticeWithheldUnreadable =>
+      'Sommige dansen op dit apparaat hebben opgeslagen figuren of deuntjes die de app niet kan lezen, dus ze worden niet naar je andere apparaten gestuurd. Er is niets verwijderd — open er een en voer de figuren of deuntjes opnieuw in om die dans mee te nemen.';
+
+  @override
+  String get settingsSyncNoticeSkippedRecord =>
+      'Sommige records van een ander apparaat konden niet worden gebruikt en zijn overgeslagen. Controleer of je andere apparaten dezelfde app-versie gebruiken en synchroniseer opnieuw.';
+
+  @override
+  String get settingsSyncNoticeClock =>
+      'De klok van een ander apparaat lijkt sterk af te wijken van die van dit apparaat. Controleer de datum en tijd op je apparaten — synchronisatie bepaalt daarmee welke bewerking nieuwer is.';
+
+  @override
+  String get settingsSyncNoticeDeferredInbound =>
+      'Een update van een ander apparaat kwam binnen terwijl je hetzelfde record bewerkte, dus die is niet toegepast. De volgende synchronisatie pikt hem op.';
+
+  @override
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Apparaat $tag synchroniseert, maar neemt $count wijzigingen van dit apparaat niet over. Ze zijn hier veilig. Het andere apparaat heeft misschien een app-update nodig, of de datum en tijd van dit apparaat kloppen niet.',
+      one:
+          'Apparaat $tag synchroniseert, maar neemt 1 wijziging van dit apparaat niet over. De wijziging is hier veilig. Het andere apparaat heeft misschien een app-update nodig, of de datum en tijd van dit apparaat kloppen niet.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Sommige nieuwe soorten gegevens op dit apparaat worden gesynchroniseerd zodra apparaat $tag is bijgewerkt naar de nieuwste versie van de app of is verwijderd uit Andere apparaten. Ze zijn hier veilig.';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Actie nodig';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'Andere apparaten bekijken';
+
+  @override
+  String get settingsSyncNotBackup =>
+      'Synchronisatie is geen back-up. Een opslag die 30 dagen niet wordt gebruikt, wordt verwijderd, dus blijf bestandsback-ups maken.';
+
+  @override
+  String get settingsSyncExpiryWarning =>
+      'Deze opslag is al een tijdje niet gesynchroniseerd en wordt na 30 dagen zonder gebruik verwijderd. Open de app op een gekoppeld apparaat en synchroniseer om hem te behouden.';
+
+  @override
+  String get settingsSyncNowTitle => 'Nu synchroniseren';
+
+  @override
+  String get settingsSyncDisconnectTitle => 'Dit apparaat loskoppelen';
+
+  @override
+  String get settingsSyncDisconnectSubtitle =>
+      'Stop hier met synchroniseren. Je bibliotheek blijft zoals ze is, hier en op je andere apparaten.';
+
+  @override
+  String get settingsSyncDisconnectConfirmTitle => 'Dit apparaat loskoppelen?';
+
+  @override
+  String get settingsSyncDisconnectConfirmBody =>
+      'Dit apparaat stopt met synchroniseren en vergeet zijn synchronisatiezin. Je bibliotheek op dit apparaat blijft zoals ze is, en op je andere apparaten ook. Bij het loskoppelen wordt dit apparaat uit de synchronisatieopslag verwijderd als je andere apparaten er al alles van hebben. Is dat niet zo, dan blijft het onder Andere apparaten in de lijst staan tot je het daar verwijdert. Om later opnieuw te verbinden heb je de zin nodig, dus zorg dat je hem hebt.';
+
+  @override
+  String get settingsSyncDisconnectConfirmAction => 'Loskoppelen';
+
+  @override
+  String get settingsSyncDisconnectFailed =>
+      'Kan dit apparaat niet loskoppelen. Het is nog steeds verbonden; probeer het opnieuw.';
+
+  @override
+  String get settingsSyncDevicesTitle => 'Andere apparaten';
+
+  @override
+  String get settingsSyncDevicesSubtitle =>
+      'Bekijk wat er nog meer met deze opslag verbonden is, en verwijder een apparaat dat je niet meer gebruikt.';
+
+  @override
+  String get settingsSyncDevicesScreenTitle => 'Andere apparaten';
+
+  @override
+  String get settingsSyncDevicesCaution =>
+      'Elk apparaat bedenkt zijn eigen willekeurige identificatie, en bij elke verbinding een nieuwe, dus apparaten worden hier getoond met een kort label uit die identificatie in plaats van met een naam. Dit apparaat staat niet in de lijst; zijn eigen label staat hieronder, zodat je het op je andere apparaten kunt terugvinden. Weet je niet zeker welk apparaat je moet verwijderen, dan kun je het veilig laten staan: een apparaat dat je verwijdert, kan met de synchronisatiezin opnieuw verbinden.';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'Dit apparaat: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Apparaat $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday =>
+      'Heeft vandaag voor het laatst wijzigingen gedeeld';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Heeft $count dagen geleden voor het laatst wijzigingen gedeeld',
+      one: 'Heeft gisteren voor het laatst wijzigingen gedeeld',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Heeft ongeveer $count weken geleden voor het laatst wijzigingen gedeeld',
+      one:
+          'Heeft ongeveer een week geleden voor het laatst wijzigingen gedeeld',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wijzigingen van dit apparaat wachten nog op dat apparaat.',
+      one: '1 wijziging van dit apparaat wacht nog op dat apparaat.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncDevicesEmptyTitle => 'Nog geen andere apparaten';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Andere apparaten die met deze opslag zijn verbonden, verschijnen hier.';
+
+  @override
+  String get settingsSyncDevicesFailed =>
+      'Kan de apparatenlijst niet laden. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get settingsSyncDevicesStoreMissing =>
+      'Deze opslag staat niet meer op de server, dus er zijn geen apparaten om te tonen.';
+
+  @override
+  String get settingsSyncDevicesRetry => 'Opnieuw proberen';
+
+  @override
+  String get settingsSyncDeviceRemoveTooltip => 'Dit apparaat verwijderen';
+
+  @override
+  String get settingsSyncDeviceRemoveTitle => 'Dit apparaat verwijderen?';
+
+  @override
+  String get settingsSyncDeviceRemoveBody =>
+      'De opslag laat de lijst van wat dit apparaat heeft gedeeld los en maakt de plek vrij die het innam. Er wordt niets van dat apparaat verwijderd, en er wordt niets van het jouwe verwijderd. Dit is bedoeld voor een apparaat dat echt weg is: verwijderen koppelt het niet los, dus een apparaat dat nog draait publiceert zijn lijst bij de volgende synchronisatie opnieuw, en elk apparaat kan met de synchronisatiezin opnieuw verbinden.';
+
+  @override
+  String get settingsSyncDeviceRemoveAction => 'Verwijderen';
+
+  @override
+  String get settingsSyncDeviceRemoveFailed =>
+      'Kan dat apparaat niet verwijderen. Het is nog steeds verbonden; probeer het opnieuw.';
+
+  @override
+  String get settingsSyncWipeTitle =>
+      'Alle apparaten loskoppelen en de opslag verwijderen';
+
+  @override
+  String get settingsSyncWipeSubtitle =>
+      'Verwijder alles wat deze opslag bevat, voor alle apparaten tegelijk. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsSyncWipeConfirmTitle =>
+      'Deze opslag van de server verwijderen?';
+
+  @override
+  String get settingsSyncWipeConfirmBody =>
+      'Alles wat de opslag bevat, wordt van de server verwijderd, voor alle apparaten tegelijk. Dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan, maar wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten merken bij de volgende synchronisatie dat de opslag weg is en bieden aan een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige wat bewaarde gegevens meteen verwijdert. Wil je blijven synchroniseren, stel dan op elk apparaat een nieuwe zin in: opnieuw verbinden met de oude zin zet een nieuwe opslag terug op hetzelfde adres.';
+
+  @override
+  String get settingsSyncWipeConfirmAction => 'Opslag verwijderen';
+
+  @override
+  String get settingsSyncWipeFailed =>
+      'Kan de opslag niet verwijderen, of kan niet bevestigen dat ze verwijderd is. Dit apparaat is nog steeds verbonden. Controleer je andere apparaten voordat je het opnieuw probeert.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'De opslag is van de server verwijderd, maar dit apparaat kon de verbinding ermee niet verbreken. De opslag is weg en kan niet worden teruggehaald. Gebruik Dit apparaat loskoppelen om het af te ronden.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Opslag verwijderd, dit apparaat nog verbonden';
+
+  @override
+  String get settingsSyncMeteredRouted =>
+      'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.';
+
+  @override
+  String get settingsSyncOffline =>
+      'Geen verbinding op dit moment. De synchronisatie draait bij de eerste kans.';
+
+  @override
+  String get settingsSyncNotPairedNow =>
+      'Koppel een opslag voordat je synchroniseert.';
+
+  @override
+  String get commonSyncNowTooltip => 'Nu synchroniseren';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling uit in Instellingen om nu te synchroniseren.';
+
+  @override
+  String get settingsSyncConnectTitle => 'Verbinden';
+
+  @override
+  String get settingsSyncPairingTitle => 'Apparaatsynchronisatie verbinden';
+
+  @override
+  String get settingsSyncPairingChooseHeading =>
+      'Is dit het eerste apparaat, of voeg je er nog een toe?';
+
+  @override
+  String get settingsSyncPairingCreateTitle => 'Nieuwe opslag maken';
+
+  @override
+  String get settingsSyncPairingCreateSubtitle =>
+      'Begin opnieuw. Je krijgt een zin om aan je andere apparaten voor te lezen.';
+
+  @override
+  String get settingsSyncPairingConnectTitle =>
+      'Verbinden met bestaande opslag';
+
+  @override
+  String get settingsSyncPairingConnectSubtitle =>
+      'Voer de zin in die op het al ingestelde apparaat wordt getoond.';
+
+  @override
+  String get settingsSyncPairingYourPhrase => 'Je synchronisatiezin';
+
+  @override
+  String get settingsSyncPairingYourPhraseHelper =>
+      'Vier woorden gescheiden door koppeltekens. Houd de gegenereerde zin aan of typ je eigen zin.';
+
+  @override
+  String get settingsSyncPairingRegenerate => 'Andere zin genereren';
+
+  @override
+  String get settingsSyncPairingPersonalInfoTitle =>
+      'Zet geen persoonlijke gegevens in de zin';
+
+  @override
+  String get settingsSyncPairingPersonalInfoBody =>
+      'Als je je eigen zin typt, houd er dan namen, adressen, geboortedata en al het andere over jezelf uit. De zin gaat bij elk verzoek naar de server en wordt op elk apparaat dat je verbindt voorgelezen of ingetypt, dus behandel hem als iets dat aan de buitenkant van een doos staat, niet als plek voor privégegevens.';
+
+  @override
+  String get settingsSyncPairingWeakPhraseTitle =>
+      'Deze zin is mogelijk makkelijk te raden';
+
+  @override
+  String get settingsSyncPairingWeakPhraseBody =>
+      'Wie hem raadt, kan alles lezen en wijzigen wat je synchroniseert. Een gegenereerde zin is veel moeilijker te raden. Je kunt deze toch gebruiken.';
+
+  @override
+  String get settingsSyncPairingEnterPhrase => 'Synchronisatiezin';
+
+  @override
+  String get settingsSyncPairingEnterPhraseHint => 'woord-woord-woord-woord';
+
+  @override
+  String get settingsSyncPairingEndpointLabel => 'Server';
+
+  @override
+  String get settingsSyncPairingEndpointHelper =>
+      'Laat dit ongewijzigd, tenzij je een eigen synchronisatieserver gebruikt.';
+
+  @override
+  String get settingsSyncPairingInvalidPhrase =>
+      'Dat lijkt niet op een volledige synchronisatiezin.';
+
+  @override
+  String get settingsSyncPairingInvalidEndpoint =>
+      'Dat is geen geldig serveradres. Gebruik een https://-adres zonder gebruikersnaam en zonder ?- of #-deel (gewone http:// werkt alleen voor localhost of 127.0.0.1).';
+
+  @override
+  String get settingsSyncPairingNotFound =>
+      'Geen opslag heeft die zin. Vergelijk hem met het andere apparaat en probeer het opnieuw.';
+
+  @override
+  String get settingsSyncPairingAlreadyInUse =>
+      'Die zin is al in gebruik door een andere opslag. Genereer een andere.';
+
+  @override
+  String settingsSyncPairingCustomEndpointTitle(String host) {
+    return 'Aangepaste server: $host';
+  }
+
+  @override
+  String get settingsSyncPairingCustomEndpointBody =>
+      'Dit is niet de standaardserver voor apparaatsynchronisatie. Wie deze server beheert, kan alles wat je synchroniseert lezen, wijzigen en verwijderen. Gebruik dus alleen een server die je vertrouwt.';
+
+  @override
+  String get settingsSyncPairingSharingTitle => 'Delen is geen samenwerking';
+
+  @override
+  String get settingsSyncPairingSharingBody =>
+      'Een tweede persoon kan dezelfde zin op zijn apparaat gebruiken. Als jullie tegelijk dezelfde dans of hetzelfde programma bewerken, overschrijft de ene bewerking stilzwijgend de andere — er is geen waarschuwing en geen manier om ze te combineren.';
+
+  @override
+  String get settingsSyncPairingNewerDataTitle =>
+      'Elk apparaat heeft een bijgewerkte app nodig';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, worden die dingen niet naar je andere apparaten gestuurd.';
+
+  @override
+  String get settingsSyncPairingBearerTitle =>
+      'Iedereen met deze zin kan je bibliotheek openen';
+
+  @override
+  String get settingsSyncPairingBearerBody =>
+      'De zin is waar je gedeelde bibliotheek staat, geen wachtwoord ervoor — er is nergens om in te loggen. Iedereen aan wie je hem geeft, en iedereen die hem zomaar tegenkomt, kan die bibliotheek vanaf zijn eigen apparaat openen: alles lezen wat je synchroniseert, daarvan overal waar het terecht is gekomen iets wijzigen of verwijderen, en het geheel van de server verwijderen. Er bestaat geen versie van een zin die minder kan.';
+
+  @override
+  String get settingsSyncPairingCredentialTitle =>
+      'Er is geen kopie van deze zin, en terugnemen kan niet';
+
+  @override
+  String get settingsSyncPairingCredentialBody =>
+      'Nergens anders is deze zin bekend, dus als je hem kwijtraakt, blijft de bibliotheek liggen waar hij staat en kan niemand er nog bij. Iemand de zin vertellen valt evenmin ongedaan te maken. Je apparaten naar een nieuwe zin verplaatsen begint alleen een tweede bibliotheek ergens anders: de eerste staat er nog, en wie de oude zin heeft bewaard, kan die nog steeds openen en wijzigen. Alleen de opslag verwijderen haalt hem er meteen weg.';
+
+  @override
+  String get settingsSyncPairingBackupOfferTitle =>
+      'Eerst je bibliotheek back-uppen?';
+
+  @override
+  String get settingsSyncPairingBackupOfferBody =>
+      'Dit is optioneel en alleen voor je eigen veiligheid — verbinden zelf maakt geen back-up.';
+
+  @override
+  String get settingsSyncPairingBackupOfferAccept => 'Nu back-uppen';
+
+  @override
+  String get settingsSyncPairingBackupOfferSkip => 'Niet nu';
+
+  @override
+  String get settingsSyncPairingContinue => 'Doorgaan';
+
+  @override
+  String get settingsSyncPairingComplete => 'Verbonden';
+
+  @override
+  String get settingsSyncPairingCompleteBody =>
+      'Je bibliotheek is verbonden en de eerste synchronisatie is klaar.';
+
+  @override
+  String get settingsSyncPairingCompleteFailed =>
+      'Je bibliotheek is verbonden, maar de eerste synchronisatie is niet afgerond. Hij probeert het vanzelf opnieuw.';
+
+  @override
+  String get settingsSyncPairingCompleteMetered =>
+      'Je bibliotheek is verbonden. De eerste synchronisatie wacht op wifi, omdat ‘Alleen synchroniseren via wifi’ aan staat.';
+
+  @override
+  String get settingsSyncPairingCompleteOffline =>
+      'Je bibliotheek is verbonden. De eerste synchronisatie draait zodra je weer online bent.';
+
+  @override
+  String get settingsSyncPairingCompletePending =>
+      'Je bibliotheek is verbonden. De eerste synchronisatie is nog niet gedraaid; hij draait de volgende keer dat dit apparaat synchroniseert.';
+
+  @override
+  String get settingsSyncReplacementTitle => 'Deze opslag bestaat niet meer';
+
+  @override
+  String get settingsSyncReplacementBody =>
+      'De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Om het adres van deze opslag niet meer te gebruiken, stel je een nieuwe zin in: dit apparaat wordt losgekoppeld, en daarna maak je een nieuwe opslag of verbind je met een opslag die je op een ander apparaat hebt ingesteld. Doe dit op elk van je apparaten. Opnieuw verbinden maakt in plaats daarvan een nieuwe opslag op hetzelfde adres, met dezelfde zin, en stuurt je hele bibliotheek daarheen; als een ander apparaat dat al heeft gedaan, sluit dit apparaat zich bij die opslag aan.';
+
+  @override
+  String get settingsSyncReplacementConfirm => 'Opnieuw verbinden';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => 'Instellen met een nieuwe zin';
+
+  @override
+  String get settingsSyncReplacementCancel => 'Niet nu';
+
+  @override
+  String get settingsSyncReplacementFailed =>
+      'De laatste poging om opnieuw te verbinden is niet gelukt. Je kunt het opnieuw proberen, of Niet nu kiezen en later beslissen.';
 
   @override
   String get settingsAboutTitle => 'Over';
 
   @override
   String get commonSystemDefault => 'Systeemstandaard';
-
-  @override
-  String get commonComingSoon => 'Binnenkort beschikbaar';
 
   @override
   String get settingsLanguageRegionTitle => 'Taal en regio';
@@ -285,7 +1873,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutLicenseBody =>
-      'Caller\'s Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.';
+      'Caller\'s Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0-only). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.';
 
   @override
   String get settingsAboutViewSourceTitle => 'Broncode bekijken op GitHub';
@@ -299,11 +1887,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutFontFrauncesSubtitle =>
-      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & koppen';
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display en koppen';
 
   @override
   String get settingsAboutFontAtkinsonSubtitle =>
-      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — tekst, UI & uitvoeren';
+      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — tekst, UI & Uitvoeren';
 
   @override
   String get settingsAboutFontRobotoSubtitle =>
@@ -321,7 +1909,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutDanceDataBody =>
-      'Dansgegevens zijn afkomstig van The Caller\'s Box (Chris Page & Michael Dyck), waarvan de collectie is gepubliceerd onder de Creative Commons Attribution-NonCommercial-licentie (CC BY-NC), met dankbaarheid.';
+      'Dansgegevens zijn afkomstig van The Caller\'s Box (Chris Page & Michael Dyck), waarvan de collectie is gepubliceerd onder de Creative Commons Attribution-NonCommercial-licentie (CC BY-NC), met dankbaarheid.';
 
   @override
   String get settingsAboutLicensesHeader => 'Licenties';
@@ -335,7 +1923,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© De bijdragers van Caller\'s Compendium. Uitgebracht onder AGPL-3.0.';
+      '© De bijdragers van Caller\'s Compendium. Uitgebracht onder AGPL-3.0-only.';
+
+  @override
+  String get settingsAboutTagline => 'De caller-koffer in de palm van je hand';
 
   @override
   String settingsAboutVersion(String version, String codename) {
@@ -345,11 +1936,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   ) {
-    return '$appName · Versie $version, “$codename” · $license';
+    return '$appName · “$codename” · $license';
   }
 
   @override
@@ -370,6 +1960,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String settingsUpdatesStatusNoUpdate(String version) {
     return 'Geen update gevonden. Je gebruikt versie $version.';
   }
+
+  @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return 'Kon nu niet op updates controleren. Je gebruikt versie $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      'Er is een nieuwere versie beschikbaar op de Releases-pagina.';
 
   @override
   String settingsUpdatesStatusAvailable(String version) {
@@ -397,6 +1996,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Controleer bij het opstarten op een nieuwere versie op de achtergrond. Standaard uitgeschakeld.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Zoek bij het opstarten van de app op de achtergrond naar een einddatum van de ondersteuning voor deze versie. Standaard uit.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'De updatecontrole downloadt alleen een klein versiebestand via HTTPS — er worden nooit gegevens over jou, je apparaat of je gebruik verstuurd. Er wordt niets automatisch gedownload of geïnstalleerd: jij kiest wanneer je een update downloadt, het wordt geverifieerd voordat het wordt geopend, en je systeeminstaller voltooit de installatie.';
 
@@ -416,7 +2019,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsUpdatesVerifyingSubtitle =>
-      'De sha256-integriteit van de download controleren…';
+      'Controleren of de download compleet en ongewijzigd is…';
 
   @override
   String get settingsUpdatesHandoffTitle => 'Installer voorbereiden';
@@ -444,11 +2047,26 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je update is klaar. Koppel de schijfkopie aan en sluit de app zodat je deze in Programma\'s kunt vervangen.';
 
   @override
+  String get settingsUpdatesStoreTitle => 'Updates komen uit je appstore';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Deze kopie is geïnstalleerd vanuit een appstore, dus de store werkt hem bij. De app zoekt alleen naar een einddatum van de ondersteuning, nooit naar een nieuwe versie.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Draagbare kopie: download het nieuwe archief';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Deze kopie draait vanuit een uitgepakt archief, dus de app kan de update niet voor je installeren. Download de nieuwe zip of tar.gz van de release en pak hem uit.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Update downloaden en installeren';
 
   @override
   String get settingsUpdatesDownloadError =>
-      'De update kon niet worden gedownload.';
+      'De update kon niet worden gedownload. Probeer het opnieuw.';
 
   @override
   String settingsUpdatesDownloadSubtitle(String version) {
@@ -457,6 +2075,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'Dialecten';
+
+  @override
+  String get settingsDialectFormHelper =>
+      'Elk danstype heeft zijn eigen dialecten. Kies een type om de dialecten ervan te bekijken en in te stellen.';
 
   @override
   String get settingsDialectDanceDetailsHeader => 'Dansdetails en afkortingen';
@@ -502,11 +2124,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dupliceren om aan te passen';
 
   @override
-  String get settingsDialectDeleteTitle => 'Dialect verwijderen?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '“$name” wordt permanent verwijderd.';
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" is hernoemd of verwijderd terwijl je het bewerkte, dus je wijzigingen zijn niet opgeslagen.';
   }
 
   @override
@@ -523,6 +2142,390 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesHeader => 'Aangepaste thema\'s';
+
+  @override
+  String get appThemeGroupSystem => 'Systeem';
+
+  @override
+  String get appThemeGroupDefault => 'Standaard';
+
+  @override
+  String get appThemeGroupLight => 'Licht';
+
+  @override
+  String get appThemeGroupDark => 'Donker';
+
+  @override
+  String get themeScreenSearchHint => 'Thema\'s zoeken…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Zoekopdracht wissen';
+
+  @override
+  String get themeScreenNoMatches =>
+      'Geen thema\'s komen overeen met je zoekopdracht.';
+
+  @override
+  String get themeScreenNewCustomTheme => 'Aangepast thema';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Nieuw aangepast thema';
+
+  @override
+  String get appThemeKeywordRed => 'rood, karmijn, scharlaken, koraal';
+
+  @override
+  String get appThemeKeywordOrange => 'oranje, amber, koper';
+
+  @override
+  String get appThemeKeywordYellow => 'geel, goud, mosterd';
+
+  @override
+  String get appThemeKeywordGreen => 'groen, salie, olijf, bos';
+
+  @override
+  String get appThemeKeywordTeal => 'blauwgroen, cyaan, turquoise, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blauw, marine, azuur, hemelsblauw';
+
+  @override
+  String get appThemeKeywordPurple => 'paars, violet, lila, lavendel';
+
+  @override
+  String get appThemeKeywordPink => 'roze, magenta, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'bruin, beige, zand, crème, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grijs, antraciet, leisteen, zilver';
+
+  @override
+  String get appThemeKeywordWarm => 'warm, gezellig, aards';
+
+  @override
+  String get appThemeKeywordCool => 'koel, koud, ijzig, arctisch';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, zacht, snoep';
+
+  @override
+  String get appThemeKeywordVivid => 'levendig, fel, verzadigd, neon, krachtig';
+
+  @override
+  String get appThemeKeywordMuted => 'gedempt, ingetogen, rustig, mild';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, klassiek';
+
+  @override
+  String get appThemeKeywordAccessible => 'toegankelijk, leesbaar, contrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatisch, auto, apparaat, volgen';
+
+  @override
+  String get appThemeLabelSystem => 'Systeem';
+
+  @override
+  String get appThemeLabelLight => 'Licht';
+
+  @override
+  String get appThemeLabelDark => 'Donker';
+
+  @override
+  String get appThemeLabelSoftDark => 'Zacht donker';
+
+  @override
+  String get appThemeLabelHighContrast => 'Hoog contrast';
+
+  @override
+  String get appThemeDescriptionSystem =>
+      'Volgt de licht/donker-instelling van het apparaat';
+
+  @override
+  String get appThemeDescriptionLight => 'Warm lichtpalet';
+
+  @override
+  String get appThemeDescriptionDark => 'Warm donker palet';
+
+  @override
+  String get appThemeDescriptionSoftDark =>
+      'Warm donker op een zachtere, lichtere ondergrond';
+
+  @override
+  String get appThemeDescriptionHighContrast =>
+      'Maximaal contrast voor schemerige ruimtes en slechtziendheid';
+
+  @override
+  String get appThemeDescriptionBlulocoLight =>
+      'Heldere, koel-neutrale ondergrond met levendige juweeltinten';
+
+  @override
+  String get appThemeDescriptionOneDarkPro =>
+      'One Dark Pro, het populaire editorthema';
+
+  @override
+  String get appThemeDescriptionMonokai =>
+      'One Monokai – Monokai-syntaxis op antraciet';
+
+  @override
+  String get appThemeDescriptionNoctis => 'De originele diepteal Noctis-nacht';
+
+  @override
+  String get appThemeDescriptionGithubLight =>
+      'GitHubs heldere, neutrale licht';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte =>
+      'Zacht pastellicht, favoriet van de community';
+
+  @override
+  String get appThemeDescriptionGruvboxLight =>
+      'Warm retro-crème en aardtinten';
+
+  @override
+  String get appThemeDescriptionEverforestLight =>
+      'Zacht groen, rustig voor de ogen';
+
+  @override
+  String get appThemeDescriptionRosePineDawn =>
+      'Gedempt roze en iris op warm papier';
+
+  @override
+  String get appThemeDescriptionAyuLight =>
+      'Helder, minimaal licht met amberkleurige accenten';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'Heldere indigo daglicht, de dag van Tokyo Night';
+
+  @override
+  String get appThemeDescriptionNordLight =>
+      'Koele arctische sneeuwstorm-neutrale tinten';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus =>
+      'Warm sumi-e-papier met inktaccenten';
+
+  @override
+  String get appThemeDescriptionDracula =>
+      'De klassieke favoriet: paars op antraciet';
+
+  @override
+  String get appThemeDescriptionNord =>
+      'Koele arctische blauwtinten, ingetogen';
+
+  @override
+  String get appThemeDescriptionTokyoNight =>
+      'Neon-indigo palet van een stad bij nacht';
+
+  @override
+  String get appThemeDescriptionGruvboxDark => 'Warm retro-amber op antraciet';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha =>
+      'Gezellig pasteldonker, favoriet van de community';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'GitHubs neutrale donker';
+
+  @override
+  String get appThemeDescriptionEverforestDark =>
+      'Zacht bosgroen, weinig vermoeiend';
+
+  @override
+  String get appThemeDescriptionRosePine =>
+      'Gedempt roze en iris in het donker';
+
+  @override
+  String get appThemeDescriptionAyuMirage =>
+      'Zacht leisteengrijs met amberkleurige accenten';
+
+  @override
+  String get appThemeDescriptionCutiePro =>
+      'Superschattig donker pastel, roze als blikvanger';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck =>
+      'Onbeschaamd felroze op bessenkleur';
+
+  @override
+  String get appThemeDescriptionVitesseLight =>
+      'Modern gedempt saliegroen, teal en roze';
+
+  @override
+  String get appThemeDescriptionZenburn =>
+      'Het klassieke warmgrijs met laag contrast';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple => 'Rijk goud op diep indigo';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe =>
+      'Lichter blauwgrijs pastel-Catppuccin';
+
+  @override
+  String get appThemeDescriptionSynthwave84 => 'Gloeiend neon op retropaars';
+
+  @override
+  String get appThemeDescriptionNoctisLilac => 'Zacht lila daglicht van Noctis';
+
+  @override
+  String get themeEditorGroupPrimary => 'Primair';
+
+  @override
+  String get themeEditorGroupSecondary => 'Secundair';
+
+  @override
+  String get themeEditorGroupTertiary => 'Tertiair';
+
+  @override
+  String get themeEditorGroupError => 'Fout';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'Oppervlak en tekst';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'Oppervlaktecontainers';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'Omlijning en effecten';
+
+  @override
+  String get themeEditorRolePrimary => 'Primair';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'Op primair';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'Primaire container';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'Op primaire container';
+
+  @override
+  String get themeEditorRoleSecondary => 'Secundair';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'Op secundair';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'Secundaire container';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'Op secundaire container';
+
+  @override
+  String get themeEditorRoleTertiary => 'Tertiair';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'Op tertiair';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'Tertiaire container';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'Op tertiaire container';
+
+  @override
+  String get themeEditorRoleError => 'Fout';
+
+  @override
+  String get themeEditorRoleOnError => 'Op fout';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'Foutcontainer';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'Op foutcontainer';
+
+  @override
+  String get themeEditorRoleSurface => 'Oppervlak';
+
+  @override
+  String get themeEditorRoleOnSurface => 'Op oppervlak';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'Op oppervlakvariant';
+
+  @override
+  String get themeEditorRoleInverseSurface => 'Omgekeerd oppervlak';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => 'Op omgekeerd oppervlak';
+
+  @override
+  String get themeEditorRoleInversePrimary => 'Omgekeerd primair';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'Container (laagste)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'Container (laag)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'Container';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'Container (hoog)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest => 'Container (hoogste)';
+
+  @override
+  String get themeEditorRoleOutline => 'Omlijning';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'Omlijningsvariant';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'Oppervlaktetint';
+
+  @override
+  String get themeEditorRoleShadow => 'Schaduw';
+
+  @override
+  String get themeEditorRoleScrim => 'Scrim';
+
+  @override
+  String get themeEditorPairOnPrimary => 'Tekst op primair';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer => 'Tekst op primaire container';
+
+  @override
+  String get themeEditorPairOnSecondary => 'Tekst op secundair';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer =>
+      'Tekst op secundaire container';
+
+  @override
+  String get themeEditorPairOnTertiary => 'Tekst op tertiair';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer =>
+      'Tekst op tertiaire container';
+
+  @override
+  String get themeEditorPairOnError => 'Tekst op fout';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'Tekst op foutcontainer';
+
+  @override
+  String get themeEditorPairOnSurface => 'Lopende tekst op oppervlak';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'Secundaire tekst op oppervlak';
+
+  @override
+  String get themeEditorPairOnInverseSurface => 'Tekst op omgekeerd oppervlak';
+
+  @override
+  String get themeEditorPairOutline => 'Omlijning op oppervlak';
 
   @override
   String get settingsAppearanceEasterEggsHeader => 'Verrassingen';
@@ -547,14 +2550,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
+      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — tenzij je die formatie een eigen kleur hebt gegeven; die gaat voor. Dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'Formatielabelkleuren';
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails en de uitvoerheader.';
+      'Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails, de uitvoerheader en rijen in de dansvolgorde.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Geselecteerd';
@@ -566,22 +2569,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Voorbeeld van tekst';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'Nieuw aangepast thema';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mijn thema';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Kopieer het huidige thema en pas elke kleur aan. Aangepaste thema\'s worden op dit apparaat opgeslagen.';
-
-  @override
-  String get settingsAppearanceDeleteThemeTitle => 'Thema verwijderen?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '“$name” wordt permanent verwijderd.';
-  }
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -612,15 +2600,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsStartingProgramPickerTitle => 'Een dans toevoegen';
 
   @override
-  String get settingsDefaultsStartingProgramAddDance => 'Dans';
-
-  @override
-  String get settingsDefaultsStartingProgramAddText => 'Notitie';
-
-  @override
-  String get settingsDefaultsStartingProgramAddBreak => 'Pauze toevoegen';
-
-  @override
   String get settingsDefaultsStartingProgramTextLabel => 'Tekst van notitie';
 
   @override
@@ -634,8 +2613,36 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsStartingProgramMoveDown => 'Omlaag';
 
   @override
-  String settingsDefaultsStartingProgramUnavailableDance(String id) {
-    return 'Niet-beschikbare dans ($id)';
+  String get settingsDefaultsStartingProgramUnavailableDance =>
+      'Deze dans is niet meer beschikbaar';
+
+  @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'Een moeilijkheidsniveau heeft een naam nodig.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'Er bestaat al een niveau met de naam \"$label\".';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen gebruiken $label. Wijzig ze eerst.',
+      one: '1 dans gebruikt $label. Wijzig die eerst.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'De moeilijkheidsniveaus konden niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '“$label” verwijderd.';
   }
 
   @override
@@ -661,6 +2668,16 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsDefaultsProgramSortSubtitle =>
       'Hoe de programmalijst wordt gesorteerd wanneer je deze opent. Je kunt de sortering tijdens het bladeren nog steeds wijzigen.';
+
+  @override
+  String get settingsDefaultsSortLastUsedSubtitle =>
+      'Wordt geopend met de sortering en richting die je het laatst hebt gebruikt.';
+
+  @override
+  String get settingsDefaultsSortAscending => 'Oplopend';
+
+  @override
+  String get settingsDefaultsSortDescending => 'Aflopend';
 
   @override
   String get settingsDefaultsCanonicalTitle =>
@@ -703,6 +2720,68 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'Aangepaste velden';
 
   @override
+  String get settingsDefaultsShareFieldsHeader => 'Gedeelde dansvelden';
+
+  @override
+  String get settingsDefaultsShareFieldsSubtitle =>
+      'Kies welke details worden weergegeven wanneer je een programma of dans deelt, kopieert of exporteert. Deuntjes, de hook en bronnen zijn verborgen totdat je ze inschakelt; al het andere wordt standaard weergegeven.';
+
+  @override
+  String get settingsDefaultsShareFieldsAuthors => 'Auteurs';
+
+  @override
+  String get settingsDefaultsShareFieldsFormation => 'Formatie';
+
+  @override
+  String get settingsDefaultsShareFieldsLevel => 'Niveau';
+
+  @override
+  String get settingsDefaultsShareFieldsMixer => 'Mixer';
+
+  @override
+  String get settingsDefaultsShareFieldsStatus => 'Status';
+
+  @override
+  String get settingsDefaultsShareFieldsPhraseStructure => 'Frase';
+
+  @override
+  String get settingsDefaultsShareFieldsCallingNotes => 'Callnotities';
+
+  @override
+  String get settingsDefaultsShareFieldsWalkthrough => 'Doorloop';
+
+  @override
+  String get settingsDefaultsShareFieldsTunes => 'Deuntjes';
+
+  @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Bronnen';
+
+  @override
+  String get settingsDefaultsCollectionFiltersHeader => 'Collectiefilters';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Kies welke filters verschijnen wanneer je de collectie filtert en wanneer je dansen voor een programma kiest. Alle filters worden standaard getoond. Als je een filter verbergt, wordt de selectie ervan gewist.';
+
+  @override
+  String get settingsDefaultsImportHeader => 'Importstandaarden';
+
+  @override
+  String get settingsDefaultsImportTagsTitle =>
+      'Tags voor geïmporteerde dansen';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de plekken ervan worden gemaakt, krijgen geen tags.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'Je hebt nog geen tags. Voeg er een toe aan een dans in de editor en kies die dan hier.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Standaarden voor dansen aanmaken';
 
@@ -711,7 +2790,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld. De regel wordt geparseerd tot figuur(en); niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Het bewerken van een bestaande figuur gebruikt altijd de volledige editor.';
+      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt omgezet in figuren; tekst die de app niet kan lezen wordt bewaard als niet-herkende figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -719,7 +2798,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast nooit automatisch gewijzigd.';
+      'Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast alleen automatisch gewijzigd wanneer je een balansoptie aan- of uitzet; dan worden er 4 tellen toegevoegd of verwijderd.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figuurafkortingen';
@@ -740,11 +2819,14 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'Dansvorm';
+  String get settingsDefaultsFormTitle => 'Type';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'De dansvorm waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
+      'Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
+
+  @override
+  String get settingsDefaultsFormLastUsed => 'Laatst gebruikt';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formatie';
@@ -772,10 +2854,18 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'De figuren waarmee een nieuwe dans begint. Standaard één stilstaan (8 beats); maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.';
+      'De figuren waarmee een nieuwe dans begint. Standaard acht keer stilstaan (elk 8 beats), of geen zolang vrije tekstinvoer aan staat; maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'Standaardwaarden voor moves';
+
+  @override
+  String get settingsDefaultsUserFiguresTitle =>
+      'Standaarden voor Eigen figuren';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Elke figuur van jou heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.';
 
   @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
@@ -788,8 +2878,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsRemoveMoveTooltip => 'Verwijderen';
 
   @override
-  String get settingsDefaultsMoveGone =>
-      'Deze move bevindt zich niet meer in de taxonomie.';
+  String get settingsDefaultsMoveGone => 'Deze move is niet meer beschikbaar.';
 
   @override
   String get settingsDefaultsMoveNoParams =>
@@ -800,7 +2889,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader. Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.';
+      'Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader, en om de rijen in de dansvolgorde te kleuren (mixers houden de mixerkleur). Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formaties';
@@ -827,39 +2916,230 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geef een tag een eigen kleur zodat die opvalt op danskaarten en in de dansdetails. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
-  String get settingsTagColoursTitle => 'Tagkleuren';
+  String get settingsTagColoursEmptyTitle => 'Nog geen tags';
 
   @override
-  String get settingsTagColoursIntro =>
-      'Geef een tag een eigen kleur zodat die overal opvalt waar hij verschijnt. Alleen de tags die je kleurt veranderen; de rest ziet er precies zo uit als nu. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
-  String get settingsTagColoursEmpty =>
-      'Je hebt nog geen tags aangemaakt. Voeg een tag toe aan een dans en die verschijnt hier.';
-
-  @override
-  String get settingsTagColoursCustom => 'Aangepaste kleur';
-
-  @override
-  String get settingsTagColoursNoColour => 'Geen kleur';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Kleur van $label verwijderen';
-  }
+  String get settingsTagColoursEmptyBody =>
+      'Voeg een tag toe aan een dans en die verschijnt hier.';
 
   @override
   String get settingsTagColoursSaveError =>
-      'Kon die kleur niet opslaan. Probeer het opnieuw.';
+      'Die kleur kon niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
-  String get settingsTagColoursLoadError => 'Kon je tags niet laden.';
+  String get settingsTagColoursLoadError =>
+      'Je tags konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
-  String get settingsGeneralLibraryHeader => 'Bibliotheek';
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Tags zoeken';
+
+  @override
+  String get tagManagerNameLabel => 'Tagnaam';
+
+  @override
+  String get tagManagerShowDances => 'Dansen tonen';
+
+  @override
+  String get tagManagerColour => 'Kleur…';
+
+  @override
+  String get tagManagerRemoveColour => 'Kleur verwijderen';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '“$name” verwijderd uit $count dansen',
+      one: '“$name” verwijderd uit 1 dans',
+      zero: '“$name” verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count tags samengevoegd tot “$into”';
+  }
+
+  @override
+  String get authorManagerTitle => 'Auteurs';
+
+  @override
+  String get authorManagerSearchHint => 'Auteurs zoeken';
+
+  @override
+  String get authorManagerNameLabel => 'Naam van de auteur';
+
+  @override
+  String get authorManagerEmptyTitle => 'Nog geen auteurs';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Auteurs die u bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get authorManagerLoadError =>
+      'Je auteurs konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count auteurs samengevoegd tot “$into”';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Bronnen';
+
+  @override
+  String get sourceManagerSearchHint => 'Bronnen zoeken';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titel van de bron';
+
+  @override
+  String get sourceManagerEmptyTitle => 'Nog geen bronnen';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Boeken en websites die u bij een dans citeert, verschijnen hier.';
+
+  @override
+  String get sourceManagerLoadError =>
+      'Je bronnen konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get libraryManagerClearSearch => 'Zoekopdracht wissen';
+
+  @override
+  String get libraryManagerNotUsed => 'Niet gebruikt';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sorteren';
+
+  @override
+  String get libraryManagerSortByName => 'Naam';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Aantal dansen';
+
+  @override
+  String get libraryManagerNoMatches =>
+      'Niets komt overeen met je zoekopdracht.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+      zero: 'Niet gebruikt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Acties voor $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Hernoemen';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '“$name” hernoemen';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Samenvoegen met…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '“$name” samenvoegen met…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Naam al in gebruik';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen en “$name” noemen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Meer dan één item heet al “$name”. Kies het item waarmee “$from” wordt samengevoegd; de andere worden er ook mee samengevoegd.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Samenvoegen';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Ongedaan maken lukt niet: “$name” wordt nu door een ander item gebruikt.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get libraryManagerEditDetails => 'Details bewerken…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '“$name” verwijderd';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '“$from” samenvoegen met “$into”?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Deze details verschillen. Het samengevoegde item houdt zijn eigen details, en deze vervallen:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get settingsGeneralLibraryHeader => 'Dansen';
 
   @override
   String get settingsGeneralSortIgnoreArticlesTitle =>
@@ -889,6 +3169,25 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralProgramsHeader => 'Programma\'s';
+
+  @override
+  String get settingsSharingHeader => 'Delen';
+
+  @override
+  String get settingsSharingTitleTitle =>
+      'Programmatitel opnemen bij het delen van een setlijst';
+
+  @override
+  String get settingsSharingCallerBandTitle =>
+      'Caller en band opnemen bij het delen van een setlijst';
+
+  @override
+  String get settingsSharingDateVenueTitle =>
+      'Datum en locatie opnemen bij het delen van een setlijst';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'Geldt voor het delen of kopiëren van de setlijst. Het hele programma delen als .ccshare- of JSON-bestand bevat altijd alles.';
 
   @override
   String get settingsGeneralMatrixExactCollisionTitle =>
@@ -990,18 +3289,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geparametriseerde kolom verwijderen';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Geparametriseerde kolom verwijderen?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'Dit verwijdert de kolom en de bijbehorende matchregels uit de matrix. Dit kan niet ongedaan worden gemaakt.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
-      'Kolom verwijderen';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd =>
       'Samengestelde kolom toevoegen';
 
@@ -1047,18 +3334,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Samengestelde kolom verwijderen';
 
   @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Samengestelde kolom verwijderen?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'Hiermee verwijder je de kolom en de bijbehorende reeks uit de matrix. Dit kan niet ongedaan worden gemaakt.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Kolom verwijderen';
-
-  @override
-  String get settingsGeneralPerformanceHeader => 'Uitvoering';
+  String get settingsGeneralPerformanceHeader => 'Uitvoeren';
 
   @override
   String get settingsGeneralAutoSizePerformTitle =>
@@ -1066,23 +3342,31 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Schaal elke kaart zodat de volledige dans of het slot op het scherm past zonder scrollen. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
+      'Schaal elke kaart zodat die op het scherm past, maar nooit kleiner dan je gebruikelijke tekstgrootte: een langere dans of een langer slot scrolt dan. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
-      'Timer voor individuele Perform tonen';
+      'Timer tonen bij het uitvoeren van één dans';
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.';
 
   @override
+  String get settingsConfirmPerformExitTitle =>
+      'Bevestigen voor Uitvoeren verlaten';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; Uitvoeren voor een programma onthoudt je plek in beide gevallen.';
+
+  @override
   String get settingsShowProgramSlotCallerNotesTitle =>
-      'Callernotities in programma-Perform tonen';
+      'Callernotities tonen bij het uitvoeren van een programma';
 
   @override
   String get settingsShowProgramSlotCallerNotesSubtitle =>
-      'Niet-lege callernotities per slot boven de danstitel in programma-Perform tonen.';
+      'Toon niet-lege callernotities per slot boven de danstitel wanneer je een programma uitvoert.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Callerhistorie';
@@ -1093,7 +3377,66 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.';
+      'Bepaalt wat als gecalld telt. Als ingeschakeld, tellen alleen slots die als uitgevoerd zijn gemarkeerd overal waar callerhistorie wordt gelezen: de historielijst, gecalld ×N, het filter Gecalld en de sortering op laatst gecalld. Als uitgeschakeld, telt een slot zodra het programma de dans bevat. Gaat vóór de vier instellingen hieronder.';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Schakelaars voor ‘markeren als uitgevoerd’ tonen';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Alles markeren als uitgevoerd zet de status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Als ingeschakeld, zet Alles markeren als uitgevoerd ook de programmastatus op Uitgevoerd, en Ongedaan maken zet beide terug. Als uitgeschakeld, blijft de status zoals hij was.';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Eventdatum vereisen voor callerhistorie';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Bepaalt wat als gecalld telt. Als ingeschakeld, telt een programma zonder eventdatum nergens mee in de callerhistorie tot je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet. Gaat vóór de vier instellingen hieronder.';
+
+  @override
+  String get settingsTrackingHeader => 'Recentheid en historievolgorde';
+
+  @override
+  String get settingsRecencyRequireEventDateTitle =>
+      'Recentheid telt alleen programma’s met datum';
+
+  @override
+  String get settingsRecencyRequireEventDateSubtitle =>
+      'Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een programma zonder eventdatum in geen enkel venster, al telt de dans nog steeds als gecalld. Als uitgeschakeld, wordt een programma zonder datum gedateerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op het moment van de laatste bewerking.';
+
+  @override
+  String get settingsRecencyRequirePerformedTitle =>
+      'Recentheid telt alleen slots die als uitgevoerd zijn gemarkeerd';
+
+  @override
+  String get settingsRecencyRequirePerformedSubtitle =>
+      'Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een slot dat niet als uitgevoerd is gemarkeerd in geen enkel venster, maar het telt nog steeds als gecalld. Tot je het zelf instelt, volgt dit de instelling “uitgevoerd vereisen” hierboven.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedTitle =>
+      'Historievolgorde en Laatst gecalld negeren programma’s zonder datum';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedSubtitle =>
+      'Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een programma zonder eventdatum na die met datum en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op de laatste bewerking.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedTitle =>
+      'Historievolgorde en Laatst gecalld negeren slots die niet als uitgevoerd zijn gemarkeerd';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle =>
+      'Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een slot dat niet als uitgevoerd is gemarkeerd na de andere en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op de datum van het programma.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
@@ -1109,7 +3452,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsProgramVenueCallCountSubtitle =>
-      'Toon de belangrijkste locaties waar een dans meer dan één keer is gecalld. Stel in op 0 om dit overzicht te verbergen.';
+      'Toon de belangrijkste locaties waar een dans meer dan één keer is gecalld. Kies “Niet tonen” om dit overzicht te verbergen.';
 
   @override
   String settingsProgramVenueCallCountOption(num count) {
@@ -1122,6 +3465,35 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsGeneralCapitalizeFiguresTitle =>
+      'Figuren met hoofdletter beginnen';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'Als ingeschakeld, begint elke figuur in de dansweergave, de Perform-modus en de figuureditor met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, worden figuren getoond zoals ze zijn geschreven; ingebouwde figuren beginnen met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op die plekken verandert; exports, zoeken, synchronisatievergelijkingen en de tekst voor schermlezers blijven ongewijzigd.';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Je tags hernoemen, samenvoegen, kleuren en verwijderen.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Auteurs';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Auteurs hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Bronnen';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Bronnen hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';
@@ -1154,18 +3526,39 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Vraag om bevestiging voor het verwijderen van een dans of programma. Verwijderingen kunnen nog steeds ongedaan worden gemaakt; dit voegt slechts een expliciete bevestigingsstap toe.';
+      'Vraag het voordat je iets verwijdert dat ongedaan kan worden gemaakt. Verwijderingen die niet ongedaan kunnen worden gemaakt, vragen het altijd eerst.';
 
   @override
-  String get settingsGeneralDeletedItemsHeader => 'Verwijderde items';
+  String get settingsGeneralUndoPromptTitle => 'Melding Ongedaan maken';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'Hoe lang Ongedaan maken in beeld blijft nadat je iets verwijdert of wijzigt. De melding blijft ook staan zolang je ernaar wijst of er met het toetsenbord naartoe gaat.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds seconden',
+      one: '1 seconde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => 'Tot ik de melding sluit';
+
+  @override
+  String get settingsGeneralDeletedItemsHeader => 'Onlangs verwijderd';
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Verwijderde dansen bewaren voor';
+      'Onlangs verwijderde items bewaren voor';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Verwijderde dansen worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
+      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Met apparaatsynchronisatie geldt dit op al je apparaten: een gedeeld item wordt overal leeggemaakt en alleen een kleine verwijderingsnotitie blijft over. Nooit bewaart ze totdat je ze handmatig opschoont.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -1174,6 +3567,152 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionNever => 'Nooit';
+
+  @override
+  String get syncReviewSettingsTitle => 'Synchronisatiebeslissingen';
+
+  @override
+  String get syncReviewSettingsSubtitle =>
+      'Bepaal hoe conflicten tussen je apparaten worden opgelost wanneer synchronisatie ze niet zelf kan beslechten.';
+
+  @override
+  String get syncReviewTitle => 'Synchronisatiebeslissingen';
+
+  @override
+  String get syncReviewLoading => 'Synchronisatiebeslissingen laden';
+
+  @override
+  String get syncReviewEmpty =>
+      'Er zijn geen synchronisatiebeslissingen die op je wachten.';
+
+  @override
+  String get syncReviewIntro =>
+      'Voor deze items is een beslissing nodig voordat een wijziging van een ander apparaat kan worden toegepast.';
+
+  @override
+  String get syncReviewLoadFailed =>
+      'De synchronisatiekeuzes konden niet worden geladen. Probeer het opnieuw.';
+
+  @override
+  String get syncReviewResolved => 'Synchronisatiebeslissing toegepast.';
+
+  @override
+  String get syncReviewActionFailed =>
+      'Die synchronisatiekeuze kon niet worden toegepast. Het item is bewaard, dus je kunt het opnieuw proberen.';
+
+  @override
+  String get syncReviewKindChoreographer => 'Auteur';
+
+  @override
+  String get syncReviewKindTag => 'Tag';
+
+  @override
+  String get syncReviewKindCustomField => 'Aangepast veld';
+
+  @override
+  String get syncReviewKindDifficulty => 'Moeilijkheidsgraad';
+
+  @override
+  String get syncReviewKindDance => 'Dans';
+
+  @override
+  String get syncReviewKindProgram => 'Programma';
+
+  @override
+  String get syncReviewKindPublishedSource => 'Gepubliceerde bron';
+
+  @override
+  String get syncReviewKindVenue => 'Locatie';
+
+  @override
+  String get syncReviewKindSetting => 'Instelling';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Je figuur';
+
+  @override
+  String get syncReviewKindFigureNote => 'Je notities bij een figuur';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Je notities bij $figure';
+  }
+
+  @override
+  String syncReviewLocalRecord(String id) {
+    return 'Op dit apparaat: $id';
+  }
+
+  @override
+  String syncReviewPeerRecord(String identity) {
+    return 'Van het andere apparaat: $identity';
+  }
+
+  @override
+  String get syncReviewTombstoneReason =>
+      'Een ander apparaat heeft een overeenkomend item verwijderd dat op dit apparaat is gemaakt.';
+
+  @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Live dansen hebben dezelfde titel, maar een andere choreografie.';
+
+  @override
+  String get syncReviewRenameCollisionReason =>
+      'Een ander apparaat heeft dit record hernoemd naar een naam die een ander record hier al gebruikt.';
+
+  @override
+  String get syncReviewMergeDiscardsContactsTitle =>
+      'Deze auteurs samenvoegen?';
+
+  @override
+  String get syncReviewMergeDiscardsContactsBody =>
+      'Er blijft maar één record bewaard. Het e-mailadres, de locatie en de overleden-markering van het andere record staan alleen op dit apparaat en gaan verloren. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get syncReviewCounterpartDeleted =>
+      'Het andere record is verwijderd, dus deze twee kunnen niet worden samengevoegd. Gebruik \'Beide behouden\' om het een andere naam te geven.';
+
+  @override
+  String get syncReviewUnsupportedReason =>
+      'Dit synchronisatieconflict wordt voorlopig bewaard; hier is geen veilige actie beschikbaar.';
+
+  @override
+  String get syncReviewUnsupportedAction =>
+      'Bewaar dit item voorlopig; een latere synchronisatie of app-update kan het mogelijk verwerken.';
+
+  @override
+  String get syncReviewMergeAction => 'Samenvoegen';
+
+  @override
+  String get syncReviewKeepBothAction => 'Beide behouden';
+
+  @override
+  String get syncReviewKeepBothTitle => 'Kies een nieuwe lokale naam';
+
+  @override
+  String get syncReviewNewNameLabel => 'Nieuwe lokale naam';
+
+  @override
+  String get syncReviewNameRequired => 'Voer een naam in.';
+
+  @override
+  String get syncReviewNameNotDistinct => 'Kies een andere naam.';
+
+  @override
+  String get syncReviewCandidateInvalid =>
+      'De opgeslagen wijziging van een ander apparaat is ongeldig en is daarom bewaard.';
+
+  @override
+  String get syncReviewCandidateChanged =>
+      'De opgeslagen wijziging van een ander apparaat is niet meer actueel en is daarom bewaard.';
+
+  @override
+  String get syncReviewTargetMissing =>
+      'Het lokale record is niet meer beschikbaar; de beslissing is bewaard.';
+
+  @override
+  String get syncReviewCandidateAlreadyPresent =>
+      'Het item van het andere apparaat is al aanwezig; de beslissing is bewaard.';
 
   @override
   String get settingsGeneralImportHeader => 'Importeren';
@@ -1187,15 +3726,25 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresTitle =>
-      'Aangepaste figuren opnieuw controleren';
+      'Niet-herkende figuren opnieuw controleren';
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Herverwerk geïmporteerde dansen waarvan de figuren als aangepast zijn bewaard omdat ze niet herkend konden worden bij het importeren. Verbeterde verwerking actualiseert ze ter plekke — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.';
+      'Controleer geïmporteerde dansen opnieuw waarvan de figuren alleen als onherkende figuren zijn bewaard omdat ze bij het importeren niet herkend werden. Kan de app ze nu wel herkennen, dan worden ze ter plekke bijgewerkt; je tags, beoordelingen en notities blijven behouden. Je ziet eerst een voorbeeld en bevestigt voordat er iets verandert.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction =>
       'Opnieuw controleren…';
+
+  @override
+  String get settingsGeneralEcdMigrationTitle => 'Engelse dansen omzetten';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'Engelse country dances die zijn opgeslagen voordat de app Engelse figuren kende, gebruiken nog contra-moves. Zet de moves om die in Engelse dans hetzelfde betekenen, lees niet-herkende figuren opnieuw en geef elke dans zijn Engelse formatie. Je kiest de dansen en bevestigt voordat er iets verandert.';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => 'Omzetten…';
 
   @override
   String get settingsGeneralBackupRestoreHeader => 'Back-up en herstel';
@@ -1204,15 +3753,20 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupExported => 'Back-up geëxporteerd.';
 
   @override
-  String get backupExportFailed => 'Back-up kon niet worden geëxporteerd.';
+  String get backupExportFailed =>
+      'Er kon geen back-up worden geëxporteerd. Je gegevens zijn ongewijzigd. Probeer het opnieuw.';
 
   @override
   String get backupRestoreIntegrityFailed =>
-      'Deze back-up is niet door de integriteitscontrole gekomen, dus mogelijk is deze beschadigd of na het exporteren gewijzigd. Het herstel is geannuleerd en je gegevens zijn ongewijzigd.';
+      'Deze back-up is niet door de veiligheidscontrole gekomen, dus hij is mogelijk beschadigd of na het exporteren gewijzigd. Het herstellen is geannuleerd en je gegevens zijn ongewijzigd.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
       'Deze back-up bevat items die deze versie van de app niet kan lezen (mogelijk van een nieuwere versie), dus het herstel is geannuleerd. Je gegevens zijn ongewijzigd.';
+
+  @override
+  String get backupRestoreMissingAppSection =>
+      'Deze back-up bevat je app-instellingen, thema’s en dialecten niet, dus hij kan je huidige gegevens niet vervangen. Het herstel is geannuleerd en je gegevens zijn ongewijzigd.';
 
   @override
   String get backupRestoreInvalidFile =>
@@ -1227,14 +3781,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupRestored => 'Back-up hersteld.';
 
   @override
-  String get backupRestoreFailed => 'De back-up kon niet worden hersteld.';
+  String get backupRestoreFailed =>
+      'De back-up kon niet worden hersteld. Probeer het opnieuw.';
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Je dansen en programma’s zijn hersteld, maar het toepassen van je opgeslagen instellingen is mislukt. Je herstelde inhoud is veilig — je kunt opnieuw proberen de instellingen toe te passen.';
+      'Je dansen en programma’s zijn hersteld, maar het toepassen van je opgeslagen instellingen is mislukt. Je herstelde inhoud is veilig; je kunt opnieuw proberen ze toe te passen.';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Opnieuw toepassen';
+  String get backupRestoreSettingsRetryAction => 'Opnieuw proberen';
 
   @override
   String get backupRestoreSettingsRetried => 'Instellingen toegepast.';
@@ -1244,7 +3799,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupExportSubtitle =>
-      'Sla je volledige collectie, programma\'s, aangepaste velden, dialecten, thema\'s en instellingen op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt overzetten.';
+      'Sla je hele bibliotheek op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt verplaatsen. Het bevat je dansen, programma’s, eigen velden, dialecten, thema’s en instellingen.';
 
   @override
   String get backupExportAction => 'Exporteren';
@@ -1254,7 +3809,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupRestoreSubtitle =>
-      'Vervang alles wat momenteel in de app staat door de inhoud van een back-upbestand. Dit kan niet ongedaan worden gemaakt.';
+      'Vervang alles wat nu in de app staat door de inhoud van een back-upbestand. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get backupRestoreAction => 'Herstellen';
@@ -1284,11 +3839,29 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het is al een tijdje geleden dat je een back-up hebt gemaakt — overweeg er nu een te exporteren.';
 
   @override
+  String get backupReminderBannerText =>
+      'Je back-up is verlopen. Exporteer er nu een om je bibliotheek veilig te houden.';
+
+  @override
+  String get backupReminderBannerExport => 'Back-up exporteren';
+
+  @override
+  String get backupReminderBannerNotNow => 'Niet nu';
+
+  @override
   String get backupRestoreDialogBody =>
-      'Herstellen vervangt alles in de app — je collectie, programma’s, dialecten, thema’s en instellingen — met de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.';
+      'Bij het herstellen wordt alles wat nu in de app staat, zoals je dansen, programma’s, dialecten, thema’s en instellingen, vervangen door de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get backupRestoreDialogSyncNote =>
+      'Dit apparaat is verbonden met apparaatsynchronisatie. Alles wat apparaatsynchronisatie meeneemt en na het maken van deze back-up is gewijzigd op een apparaat waarmee je synchroniseert, komt bij de volgende synchronisatie terug van dat apparaat, ook wijzigingen die hier zijn gemaakt en al zijn gesynchroniseerd. Al het andere krijgt de versie uit de back-up.';
 
   @override
   String get backupChooseFileAction => 'Bestand kiezen…';
+
+  @override
+  String get backupChooseFileFailed =>
+      'Dat bestand kon niet worden gelezen. Kies het opnieuw of kies een ander bestand.';
 
   @override
   String get backupPasteJsonLabel => 'Of plak back-up JSON';
@@ -1297,12 +3870,63 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupReplaceAllDataAction => 'Alle gegevens vervangen';
 
   @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances dansen',
+      one: '$dances dans',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs programma\'s',
+      one: '$programs programma',
+    );
+    return 'Back-up van $date: $_temp0, $_temp1, $size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'Dit bestand lijkt geen leesbare back-up te zijn ($size MB). Bij het vervangen zie je waarom herstellen niet lukt.';
+  }
+
+  @override
+  String get backupFileClearAction => 'Wissen';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'Dat bestand is te groot voor een Caller’s Compendium-back-up ($sizeMb MB; limiet $limitMb MB). Je gegevens zijn ongewijzigd.';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'Je bibliotheek is te groot om als één back-up te exporteren ($sizeMb MB; limiet $limitMb MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.';
+  }
+
+  @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Er is niet genoeg vrije ruimte om deze back-up te vervangen ($neededMb MB nodig; $freeMb MB vrij), dus er is niets opgeslagen. Je eerdere back-up is ongewijzigd.';
+  }
+
+  @override
+  String get backupExportInProgress => 'Je back-up wordt voorbereid…';
+
+  @override
+  String get backupRestorePreparing => 'De back-up wordt gelezen…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return '$done van $total herstellen…';
+  }
+
+  @override
   String get diagnosticsNoDiagnosticsToExport =>
       'Geen diagnostics te exporteren.';
 
   @override
   String get diagnosticsScrubbedExportUnavailable =>
-      'Er kon geen veilige (geredigeerde) export worden voorbereid, dus er is niets opgeslagen. Probeer het opnieuw of gebruik volledige details met opzet.';
+      'Er kon geen veilige (opgeschoonde) export worden gemaakt, dus er is niets opgeslagen. Probeer het opnieuw, of kies bewust de volledige details.';
 
   @override
   String get diagnosticsLogExported => 'Diagnosticslog geëxporteerd.';
@@ -1312,14 +3936,18 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get diagnosticsExportFailed =>
-      'Het diagnosticslog kon niet worden geëxporteerd.';
+      'Het diagnoselog kon niet worden geëxporteerd. Probeer het opnieuw.';
+
+  @override
+  String get diagnosticsClearFailed =>
+      'Het diagnoselog kon niet worden gewist. Probeer het opnieuw.';
 
   @override
   String get diagnosticsClearLogTitle => 'Diagnosticslog wissen?';
 
   @override
   String get diagnosticsClearLogBody =>
-      'Dit verwijdert het lokale crashlog permanent van dit apparaat. Dit kan niet ongedaan worden gemaakt.';
+      'Hiermee wordt het lokale crashlog definitief van dit apparaat verwijderd. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get diagnosticsClearAction => 'Wissen';
@@ -1382,11 +4010,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het lokale crashlog van dit apparaat verwijderen.';
 
   @override
-  String get crashFallbackTitle => 'Er is hier iets misgegaan';
+  String get crashFallbackTitle =>
+      'Dit onderdeel van de app kon niet worden getoond';
 
   @override
   String get crashFallbackBody =>
-      'Dit deel van de app heeft een onverwachte fout ondervonden en is hersteld. De details zijn opgeslagen in een lokaal diagnosticslog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat.';
+      'Dit onderdeel van de app heeft een onverwachte fout gehad. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat. Ga terug en probeer het opnieuw.';
 
   @override
   String get crashFallbackCopied => 'Gekopieerd';
@@ -1398,13 +4027,26 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonCancel => 'Annuleren';
 
   @override
+  String get commonDiscardChangesTitle => 'Wijzigingen verwerpen?';
+
+  @override
+  String get commonDiscardChangesBody => 'Je hebt niet-opgeslagen wijzigingen.';
+
+  @override
+  String get commonKeepEditing => 'Doorgaan met bewerken';
+
+  @override
+  String get commonDiscard => 'Verwerpen';
+
+  @override
   String get commonContinue => 'Doorgaan';
 
   @override
   String get commonUndo => 'Ongedaan maken';
 
   @override
-  String get commonRetry => 'Opnieuw proberen';
+  String get commonUndoFailed =>
+      'Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.';
 
   @override
   String get commonDelete => 'Verwijderen';
@@ -1490,6 +4132,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonFormationDupleImproper => 'Improper';
 
   @override
+  String get commonFormationProgressedImproper =>
+      'Improper, reeds doorgeschoven';
+
+  @override
   String get commonFormationReverseProgressionImproper =>
       'Improper met omgekeerde progressie';
 
@@ -1544,6 +4190,47 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get commonFormationDupleMinor => 'Duple minor';
+
+  @override
+  String get commonFormationThreeCoupleLongways => 'Three-couple longways';
+
+  @override
+  String get commonFormationFourCoupleLongways => 'Four-couple longways';
+
+  @override
+  String get commonFormationFiveCoupleLongways => 'Five-couple longways';
+
+  @override
+  String get commonFormationSixCoupleLongways => 'Six-couple longways';
+
+  @override
+  String get commonFormationCircle => 'Cirkel';
+
+  @override
+  String get commonFormationSquare => 'Square';
+
+  @override
+  String get commonFormationTwoCoupleSet => 'Two-couple set';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape, improper';
+  }
+
+  @override
+  String get danceEditorMeterLabel => 'Maatsoort';
+
+  @override
+  String get danceEditorMusicalKeyLabel => 'Toonsoort';
+
+  @override
+  String get danceEditorMeterHint => 'bijv. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'bijv. g mineur';
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override
@@ -1551,7 +4238,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Dansen met tag “$tagName” tonen';
+    return '“$tagName” toevoegen aan de filters van de Collectie';
   }
 
   @override
@@ -1560,24 +4247,24 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get commonCantBeUndone => 'Dit kan niet ongedaan worden gemaakt.';
+
+  @override
   String get importGapMessage =>
-      'Deze aanroep kon niet worden geparseerd — woordelijk bewaard als aangepaste figuur.';
+      'Deze aanroep is niet herkend — precies zoals geschreven bewaard als niet-herkende figuur.';
 
   @override
   String get importGapDialogTitle => 'Niet-herkende figuur';
 
   @override
   String get importGapSemanticLabel =>
-      'Niet-herkende figuur. Deze aanroep kon niet worden geparseerd — woordelijk bewaard als aangepaste figuur.';
+      'Niet-herkende figuur. Precies zoals geschreven bewaard.';
 
   @override
   String get collectionScreenTitle => 'Collectie';
 
   @override
   String get collectionNewDance => 'Nieuwe dans';
-
-  @override
-  String get collectionSearchTooltip => 'Zoeken (Ctrl/Cmd-K)';
 
   @override
   String get collectionSelectDancesTooltip => 'Dansen selecteren';
@@ -1643,12 +4330,45 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return '$label, $_temp0, $selected geselecteerd';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Selectie verlaten';
 
   @override
   String collectionSelectedCount(int count) {
     return '$count geselecteerd';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Alle $count selecteren';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Alle $count deselecteren';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected geselecteerd ($hidden niet getoond)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Niet-getoonde deselecteren';
 
   @override
   String get collectionAddTags => 'Tags toevoegen';
@@ -1665,14 +4385,6 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get collectionSearchFieldHint =>
       'Zoek titels, auteurs, figuren, notities…';
-
-  @override
-  String get collectionPickerSearchFieldHint =>
-      'Zoek titels, figuren, notities…';
-
-  @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Zoek online naar dansen op titel…';
 
   @override
   String get collectionSearchScopeLabel => 'Zoeken in';
@@ -1693,7 +4405,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionClearSearchTooltip => 'Zoekterm en filters wissen';
 
   @override
-  String get collectionLoadError => 'De collectie kon niet worden geladen.';
+  String get collectionLoadError =>
+      'De collectie kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String collectionDuplicatedSnack(String title) {
@@ -1701,8 +4414,22 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'Je collectie is leeg. Voeg een dans toe of importeer er een om te beginnen — of schakel Onlinezoeken hierboven in om te importeren vanuit een onlinebron.';
+  String get collectionEmptyBody =>
+      'Voeg een dans toe of importeer er een om te beginnen — of schakel Onlinezoeken hierboven in om te importeren vanuit een onlinebron.';
+
+  @override
+  String get collectionEmptyTitle => 'Je collectie is leeg';
+
+  @override
+  String get collectionImportCardTitle => 'Haal je dansen binnen';
+
+  @override
+  String get collectionImportCardBody =>
+      'Importeer dansen die je al hebt, of schrijf je eerste. „The Baby Rose” staat er als voorbeeld om rond te kijken.';
+
+  @override
+  String get collectionBrowsePublishedCollections =>
+      'Gepubliceerde collecties bekijken';
 
   @override
   String get collectionFiltersTitle => 'Filters';
@@ -1724,12 +4451,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionAdvancedTitle => 'Geavanceerd';
 
   @override
-  String get collectionUseAdvancedQuery =>
-      'Geavanceerde zoekopdracht gebruiken';
+  String get collectionAdvancedActive => 'Geavanceerd (aan)';
 
   @override
-  String get collectionUseAdvancedQuerySubtitle =>
-      'Combineer figuren en reeksen met alle / een van / geen groepen.';
+  String searchToolActiveCount(String tool, int count) {
+    return '$tool · $count';
+  }
 
   @override
   String collectionDanceCount(int count) {
@@ -1744,7 +4471,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionSearchError =>
-      'Er is iets misgegaan bij het uitvoeren van de zoekopdracht.';
+      'De zoekopdracht kon niet worden uitgevoerd. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get collectionNoResults =>
@@ -1804,6 +4531,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionSetRating => 'Beoordeling instellen';
 
   @override
+  String get collectionSetStatus => 'Status instellen';
+
+  @override
   String get collectionAddTunes => 'Deuntjes toevoegen';
 
   @override
@@ -1830,6 +4560,17 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Beoordeling gewist van $count dansen',
       one: 'Beoordeling gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Status ingesteld voor $count dansen',
+      one: 'Status ingesteld voor 1 dans',
     );
     return '$_temp0';
   }
@@ -1874,6 +4615,28 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Veld gewist van $count dansen',
       one: 'Veld gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd',
+      one: '1 dans verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd. Herstel ze via Onlangs verwijderd.',
+      one: '1 dans verwijderd. Herstel hem via Onlangs verwijderd.',
     );
     return '$_temp0';
   }
@@ -1935,6 +4698,66 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetNotCalled => 'Niet gebeld';
 
   @override
+  String get collectionFacetHistoryInert => 'Geldt bij Gebeld of Niet gebeld';
+
+  @override
+  String get collectionFacetVenue => 'Op locatie';
+
+  @override
+  String get collectionFacetVenueAny => 'Elke locatie';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Naamloze locatie';
+
+  @override
+  String get collectionFacetVenueClear => 'Locatie wissen';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Locatie';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'getypt';
+
+  @override
+  String get collectionFacetWithin => 'Binnen';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Altijd';
+
+  @override
+  String get collectionFacetWithinNever => 'Nooit gebeld';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count maanden',
+      one: '1 maand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Sinds een datum…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Sinds $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override
@@ -1949,6 +4772,32 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Zonder tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Tags matchen';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Dansen tonen die alle gekozen tags hebben';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Minstens één tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Dansen tonen die minstens één van de gekozen tags hebben';
+
+  @override
+  String get collectionFacetMeter => 'Maatsoort';
+
+  @override
+  String get collectionFacetMusicalKey => 'Toonsoort';
+
+  @override
   String get collectionFacetSource => 'Bron';
 
   @override
@@ -1957,6 +4806,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'Nog geen filters beschikbaar voor deze collectie.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen ▸ Standaarden.';
 
   @override
   String get collectionFacetClear => 'Filters wissen';
@@ -1970,6 +4823,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetAuthorSearchHint => 'Auteurs zoeken…';
 
   @override
+  String get collectionFacetTunes => 'Deuntjes';
+
+  @override
+  String get collectionFacetTunesSearchHint => 'Deuntje zoeken of toevoegen…';
+
+  @override
+  String collectionFacetAddTune(String name) {
+    return '“$name” toevoegen';
+  }
+
+  @override
+  String collectionFacetRemoveTune(String name) {
+    return '$name verwijderen';
+  }
+
+  @override
   String get collectionFacetOpContains => 'bevat';
 
   @override
@@ -1979,6 +4848,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String collectionFacetTextHint(String label) {
     return 'Filteren op $label…';
   }
+
+  @override
+  String get collectionFacetTextClearTooltip => 'Filter wissen';
 
   @override
   String get collectionFacetNumOpEq => '=';
@@ -2067,6 +4939,26 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionQueryHasFigure => 'Heeft figuur';
 
   @override
+  String get collectionQueryHasTag => 'Heeft tag';
+
+  @override
+  String collectionQueryHasTagUnavailable(String source) {
+    return 'Heeft tag (niet beschikbaar bij $source)';
+  }
+
+  @override
+  String get collectionQueryAnyFigure => 'Elke figuur';
+
+  @override
+  String get collectionQueryTagLabel => 'Tag';
+
+  @override
+  String get collectionQueryTagHint => 'Kies een tag';
+
+  @override
+  String get collectionQueryRemoveTag => 'Tag verwijderen';
+
+  @override
   String get collectionQuerySequenceThen => 'Reeks (dan)';
 
   @override
@@ -2085,7 +4977,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionQueryThenConnector => 'dan';
 
   @override
-  String get collectionQueryThenLater => 'Later';
+  String get collectionQueryThenNext => 'Daarna';
 
   @override
   String get collectionQueryRemoveSequence => 'Reeks verwijderen';
@@ -2146,12 +5038,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionCreateTagButton => 'Tag aanmaken';
 
   @override
-  String get collectionCreateTagError =>
-      'Tag kon niet worden aangemaakt. Probeer het opnieuw.';
-
-  @override
   String get collectionBatchApplyError =>
-      'Batchwijzigingen konden niet worden toegepast. Probeer het opnieuw.';
+      'De batchwijzigingen konden niet worden toegepast. Probeer het opnieuw.';
 
   @override
   String get collectionBatchTagAddConfirm => 'Toevoegen';
@@ -2175,6 +5063,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionBatchRatingConfirm => 'Instellen';
+
+  @override
+  String get collectionBatchStatusConfirm => 'Instellen';
 
   @override
   String get collectionBatchTunesFieldLabel => 'Een deuntje toevoegen';
@@ -2235,11 +5126,65 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars maten',
+      two: '$bars maat',
+      one: '$bars maat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => 'Maten';
+
+  @override
+  String get danceEditorStepUntimed => 'Geen eigen duur';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return 'Voer hele of halve maten in, tot $max';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return 'Alleen hele maten, bij $beatsPerBar tellen per maat';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => 'Maten voor alles';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      'Laat leeg om de maten van de stappen op te tellen, of geef de maten van de hele reeks, zoals ‘A, B en C in maat 1–4’.';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'De stappen delen deze maten, en elke stap mag zijn eigen maten leeg laten.';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'De stappen duren $steps, maar de reeks duurt $span.';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return 'De stappen met eigen maten duren $steps van de $span van de reeks, zodat er niets overblijft voor de rest.';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'Deze reeks duurt $length, langer dan één frase ($limit).';
+  }
+
+  @override
   String get danceFigureProgressionSemantic => 'progressie';
 
   @override
   String danceFigureNote(String note) {
-    return 'noot: $note';
+    return 'notitie: $note';
   }
 
   @override
@@ -2247,6 +5192,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceNotFound => 'Dans niet gevonden.';
+
+  @override
+  String get danceLoadError =>
+      'Deze dans kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get danceEditFab => 'Bewerken';
@@ -2261,6 +5210,26 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceMoreActions => 'Meer acties';
 
   @override
+  String get programsMoreActions => 'Meer acties';
+
+  @override
+  String get programsFormMatchLabel => 'Types matchen';
+
+  @override
+  String get programsFormMatchOnly => 'Alleen';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programma\'s met alleen de gekozen types';
+
+  @override
+  String get programsFormMatchIncludes => 'Bevat';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programma\'s met het gekozen type';
+
+  @override
   String get danceSectionFigures => 'Figuren';
 
   @override
@@ -2268,6 +5237,29 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceSectionWalkthrough => 'Doorloop';
+
+  @override
+  String get danceFiguresUnreadable =>
+      'Deze figuren kunnen niet worden gelezen.';
+
+  @override
+  String get danceTunesUnreadable =>
+      'Deze deuntjes kunnen niet worden gelezen.';
+
+  @override
+  String get danceUnreadableReassurance =>
+      'Er is niets verwijderd. Wat is opgeslagen blijft precies zoals het is, en als je iets anders aan deze dans bewerkt, wordt het niet vervangen.';
+
+  @override
+  String get danceEditorFiguresUnreadable =>
+      'De opgeslagen figuren kunnen niet worden gelezen, dus ze worden hier niet getoond. Ze blijven zoals ze zijn, tenzij je zelf figuren toevoegt.';
+
+  @override
+  String get danceEditorTunesUnreadable =>
+      'De opgeslagen deuntjes kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen deuntjes toevoegt.';
+
+  @override
+  String get danceListUnreadableBadge => 'Niet leesbaar';
 
   @override
   String get danceSectionTunes => 'Deuntjes';
@@ -2291,7 +5283,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'Nog niet opgenomen in een programma.';
 
   @override
-  String get danceCallingHistoryError => 'Kan de callgeschiedenis niet laden.';
+  String get danceCallingHistoryError =>
+      'De callinggeschiedenis kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String danceVenueCallCount(int count, String venue) {
@@ -2309,6 +5302,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceCanonicalToggleLabel => 'Canoniek';
+
+  @override
+  String get danceRoleTermsOverrideNote =>
+      'Weergegeven met larks en robins: de auteur heeft gevraagd deze dans alleen ooit met die roltermen te callen, dus de roltermen van je dialect worden hier niet gebruikt.';
 
   @override
   String danceProvenanceVia(String source) {
@@ -2442,6 +5439,51 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get programsDanceInThisProgram => 'In dit programma';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'In dit programma ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Al in dit programma';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '“$danceTitle” staat al $count keer in “$programTitle”. Opnieuw toevoegen?',
+      one: '“$danceTitle” staat al in “$programTitle”. Opnieuw toevoegen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Opnieuw toevoegen';
+
+  @override
+  String get programsAddToProgramSearchHint => 'Programma\'s zoeken';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Zoekopdracht wissen';
+
+  @override
+  String get programsAddToProgramNoMatches =>
+      'Geen programma\'s komen overeen met je zoekopdracht.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Uitgevoerd ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '“$danceTitle” toegevoegd aan $programTitle.';
   }
@@ -2473,9 +5515,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsNoLongerExists => 'Dit programma bestaat niet meer.';
 
   @override
-  String get programsFallbackTitle => 'Programma';
-
-  @override
   String get programsUntitledDanceFallback => 'dans';
 
   @override
@@ -2499,20 +5538,33 @@ class AppLocalizationsNl extends AppLocalizations {
       'Alle dansen gemarkeerd als uitgevoerd.';
 
   @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd. Markeer een alternatief zelf als je het hebt gecalld.';
+
+  @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Alle dansen gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet. Markeer een alternatief zelf als je het hebt gecalld.';
+
+  @override
   String programsSavedSnack(String title) {
     return '“$title” opgeslagen.';
   }
 
   @override
-  String get programsSaveError => 'Het programma kon niet worden opgeslagen.';
+  String get programsSaveError =>
+      'Het programma kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
 
   @override
   String get programsUndoPerformedError =>
-      'De markeringen konden niet ongedaan worden gemaakt; de uitgevoerde markeringen blijven opgeslagen.';
+      'Dat kon niet ongedaan worden gemaakt. De uitgevoerd-markeringen zijn nog opgeslagen.';
 
   @override
   String get programsUndoRefreshError =>
-      'Het ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd.';
+      'Ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd. Open het programma opnieuw om het te zien.';
 
   @override
   String programsDuplicatedSnack(String title) {
@@ -2523,6 +5575,37 @@ class AppLocalizationsNl extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '“$title” verwijderd.';
   }
+
+  @override
+  String get programsArchive => 'Archiveren';
+
+  @override
+  String get programsUnarchive => 'Uit archief halen';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '“$title” gearchiveerd.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '“$title” uit het archief gehaald.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Gearchiveerd';
+
+  @override
+  String get programsShowArchived => 'Gearchiveerde tonen';
+
+  @override
+  String get programsHideArchived => 'Gearchiveerde verbergen';
+
+  @override
+  String get programsAllArchivedTitle => 'Geen programma\'s om te tonen';
+
+  @override
+  String get programsAllArchivedBody => 'Al je programma\'s zijn gearchiveerd.';
 
   @override
   String get programsDiscardTitle => 'Wijzigingen verwerpen?';
@@ -2543,6 +5626,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsDraftBody =>
       'Je hebt een niet-opgeslagen concept voor dit programma. Wil je het herstellen?';
+
+  @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'Je hebt een niet-opgeslagen concept van een ander nieuw programma, ‘$title’. Wil je het herstellen in plaats van een nieuw te beginnen?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'Je hebt een niet-opgeslagen concept van een ander nieuw programma, nog zonder titel. Wil je het herstellen in plaats van een nieuw te beginnen?';
 
   @override
   String get programsDraftRestore => 'Herstellen';
@@ -2566,28 +5658,45 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Alles markeren als uitgevoerd';
 
   @override
-  String get programsSaveDirty => 'Opslaan *';
-
-  @override
   String get commonSave => 'Opslaan';
 
   @override
   String get programsLoading => 'Programma laden';
 
   @override
-  String get programsLoadError => 'Het programma kon niet worden geladen.';
+  String get programsLoadError =>
+      'Het programma kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get programsUndoRecoveryFailed =>
+      'Het programma kon na het ongedaan maken niet opnieuw worden geladen. Ga terug en open het opnieuw om de huidige staat te zien.';
 
   @override
   String get programsDeletedDanceFallback => '(verwijderde dans)';
 
   @override
+  String get programsRestoreDeletedDance => 'Herstellen uit Onlangs verwijderd';
+
+  @override
+  String programsRestoreDeletedDanceError(String title) {
+    return 'Kon “$title” niet herstellen. De dans staat nog in Onlangs verwijderd.';
+  }
+
+  @override
+  String get programsBlankedDanceTitle => 'Verwijderde dans';
+
+  @override
   String get programsSlotsLabel => 'Slots';
+
+  @override
+  String get programsSlotsHelper =>
+      'Elk slot is één plek in je setlijst: een dans, een notitie of een pauze.';
 
   @override
   String get programsAddDanceButton => 'Dans toevoegen';
 
   @override
-  String get programsAddNoteBreakButton => 'Notitie / wals toevoegen';
+  String get programsAddNoteBreakButton => 'Notitie of pauze toevoegen';
 
   @override
   String get programsInsertBreakButton => 'Pauze invoegen';
@@ -2666,7 +5775,28 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsNotesLabel => 'Notities';
 
   @override
+  String get programsPayLabel => 'Gage';
+
+  @override
+  String get programsPayHint => 'bijv. 250.00';
+
+  @override
+  String get programsPayCurrencyLabel => 'Valuta';
+
+  @override
+  String get programsPayInvalid =>
+      'Voer een bedrag in zoals 250 of 250.50 in deze valuta in.';
+
+  @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd. Zet je de status terug, dan blijven de markeringen staan.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd, en Alles markeren als uitgevoerd zet deze status. Zet je de status terug, dan blijven de markeringen staan.';
 
   @override
   String get programsHideAlternatesTitle =>
@@ -2675,6 +5805,21 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsHideAlternatesSubtitle =>
       'Laat ALT-slots weg uit de samenvatting, PDF en geëxporteerde setlijst. De opbouwer toont nog steeds elk slot.';
+
+  @override
+  String get programsDialectFieldLabel => 'Dialect voor Uitvoeren';
+
+  @override
+  String get programsDialectUseApp => 'App-dialect gebruiken';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (niet beschikbaar)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Alleen in Uitvoeren van dit programma. Editor, samenvatting en exports blijven het app-dialect gebruiken.';
 
   @override
   String programsWarningCount(int count) {
@@ -2703,6 +5848,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsTitle => 'Programma\'s';
 
   @override
+  String get programsSearchTooltip => 'Programma’s zoeken';
+
+  @override
+  String get programsSearchHint => 'Programma’s zoeken…';
+
+  @override
   String get programsSortTitle => 'Titel';
 
   @override
@@ -2718,7 +5869,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsListLoadError =>
-      'Je programma\'s konden niet worden geladen.';
+      'Je programma\'s konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get programsListEmptyBody =>
@@ -2765,8 +5916,19 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String programsSummaryPay(String amount) {
+    return 'Gage: $amount';
+  }
+
+  @override
   String programsSetListHeader(int count) {
-    return 'Setlijst ($count)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return 'Setlijst ($_temp0)';
   }
 
   @override
@@ -2791,7 +5953,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programsSummaryNote(String note) {
-    return 'Noot: $note';
+    return 'Notitie: $note';
   }
 
   @override
@@ -2803,47 +5965,31 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsPerformed => 'Uitgevoerd';
 
   @override
-  String programsSlotCount(int count) {
+  String programsDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count slots',
-      one: '1 slot',
+      other: '$count dansen',
+      one: '1 dans',
     );
     return '$_temp0';
   }
 
   @override
-  String get programsSlotNoteFallback => 'Noot';
+  String get programsSlotNoteFallback => 'Notitie';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Nog geen slots. Voeg een dans of een noot toe om te beginnen.';
+  String get programsSlotEditorEmptyTitle => 'Nog geen slots';
 
   @override
-  String get programsSlotMoved => 'Slot verplaatst.';
+  String get programsSlotEditorEmptyBody =>
+      'Voeg een dans of een notitie toe om te beginnen.';
 
   @override
   String get programsSlotMovedUp => 'Slot omhoog verplaatst.';
 
   @override
   String get programsSlotMovedDown => 'Slot omlaag verplaatst.';
-
-  @override
-  String programsSlotCutBanner(String name) {
-    return '“$name” is geknipt — tik op Plakken om het te plaatsen.';
-  }
-
-  @override
-  String get programsPasteBeforeFirst => 'Plakken vóór het eerste slot';
-
-  @override
-  String programsPasteAfter(String title) {
-    return 'Plakken na $title';
-  }
-
-  @override
-  String get programsPasteHere => 'Hier plakken';
 
   @override
   String get programsMarkedPrimary => 'Gemarkeerd als primair.';
@@ -2855,11 +6001,54 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsMarkedPerformed => 'Gemarkeerd als uitgevoerd.';
 
   @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title: uitgevoerd';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title: niet uitgevoerd';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return '$title markeren als uitgevoerd';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Uitvoermarkering van $title wissen';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title gemarkeerd als uitgevoerd.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Uitvoermarkering van $title gewist.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'De uitgevoerd-markering kon niet worden bijgewerkt. Probeer het opnieuw.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Die wijziging van de uitgevoerd-markering kon niet ongedaan worden gemaakt. Probeer het opnieuw.';
+
+  @override
   String get programsPerformedCleared => 'Uitvoermarkering gewist.';
 
   @override
   String programsRemovedSlot(String name) {
     return '$name verwijderd.';
+  }
+
+  @override
+  String programsAlternatePromoted(String name) {
+    return '$name neemt de plaats in.';
   }
 
   @override
@@ -2914,9 +6103,6 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get programsRemoveSlotMenu => 'Slot verwijderen';
-
-  @override
   String get programsSlotTextRequiredError =>
       'Voer wat tekst in voor dit slot.';
 
@@ -2941,10 +6127,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get programsEditNoteTitle => 'Noot bewerken';
+  String get programsEditNoteTitle => 'Notitie bewerken';
 
   @override
-  String get programsCallerNoteLabel => 'Callernoot (optioneel)';
+  String get programsCallerNoteLabel => 'Callernotitie (optioneel)';
 
   @override
   String get programsCallerNoteHint => 'bijv. leer de hey eerst';
@@ -2990,7 +6176,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$count vrije-tekstslots',
       one: '1 vrije-tekstslot',
     );
-    return '$_temp0 (pauzes, noten) weggelaten — de matrix toont alleen dansen.';
+    return '$_temp0 (pauzes, notities) weggelaten — de matrix toont alleen dansen.';
   }
 
   @override
@@ -3019,35 +6205,6 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMatrixHidePhrasesSemantic => 'Aanwezigheidsglyphs tonen';
-
-  @override
-  String programsMatrixRowHeaderSemantic(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': 'Alternatieve dans: $title, eerste helft',
-      'second': 'Alternatieve dans: $title, tweede helft',
-      'other': 'Alternatieve dans: $title',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': 'Dans: $title, eerste helft',
-      'second': 'Dans: $title, tweede helft',
-      'other': 'Dans: $title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
-  }
-
-  @override
-  String programsMatrixHalfShort(String half) {
-    String _temp0 = intl.Intl.selectLogic(half, {'first': '1e', 'other': '2e'});
-    return '$_temp0';
-  }
 
   @override
   String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
@@ -3151,29 +6308,6 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': '$title (alternatieve dans, eerste helft)',
-      'second': '$title (alternatieve dans, tweede helft)',
-      'other': '$title (alternatieve dans)',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': '$title (eerste helft)',
-      'second': '$title (tweede helft)',
-      'other': '$title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
-  }
-
-  @override
   String programsMatrixMoveUsedInSemantic(String label, int count, int total) {
     return 'Move: $label, gebruikt in $count van $total dansen';
   }
@@ -3229,14 +6363,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performTitle => 'Uitvoeren';
 
   @override
-  String get performExitTooltip => 'Uitvoerweergave verlaten';
+  String get performExitTooltip => 'Uitvoeren verlaten';
 
   @override
   String get performExitTitle => 'Uitvoeren verlaten?';
 
   @override
   String get performExitBody =>
-      'De uitvoerweergave verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
+      'Uitvoeren verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
+
+  @override
+  String get performDanceExitBody =>
+      'Uitvoeren verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.';
 
   @override
   String get performExitCancel => 'Doorgaan met uitvoeren';
@@ -3302,7 +6440,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get performAddedNoteAnnounce => 'Noot toegevoegd';
+  String get performAddedNoteAnnounce => 'Notitie toegevoegd';
 
   @override
   String get performInsertADance => 'Een dans invoegen';
@@ -3326,13 +6464,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performInsertDanceFromSearch => 'Dans invoegen via zoeken';
 
   @override
-  String get performAdHocNoteLabel => 'Improvisatienoot / pauze';
+  String get performAdHocNoteLabel => 'Improvisatienotitie / pauze';
 
   @override
   String get performAdHocNoteHint => 'bijv. Wals, aankondigingen';
 
   @override
-  String get performAddNote => 'Noot toevoegen';
+  String get performAddNote => 'Notitie toevoegen';
 
   @override
   String performAlternatesCount(int count) {
@@ -3361,12 +6499,26 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get performProgramClockLabel => 'Programma';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
+
+  @override
   String performShowingSlot(String label) {
     return '$label tonen';
   }
 
   @override
   String get performAdjustmentUndone => 'Aanpassing ongedaan gemaakt';
+
+  @override
+  String get performUndoNoLongerAvailable =>
+      'Kan niet ongedaan maken: het programma is sindsdien gewijzigd.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'Dit programma was elders gewijzigd sinds Uitvoeren werd geopend. Uitvoeren toont nu de nieuwste versie, met jouw wijziging.';
 
   @override
   String get performProgramAdjustedSnack => 'Programma aangepast.';
@@ -3406,6 +6558,10 @@ class AppLocalizationsNl extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -3418,19 +6574,28 @@ class AppLocalizationsNl extends AppLocalizations {
           ', gepland $_temp0: $walkthrough minuten doorloop en $dance minuten dans',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta boven plan',
+      'under': ', $delta onder plan',
+      'other': ', volgens plan',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', doorloop eindigde bij $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', doorloop voltooid',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', over de geplande tijd',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', gepauzeerd',
       'other': '',
     });
-    return 'Programmatijd $programTime, slottijd $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Programmatijd $programTime, slottijd $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -3445,6 +6610,26 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'gepland $planned min ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Doorloop klaar — start de dans';
+
+  @override
+  String get performDanceStartUsed => 'Dans gestart — tik om ongedaan te maken';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (volgens plan)',
+    });
+    return 'doorloop $actual$_temp0';
   }
 
   @override
@@ -3464,6 +6649,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get performShowWalkthrough => 'Doorloop tonen';
+
+  @override
+  String get performFullScreen => 'Volledig scherm';
 
   @override
   String get performWalkthroughEmpty => 'Geen doorloop voor deze dans.';
@@ -3531,7 +6719,7 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 beat',
     );
     String _temp3 = intl.Intl.selectLogic(hasNote, {
-      'yes': ', noot: $note',
+      'yes': ', notitie: $note',
       'other': '',
     });
     return '$main$_temp0$_temp1, $_temp2$_temp3';
@@ -3563,6 +6751,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportShareDanceBundle => 'Dansbestand delen';
 
   @override
+  String get exportSaveDanceBundle => 'Dansbestand opslaan…';
+
+  @override
   String get exportCopyDance => 'Dans kopiëren';
 
   @override
@@ -3575,16 +6766,21 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportDanceCopied => 'Dans gekopieerd naar klembord.';
 
   @override
-  String get exportShareDanceError => 'Deze dans kon niet worden gedeeld';
+  String get exportShareDanceError =>
+      'Deze dans kon niet worden gedeeld. Je dans is ongewijzigd. Probeer het opnieuw.';
 
   @override
-  String get exportDanceError => 'Deze dans kon niet worden geëxporteerd';
+  String get exportDanceError =>
+      'Deze dans kon niet worden geëxporteerd. Je dans is ongewijzigd. Probeer het opnieuw.';
 
   @override
   String get exportShareSetListText => 'Setlijst delen (tekst)';
 
   @override
-  String get exportShareProgramBundle => 'Delen (programma + dansen)';
+  String get exportShareProgramBundle => 'Programma en dansen delen';
+
+  @override
+  String get exportSaveProgramBundle => 'Programmabestand opslaan…';
 
   @override
   String get exportCopySetList => 'Setlijst kopiëren';
@@ -3612,6 +6808,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportJsonShare => 'Delen';
 
   @override
+  String get exportJsonSaveAs => 'Opslaan als…';
+
+  @override
   String get exportJsonCancel => 'Annuleren';
 
   @override
@@ -3632,23 +6831,27 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get exportJsonSaveError =>
-      'Dit JSON-bestand kon niet worden opgeslagen.';
+      'Dit JSON-bestand kon niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
-  String get exportJsonCopyError => 'Deze JSON kon niet worden gekopieerd.';
+  String get exportJsonCopyError =>
+      'Deze JSON kon niet worden gekopieerd. Probeer het opnieuw.';
 
   @override
   String get exportJsonShareError =>
-      'Dit JSON-bestand kon niet worden gedeeld.';
+      'Dit JSON-bestand kon niet worden gedeeld. Probeer het opnieuw.';
 
   @override
-  String get exportShareSetListError => 'Deze setlijst kon niet worden gedeeld';
+  String get exportShareSetListError =>
+      'Deze setlijst kon niet worden gedeeld. Probeer het opnieuw.';
 
   @override
-  String get exportShareProgramError => 'Dit programma kon niet worden gedeeld';
+  String get exportShareProgramError =>
+      'Dit programma kon niet worden gedeeld. Je programma is ongewijzigd. Probeer het opnieuw.';
 
   @override
-  String get exportSetListError => 'Deze setlijst kon niet worden geëxporteerd';
+  String get exportSetListError =>
+      'Deze setlijst kon niet worden geëxporteerd. Probeer het opnieuw.';
 
   @override
   String get exportIncludeFiguresTitle => 'Figuren opnemen?';
@@ -3693,6 +6896,20 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportLabelWalkthrough => 'Doorloop';
 
   @override
+  String get exportLabelTunes => 'Deuntjes';
+
+  @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Bronnen';
+
+  @override
+  String exportSlotAuthorSuffix(String names) {
+    return 'door $names';
+  }
+
+  @override
   String exportBeatsLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3727,14 +6944,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportLabelGuest => 'gast';
 
   @override
-  String get exportLabelPerformed => 'uitgevoerd';
-
-  @override
   String get exportUnknownDanceLabel => 'Naamloze dans';
 
   @override
   String exportMinutesLabel(int count) {
     return '$count min';
+  }
+
+  @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Pagina $page van $pages';
   }
 
   @override
@@ -3790,7 +7009,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$count vrije-tekstslots',
       one: '1 vrije-tekstslot',
     );
-    return '$_temp0 (pauzes, noten) weggelaten — de matrix toont alleen dansen.';
+    return '$_temp0 (pauzes, notities) weggelaten — de matrix toont alleen dansen.';
   }
 
   @override
@@ -3832,10 +7051,6 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint =>
-      'Online dansen zoeken op titel of auteur…';
-
-  @override
   String get collectionOnlineSearchFieldHint =>
       'Online dansen zoeken op titel, auteur of figuur…';
 
@@ -3849,6 +7064,30 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String onlineResultCountCapped(int count) {
+    return '$count online resultaten getoond. Er zijn er mogelijk meer: scroll omlaag om ze te laden.';
+  }
+
+  @override
+  String onlineResultCountOfTotal(int count, int total) {
+    return '$count van $total online resultaten getoond. Scroll omlaag om meer te laden.';
+  }
+
+  @override
+  String onlineResultCountOfTotalStopped(int count, int total) {
+    return '$count van $total online resultaten getoond.';
+  }
+
+  @override
+  String onlineResultCountMaybeMore(int count) {
+    return '$count online resultaten getoond. Er zijn er mogelijk meer.';
+  }
+
+  @override
+  String get onlineAdvancedPartlyApplied =>
+      'Sommige geavanceerde voorwaarden bestaan niet in ContraDB en zijn weggelaten.';
 
   @override
   String onlineSearchHintByPhrase(String source) {
@@ -3877,20 +7116,31 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineLoadError(String source) {
-    return 'Die dans kon niet worden geladen van $source.';
+    return 'Die dans kon niet van $source worden geladen. Probeer het opnieuw.';
   }
 
   @override
-  String get onlineImportError => 'Die dans kon niet worden geïmporteerd.';
+  String get onlineImportError =>
+      'Die dans kon niet worden geïmporteerd. Probeer het opnieuw.';
 
   @override
   String onlineSearchFailed(String source) {
-    return 'Kon $source niet doorzoeken. Probeer het opnieuw.';
+    return 'Zoeken in $source is niet gelukt. Probeer het opnieuw.';
   }
 
   @override
   String onlineImportCreated(String title) {
     return '“$title” geïmporteerd.';
+  }
+
+  @override
+  String onlineImportUpdated(String title) {
+    return '“$title” bijgewerkt met de onlineversie.';
+  }
+
+  @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '“$title” is gewijzigd sinds je hem importeerde, dus Ongedaan maken heeft hem gelaten zoals hij is.';
   }
 
   @override
@@ -3900,7 +7150,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'De titel en caller van deze dans komen overeen met “$existingTitle”, maar de figuren verschillen. Hoe wil je hem importeren?';
+    return 'De titel en auteur van deze dans komen overeen met “$existingTitle”, maar de figuren verschillen. Hoe wil je hem importeren?';
   }
 
   @override
@@ -3913,7 +7163,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de figuren, callnotities, tags, beoordeling en aangepaste velden. De dans behoudt zijn plaats in je programma’s en zijn callerhistorie.';
+    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
   }
 
   @override
@@ -3922,12 +7172,32 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Je collectie bevat “$existingTitle” al uit een andere bron. Beide versies hebben dezelfde volgorde van moves.';
+    return 'Je collectie bevat “$existingTitle” al. Beide versies hebben dezelfde volgorde van moves.';
   }
 
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
       'Een tweede kopie importeren';
+
+  @override
+  String get onlineImportPossibleMatchDialogTitle => 'Heb je deze dans al?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '“$incomingTitle” is misschien een dans die je al hebt onder een andere titel. Kies de dans die je door deze versie wilt vervangen, of importeer deze als nieuwe dans.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+
+  @override
+  String get importFigurelessCannotReplace =>
+      'Dit record bevat geen figuren en kan daarom geen van je dansen vervangen. Het kan nog wel als nieuwe dans worden geïmporteerd.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Importeren als nieuwe dans';
 
   @override
   String get onlineAttributionCallersBox => 'Van The Caller\'s Box (online)';
@@ -3961,7 +7231,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importProgramCreateError =>
-      'Het geïmporteerde programma kon niet worden opgeslagen.';
+      'Het geïmporteerde programma kon niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
   String importProgramCommitted(
@@ -3979,8 +7249,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       notes,
       locale: localeName,
-      other: '$notes noten',
-      one: '1 noot',
+      other: '$notes notities',
+      one: '1 notitie',
     );
     return '“$title” geïmporteerd — $_temp0 ($linked gekoppeld, $_temp1).';
   }
@@ -4014,7 +7284,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importContraDbListError =>
-      'De ContraDB-programmalijst kon niet worden geladen.';
+      'De ContraDB-programmalijst kon niet worden geladen. Er is niets geïmporteerd. Probeer het opnieuw.';
 
   @override
   String get importContraDbSearchPrompt =>
@@ -4049,7 +7319,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importContraDbFetchGenericError =>
-      'Dat programma kon niet worden opgehaald.';
+      'Dat programma kon niet worden opgehaald. Probeer het opnieuw.';
 
   @override
   String get importContraDbPastePrompt =>
@@ -4057,11 +7327,24 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importContraDbEmptyProgram =>
-      'Geen dansen of noten gevonden op die programmapagina.';
+      'Geen dansen of notities gevonden op die programmapagina.';
 
   @override
   String get importContraDbResolveError =>
-      'Het ContraDB-programma kon niet worden geïmporteerd.';
+      'Het ContraDB-programma kon niet worden geïmporteerd. Probeer het opnieuw.';
+
+  @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Dans $done van $total importeren…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'De online archieven waren niet bereikbaar, dus er is niets geïmporteerd. Probeer het opnieuw zodra je online bent.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import geannuleerd – er is niets toegevoegd.';
 
   @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
@@ -4080,8 +7363,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp2 = intl.Intl.pluralLogic(
       notes,
       locale: localeName,
-      other: '$notes noten',
-      one: '1 noot',
+      other: '$notes notities',
+      one: '1 notitie',
     );
     return '$_temp0 ($_temp1, $_temp2)';
   }
@@ -4110,14 +7393,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importCollectionLoadError =>
-      'Je collectie kon niet worden geladen.';
+      'Je collectie kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get importTitleListDancesLabel => 'Danstitels (één per regel)';
 
   @override
   String get importTitleListDancesHint =>
-      'Plak één danstitel per regel.\nNiet-herkende regels worden als noten bewaard.';
+      'Plak één danstitel per regel.\nNiet-herkende regels worden als notities bewaard.';
 
   @override
   String get importTitleListEmptyHint =>
@@ -4137,14 +7420,15 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importPlaintextAmbiguous =>
-      'Meerdere overeenkomsten — als noot toegevoegd';
+      'Meerdere overeenkomsten — als notitie toegevoegd';
 
   @override
   String get importPlaintextUnmatched =>
-      'Geen overeenkomst — als noot toegevoegd';
+      'Geen overeenkomst — als notitie toegevoegd';
 
   @override
-  String get importPlaintextSearchError => 'Kon niet online zoeken.';
+  String get importPlaintextSearchError =>
+      'Online zoeken is niet gelukt. Probeer het opnieuw.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -4187,7 +7471,41 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titels online gekoppeld.',
+      one: ' – $linked titel online gekoppeld.',
+      zero: '.',
+    );
+    return 'Het opzoeken van titels is gestopt na een verbindingsfout$_temp0 Probeer de rest opnieuw zodra je online bent.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titels online gekoppeld.',
+      one: ' – $linked titel online gekoppeld.',
+      zero: '.',
+    );
+    return 'Het opzoeken van titels is gestopt$_temp0';
+  }
+
+  @override
   String get importReviewClose => 'Import sluiten';
+
+  @override
+  String get importReviewDiscardTitle => 'Deze import verwerpen?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Als je nu weggaat, worden de lijst die je aan het nakijken bent en je keuzes erop verworpen.';
+
+  @override
+  String get importReviewKeepReviewing => 'Doorgaan met nakijken';
 
   @override
   String get importReviewSourceLabel => 'Bron';
@@ -4205,6 +7523,21 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importSourceLabelGenericJson =>
       'een Caller\'s Compendium JSON-bestand';
+
+  @override
+  String get fileDialogTypeBackupJson => 'Back-up (JSON)';
+
+  @override
+  String get fileDialogTypeCompendiumShare => 'Compendium-deelbestand';
+
+  @override
+  String get fileDialogTypeCompanionUsr => 'Caller’s Companion .USR';
+
+  @override
+  String get fileDialogTypeDiagnosticsLog => 'Diagnoselogboek';
+
+  @override
+  String get fileDialogTypeMacosUpdate => 'Caller’s Compendium-update';
 
   @override
   String get importSourceLabelCallersBox => 'The Caller\'s Box';
@@ -4261,6 +7594,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String importReviewTitleListProgress(int done, int total) {
     return '$done van $total zoeken…';
+  }
+
+  @override
+  String importReviewCommitProgress(int done, int total) {
+    return '$done / $total';
   }
 
   @override
@@ -4373,6 +7711,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'The Caller\'s Box kon voor deze titel niet worden bereikt.';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'The Caller\'s Box kon niet worden bereikt – controleer je verbinding.';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      'Het opzoeken van titels is gestopt na een verbindingsfout. De titels die al in je collectie staan, worden getoond; probeer de rest zodra je online bent.';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'Te lang voor een danstitel, dus er is niet naar gezocht.';
 
@@ -4391,8 +7737,9 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge =>
-      'Dat bestand is te groot om te importeren.';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'Dat bestand is groter dan de limiet van $megabytes MB. Kies een kleiner bestand en probeer het opnieuw.';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge =>
@@ -4400,7 +7747,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedUnreadable =>
-      'Kon het gedeelde bestand niet lezen.';
+      'Het gedeelde bestand kon niet worden gelezen. Probeer het opnieuw, of vraag de afzender het opnieuw te delen.';
 
   @override
   String get archiveIntakeRejectedEmpty => 'Dat bestand is leeg.';
@@ -4410,12 +7757,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'Dat bestand is gemaakt met een nieuwere versie van de app. Werk de app bij om het te importeren.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'Dat bestand bevatte geen dansen of programma’s.';
+
+  @override
+  String get archiveIntakeRejectedBackup =>
+      'Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen ▸ Algemeen en kies je Herstellen vanuit een back-up.';
 
   @override
   String get importErrorInsecureScheme =>
@@ -4423,7 +7770,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importErrorBlockedHost =>
-      'Die URL verwijst naar een netwerklocatie waarvan niet kan worden geïmporteerd.';
+      'Die URL verwijst naar een netwerklocatie waaruit de app niet kan importeren. Controleer de URL en probeer het opnieuw.';
 
   @override
   String get importErrorInvalidUrl =>
@@ -4435,7 +7782,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importErrorTooManyRedirects =>
-      'Die URL heeft te vaak doorgestuurd.';
+      'Die URL is te vaak doorgestuurd. Open hem in een browser om het uiteindelijke adres te vinden en gebruik dat in plaats daarvan.';
 
   @override
   String get importErrorResponseTooLarge =>
@@ -4455,11 +7802,20 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'De server heeft gereageerd met HTTP $status.';
+    return 'De server stuurde een onverwacht antwoord (code $status). Controleer de URL en probeer het opnieuw.';
   }
 
   @override
-  String get importErrorEmptyResponse => 'De URL gaf een lege response.';
+  String get importErrorHttpNotFound =>
+      'Op dat adres is niets gevonden. Controleer de URL en probeer het opnieuw.';
+
+  @override
+  String get importErrorHttpBusy =>
+      'Die server is druk bezig of heeft problemen. Probeer het over een minuut opnieuw.';
+
+  @override
+  String get importErrorEmptyResponse =>
+      'De URL gaf een leeg antwoord terug. Controleer of de link naar de gegevens verwijst die je wilt importeren en probeer het opnieuw.';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -4491,17 +7847,30 @@ class AppLocalizationsNl extends AppLocalizations {
       'The Caller\'s Box kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
 
   @override
-  String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s Box heeft gereageerd met HTTP $status.';
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box reageerde niet binnen ${seconds}s. Controleer je verbinding en probeer het opnieuw.';
   }
 
   @override
+  String importErrorCallersBoxHttpStatus(int status) {
+    return 'The Caller\'s Box stuurde een onverwacht antwoord (code $status). Probeer het over een minuut opnieuw.';
+  }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Box heeft geen dans met die id. Controleer het nummer of de link en probeer het opnieuw.';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Box is nu druk bezig. Probeer het over een minuut opnieuw.';
+
+  @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box heeft een lege pagina geretourneerd.';
+      'The Caller\'s Box heeft een lege pagina geretourneerd. Probeer het over een minuut opnieuw.';
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Box heeft geen importeerbare dans geretourneerd.';
+      'The Caller\'s Box gaf geen importeerbare dans terug. Controleer de id of de link en probeer het opnieuw.';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -4514,6 +7883,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importErrorContraDbUnsupportedFigure =>
       'ContraDB-figuurzoekopdrachten gebruiken een volledige bewegingsnaam, zoals \"box circulate\".';
+
+  @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDB kan alleen geavanceerde zoekopdrachten uitvoeren die bestaan uit groepen “Alle van”, “Een van” en “Geen van” met “Heeft figuur”- en “Reeks (dan)”-voorwaarden. Verwijder tags, figuursecties, bewegingen zonder exacte tegenhanger in ContraDB en andere voorwaarden om in ContraDB te zoeken.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -4552,17 +7925,30 @@ class AppLocalizationsNl extends AppLocalizations {
       'ContraDB kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
 
   @override
-  String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDB heeft gereageerd met HTTP $status.';
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB reageerde niet binnen ${seconds}s. Controleer je verbinding en probeer het opnieuw.';
   }
 
   @override
+  String importErrorContraDbHttpStatus(int status) {
+    return 'ContraDB stuurde een onverwacht antwoord (code $status). Probeer het over een minuut opnieuw.';
+  }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDB heeft geen dans met die id. Controleer het nummer of de link en probeer het opnieuw.';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDB is nu druk bezig. Probeer het over een minuut opnieuw.';
+
+  @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB heeft een lege response geretourneerd.';
+      'ContraDB heeft een lege response geretourneerd. Probeer het over een minuut opnieuw.';
 
   @override
   String get importErrorContraDbNoDance =>
-      'ContraDB heeft geen importeerbare dans geretourneerd.';
+      'ContraDB gaf geen importeerbare dans terug. Controleer de id of de link en probeer het opnieuw.';
 
   @override
   String get importErrorContraDbImportFailed =>
@@ -4574,6 +7960,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importIssueProgramEmptySlot =>
       'Een lege plek in een programma is overgeslagen.';
+
+  @override
+  String get importIssueProgramDeletedDance =>
+      'Een programma verwees naar een dans die in Caller\'s Companion is verwijderd; de plek is weggelaten.';
 
   @override
   String get importIssueProgramUnresolvedDance =>
@@ -4590,6 +7980,47 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importIssueArchiveReadWarning =>
       'Bij het decoderen van het gedeelde bestand is een waarschuwing gemeld.';
+
+  @override
+  String get importIssueArchiveNewerSchema =>
+      'Dit bestand is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
+
+  @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Je aangepaste veld “$label” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in plaats daarvan in het veld met de sleutel “$key”, dat wordt toegevoegd als je het nog niet hebt. Je eigen veld blijft ongewijzigd.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Een eigen veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden komen in een veld met een genummerde sleutel.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'Dit bestand lijkt onvolledig – slechts een deel kon worden gelezen. Kopieer het opnieuw van het origineel en importeer het nogmaals.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'De figuren konden niet uit dit bestand worden gelezen, dus dansen komen mogelijk zonder figuren binnen. Controleer het originele bestand of exporteer het opnieuw vanuit Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Sommige figuren konden niet aan een dans worden gekoppeld en zijn weggelaten. Controleer of je dansen volledig zijn binnengekomen, of kopieer het bestand opnieuw van het origineel.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Enkele zeer lange figuurregels zijn weggelaten. De rest van elke dans is geïmporteerd.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Programma\'s konden niet volledig uit dit bestand worden gelezen, dus sommige ontbreken mogelijk of komen zonder hun dansen binnen. Controleer ze na het importeren.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Enkele gekoppelde dansen in dit bestand waren ongeldig en zijn overgeslagen.';
+
+  @override
+  String get importIssueUsrTermsSkipped =>
+      'Sommige woordenlijsttermen in dit bestand waren te lang om te bewaren of onleesbaar, en zijn weggelaten.';
 
   @override
   String get importIssueDirectionUnmapped =>
@@ -4609,7 +8040,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueMetadataOnlyStub =>
-      'Deze dans is alleen als metadata beschikbaar (geen figuren); geïmporteerd als stub.';
+      'Alleen de gegevens van de dans waren beschikbaar (geen figuren), dus de dans is zonder figuren geïmporteerd.';
 
   @override
   String importIssueDateAssumedMdy(String field) {
@@ -4642,8 +8073,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een niveau werd niet herkend; niet opgegeven.';
 
   @override
+  String importIssueNewLevel(String level) {
+    return 'Het niveau \"$level\" wordt aan je moeilijkheidsgraden toegevoegd.';
+  }
+
+  @override
   String get importIssueUnmappedProgression =>
       'Een progressie werd niet herkend; standaard op enkel.';
+
+  @override
+  String get importIssueBarsMeterUnstated =>
+      'Deze dans telt in maten maar vermeldt geen maatsoort, dus elke maat is als 2 tellen geteld. Controleer de tellingen.';
 
   @override
   String get importIssueUnmappedType =>
@@ -4653,6 +8093,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String importIssueUnparsedDate(String field) {
     return 'De datum ($field) kon niet worden gelezen; niet ingesteld.';
   }
+
+  @override
+  String get importIssueCcUserFieldKeyAdjusted =>
+      'De sleutel van een Caller\'s Companion-veld is aangepast zodat deze geldig en uniek is; de naam blijft behouden.';
+
+  @override
+  String get importIssueCcUserFieldLabelMissing =>
+      'Een Caller\'s Companion-veld had geen naam, dus er is een algemene naam aan gegeven.';
 
   @override
   String get importIssueUnparsedRating =>
@@ -4668,34 +8116,38 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueNoFiguresTable =>
-      'De pagina had geen figuren; geïmporteerd als metadata-only stub.';
+      'De pagina had geen figuren, dus de dans is zonder figuren geïmporteerd.';
 
   @override
   String get importIssueMoveFallback =>
-      'Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
+      'Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als niet-herkende figuur.';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'Figuur $position kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
+    return 'Figuur $position kon niet aan een bekende move worden gekoppeld; geïmporteerd als niet-herkende figuur.';
   }
 
   @override
   String get importIssueParamUnmapped =>
-      'Een figuurparameter kon niet worden gekoppeld; een taxonomie-standaard is gebruikt.';
+      'Een instelling van een figuur kon niet worden gekoppeld, dus de standaardwaarde is gebruikt.';
 
   @override
   String importIssueParamValueUnmapped(String param) {
-    return 'De parameter $param kon niet worden geconverteerd; een taxonomie-standaard is gebruikt.';
+    return 'De instelling $param kon niet worden omgezet, dus de standaardwaarde is gebruikt.';
   }
 
   @override
   String importIssueParamCountUnmapped(int provided, int mapped) {
-    return 'Een figuur had $provided parameterwaarden maar slechts $mapped zijn toegewezen; de extra waarden zijn genegeerd.';
+    return 'Een figuur had $provided instellingen maar slechts $mapped konden worden gekoppeld; de extra instellingen zijn genegeerd.';
   }
 
   @override
   String get importIssueRelatedDanceUnresolved =>
       'Een link naar een verwante dans verwees naar een dans die niet is geïmporteerd; de link is overgeslagen.';
+
+  @override
+  String get importIssueDuplicateExternalIdInBatch =>
+      'De bron vermeldde deze dans twee keer in één import; de herhaalde kopie is weggelaten.';
 
   @override
   String get importDateFieldComposed => 'gecomponeerd';
@@ -4706,6 +8158,38 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importRecordErrorDiscover =>
       'Dit record kon niet worden gevonden.';
+
+  @override
+  String get importRecordErrorEmptyFile =>
+      'Dit bestand of deze tekst is leeg. Kies een bestand met inhoud of plak de tekst opnieuw.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'Dit is geen JSON-bestand. Kies het .json-bestand dat de bron heeft geëxporteerd, of plak de JSON opnieuw.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Dit is geen deelbestand. Kies een .json- of .ccshare-bestand dat uit deze app is geëxporteerd.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Dit is geen Caller\'s Box-dans. Controleer of je een dans van The Caller\'s Box hebt gekopieerd en probeer het opnieuw.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'Dit is geen ContraDB-dans. Controleer of je een dansenpagina van ContraDB hebt gekopieerd en probeer het opnieuw.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Dit is geen Caller\'s Companion-gegevensbestand (.USR). Zoek in Caller\'s Companion het .USR-bestand in de gegevensmap.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'Dit bestand is te groot om te importeren. Kies een kleiner bestand of splits het in delen.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'Daar is geen dans gevonden. Controleer de id of link van de Caller\'s Box-dans en probeer het opnieuw.';
 
   @override
   String get importRecordErrorFetch => 'Dit record kon niet worden opgehaald.';
@@ -4722,15 +8206,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewUsrSubtitle =>
-      'Kies het Caller\'s Companion .USR-bestand om de dansen en programmageschiedenis te migreren. Er wordt niets aan je collectie toegevoegd totdat je controleert en bevestigt.';
+      'Kies het Caller\'s Companion .USR-bestand om de dansen en programmageschiedenis te migreren. Er wordt niets aan je bibliotheek toegevoegd totdat je controleert en bevestigt.';
 
   @override
   String get importReviewChooseUsr => 'Kies .USR-bestand…';
 
   @override
-  String importReviewFileReady(int bytes) {
-    return 'Bestand klaar ($bytes bytes).';
-  }
+  String get importReviewFileReady => 'Bestand klaar.';
 
   @override
   String get importReviewGenericSubtitle =>
@@ -4781,6 +8263,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importReviewCouldNotRead => 'De import kon niet worden gelezen';
 
   @override
+  String get importReviewPlanFailedBody =>
+      'Deze import kon niet worden gelezen. Er is niets toegevoegd. Probeer het opnieuw; blijft het gebeuren, dan is het bestand mogelijk beschadigd.';
+
+  @override
   String get importReviewNoDancesTitle => 'Geen dansen gevonden';
 
   @override
@@ -4794,15 +8280,32 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importReviewImported => 'Geïmporteerd';
 
   @override
+  String get importReviewImportAndEdit => 'Importeren en bewerken';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total gestructureerd';
   }
 
   @override
-  String get importReviewCustom => 'Aangepast';
+  String get importReviewCustom => 'Niet herkend';
 
   @override
   String get importReviewOptionNewDance => 'Nieuwe dans';
+
+  @override
+  String get importReviewBulkSetAllLabel =>
+      'Alle overeenkomende dansen instellen op:';
+
+  @override
+  String get importReviewBulkReimport => 'Opnieuw importeren';
+
+  @override
+  String get importReviewBulkSkip => 'Overslaan';
+
+  @override
+  String get importReviewBulkSkipAmbiguous =>
+      'Alle mogelijke overeenkomsten overslaan';
 
   @override
   String get importReviewOptionSkip => 'Overslaan';
@@ -4810,6 +8313,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String importReviewOptionReimport(String title) {
     return 'Opnieuw importeren in “$title”';
+  }
+
+  @override
+  String get importReviewReimportTitleAndCredit =>
+      'Ook titel en auteur bijwerken';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Neemt de titel en auteursvermelding uit dit bestand over voor “$title”. Je beoordeling, tags, notities en links blijven zoals ze zijn.';
   }
 
   @override
@@ -4821,8 +8333,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Mogelijke overeenkomst — kies hoe je wilt importeren:';
 
   @override
+  String get importReviewPossibleTitleMatch =>
+      'Misschien een dans die je al hebt, onder een andere titel — kies hoe je wilt importeren:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Dezelfde dans onder een andere titel – “$title” vervangen door deze versie';
+  }
+
+  @override
   String importReviewOptionLink(String title, int percent) {
-    return 'Koppelen aan “$title” ($percent% overeenkomst)';
+    return 'Dezelfde dans – “$title” vervangen door deze versie ($percent% overeenkomst)';
   }
 
   @override
@@ -4832,6 +8353,32 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: '$count bestaande dansen worden overschreven',
       one: '1 bestaande dans wordt overschreven',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen en kan hun dansvorm wijzigen. Hun beoordelingen, tags en notities blijven.',
+      one:
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans en kan de dansvorm wijzigen. De beoordeling, tags en notities blijven.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Bij $count daarvan worden ook de titel en auteur uit het bestand overgenomen.',
+      one:
+          'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
     );
     return '$_temp0';
   }
@@ -4853,18 +8400,6 @@ class AppLocalizationsNl extends AppLocalizations {
           'Deze import bevat $count items — meer dan verwacht voor een gewone share.',
       one:
           'Deze import bevat 1 item — meer dan verwacht voor een gewone share.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items geïmporteerd.',
-      one: '1 item geïmporteerd.',
-      zero: 'Import voltooid.',
     );
     return '$_temp0';
   }
@@ -4916,6 +8451,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figuren toegevoegd aan of bijgewerkt in je woordenlijst: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count bijgewerkt (opnieuw geïmporteerd)';
   }
@@ -4926,7 +8466,18 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count programmanotities:',
-      one: '$count programmanotitie(s):',
+      one: '$count programmanotitie:',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count opmerkingen:',
+      one: '1 opmerking:',
     );
     return '$_temp0';
   }
@@ -4937,7 +8488,7 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count records konden niet worden geïmporteerd:',
-      one: '$count record(s) kon niet worden geïmporteerd:',
+      one: '$count record kon niet worden geïmporteerd:',
     );
     return '$_temp0';
   }
@@ -4950,7 +8501,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other:
           '$count records konden niet worden gelezen (de rest kan nog worden geïmporteerd):',
       one:
-          '$count record(s) kon niet worden gelezen (de rest kan nog worden geïmporteerd):',
+          '$count record kon niet worden gelezen (de rest kan nog worden geïmporteerd):',
     );
     return '$_temp0';
   }
@@ -4967,10 +8518,57 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewEditError =>
-      'Die dans kon niet worden geïmporteerd om te bewerken.';
+      'Die dans kon niet worden geïmporteerd om te bewerken. Probeer het opnieuw.';
 
   @override
-  String get importReviewImportError => 'De import kon niet worden voltooid.';
+  String get importUsrEnglishTitle => 'Zijn dit Engelse country dances?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion zet Engelse country dances vaak onder Contra. Bevat dit bestand Engelse dansen, dan worden ze gelezen met Engelse figuren, formaties en maattellingen. Squaredansen blijven squares.';
+
+  @override
+  String get importUsrEnglishNo => 'Nee, lees hun type';
+
+  @override
+  String get importUsrEnglishYes => 'Ja, Engelse dansen';
+
+  @override
+  String get importReviewEditOverwriteTitle => 'Bestaande dans nu vervangen?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Importeren om te bewerken vervangt “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt hem niet.';
+  }
+
+  @override
+  String get importReviewEditOverwriteConfirm => 'Vervangen';
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Nu opnieuw importeren in de bestaande dans?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Importeren om te bewerken vervangt de figuren, formatie en progressie van “$title” in je verzameling meteen en kan de dansvorm wijzigen. Ongedaan maken van de hele import herstelt ze niet.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “$title” in je verzameling meteen en kan de dansvorm wijzigen. Ongedaan maken van de hele import herstelt ze niet.';
+  }
+
+  @override
+  String get importReviewImportError =>
+      'De import kon niet worden voltooid. Probeer het opnieuw.';
+
+  @override
+  String get importFileNotText =>
+      'Dat bestand kon niet worden gelezen: het is geen deelbestand en ook geen tekst die de app kan lezen. Als een andere app het als tekst heeft opgeslagen, sla het daar opnieuw op als UTF-8 en probeer het nog eens.';
+
+  @override
+  String get importFileUnreadable =>
+      'Dat bestand kon niet worden geopend. Misschien gebruikt een andere app het, of staat het op een schijf die niet is verbonden.';
 
   @override
   String importReviewVariationTitle(String title) {
@@ -4979,7 +8577,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importReviewVariationBody(String title) {
-    return 'De titel en caller van deze dans komen overeen met \"$title\", maar de figuren verschillen. Bekijk de verschillen en kies vervolgens hoe je hem wilt importeren.';
+    return 'De titel en auteur van deze dans komen overeen met \"$title\", maar de figuren verschillen. Bekijk de verschillen en kies vervolgens hoe je hem wilt importeren.';
   }
 
   @override
@@ -4989,7 +8587,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importReviewOptionSameDance(String title) {
-    return 'Dezelfde dans als \"$title\" (koppelen/bijwerken)';
+    return 'Dezelfde dans – “$title” vervangen door deze versie';
   }
 
   @override
@@ -5018,13 +8616,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorDetailsSection => 'Details';
 
   @override
-  String get danceEditorTitleRequiredLabel => 'Titel *';
+  String get danceEditorTitleRequiredLabel => 'Titel';
 
   @override
   String get danceEditorTitleRequired => 'Titel is vereist';
 
   @override
   String get danceEditorAuthorsLabel => 'Auteurs';
+
+  @override
+  String get danceEditorFormLabel => 'Type';
 
   @override
   String get danceEditorFormationLabel => 'Formatie';
@@ -5040,11 +8641,62 @@ class AppLocalizationsNl extends AppLocalizations {
       'Leeg = standaard A1 A2 B1 B2; anders bijv. 6*8*2';
 
   @override
+  String get danceEditorPhrasesNameThem => 'Frasen benoemen';
+
+  @override
+  String get danceEditorPhrasesTitle => 'Frasen';
+
+  @override
+  String get danceEditorPhrasesHelp =>
+      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
+
+  @override
+  String get danceEditorPhrasesAdd => 'Frase toevoegen';
+
+  @override
+  String danceEditorPhrasesInvalid(int max) {
+    return 'Geef elke frase 1 tot $max maten. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+  }
+
+  @override
+  String danceEditorPhraseBarsLabel(String name) {
+    return 'Maten in $name';
+  }
+
+  @override
+  String danceEditorPhraseBarsRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
+  String get danceEditorPhraseNameLabel => 'Naam van de frase';
+
+  @override
+  String danceEditorPhrasePlaysLabel(String name) {
+    return 'Hoe vaak $name speelt';
+  }
+
+  @override
+  String get danceEditorPhrasePlaysOnce => 'Eén keer';
+
+  @override
+  String get danceEditorPhrasePlaysTwice => 'Twee keer';
+
+  @override
+  String danceEditorPhraseRemove(String name) {
+    return 'Frase $name verwijderen';
+  }
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
   String get danceEditorFiguresHelp =>
-      'Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardparameters; niet-herkende tekst wordt een aangepaste figuur.';
+      'Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardwaarden; tekst die de app niet kan lezen wordt een niet-herkende figuur.';
+
+  @override
+  String get danceEditorFiguresHelpFreeText =>
+      'Voeg een figuur toe door een hele regel te typen (bijv. “neighbor balance & swing”) en op Enter te drukken. Een regel die je in de beweging van een bestaande figuur typt, vervangt die figuur. Tekst die de app niet kan lezen wordt een niet-herkende figuur.';
 
   @override
   String get danceEditorNotesSection => 'Notities';
@@ -5053,10 +8705,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorCallingNotesLabel => 'Callnotities';
 
   @override
-  String get danceEditorHookLabel => 'Haak';
+  String get danceEditorHookLabel => 'Hook';
 
   @override
   String get danceEditorHookHint => 'Één zin “waarom deze dans callen”';
+
+  @override
+  String get danceEditorHookHelper =>
+      'Waarom je deze dans zou callen, in één regel. Dit kan op callingkaarten en in wat je deelt verschijnen.';
 
   @override
   String get danceEditorWalkthroughLabel => 'Doorloop';
@@ -5078,6 +8734,13 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorAddWordingOverride =>
       'Woording voor deze dans aanpassen';
+
+  @override
+  String get danceEditorGroupTitleLabel => 'Groepstitel (optioneel)';
+
+  @override
+  String get danceEditorGroupTitleHelper =>
+      'Een naam voor de hele groep, zoals Flutterwheel. Die staat vóór de figuren van de groep, gevolgd door een streepje.';
 
   @override
   String get danceEditorWordingOverrideLabel =>
@@ -5142,8 +8805,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze stapbeschrijvingen per figuur vullen doorlopen vooraf in wanneer je een dans bewerkt. Een hier bewerken werkt de overal gebruikte standaard bij.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Nog geen opgeslagen fragmenten. Voeg doorloopstapbeschrijvingen toe terwijl je de figuren van een dans bewerkt.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Nog geen opgeslagen fragmenten';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Voeg beschrijvingen van doorloopstappen toe terwijl u de figuren van een dans bewerkt.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -5155,13 +8822,6 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Fragment verwijderen?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'Dit verwijdert de opgeslagen standaard voor deze figuur. Dansen behouden alle doorlooptekst die je al hebt geschreven.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Fragment bewerken';
@@ -5180,11 +8840,28 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansers wisselen elke keer van partner';
 
   @override
+  String get danceEditorImproperLabel => 'Begint improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Laat leeg voor een dans die proper begint.';
+
+  @override
   String get danceEditorComposedLabel => 'Gecomponeerd';
 
   @override
   String get danceEditorComposedHelper =>
       'Wanneer de dans is gecomponeerd (jaar, of voeg maand/dag toe)';
+
+  @override
+  String get danceEditorInterpretedByLabel => 'Geïnterpreteerd door';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Geïnterpreteerd';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Wanneer de dans is geïnterpreteerd (jaar, of voeg maand/dag toe)';
 
   @override
   String get danceEditorRevisedLabel => 'Herzien';
@@ -5338,7 +9015,83 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'Een reeks in figuur $position duurt $actual tellen, langer dan één frase ($limit tellen).';
+  }
+
+  @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'De stappen van de reeks in figuur $position duren $actual tellen; de reeks duurt $expected.';
+  }
+
+  @override
+  String validationPhraseCountMismatch(String actual, String expected) {
+    return 'De figuren duren samen $actual; de fraseopbouw verwacht $expected.';
+  }
+
+  @override
+  String validationSequenceExceedsPhraseCount(
+    int position,
+    String actual,
+    String limit,
+  ) {
+    return 'Een reeks in figuur $position duurt $actual, langer dan één frase ($limit).';
+  }
+
+  @override
+  String validationSequenceSpanNoRoomCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'De getimede stappen van de reeks in figuur $position duren $actual, zodat er van de $expected niets overblijft voor de rest.';
+  }
+
+  @override
+  String validationSequenceSpanMismatchCount(
+    int position,
+    String actual,
+    String expected,
+  ) {
+    return 'De stappen van de reeks in figuur $position duren $actual; de reeks duurt $expected.';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'De getimede stappen van de reeks in figuur $position duren $actual tellen, zodat er van de $expected niets overblijft voor de rest.';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren komen',
+      one: '1 figuur komt',
+    );
+    return 'Dit is een $danceForm-dans, maar $_temp0 uit $figureForm. Ze blijven zoals ze zijn, maar de figuurkiezer biedt alleen $pickerForm-figuren aan.';
+  }
+
+  @override
+  String validationIncompleteFigure(int position) {
+    return 'Figuur $position is niet compleet, dus Opslaan laat hem weg.';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
+
+  @override
+  String get validationPhraseNamedEnglishOnly =>
+      'Frasenamen (A:, B:, C:) zijn alleen voor Engelse dansen.';
 
   @override
   String validationOrphanedAlt(int position) {
@@ -5362,6 +9115,11 @@ class AppLocalizationsNl extends AppLocalizations {
     String substitution,
   ) {
     return '“$source” en “$existing” verwijzen beide naar “$substitution” — omkeren zou dubbelzinnig zijn.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '‘$word’ is een gendergebonden rolwoord dat de app nooit toont. Gebruik in plaats daarvan een rolneutraal woord.';
   }
 
   @override
@@ -5402,7 +9160,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMissingDance => '(ontbrekende dans)';
 
   @override
-  String get danceEditorNoteOptionalLabel => 'Noot (optioneel)';
+  String get danceEditorNoteOptionalLabel => 'Notitie (optioneel)';
 
   @override
   String get danceEditorRemoveRelatedDanceTooltip =>
@@ -5453,7 +9211,18 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een bron citeren: typ om toe te voegen of aan te maken…';
 
   @override
-  String get danceEditorSaveError => 'De dans kon niet worden opgeslagen.';
+  String get danceEditorSaveError =>
+      'De dans kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
+
+  @override
+  String danceEditorChoreographerDuplicate(String name) {
+    return 'Een auteur met de naam “$name” bestaat al. De naam is niet gewijzigd.';
+  }
+
+  @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return 'Er bestaat al een auteur met de naam “$name”. De nieuwe auteur is niet aangemaakt — kies de bestaande.';
+  }
 
   @override
   String get danceEditorFallbackDanceTitle => 'Dans';
@@ -5464,6 +9233,24 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Je hebt een niet-opgeslagen concept voor deze dans. Wil je het herstellen?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Je hebt een niet-opgeslagen concept van een andere nieuwe dans, ‘$title’. Wil je het herstellen in plaats van een nieuwe te beginnen?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Je hebt een niet-opgeslagen concept van een andere nieuwe dans, nog zonder titel. Wil je het herstellen in plaats van een nieuwe te beginnen?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Concept opgeslagen op $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Deze dans is gewijzigd sinds het concept werd opgeslagen. Als je het concept herstelt, worden die wijzigingen vervangen.';
 
   @override
   String get danceEditorDiscard => 'Verwerpen';
@@ -5491,27 +9278,43 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorRedoLabel => 'Opnieuw uitvoeren';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Ongedaan maken (Ctrl+Z)';
+  String get editorDraftNotSaved =>
+      'Concept niet opgeslagen – je laatste wijzigingen worden nog niet bewaard';
 
   @override
-  String get danceEditorRedoShortcutTooltip =>
-      'Opnieuw uitvoeren (Ctrl+Shift+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Ongedaan maken (⌘Z)',
+      'other': 'Ongedaan maken (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Opnieuw uitvoeren (⇧⌘Z)',
+      'other': 'Opnieuw uitvoeren (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Dans verwijderen';
 
   @override
-  String get danceEditorLoadError => 'De dans kon niet worden geladen.';
+  String get danceEditorLoadError =>
+      'De dans kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
-  String get danceEditorChoreographerDetailsTitle => 'Choreografendetails';
+  String get danceEditorChoreographerDetailsTitle => 'Auteurdetails';
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
       'Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering “overleden” zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.';
 
   @override
-  String get danceEditorNameRequiredLabel => 'Naam *';
+  String get danceEditorNameRequiredLabel => 'Naam';
 
   @override
   String get danceEditorNameRequired => 'Naam is vereist';
@@ -5590,6 +9393,44 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorFreeTextFiguresAddedConfirmation(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count figuren toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
+      one:
+          '1 figuur toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Toevoegen afronden';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren toegevoegd.',
+      one: '1 figuur toegevoegd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorFreeTextRowReplacedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Figuur vervangen door $count figuren.',
+      one: 'Figuur vervangen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String danceEditorDeletedFigureAnnouncement(int position) {
     return 'Figuur $position verwijderd. Ongedaan maken mogelijk.';
   }
@@ -5626,6 +9467,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddModifier => 'Modifier toevoegen';
 
   @override
+  String get danceEditorAddSequence => 'Reeks toevoegen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 
@@ -5634,7 +9478,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      'bijv. “neighbor balance & swing” of “16 circle left 3/4”. Enter voegt het toe; niet-herkende tekst wordt bewaard als aangepaste figuur.';
+      'bijv. “neighbor balance & swing” of “16 circle left 3/4”. Enter voegt het toe; tekst die de app niet kan lezen wordt bewaard als niet-herkende figuur.';
 
   @override
   String get danceEditorPasteHere => 'Hier plakken';
@@ -5643,13 +9487,52 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorEmptyFigureName => 'Lege figuur';
 
   @override
-  String get danceEditorCustomFigureName => 'Aangepaste figuur';
+  String get danceEditorCustomFigureName => 'Niet-herkende figuur';
 
   @override
   String get danceEditorEmptyFigureSummary => '(leeg — kies een move)';
 
   @override
   String get danceEditorEmptyFigureSemantic => 'lege figuur, kies een move';
+
+  @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name: $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', kan niet worden uitgevouwen',
+      'other': '',
+    });
+    return '$summary, je figuur$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return 'Wordt bij het opslaan van de dans $_temp0 ($_temp1).';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'Je figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij opslaan blijven alleen zijn naam, tellen, notitie en progressiemarkering behouden.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Niet compleet, dus Opslaan laat hem weg.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -5683,7 +9566,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'other': '',
     });
     String _temp4 = intl.Intl.selectLogic(hasNote, {
-      'yes': ', noot: $note',
+      'yes': ', notitie: $note',
       'other': '',
     });
     return '$main$_temp0$_temp1$_temp3$_temp4. Figuur $position van $total.';
@@ -5709,6 +9592,24 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMoveDown => 'Omlaag verplaatsen';
 
   @override
+  String commonMoveItemUp(String name) {
+    return '$name omhoog verplaatsen';
+  }
+
+  @override
+  String commonMoveItemDown(String name) {
+    return '$name omlaag verplaatsen';
+  }
+
+  @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$name verplaatst naar positie $position van $count';
+  }
+
+  @override
+  String get danceEditorFigureCutState => 'Geknipt';
+
+  @override
   String get danceEditorCut => 'Knippen';
 
   @override
@@ -5726,16 +9627,98 @@ class AppLocalizationsNl extends AppLocalizations {
       'Met volgende groeperen als modifier';
 
   @override
+  String get danceEditorGroupWithNextAsSequence =>
+      'Met volgende groeperen als reeks';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Omzetten naar meanwhile';
 
   @override
   String get danceEditorConvertToModifier => 'Omzetten naar modifier';
 
   @override
+  String get danceEditorConvertToSequence => 'Omzetten naar reeks';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Meanwhile-groepering opheffen';
 
   @override
   String get danceEditorUngroupModifier => 'Modifier-groepering opheffen';
+
+  @override
+  String get danceEditorUngroupSequence => 'Reeks-groepering opheffen';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'reeks';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Reeks ($count figuren)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen',
+      one: '1 tel',
+    );
+    return 'Reeksgroep, $_temp0 na elkaar, $_temp1 in totaal.';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen in totaal',
+      one: '1 tel in totaal',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'Deze reeks duurt $beats tellen, langer dan één frase ($limit tellen).';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'Deze figuren vullen één frase ($limit tellen).';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'Maximaal $max figuren in een reeks.';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'Figuur $number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'Figuur $number van $total in de reeks.';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => 'Volgende figuur toevoegen';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'Deze figuur verwijderen';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -5842,7 +9825,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
-    return 'Niet-herkende move “$move” — niet in de taxonomie van deze versie. Alleen-lezen weergegeven zodat de gegevens bewaard blijven; de move kan weer normaal worden bewerkt als hij herkend wordt. Je kunt hem nog steeds herordenen of verwijderen.';
+    return 'Onbekende move \"$move\": deze versie van de app kent hem niet. Hij wordt alleen-lezen getoond zodat de gegevens behouden blijven, en hij is weer gewoon te bewerken als de move bekend wordt. Je kunt hem nog wel verplaatsen of verwijderen.';
   }
 
   @override
@@ -5854,7 +9837,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get danceEditorAddNote => 'Noot toevoegen';
+  String get danceEditorAddNote => 'Notitie toevoegen';
 
   @override
   String get danceEditorBoldTooltip => 'Vet (*tekst*)';
@@ -5863,11 +9846,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorUnderlineTooltip => 'Onderstrepen (_tekst_)';
 
   @override
-  String get danceEditorCustomFigureTextLabel => 'Aangepaste figuurtekst';
+  String get danceEditorCustomFigureTextLabel =>
+      'Tekst van niet-herkende figuur';
 
   @override
   String get danceEditorLingoStylingHelper =>
-      'Bewegingsnamen gestippeld·onderstreept, roltermen onderstreept, ontmoedigde termen doorgestreept';
+      'Bewegingsnamen krijgen een gestippelde onderstreping, roltermen een onderstreping en ontmoedigde termen een doorhaling';
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -5894,7 +9878,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get figureParamFacingStarBackingUp => 'achteruit';
 
   @override
+  String get danceEditorParamChooseValue => 'kies een waarde';
+
+  @override
   String get danceEditorParamClearTooltip => 'Wissen (niet opgegeven)';
+
+  @override
+  String danceEditorIntParamRangeError(int min, int max) {
+    return 'Voer een geheel getal in van $min tot $max';
+  }
 
   @override
   String get danceEditorMoreTooltip => 'Meer';
@@ -5909,6 +9901,17 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'andere hoeveelheid';
+
+  @override
+  String get figureParamFractionOtherPick => 'andere hoeveelheid…';
 
   @override
   String get commonBack => 'Terug';
@@ -5951,12 +9954,139 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get updateBannerDownloadFailed =>
-      'De update kon niet worden gedownload.';
+      'De update kon niet worden gedownload. Probeer het opnieuw.';
+
+  @override
+  String get updateDownloadFailureDestination =>
+      'Er kon geen plek voor het downloaden van de update worden gekozen. Probeer het opnieuw, of gebruik \"Release bekijken\".';
+
+  @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Er staat al iets op die locatie. Kies een andere naam of map, of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureIncomplete =>
+      'De download kon niet worden voltooid en het onvolledige bestand is verwijderd. Probeer het opnieuw, of gebruik \"Release bekijken\".';
+
+  @override
+  String get updateDownloadFailureRefusedHost =>
+      'De update-download is geweigerd omdat die naar een onverwachte locatie verwees. Gebruik „Release bekijken” om de update handmatig te downloaden.';
+
+  @override
+  String get updateDownloadFailureUnreachable =>
+      'De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik \"Release bekijken\".';
+
+  @override
+  String get updateDownloadFailureServerError =>
+      'De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik \"Release bekijken\".';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'Er is te weinig vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik \"Release bekijken\".';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'De update kon niet worden opgeslagen omdat er niet naar de downloadlocatie kan worden geschreven. Controleer de rechten en probeer het opnieuw, of gebruik \"Release bekijken\".';
+
+  @override
+  String get updateDownloadFailureChecksumMismatch =>
+      'De gedownloade update is niet door de beveiligingscontrole gekomen en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.';
+
+  @override
+  String get updateDownloadFailureHandoffFailed =>
+      'De update is gedownload en gecontroleerd, maar kon niet automatisch worden geopend. Gebruik \"Release bekijken\" om de installatie af te ronden.';
+
+  @override
+  String get updateDownloadFailureInstallFailed =>
+      'De update kon niet worden geïnstalleerd. Probeer het opnieuw, of gebruik \"Release bekijken\" om hem handmatig te downloaden.';
+
+  @override
+  String get startupIntegrityCheckIncomplete =>
+      'Je gegevens konden deze keer niet volledig worden gecontroleerd, dus ze konden niet worden geverifieerd. Blijven er problemen, overweeg dan te herstellen vanuit een back-up. Technische details zijn bewaard in Instellingen ▸ Diagnostics.';
+
+  @override
+  String get startupIntegrityCheckFailed =>
+      'Je gegevens zijn niet door de veiligheidscontrole gekomen en zijn mogelijk beschadigd. Overweeg te herstellen vanuit een back-up.';
+
+  @override
+  String get startupEcdConvertTitle => 'ECD-dansen converteren?';
+
+  @override
+  String get startupEcdConvertMessage =>
+      'Wil je alle niet-Engelse dansen in je collectie met de tag “ECD” converteren naar Engelse dansen?';
+
+  @override
+  String get startupEcdConvertDontShowAgain => 'Dit niet meer tonen';
+
+  @override
+  String get startupEcdConvertDecline => 'Niet nu';
+
+  @override
+  String get startupEcdConvertConfirm => 'Converteren';
+
+  @override
+  String startupEcdConvertSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen geconverteerd naar Engels (ECD).',
+      one: '1 dans geconverteerd naar Engels (ECD).',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen teruggezet.',
+      one: '1 dans teruggezet.',
+      zero:
+          'Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Bezig met sluiten…';
 
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Een nieuwere versie van $appName ($version) is beschikbaar.';
   }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Er is een nieuwere versie van $appName ($version) beschikbaar. Dit is een draagbare kopie, dus download de nieuwe zip of tar.gz van de release.';
+  }
+
+  @override
+  String retirementNoticeUpcoming(String appName, String version, String date) {
+    return 'De ondersteuning voor deze versie van $appName ($version) stopt op $date. Werk vóór die datum bij naar een nieuwere versie.';
+  }
+
+  @override
+  String retirementNoticePast(String appName, String version, String date) {
+    return 'De ondersteuning voor deze versie van $appName ($version) is gestopt op $date. Werk nu bij naar een nieuwere versie.';
+  }
+
+  @override
+  String get retirementBannerGetUpdate => 'Update ophalen';
+
+  @override
+  String get retirementBannerLater => 'Sluiten';
+
+  @override
+  String installLocationBannerMessage(String appName) {
+    return '$appName is mogelijk niet geïnstalleerd. De app draait vanaf de gedownloade schijfkopie of het archief, of vanaf een tijdelijke alleen-lezen locatie die macOS ervoor heeft aangemaakt. Stop de app, sleep hem in de Finder naar de map Apps of kopieer hem daarheen en open hem daarna vanaf daar. Staat de app al in de map Apps, dan kun je deze melding sluiten.';
+  }
+
+  @override
+  String get installLocationBannerDismiss => 'Sluiten';
+
+  @override
+  String get settingsUpdatesRetirementTitle => 'Einde van ondersteuning';
 
   @override
   String get updateBannerViewRelease => 'Release bekijken';
@@ -6006,7 +10136,28 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commandPaletteGroupPrograms => 'Programma’s';
 
   @override
-  String get collectionPickerSearchLabel => 'Een dans zoeken om toe te voegen';
+  String commandPaletteHighlightedResult(String name, int index, int count) {
+    return '$name, $index van $count';
+  }
+
+  @override
+  String commandPaletteResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count resultaten',
+      one: '1 resultaat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commandPaletteResultCountCapped(int shown, int total) {
+    return '$shown van $total resultaten worden getoond';
+  }
+
+  @override
+  String get collectionPickerSearchLabel => 'Een dans zoeken';
 
   @override
   String collectionPickerFilters(int count) {
@@ -6032,14 +10183,6 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionPickerAdvanced => 'Geavanceerd';
-
-  @override
-  String get collectionPickerUseAdvancedQuery =>
-      'Geavanceerde zoekopdracht gebruiken';
-
-  @override
-  String get collectionPickerAdvancedQueryHelp =>
-      'Combineer figuren en reeksen met alle / een van / geen groepen.';
 
   @override
   String collectionPickerAddSemantic(String title) {
@@ -6085,10 +10228,14 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get userGuideLoadError => 'De gebruikersgids kon niet worden geladen.';
+  String get userGuideLoadError =>
+      'De gebruikersgids kon niet worden geladen. Probeer het opnieuw.';
 
   @override
   String get userGuideOpenOnline => 'De gids online openen';
+
+  @override
+  String get userGuideEnglishOnly => 'De gebruikersgids is in het Engels.';
 
   @override
   String get shorthandMappingsTitle => 'Figuurafkortingen';
@@ -6101,18 +10248,63 @@ class AppLocalizationsNl extends AppLocalizations {
   String get shorthandMappingsNew => 'Nieuwe afkorting';
 
   @override
-  String get shorthandMappingsEmpty => 'Nog geen afkortingen.';
+  String get shorthandMappingsEmptyTitle => 'Nog geen afkortingen';
 
   @override
-  String get shorthandMappingsDeleteTitle => 'Afkorting verwijderen?';
+  String get shorthandMappingsEmptyBody =>
+      'Kies Nieuwe afkorting om er een toe te voegen.';
 
   @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '“$token” wordt permanent verwijderd.';
+  String shorthandMappingsLimitReached(int max) {
+    return 'Je hebt de limiet van $max afkortingen bereikt. Verwijder er een om een nieuwe toe te voegen.';
   }
 
   @override
   String get shorthandMappingsActionsTooltip => 'Afkortingsacties';
+
+  @override
+  String get shorthandsCompoundTitle => 'Afkortingen voor je eigen figuren';
+
+  @override
+  String get shorthandsUserFigureSyncLabel => 'Afkortingen voor nieuwe figuren';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Als vrije tekstinvoer aan staat, voegt het typen van een van deze afkortingen als hele regel tijdens het bewerken van een dans een van je eigen figuren toe, met de waarden die hier zijn gekozen.';
+
+  @override
+  String get shorthandsCompoundNew =>
+      'Nieuwe afkorting voor een van je figuren';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Nog geen afkortingen voor je eigen figuren.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Niet bruikbaar: de figuur is verwijderd of gewijzigd, of accepteert deze waarden niet. Getypt wordt het als een gewone regel gelezen.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Niet gebruikt: een figuurafkorting heeft dezelfde tekst.';
+
+  @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Niet gebruikt: een afkorting voor een combinatie heeft dezelfde tekst.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Je figuur';
+
+  @override
+  String get compoundShorthandEditorNoFigure => 'Kies een van je figuren.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Je hebt nog geen eigen figuren. Voeg er eerst een toe in de Woordenlijst.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Deze waarden passen niet bij deze figuur. Kies andere.';
 
   @override
   String get shorthandEditorTitleNew => 'Nieuwe afkorting';
@@ -6126,6 +10318,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get shorthandEditorTokenHelper =>
       'Typ deze exacte regel tijdens vrije tekstinvoer om de onderstaande figuren in te voegen. Hoofdletterongevoelig vergeleken.';
+
+  @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Als je “$token” typt, wordt er al een figuur ingevoegd. Als je deze afkorting opslaat, voegt typen ervan in plaats daarvan in wat je hier hebt ingesteld. Je kunt hem nog steeds opslaan.';
+  }
 
   @override
   String get shorthandEditorExpandsTo => 'Klapt uit naar';
@@ -6145,6 +10342,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return 'Een andere afkorting gebruikt al “$token” (afkortingen worden hoofdletterongevoelig vergeleken).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '“$token” is al een afkorting voor een van je eigen figuren. Die worden hier getoond zolang Eigen figuren aan staat.';
   }
 
   @override
@@ -6192,12 +10394,111 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get importUserFiguresTitle => 'Figuren in dit bestand';
+
+  @override
+  String get importUserFiguresIntro =>
+      'De dansen die je importeerde gebruiken figuren die de afzender heeft gemaakt. Kies wat je aan je woordenlijst toevoegt. Een dans waarvan je de figuur niet toevoegt, toont de regel waarmee hij werd gedeeld.';
+
+  @override
+  String get importUserFiguresNewHeader => 'Nieuw voor jou';
+
+  @override
+  String get importUserFiguresDiffersHeader => 'Anders dan die van jou';
+
+  @override
+  String get importUserFiguresCopyHeader => 'Toegevoegd als kopie';
+
+  @override
+  String get importUserFiguresCopyNote =>
+      'Dit apparaat heeft zijn id al eerder gebruikt, dus hij wordt onder een nieuwe toegevoegd. De dansen die je importeerde gebruiken de kopie.';
+
+  @override
+  String get importUserFiguresSameHeader => 'Al in je woordenlijst';
+
+  @override
+  String get importUserFiguresNameTaken =>
+      'Zijn naam is hier al in gebruik, dus je woordenlijst markeert hem met Nieuwe naam nodig.';
+
+  @override
+  String get importUserFiguresKeepMine => 'Mijn versie houden';
+
+  @override
+  String get importUserFiguresUseTheirs => 'Hun versie gebruiken';
+
+  @override
+  String get importUserFiguresSkip => 'Overslaan';
+
+  @override
+  String importUserFiguresConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wijzigingen toepassen',
+      one: '1 wijziging toepassen',
+      zero: 'Klaar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importUserFiguresFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren konden niet in je Woordenlijst worden opgeslagen.',
+      one: '1 figuur kon niet in je Woordenlijst worden opgeslagen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importShorthandSeedComplete(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count afkortingen aangemaakt',
       one: '1 afkorting aangemaakt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count oproepknoppen zijn weggelaten omdat hun tekst niet als figuren te lezen is.',
+      one:
+          '1 oproepknop is weggelaten omdat de tekst niet als figuren te lezen is.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other:
+          'Er is plek voor nog $free afkortingen (limiet $max). Alleen de eerste $free die geselecteerd blijven, worden toegevoegd.',
+      one:
+          'Er is plek voor nog 1 afkorting (limiet $max). Alleen de eerste die geselecteerd blijft, wordt toegevoegd.',
+      zero: 'Je lijst met afkortingen is vol ($max), dus er kan niets bij.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '$skipped afkortingen zijn niet toegevoegd omdat de lijst vol is (limiet $max). Verwijder er een om een nieuwe toe te voegen.',
+      one:
+          '1 afkorting is niet toegevoegd omdat de lijst vol is (limiet $max). Verwijder er een om een nieuwe toe te voegen.',
     );
     return '$_temp0';
   }
@@ -6254,7 +10555,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get themeEditorSwatchError => 'Fout';
 
   @override
-  String get reparseConfirmTitle => 'Aangepaste figuren upgraden?';
+  String get reparseConfirmTitle => 'Niet-herkende figuren upgraden?';
 
   @override
   String reparseConfirmBody(int figureCount, int danceCount) {
@@ -6270,7 +10571,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$danceCount dansen',
       one: '1 dans',
     );
-    return 'Dit herverwerkt $_temp0 in $_temp1. Je tags, beoordelingen, notities en alles anders van elke dans blijven exact zoals ze zijn. Alleen figuren die nu een bekende move herkennen worden vervangen.';
+    return 'Dit controleert $_temp0 in $_temp1 opnieuw. Je tags, beoordelingen, notities en alles anders van elke dans blijven exact zoals ze zijn. Alleen figuren die nu een bekende move herkennen worden vervangen.';
   }
 
   @override
@@ -6278,7 +10579,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get reparseFailed =>
-      'Figuren konden niet worden geüpgraded. Probeer het opnieuw.';
+      'De figuren konden niet worden bijgewerkt. Probeer het opnieuw.';
 
   @override
   String get reparseNothingUpgradedSnack => 'Niets te upgraden.';
@@ -6291,11 +10592,11 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$danceCount dansen',
       one: '1 dans',
     );
-    return 'Aangepaste figuren geüpgraded in $_temp0.';
+    return 'Niet-herkende figuren geüpgraded in $_temp0.';
   }
 
   @override
-  String get reparseScreenTitle => 'Aangepaste figuren opnieuw controleren';
+  String get reparseScreenTitle => 'Niet-herkende figuren opnieuw controleren';
 
   @override
   String reparseIntro(int figureCount, int danceCount) {
@@ -6311,7 +10612,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$danceCount dansen',
       one: '1 dans',
     );
-    return 'Verbeterde figuurverwerking kan $_temp0 in $_temp1 upgraden. Bekijk hieronder, bevestig dan — er wijzigt niets voordat je dat doet, en al je tags, beoordelingen en notities blijven bewaard.';
+    return 'Verbeterde figuurherkenning kan $_temp0 in $_temp1 upgraden. Bekijk hieronder, bevestig dan — er wijzigt niets voordat je dat doet, en al je tags, beoordelingen en notities blijven bewaard.';
   }
 
   @override
@@ -6341,22 +10642,110 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Geen van je aangepaste figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurverwerking verbetert.';
+      'Geen van je niet-herkende figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurherkenning verbetert.';
 
   @override
   String get reparseErrorTitle => 'Je figuren konden niet worden gecontroleerd';
 
   @override
   String get reparseErrorBody =>
-      'Er ging iets mis tijdens het scannen van je collectie. Er is niets gewijzigd. Je kunt het opnieuw proberen.';
+      'Je collectie kon niet worden gescand. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
-  String get customFieldsDeleteTitle => 'Aangepast veld verwijderen';
+  String get ecdMigrationScreenTitle => 'Engelse dansen omzetten';
 
   @override
-  String customFieldsDeleteBody(String label) {
-    return '“$label” verwijderen? Dit kan niet ongedaan worden gemaakt.';
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Engelse dansen gebruiken',
+      one: '1 Engelse dans gebruikt',
+    );
+    return '$_temp0 nog contra-moves, niet-herkende figuren of een contra-formatie. Kies de dansen om om te zetten en bevestig dan. Een move zonder duidelijke Engelse betekenis blijft zoals hij is.';
   }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moves om te zetten',
+      one: '1 move om te zetten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count niet-herkende figuren nu gelezen',
+      one: '1 niet-herkend figuur nu gelezen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'Engelse formatie';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dansen omzetten',
+      one: '1 dans omzetten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'Deze Engelse dansen omzetten?';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dansen',
+      one: '1 dans',
+    );
+    return 'Dit wijzigt de figuren en formatie van $_temp0. Tags, beoordelingen, notities en al het andere blijven behouden. Dit kan niet ongedaan worden gemaakt, dus maak eventueel eerst een back-up.';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => 'Omzetten';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dansen omgezet.',
+      one: '1 dans omgezet.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => 'Niets om om te zetten.';
+
+  @override
+  String get ecdMigrationFailed =>
+      'De dansen konden niet worden omgezet. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get ecdMigrationEmptyTitle => 'Niets om om te zetten';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      'Geen van je Engelse country dances bevat iets dat kan worden omgezet. Een beweging zonder duidelijke Engelse betekenis blijft zoals hij is.';
+
+  @override
+  String get ecdMigrationErrorTitle =>
+      'Je Engelse dansen konden niet worden gecontroleerd';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {
@@ -6370,8 +10759,18 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String customFieldsDeleteInUseUnknown(String label) {
-    return '“$label” kan niet worden verwijderd: nog in gebruik door sommige dansen. Verwijder de waarde eerst van alle dansen.';
+  String customFieldsDeleteFailed(String label) {
+    return '“$label” kon niet worden verwijderd. Probeer het opnieuw.';
+  }
+
+  @override
+  String customFieldsKeyDuplicate(String key) {
+    return 'Een veld met de sleutel “$key” bestaat al. De sleutel is niet gewijzigd.';
+  }
+
+  @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Een veld met de sleutel “$key” bestaat al. Het nieuwe veld is niet aangemaakt.';
   }
 
   @override
@@ -6382,11 +10781,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsLoadError =>
-      'Aangepaste velden konden niet worden geladen.';
+      'Eigen velden konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
-  String get customFieldsEmpty =>
-      'Nog geen aangepaste velden.\nTik op + om er één te definiëren.';
+  String get customFieldsEmptyTitle => 'Nog geen aangepaste velden';
+
+  @override
+  String get customFieldsEmptyBody =>
+      'Kies Nieuw veld om er een toe te voegen.';
 
   @override
   String get customFieldsFlagInList => 'In lijst';
@@ -6401,7 +10803,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get customFieldsTypeNumber => 'Getal';
 
   @override
-  String get customFieldsTypeBoolean => 'Boolean';
+  String get customFieldsTypeBoolean => 'Ja/nee';
 
   @override
   String get customFieldsTypeChoice => 'Keuze';
@@ -6421,17 +10823,17 @@ class AppLocalizationsNl extends AppLocalizations {
   String get customFieldsEditorEditTitle => 'Aangepast veld bewerken';
 
   @override
-  String get customFieldsLabelLabel => 'Label *';
+  String get customFieldsLabelLabel => 'Label';
 
   @override
   String get customFieldsLabelRequired => 'Label is vereist';
 
   @override
-  String get customFieldsKeyLabel => 'Sleutel *';
+  String get customFieldsKeyLabel => 'Sleutel';
 
   @override
   String get customFieldsKeyHelper =>
-      'Stabiele machinesleutel (letters, cijfers, underscores; moet beginnen met een letter of underscore)';
+      'Een korte id voor dit veld. Alleen letters, cijfers en underscores; moet beginnen met een letter of underscore. Kan niet meer worden gewijzigd zodra het veld bij dansen wordt gebruikt.';
 
   @override
   String get customFieldsKeyLocked =>
@@ -6443,6 +10845,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get customFieldsKeyInvalid =>
       'Sleutel moet beginnen met een letter of underscore en alleen letters, cijfers en underscores bevatten';
+
+  @override
+  String get customFieldsSaveFailed =>
+      'Het veld kon niet worden opgeslagen. Controleer de sleutel en keuzes en probeer het opnieuw.';
 
   @override
   String get customFieldsTypeFieldLabel => 'Type';
@@ -6460,10 +10866,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Stel dit veld beschikbaar als filter in het zoekpaneel';
+      'Bied dit veld aan in het paneel Filters en laat de zoekbalk de waarden ervan vinden';
 
   @override
-  String get customFieldsChoicesLabel => 'Keuzes *';
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Bied dit veld aan in het paneel Filters';
+
+  @override
+  String get customFieldsChoicesLabel => 'Keuzes';
 
   @override
   String get customFieldsChoiceInUseTooltip =>
@@ -6546,39 +10956,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get dialectEditorPlural => 'Meervoud';
 
   @override
-  String get dialectEditorMoveSubsAdd => 'Movesubstituties toevoegen';
-
-  @override
-  String dialectEditorMoveSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count movesubstituties',
-      one: '1 movesubstitutie',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dialectEditorMoveSubHint =>
       'substitutie (gebruik %S voor handedness)';
 
   @override
   String get dialectEditorAddMove => 'Een move toevoegen…';
-
-  @override
-  String get dialectEditorDancerSubsAdd => 'Danserssubstituties toevoegen';
-
-  @override
-  String dialectEditorDancerSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count danserssubstituties',
-      one: '1 danserssubstitutie',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorDancerSubHint => 'substitutie';
@@ -6631,11 +11013,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get recentlyDeletedTitle => 'Onlangs verwijderd';
 
   @override
+  String get recentlyDeletedLoadError =>
+      'Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd. Probeer het opnieuw.';
+
+  @override
   String get recentlyDeletedDeleteTitle => 'Permanent verwijderen?';
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '“$title” wordt onmiddellijk verwijderd en kan niet worden hersteld.';
+    return '“$title” wordt nu verwijderd.';
   }
 
   @override
@@ -6644,6 +11030,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String recentlyDeletedDeletedSnack(String title) {
     return '“$title” permanent verwijderd.';
+  }
+
+  @override
+  String recentlyDeletedDeletedSyncedSnack(String title) {
+    return '“$title” permanent verwijderd. Er blijft een kleine verwijderingsnotitie bewaard zodat je andere apparaten het ook verwijderen.';
   }
 
   @override
@@ -6675,16 +11066,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get recentlyDeletedEmptyDancesKept =>
-      'Niets in de prullenbak. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.';
+      'Geen onlangs verwijderde dansen. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.';
+
+  @override
+  String get recentlyDeletedEmptyTitle => 'Niets verwijderd';
 
   @override
   String recentlyDeletedEmptyDancesRetention(int days) {
-    return 'Niets in de prullenbak. Verwijderde dansen verschijnen hier voor $days dagen voordat ze worden verwijderd.';
+    return 'Geen onlangs verwijderde dansen. Verwijderde dansen verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Geen onlangs verwijderde programma’s. Verwijderde programma’s worden hier bewaard totdat je ze verwijdert.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
-    return 'Niets in de prullenbak. Verwijderde programma’s verschijnen hier voor $days dagen voordat ze worden verwijderd.';
+    return 'Geen onlangs verwijderde programma’s. Verwijderde programma’s verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }
 
   @override
@@ -6701,7 +11099,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueNew => 'Nieuwe locatie';
 
   @override
-  String get venueLoadError => 'Locaties konden niet worden geladen.';
+  String get venueLoadError =>
+      'Locaties konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get venueManagerTitle => 'Locaties';
@@ -6713,24 +11112,49 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueManagerClearSearchTooltip => 'Zoekopdracht wissen';
 
   @override
-  String get venueManagerEmpty =>
-      'Nog geen locaties. Voeg er een toe via de knop hieronder, of vanuit een programma wanneer herbruikbare locaties zijn ingeschakeld.';
+  String get venueManagerEmptyBody =>
+      'Voeg er hier een toe, of vanuit een programma wanneer herbruikbare locaties zijn ingeschakeld.';
+
+  @override
+  String get venueManagerEmptyTitle => 'Nog geen locaties';
 
   @override
   String get venueManagerNoMatches =>
       'Geen locaties komen overeen met je zoekopdracht.';
 
   @override
-  String get venueManagerDeleteTitle => 'Locatie verwijderen?';
+  String get venueLinkOfferTitle => 'Eerdere programma\'s koppelen?';
 
   @override
-  String venueManagerDeleteBody(String name) {
-    return '“$name” permanent verwijderen? Dit kan niet ongedaan worden gemaakt.';
+  String get venueLinkOfferBody =>
+      'Bij sommige programma\'s is een locatie als tekst ingevoerd die overeenkomt met een locatiegegeven. Door ze te koppelen telt de oproephistorie ze als één locatie. De ingevoerde tekst blijft bewaard.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '“$name”: $_temp0';
   }
 
   @override
-  String venueManagerDeletedSnack(String name) {
-    return '“$name” verwijderd';
+  String get venueLinkOfferConfirm => 'Koppelen';
+
+  @override
+  String get venueLinkOfferDecline => 'Niet nu';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s gekoppeld.',
+      one: '1 programma gekoppeld.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -6747,11 +11171,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueEditTitle => 'Locatie bewerken';
 
   @override
+  String get venueEditorSaveError =>
+      'De locatie kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.';
+
+  @override
   String get venueEditorSharedNote =>
       'Een locatie is gedeeld over elk programma dat hier wordt gehouden, dus bewerkingen van het adres, contacten of schema zijn zichtbaar op al die programma’s.';
 
   @override
-  String get venueEditorNameLabel => 'Naam *';
+  String get venueEditorPartialSyncHint =>
+      'De adres- en contactvelden van deze locatie hieronder blijven op dit apparaat — Apparaatsynchronisatie draagt ze niet over naar je andere apparaten, dus daar kunnen ze leeg zijn. Het veld Notities synchroniseert wel, dus vermijd daar contactgegevens als je die liever privé op dit apparaat houdt.';
+
+  @override
+  String get venueEditorNameLabel => 'Naam';
 
   @override
   String get venueEditorNameRequired => 'Naam is vereist';
@@ -6855,11 +11287,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceReimport => 'Choreografie opnieuw importeren';
 
   @override
-  String get danceReimportJson => 'Callers Compendium JSON';
+  String get danceReimportJson => 'Caller’s Compendium JSON';
+
+  @override
+  String get danceReimportLinkOrId => 'Link of id';
 
   @override
   String get danceReimportNoResults =>
-      'Geen overeenkomende dansen gevonden. Kies een andere bron of probeer het later opnieuw.';
+      'Geen overeenkomende dansen gevonden. Probeer een link of id, kies een andere bron of probeer het later opnieuw.';
+
+  @override
+  String get danceReimportFiguresUnavailable =>
+      'Die bron heeft de figuren van deze dans niet geleverd, dus je choreografie kan niet worden bijgewerkt. Je dans is niet gewijzigd.';
 
   @override
   String get danceReimportChooseResult =>
@@ -6875,7 +11314,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceReimportSourceFailed =>
-      'Kan geen dans uit die bron laden. Probeer het opnieuw.';
+      'Er kon geen dans van die bron worden geladen. Je dans is niet gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get danceReimportApplyFailed =>
+      'De dans kon niet vanuit die bron worden bijgewerkt. Je dans is niet gewijzigd. Probeer het opnieuw.';
 
   @override
   String get danceReimported => 'Choreografie bijgewerkt.';
@@ -6904,6 +11347,18 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Gepubliceerde collecties zijn tijdelijk niet beschikbaar.';
+
+  @override
+  String get publishedCollectionsUnverified =>
+      'De gepubliceerde collecties konden niet worden geverifieerd, dus er is niets geladen. Blijft dit gebeuren, werk dan de app bij.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'De gepubliceerde collecties zijn niet bereikbaar. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Deze gepubliceerde collecties hebben een nieuwere appversie nodig. Werk de app bij om ze te zien.';
 
   @override
   String get publishedCollectionImport => 'Collectie importeren';
@@ -6959,6 +11414,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Sommige velden worden weggelaten als ze niets toevoegen, zoals de hand bij een chain wanneer de rol die al aangeeft. Zet een ! voor een veld, zoals $example, om het altijd te tonen.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (voorwaardelijk)';
   }
@@ -6980,21 +11440,6 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingBranchSingleFile => 'Enkele rij';
-
-  @override
-  String get dialectEditorMoveWordingsAdd =>
-      'Sjablonen voor bewegingsformuleringen toevoegen';
-
-  @override
-  String dialectEditorMoveWordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sjablonen voor bewegingsformulering',
-      one: '1 sjabloon voor bewegingsformulering',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorAddMoveWording =>
@@ -7028,6 +11473,23 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get dialectEditorUserFigureGone =>
+      'Een van je figuren, niet op dit apparaat';
+
+  @override
+  String get dialectEditorUserFigureNameHint =>
+      'Hoe dit dialect je figuur noemt';
+
+  @override
+  String get dialectEditorUserFigureNameSide =>
+      'Je figuur heeft geen kant die %S kan invullen, dus behoudt die zijn eigen naam.';
+
+  @override
+  String dialectEditorUserFigureWordingUnknownSlots(String slots) {
+    return 'Je figuur heeft geen $slots, dus wordt die met zijn eigen bewoording gelezen tot je ze verwijdert.';
+  }
+
+  @override
   String dialectEditorMoveWordingOptionalSlots(String slots) {
     return 'Deze template laat optionele slots weg: $slots';
   }
@@ -7057,4 +11519,1135 @@ class AppLocalizationsNl extends AppLocalizations {
   String dialectEditorMoveWordingConfirmBody(String figures) {
     return 'Deze sjablonen laten beschikbare slots weg en kunnen figuurdetails verbergen:\n$figures\n\nToch opslaan?';
   }
+
+  @override
+  String get settingsExperimentalShowCustomFiguresTitle => 'Eigen figuren';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresSubtitle =>
+      'Laat je je eigen figuren toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. De woordenlijst is hiervoor niet nodig. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageTitle => 'Eigen figuren';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      'Voeg je eigen figuren toe, bewerk of verwijder ze.';
+
+  @override
+  String get customFiguresTitle => 'Eigen figuren';
+
+  @override
+  String get customFiguresEmpty =>
+      'Je hebt nog geen eigen figuren gemaakt. Kies + om er een toe te voegen.';
+
+  @override
+  String get customFiguresEmptyTitle => 'Nog geen eigen figuren';
+
+  @override
+  String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';
+
+  @override
+  String get customFiguresNewFigure => 'Eigen figuur toevoegen';
+
+  @override
+  String get glossaryCustomMarker => 'Eigen';
+
+  @override
+  String get glossaryCustomNeedsRepair => 'Reparatie nodig';
+
+  @override
+  String get glossaryCustomNeedsRepairBody =>
+      'Deze figuur kan zo niet worden gebruikt: een van de figuren of parameters erin is niet meer geldig. Bewerk de figuur om dit te herstellen.';
+
+  @override
+  String get glossaryCustomRenameNeeded => 'Nieuwe naam nodig';
+
+  @override
+  String get glossaryCustomRenameNeededBody =>
+      'Een andere figuur of afkorting heeft al deze naam. Geef deze een andere naam, zodat je ze uit elkaar kunt houden.';
+
+  @override
+  String get glossaryCustomUnsupported => 'Nieuwere versie';
+
+  @override
+  String get glossaryCustomUnsupportedBody =>
+      'Dit item is gemaakt met een nieuwere versie van de app. Werk de app op dit apparaat bij om het te bewerken of te gebruiken.';
+
+  @override
+  String glossaryCustomExpandsTo(int beats) {
+    return 'Wordt uitgevouwen tot ($beats beats)';
+  }
+
+  @override
+  String get glossaryCustomGone => 'Deze figuur is verwijderd.';
+
+  @override
+  String glossaryCustomDeleteTitle(String name) {
+    return '‘$name’ verwijderen?';
+  }
+
+  @override
+  String get glossaryCustomDeleteBody =>
+      'Ze wordt uit je woordenlijst verwijderd. Dansen die je er al mee hebt opgeslagen, behouden hun figuren.';
+
+  @override
+  String get glossaryNotes => 'Jouw notities';
+
+  @override
+  String get glossaryNotesEmpty => 'Nog geen notities.';
+
+  @override
+  String get glossaryNotesAdd => 'Notities toevoegen';
+
+  @override
+  String get glossaryNotesEdit => 'Notities bewerken';
+
+  @override
+  String get glossaryNotesEditTitle => 'Jouw notities';
+
+  @override
+  String get glossaryNotesHint =>
+      'Hoe je de figuur callt, waar je op moet letten…';
+
+  @override
+  String get glossaryNotesTooLong =>
+      'Je notities zijn te lang om op te slaan. Maak ze korter en probeer het opnieuw.';
+
+  @override
+  String get glossaryOverBudget =>
+      'Je woordenlijst heeft de maximale grootte bereikt, dus dit kon niet worden opgeslagen. Maak ruimte door andere figuren of notities te verwijderen of in te korten en probeer het opnieuw.';
+
+  @override
+  String get compoundEditorTitleNew => 'Eigen figuur toevoegen';
+
+  @override
+  String get compoundEditorTitleEdit => 'Figuur bewerken';
+
+  @override
+  String get compoundEditorName => 'Naam';
+
+  @override
+  String get compoundEditorDefinition => 'Definitie';
+
+  @override
+  String get compoundEditorDefinitionHelper =>
+      'Eén zin, getoond in de woordenlijst.';
+
+  @override
+  String get compoundEditorDescription => 'Meer details';
+
+  @override
+  String get compoundEditorKeywords => 'Andere namen';
+
+  @override
+  String get compoundEditorKeywordsHelper =>
+      'Optioneel. Scheid ze met komma’s.';
+
+  @override
+  String get compoundEditorNotes => 'Notities';
+
+  @override
+  String get compoundEditorOptional => 'Optioneel.';
+
+  @override
+  String get compoundEditorFieldRequired => 'Verplicht';
+
+  @override
+  String get compoundEditorRequired =>
+      'Geef de figuur een naam en een definitie.';
+
+  @override
+  String get compoundEditorParams => 'Parameters';
+
+  @override
+  String get compoundEditorParamsHelp =>
+      'Wat je kiest telkens als je de figuur gebruikt, zoals wie en welke hand.';
+
+  @override
+  String get compoundEditorParamName => 'Parameternaam';
+
+  @override
+  String get compoundEditorParamKind => 'Type';
+
+  @override
+  String get compoundEditorAddParam => 'Parameter toevoegen';
+
+  @override
+  String get compoundEditorRemoveParam => 'Parameter verwijderen';
+
+  @override
+  String get compoundEditorParamNames => 'Geef elke parameter een andere naam.';
+
+  @override
+  String get compoundEditorFigures => 'Figuren';
+
+  @override
+  String get compoundEditorFiguresHelp =>
+      'De figuren waarnaar ze uitklapt wanneer je een dans opslaat, op volgorde.';
+
+  @override
+  String get compoundEditorBindings => 'Ingevuld door parameters';
+
+  @override
+  String get compoundEditorBindingsHelp =>
+      'Kies per figuur welke instellingen uit een parameter komen. De rest blijft zoals je die hebt ingesteld.';
+
+  @override
+  String compoundEditorFigureN(int number, String figure) {
+    return 'Figuur $number: $figure';
+  }
+
+  @override
+  String get compoundBindingFixed => 'Zoals ingesteld in de figuur';
+
+  @override
+  String compoundBindingOpposite(String param) {
+    return 'Tegenovergestelde van $param';
+  }
+
+  @override
+  String compoundBindingUnavailable(String option, String reason) {
+    return '$option (niet beschikbaar: $reason)';
+  }
+
+  @override
+  String get compoundBindingNoName => 'heeft nog geen naam';
+
+  @override
+  String compoundBindingWrongKind(String paramKind, String slotKind) {
+    return 'is van het type $paramKind; deze instelling is van het type $slotKind';
+  }
+
+  @override
+  String get compoundBindingNoOpposite =>
+      'dit type heeft geen tegenovergestelde';
+
+  @override
+  String get compoundBindingNoSharedValues =>
+      'geen waarde past bij alle instellingen die hij invult';
+
+  @override
+  String compoundEditorNameTaken(String name) {
+    return '‘$name’ is al de naam van een figuur of afkorting. Kies een andere naam.';
+  }
+
+  @override
+  String compoundEditorNameTakenHidden(String name) {
+    return '‘$name’ is al de naam van een van je eigen figuren. Die staan in de woordenlijst wanneer Eigen figuren aan staat. Kies een andere naam.';
+  }
+
+  @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '“$name” is al de naam van een van je eigen termen. Die staan in de woordenlijst zolang Woordenlijst tonen aanstaat. Kies een andere naam.';
+  }
+
+  @override
+  String get compoundEditorNoFigures => 'Voeg ten minste één figuur toe.';
+
+  @override
+  String compoundEditorEmptyDomain(String param) {
+    return 'Geen waarde van $param past bij alle instellingen die hij invult.';
+  }
+
+  @override
+  String get compoundEditorTooLarge =>
+      'Deze figuur heeft meer figuren of parameters dan ze kan bevatten.';
+
+  @override
+  String get compoundEditorBindingInvalid =>
+      'Een instelling van een figuur wordt ingevuld door een parameter die er niet meer bij past. Controleer ‘Ingevuld door parameters’.';
+
+  @override
+  String get compoundEditorInvalidFigures =>
+      'Een van de figuren is nog niet volledig of geldig.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren komen',
+      one: '1 figuur komt',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ze',
+      one: 'hem',
+    );
+    return '$_temp0 uit $figureForm, niet uit $entryForm. Zet het danstype terug, of verwijder $_temp1.';
+  }
+
+  @override
+  String get compoundEditorTooLong => 'Een van de velden is te lang.';
+
+  @override
+  String get compoundEditorUnusedTitle =>
+      'Sommige parameters worden niet gebruikt';
+
+  @override
+  String compoundEditorUnusedBody(String params) {
+    return '$params vult geen instellingen van een figuur in, dus kiezen verandert niets.';
+  }
+
+  @override
+  String get compoundEditorUnusedBack => 'Terug naar editor';
+
+  @override
+  String get compoundEditorUnusedSave => 'Toch opslaan';
+
+  @override
+  String get glossaryEntryKindHeading => 'Wat het is';
+
+  @override
+  String get glossaryEntryKindHelp =>
+      'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering. Een term is een woord dat je zelf definieert, zonder figuur; je kunt er later een figuur aan geven.';
+
+  @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering.';
+
+  @override
+  String get glossaryEntryKindCombination => 'Combinatie';
+
+  @override
+  String get glossaryEntryKindNewFigure => 'Nieuwe figuur';
+
+  @override
+  String get glossaryEntryKindTerm => 'Term';
+
+  @override
+  String get glossaryAddTerm => 'Term toevoegen';
+
+  @override
+  String get glossaryTermTitleNew => 'Nieuwe term';
+
+  @override
+  String get glossaryTermMakeFigure => 'Maak er een figuur van';
+
+  @override
+  String get glossaryTermMakeFigureTitle => 'Maak er een figuur van';
+
+  @override
+  String get glossaryEntryFormLabel => 'Dansvorm';
+
+  @override
+  String get glossaryEntryFormHelper =>
+      'Het soort dans waarvoor hij bedoeld is.';
+
+  @override
+  String get userFigureEditorParamNames =>
+      'Begin de naam van elke parameter met een letter, gebruik alleen letters, cijfers en _, en geef elke parameter een andere naam. Een naam kan niet move, beats, text, een rol, het tegenovergestelde van een andere parameter, zoals otherHand, of een woord waarmee voorwaarden geschreven worden zijn: if, then, else, not, and, or, is.';
+
+  @override
+  String userFigureEditorChoiceLabel(int number) {
+    return 'Optie $number';
+  }
+
+  @override
+  String get userFigureEditorAddChoice => 'Optie toevoegen';
+
+  @override
+  String get userFigureEditorRemoveChoice => 'Optie verwijderen';
+
+  @override
+  String get userFigureEditorDefault => 'Standaard';
+
+  @override
+  String get userFigureEditorNoDefault => 'Geen standaard';
+
+  @override
+  String get userFigureEditorFlagOff => 'Uit';
+
+  @override
+  String get userFigureEditorFlagLabel => 'Formulering als aan';
+
+  @override
+  String get userFigureEditorFlagLabelHelper =>
+      'Getoond in de formulering als dit aan staat, zoals ‘met een zwier’.';
+
+  @override
+  String get userFigureEditorWording => 'Formulering';
+
+  @override
+  String userFigureEditorWordingHelp(String example) {
+    return 'Hoe de figuur in een dans leest. Zet een parameter tussen accolades, zoals $example; een deel tussen vierkante haken valt weg als de parameters ervan leeg zijn.';
+  }
+
+  @override
+  String userFigureEditorWordingSlots(String slots) {
+    return 'Je kunt gebruiken: $slots';
+  }
+
+  @override
+  String get userFigureEditorDefaultBeats => 'Standaardtellen';
+
+  @override
+  String get userFigureEditorDefaultBeatsHelper =>
+      'Een dans kan ze wijzigen telkens als die de figuur gebruikt.';
+
+  @override
+  String userFigureEditorPreview(String text) {
+    return 'Leest als: $text';
+  }
+
+  @override
+  String get userFigureEditorPreviewUnavailable =>
+      'Maak de formulering af om te zien hoe die leest.';
+
+  @override
+  String get userFigureEditorBadWording =>
+      'De formulering is niet compleet: controleer de accolades en vierkante haken.';
+
+  @override
+  String userFigureEditorUnknownSlot(String slot) {
+    return 'De formulering gebruikt $slot, dat geen parameter van deze figuur is.';
+  }
+
+  @override
+  String userFigureEditorBadChoices(String param) {
+    return 'Geef $param minstens één optie, elk met een andere naam.';
+  }
+
+  @override
+  String get userFigureEditorBadBeats =>
+      'Standaardtellen moeten tussen 0 en 64 liggen.';
+
+  @override
+  String userFigureEditorUnusedBody(String params) {
+    return 'Niet in de formulering, dus kiezen verandert niets: $params.';
+  }
+
+  @override
+  String get glossaryCustomWording => 'Formulering';
+
+  @override
+  String get glossaryCustomExample => 'Voorbeeld';
+
+  @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen onder “Onlangs verwijderd” gebruiken hem en behouden de regels die ze het laatst opsloegen.',
+      one:
+          '1 dans onder “Onlangs verwijderd” gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Je standaardfiguren in Instellingen gebruiken hem en behouden zijn huidige formulering als platte tekst.';
+
+  @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Je $count afkortingen ervoor blijven, en als je die typt, worden ze als gewone regels gelezen.',
+      one:
+          'Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryCustomDeleteUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.',
+      one:
+          '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
+      zero:
+          'Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorUserFigureUnavailable =>
+      'Je figuur is niet beschikbaar, dus deze rij behoudt zijn huidige tekst.';
+
+  @override
+  String get compoundEditorDiscardBody =>
+      'Je hebt niet-opgeslagen wijzigingen in deze figuur.';
+
+  @override
+  String compoundParamWithKind(String param, String kind) {
+    return '$param ($kind)';
+  }
+
+  @override
+  String get compoundParamKindDancers => 'dansers';
+
+  @override
+  String get compoundParamKindDancerPair => 'paar dansers';
+
+  @override
+  String get compoundParamKindHand => 'hand';
+
+  @override
+  String get compoundParamKindShoulder => 'schouder';
+
+  @override
+  String get compoundParamKindSpin => 'draairichting';
+
+  @override
+  String get compoundParamKindDirection => 'richting';
+
+  @override
+  String get compoundParamKindFraction => 'breuk';
+
+  @override
+  String get compoundParamKindRotation => 'draaihoek';
+
+  @override
+  String get compoundParamKindPlaces => 'plaatsen';
+
+  @override
+  String get compoundParamKindNumber => 'getal';
+
+  @override
+  String get compoundParamKindBeats => 'beats';
+
+  @override
+  String get compoundParamKindFlag => 'aan/uit';
+
+  @override
+  String get compoundParamKindChoice => 'optie';
+
+  @override
+  String get compoundParamKindText => 'tekst';
+
+  @override
+  String wordingConditionsHelp(String example) {
+    return 'Gebruik vierkante haken met if, then en else om het in sommige gevallen anders te formuleren, zoals $example';
+  }
+
+  @override
+  String wordingConditionsNames(String names) {
+    return 'Een voorwaarde kan testen: $names';
+  }
+
+  @override
+  String wordingIssueUnclosedGroup(String context) {
+    return 'Een “[” is niet gesloten: “$context”. Voeg “]” toe waar dat deel eindigt.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBracket(String context) {
+    return 'Er staat een “]” zonder “[” ervoor, bij “$context”. Verwijder die, of voeg “[” toe waar dat deel begint.';
+  }
+
+  @override
+  String wordingIssueUnclosedSlot(
+    String brace,
+    String closeBrace,
+    String context,
+    String example,
+  ) {
+    return 'De “$brace” in “$context” is niet gesloten. Voeg “$closeBrace” toe na de naam, zoals $example.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBrace(
+    String brace,
+    String closeBrace,
+    String context,
+  ) {
+    return 'Er staat een “$closeBrace” zonder “$brace” ervoor, bij “$context”. Verwijder die, of voeg “$brace” toe voor de naam.';
+  }
+
+  @override
+  String wordingIssueBadSlot(String found, String fix) {
+    return '“$found” is geen plaatshouder: zet precies één naam tussen accolades, zoals $fix.';
+  }
+
+  @override
+  String wordingIssueConditionInBraces(String found, String fix) {
+    return 'Accolades bevatten één naam, geen voorwaarde: “$found”. Gebruik vierkante haken om een formulering alleen in sommige gevallen te tonen: $fix';
+  }
+
+  @override
+  String wordingIssueTooLongStored(String max) {
+    return 'Deze formulering is te lang om op te slaan: opgeslagen is ze langer dan $max tekens (een voorwaarde neemt opgeslagen iets meer ruimte in dan getypt). Maak haar korter of gebruik minder voorwaarden.';
+  }
+
+  @override
+  String wordingIssueMissingCondition(String word, String example) {
+    return 'Schrijf na “$word” wat er getest moet worden, bijvoorbeeld “$example”.';
+  }
+
+  @override
+  String wordingIssueMissingThen(String condition) {
+    return 'Schrijf na de voorwaarde “$condition” het woord “then” en de formulering die in dat geval getoond wordt.';
+  }
+
+  @override
+  String wordingIssueColonForThen(String condition) {
+    return 'Schrijf “then” in plaats van “:” na “$condition”.';
+  }
+
+  @override
+  String wordingIssueUnknownName(String found, String names) {
+    return '“$found” is niet iets wat deze formulering kan testen. Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return '“$found” is niet iets wat deze formulering kan testen. Bedoelde je “$suggestion”? Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIf(String found, String names) {
+    return 'Vierkante haken die met “if” beginnen bevatten een voorwaarde, en “$found” is niet iets wat deze formulering kan testen. Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIfSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return 'Vierkante haken die met “if” beginnen bevatten een voorwaarde, en “$found” is niet iets wat deze formulering kan testen. Bedoelde je “$suggestion”? Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueNameInBraces(String name, String found) {
+    return 'Schrijf in een voorwaarde de naam zonder accolades: “$name”, niet “$found”.';
+  }
+
+  @override
+  String wordingIssueIsntForIsNot(String found, String fix) {
+    return 'Schrijf “is not” in plaats van “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueSymbolForWord(String word, String found, String fix) {
+    return 'Schrijf “$word” in plaats van “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueQuotedValue(String fix) {
+    return 'Laat de aanhalingstekens weg: “$fix”.';
+  }
+
+  @override
+  String wordingIssueUnknownValue(String found, String name, String values) {
+    return '“$found” is geen van de waarden die $name kan hebben. $name kan zijn: $values.';
+  }
+
+  @override
+  String wordingIssueUnknownValueSuggest(
+    String found,
+    String name,
+    String suggestion,
+    String values,
+  ) {
+    return '“$found” is geen van de waarden die $name kan hebben. Bedoelde je “$suggestion”? $name kan zijn: $values.';
+  }
+
+  @override
+  String wordingIssueExpectedValue(
+    String before,
+    String name,
+    String example,
+    String values,
+  ) {
+    return 'Schrijf na “$before” een waarde die $name kan hebben, zoals “$example”. $name kan zijn: $values.';
+  }
+
+  @override
+  String wordingIssueListNeedsParens(String fix) {
+    return 'Zet de waarden na “is in” tussen haakjes: “$fix”.';
+  }
+
+  @override
+  String wordingIssueOneOfForIsIn(String word, String found, String fix) {
+    return 'Schrijf “$word” in plaats van “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueEmptyList(String example) {
+    return 'De haakjes na “is in” zijn leeg. Noem minstens één waarde, zoals “$example”.';
+  }
+
+  @override
+  String wordingIssueUnclosedParen(String context, String before) {
+    return 'Een “(” is niet gesloten: “$context”. Voeg “)” toe na “$before”.';
+  }
+
+  @override
+  String wordingIssueStrayCloseParen(String context) {
+    return 'Er staat een “)” zonder “(” ervoor, bij “$context”. Verwijder die, of voeg de “(” toe waar die begint.';
+  }
+
+  @override
+  String get wordingIssueEmptyParens =>
+      'Er staat niets tussen “(” en “)”. Zet er een voorwaarde in, of verwijder ze.';
+
+  @override
+  String wordingIssueExpectedConnective(String before, String found) {
+    return 'Schrijf na “$before” “and”, “or” of “then”: “$found” kan daar niet staan.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveInParens(String before, String found) {
+    return 'Schrijf na “$before” “and”, “or” of “)”: “$found” kan daar niet staan.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveList(String before, String fix) {
+    return 'Schrijf na “$before” “and”, “or” of “then”. Zet de waarden in een lijst om op meer dan één te testen: “$fix”.';
+  }
+
+  @override
+  String wordingIssueExpectedListSeparator(String before, String found) {
+    return 'Zet in de lijst “$before” een komma voor “$found”, of sluit de lijst af met “)”.';
+  }
+
+  @override
+  String wordingIssueMixedAndOr(String found, String fixA, String fixB) {
+    return '“$found” mengt “and” en “or”, dus het is niet duidelijk wat eerst komt. Voeg haakjes toe: “$fixA” of “$fixB”.';
+  }
+
+  @override
+  String wordingIssueFlagCompare(String name) {
+    return '$name staat aan of uit en wordt dus niet met een waarde vergeleken. Schrijf “if $name” voor aan, of “if not $name” voor uit.';
+  }
+
+  @override
+  String wordingIssuePresenceOnly(String name) {
+    return 'Bij $name kun je alleen testen of het ingevuld is. Schrijf “$name is empty”, “$name is not empty” of gewoon “$name”.';
+  }
+
+  @override
+  String wordingIssueNotANumber(String name, String op) {
+    return '$name is geen getal en kan dus niet “$op” iets zijn. Gebruik “$name is …” of “$name is in (…)”.';
+  }
+
+  @override
+  String wordingIssueExpectedNumber(String op, String example, String found) {
+    return 'Schrijf na “$op” een getal, zoals $example: “$found” is er geen.';
+  }
+
+  @override
+  String wordingIssueNumberOutOfRange(
+    String name,
+    String min,
+    String max,
+    String found,
+  ) {
+    return '$name loopt van $min tot $max, dus $found valt erbuiten.';
+  }
+
+  @override
+  String wordingIssueNumberNotWhole(String name, String found) {
+    return '$name telt in hele getallen, dus $found kan geen van de waarden zijn.';
+  }
+
+  @override
+  String wordingIssueNumberNotQuarter(String name, String found) {
+    return '$name gaat in kwartslagen, zoals 0.25, 0.5, ¾ of 1½, dus $found kan geen van de waarden zijn.';
+  }
+
+  @override
+  String wordingIssueNegatedComparison(String fix, String found) {
+    return 'Schrijf “$fix” in plaats van “$found”.';
+  }
+
+  @override
+  String wordingIssueAmbiguous(String found, String readingA, String readingB) {
+    return '“$found” kan op twee manieren gelezen worden: “$readingA” of “$readingB”. Schrijf wat je bedoelt.';
+  }
+
+  @override
+  String get wordingIssueSecondElse =>
+      'Dit deel heeft al een “else”, dus een tweede kan niet volgen. Hoort “else” hier bij de formulering, zet die woorden dan tussen eigen vierkante haken, zoals “[everyone else]”.';
+
+  @override
+  String wordingIssueElseAfterWord(String phrase) {
+    return '“else” begint hier de formulering voor alle andere gevallen. Bedoelde je de woorden “$phrase”, zet ze dan tussen eigen vierkante haken: “[$phrase]”.';
+  }
+
+  @override
+  String wordingIssueOtherwiseWord(String found) {
+    return '“$found” wordt hier als formulering getoond. Schrijf “else” om een formulering voor alle andere gevallen te geven.';
+  }
+
+  @override
+  String wordingIssueEmptyMeansNoValue(String name, String fix) {
+    return '“$name is empty” test of $name geen waarde heeft, niet op de optie “empty”. Schrijf “$fix” om op die optie te testen.';
+  }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '“$found” na “$word” is een waarde, niet iets om te testen. Herhaal wat je test, “$fixA”, of zet de waarden in een lijst: “$fixB”.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, of deze versie van de app kent haar niet, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'Deze formulering is te lang om te lezen: getypt is ze langer dan $max tekens. Maak haar korter.';
+  }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'Deze formulering zet te veel vierkante haken of haakjes in elkaar: er kunnen er hoogstens $max genest worden. Haal er een paar weg.';
+  }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'Deze voorwaarde zet te veel “not” in elkaar: hoogstens $max. Haal er een paar weg: twee “not” achter elkaar heffen elkaar op.';
+  }
+
+  @override
+  String get settingsCallingCardsHeader => 'Callkaarten';
+
+  @override
+  String get settingsCallingCardsEnableTitle => 'Callkaarten afdrukken';
+
+  @override
+  String get settingsCallingCardsEnableSubtitle =>
+      'Voegt Callkaart afdrukken toe aan het exportmenu van een dans, en Callkaarten afdrukken aan dat van een programma: één kleine kaart per dans, opgemaakt zoals je hieronder kiest.';
+
+  @override
+  String get settingsCallingCardsSizeTitle => 'Kaartformaat';
+
+  @override
+  String settingsCallingCardsSizeIndexCard(String size) {
+    return 'Systeemkaart, $size';
+  }
+
+  @override
+  String settingsCallingCardsSizeIsoA(String name, String size) {
+    return '$name ($size)';
+  }
+
+  @override
+  String settingsCallingCardsSizeInches(String width, String height) {
+    return '$width × $height inch';
+  }
+
+  @override
+  String settingsCallingCardsSizeMillimetres(String width, String height) {
+    return '$width × $height mm';
+  }
+
+  @override
+  String get settingsCallingCardsSizeCustom => 'Eigen formaat';
+
+  @override
+  String get settingsCallingCardsWidthLabel => 'Breedte';
+
+  @override
+  String get settingsCallingCardsHeightLabel => 'Hoogte';
+
+  @override
+  String get settingsCallingCardsUnitInches => 'Inch';
+
+  @override
+  String get settingsCallingCardsUnitMillimetres => 'Millimeter';
+
+  @override
+  String get settingsCallingCardsSizeInvalid =>
+      'Elke zijde moet tussen 1 en 14 inch (26 tot 355 mm) liggen.';
+
+  @override
+  String get settingsCallingCardsLandscapeTitle => 'Liggend';
+
+  @override
+  String get settingsCallingCardsLandscapeSubtitle =>
+      'Afdrukken met de lange zijde bovenaan.';
+
+  @override
+  String get settingsCallingCardsLayoutTitle => 'Kaartopmaak';
+
+  @override
+  String get settingsCallingCardsLayoutSubtitle =>
+      'Kies wat er op elke kaart komt, en waar.';
+
+  @override
+  String get callingCardEditorTitle => 'Opmaak van de callkaart';
+
+  @override
+  String get callingCardEditorFieldLabel => 'Opmaak';
+
+  @override
+  String get callingCardEditorAutosaveHint =>
+      'Wijzigingen worden opgeslagen terwijl je typt.';
+
+  @override
+  String get callingCardEditorReset => 'Standaard herstellen';
+
+  @override
+  String get callingCardEditorResetConfirmTitle => 'Opmaak herstellen?';
+
+  @override
+  String get callingCardEditorResetConfirmBody =>
+      'Je opmaak wordt vervangen door de standaardopmaak.';
+
+  @override
+  String get callingCardEditorReplaced => 'Opmaak vervangen.';
+
+  @override
+  String get callingCardEditorPreviewTitle => 'Voorbeeld';
+
+  @override
+  String callingCardEditorPreviewCaption(String size) {
+    return 'Een voorbeelddans op een kaart van $size.';
+  }
+
+  @override
+  String get callingCardEditorPreviewError =>
+      'Het voorbeeld kon niet worden getekend. Probeer het opnieuw.';
+
+  @override
+  String callingCardEditorPreviewShrunk(int percent) {
+    return 'De tekst wordt verkleind tot $percent% om op deze kaart te passen.';
+  }
+
+  @override
+  String get callingCardEditorPreviewOverflow =>
+      'Deze kaart past zelfs op halve grootte niet, dus de onderkant is afgesneden. Haal een blok weg, of voeg lines= toe aan een lang blok.';
+
+  @override
+  String get callingCardEditorIssuesTitle =>
+      'Regels die niet gelezen konden worden';
+
+  @override
+  String callingCardIssueUnknownBlock(int line, String name) {
+    return 'Regel $line: \"$name\" is geen blok. De blokken staan onder Zo schrijf je een opmaak.';
+  }
+
+  @override
+  String callingCardIssueUnknownOption(int line, String name) {
+    return 'Regel $line: dit blok heeft geen optie \"$name\".';
+  }
+
+  @override
+  String callingCardIssueBadValue(int line, String option, String value) {
+    return 'Regel $line: \"$value\" werkt niet voor $option.';
+  }
+
+  @override
+  String callingCardIssueUnclosedQuote(int line) {
+    return 'Regel $line: een aanhalingsteken wordt nooit gesloten, dus de hele regel wordt overgeslagen.';
+  }
+
+  @override
+  String callingCardIssueMissingText(int line) {
+    return 'Regel $line: text heeft woorden tussen aanhalingstekens nodig, zoals text \"Called by me\".';
+  }
+
+  @override
+  String callingCardIssueCardNotAlone(int line) {
+    return 'Regel $line: card stelt de hele kaart in en heeft dus een eigen regel nodig.';
+  }
+
+  @override
+  String callingCardIssueEmptyBlock(int line) {
+    return 'Regel $line: aan één kant van een | staat niets.';
+  }
+
+  @override
+  String get callingCardHelpTitle => 'Zo schrijf je een opmaak';
+
+  @override
+  String get callingCardHelpIntro =>
+      'Elke regel is één rij van de kaart, van boven naar beneden. Begin de regel met de naam van een blok en voeg daarna eventuele opties toe. Zet | tussen blokken om ze naast elkaar te plaatsen. Een regel die met # begint, is een notitie voor jezelf en wordt niet afgedrukt.';
+
+  @override
+  String get callingCardHelpFields =>
+      'Een blok drukt alleen af wat de dans heeft, en alleen velden die zijn aangezet onder Instellingen ▸ Standaarden ▸ Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Is een kaart te vol, dan wordt alles erop gelijkmatig verkleind om te passen, tot op de helft van de grootte.';
+
+  @override
+  String get callingCardHelpTapToInsert =>
+      'Tik op een naam om die aan je opmaak toe te voegen.';
+
+  @override
+  String get callingCardHelpBlocksTitle => 'Blokken';
+
+  @override
+  String get callingCardHelpOptionsTitle => 'Opties';
+
+  @override
+  String get callingCardHelpExamplesTitle => 'Voorbeelden';
+
+  @override
+  String get callingCardHelpExampleUse => 'Deze opmaak gebruiken';
+
+  @override
+  String get callingCardHelpBlockTitle => 'De titel van de dans.';
+
+  @override
+  String get callingCardHelpBlockAuthors => 'Wie de dans heeft geschreven.';
+
+  @override
+  String get callingCardHelpBlockFormation =>
+      'De opstelling, zoals Improper of Becket.';
+
+  @override
+  String get callingCardHelpBlockLevel => 'Het niveau van de dans.';
+
+  @override
+  String get callingCardHelpBlockMeta =>
+      'Opstelling, niveau, mixer, status en frase op één regel, elk met zijn label.';
+
+  @override
+  String get callingCardHelpBlockFigures =>
+      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun lengte: in tellen, of in maten voor een Engelse dans.';
+
+  @override
+  String get callingCardHelpBlockNotes => 'Je callnotities.';
+
+  @override
+  String get callingCardHelpBlockWalkthrough => 'De walkthrough.';
+
+  @override
+  String get callingCardHelpBlockHook => 'De hook van de dans.';
+
+  @override
+  String get callingCardHelpBlockTunes => 'Voorgestelde melodieën.';
+
+  @override
+  String get callingCardHelpBlockSources => 'Gepubliceerde bronnen.';
+
+  @override
+  String get callingCardHelpBlockProgram =>
+      'De titel van het programma, als je een programma afdrukt.';
+
+  @override
+  String get callingCardHelpBlockNumber =>
+      'De plaats van de dans in het programma (1, 2, 3 of Alternatief), als je een programma afdrukt.';
+
+  @override
+  String get callingCardHelpBlockText =>
+      'Je eigen woorden, tussen aanhalingstekens.';
+
+  @override
+  String get callingCardHelpBlockRule => 'Een lijn over de kaart.';
+
+  @override
+  String get callingCardHelpBlockSpace =>
+      'Een witruimte, in punten (72 per inch).';
+
+  @override
+  String get callingCardHelpBlockCard =>
+      'Instellingen voor de hele kaart: margin is de ruimte langs de rand, in punten.';
+
+  @override
+  String get callingCardHelpOptionSize => 'Tekstgrootte, in punten.';
+
+  @override
+  String get callingCardHelpOptionStyle => 'Vette of schuine tekst.';
+
+  @override
+  String get callingCardHelpOptionAlign =>
+      'Waar de tekst in zijn ruimte staat.';
+
+  @override
+  String get callingCardHelpOptionColor => 'Tekst- of lijnkleur, als hexcode.';
+
+  @override
+  String get callingCardHelpOptionLines =>
+      'Druk hooguit zoveel regels van een lang blok af.';
+
+  @override
+  String get callingCardHelpOptionLabel =>
+      'Woorden vóór de tekst. label=\"\" drukt er geen af.';
+
+  @override
+  String get callingCardHelpOptionWidth =>
+      'In een rij neemt een blok met width=2 twee keer zoveel ruimte in als een met width=1.';
+
+  @override
+  String get callingCardHelpOptionFigures =>
+      'Voor figures: laat de lengtes, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
+
+  @override
+  String get callingCardHelpOptionThickness =>
+      'Hoe dik een lijn is, in punten.';
+
+  @override
+  String get callingCardExampleClassic => 'Klassiek';
+
+  @override
+  String get callingCardExampleBigPrint => 'Grote letters';
+
+  @override
+  String get callingCardExampleProgram => 'Programma-avond';
+
+  @override
+  String get callingCardExampleTeaching => 'Leskaart';
+
+  @override
+  String get callingCardSampleTitle => 'Voorbeeldcontra';
+
+  @override
+  String get callingCardSampleAuthor => 'A. Caller';
+
+  @override
+  String get callingCardSampleNotes =>
+      'Schuif naar links langs de rij om door te schuiven.';
+
+  @override
+  String get callingCardSampleFigureNote => 'Houd vast voor de hele draai.';
+
+  @override
+  String get callingCardSampleProgram => 'Vrijdagavonddans';
+
+  @override
+  String get exportPrintCallingCard => 'Callkaart afdrukken';
+
+  @override
+  String get exportPrintCallingCards => 'Callkaarten afdrukken';
+
+  @override
+  String exportCallingCardsCutOff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kaarten pasten niet en zijn onderaan afgesneden.',
+      one: '1 kaart paste niet en is onderaan afgesneden.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get callingCardHelpOptionHighlight =>
+      'Voor figures: de bewegingen vet in donkerrood, de dansers vet, en hoeveelheden zoals ½ of 3 places in blauwgrijs.';
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Meerdere kaarten per pagina';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Afdrukken op gewoon papier, zoveel kaarten per pagina als er passen, met snijtekens. Het papier is het papier dat je kiest bij het afdrukken.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Deze kaarten zijn groter dan het papier, dus elke kaart is kleiner afgedrukt, één per pagina.';
 }

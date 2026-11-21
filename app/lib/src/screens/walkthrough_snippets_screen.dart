@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/walkthrough_snippet_library_scope.dart';
+import '../glossary/figure_titles.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
+import '../widgets/dirty_dialog_guard.dart';
+import '../widgets/empty_state.dart';
 
 /// Manager for the user's personal walkthrough snippet library (#411), reached
 /// from Settings › Defaults. Lists each saved per-figure snippet (a readable
@@ -19,8 +26,11 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = WalkthroughSnippetLibraryScope.of(context);
-    final dialect = ActiveDialectScope.of(context);
-    final renderer = FigureRenderer(contraTaxonomy);
+    final dialects = ActiveDialectScope.of(context);
+    // Each snippet is shown in the dialect of its figure's form (ADR-006 W5).
+    Dialect dialectOf(String signature) =>
+        dialects.forForm(walkthroughSnippetForm(signature));
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final l10n = AppLocalizations.of(context);
 
     // Precompute each snippet's display label ONCE (describeFigureSignature
@@ -34,9 +44,9 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
                 text: e.value,
                 label: describeFigureSignature(
                   e.key,
-                  contraTaxonomy,
+                  shippedTaxonomies.anyForm,
                   renderer,
-                  dialect,
+                  dialectOf(e.key),
                 ),
               ),
             )
@@ -50,28 +60,36 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
       body: ListView(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.settingsWalkthroughSnippetsDescription,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
           if (entries.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                l10n.settingsWalkthroughSnippetsEmpty,
-                key: const ValueKey('walkthrough-snippets-empty'),
-              ),
+            EmptyState(
+              key: const ValueKey('walkthrough-snippets-empty'),
+              inline: true,
+              icon: EmptyState.glyph(context, Icons.notes_outlined),
+              title: l10n.settingsWalkthroughSnippetsEmptyTitle,
+              body: l10n.settingsWalkthroughSnippetsEmptyBody,
             )
           else
             for (final entry in entries)
               _SnippetRow(
                 key: ValueKey('walkthrough-snippet-${entry.signature}'),
                 label: entry.label,
-                text: renderer.renderFreeText(entry.text, dialect),
+                text: renderer.renderFreeText(
+                  entry.text,
+                  dialectOf(entry.signature),
+                ),
                 onEdit: () => _edit(context, entry.signature, entry.text),
-                onDelete: () => _delete(context, entry.signature),
+                onDelete: () => _delete(context, entry.signature, entry.label),
               ),
         ],
       ),
@@ -87,35 +105,41 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => _EditSnippetDialog(initial: current),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (result == null) return;
     await controller.setSnippet(signature, result);
   }
 
-  Future<void> _delete(BuildContext context, String signature) async {
+  /// Deletes the snippet at once and offers Undo, asking first only when
+  /// "Confirm before delete" is on (see `confirm_delete.dart`). Undo puts back
+  /// the stored text, read from the library at the moment of the delete.
+  Future<void> _delete(
+    BuildContext context,
+    String signature,
+    String label,
+  ) async {
     final controller = WalkthroughSnippetLibraryScope.controllerOf(context);
+    if (!await confirmDeleteIfEnabled(context, itemLabel: label)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsWalkthroughSnippetDeleteTitle),
-        content: Text(l10n.settingsWalkthroughSnippetDeleteBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            key: const ValueKey('walkthrough-snippet-delete-confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(MaterialLocalizations.of(ctx).deleteButtonTooltip),
-          ),
-        ],
-      ),
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // Read after the confirmation, so Undo puts back what was removed; a
+    // snippet already gone (removed elsewhere meanwhile) offers no Undo.
+    final stored = controller.library.snippets[signature];
+    if (stored == null) return;
+    await controller.removeSnippet(signature);
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('walkthrough-snippet-delete-undo'),
+      message: l10n.commonDeletedSnack(label),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => controller.restoreSnippet(signature, stored),
     );
-    if (confirm == true) {
-      await controller.removeSnippet(signature);
-    }
   }
 }
 
@@ -176,28 +200,32 @@ class _EditSnippetDialogState extends State<_EditSnippetDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.settingsWalkthroughSnippetEditTitle),
-      content: TextField(
-        key: const ValueKey('walkthrough-snippet-edit-field'),
-        controller: _controller,
-        autofocus: true,
-        minLines: 2,
-        maxLines: 6,
-        maxLength: kMaxWalkthroughSnippetLength,
-        decoration: const InputDecoration(border: OutlineInputBorder()),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initial,
+      child: AlertDialog(
+        title: Text(l10n.settingsWalkthroughSnippetEditTitle),
+        content: TextField(
+          key: const ValueKey('walkthrough-snippet-edit-field'),
+          controller: _controller,
+          autofocus: true,
+          minLines: 2,
+          maxLines: 6,
+          maxLength: kMaxWalkthroughSnippetLength,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+          FilledButton(
+            key: const ValueKey('walkthrough-snippet-edit-save'),
+            onPressed: () => Navigator.of(context).pop(_controller.text),
+            child: Text(MaterialLocalizations.of(context).saveButtonLabel),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
-        ),
-        FilledButton(
-          key: const ValueKey('walkthrough-snippet-edit-save'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(MaterialLocalizations.of(context).saveButtonLabel),
-        ),
-      ],
     );
   }
 }

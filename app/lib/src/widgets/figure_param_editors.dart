@@ -2,7 +2,10 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/touch_density.dart';
+import 'app_dropdown_field.dart';
 import '../search/facet_labels.dart';
+import 'bar_timing.dart';
 
 // `humanizeToken` moved to `search/facet_labels.dart` (issue #741) so the dance
 // editor and the Advanced-search facet share one labelling primitive. Re-exported
@@ -28,6 +31,8 @@ class FigureParamEditor extends StatelessWidget {
     required this.dialect,
     this.mixer = false,
     this.moveId,
+    this.fractionAmountFollows = false,
+    this.correctsValue = true,
   });
 
   /// Stem for the child widget's [ValueKey] (e.g. `figure-0`); the editor
@@ -56,7 +61,45 @@ class FigureParamEditor extends StatelessWidget {
   /// Move identity used only for display-specific parameter labels.
   final String? moveId;
 
+  /// Whether picking a fraction of `other` here reveals an amount field (the
+  /// dance editor's, #2120), so the choice reads "other amount…". Off
+  /// elsewhere, where a legacy `other` is shown with nothing after it.
+  final bool fractionAmountFollows;
+
+  /// Whether a dropdown corrects a value outside its choices by writing a
+  /// valid one back after the frame. Off where the value is the user's
+  /// standing choice and an invalid one must stay visible as such, not be
+  /// replaced by opening the editor: a compound placeholder's argument, whose
+  /// compound may have changed since it was chosen (#709). Off, such a value
+  /// shows as nothing selected and is left as it is.
+  final bool correctsValue;
+
   String get _key => '$keyPrefix-$paramKey';
+
+  /// A dropdown item's label. Picking a fraction of `other` reveals the
+  /// amount stepper (#2120) in the dance editor, on a move that has one, so
+  /// there it reads "other amount…".
+  String _choiceLabel(AppLocalizations l10n, String choice) =>
+      spec.kind == ParamKind.fraction &&
+          choice == 'other' &&
+          fractionAmountFollows &&
+          _moveHasFractionAmount
+      ? l10n.figureParamFractionOtherPick
+      : figureParamChoiceLabel(l10n, spec, dialect, choice);
+
+  /// Whether [moveId] is a shipped move with a fraction amount (#2120).
+  bool get _moveHasFractionAmount =>
+      moveId != null &&
+      (shippedTaxonomies.anyForm
+              .resolve(moveId!)
+              ?.params
+              .containsKey(fractionAmountParam) ??
+          false);
+
+  /// Whether this field is that move's amount, not a rotation of a figure of
+  /// the user's own that happens to be named `amount`.
+  bool get _isFractionAmount =>
+      paramKey == fractionAmountParam && _moveHasFractionAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +112,26 @@ class FigureParamEditor extends StatelessWidget {
           context,
           offerableDancerSets(rawDomain, mixer: mixer, currentValue: value),
         );
+      case ParamKind.dancerList:
+        return _DancerListChips(
+          fieldKey: _key,
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+          domain: [
+            for (final token in figureParamSelectableChoices(
+              spec.choices ?? ParamVocab.dancerSets,
+            ))
+              // A mixer's partner series only in a mixer, or when the list
+              // already holds it.
+              if (mixer ||
+                  !ParamVocab.mixerPartnerSeries.contains(token) ||
+                  (value is List && (value! as List).contains(token)))
+                token,
+          ],
+          value: value,
+          labelOf: (token) =>
+              figureParamChoiceLabel(l10n, spec, dialect, token),
+          onChanged: onChanged,
+        );
       case ParamKind.handedness:
       case ParamKind.shoulder:
         return _dropdown(context, spec.choices ?? ParamVocab.sides);
@@ -80,6 +143,26 @@ class FigureParamEditor extends StatelessWidget {
         return _dropdown(context, spec.choices ?? ParamVocab.directions);
       case ParamKind.choice:
         return _dropdown(context, spec.choices ?? const []);
+      case ParamKind.rotation when _isFractionAmount:
+        // The amount an `other` fraction states (#2120). Shown only while the
+        // fraction is `other`, and picking `other` seeds it, so an `other`
+        // with none is a row from before taxonomy v39: it asks for an amount,
+        // in the error colour, and nothing is filled in until the caller
+        // steps one. It starts past `full` and offers no Clear: an amount a
+        // named fraction states is that fraction, and `other` always states
+        // one.
+        final amount = isFractionAmount(value) ? value! as num : null;
+        return _RotationStepper(
+          fieldKey: _key,
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+          value: amount,
+          min: _fractionAmountMin,
+          firstStep: kFractionOtherSeedAmount.toDouble(),
+          needsChoice: amount == null,
+          formatValue: (n) =>
+              l10n.danceEditorFractionAmountValue(_RotationStepper._format(n)),
+          onChanged: onChanged,
+        );
       case ParamKind.rotation:
         // A rotation spec may opt into the `unspecified` sentinel by listing it
         // in `choices` (taxonomy v22's `gate.turn`: ContraDB's gate states no
@@ -90,14 +173,33 @@ class FigureParamEditor extends StatelessWidget {
         // fabricated number into stored data.
         final allowsUnset =
             spec.choices?.contains(ParamVocab.unspecified) ?? false;
+        // A value left as it is (see [correctsValue]) that the spec rejects —
+        // missing, a word other than the admitted sentinel, or an amount
+        // outside the domain — is shown as needing a choice, never as "not
+        // stated" or as an amount, as the dropdown does.
+        final needsChoice = !correctsValue && !spec.validate(value);
         return _RotationStepper(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          value: value is num ? value! as num : (allowsUnset ? null : 1.0),
+          value: needsChoice
+              ? null
+              : (value is num ? value! as num : (allowsUnset ? null : 1.0)),
           allowsUnset: allowsUnset,
+          needsChoice: needsChoice,
           onChanged: onChanged,
         );
       case ParamKind.beats:
+        // An English dance is timed in bars (ADR-006 §5.5).
+        if (BarTimingScope.maybeOf(context) case final bars?) {
+          return BarsField(
+            fieldKey: _key,
+            label: l10n.danceEditorBarsLabel,
+            beats: value is int ? value! as int : null,
+            beatsPerBar: bars.beatsPerBar,
+            allowsUntimed: bars.allowsUntimed,
+            onChanged: onChanged,
+          );
+        }
         return _IntField(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
@@ -106,15 +208,36 @@ class FigureParamEditor extends StatelessWidget {
           max: 64,
           onChanged: onChanged,
         );
-      case ParamKind.places:
+      case ParamKind.number:
         return _IntField(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is int
               ? value! as int
+              : (spec.defaultValue is int ? spec.defaultValue! as int : 0),
+          min: 0,
+          max: 99,
+          onChanged: onChanged,
+        );
+      case ParamKind.places:
+        // A places spec may opt into the `unspecified` sentinel by listing it
+        // in `choices` (taxonomy v39: `circle.places`, `star.places`). For
+        // those an empty field is "not stated", not an error, and stores the
+        // sentinel; showing the default instead would claim a distance the
+        // dance never gave.
+        final placesUnset =
+            spec.choices?.contains(ParamVocab.unspecified) ?? false;
+        return _IntField(
+          fieldKey: _key,
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+          value: value is int
+              ? value! as int
+              : (placesUnset && value == ParamVocab.unspecified)
+              ? null
               : (spec.defaultValue is int ? spec.defaultValue! as int : 1),
           min: 1,
           max: 10,
+          allowsUnset: placesUnset,
           onChanged: onChanged,
         );
       case ParamKind.text:
@@ -163,7 +286,12 @@ class FigureParamEditor extends StatelessWidget {
     // prevent. Specs that do not admit the sentinel keep the original behaviour
     // untouched.
     final specDefault = spec.defaultValue;
-    final current = (admitsUnstated && value == ParamVocab.unspecified)
+    final current = !correctsValue
+        // Shown as it is when it is a choice, else as nothing selected.
+        ? (value is String && selectable.contains(value)
+              ? value! as String
+              : null)
+        : (admitsUnstated && value == ParamVocab.unspecified)
         ? null
         : (value is String && selectable.contains(value))
         ? value! as String
@@ -172,7 +300,9 @@ class FigureParamEditor extends StatelessWidget {
         : (admitsUnstated
               ? null
               : (selectable.isNotEmpty ? selectable.first : null));
-    if (current != null && current != value) {
+    if (!correctsValue) {
+      // Nothing is written back.
+    } else if (current != null && current != value) {
       WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(current));
     } else if (admitsUnstated &&
         current == null &&
@@ -201,40 +331,64 @@ class FigureParamEditor extends StatelessWidget {
       );
     }
 
-    final dropdown = SizedBox(
-      width: 180,
-      child: DropdownButtonFormField<String>(
-        key: ValueKey(_key),
-        initialValue: current,
-        isExpanded: true,
-        isDense: true,
-        // Shown only when there is no selection, i.e. the unstated state.
-        // Supplying a hint also keeps `InputDecorator.isEmpty` false, so the
-        // floating label behaves exactly as it does for a set value.
-        hint: admitsUnstated
-            ? Text(
-                l10n.danceEditorParamNotStated,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
-            : null,
-        decoration: InputDecoration(
-          labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          isDense: true,
+    // A value outside the choices that is left as it is (see
+    // [correctsValue]) is not "not stated": the dropdown asks for a choice
+    // instead, so it never claims a state the draft does not hold, and so does
+    // the rotation stepper. The other kinds' editors show a fallback for such
+    // a value; a caller that leaves values as they are says so beside them
+    // (`CompoundArgumentEditor`).
+    final needsChoice =
+        !correctsValue &&
+        current == null &&
+        !(admitsUnstated && value == ParamVocab.unspecified);
+
+    // Shown only when there is no selection: the unstated state, or a value
+    // left as it is that must be replaced.
+    final hintIfEmpty = needsChoice
+        ? l10n.danceEditorParamChooseValue
+        : admitsUnstated
+        ? l10n.danceEditorParamNotStated
+        : null;
+    final hint = current != null ? null : hintIfEmpty;
+
+    // As wide as its longest choice (or its hint) needs at the current text
+    // size, so a value is never cut off, and no wider than the line: where
+    // the line is narrower (large text on a phone), it takes the whole line.
+    final dropdown = AppDropdownField<String?>(
+      key: ValueKey(_key),
+      fillWidth: false,
+      // Room for the hint even while a value hides it, so the field keeps one
+      // width whether a value is picked or cleared.
+      widthFits: [?hintIfEmpty],
+      value: current,
+      // A long vocabulary (an unnarrowed set of dancers) can be typed.
+      filterable: selectable.length >= appDropdownFilterFrom,
+      decoration: InputDecoration(
+        labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+        isDense: denseControls(context),
+        // The label stays above the field so the hint is always on view, as
+        // a value would be.
+        hintText: hint,
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+          fontStyle: FontStyle.italic,
+          color: needsChoice
+              ? theme.colorScheme.error
+              : theme.colorScheme.onSurfaceVariant,
         ),
-        items: [
-          for (final choice in selectable)
-            DropdownMenuItem(
-              value: choice,
-              child: Text(figureParamChoiceLabel(l10n, spec, dialect, choice)),
-            ),
-        ],
-        onChanged: (v) {
-          if (v != null) onChanged(v);
-        },
+        floatingLabelBehavior: hint == null
+            ? null
+            : FloatingLabelBehavior.always,
       ),
+      entries: [
+        for (final choice in selectable)
+          AppDropdownEntry<String?>(
+            value: choice,
+            label: _choiceLabel(l10n, choice),
+          ),
+      ],
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
     );
     if (!admitsUnstated) return dropdown;
 
@@ -243,30 +397,38 @@ class FigureParamEditor extends StatelessWidget {
     // any existing spec). `promenade.turn` sets it `false` — the owner
     // explicitly does not want a manual UX escape hatch back to "not stated"
     // for a spec whose default is a concrete value; only the automatic reset
-    // triggered by `dir` (in/out/up/down) may drive it there (see
-    // `figure_list_editor.dart`).
+    // triggered by `where` (in/out/up/down) may drive it there (core's
+    // `applyParamChange`, `param_change_rules.dart`).
     if (!spec.allowManualClear) return dropdown;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    // A Wrap, not a Row: where the field and its clear button do not fit on
+    // one line (large text on a phone), the button moves under the field and
+    // the field keeps the whole line, rather than being squeezed until its
+    // value is cut off.
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         dropdown,
         // Mirrors `_RotationStepper`'s clear affordance for this same
         // sentinel: offered only once a value is set, so a transcriber who
         // picked one by mistake can put the field back to "the source didn't
         // say" rather than being stuck with a value the source never gave.
-        if (current != null)
+        // A value left as it is (see [correctsValue]) can be cleared too.
+        if (current != null || needsChoice)
           IconButton(
             key: ValueKey('$_key-clear'),
             tooltip: l10n.danceEditorParamClearTooltip,
             icon: const Icon(Icons.backspace_outlined),
-            visualDensity: VisualDensity.compact,
             onPressed: () => onChanged(ParamVocab.unspecified),
           ),
       ],
     );
   }
 }
+
+/// The smallest amount the fraction amount stepper offers: the first quarter
+/// step past `full`, the last amount a named fraction states.
+const double _fractionAmountMin = 1.25;
 
 class _RotationStepper extends StatelessWidget {
   const _RotationStepper({
@@ -275,32 +437,52 @@ class _RotationStepper extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.allowsUnset = false,
+    this.needsChoice = false,
+    this.min = _domainMin,
+    this.firstStep = _domainMin,
+    this.formatValue,
   });
 
   final String fieldKey;
   final String label;
 
-  /// The stored amount, or `null` when the source stated none. Only reachable
-  /// when [allowsUnset] — a spec without the sentinel always gets a number.
+  /// The stored amount, or `null`: "not stated" (with [allowsUnset]), or a
+  /// value left as it is that needs a choice (with [needsChoice]). Otherwise a
+  /// spec without the sentinel always gets a number.
   final num? value;
 
   /// Whether this param admits [ParamVocab.unspecified], i.e. whether "the
   /// source stated no amount" is a representable state.
   final bool allowsUnset;
+
+  /// Whether the stored value is one the spec rejects and is left as it is:
+  /// shown as asking for a choice, with [value] null.
+  final bool needsChoice;
   final ValueChanged<Object?> onChanged;
 
-  static const double _min = 0.25;
+  static const double _domainMin = 0.25;
   static const double _max = 2.5;
   static const double _step = 0.25;
+
+  /// The lowest amount offered: the rotation domain's, unless a narrower one
+  /// is asked for (a fraction amount, which starts past `full`).
+  final double min;
+
+  /// The amount a first nudge lands on from no amount.
+  final double firstStep;
+
+  /// How an amount is shown; a count of turns when null.
+  final String Function(num)? formatValue;
 
   static String _format(num n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
-  /// The amount a first nudge lands on from the unset state. Deliberately the
-  /// domain minimum rather than a "typical" value: stepping UP from the floor
-  /// is an unambiguous user action, whereas seeding a plausible middle value
-  /// would be the app guessing choreography.
-  static const double _firstStep = _min;
+  // The amount a first nudge lands on from the unset state is, for a turn,
+  // deliberately the domain minimum ([firstStep]'s default) rather than a
+  // "typical" value: stepping UP from the floor is an unambiguous user action,
+  // whereas seeding a plausible middle value would be the app guessing
+  // choreography. A fraction amount has no floor of its own to step from that
+  // is not a named fraction, so it lands on the editor's seed (1½) instead.
 
   @override
   Widget build(BuildContext context) {
@@ -319,24 +501,27 @@ class _RotationStepper extends StatelessWidget {
               key: ValueKey('$fieldKey-dec'),
               tooltip: l10n.danceEditorLessTooltip,
               icon: const Icon(Icons.remove),
-              visualDensity: VisualDensity.compact,
               // Disabled while unset: there is nothing to decrement, and
               // stepping DOWN into a value would read as "the app picked one".
-              onPressed: (current != null && current > _min)
-                  ? () => onChanged(
-                      (current - _step).clamp(_min, _max).toDouble(),
-                    )
+              onPressed: (current != null && current > min)
+                  ? () =>
+                        onChanged((current - _step).clamp(min, _max).toDouble())
                   : null,
             ),
             Text(
               current == null
-                  ? l10n.danceEditorParamNotStated
-                  : l10n.danceEditorTurnCount(current, _format(current)),
+                  ? (needsChoice
+                        ? l10n.danceEditorParamChooseValue
+                        : l10n.danceEditorParamNotStated)
+                  : (formatValue?.call(current) ??
+                        l10n.danceEditorTurnCount(current, _format(current))),
               key: ValueKey('$fieldKey-value'),
               style: current == null
                   ? theme.textTheme.bodyMedium?.copyWith(
                       fontStyle: FontStyle.italic,
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: needsChoice
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
                     )
                   : null,
             ),
@@ -344,27 +529,24 @@ class _RotationStepper extends StatelessWidget {
               key: ValueKey('$fieldKey-inc'),
               tooltip: l10n.danceEditorMoreTooltip,
               icon: const Icon(Icons.add),
-              visualDensity: VisualDensity.compact,
               // From the unset state the first nudge ADOPTS a value — an
               // explicit user action, never an implicit default.
               onPressed: current == null
-                  ? () => onChanged(_firstStep)
+                  ? () => onChanged(firstStep)
                   : current < _max
-                  ? () => onChanged(
-                      (current + _step).clamp(_min, _max).toDouble(),
-                    )
+                  ? () =>
+                        onChanged((current + _step).clamp(min, _max).toDouble())
                   : null,
             ),
             // Only offered when the param can actually represent "not stated",
-            // and only once a value is set — so a user who set an amount by
-            // mistake can put it back rather than being stuck with a number the
-            // source never gave.
-            if (allowsUnset && current != null)
+            // and only once a value is set or while a choice is needed — so a
+            // user who set an amount by mistake can put it back rather than
+            // being stuck with a number the source never gave.
+            if (allowsUnset && (current != null || needsChoice))
               IconButton(
                 key: ValueKey('$fieldKey-clear'),
                 tooltip: l10n.danceEditorParamClearTooltip,
                 icon: const Icon(Icons.backspace_outlined),
-                visualDensity: VisualDensity.compact,
                 onPressed: () => onChanged(ParamVocab.unspecified),
               ),
           ],
@@ -382,14 +564,22 @@ class _IntField extends StatefulWidget {
     required this.min,
     required this.max,
     required this.onChanged,
+    this.allowsUnset = false,
   });
 
   final String fieldKey;
   final String label;
-  final int value;
+
+  /// The stored number, or `null` for "not stated" (only with [allowsUnset]),
+  /// which shows as an empty field.
+  final int? value;
   final int min;
   final int max;
   final ValueChanged<Object?> onChanged;
+
+  /// Whether the param admits [ParamVocab.unspecified]: an empty field then
+  /// reports the sentinel and is not an error.
+  final bool allowsUnset;
 
   @override
   State<_IntField> createState() => _IntFieldState();
@@ -398,10 +588,16 @@ class _IntField extends StatefulWidget {
 class _IntFieldState extends State<_IntField> {
   late final TextEditingController _controller;
 
+  /// Whether the text currently in the field is not a whole number within
+  /// `[min, max]`. Such text is never reported through `onChanged` — the draft
+  /// keeps its last valid value — so the field says so next to itself rather
+  /// than silently showing a number that will not be saved.
+  bool _invalid = false;
+
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.value.toString());
+    _controller = TextEditingController(text: widget.value?.toString() ?? '');
   }
 
   @override
@@ -412,7 +608,8 @@ class _IntFieldState extends State<_IntField> {
     // differs from what the user is looking at, to avoid fighting the cursor.
     if (widget.value != old.value &&
         int.tryParse(_controller.text.trim()) != widget.value) {
-      _controller.text = widget.value.toString();
+      _controller.text = widget.value?.toString() ?? '';
+      _invalid = false;
     }
   }
 
@@ -424,18 +621,44 @@ class _IntFieldState extends State<_IntField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return SizedBox(
       width: 96,
       child: TextField(
         key: ValueKey(widget.fieldKey),
         controller: _controller,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(labelText: widget.label, isDense: true),
+        decoration: InputDecoration(
+          labelText: widget.label,
+          isDense: true,
+          // The label floats while the field is empty so this hint shows,
+          // as the dropdowns show "not stated" for the same sentinel.
+          floatingLabelBehavior: widget.allowsUnset
+              ? FloatingLabelBehavior.always
+              : null,
+          hintText: widget.allowsUnset ? l10n.danceEditorParamNotStated : null,
+          hintStyle: widget.allowsUnset
+              ? theme.textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.onSurfaceVariant,
+                )
+              : null,
+          errorText: _invalid
+              ? l10n.danceEditorIntParamRangeError(widget.min, widget.max)
+              : null,
+        ),
         onChanged: (text) {
-          final n = int.tryParse(text.trim());
-          if (n != null && n >= widget.min && n <= widget.max) {
-            widget.onChanged(n);
+          final trimmed = text.trim();
+          if (widget.allowsUnset && trimmed.isEmpty) {
+            widget.onChanged(ParamVocab.unspecified);
+            if (_invalid) setState(() => _invalid = false);
+            return;
           }
+          final n = int.tryParse(trimmed);
+          final valid = n != null && n >= widget.min && n <= widget.max;
+          if (valid) widget.onChanged(n);
+          if (_invalid == valid) setState(() => _invalid = !valid);
         },
       ),
     );
@@ -494,6 +717,81 @@ class _TextParamFieldState extends State<_TextParamField> {
         decoration: InputDecoration(labelText: widget.label, isDense: true),
         onChanged: widget.onChanged,
       ),
+    );
+  }
+}
+
+/// The editor of a [ParamKind.dancerList] (ECD's `who`, ADR-006 §5.2): one
+/// chip per selector, any number picked, in the order picked. `everyone`
+/// stands alone, so picking it clears the others and picking another clears
+/// it; clearing the last chip leaves the list as "not stated"
+/// (`["unspecified"]`).
+class _DancerListChips extends StatelessWidget {
+  const _DancerListChips({
+    required this.fieldKey,
+    required this.label,
+    required this.domain,
+    required this.value,
+    required this.labelOf,
+    required this.onChanged,
+  });
+
+  final String fieldKey;
+  final String label;
+  final List<String> domain;
+  final Object? value;
+  final String Function(String token) labelOf;
+  final ValueChanged<Object?> onChanged;
+
+  List<String> get _picked => [
+    if (value case final List<Object?> list)
+      for (final token in list)
+        if (token is String && token != ParamVocab.unspecified) token,
+  ];
+
+  void _toggle(String token, bool selected) {
+    final picked = _picked;
+    final List<String> next;
+    if (!selected) {
+      next = [
+        for (final t in picked)
+          if (t != token) t,
+      ];
+    } else if (ParamVocab.soloDancerTokens.contains(token)) {
+      next = [token];
+    } else {
+      next = [
+        for (final t in picked)
+          if (!ParamVocab.soloDancerTokens.contains(t)) t,
+        token,
+      ];
+    }
+    onChanged(next.isEmpty ? const [ParamVocab.unspecified] : next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = _picked;
+    return Column(
+      key: ValueKey(fieldKey),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+        Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            for (final token in domain)
+              FilterChip(
+                key: ValueKey('$fieldKey-$token'),
+                label: Text(labelOf(token)),
+                selected: picked.contains(token),
+                onSelected: (selected) => _toggle(token, selected),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

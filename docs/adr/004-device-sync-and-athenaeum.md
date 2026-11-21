@@ -1,6 +1,51 @@
 # ADR-004: Device Sync, and the Athenaeum sync store
 
 - **Status**: Accepted
+- **Erratum (2026-10-28)**: the `deviceScoped` bullet in "Decision" gives
+  "per-device text scale" as an example. The registry classifies
+  `perform_text_scale` as `deviceLocal`, not `deviceScoped`
+  (`packages/compendium_core/lib/src/privacy/settings_registry.dart`), and the
+  registry is authoritative: its entry states the reason (the scale is tuned to
+  one screen, yet it may travel in a user-controlled local backup, which
+  `deviceScoped` forbids). The accepted text below is left as written; read
+  that example as illustrative only. Window position remains a true
+  `deviceScoped` example.
+- **Erratum (2026-10-29)**: "Scope of what syncs" says everything classified
+  `shareable` travels, "**settings included**". Not every setting is
+  `shareable`. By the maintainer's decision on settings-sync-scope
+  (`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md`),
+  the screen-bound settings stay on each device: app
+  language (`app_locale`), Reduce motion (`reduce_motion`), Auto-size Perform
+  cards (`auto_size_perform_cards`) and the Perform stage theme
+  (`perform_stage_mode`) are `deviceLocal`, beside `perform_text_scale`. The
+  app theme keeps syncing. These keys are `deviceLocal` and not `deviceScoped`
+  so that the user's own backup still restores them. A value for one of them
+  from a device on an older build is dropped, not kept for that device
+  (sync-spec §6.7, amended the same day). The registry is authoritative, and
+  each entry there gives its reason. The accepted text
+  below is left as written. Read "settings included" as "the `shareable`
+  settings".
+- **Amended (2026-11-11)**: wording only, by the maintainer's decision that
+  the wording "should be changed to remove any implication that the store id
+  is authentication material of any kind", following #1380's
+  reclassification of the sync ID as `storeAddress`. Sentences in this record
+  that called the sync ID a credential or bearer token, or spoke of it leaking
+  or being disclosed, are reworded in place to describe it as the store's
+  address: whoever has it can reach the store, it cannot be taken back once
+  someone else has it, and to stop using it a user sets up a new phrase on each
+  device (and deletes the store to remove its contents at once). No decision,
+  requirement or described behaviour changed. The decision was relayed for
+  #2164, whose description records it.
+- **Erratum (2026-11-12)**: the section on the privacy policy records the
+  first beta's effective date, **September 21, 2026**, and says the policy
+  copies must be deployed with "that date". That is history: the policy's
+  §9 says the effective date moves whenever the policy changes, and after
+  #2164 and #2173 changed its text, the maintainer moved it to **November
+  12, 2026**. Read the requirement as: the deployed policy carries a current
+  effective date before any real user's content leaves a device. The same
+  section calls `site/privacy/index.html` the markdown's mirror; it is the
+  other way round: the published page is authoritative, and
+  `docs/dev/store-submission/privacy-policy.md` is its hand-kept mirror.
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
   "cloud sync") and supersedes the Later-milestones item "Optional
   device-to-device sync, beyond Apple-native AirDrop support". Referenced by
@@ -19,24 +64,21 @@
   exception**: W0, the v25 schema migration, shipped deliberately ahead of
   acceptance because its soft-delete columns must hydrate across a user's
   devices before any sync code depends on them. *Implementation status* below
-  records that, and the three repairs that have landed since.
+  records that, the three repairs that landed since, and what has shipped since
+  acceptance.
 
 ## Implementation status
 
 **The schema migration shipped before this ADR was accepted. That was
-deliberate. Three prerequisite repairs have since shipped as well; no sync
-client, server or network code has.**
+deliberate. Three prerequisite repairs followed it, and the engine, the client
+and the Athenaeum server have since shipped behind an experimental setting. The
+remaining gates are the checkpoints, not the code.**
 
 Schema **v25** is on `main` — the sync timestamp triple across eight tables,
 twenty columns, six entity-level hard deletes converted to tombstones, and every
-new column classified. Delivered by [#901] and [#903], closing [#898]. No sync
-client, no server, no network code exists, and nothing reads `existence_at`
-**for a merge decision** yet. The qualifier is load-bearing:
-`storage/existence.dart` does read the column — it advances the stamp past the
-row's own current value — so the flat claim "nothing reads it" is false against
-the tree, and a reader checking it would find the opposite of what was meant.
+new column classified. Delivered by [#901] and [#903], closing [#898].
 
-Landed since, each closing a repair issue this design filed: the
+Landed next, each closing a repair issue this design filed: the
 **privacy-policy amendment** ([#1115], closing [#1109]) — both policy files now
 carry the operator-visibility and logged break-glass disclosures §8 requires;
 the **standing-invariant ratchets** ([#1118], closing [#1110]) — the
@@ -44,10 +86,35 @@ soft-delete join rule, I1/I2 over raw and typed writes, and the
 certificate-hatch scan; and **shareable-text normalisation on every write
 path** with schema **v29** ([#1119], closing [#1111]).
 
-The third landed with two defects against this design. One has since been
-fixed: [#1124](https://github.com/ibanner56/CallersCompendium/pull/1124)
-removed `normalisation_skips.target_value` in schema v30. The reversed
-sanitisation/NFC composition remains corrective work owned by W18.
+The third landed with two defects against this design. Both have since been
+fixed: [#1124] removed `normalisation_skips.target_value` in schema v30, and
+[#1137] corrected the reversed sanitisation/NFC composition to
+`NFC(sanitizeImportedText(s))`, bumping the repair pass's algorithm version to 2
+so that rows written in the former order are revisited rather than skipped as
+done. W18 is closed on that evidence.
+
+**The implementation has shipped.** The sync engine, the client
+(`app/lib/src/sync/`) and the Athenaeum server (`server/lib/src/`) merged onto
+`main` via [#1328] and the per-unit PRs behind it. Every work unit W0–W18
+records `complete: true` in `.github/tracking/adr-004/units/`, which is the
+per-unit record; this section is deliberately not a second copy of it. Device
+Sync is reachable from Settings ▸ Experimental, so any behaviour this document
+describes is live for a user who has paired a device — it is not gated by build
+flavour.
+
+What is **not** done is the acceptance side: **C6** (beta) and **C7** (the ship
+gate) are both outstanding, and C7 requires the server to be deployed ahead of
+the client release. Their contents are in the execution plan's checkpoint table;
+that table, and not this paragraph, is the authority on what they require.
+
+> **Amended 2026-09-23 (#1345).** This section used to state that none of the
+> sync client, the server or the network code had shipped, and carried a
+> qualified claim that nothing read `existence_at` for a merge decision. Both
+> were true when written and are false
+> against `main`: the client and server merged in #1328, and
+> `sync/sync_merge.dart` orders existence by `existenceAt` when it picks an
+> existence winner. The header above still points readers here as the record of
+> what shipped, so a stale answer here is worse than none.
 
 **Why it went first, ahead of acceptance.** Several kinds had to move from hard
 delete to soft delete, and that change needs a **hydration buffer**: time for
@@ -103,6 +170,9 @@ not merely about the code.
 [#1115]: https://github.com/ibanner56/CallersCompendium/pull/1115
 [#1118]: https://github.com/ibanner56/CallersCompendium/pull/1118
 [#1119]: https://github.com/ibanner56/CallersCompendium/pull/1119
+[#1124]: https://github.com/ibanner56/CallersCompendium/pull/1124
+[#1137]: https://github.com/ibanner56/CallersCompendium/pull/1137
+[#1328]: https://github.com/ibanner56/CallersCompendium/pull/1328
 
 ## Context
 
@@ -146,7 +216,7 @@ allow-list; it reads `EgressClass`, and nothing outside `shareable` is
 serialised into a blob. A field added without classification fails CI, so it
 can never reach the network by omission. Protocol metadata is separate and
 travels under two classes this ADR adds below: `protocolIdentifier` for the
-device ID and `accessControlData` for the sync ID.
+device ID and `storeAddress` for the sync ID.
 
 ### Constraints
 
@@ -220,7 +290,11 @@ instead, and states the override's cost as expected findings per year — about
 1.4 a year against five hundred stores at the warned 2⁴⁰ reference from a
 hundred attacking addresses, against 0.035 at the generated 2⁵² from ten
 thousand. Maintainer's ruling, put a third time on those corrected numbers and
-kept: the floor stays advisory and the cost is disclosed.
+kept: the floor stays advisory and the cost is disclosed. Those figures assume
+the per-IP request rate of 60 a minute. On 2026-10-12 the maintainer raised it
+to 5 a second (spec §5.4), which makes them about 7 and 0.18, choosing that
+rate with those figures in front of them; the advisory ruling itself was not
+put again.
 
 This argument originally carried a third leg: that the server could not tell
 creating from joining, because `GET /v1/store` created the store when absent, so
@@ -232,11 +306,54 @@ re-affirmed. The re-derivation is mine: the surviving legs carry it alone, and
 the residual risk clause is true today in a way it was not when first written,
 because the budget that bounds it is now reachable at all.
 
-**The sync ID is a bearer credential.** Anyone holding it has full read and
-write access to the collection. This is deliberate: it is what makes the design
-work with no accounts and no sign-in, and it is what allows two people to share
-a collection if they choose (below). It also means there is no recovery if it is
-lost and no revocation if it leaks.
+**The sync ID is the address of a shared store, not a credential.** Think of it
+as a path on the sync server, because that is how the server handles it: anyone
+holding it has full read and write access to the collection, and holding it is
+all that is required. This is deliberate: it is what makes the design work with
+no accounts and no sign-in, and it is what allows two people to share a
+collection if they choose (below) — a user is *expected* to hand the phrase to
+someone they want to sync with. It is therefore not a secret, and must not be
+described as one. It also means there is no recovery if it is lost, and it
+cannot be taken back once someone else has it: to stop using it, set up a new
+phrase on each device.
+
+> **Amended 2026-10-02.** **A device ID belongs to one attachment, not to one
+> installation** (@ibanner56's ruling, recorded with the change that implements
+> it). It was minted once and kept across detach, so it followed a device into
+> every store it ever joined and to every server, self-hosted ones included.
+> That defeated this design's own remedy for a phrase someone else has: moving
+> every device to a new sync ID left their device IDs unchanged, so anyone able to
+> read the server could link the abandoned store to its replacement. Detach and
+> wipe now erase the device ID with the sync ID, pairing erases any value an
+> earlier attachment left behind, and every attach mints a new one (spec §3.3).
+>
+> Two paths keep the identifier, and that exemption is a judgement I proposed
+> and @ibanner56 approved: confirming a replacement store, and the automatic
+> rejoin on a changed epoch. Both re-use the same sync ID, and its `id_key`
+> already links them, so a new device ID there would buy no unlinkability while
+> requiring the coordinator — which holds the pending-replacement state — to be
+> rebuilt mid-decision.
+>
+> The store key alone does not identify a person: the server cannot tell one
+> caller with three devices from three callers sharing a phrase. What a stable
+> device ID added was the link *across* stores and servers, and that is what
+> this removes. It removes the identifier as a link, not every link: the
+> operator can still read synced content, and identical records hash to
+> identical blobs, so two stores holding the same library remain matchable by
+> what they contain.
+
+> **Amended 2026-10-02.** **Devices are shown to the user only by a short tag
+> of their random identifier and a "last shared changes" day** (@ibanner56's
+> ruling, from a planning session). *Other devices* shows the first six
+> characters of each device ID, lengthened only where two would otherwise be
+> equal, and this device's own tag so the user can match entries across
+> devices; beside each, the day that device last published its manifest
+> (rounded to the day, never a time — data minimisation) and how many of this
+> device's changes are waiting for it. Both come from manifests a pass already
+> fetches, so nothing extra is requested or stored. There are deliberately no
+> names, nicknames, platforms or device types: two people can share a store, so
+> a name one of them typed could be the other's personal data, and the server
+> would learn it.
 
 ### What the server holds
 
@@ -247,13 +364,13 @@ lost and no revocation if it leaks.
 ```
 
 `<idKey>` is `HMAC-SHA256(pepper, syncID)`, never the sync ID itself — see
-*Security* below, which requires that the plaintext credential is never
+*Security* below, which requires that the plaintext sync ID is never
 retained. The namespace is written as the derived key here so that a layout
-read in isolation cannot lead an implementer to persist the credential it is
-authenticating with.
+read in isolation cannot lead an implementer to persist the address it is
+resolving.
 
 A **manifest** maps **kind, then record id**, to content hashes. The two levels
-are normative (spec §4.3): record ids are unique only within their kind, so a
+are normative (spec §4.5): record ids are unique only within their kind, so a
 flat map lets two records of different kinds sharing an id displace one
 another. A device writes only its own
 manifest and reads every sibling. Records are stored as **content-addressed
@@ -289,18 +406,41 @@ cannot distinguish "the peer edited this" from "the peer has not caught up yet",
 and the latter would roll a newer local record backwards. With N peers, the
 newest `updatedAt` wins.
 
+> **Amended 2026-10-02.** **When the newest `updatedAt` is shared by differing
+> live bodies, the user chooses** (@ibanner56's ruling). Timestamps have
+> one-second precision, so this is ordinary — two devices that each change the
+> same setting before syncing reach it. It used to be reported on every pass
+> and left unresolved, with the advice to edit one side, which the user could
+> not act on: the report named no setting and the devices stayed different.
+> A convergent automatic rule — keep whichever body hashes lower — was
+> considered and rejected: it would settle the tie, but by discarding one
+> device's edit without asking, which may undo something the user meant.
+> Instead every distinct version is queued in `review_queue` and offered to the
+> user; the kept version is re-stamped one tick past the tie and reaches every
+> other device as an ordinary newer edit (spec §6.3, §6.6 *Conflict choices*).
+> Keeping this device's own version re-stamps an unchanged body, the one write
+> spec invariant I2 now permits for that reason (§6.5).
+>
+> *Amended 2026-10-11:* a tie in which nothing the user is shown differs —
+> the same record under a merged-away id, say, or differing only in import
+> details — is no longer offered: choosing there is arbitrary, so the
+> lower-hash rule settles it (spec §6.3). The ruling above still holds
+> wherever the user could tell the versions apart. Requested in
+> [PR #1729](https://github.com/ibanner56/CallersCompendium/pull/1729); not
+> part of the ruling.
+
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
 `Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other
-six kinds and converts their repositories from hard to soft delete, because a
+seven kinds and converts their repositories from hard to soft delete, because a
 kind that cannot express deletion cannot propagate it — the record would simply
 reappear from any peer that still held it. A device that has not synced for a
 month must never conclude that records missing from a sibling's manifest were
 deleted.
 
-### Record model: eight first-class kinds
+### Record model: nine first-class kinds
 
 Every persisted entity is a **first-class synced record** with its own blob:
-`dance`, `program`, `choreographer`, `tag`, `publishedSource`,
+`dance`, `program`, `choreographer`, `tag`, `publishedSource`, `difficultyLevel`,
 `customFieldDef`, `venue`, `setting`. Join rows ride inline with their parent —
 a dance carries its `authorIds`, `tagIds`, citations and custom-field values; a
 program carries its slots — exactly as the archive codec already models them.
@@ -309,6 +449,15 @@ This mirrors the codec's existing shape rather than fighting it: `archiveToJson`
 already emits choreographers, tags, published sources and venues as **top-level
 arrays**, siblings of `dances`. Per-record blobs are that shape, one entity at a
 time.
+
+> **Amended 2026-10-15 (#709).** Two kinds join them, making eleven:
+> `glossaryEntry`, the user's own glossary entries, and `figureNote`, their
+> notes on built-in figures, keyed by the figure's id. The maintainer decided in
+> #709 that both sync, behind the capability gate (*Consequences*, "New kinds
+> of data wait for every device"). The archive does not carry them, so their
+> bodies have a codec of their own rather than the archive's shape; an entry's
+> kind and payload travel as the stored text, so sync keeps and shares back
+> unchanged an entry a build cannot read (sync-spec §4.3).
 
 An earlier revision of this ADR narrowed sync to three kinds and had the other
 five ride inline as content. That was withdrawn, and the reasoning is recorded
@@ -336,11 +485,11 @@ First-class costs a larger migration and buys all of that back.
 Records sync under their existing UUID. Identity is therefore stable across
 renames — the name is a field, not the key.
 
-Three kinds carry `UNIQUE` natural keys (`choreographers.name`, `tags.name`,
-`custom_field_defs.key`), so two devices that independently created "Bob Smith"
-hold one person under two UUIDs. Inserting the second violates the constraint and
-fails the whole apply transaction, so applying a record of those kinds
-reconciles:
+Four kinds carry `UNIQUE` natural keys (`choreographers.name`, `tags.name`,
+`custom_field_defs.key`, and `difficulty_levels.label`), so two devices that
+independently created "Bob Smith" hold one person under two UUIDs. Inserting the
+second violates the constraint and fails the whole apply transaction, so
+applying a record of those kinds reconciles:
 
 1. **UUID known locally** → update, last-writer-wins on `updatedAt` — unless the
    update would move the natural key onto a name another local row already holds.
@@ -353,6 +502,18 @@ reconciles:
    created independently on both devices. Reconcile silently to one UUID, remap
    every reference, drop the loser. One-time; the two devices agree from then on.
 3. **Neither** → insert.
+
+**Difficulty levels have one wrinkle the other three do not.** The three shipped
+levels carry fixed ids, and a shipped id is the canonical identity when present
+even if its label was renamed locally — so reconciliation by label reaches only
+custom levels (spec §6.6).
+
+> **Amended 2026-09-23 (#1345).** This section's opening paragraph named three
+> kinds (`choreographers.name`, `tags.name`, `custom_field_defs.key`). Difficulty
+> levels gained a `UNIQUE` label in
+> [ADR-005](005-custom-dance-difficulty-vocabulary.md), after this section was
+> written, and the identity discussion here was never revisited. The spec lists
+> four and the implementation reconciles four; this was the stale side.
 
 **The survivor is the lexicographically smaller UUID** — one canonical rule, used
 by every "which record survives" decision in the design, including the
@@ -381,7 +542,8 @@ design now states normatively: *any operation that changes a record's serialised
 content must advance its `updatedAt`.* Two separate mechanisms have broken it, so
 it is written down rather than left to be rediscovered.
 
-Natural-key reconciliation is **silent**. No prompt, no review queue: at beta
+Natural-key reconciliation is silent **in the common case** — no prompt, no
+review queue, and the carve-outs where it is not silent are below. At beta
 scale the collision is common (any two devices that both typed "Cary Ravitz")
 and a prompt per entity would be noise. Silence is defensible here because **the
 schema already makes the same assumption**: `choreographers.name` is `UNIQUE`,
@@ -401,15 +563,25 @@ and a mint can never collide with an existing key.
 
 **Where the silence stops is normative, and §6.6 fixes it.** A matching UUID
 whose natural keys differ MUST NOT merge silently; a step-2 resolution to
-non-existence that no peer manifest ever observed MUST be reported, so that a
-record cannot vanish from a user's device unannounced; and a renamed key that
-still collides after its suffix MUST route to the review queue rather than
-rename again. The claim above is that the *common* case is silent, not that this
-design never prompts — a reader who took it for the latter would build a merge
-path with no review queue in it at all.
+non-existence that no peer manifest ever observed MUST route to the review queue
+(§6.6), so that a record cannot vanish from a user's device unannounced; and a
+renamed key that still collides after its suffix MUST route to the review queue
+rather than rename again. The claim above is that the *common* case is silent,
+not that this design never prompts — a reader who took it for the latter would
+build a merge path with no review queue in it at all.
+
+> **Amended 2026-09-23 (#1345).** The middle clause originally said such a
+> resolution "MUST be reported". The spec is the normative contract, and §6.6
+> requires the review queue instead, for a reason a report cannot meet: none of
+> the four natural keys is filtered on `deleted_at`, so the live local row holds
+> the name the peer's tombstone would need, and §6.3 step 9 never advances the
+> baseline for a record this device did not store. A report would therefore
+> re-raise the identical pair on every pass for the life of the install, over a
+> choice no report offers. Routing to the queue is what makes the outcome
+> terminate; the obligation not to let a record vanish unannounced is unchanged.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key —
-`venues.name` and `published_sources.title` are plain `text()`, unlike the three
+`venues.name` and `published_sources.title` are plain `text()`, unlike the four
 above — so their UUIDs cannot collide destructively; two records simply coexist.
 They are therefore inserted without reconciliation, and a user who created the
 same hall, or cited the same book, on two devices will see it twice. Choosing a
@@ -422,10 +594,35 @@ When a device has no baseline for a sync ID, the merge is **additive**: a device
 holding `{B, C}` joining a store holding `{A, B}` produces `{A, B, C}`. Only
 genuine record-id collisions fall through to last-writer-wins.
 
-Fresh attach also **runs the existing dedupe machinery** — `DedupeIndex`, fuzzy
-title-and-author matching, and the confident-match rule from #685. Without it, a
-caller who imported "Rory O'More" separately on a laptop and a phone before
-pairing gets two of everything, which is precisely the user we are building for.
+Fresh attach also **deduplicates the union on exact normalized title**. Without
+it, a caller who imported "Rory O'More" separately on a laptop and a phone
+before pairing gets two of everything, which is precisely the user we are
+building for — and that case produces two *identical* titles, which this tier
+catches.
+
+> **Amended 2026-09-22 (#1355).** This paragraph originally said fresh attach
+> runs "`DedupeIndex`, fuzzy title-and-author matching, and the confident-match
+> rule from #685", and §6.10 of the spec deferred "everything else `DedupeIndex`
+> flags" to the review queue. No implementation ever did. The fuzzy tier was
+> built against #1355, measured, and **removed by decision** rather than
+> deferred or forgotten.
+>
+> It caught only independently-arising near-title variants — the motivating case
+> above is already covered by exact-title matching — and cost a measured 912.8
+> seconds over an 11,500-dance library inside the fresh-attach transaction,
+> because comparing every pair is quadratic and dance titles cluster too tightly
+> in length for a sound length bound to prune more than ~5% of pairs. Removing
+> the repeated normalization inside `fuzzyMatches` would bring that to roughly
+> 70 seconds, still quadratic and still inside the transaction. It also produced
+> roughly 0.64 review rows per dance on a synthetic corpus — about 1,900 rows
+> for a 3,000-dance library — against a review surface with no pagination, which
+> is exactly the wall the next paragraph warns about. Raising the threshold or
+> skipping large libraries were both rejected as silent narrowings of a stated
+> guarantee.
+>
+> Near-title pairs now simply remain two dances after attach: visible in the
+> collection, harmless, and mergeable by hand. The measurement and its counting
+> rule are recorded in spec §6.10.
 
 **Obvious duplicates merge silently. Only genuine ambiguity is surfaced.**
 Asking a user to review 11,500 dances is not a review, it is a wall, and the
@@ -434,16 +631,22 @@ are identical in everything that matters.
 
 The silent-merge test reuses the rule already in the import pipeline:
 
-1. **Exact normalized-title match** (the `normalizeTitle` gate in `autoResolveAmbiguous`). A
-   fuzzy-but-inexact title is never confident; that is the "two different dances
-   share a title" trap.
-2. **`_choreographyEquals`** — form, formation, progression, phrase structure,
-   **figures including their params**, hook, calling notes, level, mixed level
-   and tunes. It deliberately ignores identity, provenance, timestamps and
+1. **Exact normalized-title match** (plain `normalizeTitle`, as the import
+   gate in `autoResolveAmbiguous` was written). A fuzzy-but-inexact title is
+   never confident; that is the "two different dances share a title" trap.
+   Since #1976 the import gate also accepts a match once a trailing article is
+   fronted (`dedupeTitleKeys`: "Bastringue, La" against "La Bastringue");
+   fresh-attach keeps plain `normalizeTitle`, so it does not (see the
+   divergences below).
+2. **the shared `choreographyFingerprint` contract** — form, formation,
+   progression, phrase structure, **figures including their params**, hook,
+   calling notes, level, mixed level and tunes. It deliberately ignores
+   identity, provenance, timestamps and
    device-local id collections, so, in the words of its own doc comment, "a
    bundle received on another device still matches by its intrinsic content".
 
-One deliberate divergence from the import rule. Import treats exact title plus
+Two deliberate divergences from the import rule. The first is the title key,
+above. The second: import treats exact title plus
 **author overlap** as confident *even when the choreography differs*, which is
 right when re-importing a source record. **Fresh attach must not**: same title,
 same author, different figures is exactly a dance the user edited differently on
@@ -492,10 +695,10 @@ pointing at the losing duplicate are rewired to the survivor; the column is
 `onDelete: setNull`, so leaving them would silently strip a caller's program of a
 dance that still exists.
 
-`_choreographyEquals` is currently private to `ImportPipeline`; exposing it (or
-lifting it somewhere shared) is an implementation detail for the sync issue, but
-sync must call *that* function rather than reimplement the comparison, or the
-two definitions of "the same dance" will drift.
+The comparison contract is shared in the imports dedupe layer: import compares
+model fingerprints and sync hashes the same ordered wire fingerprint. Keeping
+that field list in one place prevents the two definitions of "the same dance"
+from drifting.
 
 **Three distinct events produce a fresh attach, and all three use the same
 union, dedupe and baseline algorithm once any required user decision has been
@@ -503,7 +706,10 @@ made:**
 
 1. A device attaches to a sync ID for the first time.
 2. A device that had detached re-attaches. **Detaching forgets the sync ID
-   entirely** — there is no memory of previously-attached IDs.
+   entirely** — there is no recoverable list of previously-attached IDs. A
+   salted, slow verifier set remains only to distinguish prior use of an ID
+   from a first attach when the collection has disappeared; it cannot
+   reconstruct the ID and is not backed up or transmitted.
 3. A previously used sync ID no longer exists server-side and the user confirms
    creation of a replacement.
 
@@ -600,15 +806,32 @@ and walkthrough snippets represent real work a user would hate to redo.
   that obliges a stated retention wherever the server records it, logs included,
   because `{deviceId}` sits in a request path and lands in ordinary access logs
   by default. Spec §3.3 and §7.3.
-- `accessControlData` → **a sixth class this programme adds**, for the sync ID
-  itself. It is not `deviceScoped` for the same reason the device ID is not — it
-  rides an `Authorization` header on every request — and it is not a protocol
-  identifier, because that class requires the value carry no user data by
-  construction while a sync ID may be user-chosen. It is the one class that
+
+  > **Amended 2026-10-14, by the maintainer's decision.** No longer only the
+  > sync device ID: keeping peer manifests across restarts (#1757) adds a
+  > peer's device id as the store lists it and the `ETag` a peer manifest was
+  > served with, both sent back only to that store. The class definition was
+  > widened to "random bytes a device minted, or a server-issued hash of data
+  > that server already holds", never taken as this device's own. Its guarantee
+  > — no user data by construction — is unchanged. See the class table in
+  > `docs/design/sync.md`.
+- `storeAddress` → **a sixth class this programme adds**, for the sync ID
+  itself. The sync ID names *where* a shared store lives — in effect a path on
+  the sync server, which is how the server handles it — and it is Other User
+  Content. **It is not a credential, a key, a password or a secret**, and a user
+  is expected to hand it to another person so the two can sync together; the
+  bearer mechanics are an implementation detail of how the server addresses a
+  store. It is not `deviceScoped` for the same reason the device ID is not — it
+  travels on every request — and it is not a protocol identifier, because that
+  class requires the value carry no user data by construction while a sync ID
+  may be user-chosen. Nor is it `shareable`: that class is the switch every
+  serialiser reads, so filing an address there would put it in a record blob and
+  let a peer's value overwrite the local one. It is the one class that
   constrains the **recipient** rather than only the movement: never stored
   recoverably (only `HMAC-SHA256(pepper, syncID)`), never logged, never adopted,
-  never sent to any origin but the configured endpoint's. The harm is not that
-  it travelled but that it was kept. Spec §3.3.
+  never sent to any origin but the configured endpoint's — not because the
+  address is confidential, but because the operator has no use for the plaintext
+  and it names where a user keeps their library. Spec §3.3.
 - `derived` → never transmitted; rebuilt on arrival
 
 **There is no device-to-device channel.** `deviceLocal` data moves only by the
@@ -702,8 +925,8 @@ in its configuration.
 **Six requirements on whatever proxy is used.** These are conformance
 requirements, not deployment taste, and each has a concrete failure mode:
 
-- **`Authorization` must reach the backend unmodified.** The sync ID is a
-  bearer credential in that header (spec §5.1). A proxy that consumes or
+- **`Authorization` must reach the backend unmodified.** The sync ID travels in
+  that header under the `Bearer` scheme (spec §5.1). A proxy that consumes or
   strips it makes every request `401` with no obvious cause. Apache's
   `mod_proxy_http` forwards it; the hazard is adding an auth directive to
   that vhost later, or fronting the service with CGI/FPM, which needs
@@ -720,17 +943,18 @@ requirements, not deployment taste, and each has a concrete failure mode:
   on the receiver by design. Inflating at the proxy moves a security control
   to a component that does not implement it.
 
-- **The credential must never be logged.** Common log formats record the
+- **The sync ID must never be logged.** Common log formats record the
   request line and status, not headers, so this holds by default; the risk is
   someone adding `%{Authorization}i` (or nginx's `$http_authorization`) to a
-  debug format and writing live credentials to disk. The vhost should carry a
+  debug format and writing live sync IDs to disk. The vhost should carry a
   comment saying so, because the omission is invisible.
 
 - **`/v1` must not be served over plaintext.** A plaintext request to `/v1` is
-  refused outright — not redirected. The credential is disclosed by the
-  plaintext request itself; what a redirect adds is that a client which
-  follows it *and retains* the credential across the hop syncs successfully,
-  so the misconfiguration never surfaces and every run repeats the disclosure.
+  refused outright — not redirected. The sync ID has already crossed the
+  network in the clear in the plaintext request itself; what a redirect adds
+  is that a client which follows it *and retains* the sync ID across the hop
+  syncs successfully, so the misconfiguration never surfaces and every run
+  sends it in the clear again.
   One that strips gets a `401` instead, and which of the two reaches a
   deployment is not something its operator can see. Refusal fails visibly for
   both. The `https` origin also sends `Strict-Transport-Security`, which is
@@ -741,9 +965,11 @@ requirements, not deployment taste, and each has a concrete failure mode:
   plaintext port. A `ProxyPass` written outside a vhost, or pasted into both,
   exposes the API on both and nothing in either response says so. The client
   already refuses a plaintext endpoint (spec §8), but the things that reach a
-  public port are not all conforming clients, and the sync ID is a bearer
-  credential on every request with no rotation and no revocation — so one
-  plaintext call is a complete and permanent disclosure.
+  public port are not all conforming clients, and the sync ID travels on
+  every request and cannot be taken back once someone else has it — so one
+  plaintext call puts the store's address in the clear for good: moving every
+  device to a new phrase stops using it, and only deleting the store removes
+  what it holds.
 
 - **The per-IP rate limit must see the real client address.** The server binds
   loopback, so its socket peer is the proxy on *every* request. A server that
@@ -758,7 +984,13 @@ requirements, not deployment taste, and each has a concrete failure mode:
   socket peer is loopback: trusting a spoofable forwarding header is strictly
   worse than having no limit at all, because an attacker sets a fresh value per
   request and buys unlimited guesses while an honest shared-NAT user is still
-  throttled. Both failure directions are silent. See spec §7.5, requirement 6.
+  throttled. Both failure directions are silent. As defence in depth the server
+  reads only the rightmost entry of the header, so a client-supplied prefix
+  cannot choose the key. That is all it defends against: whatever the proxy
+  itself appends is trusted, so a proxy that appends an address it resolved
+  from another client-supplied header (Apache's default `ProxyAddHeaders On`
+  after `mod_remoteip`, for one) still lets the client choose. See spec §7.5,
+  requirement 6.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound
@@ -947,9 +1179,12 @@ makes self-hosting materially harder, which constraint 4 forbids.
   but merging is last-writer-wins with no attribution and no prompt. If two
   people edit the same dance, one edit disappears silently. This must be said at
   pairing time, not discovered.
-- **A bearer credential has no recovery and no revocation.** Lose the ID and the
-  store is unreachable; leak it and the only remedy is to move to a new ID on
-  every device.
+- **The sync ID has no recovery and cannot be taken back.** Lose the ID and the
+  store is unreachable; once someone else has it there is no way to take the ID
+  back, so to stop using that address, set up a new phrase on every device.
+  That alone does not remove what the store holds, because it leaves the old
+  store readable by whoever has the phrase — wipe is what removes the content, and it is the only remedy that
+  acts at once (§5.3). The two are complementary, not alternatives.
 - **Device Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
   a grace period, not an archive. The file backup remains the recovery path and the UI
   must say so.
@@ -970,6 +1205,28 @@ makes self-hosting materially harder, which constraint 4 forbids.
   retried. This binds release ordering for every future schema change, and it
   applies to self-hosters too: their upgrade has to lead the app's, which is a
   real obligation to document rather than a deployment detail.
+
+  > **Amended 2026-10-02.** The rejection is still surfaced and never retried,
+  > but it now says which side has to act, because the client knows whether it
+  > is on the default server. On the default server it tells the user this
+  > version of the app is newer than the server, that their changes are saved
+  > on the device, and that they will sync once the server is updated; on a
+  > self-hosted server it asks the user to update that server. Previously both
+  > got one generic "different versions" message that told the user to update
+  > the app, which on the default server is the side already ahead. Decided by
+  > Isaac (maintainer) in planning; the wording is in sync-spec.md §6.12.
+  > Separately, a peer whose envelope `v` is newer than this device's is now
+  > reported as its own condition, `newerWireVersion`, asking the user to update
+  > *this* device (sync-spec.md §6.9).
+  > **Amended 2026-10-12.** An older build no longer refuses a record because a
+  > newer one added a field: it keeps the fields it does not sync beside the
+  > record and shares them back unchanged, so they survive its own edits
+  > (sync-spec.md §6.7, schema v39 `retained_sync_fields`). It still refuses a
+  > record it could not put back exactly — new keys inside a dance's figures —
+  > and leaves to a newer device any tie it cannot judge. Decided by Isaac
+  > (maintainer) in planning the change: kept parts are classified the most
+  > cautious way that can still travel, a known-but-private field is kept like
+  > an unknown one, and a setting this build does not sync is kept whole.
 - **Settings sync requires a schema migration, and it should ship first.**
   `settings` is `(key, value_json)` with no timestamp, so the `updatedAt`
   conflict rule cannot reach it. The sync migration adds `updated_at`, stamping existing
@@ -1019,10 +1276,14 @@ makes self-hosting materially harder, which constraint 4 forbids.
   deleted it once. Holding the deletion pending keeps the guarantee that no dance
   credits a tombstone without buying it by resurrecting deleted data.
 
-  A held deletion is cancelled **only by a deliberate user edit**, ordered by an
-  `existenceAt` timestamp that travels in the blob envelope: when two copies
-  disagree about whether a record exists, the greater `existenceAt` decides, and
-  its `deletedAt` says which state that is. Several sync mechanisms advance
+  A held deletion is cancelled by a **deliberate user edit**, and — by a later
+  maintainer decision — by an **inbound revival that out-ranks it**. Both are
+  ordered by the same `existenceAt` timestamp that travels in the blob envelope:
+  when two copies disagree about whether a record exists, the greater
+  `existenceAt` decides, and its `deletedAt` says which state that is. This
+  paragraph originally named only the local edit, which conflicted with that
+  comparison — a peer's revival could win it and still be undone, because the
+  held row survived and re-applied the deletion once the last citation cleared. Several sync mechanisms advance
   `updatedAt` without a user touching anything — reference rewriting,
   merge-by-recency, the dance merge's scalar recency — so a plain recency rule
   would let a third device silently reverse another's deletion.
@@ -1039,13 +1300,20 @@ makes self-hosting materially harder, which constraint 4 forbids.
   un-delete from a slow-clocked device was still silently reverted. Hardening one
   term of a conjunction hardens nothing.
 
-  It is set only by a live↔deleted transition and by no sync-apply path, which
-  makes deletions sticky: an edit made on a device that never learned of the
+  It is *stamped* only by a local existence **decision** and by no sync-apply
+  path — applying a peer's blob copies that peer's value rather than minting one
+  — which makes deletions sticky: an edit made on a device that never learned of the
   deletion is swept up when it arrives — recoverable from Recently Deleted, but
   not announced. Chosen because a deletion silently reversed on every device is
   both worse and harder to notice than an edit that follows its record into the
   bin. It costs an `existence_at` column on all eight syncable kinds, which is
   why the migration is eight tables rather than six.
+
+  A local live↔deleted transition is the usual such decision, but not the only
+  one: cancelling a **held** tombstone by editing the record is an existence
+  decision made while the row stays live throughout, and it stamps for the same
+  reason a revival does — the record must outrank the tombstone on the peer that
+  still holds it (#1356).
 
   It is stamped **causally rather than from a bare clock** — every transition
   lands strictly after the value already on the record,
@@ -1105,13 +1373,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   an ordinary edit poisons `updatedAt` while leaving `existenceAt` untouched, so
   a single filter would select a peer that is sound in one and poisoned in the
   other — and each is keyed on the signal that answers its own question:
-  `existenceAt` on live-or-deleted agreement, because only a local transition can
-  poison it; `updatedAt` on whether local content still matches **this device's
+  `existenceAt` on live-or-deleted agreement, because only a local existence
+  decision can poison it; `updatedAt` on whether local content still matches **this device's
   own baseline**, because only a local write can poison it, and the baseline is
   what tells a device whether it wrote.
 
-  Two details of that comparison are load-bearing rather than incidental. It is
-  scoped to the record's **`body`**, not the whole blob: the wire hash covers the
+  ("Ordinary edit" here means one that decides nothing about existence. The one
+  edit that does — cancelling a held tombstone, #1356 — writes `existenceAt`
+  from the local clock like any other local decision, so it can poison that
+  field too. It is still a *local* write, which is all this rebuild depends on.)
+
+  Two further details of that comparison are load-bearing rather than
+  incidental. It is scoped to the record's **`body`**, not the whole blob: the wire hash covers the
   timestamps, and poisoning *is* a timestamp-only change, so a whole-blob
   comparison reports "differs" for every quarantined record and the classifier
   collapses to "I edited" — the same comparator that, pointed at a peer a round
@@ -1130,10 +1403,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   an entry and only one carries it: a record agreed under the previous scheme has
   a wire hash and no body hash, and takes the wire-hash path or stays
   quarantined; a wholesale-wiped baseline routes through fresh attach, which
-  repersists it before quarantine and repair run at all. Existing baselines
-  cannot be migrated — the body was never retained, and every backfill that
-  invents a value re-opens a defect this design has closed — so the column starts
-  null and fills on the first pass that observes agreement.
+  repersists it before quarantine and repair run at all. A legacy full-body
+  baseline is different: its body was never retained, so it cannot be migrated
+  by clearing only the body hash or inventing a replacement. The client drops
+  that old epoch-scoped baseline and routes through fresh attach; W9 comparison
+  hashes then start absent and fill only after a peer's agreement is observed.
 
   A quarantined record is also never uploaded: a device does not publish a value
   it has judged impossible. Its **manifest entry falls back to the last agreed
@@ -1145,16 +1419,30 @@ makes self-hosting materially harder, which constraint 4 forbids.
   in a fresh attach's union and in the steady-state merge table alike, since
   otherwise a poisoned `local.updatedAt` no honest peer can exceed would freeze
   the record while appearing to participate. A record citing a quarantined
-  entity is withheld with it, or a peer's batch fails at COMMIT on the cascading
-  foreign key — computed as a fixpoint over the publish set, since the citation
-  graph is multi-hop, and excluding `Programs.venueId`, which is not a database
-  foreign key and is instead resolved-or-nulled on apply, as the archive
-  restorer already does. That withholding does not resolve itself: an entity created while
-  a clock was broken has no peer copy to repair against, so it and everything
-  citing it stay unsynced until the user writes to it again. The report says how
-  many records each one holds back, because otherwise the only symptom is a
-  collection that quietly stops syncing. And an advertised fallback never counts
-  as agreement: it is this
+  entity with no agreed fallback is withheld with it, or a peer's batch fails at
+  COMMIT on the cascading foreign key. When an agreed fallback is advertised,
+  the referenced address remains in the manifest, so database-enforced
+  dependents may publish while the quarantined root's current blob remains
+  withheld. Before publishing a fallback, the client probes its wire hash
+  through `POST /v1/blobs/missing`; if the store reports it missing and this
+  device has no body for that hash, this pass treats the root as having no
+  usable fallback, omits it, and recomputes the same closure. If the body is
+  locally available, it is uploaded before the manifest is published.
+  No-fallback withholding is computed as a fixpoint over the publish set, since
+  the citation graph is multi-hop, and excludes `Programs.venueId`, which is not
+  a database foreign key. A dangling value is handled differently depending on
+  how a program reaches this device: the archive restorer's import paths
+  resolve-or-null it before persisting, so a restored program never actually
+  carries one, while the inbound sync apply persists it verbatim and reports
+  it, since nulling a peer's content without advancing its `updatedAt` is not
+  I1's one content-derived exception and would leave the record at an
+  unresolvable equal-`updatedAt` conflict on every later pass (sync-spec.md
+  §6.5, §6.7). That withholding does not
+  resolve itself: an entity created while a clock was broken has no peer copy
+  to repair against, so it and everything citing it stay unsynced until the
+  user writes to it again. The report says how many records each one holds
+  back, because otherwise the only symptom is a collection that quietly stops
+  syncing. And an advertised fallback never counts as agreement: it is this
   device's own hash coming back to it, and treating it otherwise would populate
   a baseline from the poisoned content it exists to repair.
 
@@ -1238,8 +1526,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   `deviceScoped` and beyond the sync migration like the others, but it is
   **not** scoped to the store and is never cleared: it records that bytes left
   this device, which a detach does not undo — detach forgets the sync ID
-  locally and leaves this device's manifest on the server, keeping the record
-  downloadable by every peer.
+  locally, and every record this device published stays downloadable by every
+  peer. Its manifest stays on the server unless the detach clean-up removes it,
+  which it does only when every entry is already carried, at the identical
+  hash, by another device's manifest (spec §3.3) — so either way some manifest
+  still names the record.
 
   A device holding a deletion pending advertises the entity as a **tombstone**
   rather than omitting it. Omitting it stops the resurrection but leaves the
@@ -1263,7 +1554,9 @@ makes self-hosting materially harder, which constraint 4 forbids.
   with equal confidence and a reader deserves to see which way the decision went.
   Its one residue is operational and disclosed: a device that stops syncing
   without being removed pins its aliases indefinitely, so pruning depends in
-  practice on dead devices being removed via `DELETE /v1/manifests/{deviceId}`.
+  practice on dead devices being removed. Settings ▸ Device Sync ▸ *Other
+  devices* is where a user does that, issuing `DELETE /v1/manifests/{deviceId}`
+  for the peer they pick (issue #1360).
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A
@@ -1273,16 +1566,85 @@ makes self-hosting materially harder, which constraint 4 forbids.
   blob carries. The serialiser hazard and this deserialiser hazard are
   symmetric, and the second is the more dangerous: it destroys the user's own
   data rather than exposing it.
-- **Settings whose value is a whole collection collide destructively.**
+- **Settings whose value is a whole collection collide as a unit.**
   `custom_dialects`, `custom_themes`, `shorthand_mappings` and
-  `walkthrough_snippets` each hold an entire set behind one key, so a
-  changed/changed conflict discards one device's complete set with no review
-  queue. Accepted, and it belongs beside "sharing is not collaboration": the
-  first pairing of two long-established devices is the case that loses work.
+  `walkthrough_snippets` each hold an entire set behind one key, so
+  last-writer-wins on a changed/changed conflict would discard one device's
+  complete set.
+
+  > **Amended 2026-10-02.** This was accepted with no review queue. It is now
+  > routed to the user's choice whatever the two timestamps
+  > (@ibanner56's ruling; spec §6.3), because the first pairing of two
+  > long-established devices is exactly the case that would lose work. What
+  > remains accepted is that the choice is between whole sets: the user
+  > keeps one device's dialects, say, not a merge of both.
+  >
+  > **Amended 2026-10-05.** That remaining limitation is withdrawn
+  > (@ibanner56's ruling): the user may also **combine both**, keeping every
+  > entry from each device's set and choosing a version only of entries both
+  > changed (spec §6.6, *Conflict choices*). A combination longer than the
+  > library keeps is refused rather than truncated. Any choice can also be
+  > undone by reconsidering it between the same earlier versions, held in
+  > memory only; because a written choice is already the newest version
+  > everywhere, undo cannot restore "undecided", so it reopens the choice and
+  > writes only when the user chooses again.
+  >
+  > **Amended 2026-10-15.** A fifth key joins them: `compound_shorthands`,
+  > the user's shorthands for their own compound figures (#709), compared and
+  > combined token by token like `shorthand_mappings`.
+  >
+  > **Amended 2026-10-16.** A sixth joins them: `user_figure_shorthands`, the
+  > user's shorthands for their own new figures (#1023), compared and combined
+  > the same way.
+- **Re-attaching to the same store can leave the previous attachment behind
+  as an inactive device.** Because each attachment has its own device ID, an
+  old manifest left on the server stays under the old identifier. It shows
+  under *Other devices*, occupies one of the store's 32 device slots, keeps its
+  blobs reachable, and — since it lists this device's own hashes — counts as a
+  peer that already carries them in the baseline advance. It lasts until a user
+  removes it there or the store is reaped. Recognising it as this device's
+  would need the very link between attachments the per-attachment identifier
+  removes, so it is mitigated rather than fixed.
+
+  > **Amended 2026-10-02.** Mitigated by the detach clean-up (@ibanner56's
+  > ruling, from a planning session): after the local clear has committed,
+  > detach makes one best-effort, background attempt to
+  > `DELETE /v1/manifests/{self}`, and only when every entry of that manifest
+  > is carried, at the identical hash, by another device's manifest (spec
+  > §3.3). This changes a guarantee this ADR used to state — that detach sends
+  > no request — and it is safe because of that condition: the removal makes no
+  > publication unreachable, since another manifest still names every one, so
+  > nothing a peer could still fetch is lost. When the condition does not hold,
+  > when the device is offline or on mobile data with *Sync only on WiFi* on, or
+  > when the attempt fails, the old entry remains as described above and is
+  > removed under *Other devices*. A new pairing cancels the attempt, so the old
+  > and new identifiers are never used side by side, as does turning Device
+  > Sync off, and it is never retried.
+  >
+  > A leftover manifest reads as *asleep* in the per-peer judgement (spec §6.9),
+  > so it no longer hides a warning: the warning is now raised per device that
+  > is publishing but not taking changes. What it still does is under-count the
+  > *Other devices* "waiting" line for itself, by every record unchanged since
+  > it was left behind.
+  >
+  > **Amended 2026-10-02, later the same day** (@ibanner56's ruling). A
+  > carrier must also have been written strictly later than this device's own
+  > manifest (spec §3.3, condition 5). The ruling was "no earlier than";
+  > strictly later is my narrowing of it, made in review, because
+  > `writtenAt` is stored to the whole second and a leftover from an
+  > attachment replaced within one second would otherwise read as equal and
+  > still count. Without that, this device's own
+  > leftover from an earlier attachment — the same hashes, written earlier —
+  > could be the only carrier, and removing the current manifest would leave
+  > those records only there, one *Other devices* removal away from existing
+  > nowhere but this detached device. The floor compares two devices' clocks,
+  > so a live peer with a slow clock, or one that published in the same
+  > second, can also fail it; the clean-up then skips, which costs one
+  > leftover entry, never data.
 - **Any holder of the sync ID can impersonate a device or wipe the store.**
-  Manifest `PUT` accepts a caller-chosen device id, and the same bearer
-  authorises `DELETE /v1/store`. This is inherent to the bearer model rather than
-  an oversight, and it is stated here as explicitly as the read-access case
+  Manifest `PUT` accepts a caller-chosen device id, and the same sync ID is
+  all `DELETE /v1/store` asks for. This is inherent to the one-address model
+  rather than an oversight, and it is stated here as explicitly as the read-access case
   because the write-access case is the one that destroys data.
 - **A deletion can sit unapplied on another device indefinitely.** Because the
   referential guards are kept, a device that still cites a deleted choreographer,
@@ -1344,18 +1706,20 @@ makes self-hosting materially harder, which constraint 4 forbids.
   access is a matter of policy rather than capability. A break-glass path for
   abuse investigation exists, is logged, and is disclosed in the privacy policy.
   The log lives in a **separate database** — so reaping a store cannot destroy
-  the record of access to it — and holds two fields: the derived sync-ID key and
-  a timestamp. Never the plaintext ID: the store deliberately avoids holding the
-  credential in the clear, and a plaintext log would undo that while outliving
+  the record of access to it — and holds, per access, the derived sync-ID key
+  and a timestamp, and, per item the access is about to read, its kind
+  (manifest or blob), the epoch, and the device ID or blob hash, never its
+  content (spec §7.4). Never the plaintext ID: the store deliberately avoids
+  holding the sync ID in the clear, and a plaintext log would undo that while outliving
   the stores it describes.
 - **Identifiers are derived with HMAC, not a bare hash.** A bare SHA-256 of a
   sync ID is weak *because the ID is deliberately low-entropy*: at the ~2⁴⁰
   reference strength for user-chosen IDs, exhausting the space is minutes of
-  commodity GPU time, so a stolen database would yield working credentials. The
-  ruling that the strength score only warns strengthens this argument rather
-  than weakening it — a user-chosen ID may sit *below* 2⁴⁰, so the derived
+  commodity GPU time, so a stolen database would yield the sync IDs
+  themselves. The ruling that the strength score only warns strengthens this
+  argument rather than weakening it — a user-chosen ID may sit *below* 2⁴⁰, so the derived
   identifier is the only thing standing between a database leak and a working
-  credential. Keys are therefore
+  sync ID. Keys are therefore
   `HMAC-SHA256(pepper, syncID)` with the pepper held in server configuration and
   never in the database. This is server-side only — the client computes no MAC
   and never holds the pepper. **Rotation is a store migration, not a config
@@ -1364,9 +1728,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Versioned peppers with lazy re-keying are the proposed resolution; see
   [sync.md](../design/sync.md) → Recorded limitations.
 - **Even a derived identifier is linkable, so the log expires too.** The access
-  log keeps its identifier for 30 days and then **degrades to a timestamp-only
-  row**, preserving "an access occurred on this date" as a non-linkable aggregate
-  while the linkable part expires on the same schedule as everything else.
+  log keeps its identifiers for 30 days and then **degrades to timestamp-only
+  access rows** (each read row keeping only its time and kind), preserving "an
+  access occurred on this date" as a non-linkable aggregate while the linkable
+  part expires on the same schedule as everything else.
 - **Export compliance is unchanged, and was checked rather than assumed.** Device Sync
   adds no new cryptographic *category*: TLS is OS-provided, SHA-256 content
   addressing is hashing, and the binary already ships both plus Ed25519 for
@@ -1383,6 +1748,22 @@ makes self-hosting materially harder, which constraint 4 forbids.
   test is strict — identical figures *and* params — so a false positive means two
   genuinely identical dances, but the user is not told it happened. Reporting a
   count afterwards ("merged 412 duplicates") is the mitigation, not a prompt.
+- **New kinds of data wait for every device (added 2026-10-14, #709).** A
+  record kind or shareable settings key an older build cannot hold is gated on
+  a named capability: each device advertises what its build understands in a
+  synced `sync_capabilities:<deviceId>` setting, and a device publishes gated
+  data only while every attached device advertises it (sync-spec §6.15). So a
+  store syncs new data as soon as all its devices can read it, without a
+  second release to switch it on. Accepted with it, by the maintainer: a device
+  that never updates holds the data back until it is removed; older peers show
+  a notice about the capability record (informational on v0.7.0, a malformed
+  record before that); and a device on a build without the client half of
+  sync-spec §4.5 cannot join a store once the gate has opened, which the gate
+  cannot see because the store lists only devices that have published.
+  The first capability, `glossary.v1`, covers the user's glossary entries,
+  their notes on built-in figures, the Custom Figures setting and compound
+  shorthands; the build that syncs the two glossary kinds advertises it
+  (2026-10-15, #709).
 
 ### Blocking prerequisite — satisfied by [#1115]
 
@@ -1399,12 +1780,13 @@ sync" at all — and both carry the operator-visibility and logged break-glass
 disclosures §8 requires, with the 30-day linkability bound and the
 structured-venue-field carve-out stated plainly.
 
-What remains is not a contradiction but a release-time step: the effective date
-must be bumped in the release that turns the feature on, **before any real
-user's content leaves a device** — which is the beta, not the public release.
-That is the execution plan's **C6** gate, the checkpoint that defines the beta.
-It is a prerequisite of shipping, not of this ADR, and it is no longer a
-blocking defect in a published document.
+The first Device Sync beta is now ratified as **v0.5.0-beta**, with an effective
+date of **September 21, 2026**. The policy copies must be deployed with that
+date **before any real user's content leaves a device** — which is the beta,
+not the public release. The deployed-page check is the execution plan's
+**C6** gate, the checkpoint that defines the beta. It is a prerequisite of
+shipping, not of this ADR, and the remaining work is release ordering rather
+than a contradiction in the published wording.
 
 ## Revisit triggers
 
@@ -1435,6 +1817,6 @@ blocking defect in a published document.
 - **Venue and published-source duplication becomes a nuisance** rather than a
   curiosity, justifying fuzzy dedupe for the two kinds with no natural key.
 - **Silent merge is observed collapsing dances users considered distinct** — for
-  instance two arrangements that differ only in fields `_choreographyEquals`
-  ignores. That would mean the equality test is too loose for sync even though it
-  is right for import, and the two should stop sharing one definition.
+  instance two arrangements that differ only in fields the shared choreography
+  contract ignores. That would mean the equality test is too loose for sync even
+  though it is right for import, and the two should stop sharing one definition.

@@ -77,10 +77,14 @@ already use for the release APK works as the **Play upload key**.
 
 - [x] **[Automated]** The release workflow now builds a signed `.aab` on every
   `v*` tag (mirroring the APK leg) and uploads it as the **`android-aab`**
-  workflow artifact — download it from the release run and upload that file to
-  Play. It's built + signed with the same upload keystore, but is intentionally
-  kept out of `SHA256SUMS` / the channel manifest / the GitHub Release (it's a
-  store-upload input, not a sideload download). To build one locally instead,
+  workflow artifact. It's built + signed with the same upload keystore, but is
+  intentionally kept out of `SHA256SUMS` / the channel manifest / the GitHub
+  Release (it's a store-upload input, not a sideload download). Once the
+  `PLAY_SERVICE_ACCOUNT_JSON` secret exists, the approval-gated `publish_mobile`
+  job also uploads it to Play for you (default: **internal** track, **draft**
+  release; see [Upload to Google Play](../releasing.md#upload-to-google-play));
+  until then, download the artifact from the release run and upload it by hand.
+  To build one locally instead,
   run from the app package (`cd app`, matching CONTRIBUTING): `fvm flutter build
   appbundle --release` (requires `app/android/key.properties` with the real
   upload keystore, exactly as the APK build does — see
@@ -141,13 +145,11 @@ any track (including testing) can go live. Answers are drafted in
   utility for adult callers; select adult age bands (13+/18+ as you prefer) and
   **not** "designed for children," so the **Families policy / Play for Families**
   rules don't apply.
-- [x] **[Gate]** **Data safety form** — for a pre-Sync build, declare **No data
-  collected, no data shared**. Note the app makes user-initiated network
-  requests (imports) and an opt-in update check, but the developer **collects**
-  nothing. Full answer set in
-  [`listing-copy.md`](listing-copy.md#data-safety-google-play). Re-answer it
-  before any beta where opt-in Device Sync transfers content; do not carry the
-  pre-Sync answer into that beta.
+- [x] **[Gate]** **Data safety form** — declare the optional Device Sync
+  transfer (other user-generated content, optional, app functionality, not
+  shared with third parties), not "No data collected". Imports and the opt-in
+  update check are user-initiated. Full answer set in
+  [`listing-copy.md`](listing-copy.md#data-safety-google-play).
 - [x] **[Gate]** **Government apps / financial / health / etc.** declarations —
   all **No** for us.
 - [x] **[Gate]** **News app?** — **No**.
@@ -216,9 +218,8 @@ flowchart LR
 - [ ] Read tester feedback and reviews; reply from the console.
 - [ ] Keep `targetSdk`, the privacy policy URL, and Data safety answers current —
   Play emails deadlines for policy changes and target-API bumps.
-- [ ] Re-affirm Data safety at each release. A pre-Sync release remains "no data
-  collected"; re-answer the form before any beta where Device Sync can transfer
-  content.
+- [ ] Re-affirm Data safety at each release; it must keep declaring the Device
+  Sync transfer.
 
 ---
 
@@ -229,11 +230,11 @@ flowchart LR
 | Console | Google Play Console — <https://play.google.com/console> |
 | Package name | `org.callerscompendium.compendiumApp` (permanent) |
 | Account | Personal recommended; $25 one-time; ID-verified |
-| Upload format | **`.aab`** — built by CI each `v*` tag as the `android-aab` artifact (or locally via `cd app && fvm flutter build appbundle --release`); not the sideload APK |
+| Upload format | **`.aab`** — built by CI each `v*` tag as the `android-aab` artifact and pushed to Play by `publish_mobile` once `PLAY_SERVICE_ACCOUNT_JSON` is set (or built locally via `cd app && fvm flutter build appbundle --release`); not the sideload APK |
 | Signing | Play App Signing; existing upload keystore = upload key |
 | Open beta = | **Open testing** track — but only **after** the closed-testing gate |
 | Closed-testing gate | **12+ testers, 14 continuous days** (new personal accounts) |
-| Data safety | **No data collected / no data shared** |
+| Data safety | **Other user-generated content (Device Sync), optional; not shared** |
 | Content rating | IARC → **Everyone** |
 | Feature graphic | 1024×500 (required by Play) |
 | Ads / IAP | None / None |

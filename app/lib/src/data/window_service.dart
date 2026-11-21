@@ -80,6 +80,28 @@ class WindowCloseCoordinator {
   }
 }
 
+/// Forwards raise requests to whichever [WindowService] is current.
+///
+/// `main` builds the first service, but `CompendiumApp` replaces it (and
+/// disposes the old one) when a failed startup is retried or the database is
+/// reset. The single-instance listener outlives every such replacement, so it
+/// holds this forwarder, not a service; each newly built service is registered
+/// with [register].
+class WindowRaiseForwarder {
+  WindowService? _current;
+
+  /// Makes [service] the target of later [raise] calls, replacing any earlier
+  /// one. Returns [service] so it can wrap a constructor call.
+  WindowService register(WindowService service) => _current = service;
+
+  /// Asks the current service to raise its window; a no-op before the first
+  /// [register].
+  void raise() {
+    final service = _current;
+    if (service != null) unawaited(service.raise());
+  }
+}
+
 /// Desktop-only wiring around the `window_manager` plugin that restores the
 /// last-known window size/position on startup and persists changes as the user
 /// resizes/moves/maximizes the window.
@@ -135,6 +157,11 @@ class WindowService with WindowListener {
   /// restore so we don't immediately persist what we just applied.
   bool _restoring = false;
 
+  /// True once [initialize] has restored and shown the window. [raise] is a
+  /// no-op before then: the first launch shows the window itself, and raising
+  /// mid-restore would fight the programmatic bounds.
+  bool _shown = false;
+
   /// Initializes the plugin, restores the persisted frame (clamped to the
   /// active display and a sensible minimum), shows the window, and starts
   /// listening for user-driven geometry changes. No-ops entirely off desktop.
@@ -174,6 +201,7 @@ class WindowService with WindowListener {
       await windowManager.show();
     });
     _restoring = false;
+    _shown = true;
 
     windowManager.addListener(this);
     if (_closeCoordinator != null) {
@@ -186,6 +214,22 @@ class WindowService with WindowListener {
           source: 'window_service._enablePreventClose',
         );
       }
+    }
+  }
+
+  /// Brings the window to the front, un-minimizing it first, in response to a
+  /// second launch (see `handleSecondLaunch`). Best effort: on Linux/Wayland the
+  /// compositor may only flag the window as needing attention, and Windows
+  /// applies its foreground-lock rules. No-ops off desktop, before [initialize]
+  /// has shown the window, and while the persisted frame is being restored.
+  Future<void> raise() async {
+    if (!isDesktopWindowPlatform || !_shown || _restoring) return;
+    try {
+      if (await windowManager.isMinimized()) await windowManager.restore();
+      await windowManager.show();
+      await windowManager.focus();
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(error, stackTrace, source: 'window_service.raise');
     }
   }
 
@@ -260,11 +304,14 @@ class WindowService with WindowListener {
   void onWindowMoved() => _schedulePersist();
 
   @override
-  void onWindowMaximize() {
+  void onWindowMaximize() => unawaited(_persistMaximized());
+
+  Future<void> _persistMaximized() async {
+    if (await _isFullScreen()) return;
     // Persist maximized immediately but keep the last restored size to fall
     // back to on un-maximize.
     final restored = _lastRestoredFrame ?? WindowFrame.defaultFrame;
-    unawaited(_persist(restored.copyWith(maximized: true)));
+    await _persist(restored.copyWith(maximized: true));
   }
 
   @override
@@ -272,6 +319,9 @@ class WindowService with WindowListener {
     _debounce?.cancel();
     unawaited(_captureAndPersist());
   }
+
+  @override
+  void onWindowLeaveFullScreen() => _schedulePersist();
 
   @override
   void onWindowClose() {
@@ -287,6 +337,7 @@ class WindowService with WindowListener {
 
   Future<void> _captureAndPersist() async {
     if (!isDesktopWindowPlatform || _restoring) return;
+    if (await _isFullScreen()) return;
     final maximized = await windowManager.isMaximized();
     // While maximized the reported bounds are the maximized ones; keep the
     // stored restored size instead so un-maximizing later is sensible.
@@ -305,6 +356,14 @@ class WindowService with WindowListener {
     _lastRestoredFrame = frame;
     await _persist(frame);
   }
+
+  /// Full-screen bounds are the display's, not a frame the caller chose, so
+  /// nothing is persisted while the window is full screen, whether Perform's
+  /// toggle or the OS's own control put it there, and a window closed full
+  /// screen reopens at its last ordinary frame (PLAT-9). The plugin is asked
+  /// each time rather than tracking its enter and leave events: on Windows,
+  /// window_manager 0.5.2 sends them only for a window that was maximized.
+  Future<bool> _isFullScreen() => windowManager.isFullScreen();
 
   Future<void> _persist(WindowFrame frame) =>
       _settings.set(frameKey, frame.toJson());

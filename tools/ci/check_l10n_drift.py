@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,8 @@ def run(root: Path = REPO_ROOT) -> int:
     """Regenerate l10n and report any uncommitted generated-source drift."""
     app = root / "app"
     generated = subprocess.run(
-        ["flutter", "gen-l10n"],
+        # which() applies PATHEXT, so Windows resolves the flutter.bat shim.
+        [shutil.which("flutter") or "flutter", "gen-l10n"],
         cwd=app,
         check=False,
     )

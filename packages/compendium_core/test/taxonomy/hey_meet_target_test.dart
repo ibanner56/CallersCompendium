@@ -54,20 +54,24 @@ void main() {
     });
 
     test(
-      'meetTarget draws from ContraDB chooser_pairz + the v24 mixer partner series + unspecified',
+      'meetTarget draws from ContraDB chooser_pairz + the v24 mixer partner series + the v38 square corners + the v40 threes and fours + unspecified',
       () {
-        // The 20 pair tokens our meetTarget allows, plus the unspecified sentinel
+        // The 24 pair tokens our meetTarget allows, plus the unspecified sentinel
         // default. Order is not asserted, only membership.
         expect(spec!.choices!.toSet(), {
           'role1s',
           'role2s',
           'ones',
           'twos',
+          'threes',
+          'fours',
           'partners',
           'neighbors',
           'sameRoles',
           'firstCorners',
           'secondCorners',
+          'thirdCorners',
+          'opposites',
           'shadows',
           'secondShadows',
           'prevNeighbors',

@@ -5,32 +5,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
+import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/program_sort.dart';
 import '../search/program_sort_labels.dart';
+import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/row_focus.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/brand_mark.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/sync_now_action.dart';
 import '../widgets/weekday_header_strip.dart';
 import 'app_shell_search_scope.dart';
 import 'contradb_program_import_screen.dart';
 import 'plaintext_program_import_screen.dart';
 import 'program_editor_screen.dart';
+import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_summary_screen.dart';
 import 'recently_deleted_screen.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// The program-import sources offered by the Programs list "Import" menu.
 enum _ProgramImportSource { plaintext, contraDb }
 
-enum _ProgramsCompactAction { importPlaintext, importContraDb, recentlyDeleted }
+enum _ProgramsCompactAction {
+  importPlaintext,
+  importContraDb,
+  toggleArchived,
+  recentlyDeleted,
+}
 
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
 /// event date, venue, slot count and a status chip (icon+text). Sort by title /
 /// recently-updated / event date; swipe-to-delete with undo; empty state that
 /// teaches. Mirrors [DanceListScreen].
+///
+/// Archived programs are left out unless the ⋮ menu's "Show archived" is on,
+/// and then they are listed alongside the rest with an "Archived" chip. The
+/// choice lives in this [State], so it outlasts opening a program, the
+/// builder, a rotation across the split breakpoint (the shell's [GlobalKey]),
+/// and a trip to Recently deleted; it is cleared when [isActive] goes false,
+/// which the app shell does when another top-level destination is chosen, and
+/// it is never saved, so it starts off on every launch.
 ///
 /// [onSelectProgram] wires split-pane callers ([ProgramsShell]); when null the
 /// list uses push-navigation to the editor. [selectedProgramId] highlights the
@@ -46,15 +69,37 @@ class ProgramsListScreen extends StatefulWidget {
     this.onSelectProgram,
     this.onCreateProgram,
     this.selectedProgramId,
+    this.performResumeStore,
+    this.isActive = true,
+    this.onSelectedProgramHidden,
   });
 
   final void Function(String programId)? onSelectProgram;
+
+  /// Called (split-pane mode) when the selected program ([selectedProgramId])
+  /// stops being listed while it still exists, for whatever reason: archived
+  /// from its row (or by a sync or import) while archived programs are hidden,
+  /// hidden by "Hide archived", or hidden when leaving the Programs tab turns
+  /// "Show archived" off. It is also checked when a rotation into the split
+  /// layout hands over a selection. The host closes it, as it does when the
+  /// program leaves through its own Archive or Delete (the maintainer's
+  /// decision on #2218; the tab-leave case is this list's own consequence of
+  /// it).
+  final VoidCallback? onSelectedProgramHidden;
+
+  /// Whether the Programs destination is the one showing. Leaving it (true to
+  /// false) hides archived programs again; see the class comment.
+  final bool isActive;
 
   /// Called (split-pane mode) when the user taps "New program" so the parent
   /// can host the create flow in a pane. When null, a route is pushed.
   final VoidCallback? onCreateProgram;
 
   final String? selectedProgramId;
+
+  /// Handed to the summary this list opens in narrow mode: see
+  /// [ProgramSummaryPane.performResumeStore].
+  final PerformResumeStore? performResumeStore;
 
   @override
   State<ProgramsListScreen> createState() => _ProgramsListScreenState();
@@ -63,14 +108,22 @@ class ProgramsListScreen extends StatefulWidget {
 class _ProgramsListScreenState extends State<ProgramsListScreen> {
   late CompendiumRepositories _repos;
 
+  /// Programs whose ⋮ → Delete is between the tap and the end of the delete.
+  /// The confirm reads the calling-history count before its dialog opens
+  /// (LIFE-6), so reopening the menu and choosing Delete again in that gap
+  /// would stack a second confirmation for the same program.
+  final Set<String> _deletingIds = {};
+
   /// Whether one-time setup has run. **This is a contract between two changes
   /// that arrived from opposite directions, and neither states it alone.**
   ///
   /// The subscription is opened exactly once per [State] — issue #768, so that
   /// a rebuild neither drops nor duplicates it. Issue #895 then gave
-  /// [ProgramsShell] a [GlobalKey] so this State *survives* being reparented
-  /// across the 900 px breakpoint (`programs_shell.dart:44`), which is what
-  /// preserves the sort and scroll position through a rotation.
+  /// this list a [GlobalKey] inside [ProgramsShell] so this State *survives* being reparented
+  /// across the 900 px split breakpoint (`programs_shell.dart`), and the app
+  /// shell's body key moves the whole page across the 720 px rail breakpoint
+  /// (`app_shell.dart`); together they preserve the sort and scroll position
+  /// through a rotation.
   ///
   /// Together those mean: **a rotation must not re-open the subscription.** It
   /// does not today, because a reparented Element is moved rather than
@@ -86,9 +139,73 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   List<Program>? _programs;
   Map<String, Venue> _venuesById = const {};
+
+  /// The forms of each program's dances, live
+  /// ([ProgramRepository.watchFormsByProgram]).
+  Map<String, Set<DanceForm>> _formsById = const {};
+  StreamSubscription<Map<String, Set<DanceForm>>>? _formsSub;
+
+  /// The type filter: only programs whose dances are of these forms, compared
+  /// as [_formMatch] says ([formsMatch]), and the open program whatever its
+  /// forms. Null shows every program. Dropped once it is no longer one of the
+  /// chips. Not saved.
+  Set<DanceForm>? _formFilter;
+
+  /// Whether the type filter keeps programs of only the chosen forms or every
+  /// program that includes them. Not saved, like the filter.
+  FormMatch _formMatch = FormMatch.only;
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
+
+  /// Whether archived programs are listed too ("Show archived"). Session-only;
+  /// see the class comment for when it resets.
+  bool _showArchived = false;
+
+  @override
+  void didUpdateWidget(ProgramsListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive && _showArchived) {
+      setState(() => _showArchived = false);
+      _closeHiddenSelection();
+    } else if (oldWidget.selectedProgramId != widget.selectedProgramId ||
+        (oldWidget.onSelectedProgramHidden == null) !=
+            (widget.onSelectedProgramHidden == null)) {
+      // A rotation into the split layout hands this list a selection (and the
+      // callback) the narrow layout kept while the list could not report it:
+      // a program hidden while narrow must close now, not at the next write.
+      _closeHiddenSelection();
+    }
+  }
+
+  void _toggleShowArchived() {
+    setState(() {
+      _showArchived = !_showArchived;
+      _dropStaleFormFilter();
+    });
+    _closeHiddenSelection();
+  }
+
+  /// Clears [_formFilter] once it is no longer one of the chips, so it can't
+  /// come back on its own when a later program does. Call within setState.
+  void _dropStaleFormFilter() {
+    if (_activeFormFilter == null) _formFilter = null;
+  }
+
+  /// Tells the host when the selected program is in the data but no longer
+  /// listed, after the frame (the host's `setState` must not run mid-build).
+  void _closeHiddenSelection() {
+    final selected = widget.selectedProgramId;
+    final onHidden = widget.onSelectedProgramHidden;
+    if (selected == null || onHidden == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.selectedProgramId != selected) return;
+      final all = _programs ?? const <Program>[];
+      final exists = all.any((p) => p.id == selected);
+      final listed = _visiblePrograms.any((p) => p.id == selected);
+      if (exists && !listed) onHidden();
+    });
+  }
 
   /// The live Programs list (issue #768).
   ///
@@ -121,7 +238,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _repos = RepositoriesScope.of(context);
       _subscribe();
       // Fire-and-forget: unlike the Collection list, sorting here is a pure
-      // client-side re-order of already-loaded data (`_sorted`), not a
+      // client-side re-order of already-loaded data (`_sortedPrograms`), not a
       // database query, so the seed has nothing to sequence after — it only
       // needs `setState` to run before the next build that reads `_sort`.
       unawaited(_seedDefaultSort());
@@ -174,6 +291,23 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             if (mounted) setState(() => _loadError = error);
           },
         );
+    // A stream of its own: a program's forms change when one of its dances
+    // is deleted, restored or changes form, none of which [watchAll] sees.
+    _formsSub = _repos.programs.watchFormsByProgram().listen(
+      (forms) {
+        if (!mounted) return;
+        setState(() {
+          _formsById = forms;
+          _dropStaleFormFilter();
+        });
+        _closeHiddenSelection();
+      },
+      onError: (Object error, StackTrace stackTrace) => logCaughtError(
+        error,
+        stackTrace,
+        source: 'programs_list_screen._subscribe forms',
+      ),
+    );
   }
 
   /// Pairs a program list with the venues its rows need.
@@ -206,9 +340,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     _subscribe();
   }
 
-  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
-  /// Programs sort order (issue #895), at most once and only if the user
-  /// hasn't already chosen a sort this session. A `null`/invalid stored value
+  /// Seeds `_sort` and `_sortDir` from the saved default Programs sort order
+  /// (issue #895), at most once and only if the user hasn't already chosen a
+  /// sort this session. The direction comes from the last-used keys under
+  /// "Last used", otherwise from the default's own direction key (issue #1841),
+  /// falling back to the sort's natural direction. A `null`/invalid stored sort
   /// leaves the historical default (`title`, ascending) in place. Mirrors
   /// `dance_list_screen.dart`'s `_seedDefaultSort` exactly, including the
   /// (sort, direction) *pair* comparison at the end — a key-only comparison
@@ -253,12 +389,23 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       }
       if (!mounted || _sortUserSet) return;
     } else {
-      // A fixed default always uses that sort's natural direction, regardless
-      // of what was last used in the list (Isaac's ruling, issue #895) — never
-      // the stored last-used direction, which is why this branch never reads
-      // the last-used keys at all.
+      // A fixed default opens in the direction chosen in Settings ▸ Defaults
+      // (issue #1841), or the sort's natural direction when none is stored or
+      // it is unrecognised. Never the last-used direction, so this branch never
+      // reads the last-used keys.
       sort = mode.sort;
       direction = sort.defaultDirection;
+      try {
+        direction =
+            sortDirectionFromName(
+              await _repos.settings.get(kDefaultProgramSortDirectionKey),
+            ) ??
+            direction;
+      } catch (_) {
+        // diagnostics: silent — direction read failed; the fixed sort still
+        // applies, in its natural direction.
+      }
+      if (!mounted || _sortUserSet) return;
     }
 
     if (sort != _sort || direction != _sortDir) {
@@ -285,6 +432,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   @override
   void dispose() {
     unawaited(_programsSub?.cancel());
+    unawaited(_formsSub?.cancel());
     super.dispose();
   }
 
@@ -295,9 +443,37 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     setState(() {
       _programs = snapshot.programs;
       _venuesById = snapshot.venuesById;
+      _dropStaleFormFilter();
       _loadError = null;
     });
+    _closeHiddenSelection();
+    final focusIds = _pendingFocusIds;
+    if (focusIds.isEmpty) return;
+    _pendingFocusIds = const [];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      restoreFocusToRowMenu(
+        context,
+        candidateKeys: [
+          for (final id in focusIds) ValueKey('program-actions-$id'),
+        ],
+      );
+    });
   }
+
+  /// Programs, nearest first, whose ⋮ button should take focus when the next
+  /// list snapshot lands: the neighbours of a deleted row (next, else
+  /// previous), or the restored row after an Undo. A deleted row leaves the
+  /// tree only when the stream re-emits, so focus cannot be moved before then.
+  /// See [restoreFocusToRowMenu] for when it is actually moved.
+  List<String> _pendingFocusIds = const [];
+
+  /// The ids to refocus once `sorted[index]` is deleted: the next row, else the
+  /// previous one.
+  List<String> _neighbourIds(List<Program> sorted, int index) => [
+    if (index + 1 < sorted.length) sorted[index + 1].id,
+    if (index > 0) sorted[index - 1].id,
+  ];
 
   /// Day-precision event dates (time-of-day dropped) for the "this week"
   /// header strip's markers (ROADMAP G.8's first-day-of-week consumer).
@@ -307,16 +483,155 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         DateTime(date.year, date.month, date.day),
   };
 
-  List<Program> get _sorted {
-    final programs = [...?_programs];
+  /// The programs this list shows: all of them with "Show archived" on, else
+  /// the ones not archived; with a type filter, those of its forms. The open
+  /// program stays listed whatever its forms, so neither a chip nor a dance
+  /// of another form added to it closes it.
+  List<Program> get _visiblePrograms {
+    final filter = _activeFormFilter;
+    final open = widget.selectedProgramId;
+    return [
+      for (final program in _unfilteredPrograms)
+        if (filter == null ||
+            program.id == open ||
+            formsMatch(_formsById[program.id], filter, _formMatch))
+          program,
+    ];
+  }
+
+  /// The programs shown before the type filter: all, or the unarchived.
+  Iterable<Program> get _unfilteredPrograms => (_programs ?? const <Program>[])
+      .where((p) => _showArchived || !p.isArchived);
+
+  /// [_formFilter] while it is still one of the chips; null once it is not
+  /// (its last program changed, or was archived or deleted, no second mix is
+  /// left to offer chips at all, or the switch between Only and Includes
+  /// changed the chips), so a filter is never on without a chip to show it
+  /// and clear it.
+  Set<DanceForm>? get _activeFormFilter {
+    final filter = _formFilter;
+    if (filter == null) return null;
+    return _formChoiceSets().any((m) => sameForms(m, filter)) ? filter : null;
+  }
+
+  /// The sets of forms the type filter offers as chips, in no particular
+  /// order; empty unless there are at least two mixes among the programs
+  /// shown with no type filter. With [FormMatch.only], each mix is a chip.
+  /// With [FormMatch.includes], each form in some of them but not all is
+  /// one, so Contra can list every program with a contra dance even when
+  /// none is contra only; a form every program with dances has would hide
+  /// nothing, so it gets no chip. Two different mixes always differ by a
+  /// form, so there is at least one.
+  List<Set<DanceForm>> _formChoiceSets() {
+    final mixes = _distinctMixes();
+    if (mixes.length < 2) return const [];
+    return switch (_formMatch) {
+      FormMatch.only => mixes,
+      FormMatch.includes => [
+        for (final form in DanceForm.values)
+          if (mixes.any((m) => m.contains(form)) &&
+              !mixes.every((m) => m.contains(form)))
+            {form},
+      ],
+    };
+  }
+
+  /// Each distinct set of forms among the programs shown with no type
+  /// filter, in no particular order.
+  List<Set<DanceForm>> _distinctMixes() {
+    final mixes = <String, Set<DanceForm>>{};
+    for (final program in _unfilteredPrograms) {
+      final forms = _formsById[program.id];
+      if (forms == null || forms.isEmpty) continue;
+      mixes[([for (final f in forms) f.name]..sort()).join('+')] = forms;
+    }
+    return mixes.values.toList();
+  }
+
+  /// The type filter's chips ([_formChoiceSets]) in the order of their
+  /// labels.
+  List<Set<DanceForm>> _formChoices(AppLocalizations l10n) {
+    final choices = <String, Set<DanceForm>>{
+      for (final forms in _formChoiceSets())
+        programFormsLabel(l10n, forms)!: forms,
+    };
+    final labels = choices.keys.toList()..sort();
+    return [for (final label in labels) choices[label]!];
+  }
+
+  Widget _formFilterRow(AppLocalizations l10n, List<Set<DanceForm>> choices) =>
+      Padding(
+        key: const ValueKey('programs-form-filter'),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          0,
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xxs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Semantics(
+                container: true,
+                label: l10n.programsFormMatchLabel,
+                child: SegmentedButton<FormMatch>(
+                  key: const ValueKey('programs-form-match'),
+                  segments: [
+                    ButtonSegment(
+                      value: FormMatch.only,
+                      label: Text(l10n.programsFormMatchOnly),
+                      tooltip: l10n.programsFormMatchOnlyTooltip,
+                    ),
+                    ButtonSegment(
+                      value: FormMatch.includes,
+                      label: Text(l10n.programsFormMatchIncludes),
+                      tooltip: l10n.programsFormMatchIncludesTooltip,
+                    ),
+                  ],
+                  selected: {_formMatch},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) => setState(() {
+                    _formMatch = selection.single;
+                    // A chip that the other mode doesn't offer is dropped,
+                    // such as Contra + English (ECD) under Includes.
+                    _dropStaleFormFilter();
+                  }),
+                ),
+              ),
+              for (final forms in choices)
+                FilterChip(
+                  key: ValueKey(
+                    'programs-form-${[for (final f in DanceForm.values)
+                      if (forms.contains(f)) f.name].join('+')}',
+                  ),
+                  label: Text(programFormsLabel(l10n, forms)!),
+                  selected:
+                      _activeFormFilter != null &&
+                      sameForms(forms, _activeFormFilter!),
+                  onSelected: (selected) =>
+                      setState(() => _formFilter = selected ? forms : null),
+                ),
+            ],
+          ),
+        ),
+      );
+
+  List<Program> _sortedPrograms({required bool ignoreLeadingArticles}) {
+    final programs = _visiblePrograms;
     final descending = _sortDir == SortDirection.descending;
     int flip(int cmp) => descending ? -cmp : cmp;
     switch (_sort) {
       case ProgramSort.title:
-        programs.sort(
-          (a, b) =>
-              flip(a.title.toLowerCase().compareTo(b.title.toLowerCase())),
-        );
+        // The same key the Collection and the program dance picker sort by, so
+        // "Ignore leading articles when sorting" governs this list too.
+        String key(Program p) => ignoreLeadingArticles
+            ? titleSortKey(p.title)
+            : foldForTitleMatch(p.title);
+        programs.sort((a, b) => flip(key(a).compareTo(key(b))));
       case ProgramSort.recentlyUpdated:
         // Ascending base (oldest-first); the default direction (descending)
         // flips it to newest-first.
@@ -363,7 +678,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     // own to perform (issue #768).
     await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
-        builder: (_) => ProgramSummaryScreen(programId: id),
+        builder: (_) => ProgramSummaryScreen(
+          programId: id,
+          performResumeStore: widget.performResumeStore,
+        ),
       ),
     );
   }
@@ -401,8 +719,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     }
   }
 
-  Future<void> _softDelete(Program program) async {
-    await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
+  Future<void> _softDelete(Program program, List<String> focusAfter) async {
+    _pendingFocusIds = focusAfter;
+    var deleted = false;
+    try {
+      await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
+      deleted = true;
+    } finally {
+      // Nothing was deleted, so no later snapshot should move focus.
+      if (!deleted) _pendingFocusIds = const [];
+    }
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     // No optimistic removal: the soft delete is a write to `programs`, so the
@@ -428,13 +754,64 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       key: const ValueKey('program-deleted-snackbar'),
       message: l10n.programsDeletedSnack(program.title),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
+        // A plain field write, safe on a disposed State, and not a `mounted`
+        // guard on the restore itself (see above).
+        _pendingFocusIds = [program.id];
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
         // No `mounted` check and no context read, and nothing captured above
         // to bump: the restore is a write and the stream carries it, to this
         // list and to every other view of the program.
       },
+    );
+  }
+
+  /// Archives [program] from its row's ⋮ menu, with an Undo. Focus moves as for
+  /// a delete when the row leaves the list (archived programs hidden), and
+  /// stays on the row when it does not.
+  Future<void> _archive(Program program, List<String> focusAfter) async {
+    _pendingFocusIds = _showArchived ? [program.id] : focusAfter;
+    final archived = await _repos.programs.archive(
+      program.id,
+      at: DateTime.now().toUtc(),
+    );
+    // Only a write that happened is announced: `false` means the program was
+    // archived or deleted elsewhere meanwhile, and the stream shows that.
+    if (!archived) _pendingFocusIds = const [];
+    if (!archived || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      key: const ValueKey('program-archived-snackbar'),
+      message: l10n.programsArchivedSnack(program.title),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () async {
+        // A write the stream carries, as for the delete's Undo above.
+        _pendingFocusIds = [program.id];
+        await _repos.programs.unarchive(program.id, at: DateTime.now().toUtc());
+      },
+    );
+  }
+
+  /// Unarchives [program] from its row's ⋮ menu (only offered while archived
+  /// programs are shown). The row stays where it is.
+  Future<void> _unarchive(Program program) async {
+    final unarchived = await _repos.programs.unarchive(
+      program.id,
+      at: DateTime.now().toUtc(),
+    );
+    if (!unarchived || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('program-unarchived-snackbar'),
+        content: Text(
+          AppLocalizations.of(context).programsUnarchivedSnack(program.title),
+        ),
+      ),
     );
   }
 
@@ -460,25 +837,27 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final openSearch = AppShellSearchScope.of(context)?.openSearch;
+    final searchPrograms = AppShellSearchScope.of(context)?.searchPrograms;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.programsTitle),
         actions: [
-          // Phone-only: search lives in the app bar (the bottom-right FAB slot
+          // Phone-only: a search of programs alone (the bottom-right FAB slot
           // is reserved for the "New program" FAB). On wide layouts the nav
           // rail owns search, so no scope is present and this action is omitted.
-          if (openSearch != null)
+          if (searchPrograms != null)
             IconButton(
               key: const ValueKey('programs-search'),
-              tooltip: l10n.collectionSearchTooltip,
+              tooltip: l10n.programsSearchTooltip,
               icon: const Icon(Icons.search),
-              onPressed: openSearch,
+              onPressed: searchPrograms,
             ),
+          // Second entry to Settings ▸ Sync now; renders nothing unless Device
+          // Sync is on and paired.
+          const SyncNowAction(),
           if (_programs != null) ...[
-            if (openSearch != null)
-              _buildCompactMoreActions(l10n)
-            else ...[
+            // Overflow ⋮ goes last, as on every other app bar.
+            if (searchPrograms == null)
               PopupMenuButton<_ProgramImportSource>(
                 key: const ValueKey('programs-import'),
                 tooltip: l10n.importProgramTooltip,
@@ -508,71 +887,103 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   ),
                 ],
               ),
+            // Nothing to sort until there is a program.
+            if (_programs!.isNotEmpty) ...[
+              PopupMenuButton<ProgramSort>(
+                key: const ValueKey('programs-sort'),
+                tooltip: l10n.programsSortByTooltip(
+                  programSortLabel(l10n, _sort),
+                ),
+                initialValue: _sort,
+                icon: const Icon(Icons.sort),
+                onSelected: (value) {
+                  setState(() {
+                    _sortUserSet = true;
+                    _sort = value;
+                    _sortDir = value.defaultDirection;
+                  });
+                  _persistLastUsedSort();
+                },
+                itemBuilder: (context) => [
+                  for (final option in ProgramSort.values)
+                    PopupMenuItem(
+                      value: option,
+                      child: Text(programSortLabel(l10n, option)),
+                    ),
+                ],
+              ),
               IconButton(
-                key: const ValueKey('programs-recently-deleted'),
-                tooltip: l10n.collectionRecentlyDeletedTooltip,
-                icon: const Icon(Icons.restore_from_trash_outlined),
-                onPressed: _openRecentlyDeleted,
+                key: const ValueKey('programs-sort-direction'),
+                tooltip: _sortDir == SortDirection.ascending
+                    ? l10n.collectionSortAscendingTooltip
+                    : l10n.collectionSortDescendingTooltip,
+                icon: Icon(
+                  _sortDir == SortDirection.ascending
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _sortUserSet = true;
+                    _sortDir = _sortDir == SortDirection.ascending
+                        ? SortDirection.descending
+                        : SortDirection.ascending;
+                  });
+                  _persistLastUsedSort();
+                },
               ),
             ],
-            PopupMenuButton<ProgramSort>(
-              key: const ValueKey('programs-sort'),
-              tooltip: l10n.programsSortByTooltip(
-                programSortLabel(l10n, _sort),
-              ),
-              initialValue: _sort,
-              icon: const Icon(Icons.sort),
-              onSelected: (value) {
-                setState(() {
-                  _sortUserSet = true;
-                  _sort = value;
-                  _sortDir = value.defaultDirection;
-                });
-                _persistLastUsedSort();
-              },
-              itemBuilder: (context) => [
-                for (final option in ProgramSort.values)
+            if (searchPrograms != null)
+              _buildCompactMoreActions(l10n)
+            else
+              PopupMenuButton<_ProgramsCompactAction>(
+                key: const ValueKey('programs-more-actions'),
+                tooltip: l10n.danceMoreActions,
+                icon: const Icon(Icons.more_vert),
+                onSelected: (action) => switch (action) {
+                  _ProgramsCompactAction.toggleArchived =>
+                    _toggleShowArchived(),
+                  _ => _openRecentlyDeleted(),
+                },
+                itemBuilder: (context) => [
+                  _showArchivedMenuItem(l10n),
                   PopupMenuItem(
-                    value: option,
-                    child: Text(programSortLabel(l10n, option)),
+                    key: const ValueKey('programs-recently-deleted'),
+                    value: _ProgramsCompactAction.recentlyDeleted,
+                    child: Text(l10n.collectionRecentlyDeletedTooltip),
                   ),
-              ],
-            ),
-            IconButton(
-              key: const ValueKey('programs-sort-direction'),
-              tooltip: _sortDir == SortDirection.ascending
-                  ? l10n.collectionSortAscendingTooltip
-                  : l10n.collectionSortDescendingTooltip,
-              icon: Icon(
-                _sortDir == SortDirection.ascending
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward,
+                ],
               ),
-              onPressed: () {
-                setState(() {
-                  _sortUserSet = true;
-                  _sortDir = _sortDir == SortDirection.ascending
-                      ? SortDirection.descending
-                      : SortDirection.ascending;
-                });
-                _persistLastUsedSort();
-              },
-            ),
           ],
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: _programs == null
+      // The floating New is for a list: the empty state carries its own New
+      // program button, so it waits until there is a program.
+      floatingActionButton: _programs?.isNotEmpty != true
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('new-program'),
               heroTag: 'new-program',
               onPressed: _openNewProgram,
               icon: const Icon(Icons.add),
-              label: Text(l10n.programsNewProgram),
+              label: l10n.programsNewProgram,
             ),
     );
   }
+
+  /// "Show archived" / "Hide archived", just above "Recently deleted" in the
+  /// ⋮ menu on every layout.
+  PopupMenuItem<_ProgramsCompactAction> _showArchivedMenuItem(
+    AppLocalizations l10n,
+  ) => PopupMenuItem(
+    key: const ValueKey('programs-toggle-archived'),
+    value: _ProgramsCompactAction.toggleArchived,
+    child: Text(
+      _showArchived ? l10n.programsHideArchived : l10n.programsShowArchived,
+    ),
+  );
 
   Widget _buildCompactMoreActions(AppLocalizations l10n) {
     return PopupMenuButton<_ProgramsCompactAction>(
@@ -585,6 +996,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             _openPlaintextImport();
           case _ProgramsCompactAction.importContraDb:
             _openContraDbImport();
+          case _ProgramsCompactAction.toggleArchived:
+            _toggleShowArchived();
           case _ProgramsCompactAction.recentlyDeleted:
             _openRecentlyDeleted();
         }
@@ -598,7 +1011,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           value: _ProgramsCompactAction.importContraDb,
           child: Text(l10n.importProgramFromContraDb),
         ),
+        _showArchivedMenuItem(l10n),
         PopupMenuItem(
+          key: const ValueKey('programs-recently-deleted'),
           value: _ProgramsCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
@@ -609,26 +1024,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.programsListLoadError),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
-                setState(() {
-                  _programs = null;
-                  _loadError = null;
-                });
-                _resubscribe();
-              },
-              child: Text(l10n.commonRetry),
-            ),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.programsListLoadError,
+        onRetry: () {
+          setState(() {
+            _programs = null;
+            _loadError = null;
+          });
+          _resubscribe();
+        },
       );
     }
 
@@ -638,47 +1043,71 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     }
 
     if (programs.isEmpty) {
-      return Center(
+      return EmptyState(
         key: const ValueKey('empty-state'),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.event_note_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.programsEmptyTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(l10n.programsListEmptyBody, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                key: const ValueKey('empty-new-program'),
-                onPressed: _openNewProgram,
-                icon: const Icon(Icons.add),
-                label: Text(l10n.programsNewProgram),
-              ),
-            ],
-          ),
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
+        title: l10n.programsEmptyTitle,
+        body: l10n.programsListEmptyBody,
+        actions: [
+          FilledButton.icon(
+            key: const ValueKey('empty-new-program'),
+            onPressed: _openNewProgram,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.programsNewProgram),
+          ),
+        ],
       );
     }
 
-    final sorted = _sorted;
+    final sorted = _sortedPrograms(
+      ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
+    );
+    if (sorted.isEmpty) {
+      // Every program is archived, and archived programs are hidden.
+      return EmptyState(
+        key: const ValueKey('all-archived-state'),
+        icon: EmptyState.glyph(context, Icons.archive_outlined),
+        title: l10n.programsAllArchivedTitle,
+        body: l10n.programsAllArchivedBody,
+        actions: [
+          OutlinedButton.icon(
+            key: const ValueKey('empty-show-archived'),
+            onPressed: _toggleShowArchived,
+            icon: const Icon(Icons.visibility_outlined),
+            label: Text(l10n.programsShowArchived),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('empty-new-program'),
+            onPressed: _openNewProgram,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.programsNewProgram),
+          ),
+        ],
+      );
+    }
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: WeekdayHeaderStrip(markedDates: _programEventDates(programs)),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            0,
+          ),
+          child: WeekdayHeaderStrip(markedDates: _programEventDates(sorted)),
         ),
+        if (_formChoices(l10n) case final choices when choices.isNotEmpty)
+          _formFilterRow(l10n, choices),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Semantics(
@@ -693,6 +1122,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         const Divider(height: 1),
         Expanded(
           child: ListView.builder(
+            // Lets the last row scroll clear of the floating New program.
+            padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
             itemCount: sorted.length,
             itemBuilder: (context, index) {
               final program = sorted[index];
@@ -710,7 +1141,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   children: [
                     SlidableAction(
                       key: ValueKey('slide-delete-${program.id}'),
-                      onPressed: (_) => _softDelete(program),
+                      onPressed: (_) =>
+                          _softDelete(program, _neighbourIds(sorted, index)),
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.errorContainer,
@@ -725,22 +1157,38 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 child: ProgramListTile(
                   program: program,
                   venuesById: _venuesById,
+                  forms: _formsById[program.id],
                   selected:
                       widget.onSelectProgram != null &&
                       widget.selectedProgramId == program.id,
                   onTap: () => _openProgram(program.id),
                   // Row action menu (⋮): non-swipe access for mouse/keyboard/AT
-                  // users. Delete routes through the identical confirm +
-                  // soft-delete + undo flow as the Dismissible swipe above.
+                  // users. Unlike the Slidable swipe above, which deletes
+                  // without a prompt, this path honours "Confirm before
+                  // delete" (confirmDeleteProgramIfEnabled) before the shared
+                  // soft-delete + undo flow.
                   onDelete: () async {
-                    if (await confirmDeleteIfEnabled(
-                      context,
-                      itemLabel: program.title,
-                    )) {
-                      await _softDelete(program);
+                    if (!_deletingIds.add(program.id)) return;
+                    try {
+                      if (await confirmDeleteProgramIfEnabled(
+                        context,
+                        itemLabel: program.title,
+                        programId: program.id,
+                        repositories: _repos,
+                      )) {
+                        await _softDelete(
+                          program,
+                          _neighbourIds(sorted, index),
+                        );
+                      }
+                    } finally {
+                      _deletingIds.remove(program.id);
                     }
                   },
                   onDuplicate: () => _duplicateFromList(program),
+                  onArchive: () =>
+                      _archive(program, _neighbourIds(sorted, index)),
+                  onUnarchive: () => _unarchive(program),
                 ),
               );
             },

@@ -5,6 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import 'support/fmp_fixture_builder.dart';
+import '../figures_support.dart';
 
 /// Tests for [CallersCompanionUsrAdapter]. The reader/archive layers are tested
 /// elsewhere; here we cover the adapter's own contract: byte intake (options
@@ -138,7 +139,7 @@ void main() {
       expect(draft.dance.title, 'Simplicity Swing');
       // "gypsy" is scrubbed to "shoulder round", which the shared parser then
       // recognises as a structured shoulder_round move (proof the scrub ran).
-      final fig = draft.dance.figures.single;
+      final fig = figuresOf(draft.dance).single;
       expect(fig.move, 'shoulder_round');
       expect(fig.params['who'], 'partners');
       expect(fig.toString().toLowerCase(), isNot(contains('gypsy')));
@@ -217,6 +218,7 @@ void main() {
           throwsA(
             isA<ImportError>()
                 .having((e) => e.stage, 'stage', ImportStage.parse)
+                .having((e) => e.code, 'code', ImportErrorCode.fileTooLarge)
                 .having(
                   (e) => e.message,
                   'message',
@@ -226,5 +228,128 @@ void main() {
         );
       },
     );
+  });
+
+  group('archive reader seam', () {
+    Uint8List danceAndSetBytes() => buildFmp12Fixture([
+      FmpFixtureTable(
+        index: 1,
+        name: 'Dance',
+        columnNames: ['zk_Dance_ID', 'Name'],
+        rows: [
+          MapEntry(1, {1: '1', 2: 'Simplicity Swing'}),
+          MapEntry(2, {1: '2', 2: 'Petronella'}),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 3,
+        name: 'Set',
+        columnNames: ['zk_Set_ID', 'Location'],
+        rows: [
+          MapEntry(1, {1: '9', 2: 'Grange Hall'}),
+        ],
+      ),
+    ]);
+
+    test(
+      'discover reads through the injected reader with its own limits',
+      () async {
+        final seen = <FmpReadLimits>[];
+        const limits = FmpReadLimits(maxRecords: 1234);
+        final custom = CallersCompanionUsrAdapter(
+          limits: limits,
+          reader: (bytes, l) async {
+            seen.add(l);
+            return readCcUsrArchive(bytes, limits: l);
+          },
+        );
+        final records = await custom.discover(
+          ImportRequest(options: {'bytes': danceAndSetBytes()}),
+        );
+        expect(records.map((r) => r.label), ['Simplicity Swing', 'Petronella']);
+        expect(seen.single, same(limits));
+      },
+    );
+
+    test('a library-style title is fronted in the label too (#1976)', () async {
+      final bytes = buildFmp12Fixture([
+        FmpFixtureTable(
+          index: 1,
+          name: 'Dance',
+          columnNames: ['zk_Dance_ID', 'Name'],
+          rows: [
+            MapEntry(1, {1: '1', 2: 'Baby Rose, The'}),
+          ],
+        ),
+      ]);
+      final records = await CallersCompanionUsrAdapter().discover(
+        ImportRequest(options: {'bytes': bytes}),
+      );
+      expect(records.single.label, 'The Baby Rose');
+    });
+
+    test('a reader that throws the reader errors still yields the friendly '
+        'ImportErrors', () async {
+      Future<void> discoverWith(Object error) => CallersCompanionUsrAdapter(
+        reader: (_, _) async => throw error,
+      ).discover(ImportRequest(options: {'bytes': danceAndSetBytes()}));
+
+      await expectLater(
+        discoverWith(const FmpResourceLimitException('detail not shown')),
+        throwsA(
+          isA<ImportError>()
+              .having((e) => e.stage, 'stage', ImportStage.discover)
+              .having(
+                (e) => e.message,
+                'message',
+                'That file is too large to import.',
+              ),
+        ),
+      );
+      await expectLater(
+        discoverWith(const FmpFormatException('bad magic')),
+        throwsA(
+          isA<ImportError>().having(
+            (e) => e.message,
+            'message',
+            contains('bad magic'),
+          ),
+        ),
+      );
+    });
+
+    test('a failed discover clears the archive an earlier one left', () async {
+      // The pipeline turns a failed discovery into an error batch instead of
+      // rethrowing, so a reused adapter must not keep describing the previous
+      // file: a caller committing programs from it would commit the wrong file's.
+      final reused = CallersCompanionUsrAdapter();
+      await reused.discover(
+        ImportRequest(options: {'bytes': danceAndSetBytes()}),
+      );
+      expect(reused.discoveredArchive, isNotNull);
+
+      await expectLater(
+        reused.discover(
+          ImportRequest(
+            options: {'bytes': Uint8List.fromList(List<int>.filled(64, 0x41))},
+          ),
+        ),
+        throwsA(isA<ImportError>()),
+      );
+      expect(reused.discoveredArchive, isNull);
+    });
+
+    test('discoveredArchive is absent until discover, then carries the '
+        'programs but not the dances', () async {
+      final fresh = CallersCompanionUsrAdapter();
+      expect(fresh.discoveredArchive, isNull);
+
+      await fresh.discover(
+        ImportRequest(options: {'bytes': danceAndSetBytes()}),
+      );
+      final archive = fresh.discoveredArchive!;
+      expect(archive.sets.map((s) => s.location), ['Grange Hall']);
+      expect(archive.dances, isEmpty);
+    });
   });
 }

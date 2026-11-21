@@ -36,6 +36,14 @@ class ProgramMatrixColumnConfigScope
     return scope?.notifier?.value ?? MatrixColumnConfig.empty;
   }
 
+  /// The underlying notifier, or null outside a scope. Does not register a
+  /// rebuild dependency.
+  static ValueNotifier<MatrixColumnConfig>? maybeNotifierOf(
+    BuildContext context,
+  ) => context
+      .getInheritedWidgetOfExactType<ProgramMatrixColumnConfigScope>()
+      ?.notifier;
+
   /// Returns the underlying notifier so callers can change the config. Does
   /// *not* register a rebuild dependency — for read-and-mutate use only.
   static ValueNotifier<MatrixColumnConfig> notifierOf(BuildContext context) {

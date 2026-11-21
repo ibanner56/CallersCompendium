@@ -24,12 +24,15 @@ const _danceFields = [
   SyncWireField('formation', []),
   SyncWireField('formation.shape', ['dances.formation_shape']),
   SyncWireField('formation.detail', ['dances.formation_detail']),
+  SyncWireField('formation.improper', ['dances.formation_improper']),
   SyncWireField('progression', ['dances.progression']),
   SyncWireField('phraseStructure', ['dances.phrase_structure']),
   SyncWireField('figures', ['dances.figures_json']),
   SyncWireField('hook', ['dances.hook']),
   SyncWireField('callingNotes', ['dances.calling_notes']),
   SyncWireField('walkthrough', ['dances.walkthrough']),
+  SyncWireField('meter', ['dances.meter']),
+  SyncWireField('musicalKey', ['dances.musical_key']),
   SyncWireField('status', ['dances.status']),
   SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),
@@ -62,6 +65,8 @@ const _danceFields = [
   SyncWireField('provenance.license', ['provenance.license']),
   SyncWireField('provenance.sourceVersion', ['provenance.source_version']),
   SyncWireField('composedOn', ['dances.composed_on']),
+  SyncWireField('interpreterIds', ['dance_interpreters.choreographer_id']),
+  SyncWireField('interpretedOn', ['dances.interpreted_on']),
   SyncWireField('revisedOn', ['dances.revised_on']),
   SyncWireField('createdAt', ['dances.created_at']),
   SyncWireField('updatedAt', ['dances.updated_at']),
@@ -80,6 +85,10 @@ const _programFields = [
   SyncWireField('notes', ['programs.notes']),
   SyncWireField('status', ['programs.status']),
   SyncWireField('hideAlternates', ['programs.hide_alternates']),
+  SyncWireField('dialectName', ['programs.dialect_name']),
+  SyncWireField('payMinorUnits', ['programs.pay_minor_units']),
+  SyncWireField('payCurrency', ['programs.pay_currency']),
+  SyncWireField('archivedAt', ['programs.archived_at']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),
@@ -183,6 +192,26 @@ const _venueFields = [
   ]),
 ];
 
+// The user's glossary (#709). `payload` is the stored payload text and
+// `keywords` the decoded keyword list; see `sync_glossary_body.dart`.
+const _glossaryEntryFields = [
+  SyncWireField('id', ['user_glossary_entries.id']),
+  SyncWireField('kind', ['user_glossary_entries.kind']),
+  SyncWireField('name', ['user_glossary_entries.name']),
+  SyncWireField('definition', ['user_glossary_entries.definition']),
+  SyncWireField('description', ['user_glossary_entries.description']),
+  SyncWireField('keywords', ['user_glossary_entries.keywords_json']),
+  SyncWireField('notes', ['user_glossary_entries.notes']),
+  SyncWireField('payload', ['user_glossary_entries.payload_json']),
+  SyncWireField('createdAt', ['user_glossary_entries.created_at']),
+];
+
+// A note's record id is the shipped figure's id.
+const _figureNoteFields = [
+  SyncWireField('id', ['figure_notes.figure_id']),
+  SyncWireField('notes', ['figure_notes.notes']),
+];
+
 const _settingFields = [
   SyncWireField('id', ['settings.key']),
   SyncWireField('value', ['settings.value_json']),
@@ -191,7 +220,14 @@ const _settingFields = [
   SyncWireField('existenceAt', ['settings.existence_at']),
 ];
 
-/// The complete reviewed relation between wire paths and registry fields.
+/// The complete relation between wire paths and registry fields.
+///
+/// Hand-written, but not taken on trust: `test/sync/wire_mapping_test.dart`
+/// proves every pairing behaviourally, as spec §3.3 requires. It varies one
+/// registry column at a time and requires exactly the wire paths declared for
+/// it to change, so an entry naming the wrong column fails — including a swap
+/// between two columns of the same type, and including one that would put a
+/// device-local field on the wire.
 const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
   SyncRecordKind.dance: _danceFields,
   SyncRecordKind.program: _programFields,
@@ -202,12 +238,21 @@ const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
   SyncRecordKind.difficultyLevel: _difficultyLevelFields,
   SyncRecordKind.venue: _venueFields,
   SyncRecordKind.setting: _settingFields,
+  SyncRecordKind.glossaryEntry: _glossaryEntryFields,
+  SyncRecordKind.figureNote: _figureNoteFields,
 };
 
 /// Shareable source fields represented by metadata outside an archive body or by
 /// an inline parent relationship. These are reviewed exceptions to the
 /// source-field-to-body-path relation.
 const Set<String> syncWireMappingExceptions = {
+  // The glossary's stamps travel on the envelope, as every kind's do (#709).
+  'user_glossary_entries.updated_at',
+  'user_glossary_entries.deleted_at',
+  'user_glossary_entries.existence_at',
+  'figure_notes.updated_at',
+  'figure_notes.deleted_at',
+  'figure_notes.existence_at',
   'dances.existence_at',
   'choreographers.updated_at',
   'choreographers.deleted_at',
@@ -222,6 +267,8 @@ const Set<String> syncWireMappingExceptions = {
   'published_sources.existence_at',
   'dance_authors.dance_id',
   'dance_authors.position',
+  'dance_interpreters.dance_id',
+  'dance_interpreters.position',
   'dance_tags.dance_id',
   'dance_sources.dance_id',
   'dance_sources.position',
@@ -239,6 +286,9 @@ const Set<String> syncWireMappingExceptions = {
   // Tombstones are record content stored outside ordinary archive bodies and
   // retransmitted verbatim.
   'pending_deletions.tombstone_blob',
+  // Kept parts of a newer version's record, put back into the body verbatim
+  // (spec §6.7); they have no path of their own.
+  'retained_sync_fields.payload',
   'tags.updated_at',
   'tags.deleted_at',
   'tags.existence_at',

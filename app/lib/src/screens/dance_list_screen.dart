@@ -9,50 +9,75 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
+import '../data/collection_facets_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
+import '../data/default_program_caller_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/related_dance_links.dart';
+import '../data/online_paging.dart';
 import '../data/online_search.dart';
-import '../data/online_search_labels.dart';
+import '../data/require_event_date_for_history_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/seed_service.dart' show kBabyRoseSeedDanceId;
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
+import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
+import '../search/collection_opening_sort.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
+import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/row_focus.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
+import '../widgets/app_shortcuts.dart';
 import '../widgets/batch_custom_field_dialog.dart';
 import '../widgets/batch_level_dialog.dart';
 import '../widgets/batch_rating_dialog.dart';
+import '../widgets/batch_status_dialog.dart';
 import '../widgets/batch_tag_dialog.dart';
 import '../widgets/batch_tunes_dialog.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
+import '../widgets/collection_search_controls.dart';
 import '../widgets/dance_list_tile.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/facet_panel.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/online_import_dialogs.dart';
+import '../widgets/online_import_snack_bar.dart';
+import '../widgets/online_more_footer.dart';
+import '../widgets/online_result_count.dart';
 import '../widgets/online_result_tile.dart';
+import '../widgets/online_search_toggle.dart';
+import '../widgets/search_panel_bar.dart';
 import '../widgets/skeleton.dart';
+import '../sync/sync_scope.dart';
+import '../widgets/sync_now_action.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
-import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
-import 'online_import_variation_dialog.dart';
+import 'published_collection_navigation.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -76,7 +101,7 @@ import 'online_import_variation_dialog.dart';
 /// reload request and silently done nothing.
 ///
 /// **Caller's Box online search** (`docs/design/callersbox.md`): when the user
-/// turns on the "Online search" switch inside the Advanced panel, the search
+/// turns on the "Online search" icon beside the search tools, the search
 /// text becomes a live query against The Caller's Box and [OnlineResultTile]
 /// rows replace the local results. In split-pane mode the shell passes
 /// [onSelectOnlineDance] so a tapped online result previews in the detail pane;
@@ -93,7 +118,6 @@ class DanceListScreen extends StatefulWidget {
     this.onImport,
     this.onCustomFields,
     this.onRecentlyDeleted,
-    this.compactActions = false,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
@@ -125,9 +149,6 @@ class DanceListScreen extends StatefulWidget {
   /// Lets a split-pane owner show recently deleted dances in its detail pane.
   final VoidCallback? onRecentlyDeleted;
 
-  /// Moves app-bar actions into the overflow menu for a constrained parent.
-  final bool compactActions;
-
   /// Called with a tapped online result when the split-pane shell owns the
   /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
   final void Function(OnlineSearchResultRow result)? onSelectOnlineDance;
@@ -148,9 +169,55 @@ class DanceListScreen extends StatefulWidget {
   State<DanceListScreen> createState() => _DanceListScreenState();
 }
 
+/// Wraps the search panels, so [_SelectAllDancesAction] can tell focus there
+/// from focus in the results.
+class _NotTheResultList extends StatelessWidget {
+  const _NotTheResultList({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}
+
+/// Handles [SelectAllDancesIntent] for the result list, and reports itself
+/// disabled whenever Select all could not act (a pending or failed search,
+/// online mode, no results), so the key then falls through to whatever else
+/// is bound to it.
+class _SelectAllDancesAction extends Action<SelectAllDancesIntent> {
+  _SelectAllDancesAction({required this.canAct, required this.onInvoke});
+
+  final bool Function() canAct;
+  final VoidCallback onInvoke;
+
+  /// Not while focus is on a control in the search panels (a chip, a button,
+  /// a dropdown): those sit in the same scroll view as the results but are not
+  /// the list.
+  @override
+  bool isEnabled(SelectAllDancesIntent intent) =>
+      canAct() &&
+      FocusManager.instance.primaryFocus?.context
+              ?.findAncestorWidgetOfExactType<_NotTheResultList>() ==
+          null;
+
+  @override
+  Object? invoke(SelectAllDancesIntent intent) {
+    onInvoke();
+    return null;
+  }
+}
+
 /// Actions in the Collection multi-select "more" overflow menu (#423), holding
 /// the batch-edit affordances that don't fit as top-level action-bar icons.
-enum _BatchMoreAction { setRating, addTunes, clearTunes, editCustomField }
+enum _BatchMoreAction {
+  selectAll,
+  setRating,
+  setStatus,
+  addTunes,
+  clearTunes,
+  editCustomField,
+  delete,
+}
 
 enum _CollectionCompactAction {
   importDances,
@@ -159,6 +226,9 @@ enum _CollectionCompactAction {
   recentlyDeleted,
   sortDirection,
 }
+
+/// The optional app-bar glyphs that give way to the ⋮ menu, as the bar narrows.
+enum _CollectionBarGlyph { importDances, sort, sortDirection, groupBy }
 
 class _CollectionCompactSortAction {
   const _CollectionCompactSortAction(this.value);
@@ -172,7 +242,19 @@ class _CollectionCompactGroupAction {
   final String value;
 }
 
-class _DanceListScreenState extends State<DanceListScreen> {
+/// What [CollectionShell] can ask of a mounted dance list, for the keyboard
+/// map and the macOS menu bar (PLAT-7, PLAT-8).
+abstract interface class DanceListCommands {
+  /// Opens the new-dance editor, as the New dance button does.
+  void openNewDance();
+
+  /// Moves the keyboard focus to the search box and selects its text. Returns
+  /// false while the list is still loading and has no search box.
+  bool focusSearch();
+}
+
+class _DanceListScreenState extends State<DanceListScreen>
+    implements DanceListCommands {
   /// Active dialect for search canonicalization — read from [ActiveDialectScope]
   /// in [didChangeDependencies] and updated live when the user changes it.
   Dialect _dialect = Dialect.larksRobins;
@@ -201,16 +283,37 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Whether calling-history filters use performed slots only.
   bool _requirePerformedForHistory = false;
+  CallingHistoryTracking _tracking = CallingHistoryTracking.defaults;
+
+  /// Whether calling-history filters leave out programs with no event date.
+  bool _requireEventDateForHistory = false;
+
+  /// The live default caller from [DefaultProgramCallerScope], or `null` when
+  /// no scope is wired (then [_boot] reads the setting). While
+  /// [_trackHistoryForAllCallers] is off it scopes the per-dance counts, so a
+  /// change re-runs [_boot] — after [_callerRefreshDelay], because the
+  /// Settings field reports every keystroke and each re-boot is a full
+  /// Collection load (PRES-4).
+  String? _defaultProgramCaller;
+  Timer? _callerRefreshTimer;
+  static const Duration _callerRefreshDelay = Duration(milliseconds: 500);
+
+  /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
+  /// [CollectionFacetsScope] in [didChangeDependencies] so a newly hidden
+  /// section's selection can be cleared (see [FacetSelections.clearFacets]).
+  Set<String> _hiddenFacets = const {};
 
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
+
+  /// The search box's focus, for Ctrl/Cmd-F ([focusSearch]).
+  final _ftsFocusNode = FocusNode(debugLabel: 'collection-search-field');
   FullTextScope _ftsScope = FullTextScope.omni;
   FullTextScope _localFtsScope = FullTextScope.omni;
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
-  bool _advancedEnabled = false;
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -254,10 +357,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   ///
   /// The subscription is opened exactly once per [State] — issue #768, so that
   /// a rebuild neither drops nor duplicates it. Issue #895 then gave
-  /// [CollectionShell] a [GlobalKey] so this State *survives* being reparented
-  /// across the 900 px breakpoint (`collection_shell.dart`), which is what
-  /// preserves the sort, search text, filters and scroll position through a
-  /// rotation.
+  /// this list a [GlobalKey] inside [CollectionShell] so this State *survives* being reparented
+  /// across the 900 px split breakpoint (`collection_shell.dart`), and the
+  /// app shell's body key moves the whole page across the 720 px rail
+  /// breakpoint (`app_shell.dart`); together they preserve the sort, search
+  /// text, filters and scroll position through a rotation.
   ///
   /// Together those mean: **a rotation must not re-open the subscription.** It
   /// does not today, because a reparented Element is moved rather than
@@ -292,8 +396,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool _dataSubscribed = false;
 
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
-  /// tapped (here, on a dance detail, or on a list row), this list applies a
-  /// single-tag filter. Tracked so the listener is swapped correctly.
+  /// tapped (here, on a dance detail, or on a list row), this list adds the
+  /// tag to its Tags facet. Tracked so the listener is swapped correctly.
   CollectionFilterController? _filterController;
 
   /// The seq of the last tag-filter request applied, so a repeat request (even
@@ -316,13 +420,29 @@ class _DanceListScreenState extends State<DanceListScreen> {
   OnlineSource _onlineSource = OnlineSource.callersBox;
   bool _onlineEnabled = false;
   List<OnlineSearchResultRow> _onlineResults = const [];
+
+  // Paging through a source that pages (ContraDB). `_onlineQuery` is the
+  // query behind `_onlineResults`; `_onlinePagesLoaded` how many pages of it
+  // are in; `_onlinePagingSeq` the `_onlineSeq` they belong to, so a page for a
+  // search that has since been replaced is dropped.
+  OnlineSearchQuery? _onlineQuery;
+  int _onlinePagesLoaded = 1;
+  int _onlinePagingSeq = -1;
+  bool _onlineHasMore = false;
+  bool _onlineLoadingMore = false;
+  bool _onlineMoreFailed = false;
   bool _onlineSearching = false;
   String? _onlineError;
   int _onlineSeq = 0;
 
-  /// The online service for the currently selected [_onlineSource].
-  OnlineSearchService get _online =>
-      _onlineSource == OnlineSource.contraDb ? _contraDb : _callersBox;
+  /// The online *search* service for the currently selected [_onlineSource].
+  /// Importing a previewed result resolves its service with [_serviceFor].
+  OnlineSearchService get _online => _serviceFor(_onlineSource);
+
+  /// Resolves the online service for a given [source], so a tapped result / its
+  /// preview is loaded and imported through the source it came from.
+  OnlineSearchService _serviceFor(OnlineSource source) =>
+      source == OnlineSource.contraDb ? _contraDb : _callersBox;
 
   /// Guards the narrow-mode direct-import commit so a rapid double-tap of the
   /// preview Import button cannot commit the same plan twice.
@@ -334,7 +454,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Batch multi-select (Collection batch-tag, `docs/design/ux.md` §1).
   bool _selectionMode = false;
-  final Set<String> _selectedIds = {};
+  final CollectionSelection _selection = CollectionSelection();
 
   Timer? _debounceTimer;
 
@@ -343,12 +463,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
     super.didChangeDependencies();
     // Read the active dialect from the scope (registers rebuild dependency so
     // didChangeDependencies fires again when the dialect changes).
-    final newDialect = ActiveDialectScope.of(context);
+    // The collection mixes forms; a query is read in contra's dialect (the
+    // enrichment below adds every form's words), until search by form
+    // arrives (ADR-006 plan, W7).
+    final newDialect = ActiveDialectScope.of(context).forForm(DanceForm.contra);
     final dialectChanged = _started && newDialect != _dialect;
     _dialect = newDialect;
 
     // Build the always-on enrichment from the union of every saved dialect
-    // (presets + custom). Registers a rebuild dependency on the library so a
+    // (presets + custom) of every dance form. Registers a rebuild dependency on the library so a
     // dialect add/edit/delete re-runs the search live.
     final library = DialectLibraryScope.maybeOf(context);
     final newDialects = library?.all ?? const <Dialect>[];
@@ -374,10 +497,32 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final trackAllCallersChanged =
         _started && newTrackAllCallers != _trackHistoryForAllCallers;
     _trackHistoryForAllCallers = newTrackAllCallers;
+    final newDefaultCaller = DefaultProgramCallerScope.maybeOf(context);
+    final defaultCallerChanged =
+        _started && newDefaultCaller != _defaultProgramCaller;
+    _defaultProgramCaller = newDefaultCaller;
     final newRequirePerformed = RequirePerformedForHistoryScope.of(context);
     final requirePerformedChanged =
         _started && newRequirePerformed != _requirePerformedForHistory;
     _requirePerformedForHistory = newRequirePerformed;
+    final newRequireEventDate = RequireEventDateForHistoryScope.of(context);
+    final requireEventDateChanged =
+        _started && newRequireEventDate != _requireEventDateForHistory;
+    _requireEventDateForHistory = newRequireEventDate;
+    final newTracking = callingHistoryTrackingOf(context);
+    final trackingChanged = _started && newTracking != _tracking;
+    _tracking = newTracking;
+
+    // A section hidden while it holds a selection would keep narrowing the list
+    // with no control to clear it, so hiding it clears it (issue #1419). Only
+    // *newly* hidden sections are cleared: one that is still visible because a
+    // tag chip selected it while hidden must not be wiped by an unrelated
+    // change to the hidden set.
+    final newHiddenFacets = CollectionFacetsScope.of(context);
+    final facetsCleared =
+        _started &&
+        _facets.clearFacets(newHiddenFacets.difference(_hiddenFacets));
+    _hiddenFacets = newHiddenFacets;
 
     if (!_started) {
       _started = true;
@@ -387,14 +532,27 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _boot();
     } else if (trackAllCallersChanged) {
       _boot();
-    } else if (requirePerformedChanged && !_onlineEnabled && _data != null) {
-      _runSearch();
-    } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
-      _runSearch();
+    } else {
+      if (defaultCallerChanged && !_trackHistoryForAllCallers) {
+        _callerRefreshTimer?.cancel();
+        _callerRefreshTimer = Timer(_callerRefreshDelay, _boot);
+      }
+      if ((requirePerformedChanged ||
+              requireEventDateChanged ||
+              trackingChanged) &&
+          !_onlineEnabled &&
+          _data != null) {
+        _runSearch();
+      } else if (dialectChanged ||
+          ignoreArticlesChanged ||
+          enrichmentChanged ||
+          facetsCleared) {
+        _runSearch();
+      }
     }
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
-    // anywhere publishes a request; this list reacts by applying a single-tag
+    // anywhere publishes a request; this list reacts by adding the tag to its
     // filter. Registers a rebuild dependency; the controller is stable across
     // the app's lifetime, so this attaches once.
     final filter = CollectionFilterScope.maybeOf(context);
@@ -422,11 +580,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
-  /// Reacts to an app-level "filter the Collection to this tag" request (issue
-  /// #414). Applies a **single-tag** filter that *replaces* the current query:
-  /// arriving from a dance detail with unknown prior filter state, a clean
-  /// "show every dance with this tag" result is the predictable behavior (the
-  /// user can then clear it via the Filters panel). Handled once per request.
+  /// Reacts to an app-level tag request (issue #414) by adding the tag to the current search ([_applyExternalTagFilter]).
+  /// Handled once per request.
   void _onTagFilterRequested() {
     final request = _filterController?.pending;
     if (request == null || request.seq == _lastFilterSeq) return;
@@ -435,28 +590,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _applyExternalTagFilter(request.tagId);
   }
 
-  /// Replaces the current search with a single-tag facet filter for [tagId] and
-  /// re-runs the search. Clears the text query, other facets, by-phrase and
-  /// advanced state, and exits online mode so the (local) filtered list is what
-  /// the user lands on.
+  /// Adds [tagId] to the Tags facet and re-runs the search (FIND-14). The text
+  /// query, every other facet, By phrase and Advanced are kept; a second tag
+  /// defaults the facet to "all tags", and a later one keeps the user's choice
+  /// ([FacetSelections.setTag]). Online mode is left, because tags filter only
+  /// the local library.
   void _applyExternalTagFilter(String tagId) {
     _debounceTimer?.cancel();
     setState(() {
-      _ftsController.clear();
-      _facets.clear();
-      _byPhrase.clear();
-      _advancedRoot.children.clear();
-      _advancedRoot.kind = GroupKind.all;
-      _advancedEnabled = false;
       _ftsScope = _localFtsScope;
       _onlineEnabled = false;
+      _syncAdvancedTagRows();
       // Invalidate any in-flight online search so a late response can't
       // repopulate _onlineResults/_onlineError after we've left online mode.
       _onlineSeq++;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
-      _facets.tagIds.add(tagId);
+      _facets.setTag(tagId, selected: true);
     });
     _runSearch();
   }
@@ -466,15 +617,19 @@ class _DanceListScreenState extends State<DanceListScreen> {
     unawaited(_dataSub?.cancel());
     _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
+    _callerRefreshTimer?.cancel();
     _ftsController.dispose();
+    _ftsFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _boot() async {
+    _callerRefreshTimer?.cancel();
     try {
       final callerFilter = await resolveCallingHistoryCallerFilter(
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
+        defaultCaller: _defaultProgramCaller,
       );
       if (!mounted) return;
       _watchCollectionData(callerFilter);
@@ -536,7 +691,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// performed, say — changes only the per-dance tallies, and re-running the
   /// FTS query for a badge is the thrash issue #340 records; the rows are
   /// re-derived in memory from the dances already loaded instead. The one
-  /// exception is the last-called sort, whose ORDER BY those very tallies feed.
+  /// exception is the last-called sort, whose ORDER BY is derived from the same
+  /// program rows as those tallies (it runs its own query over them in
+  /// `DanceRepository.search`), so a program-side write can reorder it.
   ///
   /// ## What this skip list must be complete with respect to (issue #768)
   ///
@@ -571,13 +728,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// derived from that same source?
   void _onCollectionData(CollectionData data) {
     final previous = _data;
+    // Every path that changes the offered tags also changes a dance today, so
+    // `tagsDropped` is a safeguard: dropping a tag must never skip the search.
+    final tagsDropped = _facets.retainTags([for (final t in data.tags) t.id]);
     final searchAffected =
         previous == null ||
+        tagsDropped ||
         !mapEquals(previous.dancesById, data.dancesById) ||
         !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
         (_facets.callStatuses.isNotEmpty &&
             (!mapEquals(previous.callCounts, data.callCounts) ||
                 previous.callerFilter != data.callerFilter)) ||
+        // A venue or window decides by each program's venue and date, which
+        // the tallies above do not carry: a program moved to another venue
+        // changes the result and no count.
+        (_facets.scopesApply && _facets.hasHistoryScope) ||
         // Both author sorting and author-scoped FTS depend on the display-name
         // map rather than the ids stored on each dance. A rename therefore
         // changes either the order or the result set while every dance row is
@@ -590,6 +755,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() {
       _data = data;
       _loadError = null;
+      // A selected dance that no longer exists (deleted here or synced away) is
+      // gone, not hidden: drop it so the count only names real dances (N4-1).
+      _selection.reconcile(data.dancesById.keys.toSet());
       if (!searchAffected) {
         _results = [for (final e in _results) data.entryFor(e.dance)];
       }
@@ -605,64 +773,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (mounted) await _runSearch();
   }
 
-  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
-  /// Collection sort order (ROADMAP G.6a; extended to a "Last used" mode by
-  /// issue #895 / ROADMAP G.6c), at most once and only if the user hasn't already chosen a
-  /// sort this session. A `null`/invalid stored value leaves the historical
-  /// default (`title`, ascending) in place. Called before the first search so
+  /// Seeds `_sort` and `_sortDir` from the saved default Collection sort order
+  /// (ROADMAP G.6a; extended to a "Last used" mode by issue #895 / ROADMAP
+  /// G.6c), at most once and only if the user hasn't already chosen a sort this
+  /// session. The direction comes from the last-used keys under "Last used",
+  /// otherwise from the default's own direction key (issue #1841), falling back
+  /// to the sort's natural direction. A `null`/invalid stored sort leaves the
+  /// historical default (`title`, ascending) in place. Called before the first search so
   /// the list opens in the default sort; a no-op on subsequent [_boot]s (e.g.
   /// a refresh).
   Future<void> _seedDefaultSort() async {
     if (_defaultSortSeeded || _sortUserSet) return;
     _defaultSortSeeded = true;
-    // A settings read/decode failure must not fail the whole Collection load:
-    // fall back silently to the historical default (title, ascending).
-    SortDefaultSetting<CollectionSort> mode;
-    try {
-      final stored = await _repos.settings.get(kDefaultCollectionSortKey);
-      mode = sortDefaultSettingFromStored(
-        stored,
-        collectionSortFromName,
-        CollectionSort.title,
-      );
-    } catch (_) {
-      // diagnostics: silent — a settings read/decode failure must not fail the
-      // whole Collection load; fall back to the historical default (title,
-      // ascending).
-      return;
-    }
-    if (!mounted || _sortUserSet) return;
-    CollectionSort sort;
-    SortDirection direction;
-    if (mode.isLastUsed) {
-      // "Last used": seed from the list's own last-used sort + direction
-      // (issue #895), not the fixed default. A second settings read, tolerant
-      // of failure the same way as the mode read above.
-      try {
-        final storedSort = await _repos.settings.get(
-          kLastUsedCollectionSortKey,
-        );
-        final storedDirection = await _repos.settings.get(
-          kLastUsedCollectionSortDirectionKey,
-        );
-        sort = collectionSortFromName(storedSort) ?? CollectionSort.title;
-        direction =
-            sortDirectionFromName(storedDirection) ??
-            sort.searchSort.defaultDirection;
-      } catch (_) {
-        // diagnostics: silent — same tolerance as the mode read above; fall
-        // back by returning and leaving the built-in default in place.
-        return;
-      }
-      if (!mounted || _sortUserSet) return;
-    } else {
-      // A fixed default always uses that sort's natural direction, regardless
-      // of what was last used in the list (Isaac's ruling, issue #895) — never
-      // the stored last-used direction, which is why this branch never reads
-      // the last-used keys at all.
-      sort = mode.sort;
-      direction = sort.searchSort.defaultDirection;
-    }
+    // A settings read failure must not fail the whole Collection load: the
+    // reader returns null and the historical default (title, ascending) stays.
+    final opening = await readCollectionOpeningSort(_repos.settings);
+    if (opening == null || !mounted || _sortUserSet) return;
+    final (:sort, :direction) = opening;
 
     // Compare the (sort, direction) PAIR, not just the sort key: a key-only
     // comparison skips this `setState` whenever the resolved sort equals the
@@ -714,16 +841,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
     facets: _facets,
     scope: _ftsScope,
     byPhrase: _byPhrase,
-    advancedRoot: _advancedEnabled ? _advancedRoot : null,
+    advancedRoot: _advancedRoot,
   );
 
-  List<CollectionSort> get _availableSorts => [
-    if (_isBareFullText) CollectionSort.relevance,
-    CollectionSort.title,
-    CollectionSort.author,
-    CollectionSort.recentlyAdded,
-    CollectionSort.lastCalled,
-  ];
+  List<CollectionSort> get _availableSorts =>
+      availableCollectionSorts(bareFullText: _isBareFullText);
 
   Future<void> _runSearch() async {
     final data = _data;
@@ -749,9 +871,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
         defs: data.customFieldDefs,
         scope: _ftsScope,
         byPhrase: _byPhrase,
-        advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        advancedRoot: _advancedRoot,
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -760,6 +884,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dialect: _dialect,
         enrichment: _enrichment,
         ignoreLeadingArticles: _sortIgnoreArticles,
+        // The Last-called sort reads the same history as the count and the
+        // Called filter above (FIND-2).
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       if (!mounted || seq != _searchSeq) return;
       setState(() {
@@ -832,7 +962,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   void _onAdvancedChanged() {
     setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      // Online, the Advanced query narrows an online source that accepts it
+      // (ContraDB); for one that does not, the panel is greyed out, so this
+      // is only reached for a source whose search it affects.
+      _debounceTimer?.cancel();
+      _onlineSeq++;
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _runSearch();
+    }
   }
 
   void _onByPhraseChanged() {
@@ -846,6 +985,22 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
+  /// Tag rows taken out of the Advanced query while ContraDB (which has no
+  /// tags) is searched, so they can come back when it is not.
+  final _removedTags = RemovedTagRows();
+
+  /// Keeps the Advanced query's tag rows in line with the source searched: out
+  /// while it cannot carry a tag (ContraDB has none; one left in would make the
+  /// search fail), back in their place otherwise. Call inside `setState`,
+  /// after `_onlineEnabled` or `_onlineSource` changes.
+  void _syncAdvancedTagRows() {
+    if (_onlineEnabled && _onlineSource.hidesAdvancedTags) {
+      _removedTags.take(_advancedRoot);
+    } else {
+      _removedTags.restoreInto(_advancedRoot);
+    }
+  }
+
   /// Toggles online search mode. Turning it on runs an immediate search if a
   /// query is present; turning it off clears the online results and restores the
   /// local list.
@@ -855,14 +1010,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
+      _syncAdvancedTagRows();
       _onlineError = null;
       if (value) {
+        // Selection is a local-collection feature: do not leave a local
+        // selection behind online results (N4-1).
+        _selectionMode = false;
+        _selection.clear();
         _localFtsScope = _ftsScope;
-        if (_ftsScope != FullTextScope.title &&
-            _ftsScope != FullTextScope.author &&
-            _ftsScope != FullTextScope.figure) {
-          _ftsScope = FullTextScope.title;
-        }
+        _ftsScope = onlineFullTextScope(_ftsScope);
       } else {
         _ftsScope = _localFtsScope;
       }
@@ -872,8 +1028,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       }
     });
     if (value) {
-      if (_ftsController.text.trim().isNotEmpty ||
-          _effectivePhrases() != null) {
+      if (_hasOnlineCriteria) {
         _runOnlineSearch();
       }
     } else {
@@ -890,11 +1045,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _onlineSeq++;
     setState(() {
       _onlineSource = source;
+      _syncAdvancedTagRows();
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
     });
-    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+    if (_hasOnlineCriteria) {
       _runOnlineSearch();
     }
   }
@@ -920,16 +1076,81 @@ class _DanceListScreenState extends State<DanceListScreen> {
   CallersBoxPhraseQuery? _effectivePhrases() =>
       _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
 
+  /// The Advanced builder's filter as it applies to the active online source:
+  /// `null` for sources without Advanced support
+  /// ([OnlineSource.supportsAdvanced], i.e. The Caller's Box), so a residual
+  /// local Advanced query can't leak into its search or keep an empty search
+  /// "active". Mirrors [_effectivePhrases].
+  DanceFilter? _effectiveAdvanced() =>
+      _onlineSource.supportsAdvanced ? _advancedRoot.toFilter() : null;
+
+  /// Whether the online search has anything to search for: query text, by-phrase
+  /// figures, or an Advanced query the active source accepts.
+  bool get _hasOnlineCriteria =>
+      _ftsController.text.trim().isNotEmpty ||
+      _effectivePhrases() != null ||
+      _effectiveAdvanced() != null;
+
+  /// Fetches the next page of the current online search and appends it. Called
+  /// by the list's last item once the end is near; one request at a time, and
+  /// a page for a search that has since been replaced is dropped.
+  Future<void> _loadMoreOnline() async {
+    final base = _onlineQuery;
+    if (base == null ||
+        !_onlineHasMore ||
+        _onlineLoadingMore ||
+        _onlineMoreFailed ||
+        _onlinePagingSeq != _onlineSeq) {
+      return;
+    }
+    final seq = _onlineSeq;
+    setState(() => _onlineLoadingMore = true);
+    try {
+      final page = await _online.search(
+        base.withOffset(_onlinePagesLoaded * contraDbSearchCount),
+      );
+      if (!mounted || seq != _onlineSeq) return;
+      final merged = appendOnlinePage(_onlineResults, page);
+      setState(() {
+        final grew = merged.length > _onlineResults.length;
+        _onlineResults = merged;
+        _onlinePagesLoaded++;
+        _onlineHasMore = grew && onlineHasMore(merged, page);
+        _onlineLoadingMore = false;
+      });
+    } on Object catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      if (error is UrlFetchException) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_list_screen._loadMoreOnline',
+        );
+      } else {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'dance_list_screen._loadMoreOnline',
+        );
+      }
+      setState(() {
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = true;
+      });
+    }
+  }
+
   /// Runs a live search against the active online source for the current query
   /// text and/or by-phrase figures. Guarded by a sequence number so a slow
   /// response can't overwrite a newer query.
   Future<void> _runOnlineSearch() async {
-    final text = _ftsController.text.trim();
-    final title = _ftsScope == FullTextScope.title ? text : '';
-    final author = _ftsScope == FullTextScope.author ? text : '';
-    final figure = _ftsScope == FullTextScope.figure ? text : '';
-    final phrases = _effectivePhrases();
-    if (title.isEmpty && author.isEmpty && figure.isEmpty && phrases == null) {
+    final query = OnlineSearchQuery.forScope(
+      _ftsController.text,
+      _ftsScope,
+      phrases: _effectivePhrases(),
+      advanced: _effectiveAdvanced(),
+    );
+    if (query.isEmpty) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -944,18 +1165,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _onlineError = null;
     });
     try {
-      final results = await _online.search(
-        OnlineSearchQuery(
-          title: title,
-          author: author,
-          figure: figure,
-          phrases: phrases,
-        ),
-      );
+      final results = await _online.search(query);
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlineResults = results;
         _onlineSearching = false;
+        _onlineQuery = query;
+        _onlinePagesLoaded = 1;
+        _onlinePagingSeq = seq;
+        _onlineHasMore = onlineHasMore(results, results);
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = false;
       });
     } on UrlFetchException catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
@@ -1001,30 +1221,97 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
+  /// Preview fetches that have not finished, by source and dance id.
+  ///
+  /// A fetch cannot be aborted, so Cancel only stops waiting for it; it keeps
+  /// running until it answers or times out. Tapping the same result again in
+  /// that window joins the running fetch instead of starting a second one.
+  final Map<String, Future<OnlinePreview>> _previewFetches = {};
+
+  Future<OnlinePreview> _previewFetchFor(OnlineSearchResultRow result) {
+    final key = '${result.source.name}/${result.id}';
+    return _previewFetches[key] ??= _online
+        .loadPreview(_repos, result)
+        // A block body: `remove` returns this very future, which
+        // `whenComplete` would then wait on forever.
+        .whenComplete(() {
+          _previewFetches.remove(key);
+        });
+  }
+
   Future<void> _pushOnlinePreview(OnlineSearchResultRow result) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     final sourceLabel = _onlineSource.label;
-    // A blocking loader while the tapped dance's JSON is fetched + parsed.
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(
-          key: ValueKey('online-preview-loading'),
+    // A loader while the tapped dance's JSON is fetched + parsed. It can be
+    // dismissed (Cancel, Back, or a tap outside), which abandons the fetch.
+    final cancelled = Completer<void>();
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => PopScope(
+          // Fires the moment the loader is popped (Cancel, Back, barrier), not
+          // after its exit animation, so the code below never pops it twice.
+          onPopInvokedWithResult: (_, _) {
+            if (!cancelled.isCompleted) cancelled.complete();
+          },
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      key: ValueKey('online-preview-loading'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextButton(
+                      key: const ValueKey('online-preview-cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
+        animationStyle: AppMotion.styleFor(context),
+      ),
+    );
+    final fetch = _previewFetchFor(result);
+    // `Future.any` leaves the fetch running after a cancel; it cannot be
+    // aborted, so its eventual outcome is dropped (type-only log on failure).
+    unawaited(
+      fetch.then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stackTrace) {
+          if (!cancelled.isCompleted) return;
+          logCaughtErrorTypeOnly(
+            error,
+            stackTrace,
+            source: 'dance_list_screen._pushOnlinePreview.abandoned',
+          );
+        },
       ),
     );
     OnlinePreview preview;
     try {
-      preview = await _online.loadPreview(_repos, result);
+      final raced = await Future.any<OnlinePreview?>([
+        fetch,
+        cancelled.future.then((_) => null),
+      ]);
+      if (raced == null || cancelled.isCompleted) return;
+      preview = raced;
     } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
         error,
         stackTrace,
         source: 'dance_list_screen._pushOnlinePreview',
       );
+      if (cancelled.isCompleted) return;
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
@@ -1038,6 +1325,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         stackTrace,
         source: 'dance_list_screen._pushOnlinePreview',
       );
+      if (cancelled.isCompleted) return;
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.onlineLoadError(sourceLabel))),
@@ -1064,21 +1352,30 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // auto-open for a multi-dance result; an unresolved re-import (no id) just
     // confirms with the snackbar.
     final danceId = imported.danceId;
+    Route<void>? landed;
     if (imported.danceCount == 1 && danceId != null) {
-      navigator.push(
-        MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(
-            danceId: danceId,
-            onReimport: _beginReimportRoute,
-          ),
+      landed = MaterialPageRoute<void>(
+        builder: (_) => DanceDetailScreen(
+          danceId: danceId,
+          onReimport: _beginReimportRoute,
         ),
       );
+      navigator.push(landed);
     }
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('online-import-snackbar'),
-        content: Text(onlineImportMessage(l10n, imported)),
-      ),
+    showOnlineImportSnackBar(
+      messenger,
+      l10n: l10n,
+      result: imported,
+      repos: _repos,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      // Undo took the new dance away: leave its page rather than show "not
+      // found" where it was. Only while that page is on top: under another
+      // route (its editor, say) removing it would strand that route over a
+      // dance that no longer exists, so it is left to show "not found".
+      onDanceRemoved: () {
+        final route = landed;
+        if (route != null && route.isCurrent) navigator.removeRoute(route);
+      },
     );
   }
 
@@ -1095,75 +1392,26 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
   /// [_importing] guard blocks a rapid double-tap before the commit resolves.
   ///
-  /// When the service detects a confident title+author match with differing
-  /// figures, it returns [OnlineImportKind.needsConfirmation] without writing
-  /// anything. In that case, this method shows a resolution dialog and retries
-  /// the import with the chosen [DedupeResolution] (issue #797).
-  ///
-  /// When the service detects a confident title+author match with identical
-  /// figures from a different source, it returns
-  /// [OnlineImportKind.needsConfirmationIdentical]. In that case, this method
-  /// shows a cross-source duplicate dialog and retries if the user confirms
-  /// (issue #811).
+  /// The confirmation outcomes (#797 variation, #811 cross-source duplicate,
+  /// #1907 possible match under another title) are resolved by
+  /// [resolveAndImportOnline]; a `null` result means the user
+  /// cancelled or this screen went away, and nothing more happens here.
   Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
+    final service = _serviceFor(preview.result.source);
     try {
-      var result = await _online.import(_repos, preview.plan);
-      if (result.kind == OnlineImportKind.needsConfirmation) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmation requires a candidate id — a null here is a service
-        // bug. Assert in debug; silently cancel in release (better than crashing).
-        assert(
-          existingId != null,
-          'needsConfirmation must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await _online.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmationIdentical requires a candidate id — a null here is a
-        // service bug. Assert in debug; silently cancel in release.
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await _online.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      }
+      final result = await resolveAndImportOnline(
+        context,
+        service: service,
+        repos: _repos,
+        preview: preview,
+        l10n: l10n,
+      );
+      if (result == null) return; // cancelled, or the screen went away
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
         _boot();
@@ -1173,11 +1421,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       if (navigator.canPop()) {
         navigator.pop(result);
       } else {
-        messenger.showSnackBar(
-          SnackBar(
-            key: const ValueKey('online-import-snackbar'),
-            content: Text(onlineImportMessage(l10n, result)),
-          ),
+        showOnlineImportSnackBar(
+          messenger,
+          l10n: l10n,
+          result: result,
+          repos: _repos,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
         );
       }
     } on UrlFetchException catch (error, stackTrace) {
@@ -1214,8 +1463,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _facets.clear();
       _byPhrase.clear();
       _advancedRoot.children.clear();
+      _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
-      _advancedEnabled = false;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -1227,36 +1476,98 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _ftsController.text.trim().isNotEmpty ||
       !_facets.isEmpty ||
       !_byPhrase.isEmpty ||
-      (_advancedEnabled && _advancedRoot.toFilter() != null);
+      _advancedRoot.toFilter() != null;
 
   void _enterSelectionMode([String? initialId]) {
     setState(() {
       _selectionMode = true;
-      if (initialId != null) _selectedIds.add(initialId);
+      if (initialId != null) _selection.add(initialId);
     });
   }
 
   void _exitSelectionMode() {
     setState(() {
       _selectionMode = false;
-      _selectedIds.clear();
+      _selection.clear();
     });
   }
 
   void _toggleSelected(String danceId) {
     setState(() {
-      if (!_selectedIds.remove(danceId)) _selectedIds.add(danceId);
+      _selection.toggle(danceId);
     });
   }
 
-  /// Applies a batch tag [mode] to the selected dances. Opens the tag picker,
+  Set<String> get _shownIds => {for (final e in _results) e.dance.id};
+
+  /// Whether Select all can act: never on a list that a pending or failed
+  /// search is about to replace or has emptied.
+  bool get _canSelectAll =>
+      !_onlineEnabled &&
+      !_searching &&
+      !(_debounceTimer?.isActive ?? false) &&
+      _searchError == null &&
+      _results.isNotEmpty;
+
+  /// Selects every dance in the current results, or, when they are all selected
+  /// already, deselects them. Selections the results do not show are kept either
+  /// way (N4-1, N4-2).
+  void _toggleSelectAll() {
+    if (!_canSelectAll) return;
+    final ids = [for (final e in _results) e.dance.id];
+    setState(() {
+      if (_selection.coversAll(ids)) {
+        _selection.deselectAll(ids);
+      } else {
+        _selection.selectAll(ids);
+      }
+    });
+  }
+
+  /// Ctrl/Cmd-A: selects every dance in the current results, starting selection
+  /// mode first when it is off. Unlike [_toggleSelectAll] it never deselects,
+  /// so pressing it twice leaves everything selected, as in a file manager.
+  void _selectAllFromKeyboard() {
+    if (!_canSelectAll) return;
+    final ids = [for (final e in _results) e.dance.id];
+    setState(() {
+      _selectionMode = true;
+      _selection.selectAll(ids);
+    });
+  }
+
+  void _deselectNotShown() {
+    final shown = _shownIds;
+    setState(() => _selection.deselectNotShown(shown));
+  }
+
+  /// Says that a batch write failed (the caller has logged it): selection mode
+  /// stays open so the caller can simply try again. Shared by every batch
+  /// handler, so none of them fails silently.
+  void _reportBatchFailure() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('batch-apply-error-snackbar'),
+          content: Text(AppLocalizations.of(context).collectionBatchApplyError),
+        ),
+      );
+  }
+
+  /// Applies a batch tag [mode] to the selected dances.
+  Future<void> _batchTag(BatchTagMode mode) =>
+      _applyTags(mode, _selection.snapshot());
+
+  /// Applies a tag [mode] to [selectedIds]: the multi-select selection, or the
+  /// single row whose ⋮ menu opened it (issue #1416). Opens the tag picker,
   /// then persists the new tag sets and staged tags in one transaction,
   /// announces the result to AT, and offers Undo.
-  Future<void> _batchTag(BatchTagMode mode) async {
+  Future<void> _applyTags(BatchTagMode mode, Set<String> selectedIds) async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || selectedIds.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
     // Tags currently present on the selected dances (drives the Remove picker).
     final presentTagIds = <String>{
       for (final id in selectedIds)
@@ -1283,8 +1594,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
     try {
       await _repos.transaction(() async {
         final pending = <({Dance dance, List<String> next})>[];
+        // One batched read, not a `getById` per dance (N4-S4; see
+        // _batchSetStatus). It is unordered, so walk the selection in order.
+        final byId = {
+          for (final dance in await _repos.dances.getByIds(selectedIds))
+            dance.id: dance,
+        };
         for (final id in selectedIds) {
-          final dance = await _repos.dances.getById(id);
+          final dance = byId[id];
           if (dance == null) continue;
           final current = dance.tagIds;
           final List<String> next;
@@ -1312,7 +1629,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
             tag.name,
             includeDeleted: true,
           );
-          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          tagIds[tag.id] = await _repos.tags.upsertStaged(
+            tag,
+            localUserEdit: true,
+          );
           if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
         }
         for (final (:dance, :next) in pending) {
@@ -1328,21 +1648,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
               tagIds: committedTagIds,
               updatedAt: DateTime.now().toUtc(),
             ),
+            localUserEdit: true,
           );
         }
       });
     } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'dance_list_screen._batchTag');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).collectionBatchApplyError,
-            ),
-          ),
-        );
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._applyTags');
+      _reportBatchFailure();
       return;
     }
 
@@ -1360,7 +1672,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       Directionality.of(context),
     );
 
-    _exitSelectionMode();
+    // A row-menu tag is not in selection mode; leave any selection alone.
+    if (_selectionMode) _exitSelectionMode();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1379,6 +1692,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: const ValueKey('batch-tag-snackbar'),
       message: message,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () => _undoBatchTag(priorTags, newlyCreatedTagIds),
     );
@@ -1400,6 +1714,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             tagIds: entry.value,
             updatedAt: DateTime.now().toUtc(),
           ),
+          localUserEdit: true,
         );
       }
       for (final id in newlyCreatedTagIds) {
@@ -1417,9 +1732,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// picker is single-choice and includes an explicit "clear" option.
   Future<void> _batchSetLevel() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final levels = await _repos.difficultyLevels.listAll();
     if (!mounted) return;
     final choice = await showBatchLevelDialog(context, levels: levels);
@@ -1428,18 +1743,28 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // Capture prior levels so Undo can restore each dance individually (the
     // batch write collapses them to a single target level).
     final priorLevels = <String, String?>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorLevels[id] = dance.difficultyLevelId;
-    }
+    final int count;
+    try {
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorLevels[dance.id] = dance.difficultyLevelId;
+      }
 
-    final count = await _repos.dances.setLevelForMany(
-      priorLevels.keys,
-      difficultyLevelId: choice.level?.id,
-      clearDifficultyLevel: choice.clear,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.setLevelForMany(
+        priorLevels.keys,
+        difficultyLevelId: choice.level?.id,
+        clearDifficultyLevel: choice.clear,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchSetLevel',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Narrow the captured priors to only the dances that actually changed, so
     // Undo doesn't rewrite (and re-stamp) untouched dances.
@@ -1478,6 +1803,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: const ValueKey('batch-level-snackbar'),
       message: message,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () => _undoBatchLevel(priorLevels),
     );
@@ -1485,33 +1811,37 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Restores the captured [priorLevels] for each affected dance (app-side undo;
   /// the repository has no batch-undo primitive).
-  Future<void> _undoBatchLevel(Map<String, String?> priorLevels) async {
-    for (final entry in priorLevels.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(
-          difficultyLevelId: entry.value,
-          clearDifficultyLevel: entry.value == null,
-          updatedAt: DateTime.now().toUtc(),
-        ),
-      );
-    }
-  }
+  Future<void> _undoBatchLevel(Map<String, String?> priorLevels) =>
+      _repos.transaction(() async {
+        for (final entry in priorLevels.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              difficultyLevelId: entry.value,
+              clearDifficultyLevel: entry.value == null,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
 
-  /// Shared tail of the batch handlers: announces [message] to AT, exits
+  /// Shared tail of the batch handlers: announces [message] (or the longer
+  /// [announcement], when given) to AT, exits
   /// selection mode, then shows either a plain "no changes" snackbar (when
   /// [count] is 0) or an Undo prompt wired to [onUndo].
   Future<void> _finishBatch({
     required int count,
     required String message,
     required ValueKey<String> snackKey,
-    required VoidCallback onUndo,
+    required FutureOr<void> Function() onUndo,
+    String? announcement,
   }) async {
     if (!mounted) return;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      message,
+      announcement ?? message,
       Directionality.of(context),
     );
     final l10n = AppLocalizations.of(context);
@@ -1531,8 +1861,62 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: snackKey,
       message: message,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessibleNavigation,
       onUndo: onUndo,
+    );
+  }
+
+  /// Moves the selected dances to Recently deleted in one transaction
+  /// ([DanceRepository.softDeleteMany]), behind the same *Confirm before
+  /// delete* gate as the row menu (N4-4 = a). Undo restores exactly the dances
+  /// this call deleted, through [DanceRepository.restoreMany], so it revives
+  /// what each restore revives.
+  Future<void> _batchDelete() async {
+    if (_data == null || _selection.isEmpty) return;
+
+    final selectedIds = _selection.snapshot();
+    if (!await confirmDeleteDancesIfEnabled(
+          context,
+          count: selectedIds.length,
+          notShown: _selection.notShown(_shownIds),
+        ) ||
+        !mounted) {
+      return;
+    }
+
+    final List<String> deleted;
+    try {
+      deleted = await _repos.dances.softDeleteMany(
+        selectedIds,
+        at: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchDelete',
+      );
+      _reportBatchFailure();
+      return;
+    }
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final count = deleted.length;
+    // No reload, here or in Undo: both writes go to `dances`, which this list
+    // watches, so the rows leave and come back on their own.
+    await _finishBatch(
+      count: count,
+      message: count == 0
+          ? l10n.collectionBatchNoChanges
+          : l10n.collectionBatchDeleted(count),
+      announcement: count == 0
+          ? null
+          : l10n.collectionBatchDeletedAnnouncement(count),
+      snackKey: const ValueKey('batch-delete-snackbar'),
+      onUndo: () =>
+          _repos.dances.restoreMany(deleted, at: DateTime.now().toUtc()),
     );
   }
 
@@ -1541,25 +1925,35 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// [_batchSetLevel]). Captures prior per-dance ratings for Undo.
   Future<void> _batchSetRating() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final choice = await showBatchRatingDialog(context);
     if (choice == null || !mounted) return;
 
     final priorRatings = <String, int?>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorRatings[id] = dance.rating;
-    }
+    final int count;
+    try {
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorRatings[dance.id] = dance.rating;
+      }
 
-    final count = await _repos.dances.setRatingForMany(
-      priorRatings.keys,
-      rating: choice.rating,
-      clearRating: choice.clear,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.setRatingForMany(
+        priorRatings.keys,
+        rating: choice.rating,
+        clearRating: choice.clear,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchSetRating',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Narrow the captured priors to only the dances that actually changed.
     final target = choice.clear ? null : choice.rating;
@@ -1581,43 +1975,133 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// Restores the captured [priorRatings] for each affected dance.
-  Future<void> _undoBatchRating(Map<String, int?> priorRatings) async {
-    for (final entry in priorRatings.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(
-          rating: entry.value,
-          clearRating: entry.value == null,
-          updatedAt: DateTime.now().toUtc(),
-        ),
+  Future<void> _undoBatchRating(Map<String, int?> priorRatings) =>
+      _repos.transaction(() async {
+        for (final entry in priorRatings.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              rating: entry.value,
+              clearRating: entry.value == null,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
+
+  /// Sets the lifecycle status on the selected dances via the batched,
+  /// single-transaction [DanceRepository.setStatusForMany] (parallel to
+  /// [_batchSetLevel]). Captures prior per-dance statuses for Undo.
+  Future<void> _batchSetStatus() async {
+    final data = _data;
+    if (data == null || _selection.isEmpty) return;
+
+    final selectedIds = _selection.snapshot();
+    final target = await showBatchStatusDialog(context);
+    if (target == null || !mounted) return;
+
+    final priorStatuses = <String, DanceStatus>{};
+    final int count;
+    try {
+      // One batched read, not a `getById` per dance: on a very large selection
+      // the per-dance reads were most of the time this handler spent.
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorStatuses[dance.id] = dance.status;
+      }
+
+      count = await _repos.dances.setStatusForMany(
+        priorStatuses.keys,
+        status: target,
+        now: DateTime.now().toUtc(),
       );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchSetStatus',
+      );
+      _reportBatchFailure();
+      return;
     }
+
+    // Narrow the captured priors to only the dances that actually changed, so
+    // Undo doesn't rewrite (and re-stamp) untouched dances.
+    priorStatuses.removeWhere((_, prior) => prior == target);
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = count == 0
+        ? l10n.collectionBatchNoChanges
+        : l10n.collectionBatchStatusSet(count);
+    await _finishBatch(
+      count: count,
+      message: message,
+      snackKey: const ValueKey('batch-status-snackbar'),
+      onUndo: () => _undoBatchStatus(priorStatuses),
+    );
   }
+
+  /// Restores the captured [priorStatuses] for each affected dance.
+  Future<void> _undoBatchStatus(Map<String, DanceStatus> priorStatuses) =>
+      _repos.transaction(() async {
+        for (final entry in priorStatuses.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              status: entry.value,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
 
   /// Merges tunes into the selected dances (additive union) via the batched,
   /// single-transaction [DanceRepository.addTunesForMany]. Captures prior
   /// per-dance tune lists for Undo.
   Future<void> _batchAddTunes() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final chosen = await showBatchTunesDialog(context);
     if (chosen == null || chosen.isEmpty || !mounted) return;
 
     final priorTunes = <String, List<String>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorTunes[id] = dance.tunes.toList();
-    }
+    final int count;
+    try {
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        // Deliberately not captured for an undecodable list. The snapshot is a
+        // `List<String>`, so it would capture `[]` and Undo would write `[]`
+        // back — destroying stored text the batch itself skipped. Omitting the
+        // entry means Undo never touches that dance, which matches the
+        // repository skipping it.
+        final priors = switch (dance.tunesSource) {
+          DecodedTunes(:final tunes) => tunes.toList(),
+          UnreadableTunes() => null,
+        };
+        if (priors == null) continue;
+        priorTunes[dance.id] = priors;
+      }
 
-    final count = await _repos.dances.addTunesForMany(
-      priorTunes.keys,
-      tunes: chosen,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.addTunesForMany(
+        priorTunes.keys,
+        tunes: chosen,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchAddTunes',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Keep only dances that actually gained a tune (union grew the set).
     priorTunes.removeWhere((_, prior) => chosen.every(prior.contains));
@@ -1641,7 +2125,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// per-dance tune lists for Undo.
   Future<void> _batchClearTunes() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -1657,27 +2141,49 @@ class _DanceListScreenState extends State<DanceListScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             key: const ValueKey('batch-clear-tunes-confirm-button'),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.collectionBatchClearTunesConfirmButton),
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final priorTunes = <String, List<String>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorTunes[id] = dance.tunes.toList();
-    }
+    final int count;
+    try {
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        // Deliberately not captured for an undecodable list. The snapshot is a
+        // `List<String>`, so it would capture `[]` and Undo would write `[]`
+        // back — destroying stored text the batch itself skipped. Omitting the
+        // entry means Undo never touches that dance, which matches the
+        // repository skipping it.
+        final priors = switch (dance.tunesSource) {
+          DecodedTunes(:final tunes) => tunes.toList(),
+          UnreadableTunes() => null,
+        };
+        if (priors == null) continue;
+        priorTunes[dance.id] = priors;
+      }
 
-    final count = await _repos.dances.clearTunesForMany(
-      priorTunes.keys,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.clearTunesForMany(
+        priorTunes.keys,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchClearTunes',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Keep only dances that actually had tunes to clear.
     priorTunes.removeWhere((_, prior) => prior.isEmpty);
@@ -1695,15 +2201,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// Restores the captured [priorTunes] for each affected dance.
-  Future<void> _undoBatchTunes(Map<String, List<String>> priorTunes) async {
-    for (final entry in priorTunes.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
-      );
-    }
-  }
+  Future<void> _undoBatchTunes(Map<String, List<String>> priorTunes) =>
+      _repos.transaction(() async {
+        for (final entry in priorTunes.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              tunes: entry.value,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
 
   /// Sets or clears ONE custom field across the selected dances (upsert
   /// per-key) via the batched, single-transaction
@@ -1712,45 +2223,60 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// custom-field lists for Undo.
   Future<void> _batchCustomField() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
     final defs = await _repos.customFieldDefs.listAll();
     if (!mounted) return;
-    final choice = await showBatchCustomFieldDialog(context, defs: defs);
+    final choice = await showBatchCustomFieldDialog(
+      context,
+      defs: defs,
+      repos: _repos,
+    );
     if (choice == null || !mounted) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
+    // Only the chosen field's entries are captured: Undo puts back that one
+    // field, so another field edited in the meantime (by hand, or arriving by
+    // sync) is not overwritten with a stale copy of the whole list.
     final priorFields = <String, List<CustomFieldValue>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorFields[id] = dance.customFields.toList();
-    }
-
     final int count;
-    if (choice.clear) {
-      count = await _repos.dances.clearCustomFieldForMany(
-        priorFields.keys,
-        fieldId: choice.def.id,
-        now: DateTime.now().toUtc(),
+    try {
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorFields[dance.id] = [
+          for (final f in dance.customFields)
+            if (f.fieldId == choice.def.id) f,
+        ];
+      }
+
+      if (choice.clear) {
+        count = await _repos.dances.clearCustomFieldForMany(
+          priorFields.keys,
+          fieldId: choice.def.id,
+          now: DateTime.now().toUtc(),
+        );
+      } else {
+        count = await _repos.dances.upsertCustomFieldForMany(
+          priorFields.keys,
+          def: choice.def,
+          value: choice.value!,
+          now: DateTime.now().toUtc(),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchCustomField',
       );
-    } else {
-      count = await _repos.dances.upsertCustomFieldForMany(
-        priorFields.keys,
-        def: choice.def,
-        value: choice.value!,
-        now: DateTime.now().toUtc(),
-      );
+      _reportBatchFailure();
+      return;
     }
 
     // Keep only dances whose value for the chosen key actually changed.
     priorFields.removeWhere((_, prior) {
-      final existing = prior
-          .where((f) => f.fieldId == choice.def.id)
-          .map((f) => f.value)
-          .toList();
-      if (choice.clear) return existing.isEmpty;
-      return existing.length == 1 && existing.first == choice.value;
+      if (choice.clear) return prior.isEmpty;
+      return prior.length == 1 && prior.first.value == choice.value;
     });
 
     if (!mounted) return;
@@ -1764,25 +2290,32 @@ class _DanceListScreenState extends State<DanceListScreen> {
       count: count,
       message: message,
       snackKey: const ValueKey('batch-custom-field-snackbar'),
-      onUndo: () => _undoBatchCustomField(priorFields),
+      onUndo: () => _undoBatchCustomField(choice.def.id, priorFields),
     );
   }
 
-  /// Restores the captured [priorFields] for each affected dance.
+  /// Restores the chosen field's captured entries ([priorFields], keyed by
+  /// dance id) on each affected dance, leaving every other field as it is now.
   Future<void> _undoBatchCustomField(
+    String fieldId,
     Map<String, List<CustomFieldValue>> priorFields,
-  ) async {
+  ) => _repos.transaction(() async {
     for (final entry in priorFields.entries) {
       final dance = await _repos.dances.getById(entry.key);
       if (dance == null) continue;
       await _repos.dances.update(
         dance.copyWith(
-          customFields: entry.value,
+          customFields: [
+            for (final f in dance.customFields)
+              if (f.fieldId != fieldId) f,
+            ...entry.value,
+          ],
           updatedAt: DateTime.now().toUtc(),
         ),
+        localUserEdit: true,
       );
     }
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1790,97 +2323,126 @@ class _DanceListScreenState extends State<DanceListScreen> {
     return Scaffold(
       appBar: _selectionMode ? _buildSelectionAppBar() : _buildDefaultAppBar(),
       body: _buildBody(),
-      floatingActionButton: _data == null || _selectionMode
+      // The floating New is for a list. The empty state and the first-run card
+      // carry their own New dance button, so it waits until they are gone.
+      floatingActionButton:
+          _data == null || _selectionMode || _showsStartActions(_data!)
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('new-dance'),
               heroTag: 'new-dance',
               onPressed: _openNewDance,
               icon: const Icon(Icons.add),
-              label: Text(l10n.collectionNewDance),
+              label: l10n.collectionNewDance,
             ),
     );
   }
 
+  /// Width of one app-bar action slot (an [IconButton]'s default hit target).
+  static const double _actionSlotWidth = 48;
+
   PreferredSizeWidget _buildDefaultAppBar() {
+    // The bar is sized by its pane, not the window: the wide layout hosts this
+    // list in a fixed-width column, so the actions that fit are measured
+    // against the width the bar is actually given.
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight),
+      child: LayoutBuilder(
+        builder: (context, constraints) =>
+            _buildAppBar(context, constraints.maxWidth),
+      ),
+    );
+  }
+
+  /// How many optional glyphs ([_CollectionBarGlyph]) fit beside the title.
+  ///
+  /// Sync is not counted as optional (it stays visible, as Settings is the
+  /// only other way to reach it), but it does spend a slot, as does the ⋮
+  /// menu, which is always present.
+  Set<_CollectionBarGlyph> _glyphsThatFit(
+    BuildContext context,
+    AppLocalizations l10n,
+    double barWidth, {
+    required bool hasSync,
+    required bool hasTags,
+    required bool hasDances,
+  }) {
+    final theme = Theme.of(context);
+    final titleStyle =
+        AppBarTheme.of(context).titleTextStyle ?? theme.textTheme.titleLarge;
+    final titleWidth = (TextPainter(
+      text: TextSpan(text: l10n.collectionScreenTitle, style: titleStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout()).width;
+    // NavigationToolbar's 16 dp middle spacing on each side of the title.
+    var slots =
+        ((barWidth - 32 - titleWidth) / _actionSlotWidth).floor() - 1; // ⋮
+    if (hasSync) slots--;
+
+    // Highest priority first: what stays on the bar as slots run out. The
+    // rest moves into the ⋮ menu.
+    final wanted = <_CollectionBarGlyph>[
+      if (widget.onImport != null) _CollectionBarGlyph.importDances,
+      // Nothing to sort in an empty Collection (online results keep the
+      // source's own order), so sorting waits for a dance.
+      if (hasDances) ...[
+        _CollectionBarGlyph.sort,
+        _CollectionBarGlyph.sortDirection,
+      ],
+      if (hasTags) _CollectionBarGlyph.groupBy,
+    ];
+    return wanted.take(slots < 0 ? 0 : slots).toSet();
+  }
+
+  Widget _buildAppBar(BuildContext context, double barWidth) {
     final l10n = AppLocalizations.of(context);
-    final openSearch = AppShellSearchScope.of(context)?.openSearch;
-    final compactActions =
-        openSearch != null ||
-        (widget.compactActions && (_data?.tags.isNotEmpty ?? false));
+    final sync = SyncScope.maybeOf(context);
+    final hasTags = _data?.tags.isNotEmpty ?? false;
+    final hasDances = _data?.dancesById.isNotEmpty ?? false;
+    final onBar = _glyphsThatFit(
+      context,
+      l10n,
+      barWidth,
+      hasSync: sync != null && sync.enabled && sync.paired,
+      hasTags: hasTags,
+      hasDances: hasDances,
+    );
     return AppBar(
       title: Text(l10n.collectionScreenTitle),
       actions: [
-        // Search lives in the app bar on narrow layouts (the bottom-right FAB
-        // slot is reserved for the "New dance" FAB). On wide layouts the nav
-        // rail owns search, so no scope is present and this action is omitted.
-        if (openSearch != null)
-          IconButton(
-            key: const ValueKey('collection-search'),
-            tooltip: l10n.collectionSearchTooltip,
-            icon: const Icon(Icons.search),
-            onPressed: openSearch,
-          ),
+        // No global-search action here on any width: the Collection's own
+        // search field is its search, and on a phone a second magnifying
+        // glass that searched something else only confused the two. On wide
+        // layouts the rail's Search reaches dances and programs together.
+        // Second entry to Settings ▸ Sync now; renders nothing unless Device
+        // Sync is on and paired.
+        const SyncNowAction(),
         if (_data != null) ...[
-          if (compactActions)
-            _buildCompactMoreActions(l10n)
-          else ...[
-            if (widget.onImport != null)
-              IconButton(
-                key: const ValueKey('import-dances'),
-                tooltip: l10n.importDances,
-                icon: const Icon(Icons.file_download_outlined),
-                onPressed: widget.onImport,
-              ),
+          if (onBar.contains(_CollectionBarGlyph.importDances))
             IconButton(
-              key: const ValueKey('batch-select'),
-              tooltip: l10n.collectionSelectDancesTooltip,
-              icon: const Icon(Icons.checklist),
-              onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
+              key: const ValueKey('import-dances'),
+              tooltip: l10n.importDances,
+              icon: const Icon(Icons.file_download_outlined),
+              onPressed: widget.onImport,
             ),
-            IconButton(
-              key: const ValueKey('manage-custom-fields'),
-              tooltip: l10n.collectionManageCustomFieldsTooltip,
-              icon: const Icon(Icons.note_add_outlined),
-              onPressed: _openCustomFields,
-            ),
-            IconButton(
-              key: const ValueKey('recently-deleted'),
-              tooltip: l10n.collectionRecentlyDeletedTooltip,
-              icon: const Icon(Icons.restore_from_trash_outlined),
-              onPressed: _openRecentlyDeleted,
-            ),
-          ],
-          if (!compactActions) ...[
-            PopupMenuButton<CollectionSort>(
-              tooltip: l10n.collectionSortByTooltip(
-                collectionSortLabel(l10n, _sort),
-              ),
-              initialValue: _sort,
-              icon: const Icon(Icons.sort),
+          if (onBar.contains(_CollectionBarGlyph.sort))
+            CollectionSortMenuButton(
+              sort: _sort,
+              sorts: _availableSorts,
               onSelected: _selectSort,
-              itemBuilder: (context) => [
-                for (final option in _availableSorts)
-                  PopupMenuItem(
-                    value: option,
-                    child: Text(collectionSortLabel(l10n, option)),
-                  ),
-              ],
             ),
+          if (onBar.contains(_CollectionBarGlyph.groupBy))
             _buildGroupByButton(l10n),
-            IconButton(
-              key: const ValueKey('collection-sort-direction'),
-              tooltip: _sortDir == SortDirection.ascending
-                  ? l10n.collectionSortAscendingTooltip
-                  : l10n.collectionSortDescendingTooltip,
-              icon: Icon(
-                _sortDir == SortDirection.ascending
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward,
-              ),
+          if (onBar.contains(_CollectionBarGlyph.sortDirection))
+            SortDirectionButton(
+              buttonKey: const ValueKey('collection-sort-direction'),
+              direction: _sortDir,
               onPressed: _toggleSortDirection,
             ),
-          ],
+          _buildMoreActions(l10n, onBar, hasDances: hasDances),
         ],
       ],
     );
@@ -1911,7 +2473,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() => _groupTagId = value == _noGroupSentinel ? null : value);
   }
 
-  Widget _buildCompactMoreActions(AppLocalizations l10n) {
+  /// The ⋮ menu: always holds Select dances, Manage custom fields and Recently
+  /// deleted, plus whichever of the [_CollectionBarGlyph]s did not fit on the
+  /// bar ([onBar] is what did). Sorting is left out while [hasDances] is false,
+  /// as on the bar.
+  Widget _buildMoreActions(
+    AppLocalizations l10n,
+    Set<_CollectionBarGlyph> onBar, {
+    required bool hasDances,
+  }) {
+    final tags = _data?.tags ?? const <Tag>[];
     return PopupMenuButton<Object>(
       key: const ValueKey('collection-more-actions'),
       tooltip: l10n.danceMoreActions,
@@ -1934,45 +2505,55 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       },
       itemBuilder: (context) => [
-        if (widget.onImport != null)
-          PopupMenuItem(
+        if (widget.onImport != null &&
+            !onBar.contains(_CollectionBarGlyph.importDances))
+          PopupMenuItem<Object>(
             value: _CollectionCompactAction.importDances,
             child: Text(l10n.importDances),
           ),
-        PopupMenuItem(
-          enabled: _results.isNotEmpty,
+        PopupMenuItem<Object>(
+          key: const ValueKey('batch-select'),
+          // Selection is a local-collection feature (N4-1): not over online
+          // results.
+          enabled: !_onlineEnabled && _results.isNotEmpty,
           value: _CollectionCompactAction.batchSelect,
           child: Text(l10n.collectionSelectDancesTooltip),
         ),
-        PopupMenuItem(
+        PopupMenuItem<Object>(
+          key: const ValueKey('manage-custom-fields'),
           value: _CollectionCompactAction.manageCustomFields,
           child: Text(l10n.collectionManageCustomFieldsTooltip),
         ),
-        PopupMenuItem(
+        PopupMenuItem<Object>(
+          key: const ValueKey('recently-deleted'),
           value: _CollectionCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
-        const PopupMenuDivider(),
-        PopupMenuItem<Object>(
-          enabled: false,
-          child: Text(
-            l10n.collectionSortByTooltip(collectionSortLabel(l10n, _sort)),
-          ),
-        ),
-        for (final option in _availableSorts)
+        if (hasDances && !onBar.contains(_CollectionBarGlyph.sort)) ...[
+          const PopupMenuDivider(),
           PopupMenuItem<Object>(
-            value: _CollectionCompactSortAction(option),
-            child: Text(collectionSortLabel(l10n, option)),
+            enabled: false,
+            child: Text(
+              l10n.collectionSortByTooltip(collectionSortLabel(l10n, _sort)),
+            ),
           ),
-        PopupMenuItem<Object>(
-          value: _CollectionCompactAction.sortDirection,
-          child: Text(
-            _sortDir == SortDirection.ascending
-                ? l10n.collectionSortAscendingTooltip
-                : l10n.collectionSortDescendingTooltip,
+          for (final option in _availableSorts)
+            PopupMenuItem<Object>(
+              value: _CollectionCompactSortAction(option),
+              child: Text(collectionSortLabel(l10n, option)),
+            ),
+        ],
+        if (hasDances && !onBar.contains(_CollectionBarGlyph.sortDirection))
+          PopupMenuItem<Object>(
+            value: _CollectionCompactAction.sortDirection,
+            child: Text(
+              _sortDir == SortDirection.ascending
+                  ? l10n.collectionSortAscendingTooltip
+                  : l10n.collectionSortDescendingTooltip,
+            ),
           ),
-        ),
-        if (_data?.tags.isNotEmpty ?? false) ...[
+        if (tags.isNotEmpty &&
+            !onBar.contains(_CollectionBarGlyph.groupBy)) ...[
           const PopupMenuDivider(),
           PopupMenuItem<Object>(
             enabled: false,
@@ -1982,7 +2563,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             value: const _CollectionCompactGroupAction(_noGroupSentinel),
             child: Text(l10n.collectionGroupByNone),
           ),
-          for (final tag in _data!.tags)
+          for (final tag in tags)
             PopupMenuItem<Object>(
               value: _CollectionCompactGroupAction(tag.id),
               child: Text(tag.name),
@@ -2041,10 +2622,57 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  /// Whether a Select all icon fits on the selection bar beside the close
+  /// button, the count and the three fixed icons. If not it moves to the top of
+  /// the ⋮ menu (N4-6), as [_glyphsThatFit] does for the default bar.
+  bool _selectAllFitsOnBar(
+    BuildContext context,
+    AppLocalizations l10n,
+    double barWidth,
+  ) {
+    final theme = Theme.of(context);
+    final titleStyle =
+        AppBarTheme.of(context).titleTextStyle ?? theme.textTheme.titleLarge;
+    final titleWidth = (TextPainter(
+      // Widest plausible count, so the icon does not jump as the count grows.
+      text: TextSpan(
+        text: l10n.collectionSelectedCount(9999),
+        style: titleStyle,
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout()).width;
+    // The close button's 56 dp leading slot and the title's 16 dp spacing on
+    // each side, then the three icons, Select all and the ⋮ menu.
+    const taken = 56 + 32 + _actionSlotWidth * 5;
+    return barWidth - titleWidth >= taken;
+  }
+
   PreferredSizeWidget _buildSelectionAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight),
+      child: LayoutBuilder(
+        builder: (context, constraints) =>
+            _buildSelectionBar(context, constraints.maxWidth),
+      ),
+    );
+  }
+
+  Widget _buildSelectionBar(BuildContext context, double barWidth) {
     final l10n = AppLocalizations.of(context);
-    final count = _selectedIds.length;
-    final hasSelection = count > 0;
+    final count = _selection.length;
+    // A failed search leaves no trustworthy list, so nothing acts on the
+    // selection until it is retried (N4-1).
+    final canAct = count > 0 && _searchError == null;
+    final selectAllOnBar = _selectAllFitsOnBar(context, l10n, barWidth);
+    final allSelected = _selection.coversAll([
+      for (final e in _results) e.dance.id,
+    ]);
+    final selectAllLabel = allSelected
+        ? l10n.collectionDeselectAllTooltip(_results.length)
+        : l10n.collectionSelectAllTooltip(_results.length);
+    final selectAllEnabled = _canSelectAll;
     return AppBar(
       leading: IconButton(
         key: const ValueKey('batch-exit'),
@@ -2057,66 +2685,131 @@ class _DanceListScreenState extends State<DanceListScreen> {
         child: Text(l10n.collectionSelectedCount(count)),
       ),
       actions: [
+        if (selectAllOnBar)
+          IconButton(
+            key: const ValueKey('batch-select-all'),
+            tooltip: selectAllLabel,
+            icon: Icon(allSelected ? Icons.deselect : Icons.select_all),
+            onPressed: selectAllEnabled ? _toggleSelectAll : null,
+          ),
         IconButton(
           key: const ValueKey('batch-add-tags'),
           tooltip: l10n.collectionAddTags,
           icon: const Icon(Icons.new_label_outlined),
-          onPressed: hasSelection ? () => _batchTag(BatchTagMode.add) : null,
+          onPressed: canAct ? () => _batchTag(BatchTagMode.add) : null,
         ),
         IconButton(
           key: const ValueKey('batch-remove-tags'),
           tooltip: l10n.collectionRemoveTags,
           icon: const Icon(Icons.label_off_outlined),
-          onPressed: hasSelection ? () => _batchTag(BatchTagMode.remove) : null,
+          onPressed: canAct ? () => _batchTag(BatchTagMode.remove) : null,
         ),
         IconButton(
           key: const ValueKey('batch-set-level'),
           tooltip: l10n.collectionSetLevel,
           icon: const Icon(Icons.signal_cellular_alt),
-          onPressed: hasSelection ? _batchSetLevel : null,
+          onPressed: canAct ? _batchSetLevel : null,
         ),
         PopupMenuButton<_BatchMoreAction>(
           key: const ValueKey('batch-more'),
-          enabled: hasSelection,
+          // With Select all in the menu, the menu must open on an empty
+          // selection; its other entries are disabled individually.
+          enabled: canAct || (!selectAllOnBar && selectAllEnabled),
           tooltip: l10n.collectionBatchMore,
           icon: const Icon(Icons.more_vert),
           onSelected: (action) {
             switch (action) {
+              case _BatchMoreAction.selectAll:
+                _toggleSelectAll();
               case _BatchMoreAction.setRating:
                 _batchSetRating();
+              case _BatchMoreAction.setStatus:
+                _batchSetStatus();
               case _BatchMoreAction.addTunes:
                 _batchAddTunes();
               case _BatchMoreAction.clearTunes:
                 _batchClearTunes();
               case _BatchMoreAction.editCustomField:
                 _batchCustomField();
+              case _BatchMoreAction.delete:
+                _batchDelete();
             }
           },
           itemBuilder: (_) => [
+            if (!selectAllOnBar) ...[
+              PopupMenuItem(
+                key: const ValueKey('batch-select-all-menu'),
+                value: _BatchMoreAction.selectAll,
+                enabled: selectAllEnabled,
+                child: Text(selectAllLabel),
+              ),
+              const PopupMenuDivider(),
+            ],
             PopupMenuItem(
               key: const ValueKey('batch-set-rating'),
               value: _BatchMoreAction.setRating,
+              enabled: canAct,
               child: Text(l10n.collectionSetRating),
             ),
             PopupMenuItem(
+              key: const ValueKey('batch-set-status'),
+              value: _BatchMoreAction.setStatus,
+              enabled: canAct,
+              child: Text(l10n.collectionSetStatus),
+            ),
+            // Groups follow `bulk-selection.md` "Selection bar layout": Details,
+            // Other, then (added by their own branches) Programs and Delete.
+            const PopupMenuDivider(),
+            PopupMenuItem(
               key: const ValueKey('batch-add-tunes'),
               value: _BatchMoreAction.addTunes,
+              enabled: canAct,
               child: Text(l10n.collectionAddTunes),
             ),
             PopupMenuItem(
               key: const ValueKey('batch-clear-tunes'),
               value: _BatchMoreAction.clearTunes,
+              enabled: canAct,
               child: Text(l10n.collectionClearTunes),
             ),
             PopupMenuItem(
               key: const ValueKey('batch-edit-custom-field'),
               value: _BatchMoreAction.editCustomField,
+              enabled: canAct,
               child: Text(l10n.collectionEditCustomField),
+            ),
+            // Delete is last, in its own group and the error colour, so it
+            // never sits beside an edit (`bulk-selection.md`, Q4 "Delete").
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              key: const ValueKey('batch-delete'),
+              value: _BatchMoreAction.delete,
+              enabled: canAct,
+              child: _BatchDeleteLabel(
+                label: l10n.commonDelete,
+                enabled: canAct,
+              ),
             ),
           ],
         ),
       ],
     );
+  }
+
+  @override
+  void openNewDance() => unawaited(_openNewDance());
+
+  @override
+  bool focusSearch() {
+    // The box is built only once the list has loaded, and not over a load
+    // error (see [_buildBody]).
+    if (_data == null || _loadError != null) return false;
+    _ftsFocusNode.requestFocus();
+    _ftsController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _ftsController.text.length,
+    );
+    return true;
   }
 
   Future<void> _openNewDance() async {
@@ -2163,16 +2856,61 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // reload (the full _boot() is expensive). On undo, trigger a full reload.
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+    // The row, and the ⋮ button that may hold keyboard focus, are about to
+    // leave the tree. Focus goes to the next row's ⋮ button (the previous
+    // row's at the end of the list, the search field when none is left), so
+    // the next Tab continues from where the user was instead of restarting at
+    // the app bar. The snackbar's Undo is not the target: it is transient and
+    // sits outside the list's traversal order. The move only happens for a
+    // user in keyboard navigation mode whose focus was actually dropped
+    // ([restoreFocusToRowMenu]), so a touch user, or focus that has since moved,
+    // is left alone. A desktop mouse user is in that mode too, so is not.
+    // "Next" is in display order, which differs from `_results` order when a
+    // category grouping is active.
+    final shown = [
+      for (final item in _buildGroupedItems() ?? const <_CollectionListItem>[])
+        if (item is _DanceRowItem) item.entry.dance.id,
+    ];
+    final order = shown.isNotEmpty
+        ? shown
+        : [for (final e in _results) e.dance.id];
+    final removedAt = order.indexOf(danceId);
+    final neighbours = [
+      if (removedAt >= 0 && removedAt + 1 < order.length) order[removedAt + 1],
+      if (removedAt > 0) order[removedAt - 1],
+    ];
     setState(() => _results.removeWhere((e) => e.dance.id == danceId));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      restoreFocusToRowMenu(
+        context,
+        candidateKeys: [
+          for (final id in neighbours) ValueKey('dance-actions-$id'),
+        ],
+        fallback: _ftsFocusNode,
+      );
+    });
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       key: const ValueKey('list-deleted-snackbar'),
       message: l10n.commonDeletedSnack(title),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.dances.restore(danceId, at: DateTime.now().toUtc());
-        if (mounted) await _boot();
+        if (!mounted) return;
+        await _boot();
+        // Pressing Undo dismisses the snackbar that held focus; put it on the
+        // restored row if the reload left it nowhere. No fallback: a restored
+        // row that is not built (scrolled away) is not worth pulling focus to.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          restoreFocusToRowMenu(
+            context,
+            candidateKeys: [ValueKey('dance-actions-$danceId')],
+          );
+        });
       },
     );
   }
@@ -2183,13 +2921,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Future<void> _duplicateFromList(String danceId) async {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
-    final copy = await _repos.dances.duplicate(
+    final copy = await duplicateDanceWithRelatedLinks(
+      _repos,
       id: danceId,
       newId: uuidV4(),
       now: now,
+      copyTitle: l10n.commonDuplicateTitleSuffix,
     );
-    final newTitle = l10n.commonDuplicateTitleSuffix(copy.title);
-    await _repos.dances.update(copy.copyWith(title: newTitle, updatedAt: now));
+    final newTitle = copy.title;
     if (!mounted) return;
     await _boot();
     if (!mounted) return;
@@ -2204,17 +2943,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: AppSpacing.xs),
-            Text(l10n.collectionLoadError),
-            const SizedBox(height: AppSpacing.xs),
-            FilledButton(onPressed: _retryLoad, child: Text(l10n.commonRetry)),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.collectionLoadError,
+        onRetry: _retryLoad,
       );
     }
 
@@ -2224,11 +2956,43 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
 
     // A brand-new user with no local dances still needs the search UI so they
-    // can reach the "Online search" toggle (in the Advanced panel) and import
+    // can reach the "Online search" icon (beside the search tools) and import
     // their first dance from The Caller's Box — so the empty-collection message
     // now renders inside the results area rather than replacing the whole body.
     final collectionEmpty = data.dancesById.isEmpty;
 
+    final searchField = TextField(
+      key: const ValueKey('collection-search-field'),
+      controller: _ftsController,
+      focusNode: _ftsFocusNode,
+      onChanged: _onFtsChanged,
+      onSubmitted: _onFtsSubmitted,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: _onlineEnabled
+            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+            : l10n.collectionSearchFieldLabel,
+        hintText: _onlineEnabled
+            ? l10n.collectionOnlineSearchFieldHint
+            : l10n.collectionSearchFieldHint,
+        // Dense, like Search in beside it, so the two line up in one row.
+        isDense: true,
+        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
+        suffixIcon: _hasActiveQuery
+            ? IconButton(
+                tooltip: l10n.collectionClearSearchTooltip,
+                icon: const Icon(Icons.clear),
+                onPressed: _clearAll,
+              )
+            : null,
+      ),
+    );
+    final searchScope = SearchScopeField(
+      fieldKey: const ValueKey('collection-search-scope'),
+      scope: _ftsScope,
+      online: _onlineEnabled,
+      onChanged: _onFtsScopeChanged,
+    );
     return Column(
       children: [
         Padding(
@@ -2238,126 +3002,151 @@ class _DanceListScreenState extends State<DanceListScreen> {
             AppSpacing.md,
             0,
           ),
-          child: KeyedSubtree(
-            key: ValueKey(
-              'collection-search-scope-state-$_onlineEnabled-$_ftsScope',
-            ),
-            child: DropdownButtonFormField<FullTextScope>(
-              key: const ValueKey('collection-search-scope'),
-              initialValue: _ftsScope,
-              decoration: InputDecoration(
-                labelText: l10n.collectionSearchScopeLabel,
-                isDense: true,
-              ),
-              items: [
-                if (!_onlineEnabled)
-                  DropdownMenuItem(
-                    value: FullTextScope.omni,
-                    child: Text(l10n.collectionSearchScopeOmni),
-                  ),
-                DropdownMenuItem(
-                  value: FullTextScope.title,
-                  child: Text(l10n.collectionSearchScopeTitle),
-                ),
-                DropdownMenuItem(
-                  value: FullTextScope.author,
-                  child: Text(l10n.collectionSearchScopeAuthor),
-                ),
-                DropdownMenuItem(
-                  value: FullTextScope.figure,
-                  child: Text(l10n.collectionSearchScopeFigure),
-                ),
-              ],
-              onChanged: _onFtsScopeChanged,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            0,
-          ),
-          child: TextField(
-            key: const ValueKey('collection-search-field'),
-            controller: _ftsController,
-            onChanged: _onFtsChanged,
-            onSubmitted: _onFtsSubmitted,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              labelText: _onlineEnabled
-                  ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-                  : l10n.collectionSearchFieldLabel,
-              hintText: _onlineEnabled
-                  ? l10n.collectionOnlineSearchFieldHint
-                  : l10n.collectionSearchFieldHint,
-              prefixIcon: Icon(
-                _onlineEnabled ? Icons.cloud_outlined : Icons.search,
-              ),
-              suffixIcon: _hasActiveQuery
-                  ? IconButton(
-                      tooltip: l10n.collectionClearSearchTooltip,
-                      icon: const Icon(Icons.clear),
-                      onPressed: _clearAll,
-                    )
-                  : null,
-            ),
+          // Search in sits beside the search box, saving a row above the
+          // results, whenever the pane is wide enough at the current text size;
+          // a narrow pane or large text stacks it above the box as before.
+          child: SearchFieldWithScope(
+            searchField: searchField,
+            scopeField: searchScope,
           ),
         ),
         Expanded(
-          child: CustomScrollView(
-            keyboardDismissBehavior: kTextEntryKeyboardDismiss,
-            slivers: [
-              SliverList(
-                delegate: SliverChildListDelegate([
-                  // Local facet panels don't apply to online search (and there's
-                  // nothing to filter in an empty collection), so they're hidden
-                  // in those cases. The Advanced panel stays — it hosts the
-                  // "Online search" toggle, which must always be reachable.
-                  // Local facet filters can't apply to online results, so the
-                  // Filters panel stays local-only. By-phrase maps onto TCB's
-                  // own "search by phrase" fields, so it's offered for the
-                  // Caller's Box source (even with an empty local collection);
-                  // it's hidden for sources without by-phrase support (ContraDB).
-                  //
-                  // The panels suppress their built-in ExpansionTile borders and
-                  // rely on explicit dividers interleaved *between* visible
-                  // panels only, so a hidden panel (e.g. By-phrase for ContraDB)
-                  // never leaves a stray leading rule above the next panel.
-                  ..._buildFilterPanels(data, collectionEmpty),
-                  if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
-                  const Divider(height: 1),
-                ]),
+          // Ctrl/Cmd-A ([appShortcuts]) is handled here, around the list and
+          // not the search box above it, so it acts only while focus is in the
+          // list; a text field keeps its own Select all.
+          child: Actions(
+            actions: {
+              SelectAllDancesIntent: _SelectAllDancesAction(
+                canAct: () => _canSelectAll,
+                onInvoke: _selectAllFromKeyboard,
               ),
-              if (_onlineEnabled)
-                _buildOnlineResultsSliver()
-              else if (collectionEmpty)
-                _buildEmptyCollectionSliver()
-              else
-                _buildResultsSliver(),
-            ],
+            },
+            child: CustomScrollView(
+              keyboardDismissBehavior: textEntryKeyboardDismiss(),
+              slivers: [
+                SliverList(
+                  delegate: SliverChildListDelegate([
+                    // Which tools appear in which mode is documented on
+                    // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
+                    // by phrase" fields, so it's offered for the Caller's Box
+                    // source even with an empty local collection; for sources
+                    // without by-phrase support (ContraDB) it is greyed out, or
+                    // absent when the collection is empty.
+                    _NotTheResultList(
+                      child: _buildSearchPanels(data, collectionEmpty),
+                    ),
+                    if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
+                    const Divider(height: 1),
+                  ]),
+                ),
+                if (_onlineEnabled)
+                  _buildOnlineResultsSliver()
+                else if (collectionEmpty)
+                  _buildEmptyCollectionSliver()
+                else ...[
+                  if (_onlyTheSampleDance(data) && !_hasActiveQuery)
+                    _buildImportCardSliver(),
+                  _buildResultsSliver(),
+                ],
+                // Lets the last row scroll clear of the floating New dance.
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.fabClearance),
+                ),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
+
+  /// Whether the first-run sample is the only dance in the Collection. Judged
+  /// from the dance's fixed seed id, so no marker is stored: deleting the
+  /// sample, or adding any dance of one's own, ends it.
+  bool _onlyTheSampleDance(CollectionData data) =>
+      data.dancesById.length == 1 &&
+      data.dancesById.containsKey(kBabyRoseSeedDanceId);
+
+  /// Whether the body shows [_startActions]: the empty Collection, or the
+  /// first-run card above the sample dance. The same conditions as the body's
+  /// own choice in [_buildBody].
+  bool _showsStartActions(CollectionData data) =>
+      !_onlineEnabled &&
+      (data.dancesById.isEmpty ||
+          (_onlyTheSampleDance(data) && !_hasActiveQuery));
+
+  /// Import and New dance, the two ways to start filling the Collection; shared
+  /// by the empty state and the sample-only card.
+  List<Widget> _startActions(AppLocalizations l10n) => [
+    if (widget.onImport != null)
+      OutlinedButton.icon(
+        key: const ValueKey('collection-empty-import'),
+        onPressed: widget.onImport,
+        icon: const Icon(Icons.file_download_outlined),
+        label: Text(l10n.importDances),
+      ),
+    FilledButton.icon(
+      key: const ValueKey('collection-empty-new-dance'),
+      onPressed: _openNewDance,
+      icon: const Icon(Icons.add),
+      label: Text(l10n.collectionNewDance),
+    ),
+  ];
 
   Widget _buildEmptyCollectionSliver() {
     final l10n = AppLocalizations.of(context);
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: EmptyState(
+        key: const ValueKey('collection-empty'),
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        title: l10n.collectionEmptyTitle,
+        body: l10n.collectionEmptyBody,
+        actions: _startActions(l10n),
+      ),
+    );
+  }
+
+  /// Shown above the list while only the sample dance is present, so a first
+  /// launch points at importing rather than leaving the sample to read as the
+  /// whole app.
+  Widget _buildImportCardSliver() {
+    final l10n = AppLocalizations.of(context);
     return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Center(
+      child: Card(
+        key: const ValueKey('collection-import-card'),
+        margin: const EdgeInsets.all(AppSpacing.md),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BrandMark(
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Text(
+                l10n.collectionImportCardTitle,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text(l10n.collectionEmpty, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.xs),
+              Text(l10n.collectionImportCardBody),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  ..._startActions(l10n),
+                  // The signed catalog is the quickest way to a first full
+                  // collection, so the card that points at importing points
+                  // at it too (U9).
+                  TextButton.icon(
+                    key: const ValueKey('collection-import-card-browse'),
+                    onPressed: () => pushPublishedCollectionCatalog(context),
+                    icon: const Icon(Icons.collections_bookmark_outlined),
+                    label: Text(l10n.collectionBrowsePublishedCollections),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -2365,105 +3154,152 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  /// Builds the visible filter panels with hairline dividers interleaved only
-  /// *between* them. Each panel suppresses its built-in ExpansionTile border
-  /// (see [_buildFiltersPanel] etc.), so the first visible panel never carries
-  /// a leading rule — even when an earlier panel (e.g. By-phrase for ContraDB)
-  /// is hidden.
-  List<Widget> _buildFilterPanels(CollectionData data, bool collectionEmpty) {
-    final panels = <Widget>[
-      if (!_onlineEnabled && !collectionEmpty) _buildFiltersPanel(data),
-      if ((_onlineEnabled && _onlineSource.supportsByPhrase) ||
-          (!_onlineEnabled && !collectionEmpty))
-        _buildByPhrasePanel(data),
-      _buildAdvancedPanel(data),
-    ];
-
-    final children = <Widget>[];
-    for (var i = 0; i < panels.length; i++) {
-      if (i > 0) {
-        children.add(
-          Divider(height: 1, key: ValueKey('filter-panel-divider-$i')),
-        );
-      }
-      children.add(panels[i]);
-    }
-    return children;
+  /// The search tools that apply to the current mode, as one compact row of
+  /// toggles ([SearchPanelBar]). Local filters can't apply to online results,
+  /// so while online Filters stays in the row greyed out (the row does not
+  /// jump, and a choice made in it is still shown as in force for when the user
+  /// returns); an empty collection has nothing to filter, so Filters is left
+  /// out then. By phrase and Advanced are enabled for local search and for
+  /// online sources that support them (By phrase: The Caller's Box; Advanced:
+  /// ContraDB), and greyed out for those that do not.
+  ///
+  /// The Online search icon ends the row in both modes: it is how a user
+  /// enters and leaves online mode, so it must not depend on the mode. While
+  /// online, the source selector sits full-width under the row.
+  Widget _buildSearchPanels(CollectionData data, bool collectionEmpty) {
+    final l10n = AppLocalizations.of(context);
+    final filtersActive = _facets.activeCount;
+    final byPhraseActive = _byPhraseActiveCount();
+    final panelBar = SearchPanelBar(
+      storageId: 'collection',
+      trailing: OnlineSearchToggle(
+        key: const ValueKey('online-search-enable'),
+        enabled: _onlineEnabled,
+        onChanged: _onOnlineToggled,
+      ),
+      panels: [
+        if (!collectionEmpty)
+          SearchPanelSpec(
+            key: const ValueKey('filters-panel'),
+            enabled: !_onlineEnabled,
+            label: filtersActive == 0
+                ? l10n.collectionFiltersTitle
+                : l10n.searchToolActiveCount(
+                    l10n.collectionFiltersTitle,
+                    filtersActive,
+                  ),
+            semanticsLabel: filtersActive == 0
+                ? null
+                : l10n.collectionFiltersActive(filtersActive),
+            builder: (_) => _buildFiltersPanel(data),
+          ),
+        if (!collectionEmpty ||
+            (_onlineEnabled && _onlineSource.supportsByPhrase))
+          SearchPanelSpec(
+            key: const ValueKey('by-phrase-panel'),
+            enabled: !_onlineEnabled || _onlineSource.supportsByPhrase,
+            label: byPhraseActive == 0
+                ? l10n.collectionByPhraseTitle
+                : l10n.searchToolActiveCount(
+                    l10n.collectionByPhraseTitle,
+                    byPhraseActive,
+                  ),
+            semanticsLabel: byPhraseActive == 0
+                ? null
+                : l10n.collectionByPhraseActive(byPhraseActive),
+            builder: (_) => _buildByPhrasePanel(data),
+          ),
+        SearchPanelSpec(
+          key: const ValueKey('advanced-panel'),
+          enabled: !_onlineEnabled || _onlineSource.supportsAdvanced,
+          label: _advancedRoot.toFilter() != null
+              ? l10n.collectionAdvancedActive
+              : l10n.collectionAdvancedTitle,
+          builder: (_) => _buildAdvancedPanel(data),
+        ),
+      ],
+    );
+    // The bar is always the Column's first child, so toggling online keeps its
+    // state (open tool, scroll and focus inside a panel) instead of rebuilding it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        panelBar,
+        if (_onlineEnabled)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
+            child: SegmentedButton<OnlineSource>(
+              key: const ValueKey('online-source-selector'),
+              // Full width, so the sources read as the row's second line.
+              expandedInsets: EdgeInsets.zero,
+              segments: [
+                for (final source in OnlineSource.values)
+                  ButtonSegment<OnlineSource>(
+                    value: source,
+                    label: Text(source.label),
+                  ),
+              ],
+              selected: {_onlineSource},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) =>
+                  _onOnlineSourceChanged(selection.first),
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildFiltersPanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    final activeCount = _activeFacetCount();
-    return ExpansionTile(
-      key: const ValueKey('filters-panel'),
-      shape: const Border(),
-      collapsedShape: const Border(),
-      leading: const Icon(Icons.filter_alt_outlined),
-      title: Text(
-        activeCount == 0
-            ? l10n.collectionFiltersTitle
-            : l10n.collectionFiltersActive(activeCount),
+    return FacetPanel(
+      facets: _facets,
+      forms: data.forms,
+      formations: data.formations,
+      progressions: data.progressions,
+      statuses: data.statuses,
+      levels: data.levels,
+      hasMixedLevel: data.hasMixedLevel,
+      hasMixer: data.hasMixer,
+      hasRating: data.hasRating,
+      venueChoices: VenueChoiceSource(
+        repos: _repos,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
       ),
-      childrenPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.sm,
+      hasCallingHistory: data.callCounts.values.any(
+        (counts) =>
+            counts.countFor(
+              _requirePerformedForHistory,
+              requireEventDate: _requireEventDateForHistory,
+            ) >
+            0,
       ),
-      children: [
-        FacetPanel(
-          facets: _facets,
-          forms: data.forms,
-          formations: data.formations,
-          progressions: data.progressions,
-          statuses: data.statuses,
-          levels: data.levels,
-          hasMixedLevel: data.hasMixedLevel,
-          hasMixer: data.hasMixer,
-          hasRating: data.hasRating,
-          hasCallingHistory: data.callCounts.values.any(
-            (counts) => counts.countFor(_requirePerformedForHistory) > 0,
-          ),
-          authors: data.authors,
-          tags: data.tags,
-          citedSources: data.citedSources,
-          choiceFields: data.choiceFields,
-          booleanFields: data.booleanFields,
-          textFields: data.textFields,
-          numberFields: data.numberFields,
-          onChanged: _onFacetsChanged,
-        ),
-      ],
+      authors: data.authors,
+      tags: data.tags,
+      citedSources: data.citedSources,
+      tunes: data.tunes,
+      meters: data.meters,
+      musicalKeys: data.musicalKeys,
+      choiceFields: data.choiceFields,
+      booleanFields: data.booleanFields,
+      textFields: data.textFields,
+      numberFields: data.numberFields,
+      onChanged: _onFacetsChanged,
     );
   }
 
   Widget _buildByPhrasePanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    final activeCount = _byPhraseActiveCount();
-    return ExpansionTile(
-      key: const ValueKey('by-phrase-panel'),
-      shape: const Border(),
-      collapsedShape: const Border(),
-      leading: const Icon(Icons.grid_view_outlined),
-      title: Text(
-        activeCount == 0
-            ? l10n.collectionByPhraseTitle
-            : l10n.collectionByPhraseActive(activeCount),
-      ),
-      childrenPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.sm,
-      ),
-      children: [
-        ByPhrasePanel(
-          selections: _byPhrase,
-          taxonomy: data.taxonomy,
-          sectionLabels: data.sectionLabels,
-          onChanged: _onByPhraseChanged,
-        ),
-      ],
+    return ByPhrasePanel(
+      selections: _byPhrase,
+      taxonomy: data.taxonomy,
+      sectionLabels: data.sectionLabels,
+      dialect: _dialect,
+      onChanged: _onByPhraseChanged,
     );
   }
 
@@ -2479,77 +3315,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildAdvancedPanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    return ExpansionTile(
-      key: const ValueKey('advanced-panel'),
-      shape: const Border(),
-      collapsedShape: const Border(),
-      leading: const Icon(Icons.account_tree_outlined),
-      title: Text(l10n.collectionAdvancedTitle),
-      childrenPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.sm,
-      ),
-      children: [
-        SwitchListTile(
-          key: const ValueKey('online-search-enable'),
-          contentPadding: EdgeInsets.zero,
-          secondary: const Icon(Icons.cloud_outlined),
-          title: Text(l10n.onlineSearchToggleTitle),
-          subtitle: Text(l10n.onlineSearchToggleSubtitle),
-          value: _onlineEnabled,
-          onChanged: _onOnlineToggled,
-        ),
-        if (_onlineEnabled)
-          Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xs,
-              bottom: AppSpacing.sm,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: SegmentedButton<OnlineSource>(
-                key: const ValueKey('online-source-selector'),
-                segments: [
-                  for (final source in OnlineSource.values)
-                    ButtonSegment<OnlineSource>(
-                      value: source,
-                      label: Text(source.label),
-                    ),
-                ],
-                selected: {_onlineSource},
-                showSelectedIcon: false,
-                onSelectionChanged: (selection) =>
-                    _onOnlineSourceChanged(selection.first),
-              ),
-            ),
-          ),
-        SwitchListTile(
-          key: const ValueKey('advanced-enable'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.collectionUseAdvancedQuery),
-          subtitle: Text(l10n.collectionUseAdvancedQuerySubtitle),
-          value: _advancedEnabled,
-          // Disabled while online search is active — the advanced query is a
-          // local-only facet that can't apply to Caller's Box results.
-          onChanged: _onlineEnabled
-              ? null
-              : (value) {
-                  setState(() => _advancedEnabled = value);
-                  _runSearch();
-                },
-        ),
-        if (_advancedEnabled && !_onlineEnabled)
-          AdvancedQueryBuilder(
-            root: _advancedRoot,
-            taxonomy: data.taxonomy,
-            dialect: _dialect,
-            sectionLabels: data.sectionLabels,
-            onChanged: _onAdvancedChanged,
-          ),
-      ],
+    return AdvancedQueryBuilder(
+      root: _advancedRoot,
+      taxonomy: data.taxonomy,
+      dialect: _dialect,
+      sectionLabels: data.sectionLabels,
+      tags: data.tags,
+      tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
+          ? _onlineSource.label
+          : null,
+      onChanged: _onAdvancedChanged,
     );
   }
 
@@ -2558,8 +3333,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final bool online = _onlineEnabled;
     final int count = online ? _onlineResults.length : _results.length;
     final bool busy = online ? _onlineSearching : _searching;
+    // Selected dances the results do not show (N4-1). Not while the search has
+    // failed: `_results` is then empty, and "all 14 are hidden" would be false.
+    final int hidden = !online && _selectionMode && _searchError == null
+        ? _selection.notShown(_shownIds)
+        : 0;
     final String label = online
-        ? l10n.onlineResultCount(count)
+        ? onlineResultCountLabel(
+            l10n,
+            _onlineResults,
+            hasMore: _onlineHasMore,
+            loadFailed: _onlineMoreFailed,
+          )
         : l10n.collectionDanceCount(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -2570,19 +3355,36 @@ class _DanceListScreenState extends State<DanceListScreen> {
       ),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        // A Wrap, not a Row: the selection suffix and its action can outgrow a
+        // narrow phone line.
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Semantics(
               liveRegion: true,
               child: Text(label, style: Theme.of(context).textTheme.bodySmall),
             ),
+            // Outside the live region: the bar title already announces each
+            // change to the selection count, so this line must not say it again.
+            if (hidden > 0)
+              Text(
+                ' · ${l10n.collectionSelectionNotShown(_selection.length, hidden)}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             if (busy) ...[
               const SizedBox(width: AppSpacing.xs),
               const SizedBox(
                 width: 12,
                 height: 12,
                 child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+            if (hidden > 0) ...[
+              const SizedBox(width: AppSpacing.xs),
+              TextButton(
+                key: const ValueKey('batch-deselect-not-shown'),
+                onPressed: _deselectNotShown,
+                child: Text(l10n.collectionDeselectNotShown),
               ),
             ],
           ],
@@ -2618,7 +3420,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+    if (!_hasOnlineCriteria) {
       final hint = _onlineSource.supportsByPhrase
           ? l10n.collectionOnlineSearchHintByPhrase(_onlineSource.label)
           : l10n.collectionOnlineSearchHintTitle(_onlineSource.label);
@@ -2649,9 +3451,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
+    final showFooter = _onlineHasMore || _onlineMoreFailed;
     return SliverList.builder(
-      itemCount: _onlineResults.length,
+      itemCount: _onlineResults.length + (showFooter ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == _onlineResults.length) {
+          return OnlineMoreFooter(
+            key: ValueKey(
+              'online-more-$_onlinePagingSeq-${_onlineResults.length}',
+            ),
+            failed: _onlineMoreFailed,
+            failedMessage: l10n.onlineSearchFailed(_onlineSource.label),
+            onLoad: _loadMoreOnline,
+            onRetry: () {
+              setState(() => _onlineMoreFailed = false);
+              _loadMoreOnline();
+            },
+          );
+        }
         final result = _onlineResults[index];
         return OnlineResultTile(
           key: ValueKey('online-result-${result.id}'),
@@ -2671,7 +3488,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(child: Text(l10n.collectionSearchError)),
+          child: LoadErrorView(
+            icon: LoadErrorView.errorGlyph(context),
+            message: l10n.collectionSearchError,
+            onRetry: _runSearch,
+          ),
         ),
       );
     }
@@ -2679,7 +3500,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(child: Text(l10n.collectionNoResults)),
+          child: Column(
+            children: [
+              Text(l10n.collectionNoResults, textAlign: TextAlign.center),
+              if (_hasActiveQuery) ...[
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  key: const ValueKey('collection-no-results-clear'),
+                  onPressed: _clearAll,
+                  icon: const Icon(Icons.clear),
+                  label: Text(l10n.collectionClearSearchTooltip),
+                ),
+              ],
+            ],
+          ),
         ),
       );
     }
@@ -2688,17 +3522,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // two labeled sections — the selected tag's dances, then everyone else —
     // instead of a flat list. Grouping is a pure app-layer partition over the
     // already-sorted [_results], so the active sort still orders rows *within*
-    // each section. Selection mode suppresses grouping so the batch flow stays
-    // a single flat, uninterrupted list.
-    final groupItems = _selectionMode ? null : _buildGroupedItems();
+    // each section. Grouping stays on while selecting (N4-3): selecting changes
+    // no tag, so no row moves between sections, and each header gains a
+    // checkbox for its rows.
+    final groupItems = _buildGroupedItems();
     if (groupItems != null) {
       return SliverList.builder(
         itemCount: groupItems.length,
         itemBuilder: (context, index) {
           final item = groupItems[index];
           return switch (item) {
-            _SectionHeaderItem(:final keySuffix, :final label, :final count) =>
-              _buildSectionHeader(keySuffix, label, count, l10n),
+            _SectionHeaderItem(
+              :final keySuffix,
+              :final label,
+              :final count,
+              :final ids,
+            ) =>
+              _buildSectionHeader(keySuffix, label, count, ids, l10n),
             _DanceRowItem(:final entry) => _buildDanceRow(entry, l10n),
           };
         },
@@ -2735,62 +3575,111 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final l10n = AppLocalizations.of(context);
     final items = <_CollectionListItem>[];
     if (withTag.isNotEmpty) {
-      items.add(_SectionHeaderItem('tag', tag.name, withTag.length));
+      items.add(
+        _SectionHeaderItem('tag', tag.name, [
+          for (final e in withTag) e.dance.id,
+        ]),
+      );
       items.addAll(withTag.map(_DanceRowItem.new));
     }
     if (other.isNotEmpty) {
       items.add(
-        _SectionHeaderItem('other', l10n.collectionGroupOther, other.length),
+        _SectionHeaderItem('other', l10n.collectionGroupOther, [
+          for (final e in other) e.dance.id,
+        ]),
       );
       items.addAll(other.map(_DanceRowItem.new));
     }
     return items;
   }
 
+  /// Selects the section's rows, or deselects them when they are all selected.
+  /// Selections outside [ids] are kept, hidden ones included (N4-3, N4-1).
+  /// Like Select all it waits for a pending search, whose results would replace
+  /// the rows [ids] came from.
+  void _toggleSection(List<String> ids) {
+    if (!_canSelectAll) return;
+    setState(() {
+      if (_selection.coversAll(ids)) {
+        _selection.deselectAll(ids);
+      } else {
+        _selection.selectAll(ids);
+      }
+    });
+  }
+
   /// A sticky-styled section header for the grouped view. Announces its label
   /// and dance count as a single AT node (a11y) and is marked as a heading.
+  /// While selecting it also carries a tri-state checkbox for the section's
+  /// rows; that node keeps its own checked/mixed state and tap action, so a
+  /// screen reader can toggle the section without leaving the heading.
   /// [keySuffix] gives each header a stable, collision-free widget key even if a
   /// user's tag happens to be named the same as the "Other" section label.
   Widget _buildSectionHeader(
     String keySuffix,
     String label,
     int count,
+    List<String> ids,
     AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);
+    final selected = _selectionMode ? ids.where(_selection.contains).length : 0;
+    final all = count > 0 && selected == count;
+    final canToggle = _canSelectAll;
+    final some = selected > 0 && !all;
+    Widget header = Container(
+      key: ValueKey('group-header-$keySuffix'),
+      width: double.infinity,
+      color: theme.colorScheme.surfaceContainerHighest,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: _selectionMode ? 0 : AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          if (_selectionMode)
+            Checkbox(
+              key: ValueKey('group-checkbox-$keySuffix'),
+              tristate: true,
+              value: all ? true : (some ? null : false),
+              onChanged: canToggle ? (_) => _toggleSection(ids) : null,
+            ),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            '$count',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (_selectionMode) {
+      header = InkWell(
+        onTap: canToggle ? () => _toggleSection(ids) : null,
+        child: header,
+      );
+    }
+    // The visuals are hidden from AT; the Semantics node below carries the
+    // label, state and tap action, so the checkbox is reached exactly once.
+    header = ExcludeSemantics(child: header);
     return Semantics(
       header: true,
       container: true,
-      label: l10n.collectionGroupSectionSemantics(label, count),
-      child: ExcludeSemantics(
-        child: Container(
-          key: ValueKey('group-header-$keySuffix'),
-          width: double.infinity,
-          color: theme.colorScheme.surfaceContainerHighest,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '$count',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      label: _selectionMode
+          ? l10n.collectionGroupSectionSelectedSemantics(label, count, selected)
+          : l10n.collectionGroupSectionSemantics(label, count),
+      checked: _selectionMode ? all : null,
+      mixed: _selectionMode ? some : null,
+      onTap: _selectionMode && canToggle ? () => _toggleSection(ids) : null,
+      child: header,
     );
   }
 
@@ -2802,8 +3691,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       entry: entry,
       visibleFields: CollectionTileFieldsScope.of(context),
       // Row action menu (⋮): non-swipe access to the row actions for
-      // mouse/keyboard/AT users. Delete routes through the identical
-      // confirm + soft-delete + undo flow as the Dismissible swipe below.
+      // mouse/keyboard/AT users. Unlike the Slidable swipe below, which
+      // deletes without a prompt, this path honours "Confirm before delete"
+      // (confirmDeleteIfEnabled) before the shared soft-delete + undo flow.
       onDelete: () async {
         if (await confirmDeleteIfEnabled(
           context,
@@ -2813,6 +3703,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       },
       onDuplicate: () => _duplicateFromList(entry.dance.id),
+      onAddTags: () => _applyTags(BatchTagMode.add, {entry.dance.id}),
       onTagTap: _applyExternalTagFilter,
       // No reload when the sheet closes: the sheet's write goes to
       // `program_slots`, which the live tallies subscription watches, so the
@@ -2825,7 +3716,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         danceTitle: entry.dance.title,
       ),
       selectionMode: _selectionMode,
-      selectedForBatch: _selectedIds.contains(entry.dance.id),
+      selectedForBatch: _selection.contains(entry.dance.id),
       onLongPress: _selectionMode
           ? null
           : () => _enterSelectionMode(entry.dance.id),
@@ -2834,7 +3725,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       // alone); outside selection mode it reflects the split-pane
       // selection as before.
       selected: _selectionMode
-          ? _selectedIds.contains(entry.dance.id)
+          ? _selection.contains(entry.dance.id)
           : (widget.onSelectDance != null &&
                 widget.selectedDanceId == entry.dance.id),
       onTap: _selectionMode
@@ -2888,21 +3779,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       child: tile,
     );
   }
-
-  int _activeFacetCount() {
-    return _facets.forms.length +
-        _facets.formations.length +
-        _facets.progressions.length +
-        _facets.statuses.length +
-        _facets.callStatuses.length +
-        _facets.authorIds.length +
-        _facets.tagIds.length +
-        _facets.sourceIds.length +
-        _facets.choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
-        _facets.booleanValues.length +
-        _facets.textValues.values.where((s) => s.isEffective).length +
-        _facets.numberValues.values.where((s) => s.isEffective).length;
-  }
 }
 
 /// An item in the grouped Collection list: either a section header or a dance
@@ -2912,16 +3788,46 @@ sealed class _CollectionListItem {
 }
 
 class _SectionHeaderItem extends _CollectionListItem {
-  const _SectionHeaderItem(this.keySuffix, this.label, this.count);
+  const _SectionHeaderItem(this.keySuffix, this.label, this.ids);
 
   /// Stable, collision-free key part ('tag' or 'other'), independent of the
   /// display [label] (which could clash — e.g. a tag literally named "Other").
   final String keySuffix;
   final String label;
-  final int count;
+
+  /// The ids of the section's rows in `_results`, in display order. Never the
+  /// selection's hidden ids: a header acts on what the list shows (N4-1).
+  final List<String> ids;
+
+  int get count => ids.length;
 }
 
 class _DanceRowItem extends _CollectionListItem {
   const _DanceRowItem(this.entry);
   final DanceListEntry entry;
+}
+
+/// The batch menu's Delete entry: the bin (decision D-10 reserves it for
+/// "delete") and the label, both in the error colour while the entry is
+/// enabled, so a disabled entry still greys out like its neighbours.
+class _BatchDeleteLabel extends StatelessWidget {
+  const _BatchDeleteLabel({required this.label, required this.enabled});
+
+  final String label;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled ? Theme.of(context).colorScheme.error : null;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.delete_outline, color: color),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(label, style: TextStyle(color: color)),
+        ),
+      ],
+    );
+  }
 }

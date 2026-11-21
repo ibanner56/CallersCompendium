@@ -8,13 +8,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
+import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_app/src/export/json_export.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
+import 'package:compendium_app/src/data/date_format_scope.dart';
+import 'package:compendium_app/src/data/regional_formats.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
+import 'figures_support.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -94,20 +102,28 @@ Future<void> _pumpMenu(
   WidgetTester tester,
   Program program, {
   Map<String, Venue> venuesById = const {},
+  DateFormatSetting? dateFormat,
 }) async {
+  final notifier = ValueNotifier<DateFormatSetting>(
+    dateFormat ?? DateFormatSetting.system,
+  );
+  addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: Scaffold(
-        appBar: AppBar(
-          actions: [
-            ProgramExportMenu(
-              program: program,
-              titleFor: _titles,
-              venuesById: venuesById,
-            ),
-          ],
+      home: DateFormatScope(
+        notifier: notifier,
+        child: Scaffold(
+          appBar: AppBar(
+            actions: [
+              ProgramExportMenu(
+                program: program,
+                titleFor: _titles,
+                venuesById: venuesById,
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -126,6 +142,7 @@ Widget _shareBundleMenu(
   JsonExportChoice? choice = JsonExportChoice.share,
   Future<JsonSaveResult?> Function(String json, String fileName)? saveInvoker,
   JsonClipboardWriter? clipboardWriter,
+  DifficultyLevel? Function(String danceId)? difficultyLevelFor,
 }) => MaterialApp(
   localizationsDelegates: testLocalizationsDelegates,
   supportedLocales: testSupportedLocales,
@@ -137,6 +154,7 @@ Widget _shareBundleMenu(
           titleFor: _titles,
           venuesById: venuesById,
           danceFor: _danceFor,
+          difficultyLevelFor: difficultyLevelFor,
           bundleFileWriter: (json, fileName) async {
             final file = File('${dir.path}/$fileName');
             file.writeAsStringSync(json);
@@ -182,6 +200,112 @@ Widget _pdfMenu(
 );
 
 void main() {
+  // Pin the platform seam: `Platform.isLinux` is true on a Linux runner, which
+  // would route every share below to Save As.
+  final realBundleShareUnsupported = isBundleShareUnsupported;
+  setUp(() => isBundleShareUnsupported = () => false);
+  tearDown(() => isBundleShareUnsupported = realBundleShareUnsupported);
+
+  group('ProgramExportMenu on Linux', () {
+    setUp(() => isBundleShareUnsupported = () => true);
+
+    Future<void> openMenu(WidgetTester tester, Widget menu) async {
+      await tester.pumpWidget(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the program bundle action saves a file instead of sharing', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('linux_save_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final saved = <String>[];
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '${dir.path}/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+      expect(find.text('Share program and dances'), findsNothing);
+      await tester.tap(find.text('Save program file…'));
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Friday_Contra_2026-03-09.ccshare']);
+      expect(
+        find.text(
+          '"Friday_Contra_2026-03-09.ccshare" saved to ${dir.path}/Friday_Contra_2026-03-09.ccshare.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a cancelled Save As shows no snackbar or error', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('linux_cancel_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      var saves = 0;
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          saveInvoker: (json, fileName) async {
+            saves++;
+            return null;
+          },
+        ),
+      );
+      await tester.tap(find.text('Save program file…'));
+      await tester.pumpAndSettle();
+
+      expect(saves, 1);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('JSON › Share saves a file instead of sharing', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('linux_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final saved = <String>[];
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          choice: JsonExportChoice.share,
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '${dir.path}/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Friday_Contra_2026-03-09.json']);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+  });
+
   group('ProgramExportMenu', () {
     testWidgets('is present and labeled in an app bar', (tester) async {
       await _pumpMenu(tester, _program());
@@ -240,6 +364,140 @@ void main() {
       expect(clipboardText, contains('1. Rory O\'More'));
       expect(find.text('Set list copied to clipboard.'), findsOneWidget);
     });
+
+    testWidgets('Copy set list names each form when the program mixes '
+        'them (ADR-006 S5)', (tester) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      Future<String?> copy(
+        DanceForm secondForm, {
+        DanceForm? thirdForm,
+        bool thirdDeleted = false,
+      }) async {
+        clipboardText = null;
+        final dances = {
+          'd1': _dances['d1']!.copyWith(figures: const []),
+          'd2': _dances['d2']!.copyWith(form: secondForm),
+          if (thirdForm != null)
+            'd3': _dances['d2']!.copyWith(
+              title: 'Gone Dance',
+              form: thirdForm,
+              deletedAt: thirdDeleted ? DateTime.utc(2026, 1, 1) : null,
+            ),
+        };
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    key: ValueKey((secondForm, thirdForm, thirdDeleted)),
+                    program: _program(
+                      slots: [
+                        ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                        ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+                        if (thirdForm != null)
+                          ProgramSlot(id: 's3', position: 2, danceId: 'd3'),
+                      ],
+                    ),
+                    titleFor: (id) => id == 'd3' ? 'Gone Dance' : _titles(id),
+                    danceFor: (id) => dances[id],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy set list'));
+        await tester.pumpAndSettle();
+        return clipboardText;
+      }
+
+      final mixed = await copy(DanceForm.ecd);
+      expect(mixed, contains("1. Rory O'More (Contra)"));
+      expect(mixed, contains('2. The Nice Combination (English (ECD))'));
+      final single = await copy(DanceForm.contra);
+      expect(single, contains("1. Rory O'More\n"));
+      expect(single, isNot(contains('(Contra)')));
+
+      // A dance in Recently deleted counts for nothing, as on the program
+      // screens: it makes no mix of its own…
+      final deletedOnly = await copy(
+        DanceForm.contra,
+        thirdForm: DanceForm.ecd,
+        thirdDeleted: true,
+      );
+      expect(deletedOnly, contains("1. Rory O'More\n"));
+      expect(deletedOnly, isNot(contains('(Contra)')));
+      expect(deletedOnly, isNot(contains('(English (ECD))')));
+      // …and in a program that mixes without it, it names no form.
+      final mixedWithDeleted = await copy(
+        DanceForm.ecd,
+        thirdForm: DanceForm.ecd,
+        thirdDeleted: true,
+      );
+      expect(mixedWithDeleted, contains("1. Rory O'More (Contra)"));
+      expect(
+        mixedWithDeleted,
+        contains('2. The Nice Combination (English (ECD))'),
+      );
+      expect(mixedWithDeleted, contains('3. Gone Dance'));
+      expect(mixedWithDeleted, isNot(contains('Gone Dance (')));
+    });
+
+    for (final (setting, expected) in [
+      (DateFormatSetting(DateFormatPref.ymd), '2026-03-09'),
+      (DateFormatSetting(DateFormatPref.dmy), '09/03/2026'),
+      // System default carries the year (PLAT-12).
+      (DateFormatSetting.system, '3/9/2026'),
+    ]) {
+      testWidgets('Copy set list renders the event date per the Date format '
+          'setting (${setting.pref.name})', (tester) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+
+        await _pumpMenu(tester, _program(), dateFormat: setting);
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy set list'));
+        await tester.pumpAndSettle();
+
+        expect(clipboardText, contains(expected));
+      });
+    }
 
     testWidgets('Copy set list resolves a linked venue name over free text', (
       tester,
@@ -396,7 +654,10 @@ void main() {
       await tester.tap(find.text('Share set list (text)'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this set list"), findsOneWidget);
+      expect(
+        find.text("Couldn't share this set list. Try again."),
+        findsOneWidget,
+      );
     });
 
     testWidgets('share receives a non-null sharePositionOrigin', (
@@ -459,17 +720,100 @@ void main() {
       await tester.tap(find.text('Export / print PDF'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't export this set list"), findsOneWidget);
+      expect(
+        find.text("Couldn't export this set list. Try again."),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
-      'offers "Share (program + dances)" only when danceFor is given',
+      'surfaces a SnackBar when sharing throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(),
+                    titleFor: _titles,
+                    shareInvoker: (params) async =>
+                        throw StateError('no share target'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text("Couldn't share this set list. Try again."),
+          findsOneWidget,
+        );
+        expect(sink.sources, ['program_export_menu._guard']);
+      },
+    );
+
+    testWidgets(
+      'surfaces a SnackBar when the PDF export throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(),
+                    titleFor: _titles,
+                    pdfLayouter: ({required name, required onLayout}) async =>
+                        throw StateError('no printer'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text("Couldn't export this set list. Try again."),
+          findsOneWidget,
+        );
+        expect(sink.sources, ['program_export_menu._guard']);
+      },
+    );
+
+    testWidgets(
+      'offers "Share program and dances" only when danceFor is given',
       (tester) async {
         // Without danceFor: no bundle action.
         await _pumpMenu(tester, _program());
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        expect(find.text('Share (program + dances)'), findsNothing);
+        expect(find.text('Share program and dances'), findsNothing);
         // Close the menu.
         await tester.tapAt(const Offset(5, 5));
         await tester.pumpAndSettle();
@@ -495,7 +839,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        expect(find.text('Share (program + dances)'), findsOneWidget);
+        expect(find.text('Share program and dances'), findsOneWidget);
       },
     );
 
@@ -540,7 +884,7 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Share (program + dances)'));
+        await tester.tap(find.text('Share program and dances'));
         await tester.pumpAndSettle();
 
         expect(captured, isNotNull);
@@ -558,6 +902,102 @@ void main() {
         expect(archive.dances, hasLength(2));
       },
     );
+
+    group('private custom fields in the program bundle', () {
+      final privateField = CustomFieldDef(
+        id: 'f-private',
+        key: 'secret',
+        label: 'Secret',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      final privateDance = Dance(
+        id: 'dp',
+        title: 'Has A Secret',
+        figures: [
+          Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+        ],
+        sourceCitations: const [],
+        customFields: [
+          CustomFieldValue(fieldId: 'f-private', value: 'PRIVATE-VALUE'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+
+      Future<({List<String> written, ShareParams? shared})> share(
+        WidgetTester tester, {
+        CustomFieldDef? Function(String)? customFieldFor,
+      }) async {
+        final written = <String>[];
+        ShareParams? shared;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(
+                      slots: [
+                        ProgramSlot(id: 's1', position: 0, danceId: 'dp'),
+                      ],
+                    ),
+                    titleFor: _titles,
+                    danceFor: (id) => id == 'dp' ? privateDance : null,
+                    customFieldFor: customFieldFor,
+                    bundleFileWriter: (json, fileName) async {
+                      written.add(json);
+                      return XFile.fromData(
+                        utf8.encode(json),
+                        mimeType: 'application/json',
+                        name: fileName,
+                      );
+                    },
+                    shareInvoker: (params) async => shared = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share program and dances'));
+        await tester.pumpAndSettle();
+        return (written: written, shared: shared);
+      }
+
+      testWidgets('a resolved private field is omitted from the file', (
+        tester,
+      ) async {
+        final result = await share(
+          tester,
+          customFieldFor: (id) => id == 'f-private' ? privateField : null,
+        );
+
+        expect(result.shared, isNotNull);
+        expect(result.written.single, isNot(contains('PRIVATE-VALUE')));
+        expect(result.written.single, contains('Has A Secret'));
+      });
+
+      testWidgets('without a definition resolver nothing is written', (
+        tester,
+      ) async {
+        final result = await share(tester);
+
+        expect(result.written, isEmpty);
+        expect(result.shared, isNull);
+        expect(
+          find.text(
+            "Couldn't share this program. Your program is unchanged. Try again.",
+          ),
+          findsOneWidget,
+        );
+      });
+    });
 
     testWidgets('surfaces a SnackBar when the bundle share throws', (
       tester,
@@ -595,11 +1035,101 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't share this program"), findsOneWidget);
+      expect(
+        find.text(
+          "Couldn't share this program. Your program is unchanged. Try again.",
+        ),
+        findsOneWidget,
+      );
     });
+
+    for (final jsonExport in [false, true]) {
+      testWidgets(
+        '${jsonExport ? 'Export as JSON file' : 'Share program and dances'} '
+        'carries a custom level that only an alternate uses, with '
+        'hideAlternates',
+        (tester) async {
+          final dir = Directory.systemTemp.createTempSync('alt_level_test');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          final customLevel = DifficultyLevel(
+            id: 'custom-x',
+            label: 'Spicy',
+            position: 9,
+          );
+          _dances['d2x'] = Dance(
+            id: 'd2x',
+            title: 'Alt Only',
+            authorIds: const [],
+            figures: const [],
+            sourceCitations: const [],
+            customFields: const [],
+            difficultyLevelId: 'custom-x',
+            createdAt: _now,
+            updatedAt: _now,
+          );
+          addTearDown(() => _dances.remove('d2x'));
+
+          ShareParams? captured;
+          String? savedJson;
+          await tester.pumpWidget(
+            _shareBundleMenu(
+              _program(
+                hideAlternates: true,
+                slots: [
+                  ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                  ProgramSlot(
+                    id: 's2',
+                    position: 1,
+                    danceId: 'd2x',
+                    isAlt: true,
+                  ),
+                ],
+              ),
+              const {},
+              dir,
+              (p) => captured = p,
+              choice: JsonExportChoice.save,
+              saveInvoker: (json, fileName) async {
+                savedJson = json;
+                return JsonSaveResult(
+                  path: '${dir.path}/$fileName',
+                  fileName: fileName,
+                );
+              },
+              difficultyLevelFor: (danceId) =>
+                  danceId == 'd2x' ? customLevel : null,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.text(
+              jsonExport ? 'Export as JSON file' : 'Share program and dances',
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text(
+              "Couldn't share this program. Your program is unchanged. Try again.",
+            ),
+            findsNothing,
+          );
+          expect(find.textContaining("Couldn't"), findsNothing);
+          final json = jsonExport
+              ? savedJson
+              : File(captured!.files!.single.path).readAsStringSync();
+          expect(json, isNotNull);
+          final archive = decodeArchive(json!).archive;
+          expect(archive.dances.map((d) => d.id), containsAll(['d1', 'd2x']));
+          expect(archive.difficultyLevels.map((l) => l.id), ['custom-x']);
+        },
+      );
+    }
 
     testWidgets(
       'venue with contacts: consent dialog defaults off; contacts omitted',
@@ -623,7 +1153,7 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Share (program + dances)'));
+        await tester.tap(find.text('Share program and dances'));
         await tester.pumpAndSettle();
 
         // The dialog offers only the populated contact fields (contact 1),
@@ -678,7 +1208,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
 
       // Opt only the email in.
@@ -720,7 +1250,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
@@ -754,7 +1284,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('venue-contact-share-dialog')),
@@ -801,7 +1331,7 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Share (program + dances)'));
+        await tester.tap(find.text('Share program and dances'));
         await tester.pumpAndSettle();
 
         expect(
@@ -840,7 +1370,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-export-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Share (program + dances)'));
+      await tester.tap(find.text('Share program and dances'));
       await tester.pumpAndSettle();
 
       expect(
@@ -1030,7 +1560,7 @@ void main() {
           .toList();
       expect(titles, const [
         'Share set list (text)',
-        'Share (program + dances)',
+        'Share program and dances',
         'Copy set list',
         'Export as JSON file',
         'Export / print PDF',
@@ -1081,7 +1611,7 @@ void main() {
       expect(files.single.mimeType, 'application/json');
       expect(files.single.path, endsWith('.json'));
       expect(files.single.path, isNot(endsWith('.ccshare')));
-      expect(captured!.fileNameOverrides, ['Friday_Contra.json']);
+      expect(captured!.fileNameOverrides, ['Friday_Contra_2026-03-09.json']);
 
       final archive = decodeArchive(
         File(files.single.path).readAsStringSync(),
@@ -1121,12 +1651,12 @@ void main() {
       await tester.tap(find.text('Export as JSON file'));
       await tester.pumpAndSettle();
 
-      expect(savedName, 'Friday_Contra.json');
+      expect(savedName, 'Friday_Contra_2026-03-09.json');
       expect(jsonDecode(savedJson!)['programs'], isNotEmpty);
       expect(shares, 0);
       expect(
         find.text(
-          '"Friday_Contra.json" saved to ${dir.path}/Friday_Contra.json.',
+          '"Friday_Contra_2026-03-09.json" saved to ${dir.path}/Friday_Contra_2026-03-09.json.',
         ),
         findsOneWidget,
       );
@@ -1239,7 +1769,7 @@ void main() {
       await tester.tap(find.text('Export as JSON file'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't copy this JSON."), findsOneWidget);
+      expect(find.text("Couldn't copy this JSON. Try again."), findsOneWidget);
     });
 
     testWidgets('emits the same payload as the .ccshare action', (
@@ -1331,7 +1861,7 @@ void main() {
           ..remove('exportedAt');
       }
 
-      final bundle = await payloadFor('Share (program + dances)');
+      final bundle = await payloadFor('Share program and dances');
       final json = await payloadFor('Export as JSON file');
 
       // Guard the guard: a comparison of two empty-ish payloads would pass
@@ -1372,57 +1902,104 @@ void main() {
       expect(bytes, isNotEmpty);
     });
 
-    testWidgets('renders a linked venue without throwing', (tester) async {
-      final bytes = await buildProgramPdf(
-        _program(
-          venueId: 'v1',
-          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-        ),
+    testWidgets('draws the linked venue into the document', (tester) async {
+      final program = _program(
+        venueId: 'v1',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+      final withVenue = await buildProgramPdf(
+        program,
         titleFor: _titles,
         venuesById: {'v1': _venue},
       );
-      expect(bytes, isNotEmpty);
-      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+      final withoutVenue = await buildProgramPdf(program, titleFor: _titles);
+      expect(
+        withVenue.length,
+        greaterThan(withoutVenue.length),
+        reason:
+            'the venue block and header label must add content to the PDF; '
+            'equal length means the venue never reached the page',
+      );
     });
 
-    testWidgets('renders a linked venue with only a name (no detail fields)', (
-      tester,
-    ) async {
-      final bytes = await buildProgramPdf(
-        _program(venueId: 'v2'),
-        titleFor: _titles,
-        venuesById: {'v2': Venue(id: 'v2', name: 'Bare Hall')},
-      );
-      expect(bytes, isNotEmpty);
-      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    // The text is font-encoded inside the PDF, so the content check goes
+    // through the seam `buildProgramPdf` draws its venue text from.
+    test('buildProgramPdf renders a raw venue as its sanitised form', () {
+      final text = programPdfVenueText(_program(venueId: 'v1'), {
+        'v1': _venue,
+      }, const ProgramExportLabels());
+      final printed = [?text.headerLabel, ...text.blockLines].join('\n');
+
+      for (final leak in const [
+        '123 Main St',
+        'Room 2',
+        'Montpelier',
+        '05602',
+        'Pat Caller',
+        '555-0100',
+        'pat@example.com',
+      ]) {
+        expect(printed, isNot(contains(leak)), reason: leak);
+      }
+      expect(printed, contains('Grange Hall'));
+      expect(printed, contains('https://grange.example'));
     });
+
+    test('buildProgramPdf prints only the consented contact field', () {
+      final text = programPdfVenueText(
+        _program(venueId: 'v1'),
+        {'v1': _venue},
+        const ProgramExportLabels(),
+        includeVenueContact: {VenueContactField.contact1Email},
+      );
+      final printed = text.blockLines.join('\n');
+
+      expect(printed, contains('pat@example.com'));
+      expect(printed, isNot(contains('555-0100')));
+      expect(printed, isNot(contains('Pat Caller')));
+      expect(printed, isNot(contains('123 Main St')));
+    });
+
+    test('a venue with only a name prints its name and no detail block', () {
+      final text = programPdfVenueText(_program(venueId: 'v2'), {
+        'v2': Venue(id: 'v2', name: 'Bare Hall'),
+      }, const ProgramExportLabels());
+
+      expect(text.headerLabel, contains('Bare Hall'));
+      expect(text.blockLines, isEmpty);
+    });
+
+    testWidgets(
+      'authorNamesFor adds content to the numbered slot line, independent '
+      'of appendDances (issue #1434)',
+      (tester) async {
+        final withAuthor = await buildProgramPdf(
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: _titles,
+          authorNamesFor: (id) => id == 'd1' ? const ['Jane Smith'] : const [],
+        );
+        final withoutAuthor = await buildProgramPdf(
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: _titles,
+        );
+        expect(
+          withAuthor.length,
+          greaterThan(withoutAuthor.length),
+          reason:
+              'the author suffix must add content to the slot line even '
+              'with no figure appendix at all (appendDances is null in both '
+              'calls here) — equal length means authorNamesFor never reached '
+              '_slotLine',
+        );
+      },
+    );
   });
 
-  group('venueLocalityLine', () {
-    test('joins city/state with a comma and the postal with a space', () {
-      expect(venueLocalityLine(_venue), 'Montpelier, VT 05602-1234');
-    });
-
-    test('drops the state and postal when only a city is present', () {
-      expect(
-        venueLocalityLine(Venue(id: 'v', name: 'X', city: 'Montpelier')),
-        'Montpelier',
-      );
-    });
-
-    test('formats a bare ZIP with no +4', () {
-      expect(
-        venueLocalityLine(
-          Venue(id: 'v', name: 'X', city: 'Montpelier', postalCode: '05602'),
-        ),
-        'Montpelier 05602',
-      );
-    });
-
-    test('is empty when no locality parts are present', () {
-      expect(venueLocalityLine(Venue(id: 'v', name: 'X')), isEmpty);
-    });
-
+  group('buildProgramPdf with a purged dance', () {
     testWidgets('exports a program whose dance was purged, without corruption '
         '(#459 export coverage)', (tester) async {
       // End-to-end regression for the purge → export path (#429/#459): a
@@ -1510,7 +2087,7 @@ void main() {
       // Mutation that would catch a regression: if the _hasFigures guard is
       // removed and the prompt is never shown, find.byKey returns nothing.
       assert(
-        danceWithFigures.figures.isNotEmpty,
+        figuresOf(danceWithFigures).isNotEmpty,
         'guard: fixture must have figures',
       );
       ShareParams? captured;
@@ -1572,6 +2149,190 @@ void main() {
       },
     );
 
+    group('a dance with notes or a walkthrough but no figures (OUT-10)', () {
+      final notesOnly = Dance(
+        id: 'd3',
+        title: 'Notes Only Reel',
+        figures: const [],
+        callingNotes: 'Watch the neighbour slide.',
+        walkthrough: 'Circle left, then pass through.',
+        createdAt: _now,
+        updatedAt: _now,
+      );
+
+      /// Shares the set list as text with [fields] selected; returns the
+      /// shared text, or `null` when the figures prompt never let it through.
+      Future<({String? text, bool prompted})> shareText(
+        WidgetTester tester,
+        Set<DanceShareField> fields, {
+        bool chooseCards = true,
+      }) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: ValueNotifier(fields),
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd3'),
+                        ],
+                      ),
+                      titleFor: (_) => notesOnly.title,
+                      danceFor: (_) => notesOnly,
+                      shareInvoker: (params) async => captured = params,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+        final prompted = find
+            .byKey(const ValueKey('program-figures-prompt-dialog'))
+            .evaluate()
+            .isNotEmpty;
+        if (prompted) {
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+        }
+        return (text: captured?.text, prompted: prompted);
+      }
+
+      testWidgets('gets a card in "Set list and figures"', (tester) async {
+        final result = await shareText(tester, DanceShareField.allExceptTunes);
+        expect(result.prompted, isTrue);
+        expect(result.text, contains('---'));
+        expect(result.text, contains('Watch the neighbour slide.'));
+        expect(result.text, contains('Circle left, then pass through.'));
+      });
+
+      testWidgets('is not asked about when both fields are deselected', (
+        tester,
+      ) async {
+        final result = await shareText(tester, {DanceShareField.formation});
+        expect(result.prompted, isFalse);
+        expect(result.text, isNot(contains('---')));
+      });
+
+      testWidgets('shows only the selected field on its card', (tester) async {
+        final result = await shareText(tester, {DanceShareField.walkthrough});
+        expect(result.prompted, isTrue);
+        expect(result.text, contains('Circle left, then pass through.'));
+        expect(result.text, isNot(contains('Watch the neighbour slide.')));
+      });
+    });
+
+    group('hook and sources on a set-list card (OUT-6)', () {
+      final cited = Dance(
+        id: 'd4',
+        title: 'Cited Reel',
+        figures: const [],
+        hook: 'Opens with a pass-through.',
+        sourceCitations: [SourceCitation(sourceId: 'src1', page: '12')],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final book = PublishedSource(
+        id: 'src1',
+        title: 'Give-and-Take',
+        author: 'A. Author',
+        year: 1990,
+      );
+
+      Future<({String? text, bool prompted})> shareText(
+        WidgetTester tester,
+        Set<DanceShareField> fields,
+      ) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: ValueNotifier(fields),
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd4'),
+                        ],
+                      ),
+                      titleFor: (_) => cited.title,
+                      danceFor: (_) => cited,
+                      publishedSourceFor: (id) => id == 'src1' ? book : null,
+                      shareInvoker: (params) async => captured = params,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+        final prompted = find
+            .byKey(const ValueKey('program-figures-prompt-dialog'))
+            .evaluate()
+            .isNotEmpty;
+        if (prompted) {
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+        }
+        return (text: captured?.text, prompted: prompted);
+      }
+
+      testWidgets('are off by default: no prompt, no card', (tester) async {
+        final result = await shareText(tester, DanceShareField.allExceptTunes);
+        expect(result.prompted, isFalse);
+        expect(result.text, isNot(contains('Opens with a pass-through.')));
+        expect(result.text, isNot(contains('Give-and-Take')));
+      });
+
+      testWidgets('appear on the card, with the source resolved, once '
+          'selected', (tester) async {
+        final result = await shareText(tester, DanceShareField.all);
+        expect(result.prompted, isTrue);
+        expect(result.text, contains('Hook: Opens with a pass-through.'));
+        expect(result.text, contains('Sources:'));
+        expect(
+          result.text,
+          contains('Give-and-Take — A. Author, 1990 (p. 12)'),
+        );
+      });
+    });
+
     testWidgets('Cancel on prompt aborts the share — captured stays null', (
       tester,
     ) async {
@@ -1609,7 +2370,7 @@ void main() {
       // Mutation: make "set list only" fall through to _plainTextWithFigures →
       // text contains "---" separator → assertion fails.
       assert(
-        danceWithFigures.figures.isNotEmpty,
+        figuresOf(danceWithFigures).isNotEmpty,
         'guard: fixture must have figures',
       );
       ShareParams? captured;
@@ -1646,7 +2407,7 @@ void main() {
         // Mutation: remove the figures append in _plainTextWithFigures → "---"
         // separator absent → assertion fails.
         assert(
-          danceWithFigures.figures.isNotEmpty,
+          figuresOf(danceWithFigures).isNotEmpty,
           'guard: fixture must have figures',
         );
         ShareParams? captured;
@@ -1690,7 +2451,7 @@ void main() {
         // Mutation: remove the alternate label in _plainTextWithFigures →
         // "Alternate" absent from text → assertion fails.
         assert(
-          danceWithFigures.figures.isNotEmpty,
+          figuresOf(danceWithFigures).isNotEmpty,
           'guard: fixture must have figures',
         );
         // Use a note-only primary so d1 (with figures) appears as the alternate.
@@ -1773,7 +2534,7 @@ void main() {
         //   Expected: a value greater than <N>   (measured ~8894 at time of writing)
         //   Actual: <N>   (both paths produce identical bytes)
         assert(
-          danceWithFigures.figures.isNotEmpty,
+          figuresOf(danceWithFigures).isNotEmpty,
           'guard: fixture must have figures',
         );
         final prog = _program(
@@ -1880,6 +2641,101 @@ void main() {
       },
     );
 
+    testWidgets('PDF path: the set-list PDF is laid out on the paper the print '
+        'dialog chose, not A4 (OUT-4)', (tester) async {
+      final prog = _program(
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+      LayoutCallback? captured;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: prog,
+                  titleFor: _titles,
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      captured = onLayout,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(pdfMediaBox(await captured!(PdfPageFormat.letter)), (612, 792));
+      expect(pdfMediaBox(await captured!(PdfPageFormat.a4)), (595, 842));
+    });
+
+    testWidgets(
+      'PDF path: onLayout still lays out the PDF after the export menu has '
+      'unmounted',
+      (tester) async {
+        // Printing.layoutPdf may call onLayout again later (a page-format
+        // change in the print dialog) after the menu has unmounted. Every
+        // inherited value must be resolved before onLayout is built, as
+        // _exportMatrixPdf does (CS-11). Mutation this test catches: reading any
+        // `Scope.of(context)` inside the onLayout closure, which throws
+        // "Looking up a deactivated widget's ancestor is unsafe" here.
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+        LayoutCallback? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: prog,
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                    shareInvoker: (params) async {},
+                    pdfLayouter: ({required name, required onLayout}) async {
+                      captured = onLayout;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+        expect(captured, isNotNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+
+        final bytes = await captured!(PdfPageFormat.letter);
+        expect(bytes, isNotEmpty);
+      },
+    );
+
     testWidgets('PDF path: Cancel on figures prompt → pdf layouter NOT invoked', (
       tester,
     ) async {
@@ -1912,4 +2768,438 @@ void main() {
       expect(pdfInvoked, isFalse);
     });
   });
+
+  group('DanceShareField picker (issue #1434)', () {
+    String? titlesWithD3(String id) => id == 'd3' ? 'Money Musk' : _titles(id);
+    final choreographers = <String, Choreographer>{
+      'c1': Choreographer(id: 'c1', name: 'Jane Smith'),
+    };
+    final dancesWithAuthor = <String, Dance>{
+      ..._dances,
+      // Deliberately no figures: this is the literal issue #1434 scenario —
+      // the base set-list share for a dance that never entered figures.
+      'd3': Dance(
+        id: 'd3',
+        title: 'Money Musk',
+        authorIds: const ['c1'],
+        figures: const [],
+        sourceCitations: const [],
+        customFields: const [],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    };
+
+    Future<String?> pumpAndCopy(
+      WidgetTester tester,
+      Program program, {
+      required Set<DanceShareField> fields,
+      Choreographer? Function(String id)? choreographerFor,
+      List<String>? Function(String danceId)? authorNamesOverrideFor,
+    }) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DanceShareFieldsScope(
+            notifier: ValueNotifier(fields),
+            child: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: program,
+                    titleFor: titlesWithD3,
+                    danceFor: (id) => dancesWithAuthor[id],
+                    choreographerFor:
+                        choreographerFor ?? (id) => choreographers[id],
+                    authorNamesOverrideFor: authorNamesOverrideFor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy set list'));
+      await tester.pumpAndSettle();
+      return clipboardText;
+    }
+
+    testWidgets(
+      'the base set-list line shows the author suffix for a dance with no '
+      'figures at all — the literal issue #1434 scenario, unreachable via '
+      'the figures-appendix opt-in',
+      (tester) async {
+        final text = await pumpAndCopy(
+          tester,
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd3')],
+          ),
+          fields: DanceShareField.allExceptTunes,
+        );
+        expect(text, contains('1. Money Musk — by Jane Smith'));
+        // Confirms this dance never reached the figures-appendix path.
+        expect(text, isNot(contains('Figures:')));
+      },
+    );
+
+    testWidgets(
+      'a dance with an author in Recently deleted gets its names, by name only',
+      (tester) async {
+        final text = await pumpAndCopy(
+          tester,
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd3')],
+          ),
+          fields: DanceShareField.allExceptTunes,
+          // The collection does not list a deleted author.
+          choreographerFor: (_) => null,
+          authorNamesOverrideFor: (id) => id == 'd3' ? ['Jane Smith'] : null,
+        );
+        expect(text, contains('1. Money Musk — by Jane Smith'));
+      },
+    );
+
+    testWidgets('omits the author suffix when authors is deselected', (
+      tester,
+    ) async {
+      final text = await pumpAndCopy(
+        tester,
+        _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd3')],
+        ),
+        fields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.authors),
+      );
+      expect(text, contains('1. Money Musk'));
+      expect(text, isNot(contains('Jane Smith')));
+      expect(text, isNot(contains('by ')));
+    });
+
+    testWidgets(
+      'PDF: a larger field selection produces a larger PDF than a smaller '
+      'one, for the identical program/dance (issue #1434)',
+      (tester) async {
+        // Same byte-size-differential technique as the existing "appendDances
+        // reaches the PDF builder" test above: PDF bytes aren't otherwise
+        // inspectable in this suite, but two closures built through the
+        // identical _exportPdf call path, differing only in the live
+        // DanceShareFieldsScope value at capture time, isolate the field
+        // selection as the only variable.
+        //
+        // Mutation this catches: dropping `cardLabelsFor`/`fields` from the
+        // buildProgramPdf call in _exportPdf. Both closures would then
+        // produce identical (title+figures-only) bytes and the comparison
+        // would fail.
+        // A richer fixture than the shared `_dances` map (whose 'd1' has only
+        // a default formation — every other field is empty/false/active, so
+        // "all fields" would add nothing beyond "formation only" and the
+        // differential would be vacuous regardless of whether the wiring
+        // works).
+        final richDance = Dance(
+          id: 'd1',
+          title: 'Rory O\'More',
+          authorIds: const ['c1'],
+          figures: [
+            Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+          ],
+          mixer: true,
+          status: DanceStatus.deprecated,
+          phraseStructure: '6*8*2',
+          callingNotes: 'Teach the box the gnat first.',
+          walkthrough: 'Everyone forms a big circle.',
+          tunes: const ['Rakes of Kildare'],
+          sourceCitations: const [],
+          customFields: const [],
+          createdAt: _now,
+          updatedAt: _now,
+        );
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+        final notifier = ValueNotifier<Set<DanceShareField>>({
+          DanceShareField.formation,
+        });
+        addTearDown(notifier.dispose);
+
+        LayoutCallback? capturedSmallFields;
+        LayoutCallback? capturedAllFields;
+
+        final widget = MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DanceShareFieldsScope(
+            notifier: notifier,
+            child: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: prog,
+                    titleFor: _titles,
+                    danceFor: (id) => id == 'd1' ? richDance : _danceFor(id),
+                    choreographerFor: (_) =>
+                        Choreographer(id: 'c1', name: 'Jane Smith'),
+                    shareInvoker: (params) async {},
+                    pdfLayouter: ({required name, required onLayout}) async {
+                      if (capturedSmallFields == null) {
+                        capturedSmallFields = onLayout;
+                      } else if (capturedAllFields == null) {
+                        capturedAllFields = onLayout;
+                      } else {
+                        fail('pdfLayouter called more than twice');
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpWidget(widget);
+        await tester.pumpAndSettle();
+
+        Future<void> exportWithFigures() async {
+          await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Export / print PDF'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+        }
+
+        // ── First export: only "formation" selected ───────────────────────
+        await exportWithFigures();
+
+        // ── Widen the selection, then export again ─────────────────────────
+        notifier.value = DanceShareField.all;
+        await exportWithFigures();
+
+        expect(capturedSmallFields, isNotNull);
+        expect(capturedAllFields, isNotNull);
+
+        final smallBytes = await capturedSmallFields!(PdfPageFormat.a4);
+        final allBytes = await capturedAllFields!(PdfPageFormat.a4);
+
+        expect(
+          allBytes.length,
+          greaterThan(smallBytes.length),
+          reason:
+              'the full field selection (author/level/mixer/status/phrase/'
+              'tunes) must add content beyond the small selection; equal '
+              'length means the picker never reached buildProgramPdf',
+        );
+      },
+    );
+
+    testWidgets(
+      'PDF: selecting hook or sources adds them to the appendix card (OUT-6)',
+      (tester) async {
+        // Same byte-size-differential technique as the test above. Mutation
+        // this catches: dropping the hook or the resolved `sourceLines` from
+        // the card handed to buildProgramPdf — the appendix would then be the
+        // same size as the formation-only one.
+        final cited = Dance(
+          id: 'd1',
+          title: 'Cited Reel',
+          hook: 'Opens with a long pass-through and a swing.',
+          figures: [
+            Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+          ],
+          sourceCitations: [
+            SourceCitation(sourceId: 'src1', page: '12', number: 'A1'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        );
+        final book = PublishedSource(
+          id: 'src1',
+          title: 'Give-and-Take, the long-titled collection of contra dances',
+          author: 'A. Author',
+          year: 1990,
+        );
+        final notifier = ValueNotifier<Set<DanceShareField>>({
+          DanceShareField.formation,
+        });
+        addTearDown(notifier.dispose);
+        final layouts = <LayoutCallback>[];
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: notifier,
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                        ],
+                      ),
+                      titleFor: _titles,
+                      danceFor: (_) => cited,
+                      publishedSourceFor: (id) => id == 'src1' ? book : null,
+                      shareInvoker: (params) async {},
+                      pdfLayouter: ({required name, required onLayout}) async =>
+                          layouts.add(onLayout),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        Future<int> exportBytes(Set<DanceShareField> fields) async {
+          notifier.value = fields;
+          await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Export / print PDF'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+          return (await layouts.last(PdfPageFormat.a4)).length;
+        }
+
+        final base = await exportBytes({DanceShareField.formation});
+        final withHook = await exportBytes({
+          DanceShareField.formation,
+          DanceShareField.hook,
+        });
+        final withSources = await exportBytes({
+          DanceShareField.formation,
+          DanceShareField.sources,
+        });
+        expect(
+          withHook,
+          greaterThan(base),
+          reason: 'hook never reached the PDF',
+        );
+        expect(
+          withSources,
+          greaterThan(base),
+          reason: 'sources never reached the PDF',
+        );
+      },
+    );
+
+    testWidgets(
+      'the "Set list and figures" per-dance card respects a deselected '
+      'field (formation)',
+      (tester) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: ValueNotifier(
+                {...DanceShareField.allExceptTunes}
+                  ..remove(DanceShareField.formation),
+              ),
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                        ],
+                      ),
+                      titleFor: _titles,
+                      danceFor: _danceFor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        // d1 has figures, so this dialog is offered; choose the card mode.
+        await tester.tap(find.text('Copy set list'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(clipboardText, isNotNull);
+        expect(clipboardText, contains('Figures:'));
+        expect(clipboardText, isNot(contains('Formation:')));
+      },
+    );
+  });
+}
+
+/// Records the `source` of every logged caught error.
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) =>
+      sources.add(source);
 }

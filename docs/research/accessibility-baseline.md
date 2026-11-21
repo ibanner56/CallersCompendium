@@ -54,6 +54,17 @@ baseline is AA:
   non-timed equivalent provides the same capability; Program **View details**
   previews are the explicit exception.
 
+Automated check: `app/test/a11y_guidelines_test.dart` pumps the full app through
+the core screens and runs Flutter's `labeledTapTargetGuideline`, a 24×24 px
+tap-target minimum (this baseline's floor, not Android's 48), and a RenderFlex
+overflow sweep at 360 and 412 dp with 2.0× text and the bundled fonts.
+`app/test/dropdown_large_text_test.dart` does the same for the form dropdowns it
+lists (long values, 1.5× and 2.0×); it is not exhaustive.
+`app/test/keyboard_traversal_test.dart` walks the core flows with real Tab and
+Shift+Tab presses and fails on a keyboard trap, an unreachable tappable control,
+or a stop with no focus ring. None of these replaces the manual screen-reader,
+Dynamic Type and keyboard passes in `docs/dev/release-checklist.md`.
+
 ### Understandable
 - Consistent navigation and terminology across screens; user's dialect applied
   uniformly (a11y benefit: the user's own vocabulary *is* the display language).

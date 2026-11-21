@@ -9,5 +9,8 @@ set -eu
 
 HERE="$(dirname "$(readlink -f "${0}")")"
 export PATH="${HERE}/usr/bin:${PATH}"
-export LD_LIBRARY_PATH="${HERE}/usr/bin/lib:${LD_LIBRARY_PATH:-}"
+# Append any existing value only when it is non-empty: a trailing ":" is an
+# empty entry, which the loader reads as the current directory, so a library
+# dropped next to the AppImage (e.g. in ~/Downloads) would load first.
+export LD_LIBRARY_PATH="${HERE}/usr/bin/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 exec "${HERE}/usr/bin/compendium_app" "$@"

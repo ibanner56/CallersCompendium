@@ -233,6 +233,23 @@ void main() {
       expect(danceFiguresTemplateFromStored('[]'), isEmpty);
     });
 
+    test('with free-text entry on, falls back to no figures but keeps a '
+        'saved template (#1177)', () {
+      for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
+        expect(
+          danceFiguresTemplateFromStored(stored, freeTextEntry: true),
+          isEmpty,
+        );
+      }
+      final saved = danceFiguresTemplateFromStored(
+        encodeFigures([
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+        freeTextEntry: true,
+      );
+      expect(saved.single.move, 'stand_still');
+    });
+
     test('falls back to the default for null, non-string, empty, garbage', () {
       for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
         final template = danceFiguresTemplateFromStored(stored);
@@ -425,6 +442,31 @@ void main() {
       );
       expect(kLastUsedSortSentinel, 'last_used');
     });
+
+    test('the default-direction keys (issue #1841) use their stable strings '
+        'and are distinct from the last-used ones', () {
+      expect(
+        kDefaultCollectionSortDirectionKey,
+        'default_collection_sort_direction',
+      );
+      expect(kDefaultProgramSortDirectionKey, 'default_program_sort_direction');
+      expect({
+        kDefaultCollectionSortDirectionKey,
+        kDefaultProgramSortDirectionKey,
+        kLastUsedCollectionSortDirectionKey,
+        kLastUsedProgramSortDirectionKey,
+      }, hasLength(4));
+    });
+
+    test('sortDirectionFromName leaves an absent or unrecognised stored '
+        'direction to the caller (natural-direction fallback)', () {
+      expect(sortDirectionFromName(null), isNull);
+      expect(sortDirectionFromName('sideways'), isNull);
+      expect(sortDirectionFromName(1), isNull);
+      for (final d in SortDirection.values) {
+        expect(sortDirectionFromName(d.name), d);
+      }
+    });
   });
 
   group('SortDefaultSetting equality (issue #895)', () {
@@ -440,7 +482,7 @@ void main() {
     });
 
     test('every "Last used" entry is equal regardless of its fallback sort — '
-        'required for DropdownButton to highlight the right item by ==', () {
+        'required for the dropdown to find the chosen entry by ==', () {
       expect(
         const SortDefaultSetting.lastUsed(CollectionSort.title),
         const SortDefaultSetting.lastUsed(CollectionSort.author),
@@ -560,6 +602,41 @@ void main() {
       expect(sortDirectionFromName(null), isNull);
       expect(sortDirectionFromName(3), isNull);
       expect(sortDirectionFromName('sideways'), isNull);
+    });
+  });
+
+  group('resolveNewDanceForm', () {
+    test('a set form wins over the last used form', () {
+      expect(
+        resolveNewDanceForm(defaultFormStored: 'square', lastUsedStored: 'ecd'),
+        DanceForm.square,
+      );
+    });
+
+    test('last used follows the last new dance, contra before any', () {
+      expect(
+        resolveNewDanceForm(
+          defaultFormStored: kDefaultDanceFormLastUsed,
+          lastUsedStored: 'ecd',
+        ),
+        DanceForm.ecd,
+      );
+      expect(
+        resolveNewDanceForm(
+          defaultFormStored: kDefaultDanceFormLastUsed,
+          lastUsedStored: null,
+        ),
+        DanceForm.contra,
+      );
+    });
+
+    test('an unset or unknown setting is contra, not last used', () {
+      for (final stored in [null, 'waltz', 3]) {
+        expect(
+          resolveNewDanceForm(defaultFormStored: stored, lastUsedStored: 'ecd'),
+          DanceForm.contra,
+        );
+      }
     });
   });
 }

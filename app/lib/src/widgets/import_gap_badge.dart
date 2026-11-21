@@ -1,17 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-
-/// The canonical English explanation for an import-gap custom figure.
-///
-/// [ImportGapBadge] itself renders this through `l10n.importGapMessage` (L5
-/// localization). The const is retained as the English source for the one
-/// remaining not-yet-localized consumer — the screen-reader composite in
-/// `figure_list_editor.dart`, which is deferred to L6. Its value must stay in
-/// sync with the `importGapMessage` ARB message; L6 removes this const when it
-/// localizes that composite.
-const String importGapMessage =
-    "Couldn't parse this call — kept verbatim as a custom figure.";
+import '../theme/app_motion.dart';
 
 /// Accessible affordance flagging a figure the parser could not map to a
 /// structured move and kept verbatim (a [CustomOrigin.importGap] custom) —
@@ -26,6 +16,9 @@ const String importGapMessage =
 /// the surrounding row's primary tap interaction.
 class ImportGapBadge extends StatelessWidget {
   const ImportGapBadge({super.key, this.size});
+
+  /// Minimum width and height of the tap target, in logical pixels.
+  static const double minTapTarget = 24;
 
   /// Optional glyph size; defaults to the ambient body font size, clamped.
   final double? size;
@@ -47,10 +40,21 @@ class ImportGapBadge extends StatelessWidget {
         child: InkResponse(
           radius: resolvedSize,
           onTap: () => _showExplanation(context),
-          child: Icon(
-            Icons.report_gmailerrorred,
-            size: resolvedSize,
-            color: theme.colorScheme.tertiary,
+          // The glyph alone is 16px at the default size; keep the hit target
+          // at least [minTapTarget] square without growing the visible icon.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: minTapTarget,
+              minHeight: minTapTarget,
+            ),
+            // [Icon] is a box of its own size, so it grows to the minimum and
+            // keeps the glyph centered; a [Center] here would instead expand
+            // to fill whatever loose space the parent offers.
+            child: Icon(
+              Icons.report_gmailerrorred,
+              size: resolvedSize,
+              color: theme.colorScheme.tertiary,
+            ),
           ),
         ),
       ),
@@ -75,6 +79,7 @@ class ImportGapBadge extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 }

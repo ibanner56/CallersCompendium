@@ -19,7 +19,7 @@ eight rounds while nineteen findings accumulated: `GET /pulls/<N>/comments`,
 thread state, and unresolved count are all blind to suppressed findings by
 construction. The review **body** is their only surface.
 
-Rule: [code-review.md](code-review.md#reading-a-review).
+Rule: [code-review.md](code-review.md#reading-a-copilot-review).
 
 ## The mismatched reviewer-login filter
 
@@ -33,7 +33,7 @@ wrong conclusion — a real inline security finding had come through the normal
 thread channel and the mismatched filter made it invisible. A surprising zero is
 evidence about your query before it is evidence about the world.
 
-Rule: [code-review.md](code-review.md#reading-a-review).
+Rule: [code-review.md](code-review.md#reading-a-copilot-review).
 
 ## #842: review freshness read as PASS on a stale review
 
@@ -121,7 +121,9 @@ when #697 split `orbit` into a first-class move, unnoticed for days until #745
 fixed them by hand.
 
 `packages/compendium_core/tool/check_fixture_validity.dart` now guards it, run
-by `_checks.yml` before the core suite — but `dart test` does not run it over
+by `_checks.yml`'s `validate` job (it first sat in `core-tests`, which an
+app-test-only PR skips — so a drifted `app/test` fixture reddened `main` one
+push later, attributed to the next PR) — but `dart test` does not run it over
 the real suites (its own unit test drives synthetic input), so a clean local
 `dart test` will not catch a fixture you just invalidated. That is why
 [`tools/preflight.py`](../../../tools/preflight.py) exists and runs it.
@@ -140,6 +142,10 @@ of trust for update authenticity rather than a preference; it is excluded **by
 name, with a reason**, so that the next non-settings `…Key` constant still fails
 loudly. A cleverer pattern would have dropped both silently — do not narrow a
 ratchet's detection pattern to make a false positive go away.
+(The update key later became the list `kUpdateManifestPublicKeys` (security-2),
+which the pattern does not match, and `kPublishedCollectionPublicKey` became
+`kPublishedCollectionPublicKeys` (#2161) the same way, so neither exclusion
+remains.)
 
 Rule: [`.github/instructions/privacy-registry.instructions.md`](../../../.github/instructions/privacy-registry.instructions.md).
 
@@ -266,3 +272,119 @@ instead: it fixes nothing for the sessions that read the taxonomy whole, and the
 blocks would have kept growing.
 
 Rule: [session-cost.md](session-cost.md#worked-example-a-ledger-is-not-a-rationale).
+
+## Two preflights at once exhausted the host
+
+At 06:45 on 2026-09-22 a session had two subagents each running a full
+`tools/preflight.py` in its own worktree, plus a background
+`find / -iname "*.dart" | xargs grep`. The host's process reaper killed all
+three, reporting "the system is running low on memory"; the note it attached
+said the kill was not a failure of the command, so the subagent correctly
+declined to retry and reported that it could not verify its change. One run
+finally passed only after the work was serialized by hand.
+
+The measurement, taken one step at a time on that host (16 threads, 15.9 GB RAM,
+18.8 GB commit limit, 13.6 GB already committed at idle — 2.9 GB of it the agent
+processes themselves):
+
+| step | wall | peak private | system commit |
+| --- | --- | --- | --- |
+| `app-tests` | 196s | 5.1 GB | 18.46 GB |
+| `core-tests` | 97s | 2.5 GB | 16.07 GB |
+| `analyze` | 89s | 1.5 GB | 15.10 GB |
+| every Python gate | seconds | megabytes | — |
+
+Two findings, both counter to the first guess:
+
+- **No leak.** Commit returns to the 13.6 GB baseline after every step, and
+  within a step memory saws up and down with GC rather than climbing. The
+  gigabytes are the steady-state cost of the toolchain, not an accumulation.
+- **The cost is concurrency inside one step.** `flutter test` defaults to
+  `numberOfProcessors / 2` test processes, each holding its own engine: eight
+  here against two on CI's 4-core runner. `-j 4` cost 208-235s over three runs
+  against 196s uncapped, and peaked at 3.3 GB against 5.1 GB — call it half a
+  minute for 1.8 GB. `-j 2` cost 350s and is not worth it; capping `core-tests`
+  (118s against 87s for 0.7 GB) is not either.
+
+So the fix is not a smaller suite. `app-tests` caps concurrency
+(`PREFLIGHT_TEST_JOBS` overrides), and the Dart/Flutter steps hold a
+machine-wide lock so a second run queues rather than dying. The lock is a
+whole-file OS lock tied to the open file, which is what makes it safe here: the
+process that holds it may be killed without warning by the very reaper this
+prevents, and the OS then drops the lock with no PID file to go stale.
+
+Rule: [verification.md](verification.md#one-full-preflight-per-change-run-by-the-session-that-owns-the-change).
+
+## #1314: a squashed sync pinned the merge base
+
+`athenaeum` was then a long-lived branch synced with `main` in both directions.
+A squash rewrites the merge into a single-parent commit, so git never records
+the source branch as an ancestor and the merge base does not advance. PR #1314
+("Merge main into athenaeum") was squash-merged this way. The *content* of
+`main` landed correctly, but the merge base stayed pinned at `8f180a9a`, and
+every later merge in either direction re-derived twenty-one commits of
+already-resolved diff. `app/lib/main.dart`, `app/test/settings_backup_test.dart`
+and `app/test/startup_sequence_test.dart` conflicted again, with the same
+hunks, against resolutions that were already committed — and would have
+conflicted again on every subsequent sync, because nothing about re-resolving
+them teaches git where the real base is.
+
+The rule that came out of it was to merge a sync between long-lived branches
+with **Create a merge commit**. `athenaeum` has since been retired, and `main`
+accepts squash merges only, so the repair below can land only on a target
+branch that allows a merge commit.
+
+If a sync has already been squashed, do not re-resolve the phantom conflicts —
+that buries the problem one merge deeper. Restore the missing parent instead,
+with a merge that changes no files:
+
+```sh
+git checkout athenaeum
+git merge -s ours --no-ff <the-source-commit-the-squash-integrated>
+git merge main        # now a normal, minimal merge
+```
+
+`-s ours` keeps the current tree and records the second parent, so the merge
+base advances to `<the-source-commit>`. It asserts that the squash already
+integrated that commit faithfully, which is a claim to verify before you make
+it, not after — the assertion is permanent. Replay the merge the squash stood
+in for and compare:
+
+```sh
+git checkout --detach <pre-squash-tip>
+git merge --no-commit --no-ff <the-source-commit-the-squash-integrated>
+git diff <squash-commit> -- . ':!<each><conflicted><path>'
+```
+
+An empty diff means every path git merged on its own matches the squash. Read
+the conflicted paths by hand and confirm both sides survived; a file that is
+absent from the squash is only correct if the branch deleted it on purpose
+(`BackupControllerScope` was such a case — deleted by `athenaeum` in favour of
+`SyncWriterLifecycleScope`, and older than the merge base, so its absence was
+intent and not loss).
+
+Rule: [merging.md](merging.md#branch-sync-prs).
+
+## #2222: a relabelled review left `ci` red
+
+The `claude-review` round on head `f58751f7` failed when the maintainer's usage
+limit was reached: the model stopped after 0.4 seconds with `is_error: true`
+and no turns (run 44390128456, check run 135105197338). Following the
+retry advice then in `code-review.md`, the label was removed and added back.
+That round (run 44397299671) approved the head, but
+`check_pr_review_gates.py ci` still failed, naming `claude-review`.
+
+The cause is the check-runs API's default `filter=latest`, which keeps the
+newest run of each check name within one **check suite**. The relabelled round
+was a new workflow run, so a new suite (`120184486373`), and the failed run in
+the old suite (`120164761182`) stayed in the default listing beside the
+passing one. Re-running the failed job made attempt 2 of run 44390128456, in
+the same old suite. It passed, the failed check run dropped out of the default
+listing (it remains under `filter=all`), and the `ci` gate passed with 22
+checks green.
+
+A re-run is a full round, not a status refresh: attempt 2 reviewed the head
+again and returned `APPROVE-WITH-NITS` with a finding the previous round had
+not raised, which took another push to clear.
+
+Rule: [code-review.md](code-review.md#retrying-a-failed-round).

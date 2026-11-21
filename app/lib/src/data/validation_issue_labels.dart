@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../search/facet_labels.dart';
 
 /// Localized presentation of core [ValidationIssue]s (and the phrase-structure
 /// [FormatException]) rendered in the editors.
@@ -23,14 +24,47 @@ import '../../l10n/app_localizations.dart';
 const Set<String> mappedValidationCodes = {
   'phrase_overflow',
   'phrase_underflow',
+  'sequence_exceeds_phrase',
+  'sequence_span_mismatch',
+  incompleteFigureValidationCode,
+  otherFormFiguresValidationCode,
   'orphaned_alt',
   'empty_substitution',
   'dialect_collision',
+  'gendered_role_term',
 };
 
+/// The [ValidationIssue.code] of a figure row that Save would leave out
+/// because it is not complete (AUTH-2), with its 1-based `position`. Only the
+/// dance editor raises it, from its drafts: no saved dance can hold such a row.
+const String incompleteFigureValidationCode = 'incomplete_figure';
+
+/// The [ValidationIssue.code] of a dance that holds `count` figures of
+/// another form (`figureForm`) than its own (`danceForm`), as
+/// [DanceForm.name]s. Only the dance editor raises it.
+const String otherFormFiguresValidationCode = 'other_form_figures';
+
 /// Localized message for a [ValidationIssue] surfaced in an editor.
-String validationIssueMessage(AppLocalizations l10n, ValidationIssue issue) {
-  final localized = _localizedValidation(l10n, issue);
+///
+/// [keyLabel], when given, names a dialect entry's source key, the move a
+/// substitution is for: the dialect editor names a figure of your own by its
+/// name rather than its `userFigure:<id>` key (#1023).
+///
+/// [beatsPerBar], when given, is the bar of a dance timed in bars
+/// ([danceBeatsPerBar]): its counts then read in bars, as its figures do,
+/// where every count in the message is a whole number of half bars.
+String validationIssueMessage(
+  AppLocalizations l10n,
+  ValidationIssue issue, {
+  String Function(String key)? keyLabel,
+  int? beatsPerBar,
+}) {
+  final localized = _localizedValidation(
+    l10n,
+    issue,
+    keyLabel ?? (k) => k,
+    beatsPerBar,
+  );
   if (localized != null) return localized;
   // No specific localization (unknown code, or expected structured data
   // missing/ill-typed): generic, non-leaking fallback. The diagnostic English
@@ -44,16 +78,78 @@ String validationIssueMessage(AppLocalizations l10n, ValidationIssue issue) {
 /// is unmapped or its required safe structured data is absent/ill-typed (so the
 /// caller can fall back to the generic message rather than render a misleading
 /// value such as "0 beats").
-String? _localizedValidation(AppLocalizations l10n, ValidationIssue issue) {
+String? _localizedValidation(
+  AppLocalizations l10n,
+  ValidationIssue issue,
+  String Function(String key) keyLabel,
+  int? beatsPerBar,
+) {
   final data = issue.data;
+  // The counts as bars ("32 bars"), or null to read them in beats: without
+  // a bar, or where any of them is no whole number of half bars.
+  List<String>? inBars(List<int> counts) {
+    if (beatsPerBar == null) return null;
+    final texts = [
+      for (final beats in counts)
+        if (barsText(beats, beatsPerBar) case final bars?)
+          l10n.danceFigureBars(bars, beats * 2 ~/ beatsPerBar),
+    ];
+    return texts.length == counts.length ? texts : null;
+  }
+
   switch (issue.code) {
     case 'phrase_overflow':
     case 'phrase_underflow':
       final actual = data['actual'];
       final expected = data['expected'];
-      return (actual is int && expected is int)
-          ? l10n.validationPhraseBeatMismatch(actual, expected)
-          : null;
+      if (actual is! int || expected is! int) return null;
+      if (inBars([actual, expected]) case [final a, final e]) {
+        return l10n.validationPhraseCountMismatch(a, e);
+      }
+      return l10n.validationPhraseBeatMismatch(actual, expected);
+    case incompleteFigureValidationCode:
+      final position = data['position'];
+      return position is int ? l10n.validationIncompleteFigure(position) : null;
+    case 'sequence_exceeds_phrase':
+      final position = data['position'];
+      final actual = data['actual'];
+      final limit = data['limit'];
+      if (position is! int || actual is! int || limit is! int) return null;
+      if (inBars([actual, limit]) case [final a, final l]) {
+        return l10n.validationSequenceExceedsPhraseCount(position, a, l);
+      }
+      return l10n.validationSequenceExceedsPhrase(position, actual, limit);
+    case 'sequence_span_mismatch':
+      final position = data['position'];
+      final actual = data['actual'];
+      final expected = data['expected'];
+      if (position is! int || actual is! int || expected is! int) return null;
+      final noRoom = data['allTimed'] == false;
+      if (inBars([actual, expected]) case [final a, final e]) {
+        return noRoom
+            ? l10n.validationSequenceSpanNoRoomCount(position, a, e)
+            : l10n.validationSequenceSpanMismatchCount(position, a, e);
+      }
+      return noRoom
+          ? l10n.validationSequenceSpanNoRoom(position, actual, expected)
+          : l10n.validationSequenceSpanMismatch(position, actual, expected);
+    case otherFormFiguresValidationCode:
+      final count = data['count'];
+      final figureForm = _formNamed(data['figureForm']);
+      final danceForm = _formNamed(data['danceForm']);
+      final pickerForm = _formNamed(data['pickerForm']) ?? danceForm;
+      if (count is! int ||
+          figureForm == null ||
+          danceForm == null ||
+          pickerForm == null) {
+        return null;
+      }
+      return l10n.validationOtherFormFigures(
+        count,
+        danceFormLabel(l10n, danceForm),
+        danceFormLabel(l10n, figureForm),
+        danceFormLabel(l10n, pickerForm),
+      );
     case 'orphaned_alt':
       final position = data['position'];
       if (position is! int) return null;
@@ -63,14 +159,23 @@ String? _localizedValidation(AppLocalizations l10n, ValidationIssue issue) {
           : l10n.validationOrphanedAltNamed(position, text);
     case 'empty_substitution':
       final source = data['source'];
-      return source is String ? l10n.validationEmptySubstitution(source) : null;
+      return source is String
+          ? l10n.validationEmptySubstitution(keyLabel(source))
+          : null;
     case 'dialect_collision':
       final source = data['source'];
       final existing = data['existing'];
       final substitution = data['substitution'];
       return (source is String && existing is String && substitution is String)
-          ? l10n.validationDialectCollision(source, existing, substitution)
+          ? l10n.validationDialectCollision(
+              keyLabel(source),
+              keyLabel(existing),
+              substitution,
+            )
           : null;
+    case 'gendered_role_term':
+      final word = data['word'];
+      return word is String ? l10n.validationGenderedRoleTerm(word) : null;
     default:
       return null;
   }
@@ -85,3 +190,10 @@ String phraseStructureErrorMessage(
 ) => kDebugMode
     ? '${l10n.validationPhraseInvalid} [${error.message}]'
     : l10n.validationPhraseInvalid;
+
+DanceForm? _formNamed(Object? name) {
+  for (final form in DanceForm.values) {
+    if (form.name == name) return form;
+  }
+  return null;
+}

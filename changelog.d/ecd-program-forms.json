@@ -1,0 +1,15 @@
+{
+  "id": "ecd-program-forms",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A program shows the types of its dances, such as Contra, English (ECD) or both, at the top of its page and on its row in the programs list.",
+      "Chips above the programs list filter it by type: with Only, a chip shows the programs of exactly one mix of types; with Includes, it shows every program that has one type, so Contra also lists programs with both contra and English dances. Searching programs finds them by their types."
+    ]
+  },
+  "core": {
+    "added": [
+      "ProgramRepository.formsByProgram lists the forms of each program's live dances, and watchFormsByProgram follows them as dances are deleted, restored or changed."
+    ]
+  }
+}

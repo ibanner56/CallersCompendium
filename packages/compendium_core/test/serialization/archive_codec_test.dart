@@ -1,8 +1,11 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/serialization/archive_entity_codec.dart'
+    show archiveProgramToJson;
 import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
+import '../figures_support.dart';
 
 /// A comprehensive archive exercising every entity type and many edge cases
 /// (non-standard phrase structure, custom-only figures, metadata-only dances,
@@ -170,6 +173,9 @@ CompendiumArchive _sampleArchive() {
     notes: 'sound check at 6',
     status: ProgramStatus.performed,
     hideAlternates: true,
+    dialectName: 'Leads/Follows',
+    payMinorUnits: 25050,
+    payCurrency: 'USD',
     provenance: Provenance(
       source: ProvenanceSource.callersCompanion,
       externalId: 'usr-9921',
@@ -296,17 +302,17 @@ void main() {
       expect(d1.formation.detail, 'double progression');
       expect(d1.progression, Progression.double);
       expect(d1.phraseStructure.raw, '6*8*2');
-      expect(d1.figures, hasLength(2));
-      expect(d1.figures[1].params['travel'], 1.5);
-      expect(d1.figures[1].progression, isTrue);
+      expect(figuresOf(d1), hasLength(2));
+      expect(figuresOf(d1)[1].params['travel'], 1.5);
+      expect(figuresOf(d1)[1].progression, isTrue);
 
       // The customOrigin discriminator survives the archive/.ccshare path.
       final d2 = result.archive.dances.firstWhere((d) => d.id == 'd2');
-      expect(d2.figures[0].customOrigin, CustomOrigin.userEntered);
-      expect(d2.figures[1].customOrigin, CustomOrigin.importGap);
+      expect(figuresOf(d2)[0].customOrigin, CustomOrigin.userEntered);
+      expect(figuresOf(d2)[1].customOrigin, CustomOrigin.importGap);
       expect(d1.difficultyLevelId, DifficultyLevel.intermediateId);
       expect(d1.rating, 5);
-      expect(d1.tunes, hasLength(2));
+      expect(tunesOf(d1), hasLength(2));
       expect(d1.customFields.map((v) => v.value), [
         'New England',
         4,
@@ -340,6 +346,9 @@ void main() {
 
       final p1 = result.archive.programs.firstWhere((p) => p.id == 'p1');
       expect(p1.hideAlternates, isTrue);
+      expect(p1.dialectName, 'Leads/Follows');
+      expect(p1.payMinorUnits, 25050);
+      expect(p1.payCurrency, 'USD');
       expect(p1.slots, hasLength(3));
       expect(p1.slots[0].walkthroughMinutes, 3);
       expect(p1.slots[0].danceMinutes, 9);
@@ -856,6 +865,55 @@ void main() {
       );
     });
 
+    test(
+      'constructor validation errors are structured and valid siblings load',
+      () {
+        final result = decodeArchive(
+          jsonEncode({
+            'choreographers': [
+              {'id': 'bad-choreographer', 'name': '  '},
+              {'id': 'good-choreographer', 'name': 'Alice'},
+            ],
+            'tags': [
+              {'id': 'bad-tag', 'name': '\t'},
+              {'id': 'good-tag', 'name': 'chestnut'},
+            ],
+          }),
+        );
+
+        expect(result.errors, hasLength(2));
+        expect(
+          result.errors
+              .where((error) => error.entityType == 'choreographer')
+              .single
+              .kind,
+          ArchiveErrorKind.read,
+        );
+        expect(
+          result.errors
+              .where((error) => error.entityType == 'choreographer')
+              .single
+              .cause,
+          isA<ArgumentError>(),
+        );
+        expect(
+          result.errors.where((error) => error.entityType == 'tag').single.kind,
+          ArchiveErrorKind.read,
+        );
+        expect(
+          result.errors
+              .where((error) => error.entityType == 'tag')
+              .single
+              .cause,
+          isA<ArgumentError>(),
+        );
+        expect(result.archive.choreographers.map((entity) => entity.id), [
+          'good-choreographer',
+        ]);
+        expect(result.archive.tags.map((entity) => entity.id), ['good-tag']);
+      },
+    );
+
     test('a non-array entity collection is reported and skipped', () {
       final map =
           jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
@@ -987,6 +1045,190 @@ void main() {
         restored.provenance!.externalId,
         overlong.substring(0, kMaxExternalIdLength),
       );
+    });
+  });
+
+  group('program dialectName (issue #1554)', () {
+    Map<String, Object?> encodedP1() {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      return programs.firstWhere((p) => p['id'] == 'p1');
+    }
+
+    Program decodedP1(Map<String, Object?> program) {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs[programs.indexWhere((p) => p['id'] == 'p1')] = program;
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      return result.archive.programs.firstWhere((p) => p.id == 'p1');
+    }
+
+    test('an absent key decodes as null (archives from before v37)', () {
+      final p = encodedP1()..remove('dialectName');
+      expect(decodedP1(p).dialectName, isNull);
+    });
+
+    test('a non-string value is rejected per-entity', () {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs.firstWhere((p) => p['id'] == 'p1')['dialectName'] = 7;
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isTrue);
+      expect(result.errors.single.entityType, 'program');
+    });
+
+    test('long and emoji-bounded names survive a round trip unchanged', () {
+      // The dialect library imposes no name cap, and a duplicated dialect
+      // appends " 2", so a clamp would rewrite a valid reference into another
+      // dialect's name. 199 units then an emoji also puts a surrogate pair
+      // across what a 200-unit cut would split.
+      for (final name in [
+        'x' * 300,
+        '${'x' * 199}\u{1F600}',
+        '${'x' * 200} 2',
+      ]) {
+        final p = encodedP1()..['dialectName'] = name;
+        expect(decodedP1(p).dialectName, name);
+      }
+    });
+
+    test('control and bidi characters are stripped on decode', () {
+      final p = encodedP1();
+      p['dialectName'] = 'Leads\u202E/Follows\u0000';
+      expect(decodedP1(p).dialectName, 'Leads/Follows');
+    });
+
+    test('the JSON key is omitted when null, in every mode', () {
+      // Sync bodies pass includeOptionalFields: true; a null-valued key there
+      // would change the wire hash of every program without a dialect.
+      final bare = Program(
+        id: 'p',
+        title: 'T',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      expect(archiveProgramToJson(bare), isNot(contains('dialectName')));
+      expect(
+        archiveProgramToJson(bare, includeOptionalFields: true),
+        isNot(contains('dialectName')),
+      );
+      final set = bare.copyWith(dialectName: 'Leads/Follows');
+      expect(archiveProgramToJson(set)['dialectName'], 'Leads/Follows');
+      expect(
+        archiveProgramToJson(set, includeOptionalFields: true)['dialectName'],
+        'Leads/Follows',
+      );
+    });
+  });
+
+  group('program pay (issue #1418)', () {
+    Map<String, Object?> encodedP1() {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      return programs.firstWhere((p) => p['id'] == 'p1');
+    }
+
+    ArchiveReadResult decode(Map<String, Object?> program) {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs[programs.indexWhere((p) => p['id'] == 'p1')] = program;
+      return decodeArchive(jsonEncode(map));
+    }
+
+    test('both keys absent decodes as no pay (archives from before v38)', () {
+      final p = encodedP1()
+        ..remove('payMinorUnits')
+        ..remove('payCurrency');
+      final result = decode(p);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final decoded = result.archive.programs.firstWhere((x) => x.id == 'p1');
+      expect(decoded.payMinorUnits, isNull);
+      expect(decoded.payCurrency, isNull);
+    });
+
+    test('malformed pay is rejected per-entity', () {
+      final bad = <Map<String, Object?>>[
+        encodedP1()..['payMinorUnits'] = -1,
+        encodedP1()..['payMinorUnits'] = 'ten',
+        encodedP1()..['payCurrency'] = 'usd',
+        encodedP1()..remove('payCurrency'),
+        encodedP1()..remove('payMinorUnits'),
+      ];
+      for (final p in bad) {
+        final result = decode(p);
+        expect(result.hasErrors, isTrue, reason: '$p');
+        expect(result.errors.single.entityType, 'program');
+      }
+    });
+
+    test('the JSON keys are omitted when null, in every mode', () {
+      final bare = Program(
+        id: 'p',
+        title: 'T',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      for (final mode in [false, true]) {
+        final json = archiveProgramToJson(bare, includeOptionalFields: mode);
+        expect(json, isNot(contains('payMinorUnits')));
+        expect(json, isNot(contains('payCurrency')));
+      }
+      final set = bare.copyWith(payMinorUnits: 500, payCurrency: 'JPY');
+      final json = archiveProgramToJson(set, includeOptionalFields: true);
+      expect(json['payMinorUnits'], 500);
+      expect(json['payCurrency'], 'JPY');
+    });
+  });
+
+  group('program archivedAt (schema v42)', () {
+    final bare = Program(
+      id: 'p',
+      title: 'T',
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+
+    test('the key is omitted when not archived, in every mode, so an '
+        'unarchived program keeps its wire hash', () {
+      for (final mode in [false, true]) {
+        final json = archiveProgramToJson(bare, includeOptionalFields: mode);
+        expect(json, isNot(contains('archivedAt')));
+      }
+    });
+
+    test('round-trips through an archive', () {
+      final archivedAt = DateTime.utc(2026, 4, 5, 6, 7, 8);
+      final json = archiveProgramToJson(
+        bare.copyWith(archivedAt: archivedAt),
+        includeOptionalFields: true,
+      );
+      expect(json['archivedAt'], '2026-04-05T06:07:08.000Z');
+      final decoded = decodeArchive(
+        jsonEncode({
+          'schemaVersion': archiveSchemaVersion,
+          'exportedAt': '2026-04-05T00:00:00.000Z',
+          'programs': [json],
+        }),
+      );
+      expect(decoded.hasErrors, isFalse);
+      expect(decoded.archive.programs.single.archivedAt, archivedAt);
+    });
+
+    test('an archive without the key decodes as not archived', () {
+      final decoded = decodeArchive(
+        jsonEncode({
+          'schemaVersion': archiveSchemaVersion,
+          'exportedAt': '2026-04-05T00:00:00.000Z',
+          'programs': [archiveProgramToJson(bare)],
+        }),
+      );
+      expect(decoded.archive.programs.single.archivedAt, isNull);
     });
   });
 
@@ -1319,9 +1561,9 @@ void main() {
       expect(d.hook, 'hook');
       // The legitimate newline survives; only the control byte is removed.
       expect(d.callingNotes, 'line1\ndanger');
-      expect(d.tunes, ['Tune']);
+      expect(tunesOf(d), ['Tune']);
 
-      final f = d.figures.single;
+      final f = figuresOf(d).single;
       expect(f.params['text'], 'balance and swing');
       expect(f.note, 'note');
       // Non-string params are left untouched.
@@ -1439,7 +1681,7 @@ void main() {
       };
       final result = decodeArchive(jsonEncode(archive));
       expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
-      final figures = result.archive.dances.single.figures;
+      final figures = figuresOf(result.archive.dances.single);
       // Control/bidi stripped from the override, exactly like `note`.
       expect(figures[0].walkthroughOverride, 'Balance and swing.');
       expect(figures[0].wordingOverride, 'Robins pass right.');
@@ -1449,6 +1691,89 @@ void main() {
         kMaxWalkthroughSnippetLength,
       );
       expect(figures[1].wordingOverride!.length, kMaxWalkthroughSnippetLength);
+    });
+
+    test('a use of a figure of your own has its arguments scrubbed, inside '
+        'containers too, and keeps only scalar ones (#1023)', () {
+      Map<String, Object?> useJson() => {
+        'move': 'custom',
+        'params': {
+          'text': 'zoom\u202E',
+          'userFigure': 'zoom-id',
+          'userFigureArgs': {
+            'where': 'home\u0007\u202E',
+            'hand': 'right',
+            'count': 2,
+            'loud': true,
+            'nested': {'a': 1},
+            'list': [1],
+          },
+          'userFigureCheck': '00000000',
+        },
+      };
+      final archive = {
+        'schemaVersion': archiveSchemaVersion,
+        'exportedAt': '2026-01-01T00:00:00.000Z',
+        'dances': [
+          {
+            'id': 'd1',
+            'title': 'Zoom',
+            'authorIds': <String>[],
+            'phraseStructure': '',
+            'figures': [
+              useJson(),
+              {
+                'move': 'meanwhile',
+                'params': {
+                  'beats': 8,
+                  'figures': [
+                    useJson(),
+                    {'move': 'swing', 'params': <String, Object?>{}},
+                  ],
+                },
+              },
+            ],
+            'createdAt': '2026-01-01T00:00:00.000Z',
+            'updatedAt': '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      };
+      final result = decodeArchive(jsonEncode(archive));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final figures = figuresOf(result.archive.dances.single);
+      // A use whose line is clean keeps its check through the decoder: it is
+      // still attached on the other side.
+      final clean = userFigureUseFigure(
+        id: 'zoom-id',
+        args: const {'hand': 'right'},
+        text: 'neighbors zoom',
+      );
+      final roundTrip = decodeArchive(
+        jsonEncode({
+          ...archive,
+          'dances': [
+            {
+              ...(archive['dances']! as List).single as Map<String, Object?>,
+              'figures': [figureToJson(clean)],
+            },
+          ],
+        }),
+      );
+      expect(
+        userFigureUseOf(
+          figuresOf(roundTrip.archive.dances.single).single,
+        )?.attached,
+        isTrue,
+      );
+      for (final figure in [figures[0], figures[1].subFigures.first]) {
+        expect(figure.params['text'], 'zoom');
+        expect(figure.params['userFigureArgs'], {
+          'where': 'home',
+          'hand': 'right',
+          'count': 2,
+          'loud': true,
+        });
+      }
     });
   });
 

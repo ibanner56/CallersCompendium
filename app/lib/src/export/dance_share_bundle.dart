@@ -4,7 +4,8 @@ import '../utils/safe_name.dart';
 import 'share_sanitization.dart';
 
 /// Builds a canonical, privacy-safe archive containing one dance and only its
-/// referenced metadata.
+/// referenced metadata, the user's own new figures it uses among them
+/// ([userFiguresForShare]).
 String buildDanceShareBundle(
   Dance dance, {
   required Choreographer? Function(String id) choreographerFor,
@@ -12,11 +13,13 @@ String buildDanceShareBundle(
   required PublishedSource? Function(String id) publishedSourceFor,
   required CustomFieldDef? Function(String id) customFieldFor,
   DifficultyLevel? Function(String id)? difficultyLevelFor,
+  UserGlossaryEntry? Function(String id)? userFigureFor,
   DateTime? now,
 }) {
   final choreographers = <Choreographer>[];
   final seenAuthors = <String>{};
-  for (final id in dance.authorIds) {
+  // Interpreters come from the same people list and travel the same way.
+  for (final id in [...dance.authorIds, ...dance.interpreterIds]) {
     if (!seenAuthors.add(id)) continue;
     final choreographer = choreographerFor(id);
     if (choreographer == null) {
@@ -77,12 +80,13 @@ String buildDanceShareBundle(
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
-      dances: [dance],
+      dances: [sanitizeDanceForShare(dance)],
       choreographers: choreographers,
       publishedSources: sources,
       customFields: customFields,
       tags: tags,
       difficultyLevels: difficultyLevels,
+      userFigures: userFiguresForShare([dance], userFigureFor),
     ),
     mode: ArchiveSerializationMode.share,
   );
@@ -96,7 +100,5 @@ String danceShareBundleFileName(
   String title, {
   String extension = danceShareBundleExtension,
 }) {
-  final sanitized = replaceUnsafeNameChars(title.trim());
-  final base = sanitized.contains(RegExp(r'[A-Za-z0-9]')) ? sanitized : 'dance';
-  return '$base.$extension';
+  return '${shareFileBaseName(title, fallback: 'dance')}.$extension';
 }

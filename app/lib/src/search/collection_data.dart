@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart'
+    show ResultSetImplementation, TableUpdateQuery;
 
 import '../models/dance_list_entry.dart';
 import 'coalesce_trailing.dart';
+import 'dance_detail_data.dart' show customValueText;
 
 /// Reference/vocabulary data loaded once for the Collection, used both to build
 /// facet controls and to hydrate search-result ids into [DanceListEntry]s
@@ -32,6 +35,9 @@ class CollectionData {
     required this.authors,
     required this.tags,
     required this.citedSources,
+    required this.tunes,
+    required this.meters,
+    required this.musicalKeys,
     required this.forms,
     required this.formations,
     required this.progressions,
@@ -44,7 +50,74 @@ class CollectionData {
     required this.sectionLabels,
   });
 
+  /// A copy with the calling tallies replaced and **every other field carried
+  /// over by reference**.
+  ///
+  /// This is the whole of the counts-only reload in [watch]: a write that only
+  /// touched `programs`/`program_slots` cannot have changed the dances, the
+  /// reference data or any facet vocabulary, so those are reused rather than
+  /// re-read. The invariant is "a counts-only emit never changes [dancesById],
+  /// the field definitions, [tags] or [citedSources]" — `identical`, not merely
+  /// equal, which is also what makes `DanceListScreen`'s `mapEquals` over
+  /// [dancesById] cheap for such an emit.
+  ///
+  /// Deliberately a constructor call listing every field rather than a patch:
+  /// a field added to the constructor is a compile error here instead of a
+  /// value silently reset to its default. The lazy `…ById` maps are rebuilt on
+  /// demand by the new instance.
+  CollectionData copyWithProgramCounts(ProgramDerivedCounts counts) =>
+      CollectionData(
+        dancesById: dancesById,
+        choreographersById: choreographersById,
+        choreographerNames: choreographerNames,
+        tagNames: tagNames,
+        tagColors: tagColors,
+        customFieldDefs: customFieldDefs,
+        listFieldDefs: listFieldDefs,
+        choiceFields: choiceFields,
+        booleanFields: booleanFields,
+        textFields: textFields,
+        numberFields: numberFields,
+        lastCalled: counts.lastCalled,
+        callCounts: counts.callCounts,
+        callerFilter: callerFilter,
+        authors: authors,
+        tags: tags,
+        citedSources: citedSources,
+        tunes: tunes,
+        meters: meters,
+        musicalKeys: musicalKeys,
+        forms: forms,
+        formations: formations,
+        progressions: progressions,
+        statuses: statuses,
+        levels: levels,
+        hasMixedLevel: hasMixedLevel,
+        hasMixer: hasMixer,
+        hasRating: hasRating,
+        taxonomy: taxonomy,
+        sectionLabels: sectionLabels,
+      );
+
   final Map<String, Dance> dancesById;
+
+  late final Map<String, CustomFieldDef> _customFieldsById = {
+    for (final d in customFieldDefs) d.id: d,
+  };
+  late final Map<String, Tag> _tagsById = {for (final t in tags) t.id: t};
+  late final Map<String, PublishedSource> _sourcesById = {
+    for (final s in citedSources) s.id: s,
+  };
+
+  /// Resolves a custom-field definition (private ones included) by id, for
+  /// share paths that must know each field's `shareable` flag.
+  CustomFieldDef? customFieldFor(String id) => _customFieldsById[id];
+
+  /// Resolves a tag carried by a live dance, by id.
+  Tag? tagFor(String id) => _tagsById[id];
+
+  /// Resolves a published source cited by a dance, by id.
+  PublishedSource? publishedSourceFor(String id) => _sourcesById[id];
 
   /// All choreographers keyed by id, so a share/export path can resolve a
   /// dance's `authorIds` to full [Choreographer] records (mirrors [dancesById]).
@@ -81,6 +154,21 @@ class CollectionData {
   /// title). Drives the Source facet; an empty list hides the facet, matching
   /// the present-value pattern used for authors/tags/rating.
   final List<PublishedSource> citedSources;
+
+  /// Distinct tune names across the collection, sorted case-insensitively, for
+  /// the Tunes facet's suggestions. Names that differ only in case appear once
+  /// (the first spelling met), since the facet matches ignoring case. Tune
+  /// lists that could not be decoded contribute nothing.
+  final List<String> tunes;
+
+  /// Distinct meters across the collection, for the Meter facet: trimmed, one
+  /// per value that differs only in case or accents (the first spelling met,
+  /// as for [tunes]), sorted by that folded value. Blank meters add nothing.
+  final List<String> meters;
+
+  /// Distinct keys across the collection, for the Key facet, gathered as
+  /// [meters] are.
+  final List<String> musicalKeys;
 
   final List<DanceForm> forms;
   final List<FormationShape> formations;
@@ -143,9 +231,32 @@ class CollectionData {
   /// is fixed in code and safe to state; the statement count is a property of
   /// the data. Streaming each part and
   /// recombining would emit once per part per write and could render a
-  /// half-updated snapshot; re-running the load on a single change signal keeps the
-  /// existing value atomic and leaves [load] the only place the composition is
-  /// expressed.
+  /// half-updated snapshot; so a content write re-runs [load] on a single
+  /// change signal, which keeps the value atomic and leaves [load] the only
+  /// place the composition is expressed.
+  ///
+  /// ## Program-only bursts refresh just the tallies
+  ///
+  /// The one part of the snapshot that program writes can change is the
+  /// per-dance calling tallies ([lastCalled], [callCounts]) — about 1% of a
+  /// full load on a large library — yet saving a program or marking a dance
+  /// performed used to pay for the whole thing, up to three times (the
+  /// Collection list, the program editor and the program summary each hold a
+  /// watch). So the change signal is the set of tables written, unioned across
+  /// the coalescing window. When that set is within `programs`/`program_slots`
+  /// (plus `venues` when [watchVenues]) the stream re-reads only
+  /// `programDerivedCounts` and emits [copyWithProgramCounts]; any other table
+  /// in the set, or the first emission, runs the full [load]. The invariant:
+  /// **a counts-only emit never changes [dancesById], the field definitions,
+  /// [tags] or [citedSources]** — they are the previous snapshot's own
+  /// objects. A `venues`-only write under [watchVenues] is counts-only too
+  /// (it still emits, so a subscriber that renders a venue label next to this
+  /// data is woken exactly as before; the re-read is the cheap one).
+  ///
+  /// This no longer subscribes to `watchCollectionSources`: it watches the same
+  /// table set through `tableUpdates` because it needs to know *which* tables
+  /// changed, which the sentinel's payload cannot say. That method stays, with
+  /// its read set, for the consumers that only need "something changed".
   ///
   /// ## Why the coalescing window is load-bearing, not a nicety
   ///
@@ -181,10 +292,112 @@ class CollectionData {
     String? callerFilter,
     Duration coalesce = coalesceWindow,
     bool watchVenues = false,
-  }) => repos
-      .watchCollectionSources(includeVenues: watchVenues)
-      .transform(CoalesceTrailing<void>(coalesce))
-      .asyncMap((_) => load(repos, callerFilter: callerFilter));
+  }) {
+    final db = repos.db;
+    final normalizedCallerFilter = normalizeCallingHistoryCaller(callerFilter);
+    // The same set `watchCollectionSources` declares, as table names.
+    final watched = <ResultSetImplementation<dynamic, dynamic>>{
+      db.dances,
+      db.choreographers,
+      db.tags,
+      db.difficultyLevels,
+      db.customFieldDefs,
+      db.publishedSources,
+      db.programSlots,
+      db.programs,
+      if (watchVenues) db.venues,
+    };
+    final countsOnlyTables = {
+      db.programSlots.actualTableName,
+      db.programs.actualTableName,
+      if (watchVenues) db.venues.actualTableName,
+    };
+
+    final out = StreamController<CollectionData>();
+    StreamSubscription<void>? updatesSub;
+    StreamSubscription<CollectionData>? loadSub;
+    StreamController<void>? signal;
+
+    out.onListen = () {
+      // Tables written since the last reload began. Taken (and cleared) when
+      // the window closes, so a write during a reload is seen by the next one.
+      final changed = <String>{};
+      // The first emission is always the full load.
+      var needsFull = true;
+      CollectionData? current;
+      final signals = signal = StreamController<void>();
+
+      // Subscribed before the first load starts, so a write during it is not
+      // lost.
+      updatesSub = db
+          .tableUpdates(TableUpdateQuery.onAllTables(watched))
+          .listen(
+            (updates) {
+              for (final u in updates) {
+                changed.add(u.table);
+              }
+              signals.add(null);
+            },
+            onError: signals.addError,
+            onDone: () {
+              // The source ended (database closed): end now rather than after
+              // an in-flight load, which may never return.
+              if (!out.isClosed) unawaited(out.close());
+            },
+          );
+      signals.add(null);
+
+      loadSub = signals.stream
+          .transform(CoalesceTrailing<void>(coalesce))
+          .asyncMap((_) async {
+            final tables = {...changed};
+            changed.clear();
+            final previous = current;
+            if (!needsFull && tables.isEmpty) return null;
+            final full =
+                needsFull ||
+                previous == null ||
+                !countsOnlyTables.containsAll(tables);
+            // Held until the load succeeds: `changed` is already cleared, so a
+            // failed full load must still leave the next reload full rather
+            // than letting a program-only write copy a stale snapshot.
+            if (full) needsFull = true;
+            final next = full
+                ? await load(repos, callerFilter: normalizedCallerFilter)
+                : previous.copyWithProgramCounts(
+                    await repos.programs.programDerivedCounts(
+                      callerFilter: normalizedCallerFilter,
+                    ),
+                  );
+            needsFull = false;
+            current = next;
+            return next;
+          })
+          .where((snapshot) => snapshot != null)
+          .cast<CollectionData>()
+          .listen(
+            (snapshot) {
+              if (!out.isClosed) out.add(snapshot);
+            },
+            onError: (Object e, StackTrace st) {
+              // diagnostics: silent — forwarded unchanged to the subscriber's
+              // own onError; this stream adds no handling of its own.
+              if (!out.isClosed) out.addError(e, st);
+            },
+          );
+    };
+    out.onCancel = () async {
+      // All three cancels start synchronously: a subscriber that disposes
+      // without awaiting must not leave the coalescing timer pending.
+      final cancels = [
+        loadSub?.cancel(),
+        updatesSub?.cancel(),
+        signal?.close(),
+      ];
+      await Future.wait([for (final c in cancels) ?c]);
+    };
+    return out.stream;
+  }
 
   static Future<CollectionData> load(
     CompendiumRepositories repos, {
@@ -253,6 +466,26 @@ class CollectionData {
             (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
           );
 
+    // First spelling wins per case-folded name; iteration follows `dances`, so
+    // which spelling that is depends on load order, not on anything the user
+    // can see — acceptable because the facet matches ignoring case anyway.
+    final tuneByFold = <String, String>{};
+    for (final d in dances) {
+      if (d.tunesSource case DecodedTunes(:final tunes)) {
+        for (final t in tunes) {
+          final name = t.trim();
+          if (name.isNotEmpty) {
+            tuneByFold.putIfAbsent(name.toLowerCase(), () => name);
+          }
+        }
+      }
+    }
+    final tuneList = tuneByFold.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    final meterList = distinctFolded(dances.map((d) => d.meter));
+    final keyList = distinctFolded(dances.map((d) => d.musicalKey));
+
     final searchable = defs.where((d) => d.searchable).toList();
 
     return CollectionData(
@@ -281,6 +514,9 @@ class CollectionData {
       authors: authors,
       tags: tagList,
       citedSources: citedSources,
+      tunes: tuneList,
+      meters: meterList,
+      musicalKeys: keyList,
       forms: forms,
       formations: formations,
       progressions: progressions,
@@ -289,52 +525,10 @@ class CollectionData {
       hasMixedLevel: hasMixedLevel,
       hasMixer: hasMixer,
       hasRating: hasRating,
-      taxonomy: contraTaxonomy,
-      sectionLabels: PhraseStructure.standard.labels,
+      taxonomy: shippedTaxonomies.anyForm,
+      sectionLabels: sectionLabelsFor(dances),
     );
   }
-
-  /// A copy carrying fresh program-derived tallies, leaving everything else —
-  /// the dances, the facet vocabularies, the custom-field defs — untouched.
-  ///
-  /// Deliberately narrow. These two maps are the only part of this snapshot
-  /// that a *program*-side write can change, and they are the only part the
-  /// Collection list refreshes from a stream (issue #768). Re-running the whole
-  /// [load] for them would re-read every dance, choreographer, tag and custom
-  /// field to update a badge, which is the over-firing failure issue #340
-  /// records. Widen this only for another field a stream actually delivers.
-  CollectionData copyWithProgramDerived({
-    required Map<String, DateTime> lastCalled,
-    required Map<String, DanceCallCounts> callCounts,
-  }) => CollectionData(
-    dancesById: dancesById,
-    choreographersById: choreographersById,
-    choreographerNames: choreographerNames,
-    tagNames: tagNames,
-    tagColors: tagColors,
-    customFieldDefs: customFieldDefs,
-    listFieldDefs: listFieldDefs,
-    choiceFields: choiceFields,
-    booleanFields: booleanFields,
-    textFields: textFields,
-    numberFields: numberFields,
-    lastCalled: lastCalled,
-    callCounts: callCounts,
-    callerFilter: callerFilter,
-    authors: authors,
-    tags: tags,
-    citedSources: citedSources,
-    forms: forms,
-    formations: formations,
-    progressions: progressions,
-    statuses: statuses,
-    levels: levels,
-    hasMixedLevel: hasMixedLevel,
-    hasMixer: hasMixer,
-    hasRating: hasRating,
-    taxonomy: taxonomy,
-    sectionLabels: sectionLabels,
-  );
 
   DanceListEntry entryFor(
     Dance dance, {
@@ -367,7 +561,7 @@ class CollectionData {
         for (final def in listFieldDefs)
           for (final value in dance.customFields)
             if (value.fieldId == def.id)
-              (label: def.label, value: value.value.toString()),
+              (label: def.label, value: customValueText(value.value)),
       ],
       lastCalled: lastCalled[dance.id],
       callCounts:
@@ -375,3 +569,59 @@ class CollectionData {
     );
   }
 }
+
+/// [values] trimmed, without blanks, one per folded value ([foldForSearch]:
+/// case and accents ignored, the first spelling met kept), sorted by that
+/// folded value with its runs of digits compared as numbers, so 2/2 comes
+/// before 12/8. The Meter and Key facets offer these, and match each one the
+/// same folded way ([MeterFilter], [MusicalKeyFilter]).
+List<String> distinctFolded(Iterable<String> values) {
+  final byFold = <String, String>{};
+  for (final v in values) {
+    final value = v.trim();
+    if (value.isNotEmpty) byFold.putIfAbsent(foldForSearch(value), () => value);
+  }
+  final folds = byFold.keys.toList()..sort(_compareNatural);
+  return [for (final f in folds) byFold[f]!];
+}
+
+final RegExp _digitsOrNot = RegExp(r'\d+|\D+');
+
+/// Compares [a] and [b] with each run of digits read as a number.
+int _compareNatural(String a, String b) {
+  final x = _digitsOrNot.allMatches(a).map((m) => m[0]!).toList();
+  final y = _digitsOrNot.allMatches(b).map((m) => m[0]!).toList();
+  for (var i = 0; i < x.length && i < y.length; i++) {
+    final nx = int.tryParse(x[i]);
+    final ny = int.tryParse(y[i]);
+    final c = nx != null && ny != null
+        ? nx.compareTo(ny)
+        : x[i].compareTo(y[i]);
+    if (c != 0) return c;
+  }
+  final byLength = x.length.compareTo(y.length);
+  return byLength != 0 ? byLength : a.compareTo(b);
+}
+
+/// The phrase labels the "By phrase" search offers for [dances]: the standard
+/// A1 A2 B1 B2, and every label an English dance's named phrases give, such
+/// as `A`, `B` or `C1`. Sorted by letter, then a plain letter before its
+/// numbered plays. A structure that is not named adds nothing, so a long
+/// contra structure doesn't add a row for each of its phrases.
+List<String> sectionLabelsFor(Iterable<Dance> dances) {
+  final labels = {
+    ...PhraseStructure.standard.labels,
+    for (final dance in dances)
+      if (dance.phraseStructure.isNamed) ...dance.phraseStructure.labels,
+  };
+  int number(String label) =>
+      int.tryParse(label.replaceFirst(_labelLetters, '')) ?? 0;
+  String letters(String label) => label.replaceFirst(_labelNumber, '');
+  return labels.toList()..sort((a, b) {
+    final byLetters = letters(a).compareTo(letters(b));
+    return byLetters != 0 ? byLetters : number(a).compareTo(number(b));
+  });
+}
+
+final RegExp _labelLetters = RegExp(r'^\D+');
+final RegExp _labelNumber = RegExp(r'\d+$');

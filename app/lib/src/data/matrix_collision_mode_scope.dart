@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../screens/settings/settings_keys.dart'
-    show kMatrixExactBeatCollisionKey;
+import 'settings_keys.dart' show kMatrixExactBeatCollisionKey;
 
 /// Exposes the Programs "flag exact beat overlap only" setting
 /// ([kMatrixExactBeatCollisionKey], issue #962) as a live [ValueNotifier] to

@@ -41,6 +41,30 @@ Choreographer sanitizeChoreographerForShare(Choreographer choreographer) =>
       deceased: false,
     );
 
+/// Withholds the caller's private evaluation of a [Dance] from a **share
+/// file**: the curatorial star rating (`dances.rating`).
+///
+/// The rating stays `shareable` in the registry because Device Sync and Backup
+/// carry it, by the maintainer's decision (R2-out2-export, 2026-10-30): "sync
+/// and Backup keep them; share files drop them". Egress class cannot express
+/// that split, so the strip lives here, in the share bundles, rather than in
+/// the archive codec's share mode, which the import-side re-encodes also use.
+Dance sanitizeDanceForShare(Dance dance) =>
+    dance.rating == null ? dance : dance.copyWith(clearRating: true);
+
+/// Withholds the caller's private business details of a [Program] from a
+/// **share file**: pay (amount and currency), the Perform dialect name, and
+/// whether the caller archived it (the maintainer's decision when archiving
+/// was added, 2026-11-18, recorded in #2218: sync and backups keep it, share
+/// files drop it), so a
+/// recipient always gets a program that shows in their list.
+/// See [sanitizeDanceForShare] for why this is not an egress class.
+Program sanitizeProgramForShare(Program program) => program.copyWith(
+  clearPay: true,
+  clearDialectName: true,
+  clearArchivedAt: true,
+);
+
 /// The six contact-person PII fields on a [Venue] (the two contacts' name,
 /// phone, and email). These identify a specific person to reach about the
 /// venue, so they are treated as private and are OMIT-BY-DEFAULT in any
@@ -137,11 +161,11 @@ Venue sanitizeVenueForShare(
 /// every other entry is preserved. A `null` [venueId], or one that is not in
 /// the map, returns [venuesById] unchanged.
 ///
-/// This is the funnel the **PDF export** path uses to hand its renderer a venue
-/// whose contact PII is *physically absent* unless the user opted in. Both the
-/// share-bundle and the PDF paths therefore redact through the single
-/// [sanitizeVenueForShare] primitive — the PDF renderer never needs (and must
-/// not grow) its own parallel redaction; it simply draws whatever survives.
+/// The rule is one primitive, [sanitizeVenueForShare], called by whoever
+/// renders — never a second redaction implementation. The share bundle and
+/// `buildProgramPdf` each call it themselves on the venue they draw, so a
+/// caller passes the raw venue; this map-level wrapper exists for label
+/// resolution ([resolveSanitizedVenueLabelParts]).
 Map<String, Venue> venuesWithSanitizedContact(
   Map<String, Venue> venuesById,
   String? venueId, {
@@ -170,3 +194,28 @@ String? resolveSanitizedVenueLabelParts(
   venue,
   venuesWithSanitizedContact(venuesById, venueId),
 );
+
+/// The user's own new figures (#1023) that [dances] use, attached, each found
+/// through [userFigureFor]: what a share bundle carries so the receiver can
+/// add them (plan C12). A figure [userFigureFor] can't find (gone, or not on
+/// this device) is left out; its uses still carry their lines. None without
+/// [userFigureFor].
+///
+/// The archive writes each one without its notes ([archiveUserFigureToJson]):
+/// they are shareable, but a share bundle leaves them out by design (plan C12;
+/// the registry's note on `user_glossary_entries.notes` says why).
+List<UserGlossaryEntry> userFiguresForShare(
+  Iterable<Dance> dances,
+  UserGlossaryEntry? Function(String id)? userFigureFor,
+) {
+  if (userFigureFor == null) return const [];
+  return [
+    for (final id in userFigureIdsUsedBy([
+      for (final dance in dances)
+        if (dance.figuresSource case DecodedFigures(:final figures)) ...figures,
+    ]))
+      if (userFigureFor(id) case final entry?
+          when entry.kind == UserGlossaryEntryKind.customFigure)
+        entry,
+  ];
+}

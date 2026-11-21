@@ -2,25 +2,38 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/tag.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../util/argb.dart';
 import '../database.dart';
+import '../duplicate_natural_key.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for flat [Tag] rows.
 ///
 /// Colours are normalized on the way in and out ([normalizeArgb]), so
 /// `tags.color` holds either `null` — "no colour assigned" — or a fully opaque
 /// 32-bit ARGB int, and never a value that would paint an invisible chip
-/// (issue #786). This is the single write choke point for tags: the editor, the
-/// batch dialog, and archive restore all go through [upsert].
+/// (issue #786). The editor, the batch dialog, and archive restore all write
+/// through [upsert]. A user's rename or merge (`ReferenceEditRepository`)
+/// writes names itself, because [upsert] would revive a tombstone whose name it
+/// frees; it writes only names normalised the same way and colours read back
+/// from tag rows.
 ///
-/// Tags are **soft-deleted** as of schema v25 (issue #898), and are the one
-/// converted kind with no referential guard: [delete] used to rely purely on
-/// the `dance_tags` FK cascade to unlink the tag from every dance. A tombstone
-/// fires no cascade, so those join rows now outlive the delete — deliberately,
-/// so a revived tag keeps its dances — and every read that reaches a tag
-/// through `dance_tags` filters on `deleted_at IS NULL` instead.
+/// Tags are **soft-deleted** as of schema v25 (issue #898): [delete] used to
+/// rely purely on the `dance_tags` FK cascade to unlink the tag from every
+/// dance. A tombstone fires no cascade, so those join rows now outlive the
+/// delete — deliberately, so a revived tag keeps its dances — and every read
+/// that reaches a tag through `dance_tags` filters on `deleted_at IS NULL`
+/// instead. The user's delete is not this one: `ReferenceEditRepository
+/// .deleteTag` takes the tag off every dance first (D-N2-7).
+///
+/// The ordinary tombstoning [delete] is the one converted kind's delete with no
+/// referential guard, which is safe precisely because it strands nothing. Its
+/// `permanent` branch is a different matter and **is** guarded as of issue
+/// #1357: that branch erases, and the FK cascade then strips the tag from every
+/// dance holding it, live ones included. See [delete].
 class TagRepository {
   TagRepository(this._db);
 
@@ -29,9 +42,11 @@ class TagRepository {
   /// Writes [tag], reviving it if a tombstone is in the way.
   ///
   /// `tags.name` is UNIQUE, so a tag deleted and then re-created under the same
-  /// name lands on the tombstoned row rather than inserting beside it. Clearing
-  /// `deleted_at` here is what makes that re-creation work at all: drift emits
-  /// an *untargeted* `ON CONFLICT DO UPDATE`, which updates every column the
+  /// name lands on the tombstoned row rather than inserting beside it —
+  /// [adoptTombstonedNaturalKey] returns the tombstone's id, so the insert
+  /// carries it. Clearing `deleted_at` here is what makes that re-creation work
+  /// at all: drift targets the conflict clause at the primary key
+  /// (`ON CONFLICT("id") DO UPDATE`), and that update writes every column the
   /// companion mentions and leaves the rest alone — so without this the new tag
   /// would be written onto the tombstone, keep its `deleted_at`, and simply
   /// never appear.
@@ -40,8 +55,47 @@ class TagRepository {
   /// (see [adoptTombstonedNaturalKey]). Callers minting a fresh UUID must use
   /// the returned id rather than the one they generated, or they will reference
   /// a row that does not exist.
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  ///
+  /// Throws [DuplicateNaturalKeyError] when the write would rename this tag
+  /// onto a name another row already holds, and when it would **create** one
+  /// under a name a *live* row holds; see [resolveNaturalKeyCollision] for when
+  /// the rename case happens rather than §4.1's store-un-normalised carve-out,
+  /// and [refuseCreationOntoLiveNaturalKey] for the creation case (#1348). A
+  /// name a *tombstone* holds is still adopted, not refused. [upsertStaged]
+  /// reaches this only in its tombstone branches: a **live** natural-key match
+  /// returns the incumbent's id before any write, so the ordinary "two tags,
+  /// one name" case never gets here.
   @useResult
-  Future<String> upsert(Tag tag, {DateTime? at}) {
+  Future<String> upsert(Tag tag, {DateTime? at, bool localUserEdit = false}) =>
+      _write(tag, at: at, fromSync: false, localUserEdit: localUserEdit);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// §6.7 keeps the inbound write off the editor's path. Concretely this
+  /// skips three behaviours that exist for a person editing a record and
+  /// are wrong for a peer's: it does not adopt a tombstoned row's identity
+  /// (identity is reconciliation's decision, and silently relocating the
+  /// record would store it under an id the peer never named), it does not
+  /// take §4.1's collision carve-out when another row holds the incoming value
+  /// (§6.7 refuses the record to reconciliation rather than storing an altered
+  /// copy — or, since #1348, an un-normalised one), and it does not seed
+  /// `existence_at`, which the envelope owns.
+  Future<void> writeFromSync(Tag tag, {DateTime? at}) async {
+    final _ = await _write(tag, at: at, fromSync: true, localUserEdit: false);
+  }
+
+  Future<String> _write(
+    Tag tag, {
+    required DateTime? at,
+    required bool fromSync,
+    required bool localUserEdit,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       final name = normalizeShareableText(tag.name);
@@ -52,8 +106,47 @@ class TagRepository {
         _db.tags,
       )..where((t) => t.id.equals(tag.id))).getSingleOrNull();
       final collidingEdit =
-          current != null && incumbent != null && incumbent.id != tag.id;
-      final id = collidingEdit
+          !fromSync &&
+          current != null &&
+          incumbent != null &&
+          incumbent.id != tag.id;
+      // §4.1's carve-out value, resolved before anything is written: either
+      // the un-normalised form this row keeps, or a throw for a genuine
+      // duplicate (#1348). See [resolveNaturalKeyCollision].
+      final deferredName = collidingEdit
+          ? await resolveNaturalKeyCollision(
+              _db,
+              address: tagNameNormalisation,
+              recordId: tag.id,
+              storedValue: current.name,
+              incomingValue: tag.name,
+              incumbentId: incumbent.id,
+            )
+          : null;
+      if (fromSync && incumbent != null && incumbent.id != tag.id) {
+        // Refuse rather than guess: reconciliation owns natural-key
+        // identity, so reaching the writer with the key held by another
+        // row means the record must be reported, not altered to fit.
+        throw StateError(
+          'inbound tag "${tag.id}" wants a name held by '
+          '"${incumbent.id}"',
+        );
+      }
+      // A creation onto a name another row holds. `current == null` makes
+      // `collidingEdit` false, so the decision above never ran, and a *live*
+      // holder would reach the insert and fail as a raw `SqliteException`. A
+      // tombstoned holder is adopted below instead. [upsertStaged] keeps the
+      // dance editor off this branch by returning a live match's id before any
+      // write; this is the contract for a caller that comes here directly.
+      if (!fromSync && current == null && incumbent != null) {
+        refuseCreationOntoLiveNaturalKey(
+          address: tagNameNormalisation,
+          normalisedValue: name,
+          incumbentId: incumbent.id,
+          incumbentDeletedAt: incumbent.deletedAt,
+        );
+      }
+      final id = (collidingEdit || fromSync)
           ? tag.id
           : await adoptTombstonedNaturalKey(
                   _db,
@@ -71,28 +164,43 @@ class TagRepository {
           .insertOnConflictUpdate(
             TagsCompanion.insert(
               id: id,
-              name: collidingEdit
-                  ? current.name
-                  : normalizeShareableText(tag.name),
+              // The carve-out stores the *user's* value with NFC deferred,
+              // not the row's previous one (#1348).
+              name: deferredName ?? normalizeShareableText(tag.name),
               color: Value(normalizeArgb(tag.color)),
               updatedAt: Value(now),
             ),
           );
       if (collidingEdit) {
-        await recordNormalisationSkip(
+        await recordNormalisationSkipAt(
           _db,
-          table: 'tags',
-          column: 'name',
+          tagNameNormalisation,
           recordId: tag.id,
         );
       }
-      await applyUpsertExistence(
-        _db,
-        table: _db.tags,
-        keyColumn: 'id',
-        key: id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.tags,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+        );
+      }
+      // After the existence fixup, which owns the live/revived distinction.
+      // Keyed on `id`, the row actually written: a tombstoned natural-key
+      // match is adopted under its own id, and stamping `tag.id` would raise
+      // the wrong row (or none).
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.tag,
+          recordId: id,
+          table: _db.tags,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
       return id;
     });
   }
@@ -103,13 +211,24 @@ class TagRepository {
   /// tombstoned match is passed to [upsert], which revives it and returns the
   /// adopted id. This keeps provisional ids out of dance-tag joins in both
   /// cases.
+  ///
+  /// [localUserEdit] forwards to [upsert] on the branches that reach it. The
+  /// live-match branch returns before any write, which is correct: attaching an
+  /// existing tag to a dance adds a citation rather than editing the tag, and
+  /// §6.8 defers a held deletion precisely until the citations are gone.
   @useResult
-  Future<String> upsertStaged(Tag tag, {DateTime? at}) async {
+  Future<String> upsertStaged(
+    Tag tag, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) async {
     final live = await idByName(tag.name);
     if (live != null) return live;
 
     final existingId = await idByName(tag.name, includeDeleted: true);
-    if (existingId == null) return upsert(tag, at: at);
+    if (existingId == null) {
+      return upsert(tag, at: at, localUserEdit: localUserEdit);
+    }
 
     // Preserve the incumbent's spelling so a legacy case-only duplicate is
     // adopted through the existing exact-key path. A different staged ID is
@@ -122,19 +241,28 @@ class TagRepository {
       return upsert(
         Tag(id: existing.id, name: existing.name, color: tag.color),
         at: at,
+        localUserEdit: localUserEdit,
       );
     }
     return upsert(
       Tag(id: tag.id, name: existing.name, color: tag.color),
       at: at,
+      localUserEdit: localUserEdit,
     );
   }
 
   /// Returns the existing id for [name], including tombstoned rows when
   /// [includeDeleted] is true. Matching is case-insensitive for compatibility
   /// with legacy case-only duplicates; live rows win, then the smallest id.
+  ///
+  /// Both sides go through [naturalKeyMatchKey] — the same key
+  /// `name_picker` decides "offer create?" by, which is the point of it being
+  /// one function. Applying it to the **stored** value as well as the query is
+  /// not redundant: §4.1's carve-out can leave a row's bytes un-composed, so a
+  /// stored decomposed name would otherwise miss an NFC query and hand the
+  /// caller a create that `upsert` then refuses.
   Future<String?> idByName(String name, {bool includeDeleted = false}) async {
-    final normalized = normalizeShareableText(name);
+    final wanted = naturalKeyMatchKey(name);
     final rows =
         await (_db.select(_db.tags)..where(
               (t) =>
@@ -142,9 +270,7 @@ class TagRepository {
             ))
             .get();
     final matches =
-        rows
-            .where((row) => row.name.toLowerCase() == normalized.toLowerCase())
-            .toList()
+        rows.where((row) => naturalKeyMatchKey(row.name) == wanted).toList()
           ..sort((a, b) {
             if (includeDeleted) {
               final deletedOrder = (a.deletedAt != null ? 1 : 0).compareTo(
@@ -179,16 +305,22 @@ class TagRepository {
   /// available to administrative surfaces, while pickers that attach tags to
   /// dances should not offer rows that have no live dance reference.
   Future<List<Tag>> listReferencedByLiveDances() async {
+    // Both joins are `useColumns: false`: they only filter, so drift must not
+    // materialise every `dance_tags` and `dances` column (figures JSON, notes)
+    // for each of the thousands of links. Only `tags` is read below, so
+    // `row.readTable(_db.dances)` here would throw. SQLite de-duplicates.
     final rows =
-        await (_db.select(_db.tags).join([
+        await (_db.select(_db.tags, distinct: true).join([
                 innerJoin(
                   _db.danceTags,
                   _db.danceTags.tagId.equalsExp(_db.tags.id),
+                  useColumns: false,
                 ),
                 innerJoin(
                   _db.dances,
                   _db.dances.id.equalsExp(_db.danceTags.danceId) &
                       _db.dances.deletedAt.isNull(),
+                  useColumns: false,
                 ),
               ])
               ..where(_db.tags.deletedAt.isNull())
@@ -197,12 +329,7 @@ class TagRepository {
                 OrderingTerm(expression: _db.tags.id),
               ]))
             .get();
-    final unique = <String, Tag>{};
-    for (final row in rows) {
-      final tag = _toModel(row.readTable(_db.tags));
-      unique[tag.id] = tag;
-    }
-    return unique.values.toList();
+    return [for (final row in rows) _toModel(row.readTable(_db.tags))];
   }
 
   Future<List<({Tag tag, bool deleted})>> listAllWithDeleted() async {
@@ -214,6 +341,95 @@ class TagRepository {
         (tag: _toModel(row), deleted: row.deletedAt != null),
     ];
   }
+
+  /// Every tombstoned tag with its deletion instant and the dances whose
+  /// retained `dance_tags` row still points at it, for a full backup.
+  ///
+  /// [delete] keeps those rows on purpose (a revived tag returns with its
+  /// dances) and dance hydration hides them, so a dance read cannot carry them:
+  /// this is the one read that can. Join rows of tombstoned dances are included
+  /// too, so restoring both records brings the association back. Ordered by
+  /// tag id, dances by id, so a backup is deterministic.
+  Future<List<({Tag tag, DateTime deletedAt, List<String> danceIds})>>
+  listTombstonesWithRetainedJoins() async {
+    final tagRows =
+        await (_db.select(_db.tags)
+              ..where((t) => t.deletedAt.isNotNull())
+              ..orderBy([(t) => OrderingTerm(expression: t.id)]))
+            .get();
+    if (tagRows.isEmpty) return const [];
+    final joinRows =
+        await (_db.select(_db.danceTags)..orderBy([
+              (t) => OrderingTerm(expression: t.tagId),
+              (t) => OrderingTerm(expression: t.danceId),
+            ]))
+            .get();
+    final dancesByTag = <String, List<String>>{};
+    for (final row in joinRows) {
+      (dancesByTag[row.tagId] ??= <String>[]).add(row.danceId);
+    }
+    return [
+      for (final row in tagRows)
+        (
+          tag: _toModel(row),
+          deletedAt: row.deletedAt!,
+          danceIds: dancesByTag[row.id] ?? const <String>[],
+        ),
+    ];
+  }
+
+  /// Writes a tombstoned tag from a full backup and returns the id it occupies,
+  /// or `null` when the archived tombstone must not be applied.
+  ///
+  /// * No row holds the id or the name: the tag is written and then tombstoned
+  ///   through [delete] at [at], so it gets an ordinary causal stamp.
+  /// * A tombstoned row already holds the id or the name: nothing is written
+  ///   and that row's id is returned, so retained joins attach to the one
+  ///   tombstone (the same adoption a live archived tag gets in [upsert]).
+  /// * A **live** row holds the id or the name: `null`. A backup's record that
+  ///   a tag was deleted never removes a tag the user has now, and the
+  ///   tombstone's retained joins are not applied to a live tag.
+  Future<String?> restoreArchivedTombstone(Tag tag, {required DateTime at}) =>
+      _db.transaction(() async {
+        final byId = await (_db.select(
+          _db.tags,
+        )..where((t) => t.id.equals(tag.id))).getSingleOrNull();
+        final heldByName = await idByName(tag.name, includeDeleted: true);
+        final byName = heldByName == null || heldByName == byId?.id
+            ? null
+            : await (_db.select(
+                _db.tags,
+              )..where((t) => t.id.equals(heldByName))).getSingle();
+        // Any live holder of the id or the name blocks the tombstone, whichever
+        // of the two it holds.
+        if ((byId != null && byId.deletedAt == null) ||
+            (byName != null && byName.deletedAt == null)) {
+          return null;
+        }
+        if (byId != null) return byId.id;
+        if (byName != null) return byName.id;
+        final id = await upsert(tag, at: at);
+        await delete(id, at: at);
+        return id;
+      });
+
+  /// Re-attaches [danceIds] to the tombstoned tag [tagId] from a full backup.
+  ///
+  /// Only dances that exist (live or tombstoned) get a row, and an existing
+  /// `(dance, tag)` row is left alone, so a repeated or partly-applied restore
+  /// is harmless.
+  Future<void> restoreRetainedJoins(String tagId, Iterable<String> danceIds) =>
+      _db.transaction(() async {
+        for (final danceId in danceIds.toSet()) {
+          if (!await danceExists(_db, danceId, includeDeleted: true)) continue;
+          await _db
+              .into(_db.danceTags)
+              .insert(
+                DanceTagsCompanion.insert(danceId: danceId, tagId: tagId),
+                mode: InsertMode.insertOrIgnore,
+              );
+        }
+      });
 
   /// Returns whether any dance still references [id].
   Future<bool> isInUse(String id) async {
@@ -248,36 +464,124 @@ class TagRepository {
   /// would mean a revived tag came back untagged, silently losing every
   /// association. Reads filter the tag out instead, so the dances stop showing
   /// it either way.
-  Future<void> delete(String id, {DateTime? at, bool permanent = false}) async {
-    if (permanent) {
-      await (_db.delete(_db.tags)..where((t) => t.id.equals(id))).go();
-      return;
-    }
+  ///
+  /// The default (tombstone) path is deliberately **unguarded**: a tombstone
+  /// strands nothing. Its callers are [restoreArchivedTombstone] (archive
+  /// restore of a deleted tag); a share import taking back a tag it revived
+  /// that no written row uses, which relies on the kept joins; and the Undo of
+  /// a batch tagging or a share import, which tombstone only an unused tag
+  /// they created or revived. A user deleting a tag goes through
+  /// `ReferenceEditRepository.deleteTag`, which strips the join rows this
+  /// keeps. The [permanent] path is guarded, because it erases: `dance_tags.tag_id` is
+  /// `ON DELETE CASCADE` (`tables.dart`), so erasing a referenced tag strips it
+  /// from the referencing dances with no error at all. Until issue #1357 this
+  /// hatch had no check of any kind — the only sibling in that state — and was
+  /// held closed solely by its one caller's `isInUse` read, which sits outside
+  /// the delete's transaction and is therefore check-then-act.
+  ///
+  /// The guard matches `ChoreographerRepository.delete`'s, which is the shape
+  /// every cascading parent now uses:
+  ///
+  /// * a **live** dance holding the tag throws a [StateError] (sync-spec §3.1:
+  ///   "refuse to hard-delete an entity still referenced by a live record"),
+  ///   because the tag must stay live for that dance to keep showing it;
+  /// * a **tombstoned** dance's `dance_tags` row downgrades the erase to a
+  ///   tombstone, so the association survives for the dance's restore instead
+  ///   of cascading away;
+  /// * an unreferenced tag is erased, or tombstoned if already published.
+  Future<void> delete(String id, {DateTime? at, bool permanent = false}) =>
+      _db.transaction(() async {
+        if (permanent) {
+          final liveUses = await liveDanceCitationCount(
+            _db,
+            joinTable: _db.danceTags,
+            keyColumn: _db.danceTags.tagId,
+            danceIdColumn: _db.danceTags.danceId,
+            id: id,
+          );
+          if (liveUses > 0) {
+            throw StateError(
+              'cannot delete tag "$id": still applied to '
+              '$liveUses dance(s)',
+            );
+          }
+          // Any surviving `dance_tags` row — necessarily a tombstoned dance's,
+          // since a live one threw above — downgrades the erase to a tombstone.
+          final taggedBySurvivor =
+              await (_db.select(_db.danceTags)
+                    ..where((t) => t.tagId.equals(id))
+                    ..limit(1))
+                  .getSingleOrNull() !=
+              null;
+          if (taggedBySurvivor ||
+              await isPublishedSyncRecord(
+                _db,
+                kind: SyncRecordKind.tag,
+                recordId: id,
+              )) {
+            await stampExistenceTransition(
+              _db,
+              table: _db.tags,
+              keyColumn: 'id',
+              key: id,
+              at: resolveStamp(at),
+              deleted: true,
+            );
+            return;
+          }
+          await (_db.delete(_db.tags)..where((t) => t.id.equals(id))).go();
+          return;
+        }
+        await stampExistenceTransition(
+          _db,
+          table: _db.tags,
+          keyColumn: 'id',
+          key: id,
+          at: resolveStamp(at),
+          deleted: true,
+        );
+      });
+
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
     await stampExistenceTransition(
       _db,
       table: _db.tags,
       keyColumn: 'id',
       key: id,
-      at: resolveStamp(at),
-      deleted: true,
+      at: at,
+      deleted: false,
     );
-  }
-
-  Future<void> restore(String id, {required DateTime at}) =>
-      stampExistenceTransition(
+    if (clearPending) {
+      await clearPendingSyncDeletionForRestore(
         _db,
+        kind: SyncRecordKind.tag,
+        recordId: id,
         table: _db.tags,
         keyColumn: 'id',
-        key: id,
         at: at,
-        deleted: false,
       );
+    }
+  });
 
-  Future<void> hardDelete(Iterable<String> ids) async {
+  /// Erases the unpublished, unreferenced tags [ids], for reverting a
+  /// just-committed import (`ShareMetadataImporter.undo`).
+  ///
+  /// Delegates to [delete], so it inherits that method's `permanent` guard in
+  /// full: a tag a **live** dance still holds throws a [StateError] (which
+  /// abandons the whole batch — callers revert per id, or catch and continue),
+  /// a tag only a tombstoned dance holds is tombstoned, and a published tag is
+  /// tombstoned. Unlike `VenueRepository.hardDelete` this is not a
+  /// batch-at-a-time query; the tag lists it is called with are single-import
+  /// sized.
+  Future<void> hardDelete(Iterable<String> ids) => _db.transaction(() async {
     for (final id in ids) {
       await delete(id, permanent: true);
     }
-  }
+  });
 
   /// Reads a row back, re-normalizing the stored colour so a row written by an
   /// older build or a corrupted file cannot paint an invisible chip.

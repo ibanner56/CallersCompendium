@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import 'title_punctuation.dart';
+
 /// One row of a **ContraDB** online title-, choreographer-, or figure-search
 /// result.
 ///
@@ -125,10 +127,12 @@ const Map<String, String> _contraDbFigureNames = {
   'zig zag': 'zig zag',
 };
 
-String _normalizeContraDbFigureQuery(String query) =>
-    query.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+String _normalizeContraDbFigureQuery(String query) => titleMatchKey(query);
 
 /// Resolves user-entered Figure text to ContraDB's exact source spelling.
+///
+/// Case, whitespace and typographic punctuation are folded first (see
+/// [titleMatchKey]), so `Rory O’More` resolves like `rory o'more`.
 ///
 /// Returns `null` for partial, unknown, or empty text. The endpoint would
 /// return an error for those values, so callers must reject them before making
@@ -171,8 +175,34 @@ String buildContraDbSearchBody(
     }
     bodyQuery = canonical;
   }
+  return buildContraDbFilterBody(
+    <Object?>[filter, bodyQuery],
+    count: count,
+    offset: offset,
+    sortBy: sortBy,
+  );
+}
+
+/// Builds the JSON request body for an arbitrary ContraDB filter [expression]
+/// (the array query DSL of `lib/filter_dances.rb`), such as one produced by
+/// `translateDanceFilterToContraDb`, or a title/choreographer term combined
+/// with it under `"and"`.
+///
+/// The caller owns the expression's validity: this serializes it with the same
+/// paging and sort fields as [buildContraDbSearchBody]. An empty [expression]
+/// throws [ArgumentError], because ContraDB would otherwise raise a server
+/// error for it.
+String buildContraDbFilterBody(
+  List<Object?> expression, {
+  int count = contraDbSearchCount,
+  int offset = 0,
+  String sortBy = 'titleA',
+}) {
+  if (expression.isEmpty) {
+    throw ArgumentError.value(expression, 'expression', 'must not be empty');
+  }
   return jsonEncode(<String, Object?>{
-    'filter': <Object?>[filter, bodyQuery],
+    'filter': expression,
     'count': count,
     'offset': offset,
     'sort_by': sortBy,
@@ -226,6 +256,26 @@ List<ContraDbSearchResult> parseContraDbSearchResults(String body) {
     );
   }
   return results;
+}
+
+/// How many dances matched a **ContraDB** search ([body], JSON), as the
+/// response's `numberMatching` reports it, or `null` when the body is not JSON,
+/// has no such number, or carries a negative or non-integer one.
+///
+/// This is the whole match count, not the size of the returned page: it stays
+/// the same for every `offset` of the same filter, so a search that fills its
+/// page of [contraDbSearchCount] can say how many dances there are in all.
+/// Pure, like [parseContraDbSearchResults].
+int? parseContraDbNumberMatching(String body) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException {
+    return null;
+  }
+  if (decoded is! Map) return null;
+  final total = decoded['numberMatching'];
+  return total is int && total >= 0 ? total : null;
 }
 
 /// Coerces a JSON scalar to a trimmed string: `null` → empty, numbers (e.g. the

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -88,75 +89,71 @@ Uint8List _ccUsrBytes({String? secondSetId}) {
 /// Same base fixture as [_ccUsrBytes], plus a `Dance_Related` table carrying
 /// [relatedRows] (each a `(zk_Dance1_ID, zk_Dance2_ID)` pair) — for issue #688
 /// related-dance import tests.
-Uint8List _ccUsrBytesWithRelated(List<(String, String)> relatedRows) =>
-    buildFmp12Fixture([
-      FmpFixtureTable(
-        index: 1,
-        name: 'Dance',
-        columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
-        rows: [
-          MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
-          MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 2,
-        name: 'Set',
-        columnNames: [
-          'zk_Set_ID',
-          'Date',
-          'Location',
-          'Band',
-          'Caller',
-          'Notes',
-        ],
-        rows: [
-          MapEntry(20, {
-            1: '1',
-            2: '3/14/2020',
-            3: 'Grange Hall',
-            4: 'The Band',
-            5: 'Jane',
-            6: 'a good night',
-          }),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 3,
-        name: 'SetItem',
-        columnNames: [
-          'zk_Set_ID',
-          'zk_SetItem_ID',
-          'zk_Dance_ID',
-          'Order',
-          'Time',
-          'Break',
-        ],
-        rows: [
-          MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
-          MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 4,
-        name: 'Dance_Related',
-        columnNames: [
-          'zk_DanceRelatedID',
-          'zk_Dance1_ID',
-          'zk_Dance2_ID',
-          'zk_DanceRelatedID_PairID',
-        ],
-        rows: [
-          for (var i = 0; i < relatedRows.length; i++)
-            MapEntry(900 + i, {
-              1: '${i + 1}',
-              2: relatedRows[i].$1,
-              3: relatedRows[i].$2,
-              4: '${i + 1}',
-            }),
-        ],
-      ),
-    ]);
+Uint8List _ccUsrBytesWithRelated(
+  List<(String, String)> relatedRows, {
+  bool thirdDance = false,
+}) => buildFmp12Fixture([
+  FmpFixtureTable(
+    index: 1,
+    name: 'Dance',
+    columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
+    rows: [
+      MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
+      MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+      if (thirdDance) MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
+    ],
+  ),
+  FmpFixtureTable(
+    index: 2,
+    name: 'Set',
+    columnNames: ['zk_Set_ID', 'Date', 'Location', 'Band', 'Caller', 'Notes'],
+    rows: [
+      MapEntry(20, {
+        1: '1',
+        2: '3/14/2020',
+        3: 'Grange Hall',
+        4: 'The Band',
+        5: 'Jane',
+        6: 'a good night',
+      }),
+    ],
+  ),
+  FmpFixtureTable(
+    index: 3,
+    name: 'SetItem',
+    columnNames: [
+      'zk_Set_ID',
+      'zk_SetItem_ID',
+      'zk_Dance_ID',
+      'Order',
+      'Time',
+      'Break',
+    ],
+    rows: [
+      MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
+      MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
+    ],
+  ),
+  FmpFixtureTable(
+    index: 4,
+    name: 'Dance_Related',
+    columnNames: [
+      'zk_DanceRelatedID',
+      'zk_Dance1_ID',
+      'zk_Dance2_ID',
+      'zk_DanceRelatedID_PairID',
+    ],
+    rows: [
+      for (var i = 0; i < relatedRows.length; i++)
+        MapEntry(900 + i, {
+          1: '${i + 1}',
+          2: relatedRows[i].$1,
+          3: relatedRows[i].$2,
+          4: '${i + 1}',
+        }),
+    ],
+  ),
+]);
 
 void main() {
   late CompendiumDatabase db;
@@ -164,6 +161,7 @@ void main() {
   late ChoreographerRepository choreographers;
   late ProgramRepository programs;
   late VenueRepository venues;
+  late CustomFieldDefRepository customFieldDefs;
   late ImportPipeline pipeline;
   late CallersCompanionUsrImporter importer;
   late String Function() nextId;
@@ -174,8 +172,16 @@ void main() {
     choreographers = ChoreographerRepository(db);
     programs = ProgramRepository(db);
     venues = VenueRepository(db);
+    customFieldDefs = CustomFieldDefRepository(db);
     pipeline = ImportPipeline(dances, choreographers);
-    importer = CallersCompanionUsrImporter(pipeline, programs, venues);
+    importer = CallersCompanionUsrImporter(
+      pipeline,
+      programs,
+      venues,
+      customFieldDefs,
+      publishedSources: PublishedSourceRepository(db),
+      difficultyLevels: DifficultyLevelRepository(db),
+    );
     nextId = sequentialIds();
   });
 
@@ -203,6 +209,144 @@ void main() {
   }
 
   group('import (end-to-end from .USR bytes)', () {
+    test('plans the file as English dances only when asked', () async {
+      final asContra = await importer.plan(_ccUsrBytes());
+      final asEnglish = await importer.plan(_ccUsrBytes(), englishDances: true);
+      expect(asContra.records, isNotEmpty);
+      expect(
+        asContra.records.map((r) => r.draft.dance.form),
+        everyElement(DanceForm.contra),
+      );
+      expect(asEnglish.records, hasLength(asContra.records.length));
+      expect(
+        asEnglish.records.map((r) => r.draft.dance.form),
+        everyElement(DanceForm.ecd),
+      );
+    });
+
+    test('decodes the file exactly once', () async {
+      var reads = 0;
+      final counting = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        venues,
+        customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
+        adapter: CallersCompanionUsrAdapter(
+          reader: (bytes, limits) async {
+            reads++;
+            return readCcUsrArchive(bytes, limits: limits);
+          },
+        ),
+      );
+      final result = await counting.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+      expect(reads, 1);
+      // ...and the programs still came from that one read.
+      expect(result.insertedProgramIds, isNotEmpty);
+    });
+
+    test(
+      'an unreadable file fails once, with the error planning captured',
+      () async {
+        // `plan` turns a failed discovery into an error batch instead of
+        // rethrowing. Decoding the bytes again to find out why would fail the same
+        // way after a second full scan of a file that may be hundreds of MiB, so
+        // `import` surfaces the error planning already has.
+        var reads = 0;
+        final counting = CallersCompanionUsrImporter(
+          pipeline,
+          programs,
+          venues,
+          customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
+          adapter: CallersCompanionUsrAdapter(
+            reader: (bytes, limits) async {
+              reads++;
+              return readCcUsrArchive(bytes, limits: limits);
+            },
+          ),
+        );
+        await expectLater(
+          counting.import(
+            Uint8List.fromList(List<int>.filled(64, 0x41)),
+            now: now,
+            venueEntityMode: false,
+            newId: nextId,
+            newSlotId: sequentialIds(),
+          ),
+          throwsA(
+            isA<ImportError>().having(
+              (e) => e.stage,
+              'stage',
+              ImportStage.discover,
+            ),
+          ),
+        );
+        expect(reads, 1);
+        expect(await dances.listAll(), isEmpty);
+      },
+    );
+
+    test('a file over its limits fails once with the friendly error', () async {
+      var reads = 0;
+      final counting = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        venues,
+        customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
+        adapter: CallersCompanionUsrAdapter(
+          limits: const FmpReadLimits(maxTables: 1),
+          reader: (bytes, limits) async {
+            reads++;
+            return readCcUsrArchive(bytes, limits: limits);
+          },
+        ),
+      );
+      await expectLater(
+        counting.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+          newSlotId: sequentialIds(),
+        ),
+        throwsA(
+          isA<ImportError>().having(
+            (e) => e.message,
+            'message',
+            'That file is too large to import.',
+          ),
+        ),
+      );
+      expect(reads, 1);
+    });
+
+    test('never decodes a file outside its adapter', () {
+      // The count above sees only reads made through the adapter's reader, so
+      // a direct `readCcUsrArchive(bytes)` in the importer would slip past it
+      // (it is exactly how the file used to be decoded twice, and it would also
+      // bypass an isolate-backed reader).
+      final src = File(
+        'lib/src/imports/callers_companion_usr_import.dart',
+      ).readAsStringSync();
+      final code = src
+          .split('\n')
+          .where((l) => !l.trimLeft().startsWith('//'))
+          .join('\n');
+      expect(code, isNot(contains('readCcUsrArchive(')));
+      expect(code, isNot(contains('readFmp12(')));
+    });
+
     test('commits dances and persists FK-mapped programs', () async {
       final result = await importer.import(
         _ccUsrBytes(),
@@ -221,9 +365,11 @@ void main() {
       expect(result.programs, hasLength(1));
       final loaded = await programs.getById(result.programs.single.id);
       expect(loaded, isNotNull);
-      expect(loaded!.title, 'Grange Hall');
+      expect(loaded!.title, '2020/03/14 - Grange Hall');
       expect(loaded.eventDate, DateTime.utc(2020, 3, 14));
-      expect(loaded.slots, hasLength(4));
+      // The slot naming dance #99, which the file does not have, is left out:
+      // it was deleted in Caller's Companion (#1976).
+      expect(loaded.slots, hasLength(3));
 
       // Slots resolve to the *new* Compendium dance ids the commit minted.
       expect(loaded.slots[0].danceId, byExternal['4']);
@@ -231,14 +377,45 @@ void main() {
       // Text-only break slot.
       expect(loaded.slots[2].danceId, isNull);
       expect(loaded.slots[2].text, 'Waltz break');
-      // Reference to a dance absent from the file degrades to a placeholder.
-      expect(loaded.slots[3].danceId, isNull);
-      expect(loaded.slots[3].text, contains('99'));
       expect(
-        result.programIssues.any(
-          (i) => i.code == 'cc_program_unresolved_dance',
-        ),
-        isTrue,
+        result.programIssues.map((i) => i.code),
+        contains('cc_program_deleted_dance'),
+      );
+      expect(
+        result.programIssues.map((i) => i.code),
+        isNot(contains('cc_program_unresolved_dance')),
+      );
+    });
+
+    test('a dance whose commit fails keeps its title and the marker '
+        '(#1976)', () async {
+      final failing = _FailingCreateDanceRepository(db, title: 'Petronella');
+      final failingImporter = CallersCompanionUsrImporter(
+        ImportPipeline(failing, choreographers),
+        programs,
+        venues,
+        customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
+      );
+      final result = await failingImporter.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+
+      expect(result.danceSession.committedCount, 1);
+      final program = result.programs.single;
+      expect(program.slots[1].danceId, isNull);
+      expect(
+        program.slots[1].text,
+        "Petronella\n\nDance not imported (Caller's Companion dance #7)",
+      );
+      expect(
+        result.programIssues.map((i) => i.code),
+        contains('cc_program_unresolved_dance'),
       );
     });
 
@@ -270,6 +447,36 @@ void main() {
       // Idempotent: a second undo is a no-op.
       await importer.undo(result);
       expect(await programs.listAll(includeDeleted: true), isEmpty);
+    });
+  });
+
+  group('commit (progress)', () {
+    test('forwards onProgress to the dance commit', () async {
+      // The review screen's determinate "n / total" depends on this
+      // forwarding: dropping `onProgress` here leaves the screen on its seed.
+      final adapter = FakeSourceAdapter([
+        {'id': '4', 'title': 'Simplicity Swing'},
+        {'id': '7', 'title': 'Petronella'},
+      ]);
+      final planned = await pipeline.plan(adapter, const ImportRequest());
+      final archive = CcUsrArchive(
+        dances: const [],
+        sets: const [],
+        warnings: const [],
+      );
+      final events = <(int, int)>[];
+
+      await importer.commit(
+        planned,
+        archive,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        onProgress: (done, total) => events.add((done, total)),
+      );
+
+      // One report per record, then the closing (total, total).
+      expect(events, [(1, 2), (2, 2), (2, 2)]);
     });
   });
 
@@ -327,11 +534,54 @@ void main() {
       expect(byExternal.containsKey('7'), isFalse);
 
       final program = result.programs.single;
-      // #1 and #3 resolve to the correct new ids; the skipped middle degrades.
+      // #1 and #3 resolve to the correct new ids; the skipped middle is its
+      // title, with no marker (#1976).
       expect(program.slots[0].danceId, byExternal['4']);
       expect(program.slots[1].danceId, isNull);
-      expect(program.slots[1].text, contains('7'));
+      expect(program.slots[1].text, 'Petronella');
       expect(program.slots[2].danceId, byExternal['13']);
+    });
+
+    test('a row left out of the commit batch takes its title from the '
+        'caller (#1976)', () async {
+      // The review screen commits only the rows it acts on; the titles of the
+      // rest arrive beside the batch.
+      final adapter = FakeSourceAdapter([
+        {'id': '4', 'title': 'Simplicity Swing'},
+      ]);
+      final planned = await pipeline.plan(adapter, const ImportRequest());
+      final archive = CcUsrArchive(
+        dances: const [],
+        sets: [
+          CcSet(
+            recordId: '1',
+            location: 'Grange Hall',
+            items: [
+              CcSetItem(order: 1, danceRecordId: '4'),
+              CcSetItem(order: 2, danceRecordId: '7'),
+              CcSetItem(order: 3, danceRecordId: '13'),
+            ],
+          ),
+        ],
+        warnings: const [],
+      );
+
+      final result = await importer.commit(
+        planned,
+        archive,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        danceTitleByCcRowId: {'7': 'Petronella'},
+      );
+
+      final slots = result.programs.single.slots;
+      expect(slots[1].text, 'Petronella');
+      // No title for #13: the marker alone.
+      expect(
+        slots[2].text,
+        "Dance not imported (Caller's Companion dance #13)",
+      );
     });
 
     test('a dance skipped at commit is excluded from the map', () async {
@@ -381,15 +631,14 @@ void main() {
       expect(byExternal.keys, ['4']);
 
       final program = result.programs.single;
-      // The committed dance resolves; the skipped one degrades to a placeholder.
+      // The committed dance resolves; the skipped one is its title, with no
+      // marker and no warning (#1976).
       expect(program.slots[0].danceId, byExternal['4']);
       expect(program.slots[1].danceId, isNull);
-      expect(program.slots[1].text, contains('7'));
+      expect(program.slots[1].text, 'Petronella');
       expect(
-        result.programIssues.any(
-          (i) => i.code == 'cc_program_unresolved_dance',
-        ),
-        isTrue,
+        result.programIssues.map((i) => i.code),
+        isNot(contains('cc_program_unresolved_dance')),
       );
 
       // Undo still reverts the one dance and the program.
@@ -408,6 +657,9 @@ void main() {
           pipeline,
           failing,
           venues,
+          customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
         );
 
         await expectLater(
@@ -449,6 +701,9 @@ void main() {
           pipeline,
           failing,
           venues,
+          customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
         );
         await expectLater(
           rollbackImporter.import(
@@ -519,6 +774,129 @@ void main() {
       expect(all.single.provenance!.source, ProvenanceSource.callersCompanion);
       // Dances also deduped via the pipeline: still just the two.
       expect(await dances.listAll(), hasLength(2));
+    });
+
+    // INTAKE-1: the review defaults a re-import row to Skip (#446) and leaves
+    // it out of the commit batch, then passes its verdict's target in
+    // `existingDanceIdByExternalId`. The program's slot must keep linking to
+    // that dance, not become a "Dance not imported" placeholder.
+    group('a dance left out of the commit', () {
+      Future<CcUsrImportResult> reimportSkippingFirst(
+        Uint8List bytes, {
+        ImportBatchResult? planned,
+      }) async {
+        final batch = planned ?? await importer.plan(bytes);
+        expect(batch.records.map((r) => r.verdict.kind), [
+          DedupeKind.reimport,
+          DedupeKind.reimport,
+        ]);
+        final result = await importer.commit(
+          // Row 0 (CC dance 4) skipped, as the review's default leaves it.
+          ImportBatchResult(records: [batch.records[1]]),
+          readCcUsrArchive(bytes),
+          now: DateTime.utc(2026, 8, 1),
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+          existingDanceIdByExternalId: {
+            for (final r in batch.records)
+              r.draft.raw.externalId!: r.verdict.targetDanceId!,
+          },
+        );
+        return result;
+      }
+
+      test('still links its program slot to the existing dance, and is not '
+          'written', () async {
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final slotDanceIds = first.programs.single.slots
+            .map((s) => s.danceId)
+            .toList();
+        final swingId = slotDanceIds[0]!;
+        final swing = await dances.getById(swingId);
+        await dances.update(swing!.copyWith(title: 'My Simplicity Swing'));
+
+        final second = await reimportSkippingFirst(_ccUsrBytes());
+
+        final program = (await programs.getById(first.programs.single.id))!;
+        expect(
+          program.slots.map((s) => s.danceId).toList(),
+          slotDanceIds,
+          reason: 'the skipped dance keeps its slot link',
+        );
+        expect(
+          program.slots[0].text,
+          isNull,
+          reason: 'no "Dance not imported" placeholder for a dance we have',
+        );
+        // The dance not in the file (#99) is left out, and nothing is a
+        // "not imported" note (#1976).
+        expect(
+          second.programIssues.map((i) => i.code),
+          isNot(contains('cc_program_unresolved_dance')),
+        );
+        expect(
+          second.programIssues.map((i) => i.code),
+          contains('cc_program_deleted_dance'),
+        );
+        expect(
+          (await dances.getById(swingId))!.title,
+          'My Simplicity Swing',
+          reason: 'Skip still means "keep the local dance as it is"',
+        );
+        expect(second.danceSession.updatedDancePriorStates, hasLength(1));
+      });
+
+      test('a dance deleted since planning keeps the placeholder', () async {
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final swingId = first.programs.single.slots[0].danceId!;
+        final batch = await importer.plan(_ccUsrBytes());
+        await dances.softDelete(swingId, at: now);
+
+        final second = await reimportSkippingFirst(
+          _ccUsrBytes(),
+          planned: batch,
+        );
+
+        final slot = second.programs.single.slots[0];
+        expect(slot.danceId, isNull);
+        expect(slot.text, contains(kUnresolvedDanceMarkerPrefix));
+      });
+
+      test('gets no related-dance link: it was not written, and undo could '
+          'not revert one', () async {
+        final bytes = _ccUsrBytesWithRelated([('4', '7')]);
+        await importer.import(
+          bytes,
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final batch = await importer.plan(bytes);
+        final swingId = batch.records[0].verdict.targetDanceId!;
+        // Clear the link the first import added, as a user might.
+        final swing = await dances.getById(swingId);
+        await dances.update(swing!.copyWith(links: const []));
+
+        final second = await reimportSkippingFirst(bytes);
+
+        expect((await dances.getById(swingId))!.links, isEmpty);
+        await importer.undo(second);
+        expect((await dances.getById(swingId))!.links, isEmpty);
+      });
     });
 
     test('re-importing a deleted program restores existence ordering and undo '
@@ -646,6 +1024,103 @@ void main() {
       },
     );
 
+    test('re-import keeps a program the caller archived archived', () async {
+      final first = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      final programId = first.programs.single.id;
+      final archivedAt = DateTime.utc(2026, 7, 15);
+      expect(await programs.archive(programId, at: archivedAt), isTrue);
+
+      // `.USR` data cannot express an archived program, so the rebuild must
+      // carry it forward rather than bring the program back into the list.
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: DateTime.utc(2026, 8, 1),
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      expect(second.updatedProgramCount, 1);
+      expect((await programs.getById(programId))!.archivedAt, archivedAt);
+    });
+
+    group('a prior venue link that no row backs', () {
+      // The repository's save guard refuses a dead id, so the column is
+      // rewritten directly: the state #2076 leaves on a restore.
+      Future<String> importThenLink(String venueId) async {
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final programId = first.programs.single.id;
+        await db.customStatement(
+          'UPDATE programs SET venue_id = ? WHERE id = ?',
+          [venueId, programId],
+        );
+        return programId;
+      }
+
+      test(
+        'is dropped, and the location resolved afresh, in venue mode',
+        () async {
+          final programId = await importThenLink('gone');
+
+          final second = await importer.import(
+            _ccUsrBytes(),
+            now: DateTime.utc(2026, 8, 1),
+            venueEntityMode: true,
+            newId: sequentialIds(),
+            newSlotId: sequentialIds(),
+          );
+
+          final reloaded = await programs.getById(programId);
+          expect(second.insertedVenueIds, hasLength(1));
+          expect(reloaded!.venueId, second.insertedVenueIds.single);
+          expect(await venues.getById(reloaded.venueId!), isNotNull);
+        },
+      );
+
+      test('is kept with venue mode off: no venue resolved to replace it (a '
+          'peer\'s venue may not have arrived)', () async {
+        final programId = await importThenLink('gone');
+
+        await importer.import(
+          _ccUsrBytes(),
+          now: DateTime.utc(2026, 8, 1),
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+
+        expect((await programs.getById(programId))!.venueId, 'gone');
+      });
+
+      test('is kept when the venue is only soft-deleted (#2076)', () async {
+        await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+        await venues.delete('v1');
+        final programId = await importThenLink('v1');
+
+        final second = await importer.import(
+          _ccUsrBytes(),
+          now: DateTime.utc(2026, 8, 1),
+          venueEntityMode: true,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+
+        expect(second.insertedVenueIds, isEmpty);
+        expect((await programs.getById(programId))!.venueId, 'v1');
+      });
+    });
+
     test('undo after a re-import restores the prior program state', () async {
       await importer.import(
         _ccUsrBytes(),
@@ -759,6 +1234,9 @@ void main() {
         pipeline,
         programs,
         countingVenues,
+        customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
       );
 
       final result = await spiedImporter.import(
@@ -974,6 +1452,387 @@ void main() {
       expect(await venues.getById(mintedVenueId), isNotNull);
       expect(await programs.getById(result.programs.single.id), isNull);
     });
+
+    test('undo leaves a minted venue in place when only a TOMBSTONED program '
+        'links to it (#1357)', () async {
+      // `programs.venue_id` is not a foreign key, so a soft-deleted program
+      // keeps it and can be restored later. Undo used to call
+      // `VenueRepository.delete(permanent: true)`, whose guard #1328 narrowed
+      // to live programs, so the tombstoned program did not hold the venue
+      // back and it was erased — the restored program would then name a venue
+      // row that no longer exists. Undo now calls `hardDelete`, which retains
+      // a venue any surviving program row names (sync-spec §3.1).
+      final result = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: true,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      final mintedVenueId = result.insertedVenueIds.single;
+
+      await programs.create(
+        Program(
+          id: 'other-prog',
+          title: 'Other Dance',
+          venueId: mintedVenueId,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await programs.softDelete(
+        'other-prog',
+        at: now.add(const Duration(days: 1)),
+      );
+
+      await importer.undo(result);
+
+      final tombstoned = await programs.getById(
+        'other-prog',
+        includeDeleted: true,
+      );
+      expect(tombstoned, isNotNull);
+      expect(tombstoned!.deletedAt, isNotNull);
+      expect(
+        tombstoned.venueId,
+        mintedVenueId,
+        reason: 'the tombstoned program still names the venue',
+      );
+      expect(
+        await venues.getById(mintedVenueId),
+        isNotNull,
+        reason: 'so undo must not erase it',
+      );
+    });
+  });
+
+  // The review's per-row Edit commits one dance before the rest of the file;
+  // the batch Import then gets that dance's CC id as `earlierDanceIds`.
+  group('dances an earlier Edit committed', () {
+    /// Plans [bytes], commits the CC row [ccId] alone through
+    /// [CallersCompanionUsrImporter.commitDances], and returns the rest of the
+    /// batch with the id that dance was written under.
+    Future<(ImportBatchResult rest, String danceId)> editFirst(
+      Uint8List bytes,
+      String ccId,
+      CallersCompanionUsrImporter importer,
+    ) async {
+      final batch = await importer.plan(bytes);
+      final row = batch.records.indexWhere(
+        (r) => r.draft.raw.externalId == ccId,
+      );
+      final session = await importer.commitDances(
+        ImportBatchResult(records: [batch.records[row]]),
+        now: now,
+        newId: nextId,
+      );
+      return (
+        ImportBatchResult(
+          records: [
+            for (var i = 0; i < batch.records.length; i++)
+              if (i != row) batch.records[i],
+          ],
+        ),
+        session.records.single.danceId!,
+      );
+    }
+
+    CallersCompanionUsrImporter importerWith(
+      CallersCompanionUsrAdapter adapter,
+    ) => CallersCompanionUsrImporter(
+      pipeline,
+      programs,
+      venues,
+      customFieldDefs,
+      publishedSources: PublishedSourceRepository(db),
+      difficultyLevels: DifficultyLevelRepository(db),
+      adapter: adapter,
+    );
+
+    test('their set slots name the dance, not a placeholder', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final (rest, editedId) = await editFirst(_ccUsrBytes(), '4', importer);
+
+      final result = await importer.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+      );
+
+      final slots = result.programs.single.slots;
+      expect(slots.first.danceId, editedId);
+      expect(slots.first.text, isNull);
+      expect(
+        result.programIssues.map((i) => i.message),
+        isNot(contains(contains('#4,'))),
+      );
+    });
+
+    test(
+      'a dance deleted since is ignored and its slot stays a placeholder',
+      () async {
+        final adapter = CallersCompanionUsrAdapter();
+        final importer = importerWith(adapter);
+        final (rest, editedId) = await editFirst(_ccUsrBytes(), '4', importer);
+        await dances.softDelete(editedId, at: now);
+
+        final result = await importer.commit(
+          rest,
+          adapter.discoveredArchive!,
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+          earlierDanceIds: {'4': editedId},
+        );
+
+        final slot = result.programs.single.slots.first;
+        expect(slot.danceId, isNull);
+        expect(slot.text, contains('#4'));
+      },
+    );
+
+    test('related dances link both ways, and undo removes only the link on '
+        'the earlier dance', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('4', '7'), ('7', '4')]),
+        '4',
+        importer,
+      );
+
+      final result = await importer.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+      );
+
+      expect(result.relatedDanceLinkIssues, isEmpty);
+      final otherId = result.danceSession.insertedDanceIds.single;
+      final edited = (await dances.getById(editedId))!;
+      final other = (await dances.getById(otherId))!;
+      expect(edited.links.single.targetDanceId, otherId);
+      expect(other.links.single.targetDanceId, editedId);
+      expect(result.linksAddedToEarlierDances, {
+        editedId: [edited.links.single.id],
+      });
+
+      await importer.undo(result);
+
+      expect(await dances.getById(otherId, includeDeleted: true), isNull);
+      final kept = (await dances.getById(editedId))!;
+      expect(kept.links, isEmpty, reason: 'no link to the removed dance');
+      expect(await programs.listAll(), isEmpty);
+    });
+
+    test('undo removes the link it added to the earlier dance even when its '
+        'target survives the undo', () async {
+      // A re-import: undo restores dance 7 rather than deleting it, so the
+      // repository's own clean-up of links to a deleted dance does not apply.
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final adapter = CallersCompanionUsrAdapter();
+      final reimporter = importerWith(adapter);
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        '4',
+        reimporter,
+      );
+
+      final result = await reimporter.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+      );
+      final targetId = (await dances.getById(
+        editedId,
+      ))!.links.single.targetDanceId!;
+      expect(result.danceSession.insertedDanceIds, isEmpty);
+
+      await reimporter.undo(result);
+
+      expect(await dances.getById(targetId), isNotNull);
+      expect((await dances.getById(editedId))!.links, isEmpty);
+    });
+    test("the batch's own dance wins for a CC id it also commits", () async {
+      await dances.create(
+        Dance(id: 'other', title: 'Other', createdAt: now, updatedAt: now),
+      );
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final batch = await importer.plan(_ccUsrBytes());
+
+      final result = await importer.commit(
+        batch,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': 'other'},
+      );
+
+      final byExternal = await danceIdByExternalId(result.danceSession);
+      expect(result.programs.single.slots.first.danceId, byExternal['4']);
+    });
+
+    test('a dance the earlier Edit re-imported gets none of the file\'s links '
+        '(INTAKE-7)', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        '4',
+        importer,
+      );
+
+      final result = await importer.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+        earlierReimportedCcIds: {'4'},
+      );
+
+      expect(result.danceSession.records.single.action, CommitAction.reimport);
+      expect((await dances.getById(editedId))!.links, isEmpty);
+      expect(result.linksAddedToEarlierDances, isEmpty);
+      expect(result.relatedDanceLinkIssues, isEmpty);
+    });
+
+    test('a dance the earlier Edit re-imported still gets the file\'s links '
+        'when this batch links another row onto it', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final first = await importer.import(
+        _ccUsrBytesWithRelated([], thirdDance: true),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final ids = await danceIdByExternalId(first.danceSession);
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('7', '9')], thirdDance: true),
+        '4',
+        importer,
+      );
+      expect(editedId, ids['4']);
+      // Row 7 is treated as the same dance as the one row 4 re-imported: a
+      // link replaces that dance wholesale, so it takes row 7's links.
+      final linked = ImportBatchResult(
+        records: [
+          for (final r in rest.records)
+            r.draft.raw.externalId == '7'
+                ? ImportRecordPlan(
+                    draft: r.draft,
+                    verdict: DedupeVerdict.ambiguous(const []),
+                  )
+                : r,
+        ],
+      );
+      final row7 = linked.records.indexWhere(
+        (r) => r.draft.raw.externalId == '7',
+      );
+
+      final result = await importer.commit(
+        linked,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        resolutions: {row7: DedupeResolution.link(editedId)},
+        earlierDanceIds: {'4': editedId},
+        earlierReimportedCcIds: {'4'},
+      );
+
+      expect(result.danceSession.records[row7].action, CommitAction.link);
+      expect(
+        [
+          for (final l in (await dances.getById(editedId))!.links)
+            l.targetDanceId,
+        ],
+        [ids['9']],
+      );
+    });
+
+    test(
+      'a failed commit removes the link it added to the earlier dance',
+      () async {
+        // Dance 7 is linked onto a dance the person already has, so the failed
+        // commit restores that dance rather than deleting it, and the
+        // repository cannot clean the link up itself. (Not a re-import, as
+        // above: a re-imported dance gets no links, INTAKE-7, so its write
+        // would not fail.)
+        final trad = await choreographers.upsert(
+          Choreographer(id: 'trad', name: 'Trad'),
+        );
+        await dances.create(
+          Dance(
+            id: 'mine-7',
+            title: 'Petronella',
+            authorIds: [trad],
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        final adapter = CallersCompanionUsrAdapter();
+        final failing = _FailingLinkWriteDanceRepository(db);
+        final reimporter = CallersCompanionUsrImporter(
+          ImportPipeline(failing, choreographers),
+          programs,
+          venues,
+          customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
+          adapter: adapter,
+        );
+        final (rest, editedId) = await editFirst(
+          _ccUsrBytesWithRelated([('4', '7'), ('7', '4')]),
+          '4',
+          reimporter,
+        );
+        failing.failLinksOnOtherThan = editedId;
+        expect(rest.records.single.verdict.isAmbiguous, isTrue);
+
+        await expectLater(
+          reimporter.commit(
+            rest,
+            adapter.discoveredArchive!,
+            now: now,
+            venueEntityMode: false,
+            newId: nextId,
+            resolutions: {0: DedupeResolution.link('mine-7')},
+            earlierDanceIds: {'4': editedId},
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        expect((await dances.getById(editedId))!.links, isEmpty);
+        expect(await dances.getById('mine-7'), isNotNull);
+        expect(await dances.listAll(), hasLength(2));
+      },
+    );
   });
 
   group('related-dance links (issue #688)', () {
@@ -997,6 +1856,62 @@ void main() {
       expect(link.targetDanceId, byExternal['7']);
       // Directional only: the target dance gets no reciprocal link.
       expect(target!.links, isEmpty);
+    });
+
+    test('a re-imported dance gets none of the file\'s links and keeps its '
+        'own (INTAKE-7)', () async {
+      final first = await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final id4 = (await danceIdByExternalId(first.danceSession))['4']!;
+      final mine = DanceLink(
+        id: 'mine',
+        kind: LinkKind.video,
+        url: 'https://example.com/video',
+      );
+      await dances.update((await dances.getById(id4))!.copyWith(links: [mine]));
+
+      final again = await importer.import(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      expect(again.danceSession.records.map((r) => r.action), [
+        CommitAction.reimport,
+        CommitAction.reimport,
+      ]);
+      expect(
+        [for (final l in (await dances.getById(id4))!.links) l.id],
+        ['mine'],
+      );
+    });
+
+    test('a re-imported dance\'s pair raises no unresolved-endpoint warning, '
+        'since its link is left out anyway', () async {
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      final again = await importer.import(
+        _ccUsrBytesWithRelated([('4', '999')]), // '999' is not in the file
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      expect(
+        again.danceSession.records.map((r) => r.action),
+        everyElement(CommitAction.reimport),
+      );
+      expect(again.relatedDanceLinkIssues, isEmpty);
     });
 
     test('a mirrored pair of rows in the archive yields two independent '
@@ -1212,8 +2127,44 @@ class _CountingVenueRepository extends VenueRepository {
   int listAllCallCount = 0;
 
   @override
-  Future<List<Venue>> listAll() {
+  Future<List<Venue>> listAll({bool includeDeleted = false}) {
     listAllCallCount++;
-    return super.listAll();
+    return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// A [DanceRepository] that refuses to write a dance carrying related links,
+/// unless it is the dance [failLinksOnOtherThan] names: the related-dance step
+/// of a `.USR` commit then fails after linking that one dance.
+class _FailingLinkWriteDanceRepository extends DanceRepository {
+  _FailingLinkWriteDanceRepository(CompendiumDatabase db)
+    : super(db, contraTaxonomy);
+
+  String? failLinksOnOtherThan;
+
+  @override
+  Future<void> update(Dance dance, {bool localUserEdit = false}) {
+    final spare = failLinksOnOtherThan;
+    if (spare != null && dance.id != spare && dance.links.isNotEmpty) {
+      throw StateError('simulated related-link write failure');
+    }
+    return super.update(dance, localUserEdit: localUserEdit);
+  }
+}
+
+/// A [DanceRepository] that refuses to create the dance titled [title], so
+/// that one record of a `.USR` commit fails while the rest commit.
+class _FailingCreateDanceRepository extends DanceRepository {
+  _FailingCreateDanceRepository(CompendiumDatabase db, {required this.title})
+    : super(db, contraTaxonomy);
+
+  final String title;
+
+  @override
+  Future<void> create(Dance dance) {
+    if (dance.title == title) {
+      throw StateError('simulated dance write failure');
+    }
+    return super.create(dance);
   }
 }

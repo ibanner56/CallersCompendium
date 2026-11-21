@@ -37,7 +37,7 @@ void main() {
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
       'butterfly whirl': Figure(move: 'butterfly_whirl'),
-      'ones arch and dive': Figure(move: 'arch_and_dive'),
+      'twos arch and dive': Figure(move: 'arch_and_dive'),
       'partners California twirl': Figure(move: 'california_twirl'),
       'stand still': Figure(move: 'stand_still'),
       'slide along set left': Figure(move: 'slide_along_set'),

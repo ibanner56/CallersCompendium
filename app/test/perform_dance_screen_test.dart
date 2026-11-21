@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -10,6 +11,7 @@ import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/data/perform_text_scale.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 import 'package:compendium_app/src/screens/perform_walkthrough_overlay.dart';
@@ -107,7 +109,10 @@ Future<void> _pumpPerform(
   }
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
-      : DialectLibraryScope(controller: dialectLibrary, child: child);
+      : DialectLibraryScope(
+          libraries: DialectLibraries.withContra(dialectLibrary),
+          child: child,
+        );
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -164,8 +169,7 @@ void main() {
     // program view: on narrow phones secondary actions collapse into a "More
     // actions" overflow while the stage-mode toggle and dialect quick-switch
     // stay inline; the full set shows inline on wide layouts. Mount
-    // DialectLibraryScope so the quick-switch renders and keep a non-canonical
-    // dialect so the canonical toggle is part of the set.
+    // DialectLibraryScope so the quick-switch renders.
 
     Future<DialectLibraryController> loadedLibrary() async {
       final repos = openTestRepositories();
@@ -190,14 +194,12 @@ void main() {
       'decrease-text-size',
       'increase-text-size',
       'perform-autosize-toggle',
-      'perform-dialect-toggle',
     ];
     const overflowItemKeys = [
       'perform-metronome-menu',
       'decrease-text-size-menu',
       'increase-text-size-menu',
       'perform-autosize-toggle-menu',
-      'perform-dialect-toggle-menu',
     ];
 
     for (final width in const [360.0, 430.0]) {
@@ -340,22 +342,40 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('canonical toggle flips the rendered figure text', (
-    tester,
-  ) async {
+  testWidgets('offers no separate canonical-terms toggle', (tester) async {
     await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
 
+    // Canonical wording is a choice in the dialect quick-switch instead.
+    expect(find.byKey(const ValueKey('perform-dialect-toggle')), findsNothing);
     expect(find.text('robins chain'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('role2s chain'), findsOneWidget);
   });
 
-  testWidgets('dialect toggle is hidden when active dialect is canonical', (
-    tester,
-  ) async {
+  testWidgets('Canonical is a choice in the quick-switch, and picking it '
+      'makes it the active dialect', (tester) async {
+    final repos = openTestRepositories();
+    await repos.ensureMigrated();
+    final library = DialectLibraryController(repos.settings);
+    await library.load();
+    addTearDown(library.dispose);
+    await _pumpPerform(
+      tester,
+      dance: _dance(figures: [_chain()]),
+      dialectLibrary: library,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey('dialect-quick-switch-${Dialect.canonical.name}')),
+    );
+    await tester.pumpAndSettle();
+
+    // The app feeds ActiveDialectScope from this controller; the rendering
+    // that follows is covered by the next test.
+    expect(library.activeName, Dialect.canonical.name);
+  });
+
+  testWidgets('the canonical dialect renders canonical tokens', (tester) async {
     await _pumpPerform(
       tester,
       dance: _dance(figures: [_chain()]),
@@ -496,7 +516,7 @@ void main() {
     // would double-announce), and be focusable — not merely have a non-null
     // onPressed.
     for (final (key, label) in const [
-      ('exit-perform', 'Exit performance view'),
+      ('exit-perform', 'Exit Perform mode'),
       ('decrease-text-size', 'Decrease text size'),
       ('increase-text-size', 'Increase text size'),
     ]) {
@@ -514,35 +534,6 @@ void main() {
 
     handle.dispose();
   });
-
-  testWidgets(
-    'dialect toggle exposes a single named toggle (no double-announce)',
-    (tester) async {
-      final handle = tester.ensureSemantics();
-
-      await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
-
-      // The icon button carries the accessible name (via its tooltip — the
-      // standard icon-button pattern) plus the toggle role/state. A redundant
-      // Semantics label would double-announce, so none is set. The decorative
-      // "Canonical" text no longer exists, so nothing is announced separately.
-      expect(
-        tester.getSemantics(
-          find.byKey(const ValueKey('perform-dialect-toggle')),
-        ),
-        isSemantics(
-          tooltip: 'Show canonical terms',
-          isButton: true,
-          isFocusable: true,
-          hasTapAction: true,
-          hasToggledState: true,
-        ),
-      );
-      expect(find.bySemanticsLabel('Canonical'), findsNothing);
-
-      handle.dispose();
-    },
-  );
 
   testWidgets('detail "Perform this dance" action navigates to the view', (
     tester,
@@ -580,6 +571,30 @@ void main() {
 
     expect(find.byType(PerformDanceScreen), findsNothing);
     expect(find.byType(DanceDetailScreen), findsOneWidget);
+  });
+
+  testWidgets('exit dialog does not promise a resume (no resume state)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Perform Me'));
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('perform-dance')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exit-perform')));
+    await tester.pumpAndSettle();
+
+    final dialog = find.byKey(const ValueKey('perform-exit-dialog'));
+    expect(dialog, findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('resume')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('fresh')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a stray single tap on the exit control does not leave Perform', (
@@ -1053,12 +1068,14 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('restores persisted stage mode and canonical view on entry', (
-      tester,
-    ) async {
+    testWidgets('restores persisted stage mode on entry, and ignores a '
+        'canonical view saved by an older version', (tester) async {
       final repos = openTestRepositories();
       await repos.settings.set(kAutoSizePerformKey, false);
       await repos.settings.set(kPerformStageModeKey, false);
+      // Older versions had a "Show canonical terms" toggle and persisted it.
+      // With the toggle gone, honoring it would strand the caller in
+      // canonical wording with no control to leave it.
       await repos.settings.set(kPerformCanonicalViewKey, true);
 
       await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
@@ -1068,9 +1085,9 @@ void main() {
         Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
         isNot(AppColorSchemes.highContrast),
       );
-      // Canonical view restored ON -> figures show canonical tokens.
-      expect(find.text('role2s chain'), findsOneWidget);
-      expect(find.text('robins chain'), findsNothing);
+      // The dialect's wording, not canonical tokens.
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('role2s chain'), findsNothing);
     });
 
     testWidgets('restores a persisted manual text scale on entry', (
@@ -1110,7 +1127,7 @@ void main() {
         Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
         AppColorSchemes.highContrast,
       );
-      // Canonical off by default -> active-dialect tokens.
+      // Active-dialect tokens.
       expect(find.text('robins chain'), findsOneWidget);
       expect(find.text('role2s chain'), findsNothing);
     });
@@ -1126,10 +1143,6 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
       await tester.pumpAndSettle();
       expect(await repos.settings.get(kPerformStageModeKey), isFalse);
-
-      await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
-      await tester.pumpAndSettle();
-      expect(await repos.settings.get(kPerformCanonicalViewKey), isTrue);
 
       await tester.tap(find.byKey(const ValueKey('increase-text-size')));
       await tester.pumpAndSettle();
@@ -1242,5 +1255,116 @@ void main() {
         expect(find.byType(PerformWalkthroughOverlay), findsNothing);
       },
     );
+  });
+
+  group('arrow and Page keys scroll a long card (PLAT-10)', () {
+    Dance longDance({String walkthrough = ''}) => _dance(
+      figures: [for (var i = 0; i < 40; i++) _chain()],
+      walkthrough: walkthrough,
+    );
+
+    ScrollPosition scrollOf(WidgetTester tester, Type within) => tester
+        .state<ScrollableState>(
+          find.descendant(
+            of: find.byType(within),
+            matching: find.byType(Scrollable),
+          ),
+        )
+        .position;
+
+    Future<void> pumpLong(WidgetTester tester, {String walkthrough = ''}) =>
+        _pumpPerform(
+          tester,
+          dance: longDance(walkthrough: walkthrough),
+          surfaceSize: const Size(1000, 800),
+        );
+
+    for (final keys in [
+      (LogicalKeyboardKey.arrowDown, LogicalKeyboardKey.arrowUp),
+      (LogicalKeyboardKey.pageDown, LogicalKeyboardKey.pageUp),
+    ]) {
+      testWidgets('${keys.$1.keyLabel} scrolls on and ${keys.$2.keyLabel} '
+          'back, and both stop at the ends', (tester) async {
+        await pumpLong(tester);
+        final position = scrollOf(tester, PerformCard);
+        expect(position.maxScrollExtent, greaterThan(0));
+        expect(position.pixels, 0);
+
+        await tester.sendKeyEvent(keys.$1);
+        await tester.pumpAndSettle();
+        expect(position.pixels, greaterThan(0));
+
+        var presses = 0;
+        while (position.pixels < position.maxScrollExtent) {
+          await tester.sendKeyEvent(keys.$1);
+          await tester.pumpAndSettle();
+          expect(++presses, lessThan(50));
+        }
+        // At the end another press changes nothing and does not throw.
+        await tester.sendKeyEvent(keys.$1);
+        await tester.pumpAndSettle();
+        expect(position.pixels, position.maxScrollExtent);
+
+        while (position.pixels > 0) {
+          await tester.sendKeyEvent(keys.$2);
+          await tester.pumpAndSettle();
+          expect(++presses, lessThan(100));
+        }
+        expect(position.pixels, 0);
+        expect(find.byType(PerformDanceScreen), findsOneWidget);
+      });
+    }
+
+    testWidgets('opening the walkthrough from the keyboard leaves the keys '
+        'working', (tester) async {
+      await pumpLong(tester, walkthrough: List.filled(80, 'Line.').join('\n'));
+      final toggle = find.byKey(const ValueKey('perform-walkthrough-toggle'));
+      // Tab to the toggle, as a keyboard user would.
+      for (var i = 0; i < 20; i++) {
+        final focused = FocusManager.instance.primaryFocus?.context;
+        if (focused?.findAncestorWidgetOfExactType<IconButton>()?.key ==
+            toggle.evaluate().single.widget.key) {
+          break;
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+      final overlay = scrollOf(tester, PerformWalkthroughOverlay);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      expect(overlay.pixels, greaterThan(0));
+    });
+
+    testWidgets('with the walkthrough open the keys scroll it, not the card', (
+      tester,
+    ) async {
+      await pumpLong(tester, walkthrough: List.filled(80, 'Line.').join('\n'));
+      await tester.tap(
+        find.byKey(const ValueKey('perform-walkthrough-toggle')),
+      );
+      await tester.pumpAndSettle();
+      final overlay = scrollOf(tester, PerformWalkthroughOverlay);
+      final card = tester
+          .state<ScrollableState>(
+            find
+                .descendant(
+                  of: find.byType(PerformCard),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
+          .position;
+      expect(overlay.maxScrollExtent, greaterThan(0));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(overlay.pixels, greaterThan(0));
+      expect(card.pixels, 0);
+    });
   });
 }

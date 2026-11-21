@@ -19,7 +19,12 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   figures: l10n.exportLabelFigures,
   callingNotes: l10n.exportLabelCallingNotes,
   walkthrough: l10n.exportLabelWalkthrough,
+  tunes: l10n.exportLabelTunes,
+  hook: l10n.exportLabelHook,
+  sources: l10n.exportLabelSources,
   beats: l10n.exportBeatsLabel,
+  bars: l10n.danceFigureBars,
+  pageOf: l10n.exportPageOfPages,
 );
 
 ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
@@ -30,7 +35,6 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       notes: l10n.exportLabelNotes,
       alt: l10n.exportLabelAlt,
       guest: l10n.exportLabelGuest,
-      performed: l10n.exportLabelPerformed,
       unknownDance: l10n.exportUnknownDanceLabel,
       minutes: l10n.exportMinutesLabel,
       venue: l10n.exportLabelVenue,
@@ -40,6 +44,8 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       sponsor: l10n.exportLabelSponsor,
       figures: l10n.exportLabelFigures,
       alternate: l10n.exportIncludeFiguresAlternate,
+      by: l10n.exportSlotAuthorSuffix,
+      pageOf: l10n.exportPageOfPages,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
@@ -54,4 +60,5 @@ ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
       legendCollisionBeats: l10n.exportMatrixLegendCollisionBeats,
       legendCollisionPhrase: l10n.exportMatrixLegendCollision,
       omittedCaption: l10n.exportMatrixOmittedCaption,
+      pageOf: l10n.exportPageOfPages,
     );

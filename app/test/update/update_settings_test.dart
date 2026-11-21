@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/screens/settings/updates_section.dart';
 import 'package:compendium_app/src/update/artifact_downloader.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
 import 'package:compendium_app/src/update/artifact_verifier.dart';
 import 'package:compendium_app/src/update/semver.dart';
+import 'package:compendium_app/src/update/update_config.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
@@ -20,7 +22,7 @@ import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 /// Builds a controller with a fetcher that records the requested channel and
-/// returns no update (so checks are fast, silent no-ops).
+/// returns null (an unreachable manifest), so checks are fast and fail.
 UpdateController _controller(
   CompendiumRepositories repos,
   List<UpdateChannel> fetched,
@@ -39,12 +41,17 @@ UpdateController _controller(
   );
 }
 
-Future<void> _pump(WidgetTester tester, UpdateController controller) async {
+Future<void> _pump(
+  WidgetTester tester,
+  UpdateController controller, {
+  Locale? locale,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await controller.load();
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       home: Scaffold(
@@ -64,6 +71,34 @@ SwitchListTile _switch(WidgetTester tester, String key) =>
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
+  testWidgets('shows a cached end-of-support notice even after the banner '
+      'was hidden', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kUpdateRetirementNoticeKey, {
+      'build': '0.1.0',
+      'endOfLife': '2099-01-31',
+    });
+    final controller = _controller(repos, <UpdateChannel>[]);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    expect(find.byKey(const ValueKey('updates-retirement')), findsOneWidget);
+    expect(find.textContaining('(0.1.0) ends on'), findsOneWidget);
+
+    controller.hideRetirementBanner();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('updates-retirement')), findsOneWidget);
+  });
+
+  testWidgets('shows no end-of-support tile without a notice', (tester) async {
+    final repos = openTestRepositories();
+    final controller = _controller(repos, <UpdateChannel>[]);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    expect(find.byKey(const ValueKey('updates-retirement')), findsNothing);
+  });
+
   testWidgets('auto-check and beta are OFF by default', (tester) async {
     final repos = openTestRepositories();
     final fetched = <UpdateChannel>[];
@@ -74,6 +109,27 @@ void main() {
 
     expect(_switch(tester, 'updates-auto-toggle').value, isFalse);
     expect(_switch(tester, 'updates-beta-toggle').value, isFalse);
+  });
+
+  testWidgets('status lines show the controller\'s running release identity', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final controller = _controller(repos, <UpdateChannel>[]);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    expect(find.text("You're on version 0.1.0."), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('updates-check-now')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        "Couldn't check for updates right now. "
+        "You're on version 0.1.0.",
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('manual check works with beta off and fetches stable', (
@@ -89,7 +145,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fetched, [UpdateChannel.stable]);
-    expect(controller.status, UpdateCheckStatus.noUpdate);
+    // The helper's fetcher returns null (unreachable), which a manual check
+    // reports rather than passing off as "up to date" (FAIL-3).
+    expect(controller.status, UpdateCheckStatus.couldNotCheck);
   });
 
   testWidgets('beta opt-in persists and switches the fetched channel', (
@@ -324,6 +382,32 @@ void main() {
         find.byKey(const ValueKey('updates-download-error')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('the failure text follows the app language (#1396)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.linux,
+        verifier: (file, expected) async => false,
+      );
+      addTearDown(controller.dispose);
+      final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+      final en = await AppLocalizations.delegate.load(const Locale('en'));
+
+      await _pump(tester, controller, locale: const Locale('ja'));
+      await tester.tap(find.byKey(const ValueKey('updates-check-now')));
+      await tester.pumpAndSettle();
+      await tester.runAsync(controller.startAssistedDownload);
+      await tester.pumpAndSettle();
+
+      final shown = tester.widget<Text>(
+        find.byKey(const ValueKey('updates-download-error')),
+      );
+      expect(shown.data, ja.updateDownloadFailureChecksumMismatch);
+      expect(shown.data, isNot(en.updateDownloadFailureChecksumMismatch));
     });
   });
 }

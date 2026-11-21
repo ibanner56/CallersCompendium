@@ -1,3 +1,4 @@
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -7,30 +8,34 @@ import '../data/dance_reimport.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
-import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
-import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/online_import_dialogs.dart';
+import '../widgets/online_import_snack_bar.dart';
 import '../published_collections/published_collection_service.dart';
 import 'dance_detail_screen.dart';
+import 'dance_editor_screen.dart';
 import 'dance_list_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'custom_fields_screen.dart';
 import 'import_review_screen.dart';
-import 'online_import_variation_dialog.dart';
 import 'recently_deleted_screen.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
 /// `defer-editor-splitpane`).
 ///
-/// **Breakpoint: 900 logical pixels wide.**
-/// - **Narrow (< 900 px):** renders [DanceListScreen] directly, preserving the
-///   existing push-navigation to [DanceDetailScreen]. No behaviour change on
-///   phones or narrow tablet portrait.
-/// - **Wide (≥ 900 px):** renders a master-detail [Row]:
+/// **Breakpoint: [AppBreakpoints.split] (900 px) of window width**, the same
+/// for every destination, so the rail beside this shell does not move it.
+/// - **Narrow (below 900 px):** renders [DanceListScreen] directly, with
+///   push-navigation to [DanceDetailScreen]. From [AppBreakpoints.rail]
+///   (720 px) the app shell's rail sits beside it.
+/// - **Wide (from 900 px):** renders a master-detail [Row]:
 ///   - *List pane* (fixed 400 px): [DanceListScreen] with [onSelectDance] wired
 ///     to update the detail pane, and the currently selected row highlighted.
 ///   - *Detail pane* (flexible remaining space): the selected
@@ -52,10 +57,24 @@ class CollectionShell extends StatefulWidget {
     this.publishedCollectionService,
     this.callersBoxOnline,
     this.contraDbOnline,
+    this.commands,
+    this.isActive = true,
   });
 
-  /// Test seam for choosing an import file; forwarded to [ImportReviewScreen].
-  /// Defaults to [pickImportFile] (native open-file dialog) when null.
+  /// Whether the Collection is the destination showing. The shell keeps it
+  /// mounted while another destination is selected, and a review open in its
+  /// detail pane must not then intercept system back (see
+  /// [ImportReviewScreen.isActive]).
+  final bool isActive;
+
+  /// Lets the app shell run this Collection's New dance, Import and search
+  /// commands from the keyboard map and the macOS menu bar (PLAT-7, PLAT-8).
+  final CollectionCommands? commands;
+
+  /// Test seam for choosing an import file; forwarded to [ImportReviewScreen],
+  /// where null opens the native dialog ([pickImportAnyFile]) and an injected
+  /// picker skips extension-based source detection. The reimport flow still
+  /// defaults to [pickImportFile] when null.
   final ImportPicker? importPicker;
 
   /// Test seam for fetching an import URL; forwarded to [ImportReviewScreen].
@@ -80,9 +99,6 @@ class CollectionShell extends StatefulWidget {
   /// network-backed [ContraDbOnline].
   final ContraDbOnline? contraDbOnline;
 
-  /// Breakpoint (logical pixels) at which the split-pane layout activates.
-  static const double splitBreakpoint = 900;
-
   /// Fixed width (logical pixels) of the list pane in split mode.
   static const double listPaneWidth = 400;
 
@@ -90,8 +106,94 @@ class CollectionShell extends StatefulWidget {
   State<CollectionShell> createState() => _CollectionShellState();
 }
 
+/// The Collection's own commands, for callers above it: the app shell runs
+/// them for Ctrl/Cmd-N, Ctrl/Cmd-F and the macOS menu bar (PLAT-7, PLAT-8).
+///
+/// Each returns whether a mounted Collection took it. The shell's layouts put
+/// the Collection at different tree positions, so a breakpoint crossing mounts
+/// a new [CollectionShell] before the old one goes; the newest one wins, and
+/// the old one's dispose leaves it attached.
+class CollectionCommands {
+  _CollectionShellState? _shell;
+
+  /// Opens the new-dance editor, as the New dance button does.
+  bool newDance() => _shell?._newDance() ?? false;
+
+  /// Starts a dance import, as the Import dances action does.
+  bool importDances() => _shell?._importDances() ?? false;
+
+  /// Moves the keyboard focus to the search box and selects its text. Returns
+  /// false when the dance list, and so its search box, is not showing.
+  bool focusSearch() => _shell?._focusSearch() ?? false;
+}
+
 class _CollectionShellState extends State<CollectionShell> {
   String? _selectedDanceId;
+
+  /// Whether the last layout was the split pane, so a command knows which
+  /// import view to open.
+  bool _wide = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.commands?._shell = this;
+  }
+
+  @override
+  void didUpdateWidget(CollectionShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.commands, widget.commands)) {
+      if (oldWidget.commands?._shell == this) oldWidget.commands?._shell = null;
+      widget.commands?._shell = this;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.commands?._shell == this) widget.commands?._shell = null;
+    super.dispose();
+  }
+
+  /// The mounted dance list, when it is showing.
+  DanceListCommands? get _list => switch (_listKey.currentState) {
+    final DanceListCommands list => list,
+    _ => null,
+  };
+
+  bool _newDance() {
+    final list = _list;
+    if (list != null) {
+      list.openNewDance();
+    } else {
+      // The narrow layout is showing an embedded view in place of the list.
+      Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
+      );
+    }
+    return true;
+  }
+
+  bool _importDances() {
+    // Already importing, or committing one: nothing new to open.
+    if (_importCommitInFlight || _detailMode == _DetailMode.importReview) {
+      return true;
+    }
+    // The narrow layout keeps an embedded view showing across a breakpoint
+    // change, in place of the list ([build]); swap it as the wide layout
+    // would, rather than pushing a page over it.
+    final embedded =
+        _detailMode != _DetailMode.none &&
+        _detailMode != _DetailMode.onlinePreview;
+    if (_wide || embedded) {
+      _onImport();
+    } else {
+      _pushImportRoute();
+    }
+    return true;
+  }
+
+  bool _focusSearch() => _list?.focusSearch() ?? false;
 
   /// Which non-dance view (if any) the wide-layout detail pane currently shows,
   /// instead of a [DanceDetailScreen] / the empty placeholder. The states are
@@ -104,9 +206,9 @@ class _CollectionShellState extends State<CollectionShell> {
   /// The import sources, resolved once and cached for the lifetime of this
   /// state. [defaultImportSources] builds fresh [ImportSource] instances on
   /// every call and [ImportSource] uses identity equality, so rebuilding the
-  /// list on each access would make the embedded [ImportReviewScreen]'s
-  /// [DropdownButton] assert (its selected value would no longer match any item
-  /// instance in a freshly-built list).
+  /// list on each access would leave the embedded [ImportReviewScreen]'s
+  /// source dropdown showing nothing (its selected value would no longer match
+  /// any entry in a freshly-built list).
   late final List<ImportSource> _importSources =
       widget.importSources ?? defaultImportSources();
 
@@ -150,6 +252,10 @@ class _CollectionShellState extends State<CollectionShell> {
   OnlinePreview? _onlinePreview;
   bool _onlinePreviewLoading = false;
   String? _onlinePreviewError;
+
+  /// The result whose record is being fetched, kept so a failed fetch can be
+  /// retried from the pane without going back to the list and tapping again.
+  OnlineSearchResultRow? _onlinePreviewRequest;
   int _onlineSeq = 0;
 
   /// Guards the direct-import commit so a rapid double-tap (or re-tap) of the
@@ -232,6 +338,7 @@ class _CollectionShellState extends State<CollectionShell> {
     _onlinePreview = null;
     _onlinePreviewLoading = false;
     _onlinePreviewError = null;
+    _onlinePreviewRequest = null;
     _reimportTargetId = null;
     _reimportTargetUpdatedAt = null;
     _reimportPreview = null;
@@ -258,6 +365,35 @@ class _CollectionShellState extends State<CollectionShell> {
         _onlinePreviewError = null;
         _detailMode = _DetailMode.onlinePreview;
       });
+    } on UrlFetchException catch (error, stackTrace) {
+      // Log-safe by construction: a typed reason plus status/timeout numbers.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._beginReimport',
+      );
+      if (!mounted) return;
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            importErrorMessage(AppLocalizations.of(context), error),
+          ),
+        ),
+      );
+    } on DanceReimportFiguresUnavailableException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._beginReimport',
+      );
+      if (!mounted) return;
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).danceReimportFiguresUnavailable,
+          ),
+        ),
+      );
     } on DanceReimportJsonException catch (error) {
       logCaughtErrorTypeOnly(
         error,
@@ -335,7 +471,7 @@ class _CollectionShellState extends State<CollectionShell> {
         _detailMessengerKey.currentState?.showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).danceReimportSourceFailed,
+              AppLocalizations.of(context).danceReimportApplyFailed,
             ),
           ),
         );
@@ -356,6 +492,7 @@ class _CollectionShellState extends State<CollectionShell> {
     setState(() {
       _selectedDanceId = null;
       _detailMode = _DetailMode.onlinePreview;
+      _onlinePreviewRequest = result;
       _onlinePreview = null;
       _onlinePreviewError = null;
       _onlinePreviewLoading = true;
@@ -411,58 +548,14 @@ class _CollectionShellState extends State<CollectionShell> {
     final l10n = AppLocalizations.of(context);
     try {
       final service = _serviceFor(preview.result.source);
-      var result = await service.import(repos, preview.plan);
-      if (result.kind == OnlineImportKind.needsConfirmation) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmation requires a candidate id — a null here is a service
-        // bug. Assert in debug; silently cancel in release (better than crashing).
-        assert(
-          existingId != null,
-          'needsConfirmation must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await service.import(
-          repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmationIdentical requires a candidate id — a null here is a
-        // service bug. Assert in debug; silently cancel in release.
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await service.import(
-          repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      }
+      final result = await resolveAndImportOnline(
+        context,
+        service: service,
+        repos: repos,
+        preview: preview,
+        l10n: l10n,
+      );
+      if (result == null) return; // cancelled, or the shell went away
       if (!mounted) return;
       final danceId = result.danceId;
       // Land on the imported dance ONLY for a single-dance import. This online
@@ -476,12 +569,21 @@ class _CollectionShellState extends State<CollectionShell> {
           _clearOnlinePreview();
         });
       }
-      messenger?.showSnackBar(
-        SnackBar(
-          key: const ValueKey('online-import-snackbar'),
-          content: Text(onlineImportMessage(l10n, result)),
-        ),
-      );
+      if (messenger != null) {
+        showOnlineImportSnackBar(
+          messenger,
+          l10n: l10n,
+          result: result,
+          repos: repos,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+          // Undo took the new dance away: clear the pane if it still shows it.
+          onDanceRemoved: () {
+            if (mounted && _selectedDanceId == danceId) {
+              setState(() => _selectedDanceId = null);
+            }
+          },
+        );
+      }
     } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
         error,
@@ -535,7 +637,8 @@ class _CollectionShellState extends State<CollectionShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= CollectionShell.splitBreakpoint) {
+        _wide = AppBreakpoints.showsSplit(context, constraints.maxWidth);
+        if (_wide) {
           return _buildSplitPane();
         }
         // Narrow: standard single-pane list with existing push navigation.
@@ -578,7 +681,6 @@ class _CollectionShellState extends State<CollectionShell> {
               onImport: _onImport,
               onCustomFields: _onCustomFields,
               onRecentlyDeleted: _onRecentlyDeleted,
-              compactActions: true,
               onSelectOnlineDance: _onSelectOnlineDance,
               selectedOnlineId: _onlinePreview?.result.id,
               callersBoxOnline: _callersBox,
@@ -617,15 +719,19 @@ class _CollectionShellState extends State<CollectionShell> {
           }
           if (_onlinePreviewError != null) {
             return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Text(
-                    _onlinePreviewError!,
-                    key: const ValueKey('online-preview-error'),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+              body: LoadErrorView(
+                key: const ValueKey('online-preview-error'),
+                icon: LoadErrorView.errorGlyph(context),
+                message: _onlinePreviewError!,
+                // Retrying is refused while a direct import is committing, so
+                // the button leaves then rather than pressing to no effect.
+                onRetry: _importCommitInFlight || _onlinePreviewRequest == null
+                    ? null
+                    : () => _onSelectOnlineDance(_onlinePreviewRequest!),
+                onBack: () => setState(() {
+                  _detailMode = _DetailMode.none;
+                  _clearOnlinePreview();
+                }),
               ),
             );
           }
@@ -659,6 +765,7 @@ class _CollectionShellState extends State<CollectionShell> {
           fetcher: widget.urlFetcher,
           publishedCollectionService: _publishedCollectionService,
           onClose: _onImportClose,
+          isActive: widget.isActive,
           onCommitStateChanged: (active) {
             _importCommitInFlight = active;
           },
@@ -715,34 +822,13 @@ class _EmptyDetailPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BrandMark(
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.collectionSplitEmptyTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.collectionSplitEmptySubtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                // Body text must clear the 4.5:1 WCAG AA threshold, so it uses
-                // onSurfaceVariant (a text role) rather than outlineVariant (a
-                // hairline/border role that falls below AA against the pane).
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+      body: EmptyState(
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
+        title: l10n.collectionSplitEmptyTitle,
+        body: l10n.collectionSplitEmptySubtitle,
       ),
     );
   }

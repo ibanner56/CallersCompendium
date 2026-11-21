@@ -1,9 +1,13 @@
+import 'package:flutter/material.dart' show MaterialLocalizations;
+
 import '../../l10n/app_localizations.dart';
 import 'migration_guard.dart';
+import 'regional_formats.dart';
 
 /// Localized presentation of the startup migration-guard diagnostics
 /// (`migration_guard.dart`): [DatabaseDowngradeError], [DatabaseBelowFloorError],
-/// [MigrationSnapshotAborted], and the [SnapshotFailureCause] discriminator.
+/// [MigrationSnapshotAborted], [DatabaseRelocationBlocked], and the
+/// [SnapshotFailureCause] discriminator.
 ///
 /// The guard never bakes English prose into these types; it exposes typed
 /// discriminators (the exception type itself, plus [SnapshotFailure.cause]).
@@ -27,18 +31,29 @@ String databaseBelowFloorHeadline(AppLocalizations l10n) =>
 String databaseBelowFloorBody(AppLocalizations l10n, String bridgeTag) =>
     l10n.migrationBelowFloorBody(bridgeTag);
 
-/// Terminal-screen label for the "Back Up + Reset" button on the below-floor
+/// Terminal-screen label for the primary button that opens the release page
+/// of [bridgeTag], the version that can update the old data.
+String databaseBelowFloorGetBridge(AppLocalizations l10n, String bridgeTag) =>
+    l10n.migrationBelowFloorGetBridge(bridgeTag);
+
+/// Terminal-screen label above the two reset buttons.
+String databaseBelowFloorStartFresh(AppLocalizations l10n) =>
+    l10n.migrationBelowFloorStartFresh;
+
+/// Terminal-screen label for the "Back up + reset" button on the below-floor
 /// recovery screen.
 String databaseBelowFloorBackUpAndReset(AppLocalizations l10n) =>
     l10n.migrationBelowFloorBackUpAndReset;
 
-/// Terminal-screen label for the "Reset Only" button on the below-floor
+/// Terminal-screen label for the "Reset only" button on the below-floor
 /// recovery screen.
 String databaseBelowFloorResetOnly(AppLocalizations l10n) =>
     l10n.migrationBelowFloorResetOnly;
 
 /// A short, plain-language sentence naming the probable cause of a failed
 /// pre-migration backup, or the empty string when the cause is [unknown].
+/// The [SnapshotFailureCause.databaseInUse] sentence also names its remedy, as
+/// the generic copy's "free up space" advice does not apply to it.
 String snapshotCauseSentence(
   AppLocalizations l10n,
   SnapshotFailureCause cause,
@@ -46,16 +61,82 @@ String snapshotCauseSentence(
   SnapshotFailureCause.diskFull => l10n.migrationSnapshotCauseDiskFull,
   SnapshotFailureCause.unwritableBackupsDir =>
     l10n.migrationSnapshotCauseUnwritableBackupsDir,
+  SnapshotFailureCause.databaseInUse =>
+    l10n.migrationSnapshotCauseDatabaseInUse,
   SnapshotFailureCause.unknown => '',
 };
 
+/// Body of the blocking dialog that asks whether to change saved data without
+/// a backup. A database another app holds open gets its own copy: the
+/// generic one tells the user to free up space or fix the backups folder,
+/// which would not help.
+String migrationSnapshotConsentBody(
+  AppLocalizations l10n,
+  SnapshotFailure failure,
+) {
+  if (failure.cause == SnapshotFailureCause.databaseInUse) {
+    return l10n.migrationSnapshotInUseConsentBody;
+  }
+  final sentence = snapshotCauseSentence(l10n, failure.cause);
+  return l10n.migrationSnapshotConsentBody(
+    sentence.isEmpty ? '' : '\n\n$sentence',
+  );
+}
+
 /// Terminal-screen message for a [MigrationSnapshotAborted], weaving in the
-/// likely-cause sentence when one is known.
+/// likely-cause sentence when one is known. A database another app holds
+/// open gets its own message, for the reason given at
+/// [migrationSnapshotConsentBody].
 String migrationSnapshotAbortedMessage(
   AppLocalizations l10n,
   SnapshotFailure failure,
 ) {
+  if (failure.cause == SnapshotFailureCause.databaseInUse) {
+    return l10n.migrationSnapshotInUseAbortedMessage;
+  }
   final sentence = snapshotCauseSentence(l10n, failure.cause);
   final cause = sentence.isEmpty ? '' : '$sentence ';
   return l10n.migrationSnapshotAbortedMessage(cause);
 }
+
+/// Terminal-screen message for a [DatabaseRelocationBlocked]. Generic and
+/// path-free; the FAQ names the per-OS locations.
+String databaseRelocationMessage(
+  AppLocalizations l10n,
+  DatabaseRelocationFailure reason,
+) => switch (reason) {
+  DatabaseRelocationFailure.bothExist => l10n.migrationRelocationBothExist,
+  DatabaseRelocationFailure.multipleLegacy =>
+    l10n.migrationRelocationMultipleLegacy,
+  DatabaseRelocationFailure.moveFailed => l10n.migrationRelocationFailed,
+  DatabaseRelocationFailure.legacyUnreachable =>
+    l10n.migrationRelocationLegacyUnreachable,
+};
+
+/// Folder name for a [DatabaseCopy] on the relocation terminal screen.
+String databaseCopyLocationLabel(
+  AppLocalizations l10n,
+  DatabaseCopyLocation location,
+) => switch (location) {
+  DatabaseCopyLocation.newLocation => l10n.migrationRelocationCopyNewLocation,
+  DatabaseCopyLocation.documents => l10n.migrationRelocationCopyDocuments,
+  DatabaseCopyLocation.earlierAppFolder =>
+    l10n.migrationRelocationCopyEarlierAppFolder,
+};
+
+/// One line describing a conflicting [DatabaseCopy]: its folder name, its size
+/// in kilobytes (rounded up, so a non-empty file never reads as 0 KB) and its
+/// last-changed date and time (the date in the device's region, as
+/// [formatEventDateTime] shows it). Path-free, like the rest of
+/// this file.
+String databaseCopyDetails(
+  AppLocalizations l10n,
+  MaterialLocalizations material,
+  DatabaseCopy copy,
+) => l10n.migrationRelocationCopyDetails(
+  databaseCopyLocationLabel(l10n, copy.location),
+  (copy.bytes / 1024).ceil(),
+  // The Regional setting is stored in the database that failed to open, so
+  // this is the system default: the device's region.
+  formatEventDateTime(copy.modified, DateFormatSetting.system, material, l10n),
+);

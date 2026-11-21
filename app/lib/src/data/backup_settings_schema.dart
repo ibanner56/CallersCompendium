@@ -1,44 +1,76 @@
-import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
+import 'package:compendium_core/compendium_core.dart'
+    show MatrixColumnConfig, shareableTextNormalisationScopeKey;
 
-import '../screens/perform_card.dart' show kPerformMinScale;
-import '../screens/settings/settings_keys.dart';
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
 import 'aggressive_beats_update_scope.dart' show kAggressiveBeatsUpdateKey;
+import 'backup_reminder.dart' show kBackupReminderCadenceKey;
 import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
+import 'capitalize_figures_scope.dart' show kCapitalizeFiguresKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
+import 'show_custom_figures_scope.dart' show kShowCustomFiguresKey;
+import 'calling_card_settings_scope.dart'
+    show CallingCardSettings, kCallingCardSettingsKey;
+import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'display_defaults.dart'
     show
         kCanonicalDiscouragedTermsKey,
         kCanonicalFigureTextKey,
+        kDefaultCollectionSortDirectionKey,
         kDefaultCollectionSortKey,
         kDefaultDanceDetailRenderingKey,
         kDefaultDanceFiguresTemplateKey,
         kDefaultModifierFiguresKey,
         kDefaultMeanwhileSideFiguresKey,
         kDefaultDanceFormKey,
+        kLastUsedDanceFormKey,
         kDefaultDanceFormationShapeKey,
         kDefaultDancePhraseStructureKey,
         kDefaultDanceProgressionKey,
         kDefaultMoveParamOverridesKey,
         kDefaultProgramBandKey,
         kDefaultProgramCallerKey,
+        kDefaultImportTagNamesKey,
+        kDefaultProgramSortDirectionKey,
         kDefaultProgramSortKey,
         kDefaultStartingProgramKey,
         kLastUsedCollectionSortDirectionKey,
         kLastUsedCollectionSortKey,
         kLastUsedProgramSortDirectionKey,
         kLastUsedProgramSortKey,
+        tryDecodeDefaultImportTagNames,
         tryDecodeStartingProgramTemplate;
+import 'dialect_library_controller.dart'
+    show
+        kActiveDialectRefEcdKey,
+        kActiveDialectRefSquareKey,
+        kCustomDialectsEcdKey,
+        kCustomDialectsSquareKey;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
+import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
+import 'set_list_share_scope.dart'
+    show
+        kShareSetListIncludeCallerBandKey,
+        kShareSetListIncludeDateVenueKey,
+        kShareSetListIncludeTitleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
+import 'perform_text_scale.dart' show kPerformMinScale;
 import 'regional_formats.dart'
     show kDateFormatCustomPatternKey, kDateFormatKey, kFirstDayOfWeekKey;
+import 'seed_service.dart' show kInitialSeedCompletedKey;
+import 'settings_keys.dart';
 import 'set_list_color_coding_scope.dart' show kSetListColorCodingKey;
-import 'shorthand_mappings_controller.dart' show kShorthandMappingsKey;
+import 'show_performed_toggles_scope.dart' show kShowPerformedTogglesKey;
+import 'shorthand_mappings_controller.dart'
+    show
+        kCompoundShorthandsKey,
+        kShorthandMappingsKey,
+        kUserFigureShorthandsKey;
 import 'soft_delete_retention.dart' show kSoftDeleteRetentionKey;
 import 'verbose_figure_rendering_scope.dart' show kVerboseFigureRenderingKey;
+import 'undo_prompt_duration_scope.dart'
+    show kUndoPromptSecondsKey, undoPromptSecondsFromStored;
 import 'venue_call_count_scope.dart' show kVenueCallCountMax;
 import 'walkthrough_snippet_library_controller.dart'
     show kWalkthroughSnippetsKey;
@@ -68,12 +100,20 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // non-bool must be dropped (never coerced) to keep the safe default.
   for (final key in const <String>[
     kRequirePerformedForHistoryKey,
+    kRequireEventDateForHistoryKey,
+    kRecencyRequireEventDateKey,
+    kRecencyRequirePerformedKey,
+    kHistoryOrderIgnoreUndatedKey,
+    kHistoryOrderIgnoreUnperformedKey,
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
     kShowIndividualPerformTimerKey,
+    kConfirmPerformExitKey,
     kShowProgramSlotCallerNotesKey,
     kAutoCommitProgramChangesKey,
     kPerformStageModeKey,
+    // No reader in this version (Perform's canonical toggle is gone); kept so
+    // a backup from an older version, which reads it, round-trips it.
     kPerformCanonicalViewKey,
     kSortIgnoreArticlesKey,
     kColourDanceThemeKey,
@@ -83,13 +123,27 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kReduceMotionKey,
     kVerboseFigureRenderingKey,
     kDecimalTurnsKey,
+    kCapitalizeFiguresKey,
+    kShowGlossaryKey,
+    kShowCustomFiguresKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
+    kShowPerformedTogglesKey,
+    kMarkAllSetsStatusKey,
+    kShareSetListIncludeTitleKey,
+    kShareSetListIncludeCallerBandKey,
+    kShareSetListIncludeDateVenueKey,
     kUpdateAutoCheckKey,
     kUpdateBetaChannelKey,
     kMatrixExactBeatCollisionKey,
     kCanonicalFigureTextKey,
     kCanonicalDiscouragedTermsKey,
+    // Three one-shot latches, written as `true` and read for presence. A
+    // non-bool would still latch, but a restore is a trust boundary and
+    // nothing legitimate ever writes anything else here.
+    kInitialSeedCompletedKey,
+    kCustomFieldSharingDisclosureKey,
+    kEcdConvertPromptDismissedKey,
   ])
     key: _isBool,
 
@@ -108,13 +162,16 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kDefaultProgramBandKey,
     kDefaultProgramCallerKey,
     kDefaultCollectionSortKey,
+    kDefaultCollectionSortDirectionKey,
     kDefaultProgramSortKey,
+    kDefaultProgramSortDirectionKey,
     kLastUsedCollectionSortKey,
     kLastUsedCollectionSortDirectionKey,
     kLastUsedProgramSortKey,
     kLastUsedProgramSortDirectionKey,
     kDefaultDanceDetailRenderingKey,
     kDefaultDanceFormKey,
+    kLastUsedDanceFormKey,
     kDefaultDanceFormationShapeKey,
     kDefaultDancePhraseStructureKey,
     kDefaultDanceProgressionKey,
@@ -122,12 +179,21 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kDefaultMeanwhileSideFiguresKey,
     kDefaultModifierFiguresKey,
     kDefaultMoveParamOverridesKey,
+    // off / weekly / monthly; `backupReminderCadenceFromStored` rejects any
+    // other token and falls back to off.
+    kBackupReminderCadenceKey,
+    // The name of another dance form's active dialect. Contra's travels in
+    // the structured `app.dialects` section instead; the other forms' travel
+    // as ordinary settings, so a backup needed no new section for them.
+    kActiveDialectRefEcdKey,
+    kActiveDialectRefSquareKey,
   ])
     key: _isString,
 
   // The starting-program template is a JSON string with an invariant-checked
   // semantic codec, not merely an arbitrary string.
   kDefaultStartingProgramKey: _isValidStartingProgramTemplate,
+  kDefaultImportTagNamesKey: _isValidDefaultImportTagNames,
 
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
   // non-finite (NaN/Infinity) value is rejected outright rather than flowing
@@ -141,15 +207,37 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // negative or non-int value is rejected so it can't silently alter purging.
   kSoftDeleteRetentionKey: _isNonNegativeInt,
   kVenueCallCountKey: _isVenueCallCount,
+  // Seconds the Undo prompt stays, or 0 for "until I close it": only a value
+  // Settings offers, so a restore cannot set a duration the picker cannot show.
+  kUndoPromptSecondsKey: _isUndoPromptSeconds,
 
   // Structured container blobs. Their controllers decode the CONTENTS
   // defensively (skipping bad entries), so here we only enforce the outer
   // container kind that each decoder expects.
   kWalkthroughSnippetsKey: _isMap,
+  // Another dance form's custom dialects, a JSON list the library decodes
+  // entry by entry (DialectLibraryController.load).
+  kCustomDialectsEcdKey: _isList,
+  kCustomDialectsSquareKey: _isList,
   kFormationColorOverridesKey: _isMap,
   // Shorthand mappings persist as a JSON list; the decoder also tolerates a raw
   // JSON string, so accept either and let it validate entries.
   kShorthandMappingsKey: _isListOrString,
+  kCompoundShorthandsKey: _isListOrString,
+  kUserFigureShorthandsKey: _isListOrString,
+  // Collection tile fields (#767), hidden filter sections (#1419), and the
+  // shared-program dance-field picker (#1434) persist as JSON lists of name
+  // strings; every decoder (`decodeStored`) treats a non-List as "unset" and
+  // drops non-String entries, so only the container is enforced.
+  kCollectionTileVisibleFieldsKey: _isList,
+  kCollectionHiddenFacetsKey: _isList,
+  kProgramDanceShareFieldsKey: _isList,
+  // The shareable-text normalisation scope marker (`_backupLocalState`, kept
+  // in backups by #1134) is a JSON object recording the algorithm version and
+  // the exact column / key scope the pass covered. `ensureMigrated` compares
+  // its stored text with the live scope and re-runs the pass on any mismatch,
+  // so a wrong-but-Map value costs one idempotent pass; a non-Map is dropped.
+  shareableTextNormalisationScopeKey: _isMap,
   // Program-matrix column config (issue #935): a JSON object the codec must be
   // able to parse. `MatrixColumnConfig.decode` throws on a malformed blob
   // (wrong types, mis-namespaced/duplicate custom ids) and the live loader
@@ -157,18 +245,29 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // boundary, so reject a wrong-shaped value here rather than persisting it and
   // relying on the reader. Only a Map that round-trips through the codec passes.
   kProgramMatrixColumnsKey: _isValidMatrixColumnConfig,
+  // Calling-card settings: a JSON object whose every field the live decoder
+  // would read as written. Its decoder repairs a bad field on its own, but a
+  // restore is a trust boundary, so a value it would have to repair is
+  // dropped here rather than persisted.
+  kCallingCardSettingsKey: CallingCardSettings.isWellFormed,
 };
 
 bool _isBool(Object? v) => v is bool;
 bool _isString(Object? v) => v is String;
+bool _isValidDefaultImportTagNames(Object? v) =>
+    tryDecodeDefaultImportTagNames(v) != null;
+
 bool _isValidStartingProgramTemplate(Object? v) =>
     tryDecodeStartingProgramTemplate(v) != null;
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
+bool _isUndoPromptSeconds(Object? v) =>
+    v is int && undoPromptSecondsFromStored(v) == v;
 bool _isVenueCallCount(Object? v) =>
     v is int && v >= 0 && v <= kVenueCallCountMax;
 bool _isValidPerformScale(Object? v) =>
     v is num && v.isFinite && v >= kPerformMinScale;
 bool _isMap(Object? v) => v is Map;
+bool _isList(Object? v) => v is List;
 bool _isListOrString(Object? v) => v is List || v is String;
 
 /// Accepts a program-matrix column config only when it is a JSON object the

@@ -1,0 +1,125 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/online_search.dart';
+import 'package:compendium_app/src/widgets/online_result_count.dart';
+
+OnlineSearchResultRow _row(
+  int id, {
+  bool mayHaveMore = false,
+  int? total,
+  bool partly = false,
+}) => OnlineSearchResultRow(
+  source: OnlineSource.contraDb,
+  id: '$id',
+  name: 'Dance $id',
+  author: '',
+  formation: '',
+  mayHaveMore: mayHaveMore,
+  totalMatching: total,
+  advancedPartlyApplied: partly,
+);
+
+void main() {
+  final l10n = lookupAppLocalizations(const Locale('en'));
+  String label(
+    List<OnlineSearchResultRow> rows, {
+    bool? hasMore,
+    bool loadFailed = false,
+  }) => onlineResultCountLabel(
+    l10n,
+    rows,
+    hasMore: hasMore ?? rows.any((row) => row.mayHaveMore),
+    loadFailed: loadFailed,
+  );
+
+  test('a total larger than what is shown says "of", and to scroll while '
+      'more can load', () {
+    expect(
+      label([_row(1, total: 143), _row(2, total: 143)], hasMore: true),
+      'Showing 2 of 143 online results. Scroll down to load more.',
+    );
+  });
+
+  test('a total larger than what is shown, but nothing more will load by '
+      'scrolling: no hint to scroll', () {
+    // Paging ended short of the total, or a failed page waits for Try again.
+    expect(
+      label([_row(1, total: 143), _row(2, total: 143)], hasMore: false),
+      'Showing 2 of 143 online results.',
+    );
+  });
+
+  test('a total that equals what is shown is the plain count, even on a '
+      'full page', () {
+    expect(label([_row(1, total: 1, mayHaveMore: true)]), '1 online result');
+    expect(
+      label([
+        for (var i = 1; i <= 20; i++) _row(i, total: 20, mayHaveMore: true),
+      ]),
+      '20 online results',
+    );
+  });
+
+  test('no total and a full page: the "may be more" form', () {
+    expect(
+      label([_row(1, mayHaveMore: true), _row(2, mayHaveMore: true)]),
+      'Showing 2 online results. There may be more: scroll down to load them.',
+    );
+  });
+
+  test('no total and the last page loaded: the plain count', () {
+    expect(
+      label([_row(1, mayHaveMore: true), _row(2)], hasMore: false),
+      '2 online results',
+      reason: 'an earlier full page must not keep the "may be more" form',
+    );
+  });
+
+  test(
+    'a failed page keeps what the line knew, without the hint to scroll',
+    () {
+      // Total known: the "of" line, no hint (only Try again loads more now).
+      expect(
+        label(
+          [_row(1, total: 143), _row(2, total: 143)],
+          hasMore: true,
+          loadFailed: true,
+        ),
+        'Showing 2 of 143 online results.',
+      );
+      // No total: still "there may be more", not the plain count, which would
+      // read as a complete result while Try again waits.
+      expect(
+        label(
+          [_row(1, mayHaveMore: true), _row(2, mayHaveMore: true)],
+          hasMore: true,
+          loadFailed: true,
+        ),
+        'Showing 2 online results. There may be more.',
+      );
+    },
+  );
+
+  test('nothing shown: the plain count, whatever an earlier search left', () {
+    expect(label(const [], hasMore: true), '0 online results');
+  });
+
+  test('no total and no full page: the plain count', () {
+    expect(label([_row(1), _row(2)]), '2 online results');
+    expect(label(const []), '0 online results');
+  });
+
+  test('the left-out note follows whichever count form applies', () {
+    const note =
+        "Some Advanced conditions don't exist on ContraDB and were "
+        'left out.';
+    expect(label([_row(1, partly: true)]), '1 online result · $note');
+    expect(
+      label([_row(1, total: 5, partly: true)], hasMore: true),
+      'Showing 1 of 5 online results. Scroll down to load more. '
+      '· $note',
+    );
+  });
+}

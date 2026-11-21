@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'pdf_page_furniture.dart';
 import 'program_pdf.dart' show loadProgramMatrixMarkerFont, loadProgramPdfTheme;
 
 /// Marker glyphs for the printed matrix. Deliberately distinct SHAPES + a
@@ -30,8 +31,9 @@ const String _presentMark = '✓';
 /// Builds a printable/saveable PDF of the Programming Matrix (ROADMAP §4.4).
 ///
 /// A separate landscape layout from the set-list PDF ([buildProgramPdf]): a
-/// matrix is wide (moves × dances), so it uses `PdfPageFormat.a4.landscape` and
-/// a [pw.Table]. The header row is the dialect-aware column labels (via
+/// matrix is wide (moves × dances), so it lays out [pageFormat] (A4 unless the
+/// print dialog chose otherwise) turned landscape, as a [pw.Table] whose header
+/// row repeats on every page. The header row is the dialect-aware column labels (via
 /// [matrixColumnLabel]); the first column is the dance title; body cells carry
 /// [_debutMark]/[_firstMark]/[_presentMark]/blank markers with the same
 /// semantics as the on-screen [ProgramMatrix]
@@ -49,8 +51,12 @@ const String _presentMark = '✓';
 /// - [markerFont] supplies the fallback font for the ★/▸/✓ marker glyphs the
 ///   bundled Roboto lacks (#633); when omitted it is loaded via
 ///   [loadProgramMatrixMarkerFont].
+/// - [dialectForColumn] picks the dialect a column's label is shown in, so a
+///   program that mixes dance forms names each form's figures in that form's
+///   dialect (ADR-006 §12.2, S3); with none given, every label uses [dialect].
 /// - [formatFormation] renders each row's [MatrixRow.formation] as plain text
-///   (#663), matching the on-screen matrix's pinned formation column. It
+///   (#663), matching the on-screen matrix's pinned formation column. It is
+///   given the whole row, so a caller can use the dance's own dialect. It
 ///   defaults to an English fallback so pure-Dart callers/tests don't need to
 ///   wire up localization; the app passes the same localized
 ///   `formationLabel(l10n, formation)` helper the on-screen widget and
@@ -69,11 +75,14 @@ Future<Uint8List> buildProgramMatrixPdf(
   ProgramMatrixExportLabels labels = const ProgramMatrixExportLabels(),
   pw.ThemeData? theme,
   pw.Font? markerFont,
-  String Function(Formation formation)? formatFormation,
+  String Function(MatrixRow row)? formatFormation,
+  Dialect Function(MatrixColumn column)? dialectForColumn,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
+  PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
-  final fmtDate = formatDate ?? _isoDate;
-  final fmtFormation = formatFormation ?? _englishFormationLabel;
+  final fmtDate = formatDate ?? isoDate;
+  final fmtFormation =
+      formatFormation ?? (row) => _englishFormationLabel(row.formation);
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final title = programTitle.trim().isEmpty
       ? labels.defaultTitle
@@ -91,7 +100,9 @@ Future<Uint8List> buildProgramMatrixPdf(
 
   doc.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4.landscape,
+      pageFormat: pageFormat.landscape,
+      header: (context) => pdfRunningHeader(context, title),
+      footer: (context) => pdfPageFooter(context, labels.pageOf),
       build: (context) => [
         pw.Header(
           level: 0,
@@ -115,6 +126,7 @@ Future<Uint8List> buildProgramMatrixPdf(
             labels,
             resolvedMarkerFont,
             fmtFormation,
+            dialectForColumn,
             config,
           ),
         ],
@@ -138,12 +150,18 @@ pw.Widget _matrixTable(
   Dialect dialect,
   ProgramMatrixExportLabels labels,
   pw.Font markerFont,
-  String Function(Formation formation) fmtFormation,
+  String Function(MatrixRow row) fmtFormation,
+  Dialect Function(MatrixColumn column)? dialectForColumn,
   MatrixColumnConfig config,
 ) {
   final columnLabels = [
     for (final c in matrix.columns)
-      matrixColumnLabel(c, taxonomy, dialect, config: config),
+      matrixColumnLabel(
+        c,
+        taxonomy,
+        dialectForColumn?.call(c) ?? dialect,
+        config: config,
+      ),
   ];
 
   final headerStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
@@ -168,6 +186,7 @@ pw.Widget _matrixTable(
   );
 
   final headerRow = pw.TableRow(
+    repeat: true,
     decoration: const pw.BoxDecoration(color: PdfColors.grey300),
     children: [
       headerCell(labels.danceColumn, align: pw.Alignment.centerLeft),
@@ -190,10 +209,7 @@ pw.Widget _matrixTable(
           ),
           pw.Padding(
             padding: const pw.EdgeInsets.all(4),
-            child: pw.Text(
-              fmtFormation(matrix.rows[r].formation),
-              style: formationStyle,
-            ),
+            child: pw.Text(fmtFormation(matrix.rows[r]), style: formationStyle),
           ),
           for (var c = 0; c < matrix.columns.length; c++)
             markCell(
@@ -252,13 +268,6 @@ String _dateVenue(
   return parts.join(' · ');
 }
 
-String _isoDate(DateTime date) {
-  final y = date.year.toString().padLeft(4, '0');
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
-  return '$y-$m-$d';
-}
-
 /// English fallback for [Formation] (used when [buildProgramMatrixPdf]'s
 /// caller doesn't supply `formatFormation`), mirroring the
 /// `commonFormation*` English source strings in `app_en.arb` — kept in sync
@@ -267,6 +276,7 @@ String _isoDate(DateTime date) {
 String _englishFormationLabel(Formation formation) {
   final base = switch (formation.shape) {
     FormationShape.dupleImproper => 'Improper',
+    FormationShape.progressedImproper => 'Progressed improper',
     FormationShape.reverseProgressionImproper => 'Reverse progression improper',
     FormationShape.becketCw => 'Becket (CW)',
     FormationShape.becketCcw => 'Becket (CCW)',
@@ -283,7 +293,16 @@ String _englishFormationLabel(Formation formation) {
     FormationShape.grid => 'Grid',
     FormationShape.quadruplet => 'Quadruplet',
     FormationShape.other => 'Other',
+    FormationShape.dupleMinor => 'Duple minor',
+    FormationShape.threeCoupleLongways => 'Three-couple longways',
+    FormationShape.fourCoupleLongways => 'Four-couple longways',
+    FormationShape.fiveCoupleLongways => 'Five-couple longways',
+    FormationShape.sixCoupleLongways => 'Six-couple longways',
+    FormationShape.circle => 'Circle',
+    FormationShape.square => 'Square',
+    FormationShape.twoCoupleSet => 'Two-couple set',
   };
+  final shape = formation.improper ? '$base, improper' : base;
   final detail = formation.detail?.trim();
-  return (detail == null || detail.isEmpty) ? base : '$base — $detail';
+  return (detail == null || detail.isEmpty) ? shape : '$shape — $detail';
 }

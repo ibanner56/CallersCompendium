@@ -9,6 +9,9 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/tag_manager_screen.dart';
+
+import 'package:compendium_app/l10n/app_localizations.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -20,6 +23,7 @@ Future<ValueNotifier<bool>> _pumpAppearance(
   WidgetTester tester,
   CompendiumRepositories repos, {
   bool initialColorCoding = true,
+  Locale? locale,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -35,12 +39,16 @@ Future<ValueNotifier<bool>> _pumpAppearance(
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
+    RepositoriesScope(
+      repositories: repos,
+      child: MaterialApp(
+        locale: locale,
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        // Above the navigator, so a section pushed as its own page (the
+        // one-pane layout, which a long label in another language can force)
+        // sees the same scopes.
+        builder: (context, child) => AppThemeScope(
           notifier: theme,
           child: CustomThemesScope(
             controller: customThemes,
@@ -48,19 +56,20 @@ Future<ValueNotifier<bool>> _pumpAppearance(
               notifier: dialect,
               child: SetListColorCodingScope(
                 notifier: colorCoding,
-                child: const SettingsScreen(),
+                child: child!,
               ),
             ),
           ),
         ),
+        home: const SettingsScreen(),
       ),
     ),
   );
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
   await tester.pumpAndSettle();
-  // The toggle sits below the theme gallery in a lazily-built ListView; scroll
-  // it into view so it is built and hit-testable.
+  // The toggle sits below the Theme row and other entries in a lazily-built
+  // ListView; scroll it into view so it is built and hit-testable.
   await tester.scrollUntilVisible(
     find.byKey(const ValueKey('appearance-set-list-color-coding')),
     240,
@@ -101,6 +110,21 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('Tag colours opens the Tags manager (D-N2-3)', (tester) async {
+    await _pumpAppearance(tester, openTestRepositories());
+
+    final entry = find.byKey(const ValueKey('appearance-tag-colours'));
+    await tester.scrollUntilVisible(
+      entry,
+      240,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TagManagerScreen), findsOneWidget);
+  });
+
   testWidgets('toggling colour-coding off persists and flips the scope', (
     tester,
   ) async {
@@ -123,5 +147,70 @@ void main() {
     );
     expect(notifier.value, isFalse);
     expect(await repos.settings.get(kSetListColorCodingKey), isFalse);
+  });
+
+  group('theme gallery labels are localized (CS-47)', () {
+    final de = lookupAppLocalizations(const Locale('de'));
+
+    Future<void> pumpDe(WidgetTester tester) async {
+      await _pumpAppearance(
+        tester,
+        openTestRepositories(),
+        locale: const Locale('de'),
+      );
+      // The Theme row sits above the toggle the harness scrolled to; bring the
+      // top of the list back and open the Theme screen from it. A tall window
+      // builds every card, down to the Dark section.
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).last)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.tap(find.byKey(const ValueKey('appearance-theme')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('theme-search')), findsOneWidget);
+    }
+
+    testWidgets('group headings and generic theme names are German', (
+      tester,
+    ) async {
+      await pumpDe(tester);
+
+      expect(find.text('Light'), findsNothing);
+      expect(find.text('High contrast'), findsNothing);
+      expect(find.text('Soft dark'), findsNothing);
+      expect(find.text(de.appThemeGroupLight), findsWidgets);
+      expect(find.text(de.appThemeGroupDark), findsWidgets);
+      expect(find.text(de.appThemeLabelHighContrast), findsOneWidget);
+      expect(find.text(de.appThemeLabelSoftDark), findsOneWidget);
+      // Brand palette names are proper nouns and stay literal.
+      expect(find.text('Dracula'), findsOneWidget);
+    });
+
+    testWidgets('card semantics read the localized "name. description"', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpDe(tester);
+
+      Finder cardLabel(String label) => find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == label,
+      );
+      expect(
+        cardLabel(
+          '${de.appThemeLabelHighContrast}. '
+          '${de.appThemeDescriptionHighContrast}',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        cardLabel(
+          '${de.appThemeLabelSoftDark}. ${de.appThemeDescriptionSoftDark}',
+        ),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
   });
 }

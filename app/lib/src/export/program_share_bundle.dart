@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import '../utils/safe_name.dart';
+import '../utils/slot_dance_title.dart';
 import 'share_sanitization.dart';
 
 /// Builds a self-contained "share this program + its dances" bundle (ROADMAP
@@ -19,14 +20,16 @@ import 'share_sanitization.dart';
 /// since #874, for one picked manually through Import too. (A JSON file that
 /// is not an archive still routes to the dance-only `GenericJsonAdapter`.)
 ///
-/// [danceFor] resolves a slot's `danceId` to its full [Dance]; a referenced id
+/// [danceFor] resolves a slot's `danceId` to its full [Dance], including one in
+/// Recently deleted, which is bundled without its `deletedAt`; a referenced id
 /// that can't be resolved is skipped (best-effort, never fatal — mirrors the
 /// codec's partial-failure tolerance). Repeated `danceId`s are de-duplicated so
 /// each dance appears once. Slot order and note-only slots are preserved by the
 /// program itself (its `slots` carry their own `text`), so nothing extra is
 /// needed for them here.
 ///
-/// [choreographerFor] resolves an author id (from a bundled dance's `authorIds`)
+/// [choreographerFor] resolves an author id (from a bundled dance's `authorIds`
+/// or `interpreterIds`)
 /// to its full [Choreographer], so author attribution survives the round-trip:
 /// the receive-side importer reads incoming author *names* from the bundle's own
 /// `CompendiumArchive.choreographers` (a receiver cannot resolve the sender's
@@ -58,8 +61,30 @@ import 'share_sanitization.dart';
 /// [includeVenueContact] survive. This set is empty by default (full
 /// redaction) and is populated **only** from an explicit, opt-in pre-share
 /// consent dialog in the UI layer — there is no path that embeds an
-/// unsanitized venue. All venue-descriptive fields (name/address/schedule/…)
-/// are kept, matching the choreographer precedent.
+/// unsanitized venue. The venue-descriptive fields (name/schedule/…) are kept,
+/// matching the choreographer precedent; the postal address is always cleared.
+///
+/// [tagFor], [publishedSourceFor] and [customFieldFor] resolve the tags,
+/// published sources and custom-field definitions the bundled dances reference,
+/// so a recipient can import those dances completely. They are **required and
+/// strict**: an id that resolves to nothing throws a [StateError] (as
+/// `buildDanceShareBundle` does). This is a privacy guard, not just
+/// completeness — a custom field whose `shareable` flag is `false` has its
+/// definition **and every value** dropped by [encodeArchive], but only for
+/// definitions present in the archive; without the definition the value would
+/// be emitted.
+///
+/// [difficultyLevelFor] is **dance-keyed** and resolves a bundled dance's
+/// custom difficulty level. It is called once per distinct level id, with the
+/// first bundled dance that carries it (dances without a level are skipped), so
+/// it must resolve from the dance's level whichever dance it is handed.
+/// Alternates are among the bundled dances whatever the program's
+/// `hideAlternates` flag says. A `null` result falls back to the built-in
+/// levels. A level id neither knows throws a
+/// [StateError], the same strict contract as the resolvers above, except for a
+/// dance from the sender's Recently deleted, which travels without its level
+/// instead: the trash does not protect a level, so it may be gone. A shipped
+/// level always resolves through [DifficultyLevel.knownForId].
 ///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
@@ -81,28 +106,56 @@ import 'share_sanitization.dart';
 /// pinned by `app/test/export/share_venue_dedupe_seam_test.dart` and explained
 /// at [venueFingerprint]. Dedupe still works for venues that reach the importer
 /// with their address intact (`.USR` import, backup restore, local venues).
+///
+/// A dance another device permanently deleted reaches this device blanked,
+/// titled "—" with no content ([isBlankedDance]). It is not sent: its slot
+/// travels as a text slot reading [blankedDanceSlotText] ("Deleted dance"),
+/// marked as a purged dance's caption, so the receiver sees what the sender
+/// sees and imports no empty dance (maintainer decision, 2026-11-05, row 49 of
+/// the follow-ups triage, option (a)). A slot that also carried a note keeps
+/// the note as its text, as a purge leaves it.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,
+  required String blankedDanceSlotText,
   required Choreographer? Function(String id) choreographerFor,
   required Venue? Function(String venueId) venueFor,
-  DifficultyLevel? Function(String id)? difficultyLevelFor,
+  required Tag? Function(String id) tagFor,
+  required PublishedSource? Function(String id) publishedSourceFor,
+  required CustomFieldDef? Function(String id) customFieldFor,
+  DifficultyLevel? Function(Dance dance)? difficultyLevelFor,
+  UserGlossaryEntry? Function(String id)? userFigureFor,
   Set<VenueContactField> includeVenueContact = const {},
   DateTime? now,
 }) {
   final dances = <Dance>[];
   final seen = <String>{};
+  final trashedIds = <String>{};
+  final blankedIds = <String>{};
   for (final slot in program.slots) {
     final danceId = slot.danceId;
     if (danceId == null || !seen.add(danceId)) continue;
     final dance = danceFor(danceId);
-    if (dance != null) dances.add(dance);
+    if (dance != null && isBlankedDance(dance)) {
+      blankedIds.add(danceId);
+      continue;
+    }
+    // A dance in the sender's Recently deleted is still part of the evening,
+    // so it travels (GIG-11), but as a live dance: what the owner deleted is
+    // not shared.
+    if (dance != null) {
+      if (dance.isDeleted) trashedIds.add(dance.id);
+      dances.add(
+        dance.isDeleted ? dance.copyWith(clearDeletedAt: true) : dance,
+      );
+    }
   }
 
   final choreographers = <Choreographer>[];
   final seenAuthors = <String>{};
   for (final dance in dances) {
-    for (final authorId in dance.authorIds) {
+    // Interpreters come from the same people list and travel the same way.
+    for (final authorId in [...dance.authorIds, ...dance.interpreterIds]) {
       if (!seenAuthors.add(authorId)) continue;
       final choreographer = choreographerFor(authorId);
       if (choreographer == null) continue;
@@ -124,32 +177,93 @@ String buildProgramShareBundle(
     }
   }
 
+  // Definitions for everything the bundled dances reference. Unlike the
+  // best-effort lookups above, these are strict (mirrors
+  // `buildDanceShareBundle`): the archive codec decides which custom-field
+  // values to omit from the *definitions* it is given, so a definition that
+  // cannot be resolved means its `shareable` flag is unknown and the share must
+  // fail rather than emit the value.
+  final tags = <Tag>[];
+  final seenTags = <String>{};
+  final sources = <PublishedSource>[];
+  final seenSources = <String>{};
+  final customFields = <CustomFieldDef>[];
+  final seenFields = <String>{};
+  for (final dance in dances) {
+    for (final id in dance.tagIds) {
+      if (!seenTags.add(id)) continue;
+      final tag = tagFor(id);
+      if (tag == null) throw StateError('dance references missing tag "$id"');
+      tags.add(tag);
+    }
+    for (final citation in dance.sourceCitations) {
+      if (!seenSources.add(citation.sourceId)) continue;
+      final source = publishedSourceFor(citation.sourceId);
+      if (source == null) {
+        throw StateError(
+          'dance references missing published source "${citation.sourceId}"',
+        );
+      }
+      sources.add(source);
+    }
+    for (final value in dance.customFields) {
+      if (!seenFields.add(value.fieldId)) continue;
+      final field = customFieldFor(value.fieldId);
+      if (field == null) {
+        throw StateError(
+          'dance references missing custom field "${value.fieldId}"',
+        );
+      }
+      customFields.add(field);
+    }
+  }
+
   final difficultyLevels = <DifficultyLevel>[];
   final seenLevels = <String>{};
-  for (final dance in dances) {
+  for (var i = 0; i < dances.length; i++) {
+    final dance = dances[i];
     final difficultyLevelId = dance.difficultyLevelId;
-    if (difficultyLevelId == null || !seenLevels.add(difficultyLevelId)) {
+    if (difficultyLevelId == null || seenLevels.contains(difficultyLevelId)) {
       continue;
     }
     final level =
-        difficultyLevelFor?.call(difficultyLevelId) ??
+        difficultyLevelFor?.call(dance) ??
         DifficultyLevel.knownForId(difficultyLevelId);
     if (level == null) {
+      // A dance in Recently deleted does not hold its level back (the
+      // maintainer's trash-policy decision, 2026-10-29), so the level it names
+      // may have been removed since. It travels without one. (A removed
+      // shipped level still resolves through `knownForId` above and travels;
+      // the recipient knows it already.) A live dance's level is always live,
+      // so for one of those this is still a missing lookup, and strict.
+      if (trashedIds.contains(dance.id)) {
+        dances[i] = dance.copyWith(clearDifficultyLevel: true);
+        continue;
+      }
       throw StateError(
         'dance references missing difficulty level "$difficultyLevelId"',
       );
     }
+    seenLevels.add(difficultyLevelId);
     difficultyLevels.add(level);
   }
 
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
-      programs: [program],
-      dances: dances,
+      programs: [
+        sanitizeProgramForShare(
+          _withBlankedDancesAsText(program, blankedIds, blankedDanceSlotText),
+        ),
+      ],
+      dances: [for (final dance in dances) sanitizeDanceForShare(dance)],
       choreographers: choreographers,
       venues: venues,
+      publishedSources: sources,
+      customFields: customFields,
+      tags: tags,
       difficultyLevels: difficultyLevels,
+      userFigures: userFiguresForShare(dances, userFigureFor),
     ),
     mode: ArchiveSerializationMode.share,
   );
@@ -198,15 +312,49 @@ const String programShareJsonExtension = 'json';
 /// plain [programShareJsonExtension]. The base name is derived identically
 /// either way, so a crafted program title cannot construct a different path
 /// through the `.json` action than it could through the `.ccshare` one.
+///
+/// [eventDate] is appended as `_yyyy-MM-dd`, so a weekly "Saturday Contra"
+/// does not export under the same name every week. The base falls back to
+/// `program` when the title has no letter or digit.
 String programShareBundleFileName(
   String title, {
   String extension = programShareBundleExtension,
+  DateTime? eventDate,
 }) {
-  final sanitized = replaceUnsafeNameChars(title.trim());
-  // Fall back when the title has no alphanumeric content (empty, all
-  // whitespace, or only illegal/punctuation characters) so the file always has
-  // a meaningful, path-safe name.
-  final hasContent = sanitized.contains(RegExp(r'[A-Za-z0-9]'));
-  final base = hasContent ? sanitized : 'program';
+  final base = shareFileBaseName(
+    title,
+    fallback: 'program',
+    eventDate: eventDate,
+  );
   return '$base.$extension';
+}
+
+/// [program] with every slot citing one of [blankedIds] turned into a text
+/// slot, as [DanceRepository]'s purge turns a slot whose dance is gone: no
+/// dance, and [text] as a purged dance's caption unless the slot has a note.
+Program _withBlankedDancesAsText(
+  Program program,
+  Set<String> blankedIds,
+  String text,
+) {
+  if (blankedIds.isEmpty) return program;
+  return program.copyWith(
+    slots: [
+      for (final slot in program.slots)
+        if (!blankedIds.contains(slot.danceId))
+          slot
+        else
+          ProgramSlot(
+            id: slot.id,
+            position: slot.position,
+            text: slot.text ?? text,
+            isPurgedDance: slot.text == null ? true : slot.isPurgedDance,
+            isAlt: slot.isAlt,
+            guestCaller: slot.guestCaller,
+            walkthroughMinutes: slot.walkthroughMinutes,
+            danceMinutes: slot.danceMinutes,
+            performedAt: slot.performedAt,
+          ),
+    ],
+  );
 }

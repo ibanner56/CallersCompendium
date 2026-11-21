@@ -2,6 +2,8 @@
 // pipelines. Single-pass (no chained re-replacement), longest-match-first,
 // with optional case-insensitive matching and case-preserving output.
 
+import 'package:meta/meta.dart';
+
 /// How the case of a matched span is carried onto its replacement.
 enum _Case { lower, title, upper, mixed }
 
@@ -32,6 +34,12 @@ String _applyCase(String matched, String replacement) {
 
 /// Compiled set of `term → replacement` rules.
 class Substitutor {
+  /// Number of [Substitutor]s constructed in this isolate. Test-only: lets a
+  /// test assert that a render path reuses a compiled substitutor instead of
+  /// compiling a new pattern per call. Nothing in `lib/` reads it.
+  @visibleForTesting
+  static int debugConstructed = 0;
+
   Substitutor(
     Map<String, String> replacements, {
     this.caseInsensitive = false,
@@ -40,6 +48,7 @@ class Substitutor {
          for (final e in replacements.entries)
            (caseInsensitive ? e.key.toLowerCase() : e.key): e.value,
        } {
+    debugConstructed++;
     final keys = _map.keys.where((k) => k.isNotEmpty).toList()
       // Longest first so "Larks" wins over "Lark" at the same position.
       ..sort((a, b) => b.length.compareTo(a.length));
@@ -62,14 +71,28 @@ class Substitutor {
   bool get isEmpty => _pattern == null;
 
   /// Applies all substitutions to [text] in a single left-to-right pass.
-  String apply(String text) {
+  ///
+  /// When [where] is given, a match is replaced only if [where] returns true
+  /// for its span (`start` inclusive, `end` exclusive, offsets into [text]);
+  /// otherwise it is kept as written.
+  String apply(String text, {bool Function(int start, int end)? where}) {
     final pattern = _pattern;
     if (pattern == null || text.isEmpty) return text;
     return text.replaceAllMapped(pattern, (m) {
       final matched = m[0]!;
+      if (where != null && !where(m.start, m.end)) return matched;
       final key = caseInsensitive ? matched.toLowerCase() : matched;
-      final replacement = _map[key]!;
-      return preserveCase ? _applyCase(matched, replacement) : replacement;
+      // The regex's case-insensitive match uses Unicode simple case folding,
+      // which `toLowerCase` does not reproduce for every glyph: U+017F `ſ`
+      // matches an `s` key but lowercases to itself, so the folded match is
+      // not a key. Leave such a span as written rather than throw.
+      final replacement = _map[key];
+      if (replacement == null) return matched;
+      if (!preserveCase) return replacement;
+      // A rule that maps a term to itself keeps the span exactly as typed;
+      // re-casing would lowercase a mixed-case span such as "Lady Birds".
+      if (replacement == key) return matched;
+      return _applyCase(matched, replacement);
     });
   }
 

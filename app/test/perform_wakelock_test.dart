@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wakelock_plus/wakelock_plus.dart'
+    show wakelockPlusPlatformInstance;
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -208,4 +212,170 @@ void main() {
     );
     expect(wakelock.toggles, contains(true));
   });
+
+  Program programFor(String danceId) => Program(
+    id: 'p1',
+    title: 'Spring Dance',
+    slots: [ProgramSlot(id: 's1', position: 0, danceId: danceId)],
+    createdAt: _now,
+    updatedAt: _now,
+  );
+
+  Future<void> exitProgramPerform(WidgetTester tester) async {
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets(
+    'program Perform leaves zero inhibits outstanding after N resume cycles '
+    'and exit',
+    (tester) async {
+      final counting = installCountingWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+      final data = await CollectionData.load(repos);
+
+      await _pushPerform(
+        tester,
+        PerformProgramScreen(
+          program: programFor('d1'),
+          data: data,
+          renderer: _renderer,
+        ),
+      );
+      expect(counting.outstanding, 1);
+
+      for (var i = 0; i < 3; i++) {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pump();
+      }
+      expect(
+        counting.outstanding,
+        1,
+        reason: 'a resume while the lock is held must not stack another',
+      );
+      expect(counting.toggles, [true], reason: 'no second enable while held');
+
+      await exitProgramPerform(tester);
+
+      expect(counting.outstanding, 0);
+    },
+  );
+
+  testWidgets(
+    'program Perform releases the inhibit after repeated background/resume '
+    'cycles',
+    (tester) async {
+      final counting = installCountingWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+      final data = await CollectionData.load(repos);
+
+      await _pushPerform(
+        tester,
+        PerformProgramScreen(
+          program: programFor('d1'),
+          data: data,
+          renderer: _renderer,
+        ),
+      );
+      for (var i = 0; i < 3; i++) {
+        await _backgroundThenResume(tester);
+      }
+      expect(counting.outstanding, 1);
+
+      await exitProgramPerform(tester);
+
+      expect(counting.outstanding, 0);
+    },
+  );
+
+  testWidgets(
+    'an enable still in flight when Perform is disposed is released',
+    (tester) async {
+      final counting = installCountingWakelock();
+      final gate = Completer<void>();
+      counting.enableGate = gate;
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+      final data = await CollectionData.load(repos);
+
+      await _pushPerform(
+        tester,
+        PerformProgramScreen(
+          program: programFor('d1'),
+          data: data,
+          renderer: _renderer,
+        ),
+      );
+      expect(counting.outstanding, 0, reason: 'enable is still in flight');
+
+      await exitProgramPerform(tester);
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(counting.outstanding, 0);
+    },
+  );
+
+  testWidgets(
+    'a Dart Error from the first enable does not stop the disable on exit',
+    (tester) async {
+      // flows-4: the wake-lock chain was `_wakelockOp.then(...)`, and only
+      // `Exception`s were caught. A plugin `Error` left `_wakelockOp` failed,
+      // so every later operation — including the disable on exit — was
+      // skipped and the lock stayed held after leaving Perform.
+      final throwing = _ThrowingFirstEnableWakelock();
+      final previous = wakelockPlusPlatformInstance;
+      wakelockPlusPlatformInstance = throwing;
+      addTearDown(() => wakelockPlusPlatformInstance = previous);
+
+      await _pushPerform(
+        tester,
+        PerformDanceScreen(dance: _dance(), renderer: _renderer),
+      );
+      expect(throwing.toggles, [true]);
+      // The Error is still surfaced, through `FlutterError.reportError` (the
+      // crash log in the app; `takeException` here), rather than swallowed.
+      expect(tester.takeException(), isA<StateError>());
+
+      await tester.tap(find.byKey(const ValueKey('exit-perform')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PerformDanceScreen), findsNothing);
+      expect(throwing.toggles, [
+        true,
+        false,
+      ], reason: 'leaving Perform must still issue the disable');
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the Error is reported once, not once per later operation',
+      );
+    },
+  );
+}
+
+/// Throws a [StateError] (a Dart `Error`, not an `Exception`) from its first
+/// `toggle(enable: true)`, then behaves.
+class _ThrowingFirstEnableWakelock extends FakeWakelockPlus {
+  bool _thrown = false;
+
+  @override
+  Future<void> toggle({required bool enable}) async {
+    toggles.add(enable);
+    if (enable && !_thrown) {
+      _thrown = true;
+      throw StateError('wake-lock plugin bug');
+    }
+    isEnabled = enable;
+  }
 }

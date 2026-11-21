@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  _moveSearchTextAcrossForms();
   final larks = Dialect.larksRobins;
   // Gendered dialects are no longer shipped presets; canonicalization must
   // still handle a user's custom gendered role terms, so build them inline.
@@ -335,10 +336,93 @@ void main() {
 
     test('canonicalization also discards the caller\'s capitalisation', () {
       // `Substitutor` supports `preserveCase`, but `canonicalize` does not
-      // enable it, so both upper and title case are flattened.
+      // enable it, so both upper and title case are flattened. Deliberate
+      // (parser-2): imports store `role1s`, and preserving case would change
+      // canonical bytes and the `figureCanonicalKey` dedupe identity.
       expect(
         canonicalizeText('LARKS and Robins balance the ring.', larks),
         'role1s and role2s balance the ring.',
+      );
+    });
+  });
+
+  group('case-insensitive matching whose lowercase is not a map key', () {
+    // U+017F LATIN SMALL LETTER LONG S case-folds to `s` under RegExp
+    // `caseSensitive: false, unicode: true`, so `ladieſ` MATCHES the key
+    // `ladies` — but `'ladieſ'.toLowerCase()` is `ladieſ`, not `ladies`, so the
+    // lowercased match is not a key. Kelvin sign (K → k) and the like fold
+    // cleanly through `toLowerCase`; `ſ` is the one Latin glyph that does not.
+    const longS = 'Ladieſ chain';
+
+    test('Substitutor leaves the matched text alone instead of throwing', () {
+      final s = Substitutor({'ladies chain': 'X'}, caseInsensitive: true);
+      expect(s.apply(longS), longS);
+      // The ordinary spelling still substitutes.
+      expect(s.apply('Ladies chain'), 'X');
+    });
+
+    test('canonicalizeText (the editor save chokepoint) does not throw', () {
+      expect(canonicalizeText(longS, larks), longS);
+    });
+
+    test('scrubFigureText (the import scrub) does not throw', () {
+      expect(scrubFigureText(longS), longS);
+    });
+  });
+
+  group('canonicalizeMoveSearchText', () {
+    test('rewrites a legacy move keyword to the canonical display name', () {
+      expect(
+        canonicalizeMoveSearchText('give and take', contraTaxonomy),
+        'give & take',
+      );
+    });
+
+    test(
+      'leaves a bare "take" alone so prose like "take hands" is findable',
+      () {
+        // Any canonical text containing "give & take" already contains the
+        // token `take`, so a bare "take" needs no rewrite to find it; rewriting
+        // it only broke queries for the ordinary phrase "take hands four".
+        expect(
+          canonicalizeMoveSearchText('take hands four', contraTaxonomy),
+          'take hands four',
+        );
+      },
+    );
+  });
+}
+
+void _moveSearchTextAcrossForms() {
+  group('canonicalizeMoveSearchText across dance forms (ADR-006)', () {
+    final contraQueries = <String>{
+      for (final m in contraTaxonomy.moves.values) ...[
+        m.displayName,
+        ...m.searchKeywords,
+      ],
+      for (final a in contraTaxonomy.aliases.values) ...[
+        a.displayName,
+        ...a.searchKeywords,
+      ],
+    };
+
+    test('a contra name or keyword reads the same with every form shipped', () {
+      final changed = [
+        for (final q in contraQueries)
+          if (canonicalizeMoveSearchText(q, shippedTaxonomies.anyForm) !=
+              canonicalizeMoveSearchText(q, contraTaxonomy))
+            '$q -> ${canonicalizeMoveSearchText(q, shippedTaxonomies.anyForm)}',
+      ];
+      expect(contraQueries, isNotEmpty);
+      expect(changed, isEmpty);
+    });
+
+    test('an ECD dance reads its own keywords first', () {
+      final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+      expect(canonicalizeMoveSearchText('reel of three', ecd), 'hey for three');
+      expect(
+        canonicalizeMoveSearchText('reel of three', shippedTaxonomies.anyForm),
+        'hey for three',
       );
     });
   });

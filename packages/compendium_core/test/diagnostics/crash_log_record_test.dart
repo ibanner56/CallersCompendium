@@ -110,6 +110,90 @@ void main() {
     expect(scrubbed.errorType, 'FormatException');
   });
 
+  group('scrubbed() keeps the message of an allow-listed typed error', () {
+    CrashLogRecord record(String type, String message) => CrashLogRecord(
+      timestampUtc: DateTime.utc(2026),
+      appVersion: '0.1.0',
+      platform: 'macos',
+      source: 'zone',
+      errorType: type,
+      errorMessage: message,
+      stack: '',
+    );
+
+    test('so a timeout reads differently from a 404', () {
+      final timeout = record(
+        'UrlFetchException',
+        'UrlFetchException(callersBoxTimeout, timeoutSeconds: 30)',
+      ).scrubbed(CrashRedactor());
+      final notFound = record(
+        'UrlFetchException',
+        'UrlFetchException(httpStatus, statusCode: 404)',
+      ).scrubbed(CrashRedactor());
+      expect(timeout.errorMessage, contains('callersBoxTimeout'));
+      expect(notFound.errorMessage, contains('statusCode: 404'));
+    });
+
+    test('for every named type, and still scrubs paths from it', () {
+      for (final type in CrashLogRecord.messageSafeErrorTypes) {
+        final scrubbed = record(
+          type,
+          'reason at /Users/jane/Library/crash.log',
+        ).scrubbed(CrashRedactor());
+        expect(scrubbed.errorMessage, startsWith('reason at'), reason: type);
+        expect(scrubbed.errorMessage, isNot(contains('jane')), reason: type);
+      }
+    });
+
+    test('but not for a type that merely resembles one', () {
+      for (final type in ['FormatException', 'UrlFetchExceptionX', '']) {
+        final scrubbed = record(
+          type,
+          'could not parse "Wren Hollow Hall"',
+        ).scrubbed(CrashRedactor());
+        expect(
+          scrubbed.errorMessage,
+          CrashLogRecord.withheldMessage,
+          reason: type,
+        );
+      }
+    });
+  });
+
+  test('scrubbed() withholds the message even when no term matches it', () {
+    // A value that was never persisted (or was hard-purged) is absent from the
+    // redactor's term set, so term redaction alone cannot be what protects it.
+    final raw = CrashLogRecord(
+      timestampUtc: DateTime.utc(2026),
+      appVersion: '0.1.0',
+      platform: 'macos',
+      source: 'zone',
+      errorType: 'FormatException',
+      errorMessage: 'could not save "Nonpersisted Jig" (Wren Hollow Hall)',
+      stack: '#0 main (package:compendium_app/main.dart:10:2)',
+    );
+    final scrubbed = raw.scrubbed(CrashRedactor());
+    expect(scrubbed.errorMessage, CrashLogRecord.withheldMessage);
+    expect(scrubbed.errorMessage, isNot(contains('Nonpersisted Jig')));
+    expect(scrubbed.errorMessage, isNot(contains('Wren Hollow Hall')));
+    expect(scrubbed.toReadable(), isNot(contains('Nonpersisted Jig')));
+    expect(scrubbed.errorType, 'FormatException');
+    expect(scrubbed.stack, contains('main.dart:10:2'));
+  });
+
+  test('scrubbed() leaves an empty message empty', () {
+    final raw = CrashLogRecord(
+      timestampUtc: DateTime.utc(2026),
+      appVersion: '0.1.0',
+      platform: 'macos',
+      source: 'zone',
+      errorType: 'StateError',
+      errorMessage: '',
+      stack: '',
+    );
+    expect(raw.scrubbed(CrashRedactor()).errorMessage, isEmpty);
+  });
+
   test('summary and toReadable are concise and complete', () {
     expect(record.summary, 'StateError: Bad state: no active dance');
     final readable = record.toReadable();

@@ -14,6 +14,12 @@ const String kInitialSeedCompletedKey = 'seed.initialCollection.completed';
 /// `packages/compendium_core/test/seed/`).
 const String kBabyRoseSeedAsset = 'assets/seed/baby_rose.json';
 
+/// Id of the seeded dance inside [kBabyRoseSeedAsset] (fixed by the seed
+/// generator; `seed_service_test.dart` pins it against the shipped asset). Lets
+/// the Collection tell "only the sample is here" from the dance's id alone,
+/// without a stored marker.
+const String kBabyRoseSeedDanceId = 'seed-baby-rose-0002';
+
 /// Loads a bundled asset's text by key. Defaults to [rootBundle]; overridden in
 /// tests so no real asset bundle is required.
 typedef SeedAssetLoader = Future<String> Function(String assetKey);

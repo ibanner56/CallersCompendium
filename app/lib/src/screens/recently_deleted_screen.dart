@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
+import '../diagnostics/error_log.dart';
+import '../utils/confirm_delete.dart';
 
 /// Per-entity configuration for [RecentlyDeletedScreen].
 ///
 /// Captures everything that differs between the dances and programs
-/// "Recently Deleted" screens — the entity accessors, the repository calls,
+/// "Recently deleted" screens — the entity accessors, the repository calls,
 /// the retention window, and the copy — so the screen itself stays generic and
 /// the two entry points ([RecentlyDeletedScreen.dances] /
 /// [RecentlyDeletedScreen.programs]) are thin wrappers over the shared shape.
@@ -42,18 +46,26 @@ class RecentlyDeletedConfig<T> {
   /// the [initialRetention] is used unchanged (a fixed window).
   final Future<Duration?> Function(CompendiumRepositories repos)? loadRetention;
 
-  /// Loads the soft-deleted items (those with a non-null `deletedAt`).
+  /// Loads the soft-deleted items (those with a non-null `deletedAt`), leaving
+  /// out any the user has already permanently deleted ([isPermanentlyDeleted]):
+  /// those Device Sync has published stay on disk as a blank deletion record
+  /// (LIFE-2), which is nothing the user can restore.
   ///
   /// Contract: implementations MUST filter out non-deleted items — the screen
   /// renders each item's purge-ETA from its `deletedAt` and asserts it is
   /// non-null.
   final Future<List<T>> Function(CompendiumRepositories repos) loadDeleted;
 
-  /// Restores [item] to the active collection.
-  final Future<void> Function(CompendiumRepositories repos, T item) restore;
+  /// Restores [item] to the active collection, and says whether it is live
+  /// again. `false` means nothing was restored: a peer permanently deleted
+  /// (blanked) the item, or it is gone, since the list was loaded. The
+  /// repositories' own `restore` returns quietly for those, so this reads the
+  /// outcome back rather than trusting that the call ran.
+  final Future<bool> Function(CompendiumRepositories repos, T item) restore;
 
-  /// Hard-deletes [item] via the standard purge machinery.
-  final Future<void> Function(CompendiumRepositories repos, T item)
+  /// Permanently deletes [item], and says what that did: erased it, or (once
+  /// Device Sync has published it) blanked it down to a deletion record.
+  final Future<PermanentDeletion> Function(CompendiumRepositories repos, T item)
   permanentlyDelete;
 
   final String Function(T item) idOf;
@@ -69,9 +81,8 @@ class RecentlyDeletedConfig<T> {
   /// Accessibility label for the loading spinner (whole localized phrase).
   final String Function(AppLocalizations l10n) loadingLabel;
 
-  /// Empty-state copy when auto-purge is off ("Never"). `null` for kinds whose
-  /// retention window is fixed and can never be "Never" (they always render
-  /// [emptyRetention]).
+  /// Empty-state copy when auto-purge is off ("Never"). Required whenever
+  /// [loadRetention] can resolve to `null`.
   final String Function(AppLocalizations l10n)? emptyKept;
 
   /// Empty-state copy given the configured retention window in days.
@@ -87,10 +98,10 @@ class RecentlyDeletedConfig<T> {
 /// ([RecentlyDeletedScreen.programs]) screens; the per-entity differences live
 /// in [RecentlyDeletedConfig].
 ///
-/// For dances the retention window is the user-configurable one (ROADMAP G.4):
-/// 30 / 90 days, or "Never" (kept until manually removed). The purge-ETA and
-/// empty-state copy reflect the configured window so they never contradict what
-/// the startup sweep actually does. Programs use a fixed 30-day window.
+/// For both kinds the retention window is the user-configurable one (ROADMAP
+/// G.4): 30 / 90 days, or "Never" (kept until manually removed). The purge-ETA
+/// and empty-state copy reflect the configured window so they never contradict
+/// what the startup sweep actually does.
 ///
 /// An empty state is shown when no items are pending deletion.
 class RecentlyDeletedScreen<T> extends StatefulWidget {
@@ -99,7 +110,7 @@ class RecentlyDeletedScreen<T> extends StatefulWidget {
   final RecentlyDeletedConfig<T> config;
   final VoidCallback? onClose;
 
-  /// The dances "Recently Deleted" screen.
+  /// The dances "Recently deleted" screen.
   static RecentlyDeletedScreen<Dance> dances({
     Key? key,
     VoidCallback? onClose,
@@ -109,7 +120,7 @@ class RecentlyDeletedScreen<T> extends StatefulWidget {
     onClose: onClose,
   );
 
-  /// The programs "Recently Deleted" screen.
+  /// The programs "Recently deleted" screen.
   static RecentlyDeletedScreen<Program> programs({
     Key? key,
     VoidCallback? onClose,
@@ -167,53 +178,62 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
 
   void _reload() {
     final future = _config.loadDeleted(_repos);
+    // A side chain, so the error still reaches the FutureBuilder's error state.
+    future.then<void>(
+      (_) {},
+      onError: (Object e, StackTrace st) {
+        logCaughtError(e, st, source: 'recently_deleted_screen._reload');
+      },
+    );
     setState(() {
       _future = future;
     });
   }
 
   Future<void> _restore(T item) async {
-    await _config.restore(_repos, item);
+    final restored = await _config.restore(_repos, item);
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_config.restoredMessage(l10n, _config.titleOf(item))),
-      ),
-    );
+    // Not restored (blanked or removed elsewhere): claim nothing, as
+    // [_permanentDelete] does for `PermanentDeletion.none`. The reload drops
+    // the row.
+    if (restored) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_config.restoredMessage(l10n, _config.titleOf(item))),
+        ),
+      );
+    }
     _reload();
   }
 
   Future<void> _permanentDelete(T item) async {
     final l10n = AppLocalizations.of(context);
     final title = _config.titleOf(item);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.recentlyDeletedDeleteTitle),
-        content: Text(l10n.recentlyDeletedDeleteBody(title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            key: const ValueKey('confirm-permanent-delete'),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.recentlyDeletedDeleteConfirm),
-          ),
-        ],
-      ),
+    final confirmed = await confirmPermanentDelete(
+      context,
+      title: l10n.recentlyDeletedDeleteTitle,
+      body: l10n.recentlyDeletedDeleteBody(title),
+      confirmLabel: l10n.recentlyDeletedDeleteConfirm,
     );
-    if (confirmed != true || !mounted) return;
-    await _config.permanentlyDelete(_repos, item);
+    if (!confirmed || !mounted) return;
+    final outcome = await _config.permanentlyDelete(_repos, item);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.recentlyDeletedDeletedSnack(title))),
-    );
+    // A blanked item is gone from this device, but its deletion record stays
+    // so other devices delete it too; the plain message would hide that.
+    final message = switch (outcome) {
+      PermanentDeletion.blanked => l10n.recentlyDeletedDeletedSyncedSnack(
+        title,
+      ),
+      PermanentDeletion.erased => l10n.recentlyDeletedDeletedSnack(title),
+      // Already gone (restored or deleted elsewhere): claim nothing.
+      PermanentDeletion.none => null,
+    };
+    if (message != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
     _reload();
   }
 
@@ -242,20 +262,26 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
               ),
             );
           }
+          // Without this a failed load would read as an empty trash, telling
+          // the user their deleted items are gone when they may not be.
+          if (snapshot.hasError) {
+            return LoadErrorView(
+              key: const ValueKey('load-error'),
+              icon: LoadErrorView.errorGlyph(context),
+              message: l10n.recentlyDeletedLoadError,
+              onRetry: _reload,
+            );
+          }
           final deleted = snapshot.data ?? <T>[];
           if (deleted.isEmpty) {
             final retention = _retention;
-            return Center(
+            return EmptyState(
               key: const ValueKey('empty-state'),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  retention == null
-                      ? _config.emptyKept!(l10n)
-                      : _config.emptyRetention(l10n, retention.inDays),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              icon: EmptyState.glyph(context, Icons.delete_outline),
+              title: l10n.recentlyDeletedEmptyTitle,
+              body: retention == null
+                  ? _config.emptyKept!(l10n)
+                  : _config.emptyRetention(l10n, retention.inDays),
             );
           }
           return ListView.builder(
@@ -289,7 +315,7 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
   }
 }
 
-/// Config for the dances "Recently Deleted" screen. Dances honor the
+/// Config for the dances "Recently deleted" screen. Dances honor the
 /// user-configurable retention window (ROADMAP G.4), so [loadRetention] reads
 /// the persisted setting.
 final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
@@ -301,16 +327,23 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
           .then(softDeleteRetentionFromStored),
       loadDeleted: (repos) => repos.dances
           .listAll(includeDeleted: true)
-          .then((all) => all.where((d) => d.deletedAt != null).toList()),
-      restore: (repos, dance) =>
-          repos.dances.restore(dance.id, at: DateTime.now().toUtc()),
-      permanentlyDelete: (repos, dance) async {
-        // Purge by setting deletedAt well in the past (beyond retention), then
-        // calling purgeDeleted. This is the safe path that goes through the
-        // existing purge machinery (FK cascade, FTS cleanup, slot nulling).
-        await repos.dances.softDelete(dance.id, at: DateTime.utc(1970));
-        await repos.dances.purgeDeleted(now: DateTime.now().toUtc());
+          .then(
+            (all) => all
+                .where(
+                  (d) =>
+                      d.deletedAt != null && !isPermanentlyDeleted(d.deletedAt),
+                )
+                .toList(),
+          ),
+      restore: (repos, dance) async {
+        await repos.dances.restore(dance.id, at: DateTime.now().toUtc());
+        return await repos.dances.getById(dance.id) != null;
       },
+      // Scoped to this one dance: an unscoped purge would also erase every
+      // other item trashed over 30 days ago, whatever the user's retention
+      // setting says (LIFE-1).
+      permanentlyDelete: (repos, dance) =>
+          repos.dances.permanentlyDelete(dance.id, now: DateTime.now().toUtc()),
       idOf: (dance) => dance.id,
       titleOf: (dance) => dance.title,
       deletedAtOf: (dance) => dance.deletedAt,
@@ -322,30 +355,96 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
           l10n.recentlyDeletedEmptyDancesRetention(days),
     );
 
-/// Config for the programs "Recently Deleted" screen. Programs use a fixed
-/// 30-day retention window (no user-configurable setting), so [loadRetention]
-/// is omitted and the seeded [initialRetention] is used unchanged.
+/// Whether [dance] is in Recently deleted, so a program slot that points at
+/// it can offer Restore: soft-deleted, and not deleted for good on another
+/// device (a blank Recently deleted does not list, which cannot be restored).
+bool canRestoreSlotDance(Dance dance) =>
+    dance.isDeleted && !isPermanentlyDeleted(dance.deletedAt);
+
+/// Restores [dance], which a program slot points at, from Recently deleted
+/// (LIFE-8), through [danceRecentlyDeletedConfig]'s `restore`: the same write
+/// and read-back the Recently deleted screen makes. Says so with that screen's
+/// snackbar, and nothing when nothing was restored (a peer permanently
+/// deleted the dance meanwhile). No Undo and no confirm, as on that screen:
+/// the dance can be deleted again. A failed write is logged and reported.
+///
+/// The slot's "deleted" marking is not cleared here: the builder, its matrix
+/// and the summary read their dances from a collection watch, which the
+/// restore's write reaches, as does a restore made on Recently deleted or on
+/// another device. Perform keeps the dances it was opened with.
+Future<void> restoreSlotDanceFromRecentlyDeleted(
+  BuildContext context,
+  CompendiumRepositories repos,
+  Dance dance,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final l10n = AppLocalizations.of(context);
+  final String? message;
+  try {
+    message = await danceRecentlyDeletedConfig.restore(repos, dance)
+        ? danceRecentlyDeletedConfig.restoredMessage(l10n, dance.title)
+        : null;
+  } on Object catch (e, st) {
+    logCaughtError(
+      e,
+      st,
+      source: 'recently_deleted_screen.restoreSlotDanceFromRecentlyDeleted',
+    );
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.programsRestoreDeletedDanceError(dance.title)),
+      ),
+    );
+    return;
+  }
+  if (message != null) {
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Config for the programs "Recently deleted" screen. Programs are purged by
+/// the same user-configurable window as dances (the startup sweep in
+/// `main.dart` passes one `retention` to both), so [loadRetention] reads the
+/// same setting (`kSoftDeleteRetentionKey`, labelled "Keep recently deleted
+/// items for" in Settings).
 final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
     RecentlyDeletedConfig<Program>(
       pluralNoun: 'programs',
-      initialRetention: const Duration(days: 30),
+      initialRetention: const Duration(days: kSoftDeleteRetentionDefaultDays),
+      loadRetention: (repos) => repos.settings
+          .get(kSoftDeleteRetentionKey)
+          .then(softDeleteRetentionFromStored),
       loadDeleted: (repos) => repos.programs
           .listAll(includeDeleted: true)
-          .then((all) => all.where((p) => p.deletedAt != null).toList()),
-      restore: (repos, program) =>
-          repos.programs.restore(program.id, at: DateTime.now().toUtc()),
-      permanentlyDelete: (repos, program) async {
-        // Push deletedAt beyond retention, then run the standard purge (FK
-        // cascade handles slots) — same safe path the dances screen uses.
-        await repos.programs.softDelete(program.id, at: DateTime.utc(1970));
-        await repos.programs.purgeDeleted(now: DateTime.now().toUtc());
+          .then(
+            (all) => all
+                .where(
+                  (p) =>
+                      p.deletedAt != null && !isPermanentlyDeleted(p.deletedAt),
+                )
+                .toList(),
+          ),
+      restore: (repos, program) async {
+        // Restored unarchived, so it shows in the Programs list (the
+        // maintainer's decision on #2218).
+        await repos.programs.restore(
+          program.id,
+          at: DateTime.now().toUtc(),
+          unarchive: true,
+        );
+        return await repos.programs.getById(program.id) != null;
       },
+      permanentlyDelete: (repos, program) => repos.programs.permanentlyDelete(
+        program.id,
+        now: DateTime.now().toUtc(),
+      ),
       idOf: (program) => program.id,
       titleOf: (program) => program.title,
       deletedAtOf: (program) => program.deletedAt,
       restoredMessage: (l10n, title) =>
           l10n.recentlyDeletedRestoredProgram(title),
       loadingLabel: (l10n) => l10n.recentlyDeletedLoadingPrograms,
+      emptyKept: (l10n) => l10n.recentlyDeletedEmptyProgramsKept,
       emptyRetention: (l10n, days) =>
           l10n.recentlyDeletedEmptyProgramsRetention(days),
     );

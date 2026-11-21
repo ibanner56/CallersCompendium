@@ -2,9 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../data/validation_issue_labels.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 class FieldLabel extends StatelessWidget {
   const FieldLabel(this.text, {super.key});
@@ -40,17 +40,16 @@ class EnumDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<T>(
+    // Fills its slot, so a half-width dropdown (Progression beside Rating)
+    // stays inside its row at phone width (#1868).
+    return AppDropdownField<T>(
       key: ValueKey('$fieldKey-field'),
-      initialValue: value,
+      value: value,
       decoration: InputDecoration(labelText: label),
-      items: [
-        for (final v in values)
-          DropdownMenuItem(value: v, child: Text(labelOf(v))),
+      entries: [
+        for (final v in values) AppDropdownEntry(value: v, label: labelOf(v)),
       ],
-      onChanged: (v) {
-        if (v != null) onChanged(v);
-      },
+      onChanged: onChanged,
     );
   }
 }
@@ -158,20 +157,16 @@ class LevelDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return DropdownButtonFormField<DifficultyLevel?>(
+    return AppDropdownField<DifficultyLevel?>(
       key: const ValueKey('level-field'),
-      initialValue: value,
+      value: value,
+      // Levels are the user's own: a list that grows.
+      filterable: true,
       decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
-      items: [
-        DropdownMenuItem<DifficultyLevel?>(
-          value: null,
-          child: Text(l10n.danceEditorLevelUnspecified),
-        ),
+      entries: [
+        AppDropdownEntry(value: null, label: l10n.danceEditorLevelUnspecified),
         for (final v in levels ?? DifficultyLevel.shipped)
-          DropdownMenuItem<DifficultyLevel?>(
-            value: v,
-            child: Text(danceLevelLabel(l10n, v)),
-          ),
+          AppDropdownEntry(value: v, label: danceLevelLabel(l10n, v)),
       ],
       onChanged: onChanged,
     );
@@ -295,7 +290,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
                 onChanged: (_) => setState(() {
                   // A year change can invalidate a chosen day (e.g. Feb 29 in a
                   // leap year, then a non-leap year). Clear it so the Day
-                  // dropdown never gets an initialValue absent from its items.
+                  // dropdown never holds a day absent from its list.
                   final y = _year;
                   if (y != null &&
                       _month != null &&
@@ -310,18 +305,20 @@ class _PartialDateFieldState extends State<PartialDateField> {
             const SizedBox(width: AppSpacing.xs),
             Expanded(
               flex: 3,
-              child: DropdownButtonFormField<int?>(
+              child: AppDropdownField<int?>(
                 key: ValueKey('${widget.fieldKey}-month'),
-                initialValue: _month,
+                value: _month,
+                // Thirteen entries: typing a month's first letters is quicker.
+                filterable: true,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorMonthLabel,
                 ),
-                items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('—')),
+                entries: [
+                  const AppDropdownEntry<int?>(value: null, label: '—'),
                   for (var m = 1; m <= 12; m++)
-                    DropdownMenuItem<int?>(
+                    AppDropdownEntry<int?>(
                       value: m,
-                      child: Text(_monthLabel(l10n, m)),
+                      label: _monthLabel(l10n, m),
                     ),
                 ],
                 onChanged: year == null
@@ -341,16 +338,18 @@ class _PartialDateFieldState extends State<PartialDateField> {
             const SizedBox(width: AppSpacing.xs),
             Expanded(
               flex: 2,
-              child: DropdownButtonFormField<int?>(
+              child: AppDropdownField<int?>(
                 key: ValueKey('${widget.fieldKey}-day'),
-                initialValue: _day,
+                value: _day,
+                // Up to thirty-two entries: typing the number is quicker.
+                filterable: true,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorDayLabel,
                 ),
-                items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('—')),
+                entries: [
+                  const AppDropdownEntry<int?>(value: null, label: '—'),
                   for (var d = 1; d <= maxDay; d++)
-                    DropdownMenuItem<int?>(value: d, child: Text('$d')),
+                    AppDropdownEntry<int?>(value: d, label: '$d'),
                 ],
                 onChanged: dayEnabled
                     ? (d) => setState(() {
@@ -440,52 +439,6 @@ class TuneEditor extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class WarningsCard extends StatelessWidget {
-  const WarningsCard({super.key, required this.warnings});
-
-  final List<ValidationIssue> warnings;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      key: const ValueKey('warnings-card'),
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.tertiary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.warning_amber,
-                size: 18,
-                color: theme.colorScheme.tertiary,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                l10n.danceEditorWarningsTitle,
-                style: theme.textTheme.titleSmall,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          for (final warning in warnings)
-            Padding(
-              // intentional: 2px optical inset, below the 4px AppSpacing grid
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text('• ${validationIssueMessage(l10n, warning)}'),
-            ),
-        ],
-      ),
     );
   }
 }

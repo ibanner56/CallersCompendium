@@ -1,4 +1,13 @@
-import 'package:drift/drift.dart' show Table, TableInfo, UpdateKind, Variable;
+import 'package:drift/drift.dart'
+    show
+        BooleanExpressionOperators,
+        GeneratedColumn,
+        Table,
+        TableInfo,
+        UpdateKind,
+        Variable,
+        countAll,
+        innerJoin;
 
 import '../model/stored_timestamp.dart';
 import 'database.dart';
@@ -89,8 +98,7 @@ const int _tickSeconds = 1;
 /// This is the *local decision* form of the rule. Sync-apply paths must not use
 /// it: applying a peer's blob copies that peer's value verbatim, and quarantine
 /// repair derives its value from a peer without reading a clock at all, because
-/// a repairing device's clock is by definition untrusted. Neither path exists
-/// yet — this migration ships no sync client.
+/// a repairing device's clock is by definition untrusted.
 DateTime nextExistenceStamp({required DateTime now, DateTime? current}) {
   assertUtc(now, 'now');
   final localNow = asUtc(now);
@@ -199,11 +207,15 @@ Future<void> stampExistenceTransition(
 ///   causal stamp. Revival-by-upsert is not theoretical: `choreographers.name`,
 ///   `tags.name`, `custom_field_defs.key` and `settings.key` are unique, so
 ///   re-creating an entity with the same natural key lands on its tombstone
-///   rather than inserting beside it. Clearing `deleted_at` here is also what
-///   makes that re-creation *work at all*: drift emits an untargeted
-///   `ON CONFLICT DO UPDATE`, which writes only the columns the companion
-///   names, so a tag re-created after deletion would otherwise be stored onto
-///   the tombstone, keep its `deleted_at`, and simply never appear.
+///   rather than inserting beside it — by [adoptTombstonedNaturalKey] for the
+///   first three, and because `key` *is* the primary key for `settings`.
+///   Clearing `deleted_at` here is also what makes that re-creation *work at
+///   all*: the insert therefore carries the tombstone's own primary key, drift
+///   emits `ON CONFLICT("<primary key>") DO UPDATE` (see
+///   [adoptTombstonedNaturalKey] on the target), and that update writes only
+///   the columns the companion names — so a tag re-created after deletion
+///   would otherwise be stored onto the tombstone, keep its `deleted_at`, and
+///   simply never appear.
 /// * **Creation** (`existence_at` NULL, because the insert branch ran) — seed
 ///   the field from a plain clock.
 /// * **Ordinary content edit** (row was live and already stamped) — *not* an
@@ -211,6 +223,14 @@ Future<void> stampExistenceTransition(
 ///   here would make every save look like a deletion-or-revival to a peer,
 ///   which is precisely the `updated_at`/`existence_at` conflation the third
 ///   column exists to prevent.
+///
+/// That third case has **one** carve-out, and it lives outside this function on
+/// purpose. An edit to a record a peer's *held* tombstone names cancels that
+/// tombstone (sync-spec §6.8), which is an existence decision and must stamp —
+/// see [raiseExistenceAbove]. The carve-out is conditioned on a
+/// `pending_deletions` row existing, never on the write being an edit, so the
+/// paragraph above still governs every ordinary save. Widening it to all edits
+/// is the regression this note exists to prevent.
 ///
 /// See [stampExistenceTransition] on the typed [table], the interpolated
 /// [keyColumn], and why these raw writes announce themselves to drift. This one
@@ -236,6 +256,133 @@ Future<void> applyUpsertExistence(
     variables: [
       Variable<int>(stamp),
       Variable<int>(stamp),
+      Variable<String>(key),
+    ],
+    updates: {table},
+    updateKind: UpdateKind.update,
+  );
+}
+
+/// The existence write for a row a **backup restore** has just written or is
+/// removing, stamped at the backup's creation time [at] rather than causally.
+///
+/// This is the one deliberate exception to [existenceStampTick]'s invariant,
+/// and it is confined to restore. A restore is not a transition on this
+/// device's timeline: it drops the sync baseline (sync-spec §6.11) and puts
+/// back what the backup said was true **when it was made**. A causal stamp
+/// would date that claim *now* and, because it must exceed the row's current
+/// value, would outrank a deletion or revival another device made after the
+/// backup — the restore would then undo it on every device (SYNC-1). Stamping
+/// at [at] instead lets anything changed after the backup, on any device, win
+/// at the next sync, and lets the backup win over anything older.
+///
+/// * [deleted] `true`: tombstones a **live** row, setting `deleted_at`,
+///   `updated_at` and `existence_at` all to [at]. A row already deleted is left
+///   alone, as is a missing one.
+/// * [deleted] `false`: follows a drift-native upsert that has already put [at]
+///   in `updated_at`. A row the upsert revived (`deleted_at` set) or created
+///   (`existence_at` NULL) takes [at] as its `existence_at`; a row that was
+///   already live keeps its own, as an ordinary edit does
+///   ([applyUpsertExistence]).
+///
+/// Either way `existence_at` may end up **below** its previous value. That is
+/// the point: a peer's newer transition must win over the restored copy.
+Future<void> applyRestoredExistence(
+  CompendiumDatabase db, {
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required String key,
+  required DateTime at,
+  required bool deleted,
+}) {
+  assertUtc(at, 'at');
+  final stamp = unixSeconds(at);
+  if (deleted) {
+    return db.customUpdate(
+      'UPDATE ${table.actualTableName} '
+      'SET deleted_at = ?, updated_at = ?, existence_at = ? '
+      'WHERE $keyColumn = ? AND deleted_at IS NULL',
+      variables: [
+        Variable<int>(stamp),
+        Variable<int>(stamp),
+        Variable<int>(stamp),
+        Variable<String>(key),
+      ],
+      updates: {table},
+      updateKind: UpdateKind.update,
+    );
+  }
+  return db.customUpdate(
+    'UPDATE ${table.actualTableName} SET existence_at = CASE '
+    'WHEN deleted_at IS NOT NULL OR existence_at IS NULL THEN ? '
+    'ELSE existence_at END, '
+    'deleted_at = NULL '
+    'WHERE $keyColumn = ?',
+    variables: [Variable<int>(stamp), Variable<String>(key)],
+    updates: {table},
+    updateKind: UpdateKind.update,
+  );
+}
+
+/// SQL form of the causal stamp with a **second value to supersede**, for the
+/// one transition whose predecessor is not on the row being stamped.
+///
+/// `existenceAt = max(localNow, currentExistenceAt + 1 tick, floor + 1 tick)`.
+/// The first two terms are [_causalExistenceSql] unchanged; the third is the
+/// held tombstone's own `existenceAt`, and it is what [stampExistenceTransition]
+/// structurally cannot supply.
+const String _flooredCausalExistenceSql =
+    'MAX(?, COALESCE(existence_at, 0) + $_tickSeconds, ? + $_tickSeconds)';
+
+/// Advances `existence_at` past a stamp the row does not carry.
+///
+/// ## Why [stampExistenceTransition] is not enough here
+///
+/// Every other local existence write supersedes a value that is *on the row*:
+/// a revival supersedes the deletion stamp sitting in its own `existence_at`,
+/// which is why `max(localNow, current + 1 tick)` suffices and why the
+/// specification can say a revival "stamps above the tombstone it revives by
+/// construction".
+///
+/// A **held** tombstone breaks that construction, and that is the whole reason
+/// this function exists. §6.8 keeps a tombstone for a still-cited entity in
+/// `pending_deletions` and leaves the row live, so the row's `existence_at` is
+/// still its pre-deletion value and the tombstone's is strictly greater.
+/// Flooring against the row alone therefore yields the bare clock — and §6.4
+/// resolves an equal `existenceAt` **in favour of the tombstone**, so a device
+/// whose clock is behind the deleting peer's, or one that deletes, syncs and
+/// edits inside a single tick, would stamp at or below the tombstone it is
+/// cancelling. The cancellation would then be silently undone by the very peer
+/// it was published to. [floor] closes that, and the advance is strict for the
+/// same reason `_cancelOutrankedPendingDeletion` compares strictly.
+///
+/// [floor] must come from the tombstone's own `existenceAt` — from the retained
+/// blob, never from `pending_deletions.tombstoned_at`. The specification is
+/// explicit that a receiver "MUST NOT assume `existenceAt == deletedAt` on a
+/// tombstone" and MUST treat `deletedAt` only as a state indicator, never as a
+/// second comparand.
+///
+/// `deleted_at` is deliberately untouched: the caller decides liveness, and in
+/// the §6.8 cancellation the row is already live. See [stampExistenceTransition]
+/// for the typed [table], the interpolated [keyColumn], and why these raw
+/// writes announce themselves to drift.
+Future<void> raiseExistenceAbove(
+  CompendiumDatabase db, {
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required String key,
+  required DateTime at,
+  required DateTime floor,
+}) {
+  assertUtc(at, 'at');
+  assertUtc(floor, 'floor');
+  return db.customUpdate(
+    'UPDATE ${table.actualTableName} '
+    'SET existence_at = $_flooredCausalExistenceSql '
+    'WHERE $keyColumn = ?',
+    variables: [
+      Variable<int>(unixSeconds(at)),
+      Variable<int>(unixSeconds(floor)),
       Variable<String>(key),
     ],
     updates: {table},
@@ -269,9 +416,12 @@ Future<void> applyUpsertExistence(
 /// entity comes back attached to the records it was attached to before, exactly
 /// as reviving it under its original id does.
 ///
-/// A **live** row holding the key is deliberately left alone, so that case
-/// still raises `UNIQUE constraint failed` exactly as it did before v25. This
+/// A **live** row holding the key is deliberately left alone *here*: this
 /// function only restores the pre-v25 outcome for the case v25 introduced.
+/// Its callers decide that one: they refuse it with `DuplicateNaturalKeyError`
+/// before the insert ([refuseCreationOntoLiveNaturalKey]) rather than letting
+/// it reach SQLite as the raw `UNIQUE constraint failed`, which no screen
+/// catches by type (#1348).
 ///
 /// ## Adoption applies to creation, never to a rename
 ///
@@ -283,13 +433,16 @@ Future<void> applyUpsertExistence(
 /// to "Easy" and instead gets two tags, "Easy" resurrected from the dead and
 /// "Hard" unchanged. Silently producing a duplicate is worse than failing.
 ///
-/// With the guard, a rename onto a tombstoned name raises `UNIQUE constraint
-/// failed` — loudly, and identically to a rename onto a *live* name, which is
-/// what it has always done. Only the genuinely new case (create an entity whose
-/// natural key a tombstone holds) is reconciled.
+/// With the guard, a rename onto a tombstoned name is refused loudly, and
+/// identically to a rename onto a *live* name. Both did raise `UNIQUE
+/// constraint failed`; since #1348 both are `resolveNaturalKeyCollision`'s
+/// `DuplicateNaturalKeyError`, which the editors catch and report. What has
+/// not changed is that neither is absorbed. Only the genuinely new case
+/// (create an entity whose natural key a tombstone holds) is reconciled.
 ///
-/// **Adoption clears the adopted row's join rows** ([joinTable] /
-/// [joinColumn]), and that is the difference between adoption and revival. A
+/// **Adoption clears the adopted row's join rows** ([joinTable] and any
+/// [moreJoinTables], each keyed by [joinColumn]; a choreographer has two,
+/// `dance_authors` and `dance_interpreters`), and that is the difference between adoption and revival. A
 /// revival — the same id written again — is "this record is back", and keeps
 /// its associations. Adoption is not: the caller minted a fresh UUID, so the
 /// user is creating a *new* entity that happens to want a name a deleted one
@@ -300,10 +453,14 @@ Future<void> applyUpsertExistence(
 /// detail forced by the foreign keys, and must not leak into what the user
 /// sees.
 ///
-/// Only `tags` can actually reach this state — `choreographers` and
-/// `custom_field_defs` are referentially guarded, so a tombstoned row of theirs
-/// has no join rows to clear. The clearing is written for all three anyway, so
-/// that relaxing a guard cannot quietly reintroduce the surprise.
+/// All three kinds reach this state. A tag's tombstone keeps its join rows
+/// unless the user's own delete stripped them
+/// (`ReferenceEditRepository.deleteTag`), and
+/// the guards on `choreographers` and `custom_field_defs` count live dances
+/// only, so a tombstoned author or field keeps the join rows of the dances in
+/// Recently deleted that still name it (#1357 for authors; for fields, the
+/// trash-policy decision of 2026-10-29, #2062). Adoption clears those too: a
+/// trashed dance restored later comes back without the credit or the value.
 Future<String?> adoptTombstonedNaturalKey(
   CompendiumDatabase db, {
   required TableInfo<Table, dynamic> table,
@@ -313,6 +470,7 @@ Future<String?> adoptTombstonedNaturalKey(
   required String incomingId,
   required TableInfo<Table, dynamic> joinTable,
   required String joinColumn,
+  List<TableInfo<Table, dynamic>> moreJoinTables = const [],
 }) async {
   final tableName = table.actualTableName;
   final rows = await db
@@ -333,12 +491,14 @@ Future<String?> adoptTombstonedNaturalKey(
       .get();
   if (rows.isEmpty) return null;
   final adopted = rows.single.read<String>('adopted');
-  await db.customUpdate(
-    'DELETE FROM ${joinTable.actualTableName} WHERE $joinColumn = ?',
-    variables: [Variable<String>(adopted)],
-    updates: {joinTable},
-    updateKind: UpdateKind.delete,
-  );
+  for (final join in [joinTable, ...moreJoinTables]) {
+    await db.customUpdate(
+      'DELETE FROM ${join.actualTableName} WHERE $joinColumn = ?',
+      variables: [Variable<String>(adopted)],
+      updates: {join},
+      updateKind: UpdateKind.delete,
+    );
+  }
   return adopted;
 }
 
@@ -377,3 +537,76 @@ Future<void> seedExistenceIfMissing(
   updates: {table},
   updateKind: UpdateKind.update,
 );
+
+// ---------------------------------------------------------------------------
+// Citation counts for delete guards
+// ---------------------------------------------------------------------------
+//
+// Not existence-stamp machinery: these answer "how many dances still hold this
+// row back?" for the repositories' delete guards, and live here only because
+// the guards and the stamps are both about whether a row may stop existing.
+
+/// How many **live** dances cite the parent row [id] through [joinTable].
+///
+/// A soft-deleted dance keeps its join rows (the tombstone fires no FK
+/// cascade), so counting those would block a delete on the strength of a
+/// record that is itself deleted; hence the `dances.deleted_at IS NULL` filter
+/// on the join. See `ChoreographerRepository.delete` for the full reasoning.
+///
+/// Reads one scalar `COUNT(*)` rather than materialising every joined `dances`
+/// row (all columns, `figures_json` included) just to take `.length`, which is
+/// what the four guards did before. The join is `useColumns: false` because
+/// nothing from `dances` is read back; without it drift would add the whole
+/// `dances` row to the select list.
+///
+/// [keyColumn] is the join table's parent-key column (e.g.
+/// `danceAuthors.choreographerId`) and [danceIdColumn] its `dance_id`.
+Future<int> liveDanceCitationCount(
+  CompendiumDatabase db, {
+  required TableInfo<Table, dynamic> joinTable,
+  required GeneratedColumn<String> keyColumn,
+  required GeneratedColumn<String> danceIdColumn,
+  required String id,
+}) async {
+  final citations = countAll();
+  // `.get()` rather than `.map(...).getSingle()`: an aggregate select always
+  // yields exactly one row, and `check_sync_invariants.py` locates the end of a
+  // joined query by its `.get(` call.
+  final rows =
+      await (db.selectOnly(joinTable)
+            ..addColumns([citations])
+            ..join([
+              innerJoin(
+                db.dances,
+                db.dances.id.equalsExp(danceIdColumn) &
+                    db.dances.deletedAt.isNull(),
+                useColumns: false,
+              ),
+            ])
+            ..where(keyColumn.equals(id)))
+          .get();
+  return rows.single.read(citations) ?? 0;
+}
+
+/// Whether a dance with [id] exists, for callers that only need to know that.
+///
+/// Reads the id alone (`LIMIT 1`) rather than a whole `dances` row. Tombstoned
+/// dances do not count unless [includeDeleted] is set; a restore that must
+/// re-attach rows to a dance the user can still bring back passes it.
+Future<bool> danceExists(
+  CompendiumDatabase db,
+  String id, {
+  bool includeDeleted = false,
+}) async {
+  final row =
+      await (db.selectOnly(db.dances)
+            ..addColumns([db.dances.id])
+            ..where(
+              includeDeleted
+                  ? db.dances.id.equals(id)
+                  : db.dances.id.equals(id) & db.dances.deletedAt.isNull(),
+            )
+            ..limit(1))
+          .getSingleOrNull();
+  return row != null;
+}

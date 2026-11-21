@@ -1,19 +1,31 @@
 import 'dart:typed_data';
 
+import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
+import '../model/published_source.dart';
+import '../model/source_citation.dart';
 import '../model/venue.dart';
+import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/dance_repository.dart';
+import '../storage/repositories/difficulty_level_errors.dart';
+import '../storage/repositories/difficulty_level_repository.dart';
 import '../storage/repositories/program_repository.dart';
+import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/venue_repository.dart';
+import '../storage/shareable_text.dart';
 import '../util/uuid.dart';
+import 'callers_companion_mapping.dart';
 import 'callers_companion_programs.dart';
 import 'callers_companion_related_dances.dart';
 import 'callers_companion_usr_adapter.dart';
+import 'callers_companion_user_fields.dart';
 import 'callers_companion_usr_archive.dart';
 import 'dedupe.dart';
+import 'import_error.dart';
 import 'import_pipeline.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
@@ -40,13 +52,40 @@ class CcUsrImportResult {
     this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<ImportIssue> relatedDanceLinkIssues = const [],
-  }) : programs = List.unmodifiable(programs),
+    List<String> insertedCustomFieldIds = const [],
+    List<String> restoredCustomFieldIds = const [],
+    List<ImportIssue> customFieldIssues = const [],
+    Map<String, List<String>> linksAddedToEarlierDances = const {},
+    List<String> insertedPublishedSourceIds = const [],
+    List<String> restoredPublishedSourceIds = const [],
+    List<String> insertedDifficultyLevelIds = const [],
+    List<String> restoredDifficultyLevelIds = const [],
+  }) : insertedDifficultyLevelIds = List.unmodifiable(
+         insertedDifficultyLevelIds,
+       ),
+       restoredDifficultyLevelIds = List.unmodifiable(
+         restoredDifficultyLevelIds,
+       ),
+       insertedPublishedSourceIds = List.unmodifiable(
+         insertedPublishedSourceIds,
+       ),
+       restoredPublishedSourceIds = List.unmodifiable(
+         restoredPublishedSourceIds,
+       ),
+       programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
        restoredProgramIds = List.unmodifiable(restoredProgramIds),
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
-       relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues);
+       relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues),
+       insertedCustomFieldIds = List.unmodifiable(insertedCustomFieldIds),
+       restoredCustomFieldIds = List.unmodifiable(restoredCustomFieldIds),
+       customFieldIssues = List.unmodifiable(customFieldIssues),
+       linksAddedToEarlierDances = Map.unmodifiable({
+         for (final e in linksAddedToEarlierDances.entries)
+           e.key: List<String>.unmodifiable(e.value),
+       });
 
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
@@ -96,6 +135,44 @@ class CcUsrImportResult {
   /// nothing to revert independently on [undo] — see [undo]'s doc).
   final List<ImportIssue> relatedDanceLinkIssues;
 
+  /// Ids of the custom-field definitions this import **created** for the CC
+  /// `UserDefined_*` columns. On [undo] each is hard-deleted unless a surviving
+  /// dance holds a value for it (the repository's own in-transaction guard).
+  final List<String> insertedCustomFieldIds;
+
+  /// Ids of tombstoned definitions this import revived because a CC column's
+  /// key matched them exactly. Tombstoned again on [undo] (same guard).
+  final List<String> restoredCustomFieldIds;
+
+  /// Non-fatal notes from matching CC user fields to definitions at commit
+  /// (a column whose key was taken by a field of another type). The
+  /// per-dance key notes (shared keys, unusable labels) are on the drafts.
+  final List<ImportIssue> customFieldIssues;
+
+  /// Dance id → ids of the `relatedDance` links this import added to a dance
+  /// it did not commit itself: one an earlier per-row Edit wrote
+  /// (`earlierDanceIds` on [CallersCompanionUsrImporter.commit]). [undo]
+  /// removes just these links; the dances stay.
+  final Map<String, List<String>> linksAddedToEarlierDances;
+
+  /// Ids of the published sources this import created for CC `Reference`
+  /// citations (#1974). Removed on [CallersCompanionUsrImporter.undo] unless a
+  /// surviving dance cites one.
+  final List<String> insertedPublishedSourceIds;
+
+  /// Ids of tombstoned published sources this import restored for a citation.
+  /// Tombstoned again on undo (same guard).
+  final List<String> restoredPublishedSourceIds;
+
+  /// Ids of the difficulty levels this import created for CC combined levels
+  /// such as "Easy/Intermediate" (#1973). Removed on
+  /// [CallersCompanionUsrImporter.undo] unless a surviving dance uses one.
+  final List<String> insertedDifficultyLevelIds;
+
+  /// Ids of tombstoned difficulty levels this import restored for a combined
+  /// level. Tombstoned again on undo (same guard).
+  final List<String> restoredDifficultyLevelIds;
+
   /// Ids of the programs updated in place (re-imported) by this import.
   List<String> get updatedProgramIds => [
     for (final p in updatedProgramPriorStates) p.id,
@@ -129,11 +206,34 @@ class CcUsrImportResult {
 /// (pure Dart + repositories) so it lives in the core and is trivially
 /// unit-testable; the app supplies the `.USR` bytes.
 class CallersCompanionUsrImporter {
-  CallersCompanionUsrImporter(this._pipeline, this._programs, this._venues);
+  CallersCompanionUsrImporter(
+    this._pipeline,
+    this._programs,
+    this._venues,
+    this._customFields, {
+    required PublishedSourceRepository publishedSources,
+    required DifficultyLevelRepository difficultyLevels,
+    CallersCompanionUsrAdapter? adapter,
+  }) : _sources = publishedSources,
+       _levels = difficultyLevels,
+       _adapter = adapter ?? CallersCompanionUsrAdapter();
+
+  /// Where the published sources behind CC `Reference` citations are matched
+  /// and created (#1974), alongside the user-field definitions.
+  final PublishedSourceRepository _sources;
+
+  /// Where the difficulty levels behind CC combined levels ("Easy/
+  /// Intermediate") are matched and created (#1973), like the sources.
+  final DifficultyLevelRepository _levels;
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
   final VenueRepository _venues;
+
+  /// Where the definitions behind the CC `UserDefined_*` columns are matched
+  /// and created. Takes part in [commit]'s all-or-nothing compensation and in
+  /// [undo].
+  final CustomFieldDefRepository _customFields;
 
   /// The [DanceRepository] the related-dance-link step (issue #688) reads
   /// and updates the just-committed dances through. Reused from [_pipeline]
@@ -144,22 +244,36 @@ class CallersCompanionUsrImporter {
   /// happened in).
   DanceRepository get _dances => _pipeline.dances;
 
-  final CallersCompanionUsrAdapter _adapter = CallersCompanionUsrAdapter();
+  final CallersCompanionUsrAdapter _adapter;
 
   /// Plans the dance side of a `.USR` [bytes] payload non-destructively (the CC
   /// dances run through the same `discover → fetch → parse → dedupe` pipeline as
   /// every other source). The returned batch is committed with [commit]. The
   /// programs are built from the archive at commit time, so planning is
   /// dance-only — mirroring the pipeline.
-  Future<ImportBatchResult> plan(Uint8List bytes) =>
-      _pipeline.plan(_adapter, ImportRequest(options: {'bytes': bytes}));
+  ///
+  /// [englishDances] reads the file's dances as English country dances
+  /// ([CallersCompanionUsrAdapter.englishDancesOption]): the person's answer
+  /// to the import's once-per-file question (ADR-006 W6, part 3).
+  Future<ImportBatchResult> plan(
+    Uint8List bytes, {
+    bool englishDances = false,
+  }) => _pipeline.plan(
+    _adapter,
+    ImportRequest(
+      options: {
+        'bytes': bytes,
+        if (englishDances) CallersCompanionUsrAdapter.englishDancesOption: true,
+      },
+    ),
+  );
 
   /// Commits a planned dance [batch] and then the programs from [archive].
   ///
   /// The dances commit first (real pipeline path), yielding the CC-dance-id →
-  /// new-Compendium-dance-id map used to FK-resolve each program slot. Programs
-  /// whose slots reference a dance that was not committed degrade to text
-  /// placeholders + issues (never a throw — see [buildCcPrograms]).
+  /// new-Compendium-dance-id map used to FK-resolve each program slot. A slot
+  /// whose dance was not committed never throws: it becomes a text slot or is
+  /// left out (see *Dances that did not commit*, below).
   ///
   /// [venueEntityMode] gates issue #687's venue-entity linking. It is read by
   /// the app from `VenueEntityModeScope` — a Flutter `InheritedNotifier` the
@@ -204,13 +318,51 @@ class CallersCompanionUsrImporter {
   /// venue on every re-import.
   ///
   /// **Related dances (issue #688):** after the programs are persisted, each
-  /// archive `Dance_Related` pair is resolved via [_danceIdByCcRowId] and
-  /// turned into a directed `relatedDance` [DanceLink] on the source dance
+  /// archive `Dance_Related` pair is resolved via [_danceIdByCcRowId] (and
+  /// `earlierDanceIds`, below) and turned into a directed `relatedDance` [DanceLink] on the source dance
   /// (see [buildCcRelatedDanceLinks]'s doc for the full directionality,
   /// dedupe and OWASP-hardening rationale). A pair with an unresolved
   /// endpoint is skipped with a warning [ImportIssue] on
   /// [CcUsrImportResult.relatedDanceLinkIssues] — never a dangling
-  /// `targetDanceId`.
+  /// `targetDanceId`. A re-imported dance gets no links, whether [batch]
+  /// re-imported it or an earlier [commitDances] did (named in
+  /// [earlierReimportedCcIds]): a re-import replaces only the choreography
+  /// (INTAKE-7). Nor does a pair whose source is such a dance raise that
+  /// warning, since its link would be left out whichever way its other end
+  /// resolved.
+  ///
+  /// **Dances committed earlier (the review's per-row Edit):**
+  /// [earlierDanceIds] maps the CC `zk_Dance_ID` of each dance an earlier
+  /// [commitDances] in the same review wrote to the dance id it wrote. A set
+  /// slot or `Dance_Related` pair naming one of them resolves to that dance,
+  /// as it would had the dance been in [batch]; without the map its slots
+  /// became "not imported" placeholders. An entry whose dance no longer exists
+  /// is ignored, and [batch]'s own dance wins for a CC id it also commits.
+  /// Those dances are not this import's to revert: a related-dance link added
+  /// to one is recorded in [CcUsrImportResult.linksAddedToEarlierDances] and
+  /// [undo] removes just that link. [earlierReimportedCcIds] names the CC ids
+  /// among them that the earlier commit re-imported, because the map alone
+  /// does not say how a dance was written.
+  ///
+  /// **Skipped re-import rows (INTAKE-1):** [existingDanceIdByExternalId] maps
+  /// a CC `zk_Dance_ID` to the local dance a re-import row the review left at
+  /// Skip already matches (its verdict's target). Program slots for that dance
+  /// link to it instead of becoming a text slot. The map is
+  /// used for slots only: the dances it names are not written, so
+  /// `Dance_Related` links are never added to a dance the user chose to leave
+  /// as it is (and [undo] has no prior state to restore one from). An entry
+  /// whose dance no longer exists is ignored, and [batch]'s own dance and an
+  /// [earlierDanceIds] entry both win over it for the same CC id.
+  ///
+  /// **Dances that did not commit (#1976):** a slot whose dance resolves to
+  /// none shows the dance's title when the import left it out, its title and
+  /// a `Dance not imported (…)` line when it failed, and is left out when the
+  /// file no longer has the dance (see [buildCcPrograms]). The titles come
+  /// from [batch]'s drafts and [danceTitleByCcRowId], and the failures from
+  /// this commit; a caller that commits only some of its planned rows (the
+  /// review screen leaves Skip rows out of [batch]) passes the rest's titles
+  /// through [danceTitleByCcRowId]. A row that failed to plan has no draft,
+  /// so no title: its slot keeps the `Dance not imported (…)` marker.
   ///
   /// Everything is recorded on the returned [CcUsrImportResult] so [undo]
   /// reverts dances, programs **and** venues.
@@ -222,19 +374,77 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
+    Map<String, String> existingDanceIdByExternalId = const {},
+    List<String> defaultTagIds = const [],
+    void Function(int done, int total)? onProgress,
+    Map<String, String> earlierDanceIds = const {},
+    Set<String> earlierReimportedCcIds = const {},
+    Map<String, String> danceTitleByCcRowId = const {},
   }) async {
     final mintId = newId ?? uuidV4;
-    final danceSession = await _pipeline.commit(
+    final (
+      session: danceSession,
+      insertedFieldIds: keptInserted,
+      restoredFieldIds: keptRestored,
+      fieldIssues: fieldIssues,
+      insertedSourceIds: keptSourcesInserted,
+      restoredSourceIds: keptSourcesRestored,
+      insertedLevelIds: keptLevelsInserted,
+      restoredLevelIds: keptLevelsRestored,
+    ) = await _commitDancesWithFields(
       batch,
       now: now,
       newId: mintId,
       resolutions: resolutions,
+      defaultTagIds: defaultTagIds,
+      onProgress: onProgress,
     );
 
-    final danceIdByCcRowId = _danceIdByCcRowId(danceSession);
+    // This batch's own dances win over an earlier commit's for the same CC
+    // row. An earlier dance that no longer exists (deleted from the editor
+    // since) resolves to nothing, so its slots fall back to text (its title,
+    // given one) rather than naming a missing dance.
+    final committedEarlier = <String, String>{};
+    final Map<String, String> danceIdByCcRowId;
+    // Slots also link to a skipped re-import row's existing dance (see the doc
+    // above); `Dance_Related` resolution below does not.
+    final Map<String, String> slotDanceIdByCcRowId;
+    try {
+      for (final entry in earlierDanceIds.entries) {
+        if (await _dances.getById(entry.value) != null) {
+          committedEarlier[entry.key] = entry.value;
+        }
+      }
+      danceIdByCcRowId = {
+        ...committedEarlier,
+        ..._danceIdByCcRowId(danceSession),
+      };
+      slotDanceIdByCcRowId = await _pipeline.withLiveExistingDances(
+        danceIdByCcRowId,
+        existingDanceIdByExternalId,
+      );
+    } catch (_) {
+      await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(keptInserted, keptRestored);
+      await _revertPublishedSources(keptSourcesInserted, keptSourcesRestored);
+      await _revertDifficultyLevels(keptLevelsInserted, keptLevelsRestored);
+      rethrow;
+    }
+
+    // What a slot whose dance did not commit shows (#1976): the dance's title,
+    // and whether it failed rather than being left out.
     final built = buildCcPrograms(
       archive,
-      danceIdByCcRowId: danceIdByCcRowId,
+      danceIdByCcRowId: slotDanceIdByCcRowId,
+      danceTitleByCcRowId: {
+        ...danceTitleByCcRowId,
+        for (final plan in batch.records)
+          ?plan.draft.raw.externalId: plan.draft.dance.title,
+      },
+      failedCcRowIds: {
+        for (final record in danceSession.records)
+          if (!record.succeeded) ?record.externalId,
+      },
       newId: mintId,
       newSlotId: newSlotId ?? uuidV4,
       now: now,
@@ -262,6 +472,9 @@ class CallersCompanionUsrImporter {
     final persisted = <Program>[];
     final insertedVenueIds = <String>[];
     final relatedDanceLinkIssues = <ImportIssue>[];
+    // Dance id → ids of the links appended to a dance an earlier commit wrote
+    // (see the related-dance step below); removed again on failure and undo.
+    final linksAddedToEarlier = <String, List<String>>{};
     // Lazily-seeded fingerprint index over the receiver's existing venues
     // (issue #687), built at most once per commit (memoized here) and only
     // when a candidate actually produces a non-null [venueFingerprint] — a
@@ -283,8 +496,19 @@ class CallersCompanionUsrImporter {
             ? null
             : await _programs.getById(existingId, includeDeleted: true);
 
+        // A prior link counts as live while some venue row, live or
+        // tombstoned, still carries its id (a tombstone may yet be revived).
+        // With no row at all it is dead, or not arrived yet: #2076 leaves such
+        // an id on restore on purpose, since a peer's program can arrive before
+        // its venue, and the two cannot be told apart here. So a dead link is
+        // replaced only when this import resolves a real venue for the typed
+        // location (venue mode on); otherwise it is kept as before. A re-import
+        // that does resolve one in that window replaces the link.
+        final priorVenueId = prior?.venueId;
+        final priorLinkLive =
+            priorVenueId != null && await _venues.rowExists(priorVenueId);
         String? venueId;
-        if (venueEntityMode && !(prior != null && prior.venueId != null)) {
+        if (venueEntityMode && !priorLinkLive) {
           final cleanedLocation = program.venue;
           if (cleanedLocation != null && cleanedLocation.isNotEmpty) {
             final locationKey = _normalizeLocationKey(cleanedLocation);
@@ -366,13 +590,26 @@ class CallersCompanionUsrImporter {
             candidate,
             id: existingId,
             createdAt: prior.createdAt,
-            priorVenueId: prior.venueId,
+            // Kept unless the link is dead AND a venue resolved above.
+            priorVenueId: (priorLinkLive || venueId == null)
+                ? priorVenueId
+                : null,
+            priorArchivedAt: prior.archivedAt,
           );
           if (priorCapturedFor.add(existingId)) {
             priorStates.add(prior);
           }
           if (prior.deletedAt != null) {
-            await _programs.restore(existingId, at: now);
+            // Not the trash restore: the import's undo would not re-tombstone
+            // a revived venue. [target] keeps the tombstone's venue link
+            // (`priorVenueId`) all the same, so a venue deleted meanwhile is
+            // left dangling, as before B9; the program shows its typed venue
+            // and Duplicate drops the link.
+            await _programs.restore(
+              existingId,
+              at: now,
+              reviveReferences: false,
+            );
             if (restoredProgramIdSet.add(existingId)) {
               restoredProgramIds.add(existingId);
             }
@@ -387,10 +624,9 @@ class CallersCompanionUsrImporter {
       // failure here is compensated identically to a program-write failure
       // (see the catch below).
       //
-      // No new undo bookkeeping is needed for the links themselves: every
-      // candidate source dance here is, by construction, a dance
-      // [_danceIdByCcRowId] resolved from `danceSession.records` — and EVERY
-      // such dance is already tracked by [ImportPipeline.undo], either via
+      // No undo bookkeeping is needed for a link on a dance this batch
+      // committed: every such dance is already tracked by
+      // [ImportPipeline.undo], either via
       // `insertedDanceIds` (create/duplicate — hard-deleted wholesale) or via
       // `updatedDancePriorStates` (reimport/link — the pipeline captures a
       // full pre-commit snapshot of `_dances.getById(id)` **before any field
@@ -399,12 +635,32 @@ class CallersCompanionUsrImporter {
       // that prior snapshot on undo already reverts any related-dance link
       // appended here, with zero additional tracking. See
       // `callers_companion_related_dances.dart` and this method's `undo` doc
-      // for the full argument.
+      // for the full argument. A dance from [earlierDanceIds] is the exception:
+      // this batch's undo does not restore it, so the ids of the links appended
+      // to it are recorded and removed one by one instead.
       if (archive.relatedDancePairs.isNotEmpty) {
+        // A re-import replaces only a dance's choreography (INTAKE-7), so a
+        // re-imported dance gets none of the file's links: one this batch
+        // re-imported, or one an earlier per-row Edit re-imported. Not one
+        // another row of this batch then created or replaced (a link onto the
+        // same dance), which takes the file's links like any written dance.
+        final writtenOtherwise = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.action != CommitAction.reimport) ?r.danceId,
+        };
+        final reimportedDanceIds = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.action == CommitAction.reimport) r.danceId!,
+          for (final ccId in earlierReimportedCcIds)
+            if (committedEarlier[ccId] case final id?
+                when danceIdByCcRowId[ccId] == id)
+              id,
+        }..removeAll(writtenOtherwise);
         final candidateDanceIds = <String>{
           for (final pair in archive.relatedDancePairs)
-            if (danceIdByCcRowId[pair.sourceRecordId] != null)
-              danceIdByCcRowId[pair.sourceRecordId]!,
+            if (danceIdByCcRowId[pair.sourceRecordId] case final id?
+                when !reimportedDanceIds.contains(id))
+              id,
         };
         final dancesById = <String, Dance>{};
         for (final id in candidateDanceIds) {
@@ -414,21 +670,34 @@ class CallersCompanionUsrImporter {
         final existingLinksByDanceId = <String, List<DanceLink>>{
           for (final entry in dancesById.entries) entry.key: entry.value.links,
         };
+        final sessionDanceIds = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.danceId != null) r.danceId!,
+        };
         final linkResult = buildCcRelatedDanceLinks(
           archive,
           danceIdByCcRowId: danceIdByCcRowId,
           existingLinksByDanceId: existingLinksByDanceId,
+          skippedSourceDanceIds: reimportedDanceIds,
           newId: mintId,
         );
         relatedDanceLinkIssues.addAll(linkResult.issues);
         for (final entry in linkResult.newLinksByDanceId.entries) {
           final dance = dancesById[entry.key];
           if (dance == null) continue; // fetched dance vanished; skip safely
+          if (!sessionDanceIds.contains(entry.key)) {
+            // Recorded before the write, so a failure part-way is compensated.
+            linksAddedToEarlier[entry.key] = [
+              for (final link in entry.value) link.id,
+            ];
+          }
           await _dances.update(
             dance.copyWith(links: [...dance.links, ...entry.value]),
           );
         }
       }
+      // Last: only an import that otherwise succeeded moves any level.
+      await _placeLevels([...keptLevelsInserted, ...keptLevelsRestored]);
     } catch (_) {
       await _programs.hardDelete(insertedIds);
       for (final prior in priorStates) {
@@ -439,6 +708,11 @@ class CallersCompanionUsrImporter {
       }
       await _venues.hardDelete(insertedVenueIds);
       await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(keptInserted, keptRestored);
+      await _revertPublishedSources(keptSourcesInserted, keptSourcesRestored);
+      await _revertDifficultyLevels(keptLevelsInserted, keptLevelsRestored);
+      // Last, so the older steps above run even if this one throws.
+      await _removeLinks(linksAddedToEarlier);
       rethrow;
     }
 
@@ -452,17 +726,785 @@ class CallersCompanionUsrImporter {
       programRestoreAt: restoredProgramIds.isEmpty ? null : now,
       insertedVenueIds: insertedVenueIds,
       relatedDanceLinkIssues: relatedDanceLinkIssues,
+      insertedCustomFieldIds: keptInserted,
+      restoredCustomFieldIds: keptRestored,
+      insertedPublishedSourceIds: keptSourcesInserted,
+      restoredPublishedSourceIds: keptSourcesRestored,
+      insertedDifficultyLevelIds: keptLevelsInserted,
+      restoredDifficultyLevelIds: keptLevelsRestored,
+      customFieldIssues: fieldIssues,
+      linksAddedToEarlierDances: linksAddedToEarlier,
     );
   }
 
-  /// Convenience end-to-end import of a `.USR` [bytes] payload: reads the
-  /// archive for the program build, then [plan]s and [commit]s in one call
-  /// using default dedupe handling (ambiguous records are skipped, never
-  /// guessed — the pipeline default). The dance side re-parses [bytes] through
-  /// the adapter during [plan], so the file is decoded twice; that keeps the
-  /// dances on the exact shared pipeline path and the cost is negligible next
-  /// to the DB writes. The app's review flow can instead call [plan]/[commit]
-  /// separately to let the user resolve ambiguous dances.
+  /// Commits the dances of [batch] alone — no programs, no related-dance links
+  /// — for the review's per-row Edit, which writes one dance before the rest of
+  /// the file is imported. Unlike a bare [ImportPipeline.commit], it first
+  /// matches or creates the definitions behind the CC `UserDefined_*` values
+  /// (as [commit] does), since [DanceRepository] refuses a value for a field
+  /// that does not exist: without this, every dance with a user-field value
+  /// failed to commit. It resolves the published sources behind CC `Reference`
+  /// citations the same way (#1974).
+  ///
+  /// A definition or source no committed dance uses is dropped again, and a
+  /// commit that throws removes the ones it created. Those a committed dance
+  /// holds stay, as the dance does; the per-row Edit has no undo, and a later
+  /// batch [commit] reuses them rather than recording them for its own undo.
+  /// Pass
+  /// the CC ids of the dances written here to a later [commit] as its
+  /// `earlierDanceIds` so its sets and related dances can name them.
+  Future<ImportSession> commitDances(
+    ImportBatchResult batch, {
+    required DateTime now,
+    String Function()? newId,
+    Map<int, DedupeResolution> resolutions = const {},
+    List<String> defaultTagIds = const [],
+  }) async {
+    final committed = await _commitDancesWithFields(
+      batch,
+      now: now,
+      newId: newId ?? uuidV4,
+      resolutions: resolutions,
+      defaultTagIds: defaultTagIds,
+    );
+    try {
+      await _placeLevels([
+        ...committed.insertedLevelIds,
+        ...committed.restoredLevelIds,
+      ]);
+    } catch (_) {
+      await _pipeline.undo(committed.session);
+      await _revertUserFieldDefinitions(
+        committed.insertedFieldIds,
+        committed.restoredFieldIds,
+      );
+      await _revertPublishedSources(
+        committed.insertedSourceIds,
+        committed.restoredSourceIds,
+      );
+      await _revertDifficultyLevels(
+        committed.insertedLevelIds,
+        committed.restoredLevelIds,
+      );
+      rethrow;
+    }
+    return committed.session;
+  }
+
+  /// The dance half of [commit] and [commitDances]: resolves the CC user-field
+  /// definitions [batch] needs, commits its dances through the pipeline, and
+  /// drops any definition no committed dance ended up using. Returns the
+  /// session with the definitions kept; on a throw nothing is left behind.
+  Future<
+    ({
+      ImportSession session,
+      List<String> insertedFieldIds,
+      List<String> restoredFieldIds,
+      List<ImportIssue> fieldIssues,
+      List<String> insertedSourceIds,
+      List<String> restoredSourceIds,
+      List<String> insertedLevelIds,
+      List<String> restoredLevelIds,
+    })
+  >
+  _commitDancesWithFields(
+    ImportBatchResult batch, {
+    required DateTime now,
+    required String Function() newId,
+    required Map<int, DedupeResolution> resolutions,
+    required List<String> defaultTagIds,
+    void Function(int done, int total)? onProgress,
+  }) async {
+    // Definitions first: a dance cannot commit a value for a field that does
+    // not exist yet (`DanceRepository` refuses it), and they are reverted with
+    // the rest of the import.
+    final fields = await _resolveUserFieldDefinitions(
+      batch,
+      now: now,
+      newId: newId,
+    );
+    // Published sources likewise: a citation names a source row (#1974).
+    final ({
+      ImportBatchResult batch,
+      List<String> inserted,
+      List<String> restored,
+    })
+    sources;
+    try {
+      sources = await _resolvePublishedSources(
+        fields.batch,
+        now: now,
+        newId: newId,
+      );
+    } catch (_) {
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      rethrow;
+    }
+    // And the difficulty levels behind CC combined levels (#1973).
+    final ({
+      ImportBatchResult batch,
+      List<String> inserted,
+      List<String> restored,
+    })
+    levels;
+    try {
+      levels = await _resolveDifficultyLevels(sources.batch, now: now);
+    } catch (_) {
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      await _revertPublishedSources(sources.inserted, sources.restored);
+      rethrow;
+    }
+    final ImportSession danceSession;
+    try {
+      danceSession = await _pipeline.commit(
+        levels.batch,
+        now: now,
+        newId: newId,
+        resolutions: resolutions,
+        // Dances only: programs carry no tags.
+        defaultTagIds: defaultTagIds,
+        onProgress: onProgress,
+      );
+    } catch (_) {
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      await _revertPublishedSources(sources.inserted, sources.restored);
+      await _revertDifficultyLevels(levels.inserted, levels.restored);
+      rethrow;
+    }
+    // A definition no committed dance ended up using (every dance that carried
+    // its key was skipped) is dropped now rather than left as an orphan. Inside
+    // its own compensation: the dances are committed by now, so a failure here
+    // must not leave them without an undo handle.
+    final keptInserted = <String>[];
+    final keptRestored = <String>[];
+    final keptSourcesInserted = <String>[];
+    final keptSourcesRestored = <String>[];
+    final keptLevelsInserted = <String>[];
+    final keptLevelsRestored = <String>[];
+    try {
+      for (final id in levels.inserted) {
+        if (await _removeUnusedLevel(id, permanent: true)) continue;
+        keptLevelsInserted.add(id);
+      }
+      for (final id in levels.restored) {
+        if (await _removeUnusedLevel(id, permanent: false)) continue;
+        keptLevelsRestored.add(id);
+      }
+      for (final id in sources.inserted) {
+        if (await _removeUnusedSource(id, permanent: true)) continue;
+        keptSourcesInserted.add(id);
+      }
+      for (final id in sources.restored) {
+        if (await _removeUnusedSource(id, permanent: false)) continue;
+        keptSourcesRestored.add(id);
+      }
+      for (final id in fields.inserted) {
+        if (await _customFields.isInUse(id)) {
+          keptInserted.add(id);
+        } else {
+          await _customFields.delete(id, permanent: true);
+        }
+      }
+      for (final id in fields.restored) {
+        if (await _customFields.isInUse(id)) {
+          keptRestored.add(id);
+        } else {
+          await _customFields.delete(id);
+        }
+      }
+    } catch (_) {
+      await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      await _revertPublishedSources(sources.inserted, sources.restored);
+      await _revertDifficultyLevels(levels.inserted, levels.restored);
+      rethrow;
+    }
+    return (
+      session: danceSession,
+      insertedFieldIds: keptInserted,
+      restoredFieldIds: keptRestored,
+      fieldIssues: fields.issues,
+      insertedSourceIds: keptSourcesInserted,
+      restoredSourceIds: keptSourcesRestored,
+      insertedLevelIds: keptLevelsInserted,
+      restoredLevelIds: keptLevelsRestored,
+    );
+  }
+
+  /// Matches or creates the published source behind each placeholder citation
+  /// in [batch] (a CC `Reference`, #1974), and returns [batch] with each
+  /// placeholder id rewritten to the real one.
+  ///
+  /// A source is matched by title (#1974), compared as [naturalKeyMatchKey]
+  /// does (normalised, case-folded), so a book the user entered with its author
+  /// or year is reused rather than duplicated. Among several, a live one beats a
+  /// tombstone, which is restored, then an exact title beats a case variant,
+  /// then the smallest id, so the pick does not depend on load order. Otherwise
+  /// a source with that title is created, once for all its case variants.
+  Future<
+    ({ImportBatchResult batch, List<String> inserted, List<String> restored})
+  >
+  _resolvePublishedSources(
+    ImportBatchResult batch, {
+    required DateTime now,
+    required String Function() newId,
+  }) async {
+    final titles = <String>{
+      for (final record in batch.records)
+        for (final citation in record.draft.dance.sourceCitations)
+          ?ccPublishedSourceTitleOf(citation.sourceId),
+    };
+    if (titles.isEmpty) {
+      return (
+        batch: batch,
+        inserted: const <String>[],
+        restored: const <String>[],
+      );
+    }
+    final existing = await _sources.listAllWithDeleted();
+    final idByTitle = <String, String>{};
+    final idByKey = <String, String>{};
+    final inserted = <String>[];
+    final restored = <String>[];
+    try {
+      for (final title in titles) {
+        final key = naturalKeyMatchKey(title);
+        if (idByKey[key] case final id?) {
+          idByTitle[title] = id;
+          continue;
+        }
+        final matches =
+            [
+              for (final item in existing)
+                if (naturalKeyMatchKey(item.source.title) == key) item,
+            ]..sort((a, b) {
+              if (a.deleted != b.deleted) return a.deleted ? 1 : -1;
+              final aExact = a.source.title == title;
+              if (aExact != (b.source.title == title)) return aExact ? -1 : 1;
+              return a.source.id.compareTo(b.source.id);
+            });
+        if (matches.isNotEmpty) {
+          final match = matches.first;
+          if (match.deleted) {
+            await _sources.restore(match.source.id, at: now);
+            restored.add(match.source.id);
+          }
+          idByTitle[title] = idByKey[key] = match.source.id;
+          continue;
+        }
+        final id = newId();
+        await _sources.upsert(
+          PublishedSource(id: id, title: title),
+          at: now,
+        );
+        inserted.add(id);
+        idByTitle[title] = idByKey[key] = id;
+      }
+    } catch (_) {
+      await _revertPublishedSources(inserted, restored);
+      rethrow;
+    }
+
+    ImportRecordPlan rewrite(ImportRecordPlan record) {
+      final citations = record.draft.dance.sourceCitations;
+      if (!citations.any((c) => ccPublishedSourceTitleOf(c.sourceId) != null)) {
+        return record;
+      }
+      return ImportRecordPlan(
+        draft: record.draft.copyWith(
+          dance: record.draft.dance.copyWith(
+            sourceCitations: [
+              for (final c in citations)
+                switch (ccPublishedSourceTitleOf(c.sourceId)) {
+                  final title? => SourceCitation(
+                    sourceId: idByTitle[title]!,
+                    page: c.page,
+                    number: c.number,
+                  ),
+                  null => c,
+                },
+            ],
+          ),
+        ),
+        verdict: record.verdict,
+      );
+    }
+
+    return (
+      batch: ImportBatchResult(
+        records: [for (final record in batch.records) rewrite(record)],
+        errors: batch.errors,
+        warnings: batch.warnings,
+        dedupeIndex: batch.dedupeIndex,
+      ),
+      inserted: inserted,
+      restored: restored,
+    );
+  }
+
+  /// Removes source [id] when no live dance cites it, permanently for one this
+  /// import created or back to a tombstone for one it restored, and reports
+  /// whether it did. The repository refuses a cited source in its own
+  /// transaction.
+  Future<bool> _removeUnusedSource(String id, {required bool permanent}) async {
+    try {
+      await _sources.delete(id, permanent: permanent);
+      return true;
+    } on StateError {
+      return false; // Still cited by a live dance.
+    }
+  }
+
+  /// Reverts the sources [inserted] (removed) and [restored] (tombstoned
+  /// again), leaving any a surviving dance still cites.
+  Future<void> _revertPublishedSources(
+    List<String> inserted,
+    List<String> restored,
+  ) async {
+    for (final id in inserted) {
+      await _removeUnusedSource(id, permanent: true);
+    }
+    for (final id in restored) {
+      await _removeUnusedSource(id, permanent: false);
+    }
+  }
+
+  /// Matches or creates the difficulty level behind each CC combined level in
+  /// [batch] ("Easy/Intermediate", #1973), and returns [batch] with each such
+  /// dance pointed at it and its [ccNewLevelIssueCode] issue dropped.
+  ///
+  /// The pipeline has already pointed a dance at a live level of that name;
+  /// this resolves the rest, so it also covers levels another record in the
+  /// same file created. A level is matched by name ignoring case and spacing
+  /// ([ccLevelNameKey], maintainer decision): a live one is reused, a
+  /// tombstoned one is restored, and otherwise one is created. A created level
+  /// goes between the levels its span lies between on CC's scale
+  /// ([ccLevelScaleKey], maintainer decision): after the last level below it,
+  /// else before the first level above it, else last.
+  Future<
+    ({ImportBatchResult batch, List<String> inserted, List<String> restored})
+  >
+  _resolveDifficultyLevels(
+    ImportBatchResult batch, {
+    required DateTime now,
+  }) async {
+    bool unresolved(ImportRecordPlan record) =>
+        record.draft.dance.difficultyLevelId == null &&
+        record.draft.difficultyLevelLabel != null &&
+        record.draft.issues.any((i) => i.code == ccNewLevelIssueCode);
+    final labels = <String>{
+      for (final record in batch.records)
+        if (unresolved(record)) record.draft.difficultyLevelLabel!,
+    };
+    if (labels.isEmpty) {
+      return (
+        batch: batch,
+        inserted: const <String>[],
+        restored: const <String>[],
+      );
+    }
+    final idByKey = <String, String>{};
+    final inserted = <String>[];
+    final restored = <String>[];
+    try {
+      final existing = await _levels.listAllWithDeleted();
+      for (final label in labels) {
+        final key = ccLevelNameKey(label);
+        if (idByKey.containsKey(key)) continue;
+        final matches =
+            [
+              for (final item in existing)
+                if (ccLevelNameKey(item.level.label) == key) item,
+            ]..sort((a, b) {
+              if (a.deleted != b.deleted) return a.deleted ? 1 : -1;
+              return a.level.id.compareTo(b.level.id);
+            });
+        if (matches.isNotEmpty) {
+          final match = matches.first;
+          if (match.deleted) {
+            await _levels.restore(match.level.id, at: now);
+            restored.add(match.level.id);
+          }
+          idByKey[key] = match.level.id;
+          continue;
+        }
+        // Created after every level for now: [_placeLevels] moves it once
+        // the import has kept it, so an import that fails or skips the dance
+        // rewrites no other level.
+        final created = await _levels.createCustom(
+          label: label,
+          position: [
+            for (final level in await _levels.listAll()) level.position + 1,
+          ].fold(0, (a, b) => a > b ? a : b),
+        );
+        inserted.add(created.id);
+        idByKey[key] = created.id;
+      }
+    } catch (_) {
+      await _revertDifficultyLevels(inserted, restored);
+      rethrow;
+    }
+
+    ImportRecordPlan rewrite(ImportRecordPlan record) {
+      if (!unresolved(record)) return record;
+      final id = idByKey[ccLevelNameKey(record.draft.difficultyLevelLabel!)]!;
+      return ImportRecordPlan(
+        draft: record.draft.copyWith(
+          dance: record.draft.dance.copyWith(difficultyLevelId: id),
+          issues: [
+            for (final issue in record.draft.issues)
+              if (issue.code != ccNewLevelIssueCode) issue,
+          ],
+        ),
+        verdict: record.verdict,
+      );
+    }
+
+    return (
+      batch: ImportBatchResult(
+        records: [for (final record in batch.records) rewrite(record)],
+        errors: batch.errors,
+        warnings: batch.warnings,
+        dedupeIndex: batch.dedupeIndex,
+      ),
+      inserted: inserted,
+      restored: restored,
+    );
+  }
+
+  /// Places the levels [ids] this import kept (created or restored) among
+  /// the user's levels by CC's scale (maintainer decision, #1973).
+  ///
+  /// The other levels keep their positions, gaps included: a placed level
+  /// takes the position after the level before it, and a level after it moves
+  /// up only while it would collide. So only the levels that have to move are
+  /// written, stamped now rather than with the import's start time.
+  Future<void> _placeLevels(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final moving = ids.toSet();
+    final order = [
+      for (final level in await _levels.listAll())
+        if (!moving.contains(level.id)) level,
+    ];
+    for (final id in ids) {
+      final level = await _levels.getById(id);
+      if (level == null) continue;
+      order.insert(_levelInsertIndex(order, level), level);
+    }
+    final positions = <String, int>{};
+    var last = -1;
+    for (final level in order) {
+      final position = !moving.contains(level.id) && level.position > last
+          ? level.position
+          : last + 1;
+      if (position != level.position) positions[level.id] = position;
+      last = position;
+    }
+    await _levels.setPositions(positions);
+  }
+
+  /// Where [level] goes in [order] (the live levels, by position): after the
+  /// last level that sits below it on CC's scale, else before the first that
+  /// sits above it, else last. "Below" follows the user's own direction: a
+  /// list ordered hardest first is read hardest first. Levels the scale says
+  /// nothing about keep their places around it.
+  static int _levelInsertIndex(
+    List<DifficultyLevel> order,
+    DifficultyLevel level,
+  ) {
+    final own = ccLevelScaleKey(level);
+    if (own == null) return order.length;
+    final known = [for (final other in order) ?ccLevelScaleKey(other)];
+    final sign = known.length >= 2 && known.first > known.last ? -1 : 1;
+    final key = own * sign;
+    final keys = [
+      for (final other in order)
+        if (ccLevelScaleKey(other) case final k?) k * sign else null,
+    ];
+    final below = keys.lastIndexWhere((k) => k != null && k < key);
+    if (below >= 0) return below + 1;
+    final above = keys.indexWhere((k) => k != null && k > key);
+    return above >= 0 ? above : order.length;
+  }
+
+  /// Removes level [id] when no live dance uses it, permanently for one this
+  /// import created or back to a tombstone for one it restored, and reports
+  /// whether it did. A dance in Recently deleted does not count as a use (the
+  /// trash does not protect); `hardDelete` tombstones rather than erases a
+  /// level such a dance still names.
+  Future<bool> _removeUnusedLevel(String id, {required bool permanent}) async {
+    if (permanent) {
+      if (await _levels.isInUse(id)) return false;
+      await _levels.hardDelete([id]);
+      return true;
+    }
+    try {
+      await _levels.delete(id);
+      return true;
+    } on DifficultyLevelInUse {
+      return false;
+    }
+  }
+
+  /// Reverts the levels [inserted] (removed) and [restored] (tombstoned
+  /// again), leaving any a surviving dance still uses.
+  Future<void> _revertDifficultyLevels(
+    List<String> inserted,
+    List<String> restored,
+  ) async {
+    for (final id in inserted) {
+      await _removeUnusedLevel(id, permanent: true);
+    }
+    for (final id in restored) {
+      await _removeUnusedLevel(id, permanent: false);
+    }
+  }
+
+  /// Removes the links named in [linkIdsByDanceId] from each of those dances,
+  /// leaving every other link, and any dance since deleted, alone.
+  Future<void> _removeLinks(Map<String, List<String>> linkIdsByDanceId) async {
+    for (final entry in linkIdsByDanceId.entries) {
+      final dance = await _dances.getById(entry.key, includeDeleted: true);
+      if (dance == null) continue;
+      final remove = entry.value.toSet();
+      if (!dance.links.any((l) => remove.contains(l.id))) continue;
+      await _dances.update(
+        dance.copyWith(
+          links: [
+            for (final l in dance.links)
+              if (!remove.contains(l.id)) l,
+          ],
+        ),
+      );
+    }
+  }
+
+  /// Matches or creates one text definition per CC user-field key carried by
+  /// [batch] (the label comes from the placeholder, see
+  /// [kCcUserFieldIdPrefix]), and returns [batch] with each placeholder field id
+  /// rewritten to the real definition id.
+  ///
+  /// Matching follows the native archive importer (`ShareMetadataImporter`),
+  /// except that keys are compared case-folded (`naturalKeyMatchKey`), wider
+  /// than the repository's byte-exact key check: a *live text* definition under the same key is reused untouched, and a
+  /// tombstoned *text* one is revived. A key held by a definition of **another
+  /// type** is never reused (that would store text in a number or choice field)
+  /// and `upsert` would refuse to create onto it, so the field is created under
+  /// `<key>_2`, `<key>_3`, … and a `cc_user_field_key_conflict` note is raised.
+  /// New definitions are text, hidden from the list, searchable, and shareable —
+  /// the default every new field gets.
+  Future<
+    ({
+      ImportBatchResult batch,
+      List<String> inserted,
+      List<String> restored,
+      List<ImportIssue> issues,
+    })
+  >
+  _resolveUserFieldDefinitions(
+    ImportBatchResult batch, {
+    required DateTime now,
+    required String Function() newId,
+  }) async {
+    // Key → label, in first-seen order; the first dance to use a key names it.
+    final labelByKey = <String, String>{};
+    for (final record in batch.records) {
+      for (final value in record.draft.dance.customFields) {
+        final field = ccUserFieldOfPlaceholder(value.fieldId);
+        if (field != null) labelByKey.putIfAbsent(field.key, () => field.label);
+      }
+    }
+    final needed = labelByKey.keys;
+    if (needed.isEmpty) {
+      return (
+        batch: batch,
+        inserted: const <String>[],
+        restored: const <String>[],
+        issues: const <ImportIssue>[],
+      );
+    }
+
+    final existing = await _customFields.listAllWithDeleted();
+    // Every existing row under a case-folded key. The repository's own key
+    // check is byte-exact, so `Tempo` and `tempo` can both exist; matching is
+    // deliberately wider than that, so a key typed as `Tempo` is found by the
+    // CC column "Tempo", and [find] then picks among the variants.
+    final byFolded = <String, List<({CustomFieldDef field, bool deleted})>>{};
+    for (final item in existing) {
+      byFolded
+          .putIfAbsent(naturalKeyMatchKey(item.field.key), () => [])
+          .add(item);
+    }
+    // The row [candidate] resolves to, or null when its key is free. A text
+    // definition beats one of another type, a live one beats a tombstone, and
+    // an exact key beats a case variant; ties go to the smallest id (the
+    // precedence `ShareMetadataImporter` applies), so the choice is
+    // load-order free and never passes over an exact text match.
+    ({CustomFieldDef field, bool deleted})? find(String candidate) {
+      final rows = byFolded[naturalKeyMatchKey(candidate)];
+      if (rows == null || rows.isEmpty) return null;
+      final exact = normalizeShareableText(candidate);
+      int rank(({CustomFieldDef field, bool deleted}) r) =>
+          (r.field.type == CustomFieldType.text ? 0 : 4) +
+          (r.deleted ? 2 : 0) +
+          (r.field.key == exact ? 0 : 1);
+      return rows.reduce((best, r) {
+        final byRank = rank(r).compareTo(rank(best));
+        if (byRank != 0) return byRank < 0 ? r : best;
+        return r.field.id.compareTo(best.field.id) < 0 ? r : best;
+      });
+    }
+
+    final usedIds = {for (final item in existing) item.field.id};
+    String freshId() {
+      for (var attempt = 0; attempt < 100; attempt++) {
+        final id = newId();
+        if (usedIds.add(id)) return id;
+      }
+      throw StateError('unable to allocate a unique custom field id');
+    }
+
+    final idByKey = <String, String>{};
+    final inserted = <String>[];
+    final restored = <String>[];
+    final issues = <ImportIssue>[];
+    // Canonical key → the CC column key this import resolved onto it, so a
+    // suffix candidate another column already claimed is skipped, not shared.
+    final createdFor = <String, String>{};
+    try {
+      for (final key in needed) {
+        final label = labelByKey[key]!;
+        var candidate = key;
+        for (var n = 2; ; n++) {
+          final canonical = naturalKeyMatchKey(candidate);
+          final match = find(candidate);
+          if (match == null) {
+            final def = CustomFieldDef(
+              id: freshId(),
+              key: candidate,
+              label: label,
+              type: CustomFieldType.text,
+            );
+            final actualId = await _customFields.upsert(def, at: now);
+            inserted.add(actualId);
+            if (actualId != def.id) {
+              throw StateError(
+                'custom field "$candidate" resolved to an unexpected id',
+              );
+            }
+            byFolded[canonical] = [(field: def, deleted: false)];
+            createdFor[canonical] = key;
+            idByKey[key] = def.id;
+            break;
+          }
+          final claimedByOther =
+              createdFor.containsKey(canonical) && createdFor[canonical] != key;
+          if (match.field.type == CustomFieldType.text && !claimedByOther) {
+            if (match.deleted) {
+              await _customFields.restore(match.field.id, at: now);
+              restored.add(match.field.id);
+              final rows = byFolded[canonical]!;
+              rows[rows.indexOf(match)] = (field: match.field, deleted: false);
+            }
+            // Claimed even when reused untouched: two columns must never
+            // resolve to one definition, or a dance would carry two values
+            // for the same field.
+            createdFor[canonical] = key;
+            idByKey[key] = match.field.id;
+            break;
+          }
+          candidate = '${key}_$n';
+        }
+        if (candidate != key) {
+          issues.add(
+            ImportIssue(
+              severity: ImportIssueSeverity.warning,
+              code: 'cc_user_field_key_conflict',
+              message:
+                  'Caller\'s Companion field "$label" could not use the key '
+                  '"$key" (a field of another type holds it); imported as '
+                  '"$candidate".',
+            ),
+          );
+        }
+      }
+    } catch (_) {
+      await _revertUserFieldDefinitions(inserted, restored);
+      rethrow;
+    }
+
+    // Only a draft that carries a placeholder is copied: a library-scale batch
+    // is mostly dances with no user columns.
+    ImportRecordPlan rewrite(ImportRecordPlan record) {
+      final values = record.draft.dance.customFields;
+      if (!values.any((v) => ccUserFieldOfPlaceholder(v.fieldId) != null)) {
+        return record;
+      }
+      return ImportRecordPlan(
+        draft: record.draft.copyWith(
+          dance: record.draft.dance.copyWith(
+            customFields: [
+              for (final value in values)
+                switch (ccUserFieldOfPlaceholder(value.fieldId)) {
+                  final field? => CustomFieldValue(
+                    fieldId: idByKey[field.key]!,
+                    value: value.value,
+                  ),
+                  null => value,
+                },
+            ],
+          ),
+        ),
+        verdict: record.verdict,
+      );
+    }
+
+    final rewritten = ImportBatchResult(
+      records: [for (final record in batch.records) rewrite(record)],
+      errors: batch.errors,
+      warnings: batch.warnings,
+      dedupeIndex: batch.dedupeIndex,
+    );
+    return (
+      batch: rewritten,
+      inserted: inserted,
+      restored: restored,
+      issues: issues,
+    );
+  }
+
+  /// Removes the definitions [inserted] and re-tombstones the ones [restored],
+  /// each guarded in the repository's own transaction: one a surviving dance
+  /// still holds a value for is left alone.
+  Future<void> _revertUserFieldDefinitions(
+    List<String> inserted,
+    List<String> restored,
+  ) async {
+    for (final id in inserted) {
+      try {
+        await _customFields.delete(id, permanent: true);
+      } on CustomFieldInUseException {
+        // A surviving dance holds a value for it.
+      }
+    }
+    for (final id in restored) {
+      try {
+        await _customFields.delete(id);
+      } on CustomFieldInUseException {
+        // A surviving dance holds a value for it.
+      }
+    }
+  }
+
+  /// Convenience end-to-end import of a `.USR` [bytes] payload: [plan]s and
+  /// [commit]s in one call using default dedupe handling (ambiguous records are
+  /// skipped, never guessed — the pipeline default). The file is decoded once:
+  /// planning reads it through the adapter, and the program build reuses that
+  /// same read ([CallersCompanionUsrAdapter.discoveredArchive]). A file that
+  /// cannot be read throws the [ImportError] planning captured (at
+  /// [ImportStage.discover]) rather than being decoded a second time. The app's
+  /// review flow can instead call [plan]/[commit] separately to let the user
+  /// resolve ambiguous dances.
   Future<CcUsrImportResult> import(
     Uint8List bytes, {
     required DateTime now,
@@ -470,8 +1512,26 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
   }) async {
-    final archive = readCcUsrArchive(bytes);
     final batch = await plan(bytes);
+    final archive = _adapter.discoveredArchive;
+    if (archive == null) {
+      // `discover` failed. The pipeline turns that into an error batch instead
+      // of rethrowing, and decoding the file again here would only fail the same
+      // way — after a second full scan of a file that may be hundreds of MiB.
+      // Surface the error it already captured. The pipeline returns an
+      // adapter's own ImportError as-is; the `cause` unwrap covers any other
+      // failure it wrapped.
+      final captured = batch.errors.firstWhere(
+        (e) => e.stage == ImportStage.discover,
+        orElse: () => ImportError(
+          stage: ImportStage.discover,
+          source: _adapter.source,
+          message: 'The .USR file could not be read.',
+        ),
+      );
+      final cause = captured.cause;
+      throw cause is ImportError ? cause : captured;
+    }
     return commit(
       batch,
       archive,
@@ -494,18 +1554,22 @@ class CallersCompanionUsrImporter {
   /// keeps the intent obvious) — and so no program still references a venue
   /// this import is about to remove.
   ///
-  /// Venue removal is **guarded**, mirroring
-  /// `CompendiumArchiveImporter.undo`: after a successful import a surviving
-  /// user program may have linked to a venue this import minted (e.g. by
-  /// deduping onto its normalized-location key), so an unconditional delete
-  /// would orphan that program's `venueId`. Each inserted venue is deleted only
-  /// when no program still references it; a still-referenced venue is
-  /// retained.
+  /// Venue removal goes through [VenueRepository.hardDelete], mirroring
+  /// `CompendiumArchiveImporter.undo` and the commit-failure path above: after
+  /// a successful import a surviving user program may have linked to a venue
+  /// this import minted (e.g. by deduping onto its normalized-location key), so
+  /// an unconditional erase would orphan that program's `venueId`. `hardDelete`
+  /// retains a venue **any** surviving program row still names, tombstoned
+  /// programs included, and tombstones an already-published one.
+  /// `delete(permanent: true)` is deliberately *not* used: its guard counts
+  /// live programs only (issue #1328), so it erased a venue a tombstoned
+  /// program still named — issue #1357.
   ///
-  /// **Related-dance links (issue #688) need no dedicated revert step here** —
-  /// [ImportPipeline.undo] already fully reverts them as a side effect of its
-  /// own dance rollback. Every dance [commit] could have attached a
-  /// `relatedDance` link to is, by construction, a dance resolved through
+  /// **Related-dance links (issue #688)** on this import's own dances need no
+  /// dedicated revert step here — [ImportPipeline.undo] already fully reverts
+  /// them as a side effect of its own dance rollback. Apart from the dances an
+  /// earlier per-row Edit wrote (below), every dance [commit] could have
+  /// attached a `relatedDance` link to is a dance resolved through
   /// `_danceIdByCcRowId(result.danceSession)`, which only ever names dances
   /// appearing in `result.danceSession.records`. Every such dance is either
   /// freshly **inserted** this commit (hard-deleted wholesale by the call
@@ -516,7 +1580,9 @@ class CallersCompanionUsrImporter {
   /// `dance_links` rows (a full delete-then-reinsert on every
   /// `DanceRepository.update`), so any related-dance link [commit] appended
   /// afterward is discarded along with the rest of the reverted state — with
-  /// zero additional bookkeeping.
+  /// zero additional bookkeeping. A dance named by `earlierDanceIds` is not
+  /// this import's to restore, so the links appended to it are removed by id
+  /// ([CcUsrImportResult.linksAddedToEarlierDances]) and the dance kept.
   ///
   /// [now] is an optional clock seam for deterministic callers; production
   /// undo timestamps default to the current UTC time.
@@ -535,17 +1601,32 @@ class CallersCompanionUsrImporter {
         await _programs.softDelete(id, at: undoAt);
       }
     }
-    for (final id in result.insertedVenueIds) {
-      try {
-        // `permanent` for the same reason the dances/programs above are
-        // hard-deleted: a rollback must leave nothing behind to publish.
-        await _venues.delete(id, permanent: true);
-      } on StateError {
-        // Still referenced by a surviving program — leave it in place rather
-        // than orphan that program's venueId.
-      }
-    }
+    // Erasing for the same reason the dances/programs above are hard-deleted:
+    // a rollback must leave nothing behind to publish. `hardDelete` owns both
+    // exceptions to that — a published venue is tombstoned instead, and a venue
+    // any surviving program row still names (tombstoned ones included) is left
+    // untouched rather than orphaning that reference.
+    await _venues.hardDelete(result.insertedVenueIds);
     await _pipeline.undo(result.danceSession);
+    // After the dances: the guard refuses to remove a definition a live dance
+    // still holds a value for, so the definitions can only go once this
+    // import's dances have.
+    await _revertUserFieldDefinitions(
+      result.insertedCustomFieldIds,
+      result.restoredCustomFieldIds,
+    );
+    // After the dances too: the repository refuses a source a live dance cites.
+    await _revertPublishedSources(
+      result.insertedPublishedSourceIds,
+      result.restoredPublishedSourceIds,
+    );
+    // After the dances too: a level a dance uses is not removed.
+    await _revertDifficultyLevels(
+      result.insertedDifficultyLevelIds,
+      result.restoredDifficultyLevelIds,
+    );
+    // Last, so the older steps above run even if this one throws.
+    await _removeLinks(result.linksAddedToEarlierDances);
     result._undone = true;
   }
 
@@ -555,7 +1636,8 @@ class CallersCompanionUsrImporter {
   /// from the freshly built program.
   ///
   /// [priorVenueId] carries the matched program's existing `venueId` forward
-  /// **when set** — a `.USR` archive has no concept of this app-local venue
+  /// **when set** (the caller passes `null` only for a link no venue row backs
+  /// when this import resolved a venue to replace it) — a `.USR` archive has no concept of this app-local venue
   /// entity link of its own, so overwriting an established link with null (or
   /// with a fresh guess) would silently drop/flip-flop app-local state the
   /// source cannot reconstruct or express (issue #687 bullet 6). When there is
@@ -563,11 +1645,16 @@ class CallersCompanionUsrImporter {
   /// re-import of a program nobody has linked yet), [src.venueId] passes
   /// through instead, so a venue-entity-mode resolution computed for *this*
   /// commit (see [commit]'s venue resolution block) isn't discarded.
+  ///
+  /// [priorArchivedAt] carries the matched program's archived state forward for
+  /// the same reason: a `.USR` file cannot express it, so a re-import must not
+  /// bring an archived program back into the Programs list.
   Program _rebuildProgramWithId(
     Program src, {
     required String id,
     required DateTime createdAt,
     required String? priorVenueId,
+    required DateTime? priorArchivedAt,
   }) => Program(
     id: id,
     title: src.title,
@@ -579,9 +1666,11 @@ class CallersCompanionUsrImporter {
     dancerLevel: src.dancerLevel,
     notes: src.notes,
     status: src.status,
+    hideAlternates: src.hideAlternates,
     slots: src.slots,
     createdAt: createdAt,
     updatedAt: src.updatedAt,
+    archivedAt: priorArchivedAt,
     provenance: src.provenance,
   );
 

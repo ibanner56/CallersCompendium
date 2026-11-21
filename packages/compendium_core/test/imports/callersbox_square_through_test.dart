@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// Issue #799 — The Caller's Box `Square through <n> (<pass list>)` lines.
 ///
@@ -20,9 +21,10 @@ import 'package:test/test.dart';
 /// decoder) reads the pass codes: odd passes name `who`, even passes name
 /// `who2`, hands alternate to give the base `hand`, and `balance: false` is
 /// emitted explicitly so the recognizer does not inherit the taxonomy default
-/// of `true`. A preceding balance line is then folded into the square_through
-/// as `balance: true` by [_foldBalanceIntoMove] (#804), matching ContraDB's
-/// shape for the same choreography.
+/// of `true`. On a standalone line the beats may then give a balance (#1975;
+/// see `square_through_balance_test.dart`). A preceding balance line is folded
+/// into the square_through as `balance: true` by [_foldBalanceIntoMove] (#804),
+/// matching ContraDB's shape for the same choreography.
 ///
 /// The reference dance is **Tangled Yarns** by Isaac Banner
 /// (TCB dance 18623 / ContraDB 2210); its B1 compound is reproduced verbatim
@@ -42,7 +44,7 @@ Future<List<Figure>> _importedFigures(List<String> lines) async {
   final adapter = CallersBoxAdapter();
   final discovered = await adapter.discover(ImportRequest(payload: payload));
   final raw = await adapter.fetch(discovered.single);
-  return adapter.parse(raw).dance.figures;
+  return figuresOf(adapter.parse(raw).dance);
 }
 
 void main() {
@@ -86,10 +88,10 @@ void main() {
   });
 
   group('#799 — conservative declines (fall back to places-only)', () {
-    test('unknown people code (square corners) is not approximated', () {
-      // C1/C2 are square corners with no taxonomy token; decode declines and the
-      // shared recognizer still yields a bare, defaulted square_through.
-      final f = _parse('Square through 2 (C1R;C2L)', beats: 4).single;
+    test('unknown people code (phantoms) is not approximated', () {
+      // Phantoms have no taxonomy token; decode declines and the shared
+      // recognizer still yields a bare, defaulted square_through.
+      final f = _parse('Square through 2 (Ph1R;Ph2L)', beats: 4).single;
       expect(f.move, 'square_through');
       expect(f.params['places'], 2);
       expect(
@@ -97,6 +99,14 @@ void main() {
         isNull,
         reason: 'not structured → default applies',
       );
+    });
+
+    test('square corners read as the v38 corner sets (#1975)', () {
+      // Maintainer decision: C1 is the first corners and C2 the opposites.
+      final f = _parse('Square through 2 (C1R;C2L)', beats: 4).single;
+      expect(f.move, 'square_through');
+      expect(f.params['who'], 'firstCorners');
+      expect(f.params['who2'], 'opposites');
     });
 
     test('cell count that disagrees with the count declines', () {

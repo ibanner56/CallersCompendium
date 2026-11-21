@@ -7,6 +7,7 @@ import '../model/figure.dart';
 import '../serialization/figure_codec.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
+import '../taxonomy/user_figure_use.dart';
 
 /// Upper bound on how many shorthand mappings we will decode from persisted
 /// config. The store is user-editable and plausibly shareable, so it is treated
@@ -17,7 +18,8 @@ import '../validation/validation.dart';
 const int maxShorthandMappings = 500;
 
 /// Upper bound on the length of a single shorthand token (after trimming). A
-/// token is a short mnemonic ("bns", "nbr bal swing") typed as a whole line, so
+/// token is a short mnemonic ("bns", "nbr bal swing") typed as a whole line (or
+/// one `;` clause of it, see [parseFreeTextFigureEntry]), so
 /// a real token is at most a few words; anything longer is treated as
 /// malformed/hostile and its mapping is dropped. Also enforced by the editor so
 /// the two never disagree.
@@ -38,7 +40,8 @@ String normalizeShorthandToken(String token) => token.trim().toLowerCase();
 const ListEquality<Object?> _figuresEquality = ListEquality<Object?>();
 
 /// One user-defined shorthand mapping: a [token] (a short mnemonic typed as a
-/// whole free-text line) that expands to an ORDERED list of [figures] (issue
+/// whole free-text line, or one `;` clause of it, with an optional beat count;
+/// see [parseFreeTextFigureEntry]) that expands to an ORDERED list of [figures] (issue
 /// #420). A shorthand may be a mini-macro — mapping to one OR MORE figures — so
 /// a single token can drop in a short sequence.
 ///
@@ -127,6 +130,11 @@ class ShorthandMappings {
   /// mapping tokens. On a hit a fresh (mutable) copy of the ordered figures is
   /// returned so the caller can insert/mutate them freely; on a miss `null` is
   /// returned and the caller falls through to the normal parser.
+  ///
+  /// The caller hands over what is left of a line once a leading/trailing
+  /// beat count or a `;` clause has been peeled off (see
+  /// [parseFreeTextFigureEntry], issue #1827); this method only ever compares
+  /// the text it is given.
   List<Figure>? resolve(String line) {
     final key = normalizeShorthandToken(line);
     if (key.isEmpty) return null;
@@ -152,7 +160,7 @@ class ShorthandMappings {
   /// - `figures` must be a non-empty `List` no longer than
   ///   [maxShorthandTargetFigures], and EVERY figure must decode structurally
   ///   AND pass taxonomy validation with no error-severity issues. Structural
-  ///   containers are validated against their bounded alternating-child model,
+  ///   containers are validated against their bounded nesting model,
   ///   while their ordinary descendants use [Taxonomy.validateFigure]
   ///   (unknown move, unknown/extra param key, out-of-range or non-conforming
   ///   value all reject);
@@ -220,8 +228,9 @@ class ShorthandMappings {
   /// returning `null` on any structural error, any decode throw, or any
   /// error-severity validation issue (unknown move, unknown param, out-of-range
   /// / non-conforming value). Structural containers are not taxonomy moves, so
-  /// they are checked recursively against the same bounded alternating-child
-  /// invariant enforced by [Figure.meanwhile]/[Figure.modifier]. Never throws.
+  /// they are checked recursively against the same bounded nesting invariant
+  /// enforced by [Figure.meanwhile]/[Figure.modifier]/[Figure.sequence]. Never
+  /// throws.
   static Figure? _decodeFigure(Object? raw, {required Taxonomy taxonomy}) {
     if (raw is! Map) return null;
     if (!_passesRawStructuralShape(raw)) return null;
@@ -241,7 +250,7 @@ class ShorthandMappings {
     if (raw is! Map) return false;
     final move = raw['move'];
     if (move is! String) return false;
-    if (move != meanwhileMove && move != modifierMove) {
+    if (!isContainerMove(move)) {
       try {
         figureFromJson(raw.cast<String, Object?>());
         return true;
@@ -257,21 +266,18 @@ class ShorthandMappings {
     final beats = params['beats'];
     if (rawChildren is! List ||
         rawChildren.length < 2 ||
-        rawChildren.length > kMaxMeanwhileSides ||
+        rawChildren.length > maxContainerChildren(move) ||
         beats is! int ||
         beats < 0) {
       return false;
     }
 
-    final expectedChildMove = move == meanwhileMove
-        ? modifierMove
-        : meanwhileMove;
     for (final rawChild in rawChildren) {
       if (rawChild is! Map) return false;
       final childMove = rawChild['move'];
       if (childMove is! String) return false;
-      if (childMove == meanwhileMove || childMove == modifierMove) {
-        if (childMove != expectedChildMove ||
+      if (isContainerMove(childMove)) {
+        if (childMove == move ||
             !_passesRawStructuralShape(rawChild, depth: depth + 1)) {
           return false;
         }
@@ -297,23 +303,23 @@ class ShorthandMappings {
       final beats = figure.params['beats'];
       if (figure.params['figures'] is! List ||
           children.length < 2 ||
-          children.length > kMaxMeanwhileSides ||
+          children.length > maxContainerChildren(figure.move) ||
           beats is! int ||
           beats < 0) {
         return false;
       }
 
       return children.every((child) {
-        if (child.isContainer) {
-          final expectedMove = figure.isMeanwhile
-              ? modifierMove
-              : meanwhileMove;
-          if (child.move != expectedMove) return false;
-        }
+        if (child.isContainer && child.move == figure.move) return false;
         return _passesValidation(child, taxonomy, depth: depth + 1);
       });
     }
 
+    // A use of a figure of your own (#1023) never lives here: builds before
+    // it drop such a mapping when they read this key, so refusing it keeps
+    // every build's reading the same. Shorthands for those figures are to
+    // get a key of their own.
+    if (hasUserFigureReferenceKeys(figure)) return false;
     final issues = taxonomy.validateFigure(figure);
     return !issues.any((i) => i.severity == ValidationSeverity.error);
   }

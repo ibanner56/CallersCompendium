@@ -3,6 +3,7 @@ import '../dialect/renderer.dart';
 import '../model/figure.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart' show danceFormMovePrefixes;
 
 /// Version of the [figureSnippetSignature] normalization scheme (#411).
 ///
@@ -13,7 +14,13 @@ import '../taxonomy/taxonomy.dart';
 const int kFigureSnippetSignatureVersion = 2;
 
 /// Migrates a v1 signature without needing to reconstruct a [Figure].
+///
+/// A key of another dance form's move (an `ecd_` ID, ADR-006) was born at
+/// version 2 and is returned unchanged.
 String migrateFigureSnippetSignature(String signature) {
+  if (danceFormMovePrefixes.values.any(signature.startsWith)) {
+    return signature;
+  }
   final open = signature.indexOf('(');
   final move = open < 0 ? signature : signature.substring(0, open);
   final legacyMove = move;
@@ -33,7 +40,11 @@ String migrateFigureSnippetSignature(String signature) {
     },
     'dir': 'where',
     'half': 'fraction',
-    'amount': 'travel',
+    // Only orbit ever had a legacy `amount` (`Taxonomy._v35ParamRenames`).
+    // Since taxonomy v39 a figure 8 or poussette has an `amount` of its own
+    // (#2120), and conflict keys pass through here on every load whatever
+    // their version, so the rename must not reach those moves.
+    if (migratedMove == 'orbit') 'amount': 'travel',
     'face': 'endFacing',
     'hand': migratedMove == 'form_long_waves' ? 'whomHand' : 'hand',
   };
@@ -97,27 +108,53 @@ String? figureSnippetSignature(Figure figure, Taxonomy taxonomy) {
   if (figure.isCustom) return null;
   final def = taxonomy.resolve(figure.move);
   if (def == null) return null;
+  // An alias listed as a move (`long_lines`, a move until taxonomy v39) keeps
+  // the signature it had as one: its own id, without the params it pins. So
+  // every long lines keeps the key `long_lines` (no signature version bump),
+  // and a forward and back in long lines, which is stored as long lines,
+  // shares it.
+  final alias = taxonomy.aliases[taxonomy.resolvedMoveId(figure)];
+  final listed = alias != null && alias.listedAsMove ? alias : null;
+  final keyId = listed?.id ?? def.id;
+  final pinned = listed?.pinnedParams ?? const <String, Object?>{};
 
   final salient =
       _salientParamNames(def.renderTemplate)
-          .where((name) => name != 'beats' && def.params.containsKey(name))
+          .where(
+            (name) =>
+                name != 'beats' &&
+                def.params.containsKey(name) &&
+                !pinned.containsKey(name),
+          )
           .toList()
         ..sort();
-  if (salient.isEmpty) return def.id;
+  if (salient.isEmpty) return keyId;
 
   final effective = taxonomy.effectiveParams(figure);
+  // An `other` fraction's amount (#2120) is not in the template, but it is
+  // what the line shows in place of the fraction: a 1½ and a 2 figure 8 are
+  // different figures. Only a STATED amount joins, so the key of every figure
+  // that could be stored before taxonomy v39 is unchanged and no signature
+  // version bump (with its migration of every stored key) is owed.
+  if (def.params.containsKey(fractionAmountParam) &&
+      statedFractionAmount(effective) != null) {
+    salient
+      ..add(fractionAmountParam)
+      ..sort();
+  }
   final parts = <String>[];
   for (final name in salient) {
     final value = effective[name];
     if (value == null) continue;
     parts.add('$name=${_normalizeValue(value)}');
   }
-  return parts.isEmpty ? def.id : '${def.id}(${parts.join(',')})';
+  return parts.isEmpty ? keyId : '$keyId(${parts.join(',')})';
 }
 
-final RegExp _placeholder = RegExp(r'\{(\w+)\}');
+final RegExp _placeholder = RegExp(r'\{\??(\w+)\}');
 
-/// Extracts `{name}` placeholder names from a render template, excluding the
+/// Extracts `{name}` placeholder names, and an ECD template's `{?flag}`
+/// (ADR-006 §6.3), from a render template, excluding the
 /// implicit `{move}` (the display name, not a stored param). Order-independent;
 /// callers sort.
 Iterable<String> _salientParamNames(String renderTemplate) => _placeholder
@@ -128,8 +165,12 @@ Iterable<String> _salientParamNames(String renderTemplate) => _placeholder
 /// Canonicalizes a param value to a stable string token for the signature:
 /// integral numbers render without a trailing `.0`, other numbers trim trailing
 /// zeros, bools render `true`/`false`, and strings (already canonical taxonomy
-/// tokens) are lowercased.
+/// tokens) are lowercased. A list of dancers (an ECD `who`) is its tokens,
+/// sorted and joined by `+`, so the key's `,` still parts its values.
 String _normalizeValue(Object value) {
+  if (value is List) {
+    return (value.map((t) => '$t'.toLowerCase()).toList()..sort()).join('+');
+  }
   if (value is bool) return value ? 'true' : 'false';
   if (value is int) return value.toString();
   if (value is num) {
@@ -191,16 +232,28 @@ String describeFigureSignature(
 /// [spec]'s [ParamKind]. Returns `null` when the token can't be represented for
 /// that kind (so the caller falls back to the raw signature).
 Object? _coerceSignatureValue(ParamSpec spec, String token) {
+  // A numeric kind that admits "not stated" (a circle's or star's places,
+  // `gate.travel`) signs it as the sentinel's own token.
+  if (token == ParamVocab.unspecified && spec.validate(token)) return token;
   switch (spec.kind) {
     case ParamKind.rotation:
       return num.tryParse(token);
     case ParamKind.places:
+    case ParamKind.number:
     case ParamKind.beats:
       return int.tryParse(token);
     case ParamKind.flag:
       if (token == 'true') return true;
       if (token == 'false') return false;
       return null;
+    case ParamKind.dancerList:
+      // The key lowercases each token; read it back in its own spelling.
+      final choices = spec.choices ?? ParamVocab.dancerSets;
+      final list = [
+        for (final t in token.split('+'))
+          choices.firstWhere((c) => c.toLowerCase() == t, orElse: () => t),
+      ];
+      return spec.validate(list) ? list : null;
     default:
       return token;
   }

@@ -5,32 +5,36 @@ import '../../l10n/app_localizations.dart';
 import '../data/collection_tile_fields_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
-import '../screens/dance_detail_screen.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
+import '../theme/selected_row.dart';
 import '../theme/set_list_accents.dart';
 import 'program_status_chip.dart';
+import 'right_click_menu.dart';
 import 'tag_chip.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
-/// and `showInList` custom fields (Phase 3.1 rendering). Tapping it opens
-/// [DanceDetailScreen]. Pass an [onTap] to override the default navigation
-/// (e.g. when the caller needs to await a result from the detail route).
+/// and `showInList` custom fields (Phase 3.1 rendering). The tile is
+/// navigation-agnostic: the caller's [onTap] decides what a tap does (the
+/// Collection pushes the detail route, the program picker adds the dance,
+/// selection mode toggles the row).
 ///
 /// When [selectionMode] is true (Collection batch-tag multi-select,
 /// `docs/design/ux.md` §1) the leading avatar is replaced by a [Checkbox]
 /// reflecting [selectedForBatch]; the row is also marked
-/// [ListTile.selected] so the state is conveyed by a checkmark **and** a
-/// highlight (never color alone), and the trailing chevron is hidden. Tapping
+/// [selected] so the state is conveyed by a checkmark **and** the selected-row
+/// bar (never color alone), and the trailing chevron is hidden. Tapping
 /// the row (via [onTap]) toggles selection; [onLongPress] lets a caller enter
 /// selection mode from a normal (non-selection) row.
 class DanceListTile extends StatelessWidget {
   const DanceListTile({
     super.key,
     required this.entry,
-    this.onTap,
+    required this.onTap,
     this.onLongPress,
     this.selected = false,
     this.selectionMode = false,
@@ -39,6 +43,7 @@ class DanceListTile extends StatelessWidget {
     this.onDelete,
     this.onDuplicate,
     this.onAddToProgram,
+    this.onAddTags,
     this.onTagTap,
     this.visibleFields,
   }) : assert(
@@ -49,23 +54,24 @@ class DanceListTile extends StatelessWidget {
 
   final DanceListEntry entry;
 
-  /// Optional override for the tap action. When null, the default behaviour
-  /// (push [DanceDetailScreen] without awaiting a result) is used.
-  final VoidCallback? onTap;
+  /// What tapping the row does. Required: the tile owns no navigation.
+  final VoidCallback onTap;
 
   /// Optional long-press handler (e.g. to enter batch-selection mode).
   final VoidCallback? onLongPress;
 
   /// Whether this tile is the currently selected row (e.g. in split-pane mode,
-  /// or the selected-for-batch row while [selectionMode] is active).
+  /// or the selected-for-batch row while [selectionMode] is active). A
+  /// selected row has a primary bar down its left edge ([selectedRowShape])
+  /// and a primary title (issue #2156).
   final bool selected;
 
   /// Whether the list is in batch multi-select mode. When true the leading
   /// widget is a [Checkbox] and the trailing chevron is hidden.
   final bool selectionMode;
 
-  /// Whether to show the normal drill-in chevron. Defaults to true so callers
-  /// that override [onTap] retain the existing affordance unless they opt out.
+  /// Whether to show the normal drill-in chevron. Defaults to true, so callers
+  /// keep the drill-in affordance unless they opt out.
   final bool showChevron;
 
   /// Whether this row is currently checked in batch multi-select mode.
@@ -84,16 +90,20 @@ class DanceListTile extends StatelessWidget {
   /// [selectionMode]) the ⋮ menu exposes an "Add to program" action.
   final VoidCallback? onAddToProgram;
 
-  /// Called with a tag's id when its chip is tapped, to filter the Collection
-  /// to that tag (issue #414). When null (e.g. the Programs dance picker) the
+  /// Opens the add-tags flow for this dance alone. When non-null (and not in
+  /// [selectionMode]) the ⋮ menu exposes an "Add tags" action.
+  final VoidCallback? onAddTags;
+
+  /// Called with a tag's id when its chip is tapped, to add that tag to the
+  /// Collection's Tags filter (issue #414, FIND-14). When null (e.g. the Programs dance picker) the
   /// tag chips stay non-interactive. Ignored while in [selectionMode], where
   /// the whole row drives batch selection.
   final void Function(String tagId)? onTagTap;
 
   /// Which data chips to render on this row. When null every chip is shown,
   /// preserving the existing behaviour at all call sites that don't opt in.
-  /// The collection screen passes [CollectionTileFieldsScope.of(context)] here;
-  /// all other call sites leave this null.
+  /// The collection screen and the program picker pass
+  /// [CollectionTileFieldsScope.of(context)] here.
   final Set<CollectionTileField>? visibleFields;
 
   @override
@@ -104,11 +114,13 @@ class DanceListTile extends StatelessWidget {
 
     // Mirror the dance-detail calling history: when "Require mark-performed"
     // is on the count reflects performed-only occurrences, otherwise every
-    // occurrence — so the card and the detail history never disagree. Reading
-    // the scope here (rather than at load time) keeps the chip live as the
-    // setting toggles, without reloading the list.
+    // occurrence, and "Require an event date" leaves out undated programs —
+    // so the card and the detail history never disagree. Reading the scopes
+    // here (rather than at load time) keeps the chip live as either setting
+    // toggles, without reloading the list.
     final calledCount = entry.callCounts.countFor(
       RequirePerformedForHistoryScope.of(context),
+      requireEventDate: RequireEventDateForHistoryScope.of(context),
     );
     // Which fields the user wants shown on this row (issue #767).
     // Null means show everything — the call site didn't opt in.
@@ -125,11 +137,18 @@ class DanceListTile extends StatelessWidget {
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
-    return ListTile(
+    // Lark and robin when the dance's choreographer asked for them.
+    final dialect = dialectForDance(
+      (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forDance(
+        dance,
+      ),
+      title: dance.title,
+      authorNames: entry.authorNames,
+    );
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
+    final tile = ListTile(
       selected: selected,
-      visualDensity: VisualDensity.compact,
+      shape: selectedRowShape(context, selected: selected),
       onLongPress: onLongPress,
       leading: selectionMode
           ? Checkbox(
@@ -137,7 +156,7 @@ class DanceListTile extends StatelessWidget {
               value: selectedForBatch,
               // Toggled by tapping the row (ListTile.onTap); the checkbox
               // mirrors that so pointer taps on the box itself also work.
-              onChanged: onTap == null ? null : (_) => onTap!(),
+              onChanged: (_) => onTap(),
               semanticLabel: l10n.collectionSelectDanceLabel(dance.title),
             )
           : Tooltip(
@@ -149,9 +168,16 @@ class DanceListTile extends StatelessWidget {
                 child: Icon(danceFormIcon(dance.form), size: 20),
               ),
             ),
-      title: Text(dance.title, style: theme.textTheme.titleMedium),
+      // The explicit style carries its own colour, which would hide
+      // ListTile's selected colour, so the selected title is set to it here.
+      title: Text(
+        dance.title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: selected ? theme.colorScheme.primary : null,
+        ),
+      ),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: AppSpacing.xxs),
         child: Wrap(
           spacing: 8,
           runSpacing: 4,
@@ -184,8 +210,8 @@ class DanceListTile extends StatelessWidget {
                   formationDisplayLabel(
                     l10n,
                     dance.formation,
-                    FigureRenderer(contraTaxonomy),
-                    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+                    FigureRenderer(shippedTaxonomies.anyForm),
+                    dialect,
                     canonicalizeDiscouragedTerms:
                         CanonicalDiscouragedTermsScope.of(context),
                   ),
@@ -200,6 +226,23 @@ class DanceListTile extends StatelessWidget {
             if (effectiveFields.contains(CollectionTileField.status) &&
                 dance.status != DanceStatus.active)
               DanceStatusChip(status: dance.status),
+            // Shown regardless of the visible-field configuration: a row whose
+            // stored figures or tunes could not be decoded looks exactly like a
+            // dance that simply has none, and that is the confusion this whole
+            // change exists to remove (#1347). Not a status — the dance is
+            // fine, its stored text is what cannot be read.
+            if (dance.figuresSource is UnreadableFigures ||
+                dance.tunesSource is UnreadableTunes)
+              Chip(
+                avatar: Icon(
+                  Icons.report_problem_outlined,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                label: Text(l10n.danceListUnreadableBadge),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             if (effectiveFields.contains(CollectionTileField.level) &&
                 (entry.difficultyLevel ??
                         DifficultyLevel.knownForId(dance.difficultyLevelId)) !=
@@ -280,16 +323,17 @@ class DanceListTile extends StatelessWidget {
       ),
       isThreeLine: false,
       trailing: selectionMode ? null : _buildTrailing(l10n),
-      onTap:
-          onTap ??
-          () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => DanceDetailScreen(danceId: dance.id),
-            ),
-          ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
     );
+    // A right-click on the row opens the ⋮ menu ([_actionsMenu]).
+    return RightClickMenu(menuKey: _actionsMenuKey, child: tile);
   }
+
+  Key get _actionsMenuKey => ValueKey('dance-actions-${entry.dance.id}');
 
   String _renderCustomField(
     ({String label, String value}) field, {
@@ -311,7 +355,10 @@ class DanceListTile extends StatelessWidget {
   /// drill-in chevron. Returns null when neither is needed.
   Widget? _buildTrailing(AppLocalizations l10n) {
     final hasActions =
-        onDelete != null || onDuplicate != null || onAddToProgram != null;
+        onDelete != null ||
+        onDuplicate != null ||
+        onAddToProgram != null ||
+        onAddTags != null;
     if (!hasActions) {
       return showChevron ? const Icon(Icons.chevron_right) : null;
     }
@@ -329,7 +376,7 @@ class DanceListTile extends StatelessWidget {
   Widget _actionsMenu(AppLocalizations l10n) {
     final dance = entry.dance;
     return PopupMenuButton<_DanceRowAction>(
-      key: ValueKey('dance-actions-${dance.id}'),
+      key: _actionsMenuKey,
       tooltip: l10n.collectionRowActionsSemantic(dance.title),
       icon: const Icon(Icons.more_vert),
       onSelected: (action) {
@@ -338,6 +385,8 @@ class DanceListTile extends StatelessWidget {
             onDuplicate?.call();
           case _DanceRowAction.addToProgram:
             onAddToProgram?.call();
+          case _DanceRowAction.addTags:
+            onAddTags?.call();
           case _DanceRowAction.delete:
             onDelete?.call();
         }
@@ -363,8 +412,20 @@ class DanceListTile extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
+        if (onAddTags != null)
+          PopupMenuItem<_DanceRowAction>(
+            key: const ValueKey('dance-action-add-tags'),
+            value: _DanceRowAction.addTags,
+            child: ListTile(
+              leading: const Icon(Icons.label_outline),
+              title: Text(l10n.collectionAddTags),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         if (onDelete != null) ...[
-          if (onDuplicate != null || onAddToProgram != null)
+          if (onDuplicate != null ||
+              onAddToProgram != null ||
+              onAddTags != null)
             const PopupMenuDivider(),
           PopupMenuItem<_DanceRowAction>(
             key: const ValueKey('dance-action-delete'),
@@ -382,4 +443,4 @@ class DanceListTile extends StatelessWidget {
 }
 
 /// Row actions exposed by [DanceListTile]'s trailing overflow (⋮) menu.
-enum _DanceRowAction { duplicate, addToProgram, delete }
+enum _DanceRowAction { duplicate, addToProgram, addTags, delete }

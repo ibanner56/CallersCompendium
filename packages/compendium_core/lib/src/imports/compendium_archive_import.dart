@@ -13,9 +13,11 @@ import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/difficulty_level_repository.dart';
 import '../storage/repositories/program_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
+import '../storage/repositories/repositories.dart';
 import '../storage/repositories/tag_repository.dart';
 import '../storage/repositories/venue_repository.dart';
 import '../storage/shareable_text.dart';
+import '../sync/sync_storage.dart';
 import '../util/uuid.dart';
 import 'dedupe.dart';
 import 'generic_json_adapter.dart';
@@ -57,22 +59,29 @@ class _DifficultyLevelImportPlan {
 }
 
 /// Rebuilds the [archive]'s [Program]s for insertion into the live collection,
-/// resolving each slot's *original* `danceId` to the **newly-committed**
-/// Compendium dance id via [danceIdByOriginalId].
+/// resolving each slot's *original* `danceId` to a local Compendium dance id
+/// via [danceIdByOriginalId].
 ///
 /// This is a **pure builder** — no repository, no I/O — mirroring
 /// [buildCcPrograms]'s philosophy so it is trivially unit-testable and stays
 /// Flutter-free. The importer calls it *after* the archive's dances commit
 /// (so [danceIdByOriginalId] maps each archive dance id → the dance id the
-/// pipeline just minted/matched), then persists the returned programs.
+/// pipeline just minted/matched, or the existing dance a skipped re-import row
+/// already points at), then persists the returned programs.
 ///
-/// Fidelity: every program is imported **verbatim** — title, event metadata,
-/// slot order, note-only slots ([ProgramSlot.text] with no dance), alternates,
-/// guest callers, planned minutes and performed timestamps are preserved as
-/// authored. Nothing is fabricated.
+/// Fidelity: a program is imported as a **plan**, the way
+/// [Program.duplicate] copies one (maintainer decision, 2026-10-28). The
+/// sender's calling history stays theirs: status becomes
+/// [ProgramStatus.draft], every slot's performed mark is cleared (including
+/// the marks a Performed status stamped on its own), and the event date is
+/// cleared. Everything else — title, venue, band, host caller, notes, slot
+/// order, note-only slots ([ProgramSlot.text] with no dance), alternates,
+/// guest callers and planned minutes — is preserved as authored. Nothing is
+/// fabricated.
 ///
-/// **Parse-never-fails:** a slot whose referenced dance was not committed (it
-/// deduped away, was skipped, or the archive omitted it) degrades to a
+/// **Parse-never-fails:** a slot whose referenced dance has no entry in
+/// [danceIdByOriginalId] (a skipped row with no local dance, a failed record,
+/// or a dance the archive omitted) degrades to a
 /// text/note placeholder slot with an [ImportIssue] — never a throw, never a
 /// dropped slot.
 ArchiveProgramsResult buildArchivePrograms(
@@ -146,7 +155,8 @@ ArchiveProgramsResult buildArchivePrograms(
           guestCaller: slot.guestCaller,
           walkthroughMinutes: slot.walkthroughMinutes,
           danceMinutes: slot.danceMinutes,
-          performedAt: slot.performedAt,
+          // The sender's performed mark is their calling history, not the
+          // receiver's; see "Fidelity" above.
         ),
       );
     }
@@ -155,22 +165,28 @@ ArchiveProgramsResult buildArchivePrograms(
       Program(
         id: mintId(),
         title: program.title,
-        eventDate: program.eventDate,
+        // The event date is cleared, as [Program.duplicate] clears it: the
+        // sender's date would put their gig into the receiver's history.
         venue: program.venue,
         venueId: _resolveVenueId(program, venueIdByOriginalId, issues),
         band: program.band,
         caller: program.caller,
         dancerLevel: program.dancerLevel,
         notes: program.notes,
-        status: program.status,
+        status: ProgramStatus.draft,
         hideAlternates: program.hideAlternates,
+        dialectName: program.dialectName,
+        payMinorUnits: program.payMinorUnits,
+        payCurrency: program.payCurrency,
+        // Not archived: the share bundles strip `archivedAt`, and a program
+        // received from someone else belongs in the receiver's list anyway.
         slots: slots,
         createdAt: timestamp,
         updatedAt: timestamp,
-        // Provenance keyed on the *original* program id, so re-receiving the
-        // same bundle dedupes onto this program instead of creating a
-        // duplicate. Mirrors the dance provenance the pipeline stamps
-        // (`source: json`).
+        // Provenance keyed on the *original* program id records where the
+        // program came from. It is not a dedupe key: re-receiving the program
+        // imports a new copy (see [CompendiumArchiveImporter.commit]).
+        // Mirrors the dance provenance the pipeline stamps (`source: json`).
         provenance: Provenance(
           source: ProvenanceSource.json,
           externalId: program.id,
@@ -235,9 +251,6 @@ class CompendiumArchiveImportResult {
     required List<ImportIssue> programIssues,
     this.metadata,
     List<String> insertedProgramIds = const [],
-    List<Program> updatedProgramPriorStates = const [],
-    List<String> restoredProgramIds = const [],
-    this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<String> restoredVenueIds = const [],
     List<String> insertedDifficultyLevelIds = const [],
@@ -246,8 +259,6 @@ class CompendiumArchiveImportResult {
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
-       updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
-       restoredProgramIds = List.unmodifiable(restoredProgramIds),
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
        restoredVenueIds = List.unmodifiable(restoredVenueIds),
        insertedDifficultyLevelIds = List.unmodifiable(
@@ -265,26 +276,14 @@ class CompendiumArchiveImportResult {
   /// callers that supplied an archive importer without metadata repositories.
   final ShareMetadataImportResult? metadata;
 
-  /// Every program this import persisted — both newly inserted and updated
-  /// (re-imported) — carrying its final id. Ordered as the archive listed them.
+  /// Every program this import persisted, carrying its final id. Ordered as
+  /// the archive listed them. Each one is new: a shared file never updates a
+  /// program the receiver already had.
   final List<Program> programs;
 
-  /// Ids of the programs **inserted** by this import (no prior existed); these
-  /// are hard-deleted on [undo].
+  /// Ids of the programs **inserted** by this import — every program it
+  /// persisted. These are hard-deleted on [undo].
   final List<String> insertedProgramIds;
-
-  /// Prior snapshots of the programs this import **updated in place** because a
-  /// re-import matched their `(json, externalId)` provenance key. Restored
-  /// verbatim on [undo].
-  final List<Program> updatedProgramPriorStates;
-
-  /// Ids of tombstoned programs restored by an exact provenance match. Soft-deleted
-  /// again on [undo] so the rollback records a later existence transition.
-  final List<String> restoredProgramIds;
-
-  /// Import timestamp used for causal restore and failed-commit compensation.
-  /// [undo] takes a fresh timestamp instead.
-  final DateTime? programRestoreAt;
 
   /// Ids of the venues this import **inserted** (one freshly-minted id per
   /// bundled venue). Hard-deleted on [undo] once the referencing programs have
@@ -312,11 +311,10 @@ class CompendiumArchiveImportResult {
   /// persisted program, or `null` when the archive carried no program.
   String? get primaryProgramId => programs.isEmpty ? null : programs.first.id;
 
-  /// Every persisted program id (inserted or updated), in archive order.
+  /// Every persisted program id, in archive order.
   List<String> get importedProgramIds => [for (final p in programs) p.id];
 
   int get insertedProgramCount => insertedProgramIds.length;
-  int get updatedProgramCount => updatedProgramPriorStates.length;
   int get insertedVenueCount => insertedVenueIds.length;
   int get importedMetadataCount =>
       (metadata?.tagIdByArchiveId.length ?? 0) +
@@ -344,10 +342,14 @@ class CompendiumArchiveImportResult {
 /// repositories) so it lives in the core and is trivially unit-testable; the
 /// app supplies the archive JSON.
 class CompendiumArchiveImporter {
+  /// [repositories] must own the same database as the repositories used by
+  /// [pipeline], [_programs], and [_venues], because the import invalidates
+  /// sync and normalization state for that database after it writes.
   CompendiumArchiveImporter(
     this._pipeline,
     this._programs,
     this._venues, {
+    required this.repositories,
     TagRepository? tags,
     PublishedSourceRepository? sources,
     CustomFieldDefRepository? customFields,
@@ -363,6 +365,7 @@ class CompendiumArchiveImporter {
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
   final VenueRepository _venues;
+  final CompendiumRepositories repositories;
   final ShareMetadataImporter? _metadata;
   final DifficultyLevelRepository? _difficultyLevels;
 
@@ -377,18 +380,39 @@ class CompendiumArchiveImporter {
     preserveCanonicalDifficultyIds: true,
   );
 
+  /// The metadata notes [commit] would raise for [archive], checked at plan
+  /// time without writing anything, so the review can show them before the
+  /// user imports (INTAKE-2): today, a custom field that goes in under a
+  /// suffixed key. Empty when this importer has no metadata repositories.
+  Future<List<ImportIssue>> planMetadataIssues(CompendiumArchive archive) =>
+      _metadata?.preview(archive) ?? Future.value(const []);
+
   /// Commits a planned dance [batch] and then the [archive]'s programs.
   ///
   /// The dances commit first (real pipeline path), yielding the
   /// original-dance-id → committed-dance-id map used to FK-resolve each program
-  /// slot. Programs whose slots reference a dance that was not committed degrade
-  /// to text placeholders + issues (never a throw — see [buildArchivePrograms]).
+  /// slot. Programs whose slots reference a dance that was neither committed
+  /// nor named in [existingDanceIdByExternalId] degrade to text placeholders +
+  /// issues (never a throw — see [buildArchivePrograms]).
+  ///
+  /// [existingDanceIdByExternalId] maps a dance's import key
+  /// ([GenericJsonAdapter.externalIdFor], the planned record's
+  /// `RawRecord.externalId`) to a local dance id for rows left out of [batch]
+  /// that still have a dance in the collection — chiefly a re-import row the
+  /// review left at Skip, whose verdict already names the target (INTAKE-1).
+  /// A program slot for such a dance links to it instead of becoming a "not
+  /// imported" placeholder. The dances it names are not written.
+  ///
+  /// [defaultTagIds] are the caller's default import tags: they are added to
+  /// each dance this commit **creates**, next to the sender's own tags, as
+  /// [ImportPipeline.commit] adds them. A dance it updates keeps its tags.
   ///
   /// Everything is recorded on the returned [CompendiumArchiveImportResult] so
-  /// [undo] reverts dances **and** programs. If any program write fails the
-  /// dances are already committed, so the import compensates (removing inserted
-  /// programs, restoring updated ones, and undoing the dance commit) before
-  /// rethrowing, keeping the import all-or-nothing from the caller's view.
+  /// [undo] reverts dances **and** programs. Sync-state invalidation, pending
+  /// deletion revalidation, and normalization run in one database transaction
+  /// after the content writes. If that cleanup fails, the transaction restores
+  /// every pre-import sync/normalization row and the importer compensates its
+  /// in-memory content ledger before rethrowing.
   Future<CompendiumArchiveImportResult> commit(
     ImportBatchResult batch,
     CompendiumArchive archive, {
@@ -396,14 +420,11 @@ class CompendiumArchiveImporter {
     String Function()? newId,
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
+    Map<String, String> existingDanceIdByExternalId = const {},
+    List<String> defaultTagIds = const [],
   }) async {
     final mintId = newId ?? uuidV4;
     final insertedIds = <String>[];
-    final insertedIdSet = <String>{};
-    final priorCapturedFor = <String>{};
-    final priorStates = <Program>[];
-    final restoredProgramIds = <String>[];
-    final restoredProgramIdSet = <String>{};
     final insertedVenueIds = <String>[];
     final restoredVenueIds = <String>[];
     final difficultyLevels = _DifficultyLevelImportLedger();
@@ -415,7 +436,12 @@ class CompendiumArchiveImporter {
         difficultyPlan.levels,
         ledger: difficultyLevels,
       );
-      metadata = await _commitMetadata(archive, now: now, newId: mintId);
+      metadata = await _commitMetadata(
+        archive,
+        now: now,
+        newId: mintId,
+        only: _metadataNeededBy(batch, resolutions),
+      );
       var commitBatch = _remapDifficultyLevels(batch, difficultyPlan.idRemap);
       if (metadata != null) {
         commitBatch = _remapBatch(commitBatch, metadata);
@@ -425,23 +451,25 @@ class CompendiumArchiveImporter {
         now: now,
         newId: mintId,
         resolutions: resolutions,
+        defaultTagIds: defaultTagIds,
       );
       danceSession = committedDanceSession;
 
       final danceIdByOriginalId = _danceIdByOriginalId(
-        committedDanceSession,
+        await _pipeline.withLiveExistingDances(
+          _danceIdByExternalId(committedDanceSession),
+          existingDanceIdByExternalId,
+        ),
         archive,
       );
 
-      final existingByExternalId = await _programs.externalIdToProgramId(
-        ProvenanceSource.json,
-      );
-      // Working copy that also absorbs ids inserted during *this* commit, so a
-      // duplicate externalId appearing twice in a single (untrusted) archive
-      // updates the row in place instead of inserting it twice.
-      final resolvedByExternalId = Map<String, String>.from(
-        existingByExternalId,
-      );
+      // Programs this commit inserted, by their original archive id, so a
+      // duplicate id appearing twice in a single (untrusted) archive updates
+      // the row in place instead of inserting it twice. Programs the receiver
+      // already had are never looked up: re-receiving a program imports a new
+      // copy alongside theirs rather than overwriting their date, marks and
+      // edits (maintainer decision, 2026-10-28; INTAKE-1 scenario B).
+      final insertedByExternalId = <String, String>{};
       // Keyed by final program id so repeated externalIds collapse to one entry
       // carrying the final persisted state, preserving first-seen archive order.
       final persisted = <String, Program>{};
@@ -592,18 +620,6 @@ class CompendiumArchiveImporter {
         now: now,
       );
 
-      // A pre-venue archive cannot express `venueId` at all, so on a
-      // provenance-matched re-import its programs carry a null one; honoring that
-      // would silently drop a link the user established after the original
-      // import. Only a venue-aware archive has *explicit* venue semantics whose
-      // (remapped-or-nulled) value should overwrite the matched program — see
-      // [_rebuildProgramWithId]. Keyed on [requiredSchemaVersion] (the archive's
-      // actual venue content, exactly what the encoder stamps the wire version
-      // from) rather than the passed object's `schemaVersion`, so the decision is
-      // correct regardless of how that field was set.
-      final archiveCarriesVenueLinks =
-          requiredSchemaVersion(archive) >= archiveSchemaVersionVenues;
-
       // Load live venue ids only if a program write needs them, and reuse the
       // immutable snapshot for every linked program instead of issuing N+1
       // existence queries.
@@ -615,51 +631,67 @@ class CompendiumArchiveImporter {
       for (final program in built.programs) {
         final externalId = program.provenance?.externalId;
         final hasExternalId = externalId != null && externalId.isNotEmpty;
-        final mappedId = hasExternalId
-            ? resolvedByExternalId[externalId]
+        final repeatOf = hasExternalId
+            ? insertedByExternalId[externalId]
             : null;
-        final existing = mappedId == null
-            ? null
-            : await _programs.getById(mappedId, includeDeleted: true);
-        if (mappedId == null || existing == null) {
-          final knownVenueIds = program.venueId == null
-              ? LiveVenueIds.empty
-              : await ensureLiveVenueIds();
-          await _programs.create(program, knownVenueIds: knownVenueIds);
-          insertedIds.add(program.id);
-          insertedIdSet.add(program.id);
-          if (hasExternalId) resolvedByExternalId[externalId] = program.id;
-          persisted[program.id] = program;
+        final target = repeatOf == null
+            ? program
+            : _rebuildProgramWithId(
+                program,
+                id: repeatOf,
+                createdAt: persisted[repeatOf]!.createdAt,
+              );
+        final knownVenueIds = target.venueId == null
+            ? LiveVenueIds.empty
+            : await ensureLiveVenueIds();
+        if (repeatOf == null) {
+          await _programs.create(target, knownVenueIds: knownVenueIds);
+          insertedIds.add(target.id);
+          if (hasExternalId) insertedByExternalId[externalId] = target.id;
         } else {
-          final target = _rebuildProgramWithId(
-            program,
-            id: mappedId,
-            createdAt: existing.createdAt,
-            priorVenueId: existing.venueId,
-            archiveCarriesVenueLinks: archiveCarriesVenueLinks,
-          );
-          // Capture the true pre-import state exactly once per existing id, and
-          // never for a row this commit inserted (its prior state is "absent",
-          // handled by hardDelete on undo) — so undo restores the real
-          // pre-import state, not an intermediate one.
-          if (!insertedIdSet.contains(mappedId) &&
-              priorCapturedFor.add(mappedId)) {
-            priorStates.add(existing);
-          }
-          if (existing.deletedAt != null) {
-            await _programs.restore(mappedId, at: now);
-            if (restoredProgramIdSet.add(mappedId)) {
-              restoredProgramIds.add(mappedId);
-            }
-          }
-          final venueId = target.venueId;
-          final knownVenueIds = venueId == null
-              ? LiveVenueIds.empty
-              : await ensureLiveVenueIds();
           await _programs.update(target, knownVenueIds: knownVenueIds);
-          persisted[mappedId] = target;
         }
+        persisted[target.id] = target;
       }
+
+      // Metadata was committed only for the rows that write a dance (see
+      // [_metadataNeededBy]); what a row that then failed needed is taken
+      // back, as the `.USR` importer drops its unused definitions. Inside this
+      // try: a failure part-way is compensated with the rest, from a ledger
+      // that names only what is still there.
+      if (metadata != null) {
+        await _metadata!.dropUnused(
+          metadata,
+          used: _metadataUsedBy(
+            commitBatch,
+            committedDanceSession,
+            defaultTagIds: defaultTagIds,
+          ),
+          now: now,
+        );
+      }
+
+      // This writer is merge-like: it changes only the records carried by the
+      // bundle, so pending deletions for unrelated local records remain valid.
+      // Baselines, aliases, review decisions, and normalization bookkeeping
+      // are conclusions about the pre-import dataset and must not survive it.
+      // Parts kept for a peer's newer build are not: like a restore it clears
+      // none, because a record it writes is stamped newer and a body without
+      // them would strip them from the peer (sync-spec §6.7).
+      // Keep the cleanup transaction separate from the content ledger: on a
+      // cleanup failure it rolls back these rows, then the catch block
+      // compensates the already-written content.
+      await repositories.transaction(() async {
+        await repositories.syncLocal.clearForRestore(
+          restoredRecords: const [],
+          revalidatePending: false,
+        );
+        await repositories.resetNormalisationStateForRestore();
+        await CompendiumSyncStorage(
+          repositories,
+        ).revalidatePendingDeletions(dropMissing: true);
+        await repositories.ensureMigrated();
+      }, resetMigrationOnFailure: true);
 
       return CompendiumArchiveImportResult(
         danceSession: committedDanceSession,
@@ -667,25 +699,16 @@ class CompendiumArchiveImporter {
         programIssues: built.issues,
         metadata: metadata,
         insertedProgramIds: insertedIds,
-        updatedProgramPriorStates: priorStates,
-        restoredProgramIds: restoredProgramIds,
-        programRestoreAt: restoredProgramIds.isEmpty ? null : now,
         insertedVenueIds: insertedVenueIds,
         restoredVenueIds: restoredVenueIds,
         insertedDifficultyLevelIds: difficultyLevels.insertedIds,
         difficultyLevelPriorStates: difficultyLevels.priorStates,
       );
     } catch (_) {
-      // Compensate in reverse-dependency order: remove inserted programs and
-      // restore updated ones first so no program still references a venue, then
-      // remove the venues this import inserted, then undo the dances.
+      // Compensate in reverse-dependency order: remove inserted programs first
+      // so no program still references a venue, then remove the venues this
+      // import inserted, then undo the dances.
       await _programs.hardDelete(insertedIds);
-      for (final prior in priorStates) {
-        await _programs.update(prior);
-      }
-      for (final id in restoredProgramIds) {
-        await _programs.softDelete(id, at: now);
-      }
       await _venues.hardDelete(insertedVenueIds);
       for (final id in restoredVenueIds) {
         try {
@@ -843,10 +866,40 @@ class CompendiumArchiveImporter {
     }
   }
 
+  /// The archive tag, custom-field and source ids carried by the records of
+  /// [batch] that will write a dance (create, duplicate, variation or link, as
+  /// [resolveCommitAction] reads each with its [resolutions] entry). A
+  /// re-import writes none of a draft's tags, fields or citations (INTAKE-7),
+  /// and a skip writes nothing, so neither needs its metadata committed.
+  ({Set<String> tags, Set<String> fields, Set<String> sources})
+  _metadataNeededBy(
+    ImportBatchResult batch,
+    Map<int, DedupeResolution> resolutions,
+  ) {
+    final tags = <String>{};
+    final fields = <String>{};
+    final sources = <String>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      final record = batch.records[i];
+      final (action, _) = resolveCommitAction(record.verdict, resolutions[i]);
+      if (action == CommitAction.skip || action == CommitAction.reimport) {
+        continue;
+      }
+      final dance = record.draft.dance;
+      tags.addAll(dance.tagIds);
+      fields.addAll([for (final value in dance.customFields) value.fieldId]);
+      sources.addAll([
+        for (final citation in dance.sourceCitations) citation.sourceId,
+      ]);
+    }
+    return (tags: tags, fields: fields, sources: sources);
+  }
+
   Future<ShareMetadataImportResult?> _commitMetadata(
     CompendiumArchive archive, {
     required DateTime now,
     required String Function() newId,
+    ({Set<String> tags, Set<String> fields, Set<String> sources})? only,
   }) {
     final hasMetadata =
         archive.tags.isNotEmpty ||
@@ -859,7 +912,38 @@ class CompendiumArchiveImporter {
         'metadata repositories are required to import a shared archive',
       );
     }
-    return importer.commit(archive, now: now, newId: newId);
+    return importer.commit(archive, now: now, newId: newId, only: only);
+  }
+
+  /// The tag, custom-field and source ids carried by the dances [session]
+  /// wrote from [batch] (created, or replaced by a link), plus
+  /// [defaultTagIds], which a created dance also gets. A re-import writes none
+  /// of a draft's tags, fields or citations (INTAKE-7), so its draft counts
+  /// for nothing; nor does a skipped or failed record. [ImportPipeline.commit]
+  /// reports one record per record of [batch], in order.
+  ({Set<String> tags, Set<String> fields, Set<String> sources}) _metadataUsedBy(
+    ImportBatchResult batch,
+    ImportSession session, {
+    required List<String> defaultTagIds,
+  }) {
+    final tags = <String>{...defaultTagIds};
+    final fields = <String>{};
+    final sources = <String>{};
+    for (var i = 0; i < session.records.length; i++) {
+      final record = session.records[i];
+      if (!record.succeeded ||
+          record.action == CommitAction.skip ||
+          record.action == CommitAction.reimport) {
+        continue;
+      }
+      final dance = batch.records[i].draft.dance;
+      tags.addAll(dance.tagIds);
+      fields.addAll([for (final value in dance.customFields) value.fieldId]);
+      sources.addAll([
+        for (final citation in dance.sourceCitations) citation.sourceId,
+      ]);
+    }
+    return (tags: tags, fields: fields, sources: sources);
   }
 
   ImportBatchResult _remapBatch(
@@ -876,6 +960,7 @@ class CompendiumArchiveImporter {
               quality: record.draft.quality,
               issues: record.draft.issues,
               authorNames: record.draft.authorNames,
+              interpreterNames: record.draft.interpreterNames,
               difficultyLevelLabel: record.draft.difficultyLevelLabel,
               difficultyLevelIdIsCanonical:
                   record.draft.difficultyLevelIdIsCanonical,
@@ -953,18 +1038,22 @@ class CompendiumArchiveImporter {
   }
 
   /// Reverts a committed [result]: hard-deletes the **inserted** programs (slots
-  /// cascade) and restores every **updated** (re-imported) program to its
-  /// captured prior state, then removes the **inserted** venues, **before**
+  /// cascade) — every program a shared-file import persists is a new one —
+  /// then removes the **inserted** venues, **before**
   /// delegating to [ImportPipeline.undo] for the dances, authors and
   /// updated-dance rollbacks. Idempotent — a second call is a no-op.
   ///
-  /// Venue removal is **guarded**, mirroring [ImportPipeline.undo]'s
-  /// created-choreographer handling: after a successful import a surviving user
-  /// program may have linked to an imported venue, so an unconditional delete
-  /// would orphan that program's `venueId`. Each imported venue is deleted only
-  /// when no program still references it (the repository guard throws
-  /// otherwise); a still-referenced venue is retained. Inserted programs are
-  /// removed first, so a venue referenced solely by this import is reclaimed.
+  /// Venue removal goes through [VenueRepository.hardDelete], the same call the
+  /// commit-failure path above makes, because that is where the erasure
+  /// retention rule lives (sync-spec §3.1): after a successful import a
+  /// surviving user program may have linked to an imported venue, so an
+  /// unconditional erase would orphan that program's `venueId`. `hardDelete`
+  /// retains a venue **any** surviving program row still names, tombstoned
+  /// programs included, and tombstones an already-published one. Inserted
+  /// programs are removed first, so a venue referenced solely by this import is
+  /// reclaimed. `delete(permanent: true)` is deliberately *not* used: its guard
+  /// counts live programs only (issue #1328), so it erased a venue a tombstoned
+  /// program still named — issue #1357.
   ///
   /// [now] is an optional clock seam for deterministic callers; production
   /// undo timestamps default to the current UTC time.
@@ -975,24 +1064,12 @@ class CompendiumArchiveImporter {
     if (result.isUndone) return;
     final undoAt = (now?.call() ?? DateTime.now()).toUtc();
     await _programs.hardDelete(result.insertedProgramIds);
-    for (final prior in result.updatedProgramPriorStates) {
-      await _programs.update(prior);
-    }
-    if (result.programRestoreAt != null) {
-      for (final id in result.restoredProgramIds) {
-        await _programs.softDelete(id, at: undoAt);
-      }
-    }
-    for (final id in result.insertedVenueIds) {
-      try {
-        // `permanent` for the same reason the dances/programs above are
-        // hard-deleted: a rollback must leave nothing behind to publish.
-        await _venues.delete(id, permanent: true);
-      } on StateError {
-        // Still referenced by a surviving program — leave it in place rather
-        // than orphan that program's venueId.
-      }
-    }
+    // Erasing for the same reason the dances/programs above are hard-deleted:
+    // a rollback must leave nothing behind to publish. `hardDelete` owns both
+    // exceptions to that — a published venue is tombstoned instead, and a venue
+    // any surviving program row still names (tombstoned ones included) is left
+    // untouched rather than orphaning that reference.
+    await _venues.hardDelete(result.insertedVenueIds);
     for (final id in result.restoredVenueIds) {
       try {
         await _venues.delete(id);
@@ -1014,68 +1091,67 @@ class CompendiumArchiveImporter {
     result._undone = true;
   }
 
-  /// Builds the *original*-archive-dance-id → new-Compendium-dance-id map.
-  ///
-  /// [GenericJsonAdapter] keys each committed record's `externalId` as
-  /// `dance.provenance?.externalId ?? dance.id`, so this correlates the
-  /// archive's dances (by that same key) with the committed records to recover
-  /// the association from the archive's *original* dance id to the id the commit
-  /// minted (or matched, on dedupe). Records that were skipped or failed
-  /// contribute nothing, so a slot referencing them degrades gracefully.
-  Map<String, String> _danceIdByOriginalId(
-    ImportSession session,
-    CompendiumArchive archive,
-  ) {
+  /// The `externalId → danceId` map of the records [session] wrote. Records
+  /// that were skipped or failed contribute nothing.
+  Map<String, String> _danceIdByExternalId(ImportSession session) {
     final committedByExternalId = <String, String>{};
     for (final record in session.records) {
       final danceId = record.danceId;
       final externalId = record.externalId;
       if (!record.succeeded || danceId == null) continue;
       if (externalId == null || externalId.isEmpty) continue;
-      committedByExternalId[externalId] = danceId; // last-wins on rare dupes
+      // Unique per batch: `ImportPipeline.plan` drops a repeated
+      // `(source, externalId)` before it can be committed twice.
+      committedByExternalId[externalId] = danceId;
     }
+    return committedByExternalId;
+  }
 
+  /// Builds the *original*-archive-dance-id → Compendium-dance-id map.
+  ///
+  /// [GenericJsonAdapter] keys each record's `externalId` with
+  /// [GenericJsonAdapter.externalIdFor], so this correlates the archive's
+  /// dances (by that same key) with [danceIdByExternalId] — the dances the
+  /// commit minted or matched, plus those the caller resolved outside it (see
+  /// [commit]) — to recover the association from the archive's *original*
+  /// dance id. A dance with no entry contributes nothing, so a slot
+  /// referencing it degrades gracefully.
+  Map<String, String> _danceIdByOriginalId(
+    Map<String, String> danceIdByExternalId,
+    CompendiumArchive archive,
+  ) {
     final byOriginalId = <String, String>{};
     for (final dance in archive.dances) {
-      final key = dance.provenance?.externalId ?? dance.id;
-      final committed = committedByExternalId[key];
-      if (committed != null) byOriginalId[dance.id] = committed;
+      final key = GenericJsonAdapter.externalIdFor(dance);
+      final resolved = danceIdByExternalId[key];
+      if (resolved != null) byOriginalId[dance.id] = resolved;
     }
     return byOriginalId;
   }
 
-  /// Rebuilds [src] under an existing program [id] and [createdAt] (preserving
-  /// the matched program's identity/creation stamp on a re-import) while keeping
-  /// every other field from the freshly built program.
-  ///
-  /// [priorVenueId] is the matched program's current `venueId`, and
-  /// [archiveCarriesVenueLinks] is whether the incoming archive is venue-aware
-  /// (its [requiredSchemaVersion] reaches [archiveSchemaVersionVenues]). A
-  /// venue-aware archive has *explicit* venue semantics, so [src]'s
-  /// already-remapped-or-nulled `venueId` overwrites the match (an explicit null
-  /// clears the link). A pre-venue archive cannot express `venueId` at all, so
-  /// [src]'s is necessarily null; overwriting with it would silently drop a link
-  /// the user established after the original import, so [priorVenueId] is
-  /// preserved instead (like [id]/[createdAt]) — mirroring the `.USR` re-import's
-  /// venue-link preservation for a source that likewise cannot reconstruct it.
+  /// Rebuilds [src] under the [id] and [createdAt] of the program this commit
+  /// already inserted for the same original archive id, keeping every other
+  /// field from the later occurrence, so a malformed archive that repeats a
+  /// program id yields one program carrying its last-seen content.
   Program _rebuildProgramWithId(
     Program src, {
     required String id,
     required DateTime createdAt,
-    required String? priorVenueId,
-    required bool archiveCarriesVenueLinks,
   }) => Program(
     id: id,
     title: src.title,
     eventDate: src.eventDate,
     venue: src.venue,
-    venueId: archiveCarriesVenueLinks ? src.venueId : priorVenueId,
+    venueId: src.venueId,
     band: src.band,
     caller: src.caller,
     dancerLevel: src.dancerLevel,
     notes: src.notes,
     status: src.status,
     hideAlternates: src.hideAlternates,
+    dialectName: src.dialectName,
+    payMinorUnits: src.payMinorUnits,
+    payCurrency: src.payCurrency,
     slots: src.slots,
     createdAt: createdAt,
     updatedAt: src.updatedAt,

@@ -1,33 +1,51 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:compendium_app/src/data/online_search.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/seed_service.dart';
+import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
+import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/skeleton.dart';
 
+import 'support/finders.dart';
+import 'support/dropdown.dart';
+import 'support/dance_detail_actions.dart';
+import 'support/fab_clearance.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/panel_chip.dart';
 
 Dance _dance({
   required String id,
   required String title,
   List<String> authorIds = const [],
   List<String> tagIds = const [],
+  List<String> tunes = const [],
+  TunesSource? tunesSource,
   DanceForm form = DanceForm.contra,
   Formation formation = const Formation(FormationShape.dupleImproper),
   DanceStatus status = DanceStatus.active,
@@ -35,17 +53,27 @@ Dance _dance({
   List<CustomFieldValue> customFields = const [],
   DateTime? createdAt,
   String hook = '',
+  String? difficultyLevelId,
+  bool mixedLevel = false,
+  bool mixer = false,
+  int? rating,
 }) => Dance(
   id: id,
   title: title,
   authorIds: authorIds,
   tagIds: tagIds,
+  tunes: tunes,
+  tunesSource: tunesSource,
   form: form,
   formation: formation,
   status: status,
   figures: figures,
   customFields: customFields,
   hook: hook,
+  difficultyLevelId: difficultyLevelId,
+  mixedLevel: mixedLevel,
+  mixer: mixer,
+  rating: rating,
   createdAt: createdAt ?? DateTime.utc(2026, 1, 1),
   updatedAt: createdAt ?? DateTime.utc(2026, 1, 1),
 );
@@ -58,6 +86,10 @@ Future<void> _pumpScreen(
   CallersBoxOnline? callersBoxOnline,
   ContraDbOnline? contraDbOnline,
   CollectionFilterController? filterController,
+  ValueNotifier<Set<String>>? hiddenFacets,
+  ValueNotifier<String>? defaultProgramCaller,
+  ValueNotifier<bool>? requireEventDate,
+  VoidCallback? onImport,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -95,7 +127,21 @@ Future<void> _pumpScreen(
                 notifier: sortIgnoreArticlesNotifier,
                 child: CollectionFilterScope(
                   controller: activeFilterController,
-                  child: child!,
+                  // The hidden-filters preference (#1419); the scope is only
+                  // mounted when a test supplies a notifier, so every other
+                  // test still runs without it.
+                  child: _maybeWrapDefaultCaller(
+                    defaultProgramCaller,
+                    _maybeWrapRequireEventDate(
+                      requireEventDate,
+                      hiddenFacets == null
+                          ? child!
+                          : CollectionFacetsScope(
+                              notifier: hiddenFacets,
+                              child: child!,
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -105,10 +151,27 @@ Future<void> _pumpScreen(
       home: DanceListScreen(
         callersBoxOnline: callersBoxOnline,
         contraDbOnline: contraDbOnline,
+        onImport: onImport,
       ),
     ),
   );
 }
+
+/// Mounts [DefaultProgramCallerScope] only when a test supplies a notifier, so
+/// every other test still reads the default caller from settings.
+Widget _maybeWrapDefaultCaller(ValueNotifier<String>? notifier, Widget child) =>
+    notifier == null
+    ? child
+    : DefaultProgramCallerScope(notifier: notifier, child: child);
+
+/// Mounts [RequireEventDateForHistoryScope] only when a test supplies a
+/// notifier; without it the setting reads as off.
+Widget _maybeWrapRequireEventDate(
+  ValueNotifier<bool>? notifier,
+  Widget child,
+) => notifier == null
+    ? child
+    : RequireEventDateForHistoryScope(notifier: notifier, child: child);
 
 /// Enters full-text search and lets the 250 ms debounce + async query resolve.
 Future<void> _search(WidgetTester tester, String text) async {
@@ -148,6 +211,73 @@ Future<void> _addPhraseMove(
   await tester.pumpAndSettle();
 }
 
+/// A ContraDB source whose search reports that Advanced params were left out.
+class _PartlyAppliedContraDb extends ContraDbOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    const OnlineSearchResultRow(
+      source: OnlineSource.contraDb,
+      id: '1',
+      name: 'A Dance',
+      author: '',
+      formation: '',
+      advancedPartlyApplied: true,
+    ),
+  ];
+}
+
+/// A ContraDB source that reports 5 matches in all while returning one row.
+class _TotalContraDb extends ContraDbOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    const OnlineSearchResultRow(
+      source: OnlineSource.contraDb,
+      id: '1',
+      name: 'A Dance',
+      author: '',
+      formation: '',
+      totalMatching: 5,
+    ),
+  ];
+}
+
+/// A ContraDB source of [total] dances that answers by offset, one page of 20
+/// at a time, and counts the requests it served.
+class _PagedContraDb extends ContraDbOnline {
+  _PagedContraDb._(this.requests, ContraDbSearchFetcher fetcher, int total)
+    : super(searchFetcher: fetcher);
+
+  factory _PagedContraDb({
+    required int total,
+    bool reportTotal = true,
+    bool Function(ContraDbSearchRequest request)? failWhen,
+    Future<void>? Function(ContraDbSearchRequest request)? holdWhen,
+  }) {
+    final requests = <ContraDbSearchRequest>[];
+    return _PagedContraDb._(requests, (request) async {
+      requests.add(request);
+      await holdWhen?.call(request);
+      if (failWhen != null && failWhen(request)) throw Exception('down');
+      final from = request.offset;
+      final to = (from + 20) < total ? from + 20 : total;
+      return jsonEncode({
+        if (reportTotal) 'numberMatching': total,
+        'dances': [
+          for (var id = from + 1; id <= to; id++)
+            {
+              'id': id,
+              'title': 'Dance ${id.toString().padLeft(3, '0')}',
+              'choreographer_name': '',
+              'formation': 'improper',
+            },
+        ],
+      });
+    }, total);
+  }
+
+  final List<ContraDbSearchRequest> requests;
+}
+
 void main() {
   ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
     final db = openWidgetTestDatabase();
@@ -172,16 +302,208 @@ void main() {
     expect(find.text('Chase the Squirrel'), findsOneWidget);
   });
 
-  testWidgets('shows an empty-collection message with no dances', (
+  testWidgets('empty collection leads with the brand mark, copy and actions', (
     tester,
   ) async {
     final repos = openTestRepositories();
+    var imports = 0;
+    await _pumpScreen(tester, repos, onImport: () => imports++);
+    await tester.pumpAndSettle();
+
+    // The title says it once; the body must not open by repeating it.
+    expect(find.textContaining('collection is empty'), findsOneWidget);
+    expect(find.text('Your collection is empty'), findsOneWidget);
+    expect(find.textContaining('Add or import a dance'), findsOneWidget);
+    // The empty-collection state leads with the brand mark above the copy (§4.4).
+    expect(find.byType(BrandMark), findsOneWidget);
+    expect(find.byKey(const ValueKey('collection-import-card')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('collection-empty-import')));
+    expect(imports, 1);
+    expect(
+      find.byKey(const ValueKey('collection-empty-new-dance')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the sample dance alone is accompanied by an import card', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+    );
+    var imports = 0;
+    await _pumpScreen(tester, repos, onImport: () => imports++);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('collection-import-card')),
+      findsOneWidget,
+    );
+    expect(find.text('Bring your dances in'), findsOneWidget);
+    expect(find.text('The Baby Rose'), findsOneWidget);
+    expect(find.byKey(const ValueKey('collection-empty')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('collection-empty-import')));
+    expect(imports, 1);
+  });
+
+  testWidgets('the import card offers the published collections catalog', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+    );
     await _pumpScreen(tester, repos);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('collection is empty'), findsOneWidget);
-    // The empty-collection state leads with the brand mark above the copy (§4.4).
-    expect(find.byType(BrandMark), findsOneWidget);
+    final browse = find.byKey(const ValueKey('collection-import-card-browse'));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('collection-import-card')),
+        matching: find.text('Browse published collections'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(browse);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(PublishedCollectionCatalogScreen), findsOneWidget);
+
+    // The real catalog service is on its own timeout while it tries the
+    // network; let it lapse before the test ends.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(minutes: 2));
+  });
+
+  group('the floating New dance', () {
+    /// Whether any sort control is offered, on the bar or in ⋮.
+    Future<bool> offersSorting(WidgetTester tester) async {
+      final onBar =
+          find.byType(CollectionSortMenuButton).evaluate().isNotEmpty ||
+          find
+              .byKey(const ValueKey('collection-sort-direction'))
+              .evaluate()
+              .isNotEmpty;
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
+      final inMenu =
+          find.textContaining('Sort by').evaluate().isNotEmpty ||
+          find.textContaining('(tap for ').evaluate().isNotEmpty;
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+      return onBar || inMenu;
+    }
+
+    for (final width in [1200.0, 390.0]) {
+      testWidgets('an empty Collection floats nothing and offers no sorting '
+          '(${width.toInt()} wide)', (tester) async {
+        final repos = openTestRepositories();
+        await _pumpScreen(tester, repos);
+        await tester.binding.setSurfaceSize(Size(width, 844));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('collection-empty-new-dance')),
+          findsOneWidget,
+        );
+        expect(find.byType(FloatingActionButton), findsNothing);
+        expect(await offersSorting(tester), isFalse);
+      });
+    }
+
+    testWidgets('the first-run card carries New dance, so nothing floats', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+      );
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('collection-import-card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('collection-empty-new-dance')),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    for (final width in [1200.0, 390.0]) {
+      testWidgets('a dance of your own brings New and sorting '
+          '(${width.toInt()} wide)', (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(id: 'd1', title: 'Chase the Squirrel'),
+        );
+        await _pumpScreen(tester, repos);
+        await tester.binding.setSurfaceSize(Size(width, 844));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('new-dance')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('collection-empty-new-dance')),
+          findsNothing,
+        );
+        expect(await offersSorting(tester), isTrue);
+      });
+    }
+
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last dance (${c.name})', (tester) async {
+        final repos = openTestRepositories();
+        for (var i = 0; i < 30; i++) {
+          final n = '$i'.padLeft(2, '0');
+          await repos.dances.create(_dance(id: 'd$n', title: 'Dance $n'));
+        }
+        await _pumpScreen(tester, repos);
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(CustomScrollView),
+          lastRow: find.widgetWithText(DanceListTile, 'Dance 29'),
+        );
+      });
+    }
+  });
+
+  testWidgets('the import card goes once another dance is present', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+    );
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('collection-import-card')), findsNothing);
+  });
+
+  testWidgets('a lone dance that is not the sample gets no import card', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('collection-import-card')), findsNothing);
   });
 
   testWidgets(
@@ -361,10 +683,9 @@ void main() {
       },
     );
 
-    testWidgets('a fixed (non-"Last used") default always opens at its natural '
-        'direction, regardless of what was last used in the list', (
-      tester,
-    ) async {
+    testWidgets('a fixed (non-"Last used") default with no stored direction '
+        'opens at its natural direction, regardless of what was last used in '
+        'the list', (tester) async {
       final repos = openTestRepositories();
       // The default stays the fixed concrete sort `title`; only the
       // last-used keys (which a "Last used" default would have read) carry
@@ -388,6 +709,118 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
+    });
+
+    group('configurable direction of a fixed default (issue #1841)', () {
+      Future<void> seedTitles(CompendiumRepositories repos) async {
+        await repos.dances.create(_dance(id: 'd1', title: 'Aardvark'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Zephyr'));
+      }
+
+      testWidgets('a fixed default opens in its stored direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Zephyr', 'Aardvark']);
+      });
+
+      for (final bad in <Object?>['sideways', '', 7, true]) {
+        testWidgets('an unrecognised stored direction ($bad) falls back to '
+            'the natural direction without throwing', (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            kDefaultCollectionSortKey,
+            CollectionSort.title.name,
+          );
+          await repos.settings.set(kDefaultCollectionSortDirectionKey, bad);
+          await seedTitles(repos);
+
+          await _pumpScreen(tester, repos);
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(_titles(tester), ['Aardvark', 'Zephyr']);
+        });
+      }
+
+      testWidgets('"Last used" ignores the stored default direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          kLastUsedSortSentinel,
+        );
+        await repos.settings.set(
+          kDefaultCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortDirectionKey,
+          SortDirection.ascending.name,
+        );
+        await seedTitles(repos);
+
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+      });
+
+      testWidgets('a late direction read does not clobber a direction the '
+          'user already chose in-session', (tester) async {
+        final opened = openTestRepositoriesWithDelayedSettingsRead();
+        final repos = opened.repos;
+        final settings = opened.settings;
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        settings.holdNextRead(kDefaultCollectionSortDirectionKey);
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+        await settings.readStarted;
+
+        // Flip twice, ending on the natural (ascending) direction the stale
+        // read would overwrite with its stored descending.
+        await tester.tap(
+          find.byKey(const ValueKey('collection-sort-direction')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('collection-sort-direction')),
+        );
+        await tester.pumpAndSettle();
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+
+        settings.releaseRead();
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+      });
     });
 
     testWidgets('changing the sort in-list persists it as last-used (key and '
@@ -608,6 +1041,8 @@ void main() {
 
       expect(counted.dances.loads, 1, reason: 'initial CollectionData.load');
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-select')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
@@ -720,6 +1155,295 @@ void main() {
     expect(_titles(tester), ['Called Dance', 'Never Called']);
   });
 
+  group('calling history follows the default caller (F5)', () {
+    // Two unmarked programs: one led by the user, one by a guest caller.
+    // "Track calling history for all callers" is off (no scope = default
+    // off), so the default caller scopes every count and the sort.
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'mine', title: 'Zed Mine'));
+      await repos.dances.create(_dance(id: 'guest', title: 'Alpha Guest'));
+      Program program(String id, String danceId, String caller, int month) =>
+          Program(
+            id: id,
+            title: id,
+            caller: caller,
+            eventDate: DateTime.utc(2026, month),
+            slots: [ProgramSlot(id: '$id-s', position: 0, danceId: danceId)],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          );
+      await repos.programs.create(program('ours', 'mine', 'Me', 2));
+      await repos.programs.create(program('theirs', 'guest', 'Guest', 5));
+      await repos.settings.set(kDefaultProgramCallerKey, 'Me');
+      return repos;
+    }
+
+    Finder badge(String title) => find.descendant(
+      of: find.widgetWithText(DanceListTile, title),
+      matching: find.text('called ×1'),
+    );
+
+    testWidgets('Last called sorts by the caller-scoped history (FIND-2)', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final caller = ValueNotifier<String>('Me');
+      addTearDown(caller.dispose);
+      await _pumpScreen(tester, repos, defaultProgramCaller: caller);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Last called').last);
+      await tester.pumpAndSettle();
+
+      // Neither slot is marked, so a performed-only sort would leave both in
+      // title order; an unscoped one would put the guest's later program
+      // first.
+      expect(_titles(tester), ['Zed Mine', 'Alpha Guest']);
+    });
+
+    testWidgets('changing the default caller re-scopes the counts (PRES-4)', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final caller = ValueNotifier<String>('Me');
+      addTearDown(caller.dispose);
+      await _pumpScreen(tester, repos, defaultProgramCaller: caller);
+      await tester.pumpAndSettle();
+      expect(badge('Zed Mine'), findsOneWidget);
+      expect(badge('Alpha Guest'), findsNothing);
+
+      // The notifier changes before the setting is written (the Settings
+      // handler flips it first), so the list must follow the live value.
+      caller.value = 'Guest';
+      // One frame to hear the change, then past the re-boot debounce.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(badge('Zed Mine'), findsNothing);
+      expect(badge('Alpha Guest'), findsOneWidget);
+    });
+  });
+
+  group('Calling history scopes narrow the list (N1-H2)', () {
+    // Recent at the Grange, old at the Grange, recent at the Hall, never.
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      for (final (id, title) in [
+        ('grange-new', 'Alpha'),
+        ('grange-old', 'Bravo'),
+        ('hall-new', 'Charlie'),
+        ('never', 'Delta'),
+      ]) {
+        await repos.dances.create(_dance(id: id, title: title));
+      }
+      final now = DateTime.now();
+      DateTime ago(int days) =>
+          DateTime.utc(now.year, now.month, now.day - days);
+      Program program(String id, String danceId, DateTime date, String venue) =>
+          Program(
+            id: id,
+            title: id,
+            eventDate: date,
+            venue: venue,
+            slots: [ProgramSlot(id: '$id-s', position: 0, danceId: danceId)],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          );
+      await repos.programs.create(
+        program('p1', 'grange-new', ago(10), 'The Grange'),
+      );
+      await repos.programs.create(
+        program('p2', 'grange-old', ago(200), 'The Grange'),
+      );
+      await repos.programs.create(program('p3', 'hall-new', ago(10), 'Hall'));
+      return repos;
+    }
+
+    Future<void> openCalledSection(WidgetTester tester) async {
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+    }
+
+    Future<void> tapKey(WidgetTester tester, String key) =>
+        _tapVisible(tester, find.byKey(ValueKey(key)));
+
+    testWidgets('Not called with no window is exactly today\'s Not called', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-not-called');
+      final plain = _titles(tester);
+      expect(plain, ['Delta']);
+
+      await tapKey(tester, 'facet-history-within-6');
+      await tapKey(tester, 'facet-history-within-none');
+      expect(_titles(tester), plain);
+    });
+
+    testWidgets('Not called within 1 month hides only the recently called', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-not-called');
+      await tapKey(tester, 'facet-history-within-1');
+      expect(_titles(tester), ['Bravo', 'Delta']);
+      await tapKey(tester, 'facet-history-within-6');
+      // 200 days back is outside six months too.
+      expect(_titles(tester), ['Bravo', 'Delta']);
+    });
+
+    testWidgets('Called at a venue is "called there", not "called elsewhere"', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-called');
+      await tapKey(tester, 'facet-history-venue');
+      await tester.tap(
+        find.byKey(const ValueKey('facet-history-venue-text:the grange')),
+      );
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo']);
+
+      await tapKey(tester, 'call-status-called');
+      await tapKey(tester, 'call-status-not-called');
+      // Not called at the Grange: everything else, including a dance called
+      // at the Hall.
+      expect(_titles(tester), ['Charlie', 'Delta']);
+    });
+
+    testWidgets('a venue edit re-runs a scoped search though no count moves', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-called');
+      await tapKey(tester, 'facet-history-venue');
+      await tester.tap(
+        find.byKey(const ValueKey('facet-history-venue-text:the grange')),
+      );
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo']);
+
+      // Alpha's program moves to the Hall: its call count is still 1.
+      final moved = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(moved.copyWith(venue: 'Hall'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 400)),
+      );
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Bravo']);
+    });
+
+    testWidgets('a scope set without a polarity changes nothing', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'facet-history-within-1');
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Delta']);
+    });
+  });
+
+  group('Require an event date follows live (F6)', () {
+    // 'Alpha Undated' was called later, but only in an undated program (a
+    // fresh duplicate or a received program); 'Zed Dated' in a dated one.
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'undated', title: 'Alpha Undated'));
+      await repos.dances.create(_dance(id: 'dated', title: 'Zed Dated'));
+      Program program(
+        String id,
+        String danceId,
+        DateTime at, {
+        bool dated = true,
+      }) => Program(
+        id: id,
+        title: id,
+        eventDate: dated ? at : null,
+        slots: [
+          ProgramSlot(
+            id: '$id-s',
+            position: 0,
+            danceId: danceId,
+            performedAt: at,
+          ),
+        ],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      await repos.programs.create(
+        program('p-dated', 'dated', DateTime.utc(2026, 3, 1)),
+      );
+      await repos.programs.create(
+        program('p-undated', 'undated', DateTime.utc(2026, 5, 1), dated: false),
+      );
+      return repos;
+    }
+
+    testWidgets('the Last-called sort re-runs when the setting flips', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final requireEventDate = ValueNotifier<bool>(false);
+      addTearDown(requireEventDate.dispose);
+      await _pumpScreen(tester, repos, requireEventDate: requireEventDate);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Last called').last);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha Undated', 'Zed Dated']);
+
+      requireEventDate.value = true;
+      await tester.pumpAndSettle();
+      // The undated call no longer counts, so that dance sorts as never called.
+      expect(_titles(tester), ['Zed Dated', 'Alpha Undated']);
+    });
+
+    testWidgets('the Called filter re-runs when the setting flips', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final requireEventDate = ValueNotifier<bool>(false);
+      addTearDown(requireEventDate.dispose);
+      await _pumpScreen(tester, repos, requireEventDate: requireEventDate);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('call-status-called')),
+      );
+      expect(_titles(tester), ['Alpha Undated', 'Zed Dated']);
+
+      requireEventDate.value = true;
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Zed Dated']);
+    });
+  });
+
   testWidgets('full-text search narrows the list', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
@@ -796,8 +1520,6 @@ void main() {
     await tester.tap(find.text('Figure').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     expect(
@@ -835,8 +1557,6 @@ void main() {
     await tester.tap(find.text('Figure').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     expect(
@@ -896,8 +1616,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('online-search-enable')));
       await tester.pumpAndSettle();
       expect(
@@ -926,7 +1644,7 @@ void main() {
       await tester.tap(find.text('Author').last);
       await tester.pumpAndSettle();
       await _search(tester, ' Alice Smith ');
-      expect(Uri.parse(callersUrl!).queryParameters, {'author': 'Alice Smith'});
+      expect(Uri.parse(callersUrl!).queryParameters, {'author': 'alice smith'});
       final callersUrlBeforeClear = callersUrl;
       await tester.enterText(find.byType(TextField).first, '');
       await tester.pump(const Duration(milliseconds: 700));
@@ -968,8 +1686,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
@@ -993,6 +1709,127 @@ void main() {
     expect(contraDbRequest?.filter, 'figure');
   });
 
+  testWidgets(
+    "Import from a preview uses the preview's source even after the source "
+    'toggle changes',
+    (tester) async {
+      final repos = openTestRepositories();
+      final callers = CallersBoxOnline(
+        searchFetcher: (_) async => '''
+          <html><body>
+          <p>Of 1 dances in the database, your query matches 1.</p>
+          <table><tr>
+            <td>&#x24bb;</td><td></td><td></td>
+            <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+            <td>Traditional</td><td>Triple Minor - Proper</td>
+          </tr></table>
+          </body></html>
+        ''',
+        jsonFetcher: (_) async => '''
+          {
+            "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
+            "InterpretedBy":[],"Permission":"full",
+            "FormationBase":"Triple Minor - Proper","FormationDetail":"",
+            "Progression":"Single","PhraseStructure":"","CallingNotes":[],
+            "OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],
+            "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
+          }
+        ''',
+      );
+      final contraDb = _RecordingContraDbOnline();
+
+      await _pumpScreen(
+        tester,
+        repos,
+        callersBoxOnline: callers,
+        contraDbOnline: contraDb,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      await _search(tester, 'Money Musk');
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-result-10600')),
+      );
+      expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
+
+      // The preview route covers the list, so flip the source selector's
+      // handler directly: the retained list state is what `_importOnline` reads.
+      tester
+          .widget<SegmentedButton<OnlineSource>>(
+            find.byKey(
+              const ValueKey('online-source-selector'),
+              skipOffstage: false,
+            ),
+          )
+          .onSelectionChanged!({OnlineSource.contraDb});
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dance')));
+      await tester.pumpAndSettle();
+
+      expect(contraDb.importCalls, 0);
+      expect(find.byKey(const ValueKey('online-import-snackbar')), findsOne);
+      expect(
+        (await repos.dances.listAll()).map((d) => d.title),
+        contains('Money Musk'),
+      );
+    },
+  );
+
+  // 2026-10 behaviour audit, INTAKE-5: the import snackbar offers Undo, and
+  // Undo also leaves the page of the dance it took away.
+  testWidgets('Undo on the online import snackbar removes the dance and '
+      'closes its page', (tester) async {
+    final repos = openTestRepositories();
+    final callers = CallersBoxOnline(
+      searchFetcher: (_) async => '''
+        <html><body>
+        <p>Of 1 dances in the database, your query matches 1.</p>
+        <table><tr>
+          <td>&#x24bb;</td><td></td><td></td>
+          <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+          <td>Traditional</td><td>Triple Minor - Proper</td>
+        </tr></table>
+        </body></html>
+      ''',
+      jsonFetcher: (_) async => '''
+        {
+          "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
+          "InterpretedBy":[],"Permission":"full",
+          "FormationBase":"Triple Minor - Proper","FormationDetail":"",
+          "Progression":"Single","PhraseStructure":"","CallingNotes":[],
+          "OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],
+          "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
+        }
+      ''',
+    );
+
+    await _pumpScreen(tester, repos, callersBoxOnline: callers);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    await _search(tester, 'Money Musk');
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-result-10600')),
+    );
+    await tester.tap(find.byKey(const ValueKey('import-dance')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DanceDetailScreen), findsOneWidget);
+    expect(await repos.dances.listAll(), hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('online-import-undo')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(find.byType(DanceDetailScreen), findsNothing);
+  });
+
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result
@@ -1012,6 +1849,116 @@ void main() {
     expect(find.text('Chase the Squirrel'), findsOneWidget);
     expect(find.text('Rambling Reel'), findsNothing);
   });
+
+  // Issue #1393: the header count omitted Level, Mixed level, Mixer and
+  // Minimum rating, so a collapsed panel read "Filters" while filtering.
+  for (final facet in <(String, Dance Function(String), String)>[
+    (
+      'level',
+      (id) => _dance(
+        id: id,
+        title: 'Leveled $id',
+        difficultyLevelId: DifficultyLevel.beginnerId,
+      ),
+      'facet-row-level',
+    ),
+    (
+      'mixed level',
+      (id) => _dance(id: id, title: 'Mixed $id', mixedLevel: true),
+      'facet-row-mixed-level',
+    ),
+    (
+      'mixer',
+      (id) => _dance(id: id, title: 'Mixer $id', mixer: true),
+      'facet-row-mixer',
+    ),
+    (
+      'minimum rating',
+      (id) => _dance(id: id, title: 'Rated $id', rating: 4),
+      'facet-row-min-rating',
+    ),
+  ]) {
+    testWidgets('Filters header counts the ${facet.$1} facet (#1393)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(facet.$2('a'));
+      await repos.dances.create(_dance(id: 'plain', title: 'Plain'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      expect(find.text('Filters'), findsOneWidget);
+
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(
+        tester,
+        find
+            .descendant(
+              of: find.byKey(ValueKey(facet.$3)),
+              matching: find.byType(FilterChip),
+            )
+            .first,
+      );
+      // Collapse the panel: the count must be readable from the header alone.
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+
+      expect(find.text('Filters · 1'), findsOneWidget);
+    });
+  }
+
+  testWidgets(
+    'issue #1420: the Tunes facet needs every entered value, tolerates a '
+    'dance whose tunes cannot be read, and clears with the other filters',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Alpha', tunes: const ['Dmaj 6/8']),
+      );
+      await repos.dances.create(
+        _dance(id: 'b', title: 'Bravo', tunes: const ['Dmaj', 'Gmaj']),
+      );
+      await repos.dances.create(_dance(id: 'c', title: 'Charlie'));
+      // Stored text no list can represent (#1347). Searching must neither
+      // include this dance nor fail for the readable ones.
+      await repos.dances.create(
+        _dance(
+          id: 'd',
+          title: 'Delta',
+          tunesSource: const UnreadableTunes('[{"a":'),
+        ),
+      );
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Delta']);
+
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      final search = find.byKey(const ValueKey('tunes-facet-search'));
+
+      // One value: any dance with a matching entry, ignoring case.
+      await tester.enterText(search, 'dmaj');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo']);
+
+      // A second value narrows: AND, not OR. "6/8" is satisfied by the same
+      // entry that satisfies "dmaj" in Alpha, and by nothing in Bravo.
+      await tester.enterText(search, '6/8');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha']);
+
+      // Each chip counts toward the Filters badge.
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      expect(find.text('Filters · 2'), findsOneWidget);
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+
+      await _tapVisible(tester, find.byKey(const ValueKey('clear-filters')));
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Delta']);
+    },
+  );
 
   testWidgets('different facets AND together', (tester) async {
     final repos = openTestRepositories();
@@ -1041,7 +1988,8 @@ void main() {
     expect(_titles(tester), ['Contra With Tag']);
   });
 
-  testWidgets('multiple tags OR within the tag facet', (tester) async {
+  testWidgets('two tags require all by default; "Any tag" ORs them '
+      '(FIND-14)', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Alpha'));
@@ -1065,7 +2013,9 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
     await _tapVisible(tester, find.byKey(const ValueKey('tag-t1')));
     await _tapVisible(tester, find.byKey(const ValueKey('tag-t2')));
+    expect(_titles(tester), isEmpty, reason: 'no dance has both');
 
+    await _tapVisible(tester, find.text('Any tag'));
     expect(_titles(tester)..sort(), ['Has Alpha', 'Has Beta']);
     expect(find.text('Has Gamma'), findsNothing);
   });
@@ -1156,11 +2106,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has figure'));
 
-    final moveField = find.byType(TextField).last;
+    final moveField = hasFigureMoveField();
     await tester.ensureVisible(moveField);
     await tester.enterText(moveField, 'petro');
     await tester.pumpAndSettle();
@@ -1168,7 +2117,254 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_titles(tester), ['Has Petronella']);
+
+    // Closing Advanced (by opening another tool) keeps the query in force,
+    // and its button says so.
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    expect(_titles(tester), ['Has Petronella']);
+
+    // The Caller's Box (the default online source) has no way to carry the
+    // query, so Advanced is greyed out while online, but the query is kept for
+    // local search.
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    expectPanelDisabled(tester, 'advanced-panel');
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    expect(_titles(tester), ['Has Petronella']);
   });
+
+  testWidgets(
+    'a full ContraDB page with no total says there may be more; a short one '
+    'gives the plain count',
+    (tester) async {
+      final repos = openTestRepositories();
+      String page(int n) {
+        final rows = [
+          for (var i = 1; i <= n; i++)
+            '{"id":$i,"title":"Dance $i","choreographer_name":"",'
+                '"formation":"improper"}',
+        ].join(',');
+        // No `numberMatching`: without the source's total, a full page is all
+        // the app knows, so it can only say there may be more.
+        return '{"dances":[$rows]}';
+      }
+
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async =>
+            request.query == 'full' ? page(20) : page(3),
+      );
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+      // A short window, so the end of the page is off screen and the next page
+      // is not fetched: this test is about the count line for a full page.
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+
+      Future<void> search(String text) async {
+        await tester.enterText(
+          find.byKey(const ValueKey('collection-search-field')),
+          text,
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+      }
+
+      await search('full');
+      expect(
+        find.text(
+          'Showing 20 online results. There may be more: scroll down to load them.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('20 online results'), findsNothing);
+
+      await search('short');
+      expect(find.text('3 online results'), findsOneWidget);
+      expect(find.textContaining('There may be more'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a ContraDB search that left Advanced params out says so after the count',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(
+        tester,
+        repos,
+        contraDbOnline: _PartlyAppliedContraDb(),
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'x',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          "1 online result \u00b7 Some Advanced conditions don't exist on ContraDB and were left out.",
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('a ContraDB search that stops short of its total says "of N" '
+      'without a hint to scroll', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpScreen(tester, repos, contraDbOnline: _TotalContraDb());
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'x',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(
+      // This source answers every page with the same row, so paging adds
+      // nothing and stops short of the total: no hint to scroll.
+      find.text('Showing 1 of 5 online results.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'two short ContraDB pages merged past 20 rows do not claim there may be '
+    'more',
+    (tester) async {
+      final repos = openTestRepositories();
+      String page(int from, int n) {
+        final rows = [
+          for (var i = from; i < from + n; i++)
+            '{"id":$i,"title":"Dance $i","choreographer_name":"",'
+                '"formation":"improper"}',
+        ].join(',');
+        return '{"numberMatching":$n,"dances":[$rows]}';
+      }
+
+      // An apostrophe is searched in both spellings and the rows merged: 12
+      // from each is 24 rows, but neither response filled a page.
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async =>
+            request.query.contains('\u2019') ? page(100, 12) : page(1, 12),
+      );
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        "Mary's",
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.text('24 online results'), findsOneWidget);
+      expect(find.textContaining('There may be more'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'advanced builder: online ContraDB search sends the figure query, alone '
+    'and combined with the title text',
+    (tester) async {
+      final repos = openTestRepositories();
+      final requests = <ContraDbSearchRequest>[];
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return '{"numberMatching":0,"dances":[]}';
+        },
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'a',
+          title: 'Has Petronella',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 8}),
+          ],
+        ),
+      );
+
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      // ContraDB takes the query, so the tool is open to use while online.
+      expect(
+        tester
+            .widget<ActionChip>(find.byKey(const ValueKey('advanced-panel')))
+            .onPressed,
+        isNotNull,
+      );
+
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has figure'));
+      final moveField = hasFigureMoveField();
+      await tester.ensureVisible(moveField);
+      await tester.enterText(moveField, 'petro');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('petronella').last);
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // The figure condition alone is a complete search; no text is needed.
+      expect(requests, hasLength(1));
+      expect(requests.single.expression, ['figure', 'petronella']);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'rendezvous',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // Text and the figure query must both hold.
+      expect(requests.last.expression, [
+        'and',
+        ['title', 'rendezvous'],
+        ['figure', 'petronella'],
+      ]);
+    },
+  );
 
   testWidgets('advanced builder: add and remove a condition group', (
     tester,
@@ -1180,18 +2376,511 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
 
     // Root group only.
-    expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
+    expect(find.byType(AppDropdownField<GroupKind>), findsOneWidget);
 
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Condition group'));
-    expect(find.byType(DropdownButton<GroupKind>), findsNWidgets(2));
+    expect(find.byType(AppDropdownField<GroupKind>), findsNWidgets(2));
 
-    // The nested group's remove (close) button.
-    await _tapVisible(tester, find.byIcon(Icons.close).last);
-    expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
+    // The nested group's remove (minus-circle) button.
+    await _tapVisible(tester, find.byIcon(Icons.remove_circle_outline).last);
+    expect(find.byType(AppDropdownField<GroupKind>), findsOneWidget);
+  });
+
+  testWidgets(
+    'advanced builder: two "Has tag" rows find dances with both tags',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Both', tagIds: const ['t1', 't2']),
+      );
+      await repos.dances.create(
+        _dance(id: 'b', title: 'Smooth Only', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'c', title: 'Energetic Only', tagIds: const ['t2']),
+      );
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+
+      final tagDropdowns = find.byWidgetPredicate((w) {
+        final key = w.key;
+        return w is AppDropdownField<String?> &&
+            key is ValueKey<String> &&
+            key.value.startsWith('tag-');
+      });
+      for (final (index, name) in ['smooth', 'energetic'].indexed) {
+        await _tapVisible(tester, find.text('Add'));
+        await _tapVisible(tester, find.text('Has tag').last);
+        await _tapVisible(tester, tagDropdowns.at(index));
+        await tester.tap(dropdownEntry(name));
+        await tester.pumpAndSettle();
+      }
+
+      expect(_titles(tester), ['Both']);
+    },
+  );
+
+  testWidgets(
+    'choosing ContraDB removes tag rows from the Advanced query, greys out '
+    '"Has tag", and leaving it puts the rows back',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+      );
+      final requests = <ContraDbSearchRequest>[];
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return '{"numberMatching":0,"dances":[]}';
+        },
+      );
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+
+      // A local Advanced query with one tag row.
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has tag').last);
+      expect(find.byType(AppDropdownField<String?>), findsOneWidget);
+      await _tapVisible(tester, find.byType(AppDropdownField<String?>).first);
+      await tester.tap(dropdownEntry('smooth'));
+      await tester.pumpAndSettle();
+
+      // Going online with The Caller's Box leaves the query alone: turning
+      // online mode off again finds the tag row still there.
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      expect(
+        find.byType(AppDropdownField<String?>),
+        findsNothing,
+        reason: 'the panel is closed while The Caller\'s Box is the source',
+      );
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      expect(
+        find.byType(AppDropdownField<String?>),
+        findsOneWidget,
+        reason: 'The Caller\'s Box has no Advanced panel to clean up',
+      );
+
+      // Choosing ContraDB drops the tag row; "Has tag" is greyed out.
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is AppDropdownField<String?> &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('tag-'),
+        ),
+        findsNothing,
+      );
+      await _tapVisible(tester, find.text('Add'));
+      expect(find.text('Has tag (not available on ContraDB)'), findsOneWidget);
+      expect(requests, isEmpty, reason: 'no empty search is sent');
+
+      // Leaving ContraDB (online mode off) restores the row with its tag.
+      await tester.tapAt(const Offset(1, 1));
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      if (find.byType(AppDropdownField<String?>).evaluate().isEmpty) {
+        await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      }
+      expect(find.byType(AppDropdownField<String?>), findsOneWidget);
+      expect(find.text('smooth'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'an external tag request while on ContraDB leaves online mode and '
+    'restores the tag rows',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+      );
+      final filterController = CollectionFilterController();
+      addTearDown(filterController.dispose);
+      final contraDb = ContraDbOnline(
+        searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+      );
+      await _pumpScreen(
+        tester,
+        repos,
+        contraDbOnline: contraDb,
+        filterController: filterController,
+      );
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has tag').last);
+      await _tapVisible(tester, find.byType(AppDropdownField<String?>).first);
+      await tester.tap(dropdownEntry('smooth'));
+      await tester.pumpAndSettle();
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+
+      // A tag tapped elsewhere in the app takes the screen back to the local
+      // library; the Advanced query's tag row comes back with it.
+      filterController.filterByTag('t1');
+      await tester.pumpAndSettle();
+      if (find.byType(AppDropdownField<String?>).evaluate().isEmpty) {
+        await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      }
+      expect(find.byType(AppDropdownField<String?>), findsOneWidget);
+    },
+  );
+
+  testWidgets('clearing the search on ContraDB forgets the removed tag rows', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+    );
+    await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has tag').last);
+    await _tapVisible(tester, find.byType(AppDropdownField<String?>).first);
+    await tester.tap(dropdownEntry('smooth'));
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'x',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    // Clear the search: the query, and the rows kept for it, are gone.
+    await _tapVisible(tester, find.byIcon(Icons.clear));
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    if (find.byType(AppDropdownField<String?>).evaluate().isEmpty) {
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    }
+    expect(find.byType(AppDropdownField<String?>), findsNothing);
+  });
+
+  group('ContraDB scroll paging', () {
+    Future<void> openContraDb(
+      WidgetTester tester,
+      _PagedContraDb contraDb,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+      // A short window: the first page does not fill it twice over, so the
+      // end of the list is off screen until the test scrolls to it.
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'dance',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> scrollToEnd(WidgetTester tester) async {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      await tester.pumpAndSettle();
+    }
+
+    // The count line is the first item of the scroll view, so it is only built
+    // while the top is in view.
+    Future<void> scrollToTop(WidgetTester tester) async {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 8000));
+      await tester.pumpAndSettle();
+    }
+
+    String of(int shown) =>
+        'Showing $shown of 45 online results. Scroll down to load more.';
+
+    testWidgets('scrolling to the end loads the next page, until all are in', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(total: 45);
+      await openContraDb(tester, contraDb);
+
+      expect(contraDb.requests, hasLength(1));
+      expect(find.text(of(20)), findsOneWidget);
+      expect(find.text('Dance 021'), findsNothing);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+      await scrollToTop(tester);
+      expect(find.text(of(40)), findsOneWidget);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 40]);
+      await scrollToTop(tester);
+      expect(find.text('45 online results'), findsOneWidget);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(3), reason: 'nothing left to ask');
+      expect(find.byKey(const ValueKey('online-more-loading')), findsNothing);
+    });
+
+    testWidgets('a short result never asks for a second page', (tester) async {
+      final contraDb = _PagedContraDb(total: 7);
+      await openContraDb(tester, contraDb);
+      expect(find.text('7 online results'), findsOneWidget);
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(1));
+    });
+
+    testWidgets('a failed page shows a retry; retrying loads it', (
+      tester,
+    ) async {
+      var fail = true;
+      final contraDb = _PagedContraDb(
+        total: 45,
+        failWhen: (request) => fail && request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+
+      // Nothing more is asked while the failure stands, and the count line no
+      // longer tells the user to scroll: only Try again loads more.
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(2));
+      await scrollToTop(tester);
+      expect(find.text('Showing 20 of 45 online results.'), findsOneWidget);
+      await scrollToEnd(tester);
+
+      fail = false;
+      await tester.tap(find.byKey(const ValueKey('online-more-retry')));
+      await tester.pumpAndSettle();
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 20]);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsNothing);
+      await scrollToTop(tester);
+      expect(find.text(of(40)), findsOneWidget);
+    });
+
+    testWidgets('a failed page with no total still says there may be more', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(
+        total: 45,
+        reportTotal: false,
+        failWhen: (request) => request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+      await scrollToTop(tester);
+      expect(
+        find.text('Showing 20 online results. There may be more.'),
+        findsOneWidget,
+        reason: 'the plain count would read as a complete result',
+      );
+    });
+
+    testWidgets('a new search starts again from the first page', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(total: 45);
+      await openContraDb(tester, contraDb);
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+      await scrollToTop(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'dances',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 0]);
+      expect(find.text(of(20)), findsOneWidget);
+    });
+
+    testWidgets('a new search after a failed page still loads its own page 2', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(
+        total: 45,
+        failWhen: (request) => request.query == 'dance' && request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+
+      // The search box sits above the list, so the footer stays built while
+      // the query is edited. The new search's first page has as many rows as the old list had, so
+      // the footer at the end must be rebuilt, not kept (its state asks once).
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'dancer',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await scrollToEnd(tester);
+
+      expect(contraDb.requests.map((r) => '${r.query}@${r.offset}').take(4), [
+        'dance@0',
+        'dance@20',
+        'dancer@0',
+        'dancer@20',
+      ]);
+    });
+
+    testWidgets('a new search while page 2 is in flight still loads page 2', (
+      tester,
+    ) async {
+      final hold = Completer<void>();
+      final contraDb = _PagedContraDb(
+        total: 45,
+        holdWhen: (request) => request.query == 'dance' && request.offset == 20
+            ? hold.future
+            : null,
+      );
+      await openContraDb(tester, contraDb);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      // The footer's spinner never settles, so advance by hand.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'dancer',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      hold.complete(); // the old page lands after its search was replaced
+      // The user is still at the end of the list: its footer must ask for the
+      // new search's page 2 by itself, with no further scrolling.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(contraDb.requests.map((r) => '${r.query}@${r.offset}').take(4), [
+        'dance@0',
+        'dance@20',
+        'dancer@0',
+        'dancer@20',
+      ]);
+    });
+
+    testWidgets('clearing the search drops a page still in flight', (
+      tester,
+    ) async {
+      final hold = Completer<void>();
+      final contraDb = _PagedContraDb(
+        total: 45,
+        holdWhen: (request) => request.query == 'dance' && request.offset == 20
+            ? hold.future
+            : null,
+      );
+      await openContraDb(tester, contraDb);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        '',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      hold.complete(); // lands after the box was cleared
+      await tester.pumpAndSettle();
+
+      // The late page must not merge its rows into the cleared list.
+      expect(find.textContaining('Dance 0'), findsNothing);
+    });
+  });
+
+  testWidgets('an "Any figure" row on ContraDB sends ContraDB\'s wildcard', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final requests = <ContraDbSearchRequest>[];
+    final contraDb = ContraDbOnline(
+      searchFetcher: (request) async {
+        requests.add(request);
+        return '{"numberMatching":0,"dances":[]}';
+      },
+    );
+    await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has figure'));
+    await _tapVisible(tester, find.text('Any figure'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(requests.single.expression, ['figure', '*']);
   });
 
   testWidgets('advanced builder: add a "then" sequence row', (tester) async {
@@ -1202,13 +2891,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Sequence (then)'));
 
     expect(find.text('then'), findsOneWidget);
     expect(find.text('First'), findsOneWidget);
-    expect(find.text('Later'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
   });
 
   testWidgets('by phrase: match figure in A1 returns only dances with that '
@@ -1398,6 +3086,12 @@ void main() {
 
     expect(find.text('No dances match your search.'), findsOneWidget);
     expect(find.text('0 dances'), findsOneWidget);
+
+    // Offers a way back, worded like the search field's clear button.
+    await tester.tap(find.byKey(const ValueKey('collection-no-results-clear')));
+    await tester.pumpAndSettle();
+    expect(find.text('No dances match your search.'), findsNothing);
+    expect(find.text('Chase the Squirrel'), findsOneWidget);
   });
 
   testWidgets('surfaces a search error without crashing', (tester) async {
@@ -1424,12 +3118,39 @@ void main() {
     await _search(tester, 'chase');
 
     expect(
-      find.text('Something went wrong running the search.'),
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
       findsOneWidget,
     );
     // The stale count is cleared so the live region matches the error state.
     expect(find.text('0 dances'), findsOneWidget);
     expect(find.byType(DanceListTile), findsNothing);
+  });
+
+  testWidgets('a failed search offers Retry, and Retry runs it again', (
+    tester,
+  ) async {
+    final db = openWidgetTestDatabase();
+    final dances = _FailOnceSearchDances(db, contraTaxonomy);
+    final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    expect(dances.fired, isTrue, reason: 'the injected failure must fire');
+    expect(
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
+      findsNothing,
+    );
+    expect(find.byType(DanceListTile), findsOneWidget);
   });
 
   testWidgets('punctuation-only query degrades to no-match, not an error', (
@@ -1445,7 +3166,10 @@ void main() {
     // queries now match nothing gracefully instead of surfacing an error.
     await _search(tester, '"');
 
-    expect(find.text('Something went wrong running the search.'), findsNothing);
+    expect(
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
+      findsNothing,
+    );
     expect(find.text('No dances match your search.'), findsOneWidget);
     expect(find.text('0 dances'), findsOneWidget);
   });
@@ -1623,7 +3347,7 @@ void main() {
     expect(find.byKey(const ValueKey('add-to-program-close')), findsNothing);
   });
 
-  // ── Recently Deleted navigation ────────────────────────────────────────────
+  // ── Recently deleted navigation ────────────────────────────────────────────
 
   testWidgets(
     'recently-deleted button navigates to the RecentlyDeletedScreen',
@@ -1634,10 +3358,12 @@ void main() {
       await _pumpScreen(tester, repos);
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Recently Deleted'), findsOneWidget);
+      expect(find.text('Recently deleted'), findsOneWidget);
     },
   );
 
@@ -1660,8 +3386,7 @@ void main() {
       expect(find.byType(DanceDetailScreen), findsOneWidget);
 
       // Delete from the detail screen.
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Back on the collection; deleted dance is gone, other dance remains.
       expect(find.text('Delete From Detail'), findsNothing);
@@ -1682,8 +3407,7 @@ void main() {
       await tester.tap(find.text('Undo Detail Delete'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Dance is gone from the collection (delete took effect).
       expect(find.text('Undo Detail Delete'), findsNothing);
@@ -1809,6 +3533,206 @@ void main() {
       expect(find.bySemanticsLabel('Other, 1 dance'), findsOneWidget);
     });
   });
+
+  group('hidden filters (#1419)', () {
+    Future<CompendiumRepositories> seedStatusAndTag() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Classic'));
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Chase the Squirrel', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Rambling Reel', status: DanceStatus.draft),
+      );
+      return repos;
+    }
+
+    testWidgets('hiding a filter removes its section from the Filters panel', (
+      tester,
+    ) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.status});
+      addTearDown(hidden.dispose);
+
+      await _pumpScreen(tester, repos, hiddenFacets: hidden);
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+
+      expect(find.byKey(const ValueKey('facet-row-status')), findsNothing);
+      expect(find.byKey(const ValueKey('facet-row-tags')), findsWidgets);
+    });
+
+    testWidgets('hiding a filter that is narrowing the list clears it', (
+      tester,
+    ) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+
+      await _pumpScreen(tester, repos, hiddenFacets: hidden);
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(tester, find.byKey(const ValueKey('status-draft')));
+      expect(find.text('Rambling Reel'), findsOneWidget);
+      expect(find.text('Chase the Squirrel'), findsNothing);
+      expect(find.text('Filters · 1'), findsOneWidget);
+
+      // The user hides Status in Settings while the Draft chip is selected.
+      hidden.value = {CollectionFacetIds.status};
+      await tester.pumpAndSettle();
+
+      // No invisible control is left narrowing the list, and the header count
+      // no longer counts a filter nobody can see.
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsOneWidget);
+      expect(find.byKey(const ValueKey('facet-row-status')), findsNothing);
+      expect(find.text('Filters · 1'), findsNothing);
+      expect(find.byKey(const ValueKey('clear-filters')), findsNothing);
+    });
+
+    testWidgets('showing the filter again does not resurrect the selection', (
+      tester,
+    ) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+
+      await _pumpScreen(tester, repos, hiddenFacets: hidden);
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(tester, find.byKey(const ValueKey('status-draft')));
+
+      hidden.value = {CollectionFacetIds.status};
+      await tester.pumpAndSettle();
+      hidden.value = const {};
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('facet-row-status')), findsWidgets);
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsOneWidget);
+    });
+
+    testWidgets('a tag chip still filters while Tags is hidden, and the Tags '
+        'section stays visible to clear it', (tester) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.tags});
+      addTearDown(hidden.dispose);
+      final filterController = CollectionFilterController();
+      addTearDown(filterController.dispose);
+
+      await _pumpScreen(
+        tester,
+        repos,
+        hiddenFacets: hidden,
+        filterController: filterController,
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      expect(find.byKey(const ValueKey('facet-row-tags')), findsNothing);
+
+      // The detail page's tag chip goes through this controller, not the panel.
+      filterController.filterByTag('t1');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsNothing);
+      expect(find.byKey(const ValueKey('facet-row-tags')), findsWidgets);
+      expect(find.byKey(const ValueKey('tag-t1')), findsOneWidget);
+    });
+
+    testWidgets('hiding an unrelated filter keeps a tag selection that is '
+        'visible only because it is active', (tester) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.tags});
+      addTearDown(hidden.dispose);
+      final filterController = CollectionFilterController();
+      addTearDown(filterController.dispose);
+
+      await _pumpScreen(
+        tester,
+        repos,
+        hiddenFacets: hidden,
+        filterController: filterController,
+      );
+      await tester.pumpAndSettle();
+      filterController.filterByTag('t1');
+      await tester.pumpAndSettle();
+      expect(find.text('Rambling Reel'), findsNothing);
+
+      // Only *newly* hidden ids are cleared; `tags` was already hidden.
+      hidden.value = {CollectionFacetIds.tags, CollectionFacetIds.status};
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsNothing);
+    });
+  });
+
+  testWidgets('the last dance scrolls clear of the New dance FAB', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await repos.dances.create(_dance(id: 'd$n', title: 'Dance $n'));
+    }
+    await _pumpScreen(tester, repos);
+    // A phone-sized window, so the FAB floats over the list.
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    await tester.pumpAndSettle();
+
+    // Fling well past the end, so the list rests at its maximum extent.
+    for (var i = 0; i < 5; i++) {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+    }
+
+    final lowestRowBottom = tester
+        .widgetList<DanceListTile>(find.byType(DanceListTile))
+        .map((t) => tester.getRect(find.byWidget(t)).bottom)
+        .reduce((a, b) => a > b ? a : b);
+    final fab = tester.getRect(find.byKey(const ValueKey('new-dance')));
+    expect(lowestRowBottom, lessThanOrEqualTo(fab.top));
+  });
+}
+
+/// Fails the first search, then behaves normally.
+class _FailOnceSearchDances extends DanceRepository {
+  _FailOnceSearchDances(super.db, super.taxonomy);
+
+  bool fired = false;
+
+  @override
+  Future<List<String>> search(
+    DanceFilter filter, {
+    SearchSort sort = SearchSort.title,
+    SortDirection? direction,
+    Dialect? dialect,
+    SearchEnrichment? enrichment,
+    bool ignoreLeadingArticles = false,
+    String? callerFilter,
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+  }) {
+    if (!fired) {
+      fired = true;
+      return Future.error(StateError('injected search failure'));
+    }
+    return super.search(
+      filter,
+      sort: sort,
+      direction: direction,
+      dialect: dialect,
+      enrichment: enrichment,
+      ignoreLeadingArticles: ignoreLeadingArticles,
+      callerFilter: callerFilter,
+      performedOnly: performedOnly,
+      requireEventDate: requireEventDate,
+      tracking: tracking,
+    );
+  }
 }
 
 class _CountingDances extends DanceRepository {
@@ -1820,5 +3744,26 @@ class _CountingDances extends DanceRepository {
   Future<List<Dance>> listAll({bool includeDeleted = false}) {
     loads++;
     return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// A [ContraDbOnline] whose commit is observable and always fails, so a
+/// ContraDB commit of a Caller's Box preview is a visible error.
+class _RecordingContraDbOnline extends ContraDbOnline {
+  _RecordingContraDbOnline()
+    : super(searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}');
+
+  int importCalls = 0;
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
+  }) async {
+    importCalls++;
+    throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
   }
 }

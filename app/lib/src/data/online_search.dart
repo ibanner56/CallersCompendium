@@ -1,7 +1,10 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../search/dance_detail_data.dart';
-import 'import_io.dart' show CallersBoxPhraseQuery;
+import 'dance_reimport.dart';
+import 'import_io.dart'
+    show CallersBoxPhraseQuery, UrlFetchException, UrlFetchFailureReason;
 
 /// Which online search source a query/result/preview belongs to.
 ///
@@ -9,13 +12,30 @@ import 'import_io.dart' show CallersBoxPhraseQuery;
 /// same source-neutral seam ([OnlineSearchService]); this enum is the single
 /// place that carries their per-source differences — the selector [label] and
 /// the [supportsByPhrase] capability that gates the by-phrase panel (ContraDB
-/// has no by-phrase support). The user-facing per-source attribution line is
+/// has no by-phrase support) and the [supportsAdvanced] capability that gates
+/// the Advanced panel (The Caller's Box has no query language to carry it).
+/// The user-facing per-source attribution line is
 /// localized separately by `onlineSourceAttribution` in `online_search_labels`.
 enum OnlineSource {
-  callersBox(label: "Caller's Box", supportsByPhrase: true),
-  contraDb(label: 'ContraDB', supportsByPhrase: false);
+  callersBox(
+    label: "Caller's Box",
+    supportsByPhrase: true,
+    supportsAdvanced: false,
+    supportsAdvancedTags: false,
+  ),
+  contraDb(
+    label: 'ContraDB',
+    supportsByPhrase: false,
+    supportsAdvanced: true,
+    supportsAdvancedTags: false,
+  );
 
-  const OnlineSource({required this.label, required this.supportsByPhrase});
+  const OnlineSource({
+    required this.label,
+    required this.supportsByPhrase,
+    required this.supportsAdvanced,
+    required this.supportsAdvancedTags,
+  });
 
   /// Short name for the source selector (e.g. the SegmentedButton segment).
   final String label;
@@ -24,6 +44,22 @@ enum OnlineSource {
   /// maps by-phrase onto its own "search by phrase" fields; ContraDB has no
   /// by-phrase search API, so its by-phrase panel is hidden.
   final bool supportsByPhrase;
+
+  /// Whether this source accepts the Advanced builder's boolean figure query.
+  /// ContraDB's search API takes a filter expression, so the builder is
+  /// translated onto it (`translateDanceFilterToContraDb`); The Caller's Box
+  /// has only fixed form fields, so its Advanced panel stays greyed out.
+  final bool supportsAdvanced;
+
+  /// Whether this source's Advanced search can carry a "has tag" condition.
+  /// Tags are this app's own: ContraDB has none, so a tag cannot be translated
+  /// and the builder greys the control out and drops tag rows. Moot for The
+  /// Caller's Box, whose Advanced panel is off altogether.
+  final bool supportsAdvancedTags;
+
+  /// Whether the Advanced builder must not offer or keep tag rows while this
+  /// source is the one searched: it takes the Advanced query but not tags.
+  bool get hidesAdvancedTags => supportsAdvanced && !supportsAdvancedTags;
 }
 
 /// A source-neutral online search result row.
@@ -41,6 +77,9 @@ class OnlineSearchResultRow {
     required this.author,
     required this.formation,
     this.figuresAvailable = true,
+    this.mayHaveMore = false,
+    this.totalMatching,
+    this.advancedPartlyApplied = false,
   });
 
   /// Which source this row came from (drives the attribution line).
@@ -67,6 +106,31 @@ class OnlineSearchResultRow {
   /// [CallersBoxOnline] carries it here (issue #845).
   final bool figuresAvailable;
 
+  /// Whether the search that produced this row got a **full page** from a
+  /// source that returns a limited one, so more dances may have matched than
+  /// are listed. Set on every row of such a search, and `false` for a source
+  /// that is not paged (The Caller's Box) or a page that was not full.
+  ///
+  /// It is the source's own signal, not a guess from how many rows came back:
+  /// ContraDB merges the ASCII and curly spellings of an apostrophe query, so
+  /// the merged count can pass a page size that no single response reached.
+  final bool mayHaveMore;
+
+  /// How many dances the source says matched this search in all, when it says
+  /// so (ContraDB's `numberMatching`), set on every row of the search. It can
+  /// exceed the rows shown, because the source returns one page; `null` when
+  /// the source did not say, or when several responses were merged and their
+  /// counts cannot be added without double-counting.
+  final int? totalMatching;
+
+  /// Whether the Advanced query behind this row's search had figure
+  /// parameters ContraDB has no counterpart for, which were left out of the
+  /// ContraDB filter. The figures are still searched by their other
+  /// parameters, so the results can differ from what the Advanced panel says
+  /// (usually broader, narrower under None of).
+  /// Set on every row of such a search.
+  final bool advancedPartlyApplied;
+
   @override
   bool operator ==(Object other) =>
       other is OnlineSearchResultRow &&
@@ -75,17 +139,31 @@ class OnlineSearchResultRow {
       other.name == name &&
       other.author == author &&
       other.formation == formation &&
-      other.figuresAvailable == figuresAvailable;
+      other.figuresAvailable == figuresAvailable &&
+      other.mayHaveMore == mayHaveMore &&
+      other.totalMatching == totalMatching &&
+      other.advancedPartlyApplied == advancedPartlyApplied;
 
   @override
-  int get hashCode =>
-      Object.hash(source, id, name, author, formation, figuresAvailable);
+  int get hashCode => Object.hash(
+    source,
+    id,
+    name,
+    author,
+    formation,
+    figuresAvailable,
+    mayHaveMore,
+    totalMatching,
+    advancedPartlyApplied,
+  );
 
   @override
   String toString() =>
       'OnlineSearchResultRow(source: $source, id: $id, name: $name, '
       'author: $author, formation: $formation, '
-      'figuresAvailable: $figuresAvailable)';
+      'figuresAvailable: $figuresAvailable, mayHaveMore: $mayHaveMore, '
+      'totalMatching: $totalMatching, '
+      'advancedPartlyApplied: $advancedPartlyApplied)';
 }
 
 /// A source-neutral online search request.
@@ -94,19 +172,67 @@ class OnlineSearchResultRow {
 /// Caller's Box may also run with [phrases] alone. [phrases] carries by-phrase
 /// figure criteria for sources that support them ([OnlineSource.supportsByPhrase]);
 /// sources without by-phrase support ignore it.
+///
+/// [advanced] carries the Advanced builder's filter for sources that support it
+/// ([OnlineSource.supportsAdvanced]); it combines with a text criterion (both
+/// must hold) and may run alone. Sources without Advanced support ignore it.
 class OnlineSearchQuery {
   const OnlineSearchQuery({
     this.title = '',
     this.author = '',
     this.figure = '',
     this.phrases,
+    this.advanced,
     this.requireFigures = true,
+    this.offset = 0,
   });
+
+  /// A query for [text] typed under the **Search in** choice [scope], as the
+  /// Collection and the program picker both send it (FIND-7). **All fields**
+  /// searches titles, as `onlineFullTextScope` maps it; [text] is trimmed.
+  factory OnlineSearchQuery.forScope(
+    String text,
+    FullTextScope scope, {
+    CallersBoxPhraseQuery? phrases,
+    DanceFilter? advanced,
+  }) {
+    final trimmed = text.trim();
+    return switch (scope) {
+      FullTextScope.omni || FullTextScope.title => OnlineSearchQuery(
+        title: trimmed,
+        phrases: phrases,
+        advanced: advanced,
+      ),
+      FullTextScope.author => OnlineSearchQuery(
+        author: trimmed,
+        phrases: phrases,
+        advanced: advanced,
+      ),
+      FullTextScope.figure => OnlineSearchQuery(
+        figure: trimmed,
+        phrases: phrases,
+        advanced: advanced,
+      ),
+    };
+  }
+
+  /// Whether the query asks for nothing: no text in any field and no phrases.
+  /// A source is never searched for an empty query.
+  bool get isEmpty =>
+      title.isEmpty &&
+      author.isEmpty &&
+      figure.isEmpty &&
+      phrases == null &&
+      advanced == null;
 
   final String title;
   final String author;
   final String figure;
   final CallersBoxPhraseQuery? phrases;
+
+  /// The Advanced builder's filter (`BuilderGroup.toFilter`), or `null` when
+  /// it has no complete condition.
+  final DanceFilter? advanced;
 
   /// Whether results are limited to dances whose figures the source will
   /// actually serve (issue #845).
@@ -119,19 +245,34 @@ class OnlineSearchQuery {
   /// least of all to a by-phrase one. Sources without a permission model
   /// (ContraDB) always serve figures, so this filters nothing for them.
   ///
-  /// Set it to `false` where *changing* which dances are found would change
-  /// something more consequential than what is displayed. The unattended
-  /// program-line resolver does exactly that: it commits without a user
-  /// present, and narrowing its result set can turn an ambiguous
-  /// multiple-exact-match — which is a deliberate no-op — into a single
-  /// confident hit that it then imports on its own. Preserving the wider set
-  /// there keeps that path's auto-commit behaviour unchanged.
+  /// No app caller sets it to `false` today. The unattended program-line
+  /// resolver once did, to keep its pre-#845 result set; it now keeps the
+  /// default, as the Collection title-list import does, so a program cannot
+  /// import a dance with no figures (INTAKE-13, 2026-10 behaviour audit).
+  /// `false` remains for a caller that genuinely wants figure-hidden rows.
   final bool requireFigures;
+
+  /// How many matches to skip, for a source that pages (ContraDB): `0` is the
+  /// first page. A source that does not page ignores it.
+  final int offset;
+
+  /// This query, asking for the page that starts at [offset].
+  OnlineSearchQuery withOffset(int offset) => OnlineSearchQuery(
+    title: title,
+    author: author,
+    figure: figure,
+    phrases: phrases,
+    advanced: advanced,
+    requireFigures: requireFigures,
+    offset: offset,
+  );
 }
 
 /// What a direct online import ended up doing (drives the result snackbar).
 enum OnlineImportKind {
-  /// A brand-new dance was written to the collection.
+  /// A dance was written to the collection: a new one, or, when the user chose
+  /// an existing dance to replace (a #797 link or a #1907 possible match),
+  /// that dance under its own id.
   created,
 
   /// The exact online dance was already imported before; nothing written.
@@ -145,15 +286,24 @@ enum OnlineImportKind {
   needsConfirmation,
 
   /// A confident title+author match exists in the collection with **canonically
-  /// identical** figures (same moves and order; beats and notes may differ) from
-  /// a **confirmed different source** (both provenance sources are non-null and
-  /// unequal); nothing was written. The caller must show a resolution dialog and
+  /// identical** figures (same moves and order; beats and notes may differ)
+  /// that came from a **different source**, or that the user **entered by
+  /// hand** (no provenance source, INTAKE-5); nothing was written. The caller must show a resolution dialog and
   /// retry [OnlineSearchService.import] with [ambiguousResolution] set (issue
   /// #811). [OnlineImportResult.danceId] holds the existing dance's id so the
   /// dialog can display its title. Distinct from [needsConfirmation] (differing
   /// figures) so callers can show appropriately different dialog text without
   /// inspecting figure state themselves.
   needsConfirmationIdentical,
+
+  /// No confident match, but the collection has dances that are **possibly**
+  /// this one under a differently written title
+  /// ([DedupeVerdict.possibleMatchIds], issue #1907); nothing was written. The
+  /// caller must let the user choose one of [OnlineImportResult.possibleMatchIds]
+  /// (or none) and retry [OnlineSearchService.import] with
+  /// [ambiguousResolution] set. Never returned once a resolution is supplied,
+  /// so the unattended program imports, which always pass one, never see it.
+  needsPossibleMatchChoice,
 }
 
 /// Outcome of [OnlineSearchService.import].
@@ -163,12 +313,19 @@ class OnlineImportResult {
     required this.title,
     this.danceId,
     this.danceCount = 1,
+    this.possibleMatchIds = const [],
+    this.session,
   });
 
   final OnlineImportKind kind;
   final String title;
 
-  /// Id of the imported dance for [OnlineImportKind.created], or the id of the
+  /// For [OnlineImportKind.needsPossibleMatchChoice]: the existing dances the
+  /// user may choose between, in collection order. Empty otherwise.
+  final List<String> possibleMatchIds;
+
+  /// Id of the written dance for [OnlineImportKind.created] (the replaced
+  /// dance's own id when the user chose one to replace), or the id of the
   /// existing matching dance for [OnlineImportKind.alreadyInCollection] when it
   /// can be resolved, or the **existing** dance's id for
   /// [OnlineImportKind.needsConfirmation] /
@@ -182,6 +339,12 @@ class OnlineImportResult {
   /// single-dance online-preview flow; the UI auto-opens the imported dance
   /// ONLY when this is exactly `1`.
   final int danceCount;
+
+  /// The committed batch behind an [OnlineImportKind.created] result, so a
+  /// caller that imports on the user's behalf can take the dance back out
+  /// with [ImportPipeline.undo] — a program import does, on Undo or when the
+  /// user backs out. Null for every kind that wrote nothing.
+  final ImportSession? session;
 }
 
 /// An online dance loaded for preview in the detail pane, plus the planned
@@ -258,5 +421,236 @@ abstract interface class OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   });
+}
+
+/// The single-dance commit flow shared by every [OnlineSearchService]
+/// ([OnlineSearchService.import] for The Caller's Box and ContraDB): decides
+/// between "already in collection", "needs confirmation", "identical from
+/// another source" and a single-record [ImportPipeline] commit. Both services'
+/// `import` methods delegate here, passing only their failure reason and debug
+/// label, so the policy cannot drift between sources.
+///
+/// - an exact re-import verdict returns [OnlineImportKind.alreadyInCollection]
+///   with the existing dance's id (the shell opens that dance);
+/// - an ambiguous verdict with a confident title+author candidate and no
+///   [ambiguousResolution] yet returns [OnlineImportKind.needsConfirmation]
+///   (figures differ or cannot be compared) or
+///   [OnlineImportKind.needsConfirmationIdentical] (canonically identical
+///   figures from a different source, or matching a hand-entered dance),
+///   writing nothing (issues #797, #811; INTAKE-5);
+/// - otherwise, with no [ambiguousResolution] and a non-empty
+///   [DedupeVerdict.possibleMatchIds], returns
+///   [OnlineImportKind.needsPossibleMatchChoice], writing nothing (#1907);
+/// - anything else commits the one previewed [plan], honouring a `link` or
+///   `variation` resolution even on an `isNew` verdict (the user's pick from
+///   the possible matches).
+///
+/// A plan that brought no figures (see [draftHasNoFigures]) is never offered a
+/// possible match, and a `link` resolution for it throws
+/// [DanceReimportFiguresUnavailableException] before anything is written: the
+/// link would replace the existing dance's figures with an empty list.
+///
+/// An undecodable transcription on either side never compares as identical
+/// (#1347): "cannot read it" must not become "it is empty", so that case
+/// always returns [OnlineImportKind.needsConfirmation] and the user decides.
+///
+/// [importFailedReason] is the localized failure the UI shows when the commit
+/// fails; [debugLabel] prefixes the debug-only log of the raw commit error.
+Future<OnlineImportResult> commitPreviewedOnlinePlan(
+  CompendiumRepositories repos,
+  ImportRecordPlan plan, {
+  required DateTime? now,
+  required DedupeResolution? ambiguousResolution,
+  required List<String> defaultTagIds,
+  required UrlFetchFailureReason importFailedReason,
+  required String debugLabel,
+}) async {
+  final title = plan.draft.dance.title;
+  if (plan.verdict.kind == DedupeKind.reimport) {
+    return OnlineImportResult(
+      kind: OnlineImportKind.alreadyInCollection,
+      title: title,
+      // The exact re-import verdict carries the existing dance's id so the UI
+      // can open it in the detail pane instead of leaving the user to hunt.
+      danceId: plan.verdict.targetDanceId,
+      danceCount: 1,
+    );
+  }
+
+  // Linking writes the incoming record over an existing dance, figures
+  // included. A record with none would erase the transcription, so the link is
+  // refused here however the caller got to it; the dialogs do not offer it
+  // (`resolveAndImportOnline`).
+  final figureless = draftHasNoFigures(plan.draft);
+  if (figureless && ambiguousResolution?.kind == DedupeResolutionKind.link) {
+    throw const DanceReimportFiguresUnavailableException();
+  }
+
+  // When the verdict is ambiguous and a confident candidate exists, check
+  // whether the figures differ. If they do and no resolution has been
+  // supplied yet, return needsConfirmation so the caller can prompt the user
+  // before writing anything (issue #797). Mirrors the detection in
+  // program_import_online_resolver.dart:resolveConfidentOnlineDanceId.
+  if (ambiguousResolution == null &&
+      plan.verdict.kind == DedupeKind.ambiguous &&
+      plan.verdict.hasConfidentMatch) {
+    final candidateId = plan.verdict.candidates
+        .firstWhere((c) => c.confident)
+        .danceId;
+    final existing = await repos.dances.getById(candidateId);
+    if (existing != null) {
+      final identical = _figuresComparablyIdentical(existing, plan.draft.dance);
+      if (!identical) {
+        return OnlineImportResult(
+          kind: OnlineImportKind.needsConfirmation,
+          title: title,
+          danceId: candidateId,
+          danceCount: 1,
+        );
+      } else if (existing.provenance?.source == null ||
+          plan.draft.raw.source != existing.provenance!.source) {
+        // Canonically identical figures (same moves and order; beats and
+        // notes may differ) from a different source (issue #811), or matching
+        // a dance the user entered by hand (null provenance, INTAKE-5): prompt
+        // the user instead of silently creating a second copy. The dialog's
+        // wording names no source, so it is true of both. Only a same-source
+        // re-import with a drifted externalId stays silent
+        // (DedupeResolution.duplicate() below).
+        return OnlineImportResult(
+          kind: OnlineImportKind.needsConfirmationIdentical,
+          title: title,
+          danceId: candidateId,
+          danceCount: 1,
+        );
+      }
+    }
+  }
+
+  // A lower-tier possible match is offered, never applied (#1907): only a
+  // caller with a user present gets here without a resolution. The offer is
+  // only ever to replace a dance, so a figureless record, which may not, is
+  // simply a new dance.
+  if (ambiguousResolution == null &&
+      !figureless &&
+      !plan.verdict.hasConfidentMatch &&
+      plan.verdict.possibleMatchIds.isNotEmpty) {
+    return OnlineImportResult(
+      kind: OnlineImportKind.needsPossibleMatchChoice,
+      title: title,
+      danceCount: 1,
+      possibleMatchIds: plan.verdict.possibleMatchIds,
+    );
+  }
+
+  // A possible match chosen by the user arrives as a link (or variation) on a
+  // plan whose verdict is still `isNew`, and the pipeline only reads a
+  // resolution on an ambiguous verdict, so the choice would otherwise be
+  // dropped and a new dance created. A `duplicate` on an `isNew` plan is left
+  // as a plain create.
+  final targetsExisting =
+      ambiguousResolution?.kind == DedupeResolutionKind.link ||
+      ambiguousResolution?.kind == DedupeResolutionKind.variation;
+  final committed = plan.verdict.kind == DedupeKind.isNew && targetsExisting
+      ? ImportRecordPlan(
+          draft: plan.draft,
+          verdict: DedupeVerdict.ambiguous(const []),
+        )
+      : plan;
+
+  final resolutions = committed.verdict.kind == DedupeKind.ambiguous
+      ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
+      : const <int, DedupeResolution>{};
+
+  final pipeline = ImportPipeline(
+    repos.dances,
+    repos.choreographers,
+    difficultyLevels: repos.difficultyLevels,
+  );
+  final session = await pipeline.commit(
+    ImportBatchResult(records: [committed]),
+    now: now ?? DateTime.now().toUtc(),
+    newId: uuidV4,
+    resolutions: resolutions,
+    defaultTagIds: defaultTagIds,
+  );
+
+  // A single-record batch: surface a failed/skipped commit as a user-safe
+  // error instead of letting `firstWhere` throw an opaque StateError.
+  final record = session.records.first;
+  if (!record.succeeded || record.danceId == null) {
+    // Keep the raw commit error for debug logging only; the UI gets a generic
+    // localized message so no lower-layer detail leaks (CWE-209).
+    if (kDebugMode && record.error != null) {
+      debugPrint('$debugLabel import commit failed: ${record.error}');
+    }
+    throw UrlFetchException(importFailedReason);
+  }
+  return OnlineImportResult(
+    kind: OnlineImportKind.created,
+    title: title,
+    danceId: record.danceId,
+    // Committed exactly this one previewed dance (single-record batch).
+    danceCount: session.committedCount,
+    session: session,
+  );
+}
+
+/// Whether [existing] and [incoming] have canonically identical figures (same
+/// moves and order; beats and notes may differ).
+///
+/// An undecodable transcription on either side is never identical (#1347).
+/// Mapping it to an empty list was wrong: when the incoming dance legitimately
+/// has no figures, both sides would compare as empty and be called identical on
+/// the strength of a comparison that was never possible. "Cannot read it" must
+/// never become "it is empty".
+bool _figuresComparablyIdentical(Dance existing, Dance incoming) {
+  final oldFigures = switch (existing.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => null,
+  };
+  final newFigures = switch (incoming.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => null,
+  };
+  return oldFigures != null &&
+      newFigures != null &&
+      figuresCanonicallyIdentical(
+        oldFigures: oldFigures,
+        newFigures: newFigures,
+        taxonomy: shippedTaxonomies.anyForm,
+      );
+}
+
+/// The id of a dance [plan] confidently matches whose figures are canonically
+/// identical to its own, or `null` when there is no such dance. Every confident
+/// candidate is checked, in verdict order.
+///
+/// For an unattended import that must not prompt but must not duplicate either
+/// (the #685 rule): the ContraDB program import links its slot to this dance
+/// instead of importing a second copy (INTAKE-3). Only an ambiguous verdict
+/// with a confident title+author candidate qualifies; an exact re-import is the
+/// caller's [OnlineImportKind.alreadyInCollection] path. A candidate that
+/// cannot be loaded, or whose figures cannot be read on either side, is not a
+/// match, so the caller falls back to whatever it did before.
+Future<String?> confidentIdenticalMatchId(
+  CompendiumRepositories repos,
+  ImportRecordPlan plan,
+) async {
+  if (plan.verdict.kind != DedupeKind.ambiguous ||
+      !plan.verdict.hasConfidentMatch) {
+    return null;
+  }
+  // Every confident candidate, not just the first: two dances with the same
+  // title and author tie on score and keep collection order, so the identical
+  // one can sort behind a variation that kept the title.
+  for (final candidate in plan.verdict.candidates.where((c) => c.confident)) {
+    final existing = await repos.dances.getById(candidate.danceId);
+    if (existing != null &&
+        _figuresComparablyIdentical(existing, plan.draft.dance)) {
+      return candidate.danceId;
+    }
+  }
+  return null;
 }

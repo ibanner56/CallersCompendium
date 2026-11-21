@@ -11,18 +11,18 @@
 
 - [Pipeline](#pipeline) — 21 lines
 - [Author resolution (resolve-or-create seam)](#author-resolution-resolve-or-create-seam) — 139 lines
-- [Sources](#sources) — 952 lines
-  - [1. CallersBox snapshot (6.2, 6.3) — primary](#1-callersbox-snapshot-62-63--primary) — 113 lines
+- [Sources](#sources) — 1048 lines
+  - [1. CallersBox — by link (primary)](#1-callersbox--by-link-primary) — 116 lines
   - [2. Caller's Companion migration (6.5)](#2-callers-companion-migration-65) — 97 lines
   - [3. ContraDB (6.4)](#3-contradb-64) — 33 lines
   - [Compound-shorthand fan-out: grand right and left (#295)](#compound-shorthand-fan-out-grand-right-and-left-295) — 186 lines
-  - [4. Generic JSON (6.6)](#4-generic-json-66) — 5 lines
+  - [4. Generic JSON (6.6)](#4-generic-json-66) — 27 lines
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
-- [Error handling & testing](#error-handling--testing) — 9 lines
+- [Error handling & testing](#error-handling--testing) — 14 lines
 <!-- /section-index -->
 
 ## Pipeline
@@ -39,9 +39,9 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **RawRecord** | Source-native payload preserved verbatim in memory + source id/version. The payload feeds `parse` and is **not persisted** — it was stored in `provenance.raw_payload` until schema v21 dropped that column (#781), because nothing read it back. Re-import dedupes on `(source, externalId)` and re-fetches from the source, so it needs no stored copy. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
-| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
-| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
-| **commit** | Transactional; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo. |
+| **dedupe** | Match by (source, externalId) first — re-import replaces only the matched dance's choreography (figures, formation, progression) and updates its provenance; see *Re-import replaces only the choreography*. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Each title is keyed as written and with any trailing article fronted (`dedupeTitleKeys`, #1976), and two titles match exactly when their keys overlap: a library dance stored as "Bastringue, La" matches an incoming "La Bastringue", while "Thanks, Les" still matches "Thanks Les". In the fuzzy tier, only exactness uses the fronted key: an exact entry scores as the same title, and every other entry is scored on the titles as written, so a near-miss is no closer for its article. `normalizeTitle` itself, the sync key, is unchanged. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers never silently duplicate a confident match whose figures are identical: the title-list program import skips it, and the ContraDB program import links its slot to the existing dance (INTAKE-3; see *Program-import path*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
+| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs unrecognized figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. Two warnings count the existing dances a commit would change: one the dances links replace, one the dances re-imports update (only their choreography, and how many of them also take the title and credit). A target named by both counts as replaced. Nothing silently mutates existing user data. |
+| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the import result lists with the rest of the commit's notes. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
 pure-Dart core → each adapter unit-tested against fixture files.
@@ -106,6 +106,19 @@ Acceptance: the same multi-author dance imported from Caller's Box (an
 to the **same** author set, so dedupe's author-overlap signal is consistent
 across sources regardless of which adapter produced it.
 
+**Caller's Companion "and others" (#1976).** Before splitting, the Caller's
+Companion mapping (`mapCallersCompanionDance`, both the `.USR` columns and the
+pasted "by" line) takes an unnamed-others credit off its author fields with
+`peelUnnamedOthers()`: `And Others`, `& others`, `et al.`, a bare `Others`, or
+one ending a field (`Rick Mohr and others.`, `Rick Mohr (and others)`). The
+named authors are credited and the dance gets a `Choreography: Rick Mohr and
+others` calling-notes line (`Choreography: others, not named` when nobody is
+named), so no choreographer called "Others" is made. Scoping it to CC was the
+implementer's choice, not the maintainer's: the decision was made on a CC
+issue, and `splitAuthorNames` is shared, so ContraDB and The Caller's Box still
+split "X and others" into `X` and `others`. The author set for dedupe
+still overlaps across sources on the named authors.
+
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
   `Choreographer` iff its normalized form (NFC composition → trim → collapse
   internal whitespace → lowercase) equals an existing row's normalized name.
@@ -121,16 +134,28 @@ across sources regardless of which adapter produced it.
 - **Batch de-dup.** A single normalized-name → id map is seeded from the collection
   at the start of a commit and newly-created ids are added to it live, so two dances
   crediting the same new author in one batch resolve to **one** created row.
-- **Re-import/link replaces authors.** Because re-import overwrites the dance's
-  content wholesale, it also **replaces** the resolved author list — a manually-added
-  co-author on the target dance is dropped on re-import.
+- **Link replaces authors; re-import keeps them.** Because a link overwrites the
+  dance's content wholesale, it also **replaces** the resolved author list — a
+  manually-added co-author on the target dance is dropped. A re-import replaces
+  only the choreography (see *Re-import replaces only the choreography*), so it
+  keeps the dance's authors and resolves none of the record's names: a
+  choreographer created for it would credit no dance. A re-import row with
+  **Also update title and credit** ticked resolves them as a link does, and
+  takes them.
 - **Undo.** The import session tracks the ids of choreographers it created. Undo
   hard-deletes inserted dances (cascading away their `dance_authors` rows) and
   restores updated dances, then removes each created choreographer — but only those
   no surviving dance still references (the repository's referenced-guard is
-  respected). Pre-existing choreographers are never touched.
+  respected). Pre-existing choreographers are never touched. A record a Device
+  Sync pass has already published (the undo window can outlast one) is
+  tombstoned instead of erased, so peers receive the deletion
+  (`sync-spec.md` §3.1); unpublished records are still erased. A venue a
+  surviving program row still names, the tombstoned import program included,
+  is kept live either way.
 - **`callingNotes` behavior change.** Author names are **no longer folded** into
-  `Dance.callingNotes`, and the old per-name `*_unresolved` info issues are removed;
+  `Dance.callingNotes` (except the Caller's Companion `Choreography: … and
+  others` line, above, which records a credit no choreographer row can hold;
+  #1976), and the old per-name `*_unresolved` info issues are removed;
   authorship now lives in `Dance.authorIds`. The per-record resolution outcome
   (matched vs created, per name) is surfaced structurally on
   `CommittedRecord.authorResolutions` for the review step.
@@ -138,7 +163,8 @@ across sources regardless of which adapter produced it.
 ### Dedupe confident-match guarantee (issue #685)
 
 `DedupeIndex.fuzzyMatches` always includes a candidate whose normalized title
-is exactly equal to the incoming record's **and** whose tokenized author set
+is exactly equal to the incoming record's (a shared `dedupeTitleKeys` key: the
+title as written, or with a trailing article fronted, #1976) **and** whose tokenized author set
 intersects it (`DedupeCandidate.confident = true`), even when its combined
 score would otherwise fall under the active threshold. `DedupeVerdict.
 hasConfidentMatch` exposes this at the verdict level. This is a deliberate,
@@ -146,6 +172,21 @@ future-proofed guarantee, not a threshold-tuning accident: an exact-title +
 shared-author pair can never resolve to `isNew` (and therefore never silently
 duplicate), regardless of how differently the two sides' author strings were
 formatted or tokenized upstream.
+
+**How the scan finds it, and what it skips.** `DedupeIndex` keeps an exact map
+from normalized (never empty) title to the entries carrying it, built once at
+construction. Confident matches can only come from that map, because
+confidence requires `nTitle == eTitle`; those entries are always scored. Every
+other entry is scored only if it can still reach the threshold: Levenshtein
+distance is at least the length difference, so
+`titleSim <= 1 - |la - lb| / max(la, lb)`, and the combined score is at most
+`0.8 * that + 0.2` when both author sets are non-empty (at most `that`
+otherwise). A pair whose bound is under the threshold is skipped without
+scoring. The skip is pure: it never re-scores or reorders, so candidates,
+scores and order are identical to scanning every entry (pinned by the
+randomised equivalence tests in `dedupe_test.dart`), and the guarantee above is
+unchanged. `ImportPipeline.plan` yields to the event loop between records in
+this loop as in the parse loop, so a large batch does not freeze the UI.
 
 - **Interactive path unchanged.** `verdictFor`'s `isNew`/`ambiguous` branching
   and `ImportPipeline.commit`'s "no resolution supplied → skip" default are
@@ -163,6 +204,184 @@ formatted or tokenized upstream.
   top of this same trigger without needing to touch this file's scoring
   logic again.
 
+### Re-import replaces only the choreography (INTAKE-7)
+
+*Amended 2026-10-30.* A `CommitAction.reimport` — a record matched to a dance by
+exact `(source, externalId)` — writes only the incoming **figures, formation and
+progression** onto the matched dance, plus a fresh provenance row (the source
+version, import time, permission and licence it now came from). Everything else
+stays as the caller has it: title, authors, calling notes, walkthrough, status,
+rating, tags, links, tunes, hook, custom fields, source citations and the rest.
+The draft's links are not written, so a re-import holds none back for
+related-dance resolution, and a `.USR` import adds no `Dance_Related` link to a
+re-imported dance: one its batch re-imported, or one the review's **Import and
+edit** re-imported earlier (named in `earlierReimportedCcIds`, *amended
+2026-10-30*; before that, an `earlierDanceIds` entry did not say how it was
+written, and such a dance still received the file's links).
+`buildCcRelatedDanceLinks` takes the re-imported dances as
+`skippedSourceDanceIds` and leaves out a pair whose source is one of them before
+resolving its target, so no `cc_related_dance_unresolved` warning is raised for
+a link that would be dropped anyway.
+
+**Title and credit, per row** (*amended 2026-10-30*, maintainer decision "Ask
+per import": "The review screen offers \"Also update title and credit\" as a
+checkbox on re-import rows"). A re-import row offers **Also update title and
+credit**, off by default. Ticked, the row's verdict is built as
+`DedupeVerdict.reimport(id, alsoTitleAndCredit: true)`, and the commit also
+takes the incoming title and the resolved author credit
+(`withReimportedChoreography(alsoTitleAndCredit: true)`). Only credit resolved
+from the record's author names is taken: unlike a create or a link, a draft
+with no names does not fall back to its own `authorIds`, which are the
+sender's ids and may name no choreographer here. An incoming record with no
+resolved credit keeps the dance's. Ratings, tags, notes, links and status never
+change. The choice rides on the verdict because the `.USR` and archive
+importers rebuild each `ImportRecordPlan` before the pipeline commits it,
+copying the verdict through. The implementer's calls, not the maintainer's:
+- **One checkbox per row**, shown only while the row is set to Re-import. A
+  single batch-wide box was the alternative; the decision names re-import
+  *rows*, and one row can be a correction you want while another is not. The
+  bulk Re-import / Skip controls keep each row's tick.
+- **Never remembered between imports.** No setting stores it, so there is no
+  privacy-registry entry. Remembering it would turn a per-import question into
+  a standing overwrite of titles, which #446's "never a silent overwrite"
+  default argues against.
+- **Screen readers** hear it as one `CheckboxListTile`: the label, then a hint
+  naming the dance it applies to ("Takes this file's title and author credit
+  for "…""), then its state. Every re-import row has one, so the hint says
+  which dance each box is for.
+- The review's re-import warning and the Import and edit confirmation say what
+  a re-import replaces, with the title and credit when ticked; a link keeps the
+  "overwritten" / "Replace the existing dance now?" wording, which is still
+  true of it. Those keys keep their names, since their meaning is unchanged; the
+  re-import strings are new keys.
+
+An unreadable incoming transcription keeps the saved figures, and so does one
+that decoded to no figures (The Caller's Box serves none below its `full`
+tier): a re-import never erases a transcription, an unreadable one included.
+
+A share file's tags, custom-field definitions and published sources are
+committed before the dances, as the archive references them
+(`ShareMetadataImporter.commit`), reusing a live match or **reviving** a deleted
+one, because a dance's write refuses an id that does not exist. *Amended
+2026-10-30:* the archive importer first works out which rows will write a
+dance (`resolveCommitAction` on each verdict and resolution: create,
+duplicate, variation or link; not a re-import, which writes no tags, fields or
+citations, and not a skip) and passes the archive ids those dances carry as
+`ShareMetadataImporter.commit`'s `only`, so nothing else is created or revived.
+Before this, a share whose matching rows were all re-imports or skips brought
+back a tag the receiver had deleted. Reviving it and tombstoning it again
+afterwards was rejected: the second deletion would carry a new stamp, which
+outranks a peer's later revival in sync (sync-spec §6.4). After the dances and
+programs are written, `ShareMetadataImporter.dropUnused` takes back what only a
+row that then failed needed: a created entry is erased through the guarded
+delete, a revived one tombstoned again (at `now`, as `undo` does), and the
+ledger on the result names only what stayed. "Needed" is "carried by a dance
+the commit writes", not the
+repositories' `isInUse`, because a deleted tag keeps its joins: reviving it
+showed it on the receiver's own dances again, which `isInUse` counts. The
+`.USR` importer drops its unused definitions and sources the same way, by
+`isInUse`, since it revives no tags. Dropping every created or revived entry no
+written dance uses, including one the archive carries without any dance
+referencing it, is the implementer's call; keeping such unreferenced entries
+was the alternative, but a share file is built from its dances' metadata, and
+the `.USR` path drops them too.
+
+`withReimportedChoreography` (`compendium_core`) is the one helper both paths
+use; the detail screen's **Re-import choreography** (`replaceDanceChoreography`,
+moved into core from the app) adds a stale-preview check and writes no
+provenance.
+
+Figures and formation are written in their dance form's taxonomy, so the form
+travels with them: when the incoming figures are taken, so is the incoming
+form, and when they are not and the forms differ, the existing formation stays
+too. Without this, a `.USR` dance imported as contra and re-imported as English
+would hold ECD figures under a contra form. (Implementer's call for ADR-006 W6
+part 3; the alternative, refusing a re-import whose form differs, would leave
+the person no way to correct a wrong answer to the English question.)
+When the incoming figures are taken, an empty meter or key is filled from
+the incoming dance, because English figures are counted in bars of the meter;
+a set one stays (implementer's call, keeping INTAKE-7's "never overwritten").
+A re-import from a contra-only source (The Caller's Box, ContraDB) onto an
+English dance makes it contra by the same rule.
+
+This applies to every source that reaches the pipeline: `.ccshare` and other
+Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
+and The Caller's Box. For a published collection it means a newer version's
+corrected notes do not reach a dance already imported, while its provenance
+records the new version; a corrected title or credit does only on a row with
+**Also update title and credit** ticked (above).
+
+The maintainer chose the choreography-only update for batch re-import
+(*batch-reimport*, 2026-10-29: "Batch re-import replaces only figures,
+formation and progression, like the detail-page version") and then extended it
+to archives (*R2-intake7-native*, 2026-10-30: "Every source, archives included.
+Your own ratings, tags and notes are never overwritten by a re-import"). Before
+this, a re-import rebuilt the dance wholesale from the draft, and sources that
+carry no rating, tags or links (Caller's Box, ContraDB) erased them.
+
+A **link** (`CommitAction.link`, a fuzzy match the caller chose to treat as the
+same dance) still replaces the dance's content wholesale, with one exception:
+it keeps the dance's **rating** whenever the incoming record carries none
+(*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my rating"). A
+rating the record does carry replaces the existing one. The rule lives in
+`_rebuildWithIdentity`'s `keepFrom`, beside the custom-field merge, so it holds
+for every source that links: share files, archives, Caller's Box and `.USR`.
+Otherwise a link is out of scope of the re-import decision. Provenance is refreshed on a re-import, unlike the detail-screen
+path, because the record is the import's own: the choreography now on the dance
+came from that version of the source. That is the implementer's call, not the
+maintainer's; leaving the old provenance was the alternative, and it would keep
+naming a version whose choreography the dance no longer holds.
+
+### Possible matches under another title (issue #1907)
+
+Archives write the same dance's title differently: The Caller's Box has
+`A-1 Reel {variant}` where a Caller's Companion import has `A1 Reel (Imp Var)`.
+`normalizeTitle` reads `A-1` as the article `a` plus `1`, and keeps the
+annotations, so the pair scores about 0.5 and is `isNew`.
+
+`DedupeIndex.possibleTitleMatches` adds a lower tier keyed on
+`dedupeCoreTitleKey`: lowercased and folded, trailing `{…}`/`(…)`/`[…]`
+annotations set off by whitespace dropped (unless what remains is a placeholder
+title such as `New Dance`, whose bracket is the real name, or the bracket holds
+only a part number such as `{#2}`), a leading article
+dropped only before a letter, and every non-`[a-z0-9]` character deleted. A
+possible match needs an equal non-empty core key, a shared normalized author on
+both sides, and **no** shared `dedupeTitleKeys` key, which keeps the tier
+disjoint from confident candidates. Both core keys are taken of the title as
+written and with a trailing article fronted (#1976). The ids ride on `DedupeVerdict.possibleMatchIds`.
+
+- **Never changes the verdict.** `kind`, `candidates` and `hasConfidentMatch`
+  are untouched, so every caller that branches on them, including every
+  unattended path (`autoResolveAmbiguous`, the program resolvers, `.USR`
+  `import()`), behaves exactly as before. Folding the tier into `candidates`
+  would have flipped `isNew` rows to `ambiguous`, changing the review default
+  to Skip and making `.USR` `import()` skip them; making it `confident` would
+  have let the plaintext-program resolver auto-import a variation.
+- **Offered, never applied.** The review screen lists each as a labelled
+  "same dance under another title" link option while the row's default stays
+  unchanged. `commitPreviewedOnlinePlan` returns
+  `OnlineImportKind.needsPossibleMatchChoice` when no resolution is supplied,
+  and `resolveAndImportOnline` shows a dialog, only when the plan has no
+  confident candidate (those keep their #797/#811 dialogs). Unattended callers
+  always pass a resolution, so they never see it. A `link` or `variation`
+  resolution on an `isNew` plan is committed as `ambiguous`, since the pipeline
+  reads a resolution only there.
+- **Not the sync key.** `normalizeTitle` is unchanged: it is the sync
+  protocol's normative title (`sync-spec.md`, "Normalized title"), and
+  fresh-attach dedupe merges on it silently. The core key is exempt by name in
+  `tools/ci/check_sync_invariants.py` as an import-only key.
+- **Measured** with `packages/compendium_core/tool/measure_possible_matches.dart`
+  (2026-10-26, judged by title; a version, variant or alternate counts as the
+  same dance):
+  - ContraDB self-join (2,432 dances): the placeholder rule cut 130 pairs to
+    75, and all 75 were the same dance.
+  - The Caller's Box self-join (20,516 dances): 4,693 pairs; 1 of 60 sampled
+    was a different dance (`Rickett's Hornpipe {#2}` against
+    `{No. 1, alternate 2}`), which the part-number rule now excludes.
+  - ContraDB imported into a Caller's Box collection: 373 of 2,376 incoming
+    dances (15.7%) are offered a possible match; 0 of 60 sampled pairs was a
+    different dance.
+
 ### Program-import path (issue #685)
 
 The non-interactive program-import resolver
@@ -170,14 +389,33 @@ The non-interactive program-import resolver
 `resolveConfidentOnlineDanceId`) already runs the previewed online dance
 through the full local `DedupeIndex` via `OnlineSearchService.loadPreview`
 (no second index build needed). Before calling `OnlineSearchService.import`,
-it now checks `preview.plan.verdict.hasConfidentMatch` and returns `null`
-(leaving the program line on the existing note-slot fallback) instead of
-importing. This is intentionally **not** the same as the interactive
-`CallersBoxOnline`/`ContraDbOnline.import` behavior, which forces a
-`duplicate()` resolution on any `ambiguous` verdict — that override is correct
-only for the genuinely interactive single-dance "search → tap Import" flow
-(an explicit user pick), and would otherwise force-import a confident local
-duplicate when reused from a batch/non-interactive path.
+it now checks `preview.plan.verdict.hasConfidentMatch`. A confident match whose
+figures are canonically identical writes nothing: the plaintext-program resolver
+leaves the line on the note-slot fallback, while `resolveConfidentOnlineDanceId`
+returns the existing dance's id so the ContraDB program import's Caller's Box
+fallback links its slot to it (INTAKE-3). One whose figures cannot be read, or
+whose target cannot be loaded, returns `null` and also takes the note-slot
+fallback, instead of importing. This is intentionally **not** the same as the interactive
+`CallersBoxOnline`/`ContraDbOnline.import` behavior, which asks the user about
+a confident match (#797, #811; since INTAKE-5 also when the existing dance was
+entered by hand) and creates a second copy unasked only for a same-source
+re-import whose external id has drifted.
+
+The **ContraDB program import** (`contradb_program_import.dart`) resolves each
+dance by its ContraDB id rather than by title, so a confident match there is
+the same dance, not a guess. Before importing, it asks
+`confidentIdenticalMatchId` whether a confidently matching dance has
+canonically identical figures; if so it **links the slot to that dance** and
+writes nothing (INTAKE-3, the #685 rule applied as reuse rather than as a
+skip). A confident match whose figures differ, or cannot be read, is imported
+as a **variation** of that match (`DedupeResolution.variation`, linked back to
+it); the maintainer chose this on 2026-11-05 (audit Q-3). For differing figures
+that is the outcome the Caller's Box path gives unattended (#686). For figures
+that cannot be read, or a target that cannot be loaded, the Caller's Box path
+declines and takes the note-slot fallback, while this path still imports the
+variation, because it reads no figures. A plan with no confident
+match is still imported with a `duplicate()` resolution. Either way there is
+no per-dance prompt on a program import (#797).
 
 Since #823 this resolver is no longer the only online-title→dance path. The
 Collection-side title-list import shares its **search** step
@@ -188,15 +426,18 @@ is.
 
 ## Sources
 
-### 1. CallersBox snapshot (6.2, 6.3) — primary
-- Input: hosted NDJSON snapshot (see design/callersbox-snapshot.md) or a
-  single dance JSON pasted/downloaded from `dance.php?id=N&format=JSON`.
+### 1. CallersBox — by link (primary)
+- Input: a single dance's JSON from `dance.php?id=N&format=JSON`. The app
+  resolves a pasted TCB link or bare id, or an online-search result, to that
+  endpoint and fetches it once (no crawl); core parses the payload string.
+  The hosted NDJSON snapshot was cut (ROADMAP 6.2/6.3;
+  design/callersbox-snapshot.md is retained as history).
 - Field mapping is direct (research/callersbox.md documents the schema);
   figures parsed by a **TCB grammar parser**: `(beats) text` per line, keyword
   matching against taxonomy `searchKeywords`, parameter extraction for the
   high-frequency moves (swing, balance, allemande, circle, star, chain,
   long lines, right left through, promenade, petronella, do si do, hey…).
-  Long-tail/complex notation (per-pass hey lists) falls to custom figures —
+  Long-tail/complex notation (per-pass hey lists) falls to unrecognized figures —
   refined iteratively; parser coverage is measured against the full corpus and
   reported (target: ≥80% of figure lines structured in first release,
   improving over time). A top-level `||` (simultaneity — "Women allemande
@@ -218,14 +459,11 @@ is.
   A Sicilian Circle that genuinely is a mixer is still caught, but only via its
   explicit `Mixer? == "Yes"`.
   - **Scope: The Caller's Box only.** This inference is **not** applied by the
-    ContraDB or Caller's Companion adapters, and that is deliberate. ContraDB has
-    no first-class mixer category to read. Caller's Companion *may* — Chris builds
-    his collection in CC and exports it to The Caller's Box, so his data probably
-    aligns, but "mixer" may be a custom field of his rather than a native CC
-    concept, and we have not confirmed which. Rather than guess a mapping for a
-    source we have not verified, those adapters leave `mixer` at its `false`
-    default. This was considered and declined, not overlooked; revisit if an
-    explicit request for those sources arrives.
+    ContraDB adapter, which has no first-class mixer category to read. Caller's
+    Companion was left out too until a real `.USR` confirmed mixers are a native
+    CC concept: its `Type` holds "Circle Mixer" and "Scatter Mixer", and a
+    square's `SubType` "Mixer, H H S S". It now reads those (#1972, see §2),
+    from the stated type rather than by inference from a shape.
 
 #### Compound figures (the `(beats) Name:` + indented-children convention)
 
@@ -268,14 +506,54 @@ such a unit and reads it in one of three ways, in order:
   covering `allemande x`, `catch all eight`, `do paso`, `dixie style to a wave`,
   `modified revolving door`, `vicious circle` and others.
 
-  **The parent's shorthand name is preserved as a `note` on the FIRST child**,
-  verbatim after scrubbing. That note is load-bearing at this breadth: it is
-  what keeps a choreographically meaningful qualifier — the "interrupted" in
-  `Interrupted square through 2`, the "modified" in `Modified right and left
-  through with partner`, or a whole name like `Georgia Rang Tang` — from
-  vanishing when the block is expressed as its parts. It is never truncated or
-  normalized away (only `scrubFigureText`'s repo-wide gendered-term
-  canonicalization applies, exactly as on any other stored text).
+  **The parent's shorthand name is kept, verbatim after scrubbing.** That name
+  is load-bearing at this breadth: it is what keeps a choreographically
+  meaningful qualifier — the "interrupted" in `Interrupted square through 2`,
+  the "modified" in `Modified right and left through with partner`, or a whole
+  name like `Georgia Rang Tang` — from vanishing when the block is expressed
+  as its parts. It is never truncated or normalized away (only
+  `scrubFigureText`'s repo-wide gendered-term canonicalization applies,
+  exactly as on any other stored text). Where it goes:
+
+  - Normally the children become **one `sequence` titled with the name**
+    (`params['title']`, see [domain-model.md](domain-model.md)), which every
+    surface shows as `Neighbor flutterwheel - robins allemande right ½ and
+    neighbor star promenade ½`. The sequence carries the parent's beats, which
+    the exact-sum guard has already proven equal to the children's, so section
+    totals are unchanged; each child keeps only its own note.
+  - The block stays **flat**, the children emitted one by one with the name
+    as a `note` on the FIRST child (the reading before container titles),
+    when it cannot be a sequence: longer than the dance's longest phrase (a
+    sequence must fit one), fewer than two or more than four figures
+    (`kMaxSequenceFigures`), a figure that is itself a sequence or nests too
+    deep, or a name longer than a title holds (80 units), which the title would
+    have to shorten.
+  - It also stays flat when the **cross-line merge** consumed any of its
+    figures: a fold inside the block (`Interrupted square through 2`'s
+    `(4) Partner balance` folds into its square through) or across its edge (a
+    balance line before it folding into its first child, a balance-wave line
+    after it folding into its last). Grouping runs after the merge and groups a
+    block only when every figure it emitted came through untouched, in order,
+    so grouping can never cost a fold: the choreography is exactly the flat
+    reading's, and only its grouping differs.
+
+  A dance imported from The Caller's Box before container titles is matched
+  on re-import by its source and id, as always, and the re-import replaces its
+  figures with the grouped reading. Where the grouping matters is an
+  *ambiguous* match, by title and author: the same dance arriving from another
+  source, through a share file without its source link, or entered by hand,
+  with the compound as separate rows. The figure comparisons that decide
+  those (`figuresCanonicallyIdentical`, `diffFigures`) compare a top-level
+  sequence as its steps, so the import review shows no change and an
+  unattended program import reuses the dance rather than saving a variation.
+  That is the maintainer's decision, recorded in the pull request that added
+  container titles; see `_comparableFigures` in `figure_diff.dart`. Two
+  unattended paths compare the exact choreography fingerprint instead, in
+  which the name moved from the first step's note to the sequence's title,
+  so they still see the two as different: Device Sync's fresh-attach dedupe
+  asks about them rather than merging, and a received share file's
+  `autoResolveAmbiguous` imports the incoming dance as a separate one unless
+  the authors confirm the match.
 - **Anything else** → one `customFigure` with the parent text (colon stripped)
   and the parent's beats, the scrubbed decomposition in its `note`. This is the
   fallback whenever **any** child fails to structure, so a block is never
@@ -313,13 +591,258 @@ declines the collapse.
   each dance's body from it. The `Dance`-row `A1..C2` path is kept as a
   **fallback** for exports that carry it and for the CC text adapter. Each body
   line is routed through the **shared free-text fan-out**
-  (`parseFigureLinesFanOut`: ContraDB > TCB > CC) — every line with content
+  (`parseFigureLinesFanOut`: ContraDB > TCB > CC; a clean reading beats a
+  note-bearing one, and among note-bearing readings the one leaving fewer letters
+  and digits in its notes wins, precedence breaking a tie, #1971) — every line with content
   after scrubbing is retained: recognised moves structure into taxonomy
   figures, the rest as `importGap` customs (parse-never-fails); a line that is
-  empty after scrubbing yields nothing (nothing to store). Sets → Programs; user
-  fields → notes.
+  empty after scrubbing yields nothing (nothing to store). One CC-only retry sits
+  on top (#1908): a line the fan-out misses that carries exactly one
+  `left-hand`/`right-hand` is read again with the bare side, and the reading is
+  kept only when it is a single figure with no note whose `hand` is that side
+  (`Left-hand allemande` → allemande, hand left; `Left-hand circle` stays
+  custom). A token that qualifies the next word is not a hand and is not
+  retried: a diagonal (`on right-hand diagonal`) or a dancer by position
+  (`your right-hand lady`, `left-hand neighbor`). It lives in
+  `mapCallersCompanionDance`, not on the CC front-end, because free-text entry,
+  call-button seeding and the reparse upgrade fan out across that front-end
+  too. **Amounts (#1971, shared by every free-text path):** a reading never
+  keeps a default amount while the amount the line stated sits at the start of
+  its note. A reading whose note opens with an amount it did not take (`Circle Left 3/4,
+  make short waves` → circle {3/4, …}) is not a structured win, so the line goes
+  to another front-end's reading or stays custom; a number with a unit (`8
+  beats`) is a count and keeps its note (#1863), and a figure that did take an
+  amount may open its note with the source spelling of a rounded fraction.
+  Decimal and hyphenated amounts are read (`1.0`, `0.5`, `1-1/2` turns;
+  `1.0`/`0.5` circles, and `5/4` = 5 places). A number right after a dancer
+  word is the dancer, never an amount: `Neighbor 0`–`Neighbor 4` read as the
+  `N0`–`N4` tags, and any other (`Partner 2`) leaves the line custom.
+  Sets → Programs; user fields → typed custom fields (below).
+- **Formation (#1972).** A `.USR` states the formation in separate `Dance`
+  columns, and they are read together rather than taking the first non-empty
+  one. `Type` "Circle Mixer"/"Scatter Mixer"/"Longways" gives that shape (the
+  two mixers with `mixer: true`). Otherwise the `Formation` family decides: Four
+  Facing Four, Triplet, Triple Minor (its `ContraForm` start as the detail),
+  Square (`other`, detail "Square"; the dance form comes from `Type`), Other
+  (`other`). A blank family and start with only `FormationOther` is read as the
+  text export's single string would be. A Duple Minor, or a blank family, is
+  refined by `ContraForm` and `Direction`: Becket with `CCW` is `becketCcw`
+  (else `becketCw`), Indecent, Proper, and Improper (or no start) with `Rev` is
+  `reverseProgressionImproper`; other `Direction` values are ignored. A family
+  or start outside those CC offers is read as the text export's single string
+  would be, so "Sicilian Circle" keeps its shape and unrecognised text is the
+  `other` detail with a `cc_unmapped_formation` warning. `FormationOther`, the
+  caller's own description of the start, is the detail. A square whose `SubType`
+  starts "Mixer" is a mixer (in a real file only squares have one). A formation
+  type read this way adds no "Type:" line to the calling notes. The CC text
+  export, which gives one formation string, keeps the single-string mapping (a set
+  shape such as "Proper Triplet" is read as that shape, with the start word as
+  detail, before the Proper / Improper words are tried), its
+  "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
+  marks an alternate "ALT" in a real file, which is read as true.
+- **Program slots link to dances the commit did not write (INTAKE-1).** A slot
+  resolves its CC dance id through the records the commit wrote *plus*
+  `existingDanceIdByExternalId`: the review passes each re-import row's target
+  (the row defaults to Skip, #446, and is left out of the batch). A row
+  committed through Import and edit is resolved by `earlierDanceIds` instead
+  (see *Per-row Edit* below), which wins over this map. Without it a routine
+  re-import turned every slot for a skipped dance into a "Dance not imported"
+  note on a program it then updated in place. The map links slots only: a dance in it is
+  not written and gets no `Dance_Related` link, since undo has no prior state
+  for it. An id deleted since planning is dropped, keeping the note. The share
+  importer (`CompendiumArchiveImporter.commit`) takes the same map.
+- **`UserDefined_1..3` → text custom fields (#1890).** Each non-empty column
+  becomes a `CustomFieldValue` on the dance; the column's `_Name` label (or
+  `User field N` when blank) becomes `CustomFieldDef.label`. The mapper is pure
+  and runs before any definition exists, so it writes a placeholder field id
+  (`cc-user-field:<key>:<label>`); `CallersCompanionUsrImporter.commit` resolves
+  every key to a real definition **before** the pipeline commits and rewrites
+  the ids, and `undo` removes them after the dances.
+  - **Key.** `ccUserFieldKeyForLabel`: lower-case, runs of non-`[a-z0-9]`
+    collapse to `_`, `f_` prefix before a leading digit, 48-character bound. A
+    label with nothing to slug (blank after trimming, or wholly non-Latin) gets
+    `cc_<FNV-1a hash of the label>`, so the same label gives the same key in
+    every dance and every import. Two labels in **one dance** that slug alike get
+    `_2`, `_3`, … (a `cc_user_field_key_adjusted` warning on the draft; the
+    no-slug fallback raises the same code as info). A column with no
+    `_Name` (the reader calls it `User field N`) raises
+    `cc_user_field_label_missing` as info. Across dances the key is the
+    identity, so "Tempo" in one dance and "tempo!" in another share one field and
+    the first dance seen names it.
+  - **Existing key.** Keys compare case-folded (`naturalKeyMatchKey`), which
+    is deliberately wider than the repository's byte-exact key check (so the
+    custom-fields screen can hold both `Tempo` and `tempo`): a key typed as
+    `Tempo` matches the column "Tempo". Among case variants a text definition
+    beats one of another type, a live one beats a tombstone, and an exact key
+    beats a case variant, so an exact text match is never passed over. A live
+    **text** definition under the key is reused as it is (never edited); a
+    tombstoned text one is revived. A definition of another type is never reused — storing text in a number or choice field would
+    corrupt it, and `upsert` refuses to create onto a live key (#1348) — so the
+    column is created as `<key>_2`, `_3`, … with a `cc_user_field_key_conflict`
+    note on `CcUsrImportResult.customFieldIssues`. Matching is explicit, as in
+    `ShareMetadataImporter`, not an upsert.
+  - **Created definitions** are `text`, `showInList: false`, `searchable: true`,
+    `shareable: true` (the default every new field gets). Shareable means these
+    values travel in shared bundles and, with sync on, to the person's other
+    devices, and CC user columns can hold personal notes; the person turns
+    **Include in sharing** off per field in the custom fields settings. Decided
+    by the repository owner while implementing #1890 (their answer to the
+    question, not a ruling recorded elsewhere): keep the model default. The
+    alternative, defaulting these to `false` so personal notes stay on-device
+    until opted in, was recommended and not taken.
+  - **Rollback.** Definitions created or revived by a failed commit are removed
+    with it. A definition no committed dance ended up using (every dance that
+    carried the key was skipped) is dropped straight after the commit.
+    `undo` removes exactly the inserted definitions and re-tombstones the
+    revived ones, each behind the repository's in-use guard so a definition a
+    surviving dance holds a value for stays.
+  - **Re-import** writes no custom-field values. *Amended 2026-10-30
+    (maintainer decision R2-intake7-native, INTAKE-7):* a re-import from any
+    source, archives and `.USR` files included, replaces only the dance's
+    figures, formation and progression (see *Re-import replaces only the
+    choreography*), so every stored value stays and a column the file carries
+    is not applied; a definition only re-imported dances carried is dropped
+    with the other unused ones after the `.USR` commit. This supersedes the #1890 rule that a
+    re-import replaced the dance's content from the file and merged the
+    existing values under the draft's. That merge still applies to a **link**
+    (`_rebuildWithIdentity`'s `keepFrom`): `DanceRepository.update`
+    deletes every stored value and rewrites only what the dance holds, so a
+    value the draft does not carry is kept and the draft wins for a field it
+    carries.
+  - **Not migrated:** dances imported before #1890 keep the `Label: value`
+    lines in their calling notes.
+- **Notes, links and sources (#1974).** The calling notes are assembled from
+  `CallingNotes`, then `Music:`, the unmapped-type line, `Progression:` with
+  `ProgressionOther` when `Progression` is also set (alone, `ProgressionOther`
+  is still read as the progression), `Credits`, `Other notes:` with
+  `NotesOther`, and last `Source:` with `From`, as the Caller's Box and ContraDB
+  importers end with "Imported from …". `SourceURL` is a source link and
+  `VideoURL` … `VideoURL5` are video links, each kept only when it is an
+  `http`/`https` URL with a host and no whitespace or invisible characters
+  (`ccLinkUrl`), so CC's empty `http://` placeholder is dropped. `CallersBox_id`
+  is a source link labelled "The Caller's Box" to its
+  `…/thecallersbox/dance.php?id=N` page; the dance's provenance stays CC's, which
+  re-import matches on. `Reference` is a published source cited with
+  `PageNumber` as the page: the mapper writes a placeholder source id
+  (`cc-published-source:<title>`), and `CallersCompanionUsrImporter` resolves it
+  before the pipeline commit, reusing a source with that title, compared
+  normalised and case-folded (`naturalKeyMatchKey`), whatever else it has set,
+  so a book entered with its author is not duplicated (a live one before a
+  tombstone, which is revived, then an exact title, then the smallest id), or
+  creating one.
+  Created and revived sources are reverted with a failed commit, dropped
+  straight after the commit when no live dance cites them (every dance citing
+  one was skipped), and removed (revived ones tombstoned again) on `undo`, each
+  behind the repository's guard against deleting a source a live dance cites,
+  so a source a user's own dance has since cited stays.
+- **Difficulty level (#1973).** CC's `Level` is a multi-select and stores each
+  checked value on its own line. One value, or several that are the same step,
+  maps to a shipped level as before (`Easy` to Beginner). Several steps name a
+  level of their own, written lowest first on CC's scale (`ccLevelScale`:
+  Beginner, Easy, Intermediate, Advanced), so `Intermediate⏎Easy` is
+  "Easy/Intermediate" (maintainer decisions); a synonym takes the scale's
+  word, so `Novice⏎Medium` is "Beginner/Intermediate". The mapper leaves the
+  dance's level unset with a `cc_new_level` issue, which carries the name for
+  the review's localized note; the pipeline points it at a level of that name
+  the receiver already has, ignoring case and spacing (`ccLevelNameKey`,
+  maintainer decision), and `CallersCompanionUsrImporter` resolves the rest
+  before the pipeline commit: a live level of that name is reused (one an
+  earlier per-row Edit made since the plan), a tombstoned one is restored (the
+  author's call, as #1974 restores a source), and otherwise one is created,
+  last for now. Once the import has otherwise succeeded, each created or
+  restored level it kept is placed by CC's scale (`ccLevelScaleKey`: the
+  shipped levels by id, a combined name at the middle of its span), after the
+  last level below it, else before the first level above it, else last,
+  reading "below" in the user's own direction (a list ordered hardest first is
+  read hardest first). So the tester's levels read Beginner, Beginner/Easy,
+  Easy/Intermediate, Intermediate, Intermediate/Advanced, Advanced (placement
+  is the maintainer's decision). Levels the scale says nothing about keep
+  their places, and the other levels keep their positions, gaps included: a
+  placed level takes the position after the level before it, and a later level
+  moves up only while it would collide.
+  `DifficultyLevelRepository.setPositions` writes only those levels, so a
+  skipped or failed import rewrites none, and a kept one restamps only the
+  levels it had to move. Created and restored levels are reverted with a
+  failed commit, dropped straight after the commit when no dance uses them,
+  and on `undo` removed (restored ones tombstoned again) unless a dance,
+  tombstoned ones included, uses them (maintainer decision). Undo keeps the
+  moves the commit made rather than moving the other levels back, so their
+  positions keep a gap. A value outside the scale still raises
+  `cc_unmapped_level`, and its message joins the values with `/` rather than
+  printing a line break. The text export has one-line levels, so it never
+  meets a combined one.
+- **Set flags (#1974).** `SetItem.Break` is a checkbox that CC's own set-list
+  layout describes as "a break occurs after this dance", so the program gets a
+  `Break` text slot after that dance and its alternates, unless the set already
+  has its own break slot there (refined by *Dances that did not commit*,
+  below). A slot with no dance that carries the flag is
+  the break itself. `Set.SetList_HideALT` is `Program.hideAlternates`,
+  re-applied from the file on re-import like the program's other fields.
+- **Dances that did not commit (#1976).** A set slot whose CC dance resolves to
+  no dance (not in the batch's commit, an earlier Edit, or a skipped re-import
+  row's target) is built by `buildCcPrograms` from what the importer passes it,
+  per the maintainer's decisions on #1976 (2026-10-30): a dance the import left
+  out (Skip, or an ambiguous row an unattended import skipped) becomes a text
+  slot holding its title, with no marker or issue; one whose commit failed
+  becomes its title, a blank line, then the `Dance not imported (Caller's
+  Companion dance #N)` marker, with a `cc_program_unresolved_dance` warning
+  (a plan-time fetch or parse error has no draft, so no title: the marker
+  alone); and one whose `zk_Dance_ID` is not in the file's `Dance` table
+  (`CcUsrArchive.danceRecordIds`: deleted in CC) is left out with a
+  `cc_program_deleted_dance` info issue, its `Break` flag still placing the
+  break and its first alternate taking its place (an empty dance item's does
+  too). A Break flag's break falls due when the next item that is not an
+  alternate in the file ends the flagged dance's group, kept or not, and goes
+  in before the next slot kept (a promoted alternate included) unless that slot
+  is a break already (the set's own, or a left-out dance titled "Break"); the
+  import never adds a break at the start of a program or right after another
+  break that is not an alternate. `CallersCompanionUsrImporter.
+  commit` takes the titles from the batch's drafts and the failures from the
+  session's failed records; the review screen commits only the rows it acts
+  on, so it also passes every planned row's title (`danceTitleByCcRowId`).
+  `danceRecordIds` is `null` for a cut-short file or one the reader warned
+  about, one with no `Dance` table, or one with a `Dance` row lacking a
+  `zk_Dance_ID`, whose slots keep the marker instead of being dropped. (A
+  sector chain the reader stops walking without a warning is not caught.)
+- **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
+  before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
+  the same definition, published-source and difficulty-level steps as `commit`
+  (a bare pipeline commit of a dance with a user-field value is refused by the
+  repository) but builds no programs or links, and has no undo. The screen keeps
+  each such dance's `zk_Dance_ID` → dance id and passes it to the batch `commit`
+  as `earlierDanceIds`, so set slots and `Dance_Related` pairs naming it resolve
+  to it rather than becoming "not imported" placeholders (see *Dances that did
+  not commit*, above); an entry whose dance no longer exists is ignored, and the batch's own dance wins for a CC id it
+  also commits. The CC ids among them that the Edit re-imported go as
+  `earlierReimportedCcIds`, and those dances get no `Dance_Related` link, as a
+  dance the batch re-imports gets none — unless another row of the batch
+  created it or linked onto it, which writes it wholesale. A related-dance link the batch adds **to** such a dance is
+  recorded (`CcUsrImportResult.linksAddedToEarlierDances`) and removed by id on
+  undo or a failed commit, since that dance is not the batch's to restore.
+- Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of
+  parsing): the app reads the file on a **background isolate** (the adapter takes
+  an injectable `CcUsrArchiveReader`; the default source uses
+  `readCcUsrArchiveInIsolate`), decodes it **once** — `plan` keeps the archive
+  (`CallersCompanionUsrAdapter.discoveredArchive`, dances stripped) and commit
+  builds programs from it — loads the file into a buffer sized up front instead
+  of joining chunks (which held ~2× the file), the review screen **releases the
+  file's bytes once planning succeeds** (its rows are in the batch and its
+  programs in the kept archive, so the ~250 MB buffer is not carried through the
+  review; going back to the input step asks for the file again), and
+  `ImportPipeline.plan` yields
+  to the event loop every ~25 ms and reports `(processed, total)` so the review
+  screen shows real progress. Commit-side, a brand-new dance skips the FTS
+  delete-by-scan (see `storage.md`), which had made commit O(N²). Planning
+  against a non-empty library did **not** scale with library size when measured
+  (unrelated or near-duplicate titles), so the fuzzy dedupe was left alone.
 - Adapter wiring note: the `.USR` adapter round-trips each dance through a JSON
-  `columns` payload. The `Phrase` body is **not** in that per-dance column map,
+  `columns` payload holding the `Dance` columns the importer reads
+  (`kCcDanceColumnsRead` plus the dance key); CC's derived search/display helper
+  columns are never decoded (`readCcUsrArchive` passes the reader a table and
+  column allowlist — only the `Dance`/`Phrase`/`Set`/`SetItem`/`InsertCall`/
+  `Term`/`Dance_Related` tables, and on `Dance` and `Phrase` only the columns read — and
+  the reader discards the index/media/layout sectors it never needs). The
+  `Phrase` body is **not** in that per-dance column map,
   so the joined body is threaded through the `discover → fetch → parse` payload
   explicitly (legacy payloads without it fall back to the `A1..C2` columns).
 - Beat-prefix parsing (#560): each body line's leading beats prefix is peeled by
@@ -346,10 +869,18 @@ declines the collapse.
     JSON payload, or storage — defense in depth ahead
     of the parser's own `scrubFigureText` chokepoint (idempotent, no double-mangle).
   - **Bounded fail-closed.** `FmpReadLimits` gains CC-layer caps enforced in
-    `extractCcUsrArchive`: `maxPhraseRows` (default 20 000; sample is 162) and
+    `extractCcUsrArchive`: `maxPhraseRows` (default 150 000; the sample is 162
+    and a ~20 000-dance library ~82 000) and
     `maxFiguresPerDance` (512) throw `FmpResourceLimitException`, which the
     adapter's `discover` maps to the friendly "That file is too large to
-    import." — never OOM/throw-through. `maxBodyLineLength` (2 000 chars, matching
+    import." — never OOM/throw-through. The error carries
+    `ImportErrorCode.fileTooLarge`, and the review screen shows the localized
+    "too large" string for that code (never the error's `message`). The byte-level caps are sized together
+    for a ~20 000-dance library (~237 MiB with FileMaker's own indexes): the
+    app's `.USR` byte cap `kMaxImportUsrBytes` is 256 MiB, and the reader's
+    `kMaxFmpSectors` (65 536 = 256 MiB / 4 KiB) and `kMaxFmpRecords` (500 000)
+    are sized to admit it; raise the byte cap and the sector cap together.
+    `maxBodyLineLength` (2 000 chars, matching
     the local `maxFreeTextEntryLength`) is the exception: a single over-long line
     is **dropped with a warning**, not fatal — mirroring the free-text-entry path
     so one over-long line can't abort a 40-dance import (the O(1) check does no
@@ -391,6 +922,34 @@ declines the collapse.
   surfaced in a read-only "already defined — skipped" section — never overwritten
   — which also makes **re-import idempotent** (a second import of the same file
   finds those tokens present and adds nothing). Declining seeds nothing.
+- **Terms from `Term` (#1023, maintainer decision 7).** CC keeps the user's
+  glossary in a `Term` table: `Term`, `Definition`, `Source` and `Notes`, with
+  CC's own timestamps and keys (columns confirmed against a real
+  `CallersCompanion2.USR` the maintainer supplied, which holds 2 rows: one
+  with a definition and the source "Give and Take - Larry Jennings", one with
+  only a teaching note). `extractCcUsrArchive` reads it as `CcTerm`s through
+  the same tolerant resolver: every field sanitized (the name single-line), a
+  row with no name skipped, a row with a field over the glossary's bounds
+  (`maxUserGlossaryNameLength`, `maxUserGlossaryTextLength`, measured after
+  normalization, as the glossary measures them) skipped and counted in one
+  warning the import review shows (`usr_terms_skipped`), a line break in a
+  name read as a space, and the scan bounded fail-closed
+  (`FmpReadLimits.maxTermRows`, default 20 000). A term is prose: nothing in
+  it is read into a figure or a wording template. The source citation is kept
+  whole, as the term payload's `source` (`glossaryTermSource`): one sample
+  can't show that CC always writes "title - author", so it is not split. The
+  opt-in, previewed step that adds them to the user's glossary
+  (`ImportCcTermsScreen`, then `applyCcTermImport`, while the Glossary is
+  shown) follows the shorthand seeding, its context read before that step
+  because Done on the result dialog closes the review (#1819). It adds each as
+  a `term`, with an Undo (maintainer, 2026-10-16:
+  a row's description starts as its definition; one with no definition is
+  offered unticked until it has one, its notes kept as the entry's notes; and
+  a row whose name is taken is never added marked *Rename needed*). As this
+  change decided (not the maintainer), a taken row can be left out, or renamed
+  with **Edit** and then added. A term already in the glossary with the row's
+  stored name, definition and source is taken to be an earlier import of the
+  same file and is not offered again.
 - Follow-ups: approximating dialect from `Elements`/button phrasing (#563).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
   redistribution permission is clarified; local test asset otherwise). CI runs
@@ -407,14 +966,19 @@ declines the collapse.
   and routes each figure line through the shared free-text parser.
   Formation text is normalized before classification; recognized formation text
   is stored as shape only unless the page's optional
-  `div.dance-show-preamble` supplies normalized `Formation.detail`; unclassified
+  `div.dance-show-preamble` supplies normalized `Formation.detail`, or the name
+  is a set shape (triplet, quadruplet, triple minor), which keeps its Proper /
+  Improper / Indecent start word as detail, ahead of any preamble and joined
+  with `; `; unclassified
   formation text is retained as detail, after any preamble and with a warning.
 - A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
   `figures_json` positional move/parameter model move-for-move onto our taxonomy
   (positional→named table per move, gyre → shoulder_round term migration). It is
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
-  Its recognized `start_type` is shape-only; normalized `preamble` is stored in
+  Its recognized `start_type` is shape-only, except that a set shape (triplet,
+  quadruplet, triple minor) keeps its Proper / Improper / Indecent start word as
+  detail, ahead of any preamble; normalized `preamble` is stored in
   `Formation.detail`, and only `notes` is stored in `callingNotes`. If an
   unclassified `start_type` and preamble coexist, both are retained in detail
   with the preamble first.
@@ -487,10 +1051,12 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   approximated — what that costs depends on the decoder: the line goes custom
   where the run IS its structure, as in a hey or a grand right and left, but
   merely keeps the taxonomy's defaults where the run only ADDS params, as in
-  `square_through` since #799 and every side-slot move since #843): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
-  to you… the person across from you… the remaining person") are a **different
-  concept** from its separate *"First/second corners"* entry, which is what
-  `firstCorners`/`secondCorners` model; `P6`+/`P-n` (mixer partners beyond the
+  `square_through` since #799 and every side-slot move since #843): `C4`+
+  (TCB's *"Corners (square)"* `C1`–`C3` map, since taxonomy v38, to
+  `firstCorners`, `opposites` and `thirdCorners`: a square's corner is a contra
+  first corner, maintainer decisions on #1975); `O` (the glossary's opposite,
+  which in the corpus sits in side runs such as `(OR)` where "opposite" does not
+  read); `P6`+/`P-n` (mixer partners beyond the
   modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
   no dancer.
@@ -596,18 +1162,29 @@ the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
 - **`balance: false` is emitted explicitly** for import fidelity — TCB writes the
   balance as a separate line, never inline on a square-through line, so a
   standalone `Square through n (…)` carries none. This mirrors `rory_o_more`,
-  which forces `balance: false` for the same reason. (The decoder does not itself
-  fold a preceding balance line in; a `<who> balance` line stays its own figure,
-  matching TCB's two-line source.)
+  which forces `balance: false` for the same reason. On a standalone line the
+  beat rule then replaces it (see *Square through balance* below, #1975), so
+  `(8) Square through 2 (PR;NL)` is balanced; inside a compound it stands.
+  (The decoder does not itself
+  fold a preceding balance line in. The adapter's cross-line Fold 1 does, but
+  only a `<who> balance` whose stated subject equals the square through's
+  effective `who`; a ring or wave balance stays its own figure.)
 
 **Whole-line strictness / prefer-custom.** The text outside the pass list must be
-exactly `square through <n>` (modulo filler), `n` in 2..10; the cell count must
+exactly `square through <n>` (modulo filler), or `square through <n> without
+hands` for the circular hey below, `n` in 2..10; the cell count must
 equal `n`; every cell must be `<people-code><R|L>` with the code in
 `tcbPassPeople`. A second parenthetical, an `interrupted`/`modified` qualifier, a
-trailing clause, an unmappable code (`C1`–`C3`, out-of-range neighbors, a bare
+trailing clause, an unmappable code (`C4`+, out-of-range neighbors, a bare
 `R`/`L`), an inconsistent dancer or a non-alternating hand all return `null`, so
 the line falls through to the shared recognizer's bare, defaulted reading rather
-than being half-structured. Untrusted import text is length-capped **before**
+than being half-structured. The exception is a Caller's Companion comma list
+(below): words after it are a note unless they open another clause (#1971), and
+on a square through with hands a list of pass codes that does not decode, such
+as `(NR, PR)` whose hands do not alternate, becomes the note instead of
+returning `null` (#1975). Any other comma bracket (`(W roll R, M side-step L)`)
+still returns `null`, so the per-role and prose readers after it get it (#744).
+Untrusted import text is length-capped **before**
 the pass list is split into cells (`_boundedPassListCells`), so a hostile line
 with millions of `;` is rejected in O(1) rather than allocating the oversized
 list first — a bound shared with the hey and grand-right-and-left decoders (the
@@ -625,12 +1202,138 @@ source-level discrepancy, not something the importer reconciles, so the two
 imports of *Tangled Yarns* remain distinguishable on `who` even after the fix;
 what the fix removes is the fabricated dancers and the doubled balance.
 
+#### Square through without hands → circular hey
+
+TCB has no circular hey of its own. It writes one as a square through without
+hands: `Square through 3 without hands (NR;PL;NR)` (dances 20273 and 527). With
+`without hands` between the count and the pass list, the same pass-list decoder
+yields a `circular_hey`: `changes` is `n`, `who` is the odd cells' dancers,
+`who2` (taxonomy v37) is the even cells' dancers, and `shoulder` is the first
+cell's side. So `(NR;SL)` is neighbors by the right, then shadows by the left.
+
+The pass list names who passes and by which shoulder, not whether the first
+pass runs across or along the set, so `where` is left to the taxonomy default,
+as for TCB heys.
+
+Caller's Companion writes the same list with commas, `Square through 3 without
+hands (NR, PL, NR) to new Neighbor`; that list decodes the same way and the words
+after it become the note (#1971), unless they open another clause (`, then
+balance`, `and swing`), which leaves the line custom for this reader (the
+Caller's Companion mapper may then split it at its commas, see *Caller's
+Companion comma lines* below). A comma list on a square
+through *with* hands is read the same way (maintainer decision on #1975), and its
+cells may be spaced (`P R, N1 L`) or spell the relationship (`Neighbor R,
+Partner L`). Before #1975 such a list was dropped when the line had only
+capitals, as the Caller's Box front end strips a code-only bracket; a list of
+pass codes that does not decode is now kept as the note, and any other comma
+bracket is left to the per-role and prose readers. Without a pass list nothing says who starts, so
+there is no circular hey: the line reads as a `square_through` with
+`places: n`, `balance: false` and the note "without hands" (maintainer decision
+on #1971). A `without hands` line with a pass-list-shaped bracket that does not
+decode stays custom, as does one whose second group repeats the first (a ring of four never passes the same
+group twice running), when that group is outside `who2`'s vocabulary, and on
+any failure of the square-through checks above. Lines imported before this
+change keep their custom text; there is no backfill (maintainer decision on the
+PR that added this mapping).
+
 ### 4. Generic JSON (6.6)
 - Our own canonical archive format (figures, programs, custom fields, provenance,
   dialect definitions). It serves both backup/restore and user-to-user sharing
   through explicit serialization modes: share mode omits custom fields marked
   `shareable = false`, while backup mode preserves every custom field and value.
   Versioned schema; forward-compatible reader.
+- Deleted tags (schema v7). Tags are soft-deleted and their `dance_tags` rows are
+  kept, so restoring a tag brings its dances back; a dance's `tagIds` never lists a
+  tombstoned tag. A **backup-mode** archive therefore carries a `deletedTags` array,
+  one entry per tombstoned tag: the tag (`id`, `name`, `color`), its `deletedAt`, and
+  `danceIds`, the dances (including tombstoned dances) whose retained join names it.
+  Share mode never writes it. The array is separate from `tags` on purpose: a pre-v7
+  reader ignores an unknown key and restores only live tags, whereas a marker inside
+  `tags` would be ignored and the deleted tag would come back live. The archive is
+  stamped v7 only when a tombstoned tag exists. On restore a tombstone is written
+  and stamped like any other deletion, then its joins are re-attached to dances that
+  exist; a tag the destination already holds **live** (by id or name) is never
+  tombstoned by a backup, and its retained joins are not applied. Tombstoned
+  choreographers, sources and custom-field definitions are not carried: they are
+  referentially guarded, so no retained join can name one.
+- Your own figures (#1023, plan C12). A **share-mode** archive carries a
+  `userFigures` array: each of the sender's own new figures its dances use,
+  attached, as `id`, `name`, `definition`, `description`, `keywords`, `payload`
+  and `createdAt`. A figure's notes are left out. Backup mode never writes it;
+  a backup carries the whole glossary in its own section. The reader
+  (`decodeArchiveUserFigures`) keeps an entry only when:
+  - a dance in the archive uses it, attached, so a use's own reference bounds
+    its id;
+  - its id is non-empty and in the glossary's normalised form;
+  - its name, definition, description and keywords fit the glossary's own
+    bounds, once scrubbed as every imported string is;
+  - its payload fits the glossary's size and depth bounds and decodes as a
+    figure's definition;
+  - its `createdAt` is a parseable timestamp;
+  - and it is the first entry for its id.
+
+  Anything else, and anything past 500 entries, is left out with a warning,
+  never an error, because the dances that use a figure still read, each as
+  the line it carries.
+
+  - **Receiving them** (maintainer decision 3). Once a shared file's dances
+    are committed, and while Custom Figures is shown, the review offers its
+    figures (`ImportUserFiguresScreen`), sorted by `planUserFigureImport`
+    against this device's glossary: **add** (no entry has the id),
+    **same** (a figure of the user's with the id and the same name,
+    definition, description, keywords and payload), **differs** (the same id,
+    other content: keep mine, the default, or take theirs, which keeps the
+    user's notes and creation time), or **copy** (the id is held by another
+    kind, or by a deleted figure, which an import never revives: added under a
+    new id, and `DanceRepository.remapUserFigureUses` points the dances the
+    import wrote at it). Nothing is offered when every figure is **same**. A
+    figure whose name is taken is added and flagged *Rename needed*, as one
+    arriving by sync is. A figure the glossary refuses (its budget, its
+    bounds), or whose write fails, is counted and reported, never thrown, so
+    what was written always reaches the Undo. The import's Undo takes back
+    what was added, erasing it (`UserGlossaryRepository.delete(permanent:)`,
+    so no tombstone makes a later import of the same file offer it as a
+    copy, and sync has nothing to publish), and restores what was replaced,
+    after its own undo restores the dances.
+  - **Not versioned, by the maintainer's decision.** Every build before the
+    one that added the array refuses a shared archive newer than it knows when
+    it is opened from the share sheet or "Open with" (its Import screen still
+    reads one, with a warning), so a bump would keep such a bundle out of
+    those builds there. Without one, an older build ignores the unknown key
+    and imports the dances. The same build stopped that intake refusing a
+    newer archive: the review reads the fields it knows and warns once for the
+    file, as the Import screen always did. So a later build can bump for this
+    array, and builds from then on warn, as the earlier bumps intended.
+- Received programs (audit F6, maintainer decision 2026-10-28). A program in a
+  shared file is imported the way `Program.duplicate` copies one:
+  `buildArchivePrograms` sets it to Draft and clears every slot's
+  `performedAt` and the program's `eventDate`, so the sender's calling
+  history never becomes the receiver's. Its `(json, externalId)` provenance
+  records where it came from but is not a dedupe key:
+  `CompendiumArchiveImporter.commit` always inserts, so re-receiving an
+  updated program adds a new one beside the caller's copy rather than
+  overwriting their date, marks and edits. Only a program id repeated within
+  one file collapses onto the program that commit inserted.
+- Receive key. A received dance is stored under `(json, externalId)`, where the
+  external id is the dance's **upstream** provenance namespaced by its source —
+  `contradb:457` — because upstream sources hand out overlapping small integer
+  ids and the bare id made ContraDB #457 and The Caller's Box #457 one key
+  (inside one bundle, the original-id correlation then pointed a program slot at
+  the wrong dance). An upstream that is itself `json` is already a receive key
+  and passes through unchanged, so a re-shared dance still matches the copy
+  received directly; a dance with no upstream id is keyed on its archive id.
+  Dances received before the namespace existed hold the bare id, so exact
+  dedupe also tries that legacy key (`RawRecord.priorExternalIds`) and a
+  re-received bundle still resolves as a re-import rather than a duplicate
+  (`GenericJsonAdapter.externalIdFor` / `legacyExternalIdFor`). That legacy key
+  is not unique once namespaced: a bundle can contain a *different* dance from
+  each of two upstream sources that both used the same bare id, and each would
+  independently resolve the alias to the one existing dance. `ImportPipeline.plan`
+  therefore collects every record's legacy-alias claim across the whole batch
+  before assigning any verdict, and only honors the fallback when exactly one
+  current key claims it — a claim two distinct current keys share is dropped,
+  and those records fall through to fuzzy matching instead of both reimporting
+  the same dance.
 
 ### Signed published collections (#862)
 
@@ -658,6 +1361,29 @@ manifest's permission and licence declaration. Collection-level consent is
 required before commit, including when every dance is new; only potential
 duplicate rows need individual decisions.
 
+The catalog may list several versions of one collection id, but the app offers
+only the newest by SemVer precedence (`latestPublishedCollectionEntries`), so a
+re-import can never roll corrected figures back to an older release. The
+import itself is also refused when its version is lower than the highest
+version already imported for that id (`isOlderThanImportedPublishedVersion`):
+the catalog disables the button, and the review screen declines to plan a
+catalog or seed import that fails the same check. An equal version is a plain
+re-import. Catalog text that is displayed and persisted into provenance
+(`title`, `license`, `permission.grantor/holder/basis/license/fields`) is
+stripped with `sanitizeImportedText(allowLineBreaks: false)` at parse time,
+as on every other import path; a value that is empty after stripping is
+refused. The catalog is expected to list only current versions as a matter of
+repository hygiene; the client enforces latest-only regardless. Latest-only
+is by version alone, not by capability support: if the newest version needs a
+capability this build lacks, it is shown disabled as unsupported and no older
+version is offered in its place. This is a deliberate choice (the alternative,
+falling back to the newest supported version, would quietly hand a user on an
+older app a superseded release); updating the app is the fix. The guard
+covers the catalog and standalone-seed routes only: an archive pasted or opened
+through the generic import sources carries no collection version and is not
+checked. A publisher who withdraws a bad newest version must republish a higher
+version number, since users who imported it cannot move back to an older one.
+
 ### 5. A list of titles (#823)
 
 The only source whose input is **pasted text** rather than a file or a URL, and
@@ -677,7 +1403,10 @@ This is the load-bearing difference from the program path, and the reason
 `resolveUnmatchedOnline` is **not** reused wholesale. That function commits as it
 goes (`resolveConfidentOnlineDanceId` calls `OnlineSearchService.import` /
 `ImportPipeline.commit`), which is correct for a program line — no user is
-present to adjudicate it. A Collection import *does* have a user present, so
+present to adjudicate it. Each of those commits is recorded in a
+`ProgramImportRollback` (`app/lib/src/data/program_import_rollback.dart`), so
+the program's Undo, or backing out before the program exists, reverts them
+with `ImportPipeline.undo`. A Collection import *does* have a user present, so
 every resolved title becomes an `ImportRecordPlan` handed to `ImportReviewScreen`
 and written only on confirmation, where `_defaultChoice` already maps an
 `ambiguous` verdict to skip. Routing through the review is therefore what keeps
@@ -686,6 +1415,10 @@ and written only on confirmation, where `_defaultChoice` already maps an
 What the two paths share is exactly one non-committing step,
 `lookupUniqueExactTitle` (`app/lib/src/data/online_title_lookup.dart`): search a
 title, return the unique exact-title hit or a typed reason there isn't one.
+"Exact" compares `titleMatchKey`s (case, whitespace and quote/dash style
+folded) because the sources disagree on `'` versus `’` (see
+`docs/research/contradb.md` and `docs/research/callersbox.md`); it does not
+drop punctuation or articles the way dedupe's `normalizeTitle` does.
 Collapsing more than that into the shared function would drag an unattended
 import into a flow that has a user watching; collapsing less would leave the two
 paths as parallel implementations of the same search rule.
@@ -710,7 +1443,7 @@ and those need different follow-up:
   choreographer(s), since the local match is by title alone and two dances can
   share a title;
 - **not found** — carrying *which* way it missed (`noResults`, `noExactMatch`,
-  `fetchError`, `lineTooLong`). Multiple exact matches are no longer classified
+  `fetchError`, `connectionFailed`, `lineTooLong`). Multiple exact matches are no longer classified
   as not found when at least one candidate preview succeeds.
 
 A paste with nothing importable deliberately does **not** fall through to the
@@ -724,8 +1457,8 @@ than only by the widget — applies: `kMaxTitleListChars` (65,536 UTF-16 code
 units, not bytes) on the raw text;
 `kMaxTitleListTitles` (100) **distinct** titles, refused before any request and
 never silently truncated; `kMaxTitleLength` (200) per line, over which a line is
-reported rather than searched; blank-line drop; and case-insensitive
-de-duplication (first occurrence wins — unlike `parsePlaintextProgram`, which
+reported rather than searched; blank-line drop; and `titleMatchKey`
+de-duplication (case and quote/dash style ignored) (first occurrence wins — unlike `parsePlaintextProgram`, which
 must keep repeats because a program may legitimately call a dance twice).
 
 An accepted paste issues requests serially with progress and a cancel. A unique
@@ -734,7 +1467,19 @@ at most `kMaxAmbiguousCandidatesPerLine` (6) previews, so the worst-case bound
 is `kMaxTitleListTitles × (1 + kMaxAmbiguousCandidatesPerLine)` requests.
 Candidates beyond the six-item per-title cap are not fetched. A per-title
 `on Exception` boundary means one unreachable dance becomes one `fetchError` row
-rather than an aborted batch. No new fetch path is introduced: the existing
+rather than an aborted batch — except a *connection-class* failure
+(`isConnectionFailure` in `online_title_lookup.dart`: `callersBoxUnreachable`,
+`contraDbUnreachable`, `unreachable`, `searchTimeout`, `timeout`, the
+source-attributed `callersBoxTimeout`/`contraDbTimeout`, plus the
+search-endpoint `callersBoxHttpStatus`/`contraDbHttpStatus`; the per-dance
+preview's `httpStatus` is not, since a 404 there is about that dance). The first
+such failure stops the batch (IMP-07): the title and every title not yet looked
+up become `connectionFailed` rows — the failing title itself was requested; only
+the later titles are skipped without a request (an ambiguous title's candidate
+previews stop at the first connection failure too) — and
+`TitleListResolution.stoppedAfterConnectionFailure` drives one batch-level
+banner on the review screen. Titles already in the collection are still listed.
+No new fetch path is introduced: the existing
 `buildCallersBoxSearchUrl` / `buildCallersBoxJsonUrl` host allowlist (#621, #766)
 still governs what is reachable.
 
@@ -784,7 +1529,7 @@ still governs what is reachable.
   whole-custom fallback rather than throwing or silently truncating sides.
   Sides are never themselves containers: this importer-specific path emits
   ordinary figures, so its direct `meanwhile` construction cannot create a
-  nested container. The model's bounded opposite-kind nesting remains
+  nested container. The model's bounded other-kind nesting remains
   available to authored and deserialized figures. Each side is scrubbed via
   the same `scrubFigureText` pass as any other figure line, so
   bidi/zero-width sanitization parity (#444/#611) holds per-side by
@@ -834,23 +1579,31 @@ comment saying an unmapped people code "declines the whole line to custom" is
 **true** of the hey decoder — whose pass list *is* the figure's structure, so
 without it there is nothing to build — and **false** of
 `_squareThroughPassList` or `_sideRunAnnotation`, whose runs only *add* params.
-`Square through 2 (C1R;C2L)` still imports as a `square_through`; only the
+`Square through 2 (Ph1R;Ph2L)` still imports as a `square_through`; only the
 unmapped detail is dropped. Prefer naming the outcome ("falls through to the
-shared reading", "becomes a custom figure") over the bare verb.
+shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twelve** pre-recognizers: `_hey`,
-  `_circulate`, `_squareThroughPassList`, `_balanceHandAnnotation`,
-  `_gateAnnotation`, `_courtesyTurnAnnotation`, `_walkForwardAnnotation`,
+- `tcbFigureFrontEnd` registers **twenty-two** pre-recognizers: `_hey`,
+  `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
+  `_handBalanceSquareThrough`, `_squareThroughPassList`,
+  `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
+  `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
   `_chainAnnotation`, `_starPromenadeAnnotation`, `_promenadeAnnotation`,
-  `_rightLeftThroughAnnotation`, `_sideRunAnnotation`. Every one is the
-  falls-through kind.
+  `_rightLeftThroughAnnotation`, `_singleFileCircleRecognizer`,
+  `_bracketAnnotation`, `_weaveSlideAnnotation`, `_perRoleChoreoAnnotation`,
+  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but three are the
+  falls-through kind. `_squareThroughPassList` sends a `without hands` line
+  whose pass list does not decode to `custom` (#1971),
+  `_bracketAnnotation` does the same for a leading bracket that names no
+  modelled subject, and `_tcbCast` (taxonomy v40) does it for a `(past …)`
+  list it cannot count, or a count the line contradicts. The front end also has a veto (`_tcbDeclineToCustom`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
   described wrongly:
-  - All **48** of its *recognizers* are the falls-through kind. None of them can send
+  - All **62** of its *recognizers* are the falls-through kind. None of them can send
     a line to `custom` on its own; that happens only when the shared core
     declines it too. So "this ContraDB recognizer declines the line to custom"
     is wrong about the mechanism even when it is right about the outcome.
@@ -865,11 +1618,13 @@ Which is which, derived from the code rather than from memory:
   exactly one, and it is not a recognizer.
 - `canonicalFigureFrontEnd` registers none, so for it every decline is a
   whole-line decline.
-- `FigureFrontEnd.declineToCustom` is the veto row of the table above, and the
-  only way a *source* can force `custom` by itself: it short-circuits ahead of
-  both recognizer layers. It exists because deleting a source's own recognizer
-  is not enough — the shared ones are source-neutral and will claim the line
-  anyway. Only `contraDbHtmlFigureFrontEnd` supplies one today.
+- `FigureFrontEnd.declineToCustom` is the veto row of the table above: it
+  short-circuits ahead of both recognizer layers. It exists because deleting a
+  source's own recognizer is not enough — the shared ones are source-neutral
+  and will claim the line anyway. Both `contraDbHtmlFigureFrontEnd`
+  (`_declineStarPromenade`) and `tcbFigureFrontEnd` (`_tcbDeclineToCustom`)
+  supply one. A source can also force `custom` from a pre-recognizer that
+  returns `FigureMatch.customFallback()`, as the two TCB ones listed above do.
 
 **"Verbatim" — say verbatim *against what*.** The word carries at least three
 senses here, and only one of them is ever wrong. The custom fallback stores the
@@ -927,11 +1682,30 @@ has to be judged in its own context.
   `'$label: $scrubbed'` prefix would duplicate structured data that can drift
   out of sync. Both the structured and custom paths therefore store clean text
   only. (This intentionally drops the previous CallersBox/ContraDB phrase-label
-  prefix on custom figures.)
+  prefix on unrecognized figures.)
+- **Non-quarter amounts round to the nearest quarter** (maintainer ruling).
+  Rotation (`travel`) and places counts are quarter-granular, so a stated
+  `2/3`, `7/8` or `1 & 1/8` used to decline the line to custom. The shared
+  decoders (`_takeRotation`/`_takePlaces`, and the CallersBox single-file
+  circle's `_parsePlaces`) now round it via `roundFractionToQuarters`: ties
+  (every eighth) round half up, and nothing nonzero rounds to zero. The
+  source amount is kept as the figure's note (`1 & 2/3`), ahead of any
+  annotation note, so a structured figure never silently claims 1¾ where the
+  source said 1⅔. Every free-text source routed through `parseFigureLine`
+  shares these decoders; ContraDB's own structured `_rotationStrings` table is
+  separate and unchanged. A rounded total outside the param's domain (past
+  2½ turns, past 10 places) still declines.
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left
-  through, pass through, promenade, petronella. **Enriched for CallersBox
+  through, pass through, promenade, petronella. **Enriched for Caller's
+  Companion (#1975):** `ring balance` is balance the ring, and a ring balance
+  then a spin to the right (`Ring balance, spin to the right`, `balance the
+  ring and spin right`) is one petronella with `balance: true`; the words must
+  come in that order and the spin must be to the right. The stated balance is
+  kept even in a 4-beat line (only an unstated one is withheld, #1969). A note
+  that only names the figure's own move (`(petronella)`) is not a leftover for
+  free-text entry's note-tail demotion. **Enriched for CallersBox
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
   outside (→ down/up the hall `moving`), circulate (→ box circulate with the
@@ -941,16 +1715,34 @@ has to be judged in its own context.
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
   (→ balanced Rory O'More), and directed promenade around the major set
-  (→ structured turn plus a preserved note), pass the ocean +
+  (→ structured turn plus a preserved note; a `to <dancer>` tail or
+  `(to <dancer>)` annotation also fills `destination`, and its words stay in
+  the note because the v30 render gate hides the clause at the `across`
+  default), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
-  #577), diagonal chain /
+  #577; a balance line whose annotation does not decode — `(Ph1R,WL)`,
+  `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
+  decoded params; since taxonomy v38 a square corner decodes, so `(C2R,WL)`
+  folds with `opposites` as the sides), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
   N-suffix (`with/to neighbor N2`, in either word order), explicit dancer codes
   (M1/W1/M2/W2 →
-  ones/twos single-dancer identities), and `(A-B)` beat ranges. **Mad robin &
+  ones/twos single-dancer identities, and since taxonomy v39 M3/W3/M4/W4 →
+  the threes'/fours' single dancers `threesRole1` … `foursRole2`), the same
+  dancers named by role and couple number (since taxonomy v40: `Woman one` →
+  `onesRole2`, `Man three` → `threesRole1`; a digit, `Woman 1`, stays
+  custom), the third and fourth couples as groups (since v40: `Threes` →
+  `threes`, `Fours` → `fours`), same-role neighbor subjects
+  (`Same-role neighbor swing` → `who: sameRoles`; maintainer ruling that
+  same-sex = same-role; `N2 same-role neighbor` has no ordinal token and stays
+  custom), S-prefix shadow subjects (`S1`/`S-1 shadow` → `shadows`, `S-1` by
+  maintainer ruling; `S2 shadow` → `secondShadows`; `S3`+ and `S-2`… stay
+  custom), and `(A-B)` beat ranges. A line stating a different turn amount per
+  role — `allemande left (M 1 & 1/2, W 2)` — stays custom: no move models it,
+  and structuring would render the move's default amount. **Mad robin &
   butterfly whirl (#295, taxonomy v20):** both moves gained the params TCB
   states — `mad robin` a rotation `direction` plus the "around `<whom>`" target,
   `butterfly whirl` a `who` plus the same `direction` — so "Mad robin clockwise
@@ -974,6 +1766,83 @@ has to be judged in its own context.
   CallersBox provenance and exact legacy shape prove the same interpretation;
   the source-scoped migration also rebuilds the derived indexes before marking
   the repair complete.
+  **Roll away with a relationship (#1975, maintainer decision):** a
+  relationship that is the line's only dancer set (`Neighbor Roll Away`,
+  `Partners roll away`, `N2 neighbor roll away`, `roll away neighbors`) is
+  `whom`, the pair the roll away is with; `who` is left to the taxonomy
+  default and marked assumed. Before this it was `who`, which says the
+  neighbors roll one another away. The shared reader and the ContraDB dialect
+  (which claims `Neighbors roll away` first; ContraDB itself always writes
+  both dancers) read it the same way, from one list of relationships
+  (`roll_away_relationships.dart`). A role, a couple or everyone there still
+  rolls (`Larks roll away`), and with a dancer on each side the first is `who`
+  (`Ones roll away neighbors`). The #1192 annotation then states the roller,
+  with any of those relationships, and clears the assumption. Caller's
+  Companion's wording of that note (`Robins roll R, Larks step L`: one role
+  rolls, the other steps) states the roller the same way (maintainer
+  decision); any other note stays a note only, and `Rob roll L` is not read as
+  the robins. A leading Caller's Box bracket that names a dancer set (`[Larks]
+  Neighbor roll away`) states the roller too, so it is not assumed (this
+  applies to any move whose `who` the bracket fills); one that names none
+  (`[All four]`) leaves the line custom unless a note names the roller, and a
+  bracket never overrules the roller a note names. Structured figures already
+  stored keep their old `who`: the #1192 repair is unchanged and nothing
+  re-reads them, so re-importing the same dance can differ from the stored
+  copy. An import-gap custom that **Re-check unrecognized figures** re-reads gets
+  the new reading. `rollaway` and `w/ half sashay` read too.
+  **Box circulate balance from beats (#1975, maintainer decision):** a box
+  circulate that is a whole line gets `balance: true` in 8 beats and `balance:
+  false` in 4 (explicitly, because the renderer shows a box circulate's
+  balance when the flag is absent); other counts, and a balance the line
+  states, are left alone. `withBeatImpliedBalance` applies it once the line's
+  beats are settled, and only to a line with no top-level `;` that produced
+  that one figure: a `;` line spreads its total over its clauses, or keeps it
+  on one figure while a clause becomes a note, and neither says what the box
+  circulate's own beats are. It runs in the Caller's Companion mapper, the
+  Caller's Box per-line parse, the re-parse upgrade and free-text entry (a
+  typed `(8) Box circulate`; applying it there too, so typing and importing
+  agree, was my call, not a separate maintainer decision). It does not run in
+  ContraDB import, whose rendering states the balance, nor for a Caller's Box
+  compound parent or its children, nor for an inserted call shorthand. Fold 1
+  never folds a balance line into a move that already has a balance, so a
+  balance line before an 8-beat box circulate would now stay its own figure;
+  that follows from the code, no such pair is in the beta tester's file, and
+  the Caller's Box measurement above does not record the box circulates'
+  beats. A 4-beat box circulate's explicit `false` does not stop the fold. A
+  repetition is not told apart: `(8) Box circulate (twice)` gets a balance.
+  **Square through balance (#1975):** a balance the line states is kept.
+  Otherwise the beats decide it (decision 8 on #1975): a square through is
+  balanced when its beats are at least twice its places plus 4, so square
+  through 2 in 8 beats is, and square through 3 in 8 or 2 in 4 is not. A line
+  that says `without hands` keeps no balance (#1971). `withBeatImpliedBalance`
+  applies it under the same `;` and one-figure limits as the box circulate, in
+  the Caller's Companion mapper, the Caller's Box adapter, the re-parse
+  upgrade and free-text entry; running it in the last two, so typing and
+  re-checking agree with importing, was the author's call. The rule applies
+  to The Caller's Box too (decision 10), and the maintainer limited it there
+  to a standalone line: a compound names the square through more than once
+  (`(8) Interrupted square through 2:` with a balance child and a 4-beat
+  square-through child), and inside one nothing changes, so the balance child
+  still folds in. On a standalone line it replaces the pass-list decoder's
+  `balance: false`, and it runs after the cross-line merge, only on a square
+  through that no balance line folded into. So `(4) Partner balance` +
+  `(12) Square through 4 (…)` still folds into one balanced square through of
+  16 beats, as before. Caller's Companion states the balance in the line:
+  `Partner R-hand balance, square through 2` and `Neighbor Right-hand balance
+  and square through two` are one square through, `who` the pair that
+  balances and `hand` its hand (maintainer decision). The count may be a digit
+  or `two` to `four` (the author's range). A comma pass list after it gives
+  `who2` when it agrees with that pair and hand, and is otherwise the note
+  (maintainer decision); any other bracket is the note (the author's call), as
+  is a trailing `, to <whom>` that names one dancer set; anything else keeps
+  the line custom for this reader (the Caller's Companion mapper may then
+  split it at its commas, see *Caller's Companion comma lines* below). The
+  Caller's Box front end reads this wording
+  (`_handBalanceSquareThrough`), next to the pass-list decoder it shares. A
+  decoded comma list says nothing about the balance, so unlike a Caller's Box
+  `;` list it does not write `balance: false`. Square throughs already
+  structured in a collection keep their balance; an import-gap custom that
+  **Re-check unrecognized figures** reads again gets the new reading.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →
@@ -982,8 +1851,8 @@ has to be judged in its own context.
   compound shorthands, so neither becomes a move — `Grand right and left
   (<pass list>)` fans into one `pull_by_dancers` per stated pass (see
   "Compound-shorthand fan-out" above) and `flutterwheel` emits the
-  `allemande` + `star promenade` children TCB itself writes (see "Compound
-  figures" above). A pass code the taxonomy cannot faithfully represent, any
+  `allemande` + `star promenade` children TCB itself writes, as one sequence
+  titled with the block's name (see "Compound figures" above). A pass code the taxonomy cannot faithfully represent, any
   leftover prose, or a child that fails to structure all keep the line custom.
   **Balance a wave (#295, taxonomy v21):** see *Balance-a-wave lines* below.
   **Courtesy turn (taxonomy v23):** TCB writes a standalone courtesy turn on
@@ -1017,6 +1886,33 @@ has to be judged in its own context.
   to partner:`, `Wheel chain to neighbor:`) now decompose, because their
   all-or-nothing child list was previously blocked by the unstructurable
   courtesy-turn tail.
+  **Cast (taxonomy v40, #770):** the shared reader takes
+  `[<dancer>] cast [off [n] | up | down | back [<shoulder>] | <shoulder>]
+  [<n> place(s)] [around <dancer>] [to <destination> | to <dancer>]`, where a
+  shoulder is `right`/`clockwise` or `left`/`counterclockwise`, `off` is down
+  one place unless a count follows, and `to <dancer>` (`to P2`) becomes a
+  note. It also reads the display's own wording ("cast back right 2 places
+  around twos to partner's place"). The front end's `_tcbCast` adds TCB's
+  `(cw)`/`(ccw)` annotation on a cast (its shoulder) and `(past twos;
+  threes)`: when every item is a dancer, the count fills `places` and the list
+  is kept as a note; otherwise the line stays `custom`. **Only the adapter**
+  then assumes a shoulder for a role's cast that states none (role2s right,
+  role1s left; `CallersBoxAdapter._assumeCastShoulders`, the maintainer's
+  ruling). A re-check of stored lines, a Caller's Companion import and
+  free-text entry leave it unstated, so on those lines a re-check of an older
+  import differs from a fresh one. A bare `Hand cast` is the `hand_cast` alias of `gate`. Over
+  the 1,563 public dances whose figures mention a cast, the `custom` cast
+  lines fell from 2,060 to 443 (469 before the v40 `threes`/`fours` and
+  role-number dancers). See the v40 entry in
+  [figure-taxonomy.md](figure-taxonomy.md#taxonomy-version-history) for what
+  stays custom and why.
+  *Secondary effect:* a `;` line whose only unstructurable clause was a cast
+  now splits (`Partner lead down; cast up to place`), and a compound parent
+  whose children include casts can now decompose (`Butterfly double figure
+  eight 1/2:` in dances 7867 and 7868, a sequence titled with the parent's
+  name). Dance 19800's two-beat `Women cast back || Men go forward` still
+  folds into the following meltdown swing; the fold now recognizes the
+  structured cast-back side (a cast up or down is not the setup).
   **Walk forward (#733, NO taxonomy change):** TCB writes `walk forward` on 879
   figure lines; it is three families, none of which needs a move. A bare
   `[<dancer>] walk forward` clause is read TOGETHER with the clause that follows
@@ -1079,7 +1975,7 @@ has to be judged in its own context.
   owner ruling: a note on that many figures is a visible change at corpus
   scale, so it is recorded here as an open question rather than a settled one.
   *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
-  code (`O`, `Ph`, `SRN`, `C1`–`C3`, out-of-range neighbours/shadows); a run
+  code (`O`, `Ph`, `SRN`, `C4`+, out-of-range neighbours/shadows); a run
   whose sides do not alternate by position parity; a run stating more passes
   than the move models — a `square_through` cell count that disagrees with
   `places` (which is #799's ruling, and this decoder must not undo it by the
@@ -1088,6 +1984,224 @@ has to be judged in its own context.
   CONTRADICTING a prose-stated side falls through with the PROSE value intact
   rather than declining to custom — forcing custom would regress a line that
   structures today.
+
+  **Hey starts (#1975):** besides `half hey, ladies start by the right`, the
+  shared `_heyStartBy` reads Caller's Companion's `Half Hey, Robins start right
+  shoulder(s)` (or `starts`) into `pass1`, `shoulder` and `length`; this
+  wording must state a length, since the half-hey default could contradict the
+  line's beats. Lengths are half (`1/2`)
+  and full, plus `1/4` → `lessThanHalf` and `3/4` → `betweenHalfAndFull`, as the
+  TCB pass-list decoder maps them. A leading `left/right diagonal` is `where`.
+  A trailing `<role> ricochet` sets a ricochet flag only on a half hey started
+  by a role: the flags count the same-role passes through the centre, so the
+  starting role's is `rico1` and the other role's `rico2` (maintainer
+  decision); any other ricochet keeps the line custom. A bracketed pass list,
+  which this reader does not decode, is the note.
+
+  **Caller's Companion dancer names (#1975):** `_takeDancer` (and
+  `_takeLeadingDancer`) read `new neighbor(s)` as `nextNeighbors` and a
+  singular `corner` as `firstCorners`, with `1st`/`first`, `2nd`/`second` and
+  `3rd`/`third` corner(s) naming each one. They do so for every source, not
+  only Caller's Companion: the maintainer ruled (2026-10-29) that a first
+  corner is the same in contra and squares, so a square's `Allemande left your
+  corner` from The Caller's Box reads the same way. `resolveDancerSetPhrase`
+  shares the reader, so a Caller's Box `[with corner]` bracket on a
+  balance-the-wave line now keeps the note `with firstCorners`, as `[with
+  partner]` keeps `with partners`, where it was dropped before. The bare
+  `Corner` and the `1st`/`2nd` ordinal readings are the maintainer's decisions
+  (#1975; the ordinals and the scope on 2026-10-29); `3rd`/`third` is the
+  author's extension of them. A bare plural (`allemande left the corners`,
+  ContraDB's contra-corners text) may mean both corners in turn, so it is not
+  read. Since taxonomy v38 a numbered corner is read like TCB's C1–C3
+  (maintainer decision): `_foldDancerNumbers` turns `Corner 1`, `2` and `3`
+  into the first corners, the opposites and the third corners, even though the
+  tester's own `Corner 3 (next to you)` disagrees, and still marks any other
+  number after a corner word, so `Corner 5 swing` stays custom rather than
+  reading the number as an amount. `third`/`3rd corner` is the third corners,
+  and `opposite(s)` is the opposites unless the next word is role, side,
+  direction, way or hand (`opposite role pull by L` stays text; today that
+  word is never read, so the line would stay text anyway, and the check is a
+  safeguard). These are context-dependent two-word names, so they live in the
+  reader rather than in `dancerWords`.
+
+  **Bare sides and `R&L` (#1975):** the maintainer decided on #1975 that a
+  bare `L`/`R` straight after a move is its direction, hand or shoulder, that
+  one inside a position note is not, that `alle` is the allemande, and that
+  Caller's Companion's `R&L` is right and left through. `_normalize` spells a
+  bare `l`/`r` as `left`/`right` only straight after `circle`, `pull by`,
+  `pass`, `slide`, `slice` or `allemande`: `Circle L`, `Larks pull by L`,
+  `Slice L`, `Larks pass R shoulder`, `Neighbor alle R 1.5`. That closed list
+  is the author's reading of the maintainer's examples: the other words they
+  listed (`loop R`, `cross R`, `step R`) name no move the parser reads with a
+  side, so spelling them changed no figure, and they were left out. The
+  ContraDB dialect's zig-zag reader takes `Zig L, Zag R` itself. Anywhere else
+  a lone letter stays as written, so a position note such as `(Rob R, Lar L)`
+  or `Balance the Wave (R, L)` is not read as directions. `R&L thru` reads as
+  `R&L` does, and so, by the author's call, does a spaced `R & L`. `Grand
+  R&L` stays text: the line reads as `grand` followed by a right and left
+  through, and the leftover word keeps it custom. `pass by L` is not read
+  either, as before this change.
+
+  **Caller's Companion comma lines (#1975):** a body line that names several
+  figures separated by commas is split into them
+  (`splitCallersCompanionCommaLine`), in the Caller's Companion mapper only. It
+  is tried when the line did not read whole, or read with a note holding the
+  line's last piece (`noteSwallowsPieces`): `Larks pull by Left, Partner pull
+  by Right, Robins allemande Left 1.0` read as a pull by noting the rest. The
+  maintainer's decisions on #1975 (decision 9 and the comment of 2026-10-30):
+  - **Beats:** every figure but the last keeps its default beats and the last
+    takes the rest (a figure whose default is 0 beats takes none, below), so
+    `(8) Slide Left, Circle Left 3/4` is 2 + 6. When
+    nothing is left for the last, the line stays text rather than becoming
+    figures danced at the same time: `(8) Larks allemande Left 1.5, Robins
+    Orbit CW 0.5`. The rule can leave the last figure an odd count: `(16)
+    Square through 3 without hands (NR, PL, NR), Partner balance and swing`
+    gives the circular hey its 8 and the balance and swing 8, where the
+    taxonomy's balanced swing is 16.
+  - **A roll away or give and take** after another figure modifies it: the two
+    become a `modifier` container sharing their beats (`Circle Left 3/4,
+    Partner Roll Away with half sashay`). No other move does.
+  - **A balance before a move that carries one** folds into it: `Partner
+    R-hand balance, box the gnat` is one box the gnat with its balance, `who`
+    the pair that balances and `hand` its hand.
+  - **A last piece that says where the dancers end up** fills the figure's end
+    facing when it has one and the value fits (`Partner swing, face down` is a
+    swing ending facing down; `face N2` after a courtesy turn), and is
+    otherwise the figure's note (`Circle Left 1.0, face New Neighbors`).
+
+  The rest is the author's:
+  - The pieces are grouped from the left, longest run first, so `Ring balance,
+    spin to the right` stays one petronella. A run of several pieces must read
+    with no note, and a single piece is read as free-text entry reads it, so a
+    note holding another move's name or an unread amount (`Balance and
+    California Twirl`, `Right-hand star 7/8`) does not count as a figure.
+  - The balance fold uses The Caller's Box's move list (`balanceFoldMoves`) but
+    not its subject rule, which needs the balance and the move to name the
+    same dancers: here the move takes the pair the balance names when it names
+    none itself, a balance that names no pair (a bare `Balance` reads as
+    everyone) leaves the move's own, and a move that names other dancers, or
+    cannot hold the pair (a petronella has no `who`; a Rory O'More's takes no
+    relationship), keeps the balance as its own figure. A ring balance folds
+    into a petronella, as Fold 1 does. A hand the move has no slot for (a
+    swing) is dropped, as Fold 1 drops it.
+  - A figure's default is its taxonomy beats for the params it has, so a
+    balanced swing counts 16; a folded balance counts at least the balance's
+    and the move's defaults added up, as Fold 1 adds its two lines' beats
+    (the taxonomy gives a balanced box the gnat only its own 4). A compound
+    prefix with one group per figure (`(4,4)`) gives each its group, as #560
+    does for a clean split, and a line with no beats leaves them unset.
+  - A figure whose default is 0 beats takes none, and the last figure that
+    takes beats takes the rest. The maintainer decided this for form short
+    waves without its balance (a zero-count figure, see below), so `(8) Circle
+    Left 3/4, make short waves` is the circle in 8 and a 0-beat form short
+    waves; that every 0-beat default (`form_long_waves`) counts the same is the
+    author's call.
+  - A place to end is a last piece opening with `face`, `facing`, `end` or `to`,
+    scrubbed like the rest of the line, so `form ring` after a figure still
+    keeps the line text. Any other piece that reads as nothing keeps the whole
+    line text, and a line of more than six pieces is not tried.
+  - Free-text entry and **Re-check unrecognized figures** do not split at commas.
+
+  The shared balance reader also reads the hand Caller's Companion writes
+  before it (`R-hand balance`, `Right hand balance`, `RH-balance`).
+
+  **Rory O'More, box circulate and short waves (#1975):** the maintainer's
+  decisions 2 and 11 on #1975 and the comment of 2026-10-30:
+  - `Balance wave and slide to the right` is one Rory O'More with its balance
+    and the slide, and `Balance long wave and slide` the same, with the long
+    wave as the note. A line that names a role sliding (`Balance wave and
+    Larks slide to the right`) stays text.
+  - `Wave balance, circulate` is one box circulate with its balance, and so is
+    `Wave balance, box circulate`. `Wave balance, Circulate 8 (Robins L-sh
+    circulate, Larks R-sh circulate around the set)` is not a box circulate
+    and stays text.
+  - `make short waves`, `make short wave` and `make wave of 4` are form short
+    waves.
+  - Form short waves without a balance is a zero-count figure: taxonomy v38
+    gives its beats a `paramBeats` rule, 4 with the balance and 0 without, and
+    its default stays no balance. A stored form short waves that states no
+    beats therefore counts 0 rather than 4.
+
+  The rest is the author's:
+  - The shared recognizer reads the Rory O'More (`_balanceAndSlide`) and the
+    short waves (`_formShortWaves`), so imports and typed figures agree.
+    `Balance wave of 4 and slide` reads as the Rory O'More too (decision 11
+    itself names `Balance and slide`). Requiring the side, so that a bare
+    `Balance and slide` stays a balance noting `and slide`, is the author's
+    call (#2088), not the maintainer's: the Rory O'More's `slide` defaults to
+    `right` and would invent a direction the line never gave. Anything after the side keeps the line
+    text, as the role-named slide does. Free-text entry,
+    which demotes a note naming another move, leaves the long-wave line text.
+  - `make a short wave`, `make a wave of four` and `form wave of 4` read as
+    form short waves, the same wordings with an article or the digit. A bare
+    `make a wave` names no kind of wave, and a diagonal one names an axis the
+    decision did not cover, so neither is read.
+  - The box circulate is a Caller's Box front-end reader on the raw line
+    (`_waveBalanceCirculate`), because only there can it see the bracket: the
+    whole line must be the balance then the circulate, so `Box circulate,
+    balance the wave` is not read, and `Balance the wave, circulate` reads the
+    same as `Wave balance`. A bracket must say who crosses, as `_circulate`
+    reads The Caller's Box's definition: `(Larks cross)` gives `who` and
+    `(Larks cross, Robins loop R)` also `hand`. The bracket leaves no note
+    since #2089 (below). Any other bracket keeps the line text, so the
+    around-the-set line stays text however its count is written.
+  - `goodBeats` is `[0, 4, 8]`: The Caller's Box folds `(4) Form a wave` and
+    `(4) Balance the wave` into one balanced form short waves of 8, which keeps
+    raising no `atypical_beats` warning.
+
+  **Box circulate brackets and a balance after it (#2089):** the maintainer's
+  decisions on #2089:
+  - `Box circulate (Larks cross)` and a bare `Circulate (Robins cross, Larks
+    loop L)` are a box circulate whose bracket gives `who` and `hand`, as after
+    `Wave balance,` (`_circulateCrossBracket`, through the same bracket reader).
+    No balance is stated, so the line's beats decide it, by the rule above
+    from #1975.
+  - A bracket read whole leaves no note, here and after `Wave balance,`: the box
+    circulate's display already says who crosses and who loops. A note would
+    also lose the line to ContraDB's reader, which keeps the bracket as its
+    note and leaves `who` at its default; the two readings would tie on
+    unexplained text, and precedence gives a tie to ContraDB.
+  - Any other bracket reads as before: a box circulate noting it, or, after a
+    bare `Circulate`, text.
+  - `Box circulate, balance the wave` stays text. A box circulate's balance
+    can only come first, and a line's 8 beats would turn it on. The fan-out
+    has no reading for a box circulate whose note holds a balance, at its
+    start or after a comma, `;`, dash, `and` or `then`
+    (`_balanceAfterCirculate`), for imports and typed figures alike.
+
+  **Caller's Box `Circulate:` and a trailing bracket (#2160):** this is the
+  Caller's Box colon form (`_circulate`), not the Caller's Companion forms
+  above. `Circulate: Women cross, men loop right [with N2]` is a box circulate
+  with `who` and `hand`, so the preceding balance folds into it as it does
+  without the bracket. The bracket must be the one `[…]` that ends the line and
+  must say `with` or `around` and a dancer the strict resolver accepts
+  (`[with N2]`, `[with shadow]`, `[around N2]`). `[with phantom]`, any other
+  head, a second bracket, text after the bracket and the non-inverse or
+  malformed definitions that decline without a bracket all stay text. The
+  figure's note is then the bracket's canonical text (`with nextNeighbors`)
+  and not the definition, which `who` and `hand` already carry; a line with no
+  bracket keeps the definition as its note, as before. (#2160 suggested keeping
+  the raw bracket in the note; this reading does not.)
+
+  The author's calls:
+  - The rule covers any balance written after it (`balance the ring`,
+    `Neighbor balance`), one after a bracket, and one later in the note (`Box
+    circulate to a wave, balance the wave`), but not a note that says there
+    is none (`no balance`, `without balance`) or that the box circulate's own
+    balance is there (`with balance`, a `balance first` that ends its clause;
+    `balance first corners` is a balance after it). A box circulate whose
+    note says there is no balance is given `balance: false`
+    (`_noBalanceWhereStated`), because an absent flag renders as a balance and
+    a line's 8 beats would turn it on. Free-text entry still keeps `balance
+    first` as text, as it keeps any note that opens with a move's name.
+  - Without the fan-out's reading, a Caller's Companion import splits the line
+    at the comma when the balance reads alone, as any comma line: `(8) Box
+    circulate, balance the ring` is a box circulate in 4 then a ring balance in
+    4, in the order written. `balance the wave` does not read alone, so that
+    line stays text.
+  - The rule covers only the box circulate. A square through, the other move
+    whose balance its beats give, already keeps `Square through 2, balance the
+    wave` text.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
@@ -1116,7 +2230,7 @@ has to be judged in its own context.
   of these figures.
   **Out (→ custom
   for now, tracked on #295):** cast off,
-  two-hand turn & other ECD figures, promenade
+  ECD figures outside the contra taxonomy, promenade
   CW/CCW around the major set when the line cannot be recognized, non-duple
   formations, and
   anything with leftover prose. Coverage improves iteratively — measured against
@@ -1124,6 +2238,280 @@ has to be judged in its own context.
   simultaneity is no longer in this list — see "Simultaneous-action fan-out
   (`meanwhile`)" above; it fans into a `meanwhile` container one layer above
   this per-move recognizer, #591.)
+
+#### English Country Dance lines (ADR-006 W6)
+
+A line of an ECD dance is read by its own grammar, `ecd_figure_parser.dart`
+(`parseEcdFigureLine`, `recognizeEcdLine`), never by the contra front-ends
+above: an unprefixed move in an ECD dance means one stored before the ECD
+taxonomy existed (ADR-006 §5.1), so new entry must not create one. It is used
+by free-text entry when the dance's taxonomy is ECD's
+(`shippedTaxonomies.forForm(DanceForm.ecd)`), by a Caller's Companion dance
+whose Type is English (or every non-square dance of a `.USR` file the person
+says holds English dances), and by **Re-check unrecognized figures** for an
+ECD dance.
+
+- **Same contract.** A line not read in full is a custom `importGap` figure
+  with its scrubbed text; nothing throws; every structured leaf is validated
+  against `ecdTaxonomy` alone, with no contra under it.
+- **Store what the words say** (ADR-006 §5.3). An unstated value is not
+  stored, so it reads as `unspecified` (`who` included). The one exception is
+  ADR-006's own: a forward and back with no distance is a double. A
+  bracketed aside (`(on the side)`) is the figure's note.
+- **Steps.** One to four steps joined by `and`, `then` or a comma make one
+  `sequence` (§5.4), its span the line's count (or, with none, the sum of its
+  steps' usual beats); the steps carry no timing of their own (§5.5). One `as`
+  or `while` makes a `meanwhile`. `, bending the line` makes a `modifier`. A
+  subject on the first step is each later step's too ("1st corners set and
+  turn single", §8.1), unless a later step names other dancers, which leaves
+  whose the rest are unclear, so none is given. A ring movement (circle,
+  star, chain, rights and lefts, the heys, poussette) never takes it: "1s set
+  and circle left" does not say the 1s circle alone. `and back` after a star is a
+  star back to place (§8.1); after a forward and back or a galop it is that
+  movement's `goBack`.
+- **Not guessed.** A bare `hey` (no number of dancers), a turn with no hand,
+  `up` or `down` without a distance (`robin up`), and a bare side after
+  `cross` (hand or shoulder?) stay custom. So does a word the movement has no
+  place for: dancers named both before and after a turn (`1s turn 2s`), a
+  preposition other than the one the movement shows its partner dancers with
+  (`cast around 2s` reads, `cast to 2s` does not), `to the right` as a
+  hand or a cast's shoulder (it is a way to travel: `circle to the left`
+  reads), a cast's shoulder beside `up` or `down`, a bare `improper`
+  (`ending improper` reads), and a subject before a poussette, whose `who` is
+  the dancers who push (`half poussette, 2s push` reads; "all" adds nothing).
+- **Cast** reads the shape ADR-006 §9.4 gives it: `up`, `down`, a bare
+  `left`/`right` (the shoulder turned over) or `clockwise` (right) /
+  `counterclockwise` (left) is its `direction`; no shoulder is assumed from
+  the dancers' role (`robins cast back` states none); and `back`
+  states nothing (`cast back left` is `left`), so a displayed cast reads
+  back in. `N places` is its `places`, and `to the bottom`/`to top` its
+  `destination`; any other movement still reads `to top` as dancers (`set to
+  top`). `cast off` is down one place unless the line states a count (`cast
+  off two places`) or where it ends (`cast off to the bottom`). A bare `cast
+  around`, with no dancers, has no parameter to hold it and stays custom.
+  `hand cast` is a gate, stored under its own alias `ecd_hand_cast`.
+- **Rings.** A circle's or star's fraction ("half way") is a number of places
+  from the size of the ring (§7.3): a size the line states (`circle six left
+  half way`), the couples the subject names, or the dance's formation
+  (`ecdRingDancers`: four in a duple minor, six in a triple minor). A stated
+  size with no fraction (`circle six`, `4 hands across`) has nowhere to be
+  held, so that line stays custom. When none settles it, the
+  fraction's words are the note and `places` is unstated. Free-text entry gets
+  the formation from the editor; the re-check does not see it.
+- **Free-text entry** keeps its count, `;`-clause and shorthand handling, and
+  retries a line with the dialect's role words as for contra. A line that
+  starts with a bare number is read whole first (`2 changes of rights and
+  lefts`, `2 hand turn`), then with the number as its count.
+- **Bars** (`ecd_bars.dart`, Hudson, 19 November 2026: "the meter is the
+  rule"). ECD notation counts in bars of the tune, so a leading bar range
+  (`1-4`, `(5-8)`, `9 – 12`, after a section label as in `A1 1-8` or
+  `A1&2 1-4`, which is dropped) is the line's count: its bars times the beats
+  in a bar of the dance's meter (`ecdBeatsPerBar`). A simple meter counts its
+  top number (`3/2` is 3), a compound one its dotted beats (`6/8` and `6/4`
+  are 2, `9/8` and `9/4` are 3); no meter, one it cannot read (`3/12`,
+  a date), or meters of different bars in one text (`2/4 and 3/4`) count 2
+  and say it was not stated. Where the dance's phrase structure gives one beats per bar, that is
+  the fallback for an unstated meter (`ecdMeterForBars`: `4*8*3` reads as
+  `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
+  which takes the meter first too). A range that runs backwards, spans more than 32 bars, would come to
+  more than 64 beats, or has nothing after it is not one, and a lone number is
+  never a bar (`2 changes of rights and lefts`). The bars are the count, over
+  a count the line was given (a Caller's Companion `(8)`, a re-checked
+  line's stored count) and over a count the figure takes by default; a line
+  whose rest also states a count in beats (`1-4 (6) …`, `… 6 beats`,
+  `ecdRestStatesBeats`) is kept as text, so that count stays in its words.
+  So is a Caller's Companion line whose beat prefix (`(6)`, `(4,4)`)
+  disagrees with its bars, prefix included (`_ecdLineFigures`); a compound
+  prefix that agrees is spread on a sequence's steps. A
+  section label may be `A1`, `a1`, `A1:` or `A1&A2`; brackets must pair. A
+  line kept as text keeps the range in its words and the
+  count. The meter comes from the editor in free-text entry and from the
+  stored dance in Re-check (`FigureReparser`'s `meter` and
+  `phraseStructure`). Only an English
+  dance's lines are read for bars; `1-4` in a contra line is untouched. A
+  line that goes on to further ranges, each starting the bar after the last
+  ended (`(5-8) X (9-12) Y`), is counted from its first range's start to its
+  last range's end and kept as text, since it names several figures
+  (`EcdBarRange.several`); when all of them would come to more than 64
+  beats, the first range's count is kept (`EcdBarRange.firstBars`). A later
+  range that doesn't follow on is part of the words. The line is not split.
+- **Caller's Companion English dances** also take the ECD shape their contra
+  shape names (`ecdFormationFromContra`: duple proper → duple minor, duple
+  improper → duple minor, improper; triplet and quadruplet → three- and
+  four-couple longways). Contra reads a formation that states no start as
+  improper; an English dance is improper only when its source says so, since
+  ECD's flag defaults to proper (ADR-006 §9.2). Its lines are cached apart
+  from contra's and per ring size, since a `half way` circle is two places in
+  one dance and three in another, and per beats in a bar. A compound prefix
+  (`(4,4)`) whose parts match the sequence's steps keeps each part on its
+  step. An English dance takes `Dance.meter` and `musicalKey` from the Music
+  field (`ccMusicMeterAndKey`: `Key: G, Meter: 3/2`, `Key Dm Meter 6/8`,
+  `Em 3/4`); a contra dance keeps Music as a note only. A number after a
+  track, disc or page word, or one followed by `of` (`Track 3/4 of CD`), is
+  no meter unless its own word names it (`Meter 3/2 of Playford`), and an
+  opening `A` before a meter and a lower-case word or a kind of tune
+  (`A 3/2 hornpipe`, `A 3/2 Hornpipe`) is the article, not key A; such a text
+  may give its key as `in G`. When a bar range is
+  counted with no stated meter, the dance gets the info issue
+  `cc_bars_meter_unstated`.
+- **Caller's Companion English phrase structure** (ADR-006 §9.2 point 8).
+  An English dance whose sections are all labeled `A`, `B` or `C`, alone
+  or numbered `1` then `2`, each letter's sections together, takes them as
+  named phrases (`ecdPhraseStructureFor`): `A1 A2 B1` of 4, 4 and 8 bars is
+  `A:2*4*2 + B:1*8*2` in 2/2. Each section's bars are its figures' beats at
+  the meter's beats per bar, taken only when they add up to every count its
+  lines state (`ecdStatedBeats`: bracketed beats and bar ranges), so a
+  count lost in a line kept as text, or a figure's default count where the
+  line states none, names no phrases. A second time (`A2`) must count the
+  same bars as the first. A section that counts none, such as an `A2` of
+  only "Repeat to places", names no phrases: its figures add no beats, so
+  naming would label every later figure a phrase early (B1's as `A2`).
+  Named phrases that are only A and B of 8 bars, each played twice, label
+  as the unnamed structure does, so they stay unnamed. With no named
+  phrases, a stated meter of other than two beats a bar
+  gives `4*8*N` (any N, so 5/4 gives `4*8*5`); else the standard
+  structure. Measured on Hudson's library (data only, not committed) on
+  20 November 2026: of 220 English dances, 31 named, none of them with a
+  phrase warning; 61 more given their meter's beats; 128 standard.
+- **Is the file English?** A Caller's Companion library often types its
+  English dances "Contra", so the import screen asks once per `.USR` file,
+  before reading it, whether its dances are English (Hudson, 19 November
+  2026; `.USR` only, since an ECDDB source is always English, a ContraDB one
+  always contra, and a Compendium file states each dance's form). The answer
+  rides on the request (`CallersCompanionUsrAdapter.englishDancesOption`)
+  from discover to parse; yes reads every dance but a square as English
+  (`mapCallersCompanionDance(englishDances: true)`, which raises no
+  "imported as a contra" note for an unknown Type). Closing the question
+  plans nothing. The answer is held per file bytes in an `Expando`, so
+  trying a file again after a failed plan does not ask again, and the
+  screen can still release a planned file.
+
+Measured on 19 November 2026 against one caller's own notes for about 100
+English dances (split into 1,475 fragments at counts and full stops; most
+fragments are teaching prose), the grammar read 554 fragments; the rest stay
+text. That corpus is not in the repository; the tests use generic lines.
+
+#### Converting English dances stored with contra moves (ADR-006 §12.1 F5)
+
+An ECD dance imported or tagged before the ECD taxonomy existed holds contra
+moves and a contra shape; they still display through the contra taxonomy
+(§5.1). **Settings → General → Import → Convert English dances** is the opt-in
+migration that turns them into ECD figures. Nothing runs it on its own.
+
+- `ecd_migration.dart` (`migrateEcdDance`) does four things to one dance:
+  1. a contra move with an ECD twin of the same meaning becomes that twin
+     (`ecdTwinOfContraMove`), inside containers too. The twin table lists, per
+     move, the params that carry across unchanged. A move storing any other
+     param with a real value (a star's wrist grip, a swing's balance prefix, a
+     forward and back in squares) stays contra; an empty text or a value the
+     move's own name states (a see saw's left shoulder) is not in the way. A
+     move with no twin stays contra too: a contra hey, poussette, mad robin,
+     circular hey or form long waves, whose `who` names a different group in
+     each form (the pair that pushes, steps in front, passes first or faces
+     in, against ECD's subject); a petronella, which in contra includes the
+     balance; and form short waves, whose center and sides the ECD short wave
+     does not show;
+  2. any other contra move is read again from its words
+     (`ecdReadingOfContraWording`, Hudson's decision: twins first, then try
+     the ECD grammar on what else can parse). The words are the move's own
+     summary as the figure list shows it, in the canonical dialect, balance
+     and other modifiers included and never the person's wording override
+     (which can name another move). Contra silences its defaults there, so a
+     default the words do show can become a stated value: the accepted cost
+     of this step. The reverse is refused: a figure that states a non-default
+     value its words hide (a promenade's destination) is not read. Nor is one
+     whose reading would drop a value it stores, its contra default included
+     (the contra editor seeds every param), or state it as another value. A
+     value is kept when a step states its param with the same value (a contra
+     `who` as ECD's one-dancer list), when it is a balance the reading made a
+     step of its own, or when it is a formation the reading states as `who`
+     (side couples forward and back). A param a step states otherwise (`role2s
+     1¼ figure 8` reads as a quarter figure eight for the 1st role2), or that
+     no step has a place for, keeps the figure contra. A param a step leaves
+     unstated is set on the one step that is the move's twin when the twin
+     table carries it (a hand-entered balance and swing keeps the swing's
+     `endFacing: in`); otherwise the figure stays contra. So a hand-entered
+     promenade (its `where` and `direction`) and figure 8 (its `lead`) stay
+     contra. Also never read: a figure that fails contra validation or whose
+     subject was assumed; the moves left out of the twin table for their `who`;
+     form short waves, whose center and sides would be lost; and a petronella,
+     whose contra words hide whether it includes the balance. A reading is kept
+     only when every leaf is an ECD move that validates against `ecdTaxonomy`.
+     It can be a sequence ("partner balance & swing" is a balance, then a
+     swing, keeping the 16 beats it danced), which replaces only a top-level
+     figure, so containers never nest. The figure keeps its
+     note, mark and overrides, and its contra count as below;
+  3. import-gap custom lines are re-read with the ECD grammar
+     (`reparseImportGapFigures` with ECD's taxonomy, and the dance's meter and
+     phrase structure, so a bar range counts as in Re-check); user-entered
+     customs are left alone, as in Re-check;
+  4. the shape becomes `ecdFormationFromContra`'s.
+- In a twin (step 1), only values the contra figure **stores** are carried, never a contra default,
+  so the migrated figure states nothing the dance did not (R2). A `who` the
+  importer assumed (`assumedSubject`) is dropped. The exceptions are values the
+  move's own name states: a see saw is a left-shoulder back to back, and a
+  forward and back (or long lines) goes back and, with no distance stored, is a
+  double (§9.1 point 3). A figure with no stored count gets the count it
+  danced in contra (its effective beats, which can follow its params) when
+  the twin's would differ: a pass through is 2 beats in contra and 4 in ECD,
+  and a forward with no back is 4 in contra and 8 in ECD. So the dance keeps
+  its length. Every twin is validated
+  against `ecdTaxonomy`; one that fails stays contra. A test converts each
+  twin-table move as the contra editor stores it, so an entry that can never
+  convert fails.
+- Storage cannot import this layer, so `DanceRepository.previewEcdMigration`
+  and `migrateEcdDances` take it as an `EcdDanceMigrator`
+  (`migrateEcdDanceForStorage`), as Re-check takes its `FigureReparser`. The
+  preview lists only ECD dances the migration would change; the apply re-runs
+  the migration per dance inside one transaction, skips a dance no longer ECD
+  or with nothing to change, rebuilds derived rows, and stamps `updatedAt`.
+  Like Re-check, it re-expresses stored content, so it is not a local user
+  edit and never cancels a peer's pending tombstone (sync-spec §6.8).
+
+#### Parse cost: what is cached, and what must stay true
+
+Parsing a figure line is the dominant cost of planning a large import (a
+~20,000-dance `.USR` spent almost all of its planning time here: ~1.9 ms per
+dance, roughly 7 figure lines each, before the caches below). The ContraDB
+attempt runs first on every line and tries ~55 recognizers in turn, so the cost
+was tokenizing and normalizing the same line ~55 times and rebuilding the same
+scrub tables per attempt. What is cached now, all of it a pure function of the
+line text (the parse **result is unchanged** — checked cell for cell against the
+uncached parser over a 20,516-dance corpus and ~200k mutated lines):
+
+- **The last line's tokenization** (`_Tokens.of` in `contradb_figure_dialect.dart`),
+  with each token's normalized form filled in lazily, shared by every recognizer
+  that scans the line. One entry, keyed on the text.
+- **The last `scrubFigureText` result**, since one line is scrubbed once per
+  front-end it fans out across. One entry, keyed on the text.
+- **The canonical-dialect `Substitutor`s** (`canonicalize.dart`), built once for
+  `Dialect.canonical` with no extra synonyms — the only configuration the import
+  path uses. Any other dialect, or any `extraRoleSynonyms`, is built per call.
+- **The figures a body line parsed to**, per `CallersCompanionUsrAdapter`
+  (`CcFigureLineCache`): a library repeats its stock calls thousands of times.
+  Keyed on the trimmed raw line **including its beats prefix**, bounded (50,000
+  lines; past that new lines are just parsed each time), and safe to share
+  between dances because `Figure` is immutable. An English dance's lines are
+  kept in a map of their own (`lookup(line, ecd: true)`), keyed on the ring
+  size and the beats in a bar too: the same text reads as an ECD figure there
+  and a contra one elsewhere, and `1-4` is 8 beats in 2/2 and 12 in 3/2.
+
+Everything above is static or per-adapter state, so it is **per isolate**. Two
+things keep it honest: a cache must never hold anything but a pure function of
+its key, and any change to a parser stage that is *not* pure (reads a global,
+the clock, a setting) has to take that stage out of the cache. The tests in
+`figure_parse_cache_test.dart` compare against an isolate that parsed only the
+line in question, because a function compared only with itself cannot reveal a
+cache that ignores its key.
+
+**Clause notes hang on the figure emitted before them.** A `;` clause that
+fails to structure but is note-eligible is kept as a note on the last figure
+emitted *before* it. That figure is read off the emitted list at the moment the
+clause is declined, not derived from clause counts: the walk-forward fold above
+consumes two clauses for one figure, so counts and figures diverge after one.
+(Counting used to throw `RangeError` for a trailing note after a fold — dropping
+the whole dance from an import — and hang a note between two figures on the
+figure *after* it.)
 
 ### Balance-a-wave lines (CallersBox, #295 / taxonomy v21)
 
@@ -1141,9 +2529,24 @@ form figure is ever emitted.
 (`_promoteBalanceWaveLines`), so by construction it only ever sees leftovers:
 
 1. **Fold 1 (forward)** — a balance line immediately BEFORE a swing /
-   petronella / rory o'more / box the gnat / swat the flea / box circulate folds
-   into that move (`prefix: balance` / `balance: true`). ~44% of balance-wave
-   lines have such a successor and are claimed here, exactly as before.
+   petronella / rory o'more / box the gnat / swat the flea / box circulate /
+   square through folds into that move (`prefix: balance` / `balance: true`),
+   but only when the merged figure balances the same dancers in the same
+   formation as the source line (`_balanceMatchesMove`). A balance-WAVE line
+   folds only into a WAVE move (box circulate, Rory O'More): folded into a
+   swing, box the gnat, swat the flea, square through or petronella it would
+   render `<who> balance & <move>`, erasing the wave's sides, centre and hands
+   and handing the whole wave's balance to the move's pair (`Balance wave of
+   four` / `Ones swing` lost the twos' balance outright). Those lines fall
+   through to the promotion below instead. The same rule keeps `Balance ring`
+   out of a swing (it folds only into petronella), keeps a bare `Balance` —
+   whose subject the recognizer assumed — out of every subject move, and folds
+   a stated subject (`Partner balance`) only into a move with the SAME
+   effective `who`. Measured over the 11,499 full-permission dances: of the
+   3,773 balance-wave lines that reach the merge, Fold 1 claims **211** (all
+   before a box circulate); it claimed 353 before this rule, the other 142
+   being swings (124), box the gnats (14), swat the fleas (2) and square
+   throughs (2).
 2. **Fold 4 (backward, #577)** — a balance-wave line immediately AFTER a
    structured `pass_the_ocean` / `form_short_waves` / `form_a_long_wave` /
    `form_long_waves` folds into that figure with the beats summed, so an
@@ -1206,7 +2609,7 @@ dominant forming wording (~1,000 clauses) — now structures as `form_short_wave
 sizes still degrade to custom.
 
 **Measured effect** (real adapter over the full mirror, 20,516 parseable dances):
-custom figures 24,775 → 22,272 (−2,503), structured share 76.24% → **78.69%**;
+unrecognized figures 24,775 → 22,272 (−2,503), structured share 76.24% → **78.69%**;
 every forward-merge move's count is unchanged or higher (none lost a balance);
 and **per-dance beat totals are byte-identical for all 20,515 dances**, so
 `deriveSections`' cumulative section placement cannot drift.
@@ -1214,9 +2617,15 @@ and **per-dance beat totals are byte-identical for all 20,515 dances**, so
 ## Error handling & testing
 
 - Every stage yields structured errors with source context (never stack-trace
-  UX); partial batch failure imports the rest and reports.
-- Adapter test fixtures: real TCB JSON samples (id 1, 100, 3418, 10284 cover
-  chestnut/Becket/proper/notes cases), CC demo USR, synthetic edge cases
-  (empty phrases, `(0)` beats, non-standard phraseStructure, windows-1252
-  artifacts, duplicate titles).
+  UX); errors carry typed codes (`ImportErrorCode`); messages are
+  diagnostic-only, never rendered. Partial batch failure imports the rest and
+  reports.
+- Adapter test fixtures (`test/imports/`): one real TCB JSON file
+  (`support/callersbox/right_where_we_belong_19001.json`) plus inline TCB JSON
+  in `callersbox_adapter_test.dart` (ids 1, 1006, 10882); ContraDB HTML
+  captures under `support/contradb/`; hand-built `FmpDatabase` fixtures from
+  `support/fmp_fixture_builder.dart` — the CC demo `.USR` is not in the repo
+  (see §2), and `callers_companion_usr_real_file_test.dart` skips without a
+  local copy; synthetic edge cases inline (`(0)` beats, non-standard
+  `PhraseStructure`, non-`full` permission stubs, windows-1252 search pages).
 - Round-trip property: export→import of our generic JSON is identity.

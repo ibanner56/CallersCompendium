@@ -2,16 +2,19 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
-import 'responsive_autocomplete.dart';
+import '../theme/app_spacing.dart';
+import 'app_dropdown_field.dart';
+import 'move_autocomplete.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
 /// "Query-builder UX"). Edits the mutable [BuilderGroup] [root] in place and
 /// calls [onChanged] after every edit so the parent recompiles and re-runs the
 /// search. Uses plain language ("All of / Any of / None of", "Has figure",
-/// "then") rather than raw AST names.
+/// "Has tag", "then") rather than raw AST names.
 class AdvancedQueryBuilder extends StatelessWidget {
   const AdvancedQueryBuilder({
     super.key,
@@ -19,7 +22,9 @@ class AdvancedQueryBuilder extends StatelessWidget {
     required this.taxonomy,
     required this.dialect,
     required this.sectionLabels,
+    required this.tags,
     required this.onChanged,
+    this.tagsUnavailableFor,
   });
 
   final BuilderGroup root;
@@ -31,7 +36,18 @@ class AdvancedQueryBuilder extends StatelessWidget {
   /// widget has no hidden inherited dependency.
   final Dialect dialect;
   final List<String> sectionLabels;
+
+  /// The tags a "Has tag" row can pick from — the same set the Tag facet
+  /// offers (tags carried by at least one live dance). With none, the Add menu
+  /// does not offer "Has tag" at all.
+  final List<Tag> tags;
   final VoidCallback onChanged;
+
+  /// The name of the source being searched when that source cannot carry a tag
+  /// condition (ContraDB has no tags), or `null` when tags are available. The
+  /// "Has tag" entry is then shown greyed out, saying why, and the screen has
+  /// already removed any tag rows.
+  final String? tagsUnavailableFor;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +56,8 @@ class AdvancedQueryBuilder extends StatelessWidget {
       taxonomy: taxonomy,
       dialect: dialect,
       sectionLabels: sectionLabels,
+      tags: tags,
+      tagsUnavailableFor: tagsUnavailableFor,
       onChanged: onChanged,
       onRemove: null,
       depth: 0,
@@ -53,6 +71,8 @@ class _GroupView extends StatelessWidget {
     required this.taxonomy,
     required this.dialect,
     required this.sectionLabels,
+    required this.tags,
+    required this.tagsUnavailableFor,
     required this.onChanged,
     required this.onRemove,
     required this.depth,
@@ -62,6 +82,8 @@ class _GroupView extends StatelessWidget {
   final Taxonomy taxonomy;
   final Dialect dialect;
   final List<String> sectionLabels;
+  final List<Tag> tags;
+  final String? tagsUnavailableFor;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
   final int depth;
@@ -71,48 +93,57 @@ class _GroupView extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       color: theme.colorScheme.surfaceContainerHighest.withValues(
         alpha: depth.isEven ? 0.3 : 0.15,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.xs),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // The label and the match dropdown wrap onto a second line when
+            // they do not fit beside the remove button (large text, phones).
             Row(
               children: [
-                Semantics(
-                  label: l10n.collectionQueryMatchLabel,
-                  child: DropdownButton<GroupKind>(
-                    key: ValueKey('group-kind-${group.id}'),
-                    value: group.kind,
-                    onChanged: (kind) {
-                      if (kind != null) {
-                        group.kind = kind;
-                        onChanged();
-                      }
-                    },
-                    items: [
-                      for (final kind in GroupKind.values)
-                        DropdownMenuItem(
-                          value: kind,
-                          child: Text(groupKindLabel(l10n, kind)),
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Semantics(
+                        label: l10n.collectionQueryMatchLabel,
+                        child: AppDropdownField<GroupKind>(
+                          key: ValueKey('group-kind-${group.id}'),
+                          compact: true,
+                          fillWidth: false,
+                          value: group.kind,
+                          onChanged: (kind) {
+                            group.kind = kind;
+                            onChanged();
+                          },
+                          entries: [
+                            for (final kind in GroupKind.values)
+                              AppDropdownEntry(
+                                value: kind,
+                                label: groupKindLabel(l10n, kind),
+                              ),
+                          ],
                         ),
+                      ),
+                      Text(
+                        l10n.collectionQueryTheseConditions,
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.collectionQueryTheseConditions,
-                  style: theme.textTheme.bodySmall,
-                ),
-                const Spacer(),
                 if (onRemove != null)
                   IconButton(
                     key: ValueKey('remove-${group.id}'),
                     tooltip: l10n.collectionQueryRemoveGroup,
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.remove_circle_outline),
                     onPressed: () {
                       onRemove!();
                       onChanged();
@@ -122,7 +153,10 @@ class _GroupView extends StatelessWidget {
             ),
             if (group.children.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.xs,
+                  horizontal: AppSpacing.xxs,
+                ),
                 child: Text(
                   l10n.collectionQueryEmptyGroup,
                   style: theme.textTheme.bodySmall,
@@ -133,6 +167,8 @@ class _GroupView extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: _AddMenu(
                 id: group.id,
+                offerTag: tags.isNotEmpty,
+                tagsUnavailableFor: tagsUnavailableFor,
                 onAdd: (node) {
                   group.children.add(node);
                   onChanged();
@@ -154,6 +190,8 @@ class _GroupView extends StatelessWidget {
           taxonomy: taxonomy,
           dialect: dialect,
           sectionLabels: sectionLabels,
+          tags: tags,
+          tagsUnavailableFor: tagsUnavailableFor,
           onChanged: onChanged,
           onRemove: remove,
           depth: depth + 1,
@@ -164,6 +202,16 @@ class _GroupView extends StatelessWidget {
           taxonomy: taxonomy,
           dialect: dialect,
           sectionLabels: sectionLabels,
+          onChanged: onChanged,
+          onRemove: () {
+            remove();
+            onChanged();
+          },
+        );
+      case BuilderTag():
+        return _TagRow(
+          node: child,
+          tags: tags,
           onChanged: onChanged,
           onRemove: () {
             remove();
@@ -187,9 +235,23 @@ class _GroupView extends StatelessWidget {
 }
 
 class _AddMenu extends StatelessWidget {
-  const _AddMenu({required this.id, required this.onAdd});
+  const _AddMenu({
+    required this.id,
+    required this.offerTag,
+    required this.tagsUnavailableFor,
+    required this.onAdd,
+  });
 
   final String id;
+
+  /// Non-null when the searched source cannot carry a tag: "Has tag" is then
+  /// shown but disabled, naming that source, instead of being omitted.
+  final String? tagsUnavailableFor;
+
+  /// Whether "Has tag" is offered. False when there is no tag to pick, so the
+  /// menu never adds a row that cannot be filled in (mirrors the Tag facet,
+  /// which is hidden when the collection has no tags).
+  final bool offerTag;
   final ValueChanged<BuilderNode> onAdd;
 
   @override
@@ -200,6 +262,7 @@ class _AddMenu extends StatelessWidget {
       tooltip: l10n.collectionQueryAddCondition,
       onSelected: (value) => onAdd(switch (value) {
         'figure' => BuilderFigure(),
+        'tag' => BuilderTag(),
         'then' => BuilderThen(),
         _ => BuilderGroup(),
       }),
@@ -208,6 +271,15 @@ class _AddMenu extends StatelessWidget {
           value: 'figure',
           child: Text(l10n.collectionQueryHasFigure),
         ),
+        if (tagsUnavailableFor case final source?)
+          PopupMenuItem(
+            key: ValueKey('add-tag-unavailable-$id'),
+            value: 'tag',
+            enabled: false,
+            child: Text(l10n.collectionQueryHasTagUnavailable(source)),
+          )
+        else if (offerTag)
+          PopupMenuItem(value: 'tag', child: Text(l10n.collectionQueryHasTag)),
         PopupMenuItem(
           value: 'then',
           child: Text(l10n.collectionQuerySequenceThen),
@@ -218,7 +290,10 @@ class _AddMenu extends StatelessWidget {
         ),
       ],
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.xxs,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -249,31 +324,144 @@ class _FigureRow extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback onRemove;
 
+  /// Below this width the "Has figure" label sits above the editor. Beside it
+  /// at a large text size, the label took nearly the whole line of a phone and
+  /// left the editor a few dp.
+  static const double _stackBelow = 480;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final editor = _FigureEditor(
+      figure: figure,
+      taxonomy: taxonomy,
+      dialect: dialect,
+      sectionLabels: sectionLabels,
+      onChanged: onChanged,
+    );
+    final remove = IconButton(
+      key: ValueKey('remove-${figure.id}'),
+      tooltip: l10n.collectionQueryRemoveFigure,
+      icon: const Icon(Icons.remove_circle_outline),
+      onPressed: onRemove,
+    );
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < _stackBelow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.xxs,
+                    bottom: AppSpacing.xxs,
+                  ),
+                  child: Text(l10n.collectionQueryHasFigure),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: editor),
+                    remove,
+                  ],
+                ),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.sm,
+                  right: AppSpacing.xs,
+                ),
+                child: Text(l10n.collectionQueryHasFigure),
+              ),
+              Expanded(child: editor),
+              remove,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// A "Has tag" row: a dropdown over [tags] that sets [BuilderTag.tagId].
+class _TagRow extends StatelessWidget {
+  const _TagRow({
+    required this.node,
+    required this.tags,
+    required this.onChanged,
+    required this.onRemove,
+  });
+
+  final BuilderTag node;
+  final List<Tag> tags;
+  final VoidCallback onChanged;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final stored = node.tagId;
+    // [tags] is the set of tags carried by a LIVE dance, so a picked tag can
+    // drop out of it while the row is open (its last dance is deleted or
+    // untagged). A value that is gone is shown as unpicked, as the dropdown
+    // would show it anyway (an empty field, a value not among its entries).
+    final value = tags.any((t) => t.id == stored) ? stored : null;
+    // Showing "unpicked" is not enough on its own: `BuilderTag.toFilter` would
+    // still emit the gone tag, a filter the user can neither see nor clear
+    // (the same hazard `_ParamDropdown` closes for params). So the MODEL is
+    // normalised to match and the search re-run — but only if the row still
+    // holds that id, so a pick made in the meantime is never overwritten.
+    if (stored != null && value == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (node.tagId == stored) {
+          node.tagId = null;
+          onChanged();
+        }
+      });
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 12, right: 8),
-            child: Text(l10n.collectionQueryHasFigure),
+            padding: const EdgeInsets.only(right: AppSpacing.xs),
+            child: Text(l10n.collectionQueryHasTag),
           ),
           Expanded(
-            child: _FigureEditor(
-              figure: figure,
-              taxonomy: taxonomy,
-              dialect: dialect,
-              sectionLabels: sectionLabels,
-              onChanged: onChanged,
+            child: Semantics(
+              label: l10n.collectionQueryTagLabel,
+              child: AppDropdownField<String?>(
+                key: ValueKey('tag-${node.id}'),
+                value: value,
+                // The user's own tags: a list that grows.
+                filterable: true,
+                decoration: InputDecoration(
+                  hintText: l10n.collectionQueryTagHint,
+                ),
+                onChanged: (id) {
+                  if (id != null && id != node.tagId) {
+                    node.tagId = id;
+                    onChanged();
+                  }
+                },
+                entries: [
+                  for (final tag in tags)
+                    AppDropdownEntry<String?>(value: tag.id, label: tag.name),
+                ],
+              ),
             ),
           ),
           IconButton(
-            key: ValueKey('remove-${figure.id}'),
-            tooltip: l10n.collectionQueryRemoveFigure,
-            icon: const Icon(Icons.close),
+            key: ValueKey('remove-${node.id}'),
+            tooltip: l10n.collectionQueryRemoveTag,
+            icon: const Icon(Icons.remove_circle_outline),
             onPressed: onRemove,
           ),
         ],
@@ -304,7 +492,7 @@ class _ThenRow extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -328,14 +516,14 @@ class _ThenRow extends StatelessWidget {
                   onChanged: onChanged,
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
                   child: Text(
                     l10n.collectionQueryThenConnector,
                     style: theme.textTheme.labelMedium,
                   ),
                 ),
                 Text(
-                  l10n.collectionQueryThenLater,
+                  l10n.collectionQueryThenNext,
                   style: theme.textTheme.labelSmall,
                 ),
                 _FigureOperandEditor(
@@ -355,7 +543,7 @@ class _ThenRow extends StatelessWidget {
           IconButton(
             key: ValueKey('remove-${node.id}'),
             tooltip: l10n.collectionQueryRemoveSequence,
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.remove_circle_outline),
             onPressed: onRemove,
           ),
         ],
@@ -471,34 +659,37 @@ class _FigureGroupEditor extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        // Wraps rather than squeezing: the dropdown, the label and the
+        // "Single figure" button cannot all share one line at large text.
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
           children: [
             Semantics(
               label: l10n.collectionQueryFigureGroupMatch,
-              child: DropdownButton<GroupKind>(
+              child: AppDropdownField<GroupKind>(
                 key: ValueKey('fig-group-kind-${group.id}'),
+                compact: true,
+                fillWidth: false,
                 value: group.kind,
                 onChanged: (kind) {
-                  if (kind != null) {
-                    group.kind = kind;
-                    onChanged();
-                  }
+                  group.kind = kind;
+                  onChanged();
                 },
-                items: [
+                entries: [
                   for (final kind in GroupKind.values)
-                    DropdownMenuItem(
+                    AppDropdownEntry(
                       value: kind,
-                      child: Text(groupKindLabel(l10n, kind)),
+                      label: groupKindLabel(l10n, kind),
                     ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
             Text(
               l10n.collectionQueryOfTheseFigures,
               style: theme.textTheme.bodySmall,
             ),
-            const Spacer(),
             if (onFlatten != null)
               TextButton(
                 key: ValueKey('flatten-${group.id}'),
@@ -525,7 +716,7 @@ class _FigureGroupEditor extends StatelessWidget {
     switch (child) {
       case BuilderFigure():
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -554,7 +745,11 @@ class _FigureGroupEditor extends StatelessWidget {
         // Nested group — rendered recursively. No flatten affordance for
         // nested groups (they're added programmatically, not via the UI).
         return Padding(
-          padding: const EdgeInsets.only(left: 8, top: 4, bottom: 4),
+          padding: const EdgeInsets.only(
+            left: AppSpacing.xs,
+            top: AppSpacing.xxs,
+            bottom: AppSpacing.xxs,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -604,8 +799,19 @@ class _FigureEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final move = _move;
-    final paramSpecs = move?.params ?? const <String, ParamSpec>{};
+    // An alias's pinned params are what it names (`long lines` is forward
+    // and back in long lines), so they are not offered to narrow it.
+    final pinned =
+        taxonomy.aliases[figure.move]?.pinnedParams ??
+        const <String, Object?>{};
+    final paramSpecs = {
+      for (final MapEntry(:key, :value)
+          in (move?.params ?? const <String, ParamSpec>{}).entries)
+        if (!pinned.containsKey(key)) key: value,
+    };
+    final any = figure.isAnyFigure;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -614,25 +820,43 @@ class _FigureEditor extends StatelessWidget {
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            SizedBox(
-              width: 200,
-              child: _MoveField(
-                key: ValueKey('move-${figure.id}'),
+            // "Any figure" has no move, section or parameters to choose.
+            if (!any) ...[
+              SizedBox(
+                width: 200,
+                child: _MoveField(
+                  key: ValueKey('move-${figure.id}'),
+                  figure: figure,
+                  taxonomy: taxonomy,
+                  dialect: dialect,
+                  onChanged: onChanged,
+                ),
+              ),
+              _SectionDropdown(
                 figure: figure,
-                taxonomy: taxonomy,
+                sectionLabels: sectionLabels,
                 onChanged: onChanged,
               ),
-            ),
-            _SectionDropdown(
-              figure: figure,
-              sectionLabels: sectionLabels,
-              onChanged: onChanged,
+            ],
+            FilterChip(
+              key: ValueKey('any-figure-${figure.id}'),
+              label: Text(l10n.collectionQueryAnyFigure),
+              selected: any,
+              onSelected: (selected) {
+                figure.isAnyFigure = selected;
+                if (selected) {
+                  figure.move = null;
+                  figure.section = null;
+                  figure.params.clear();
+                }
+                onChanged();
+              },
             ),
           ],
         ),
         if (paramSpecs.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Wrap(
               spacing: 8,
               runSpacing: 4,
@@ -643,7 +867,16 @@ class _FigureEditor extends StatelessWidget {
                       figure: figure,
                       paramKey: entry.key,
                       spec: entry.value,
-                      choices: choices,
+                      choices: [
+                        for (final choice in choices)
+                          if (!_storedAsListedAlias(
+                            taxonomy,
+                            move?.id,
+                            entry.key,
+                            choice,
+                          ))
+                            choice,
+                      ],
                       dialect: dialect,
                       onChanged: onChanged,
                     ),
@@ -660,18 +893,50 @@ class _MoveField extends StatelessWidget {
     super.key,
     required this.figure,
     required this.taxonomy,
+    required this.dialect,
     required this.onChanged,
   });
 
   final BuilderFigure figure;
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final VoidCallback onChanged;
+
+  /// The id of the figure of your own this row asks for (#1023), if any.
+  String? get _userFigureId {
+    if (figure.move != customMove) return null;
+    final id = figure.params[userFigureRefKey];
+    return id is String ? id : null;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final current = figure.move == null
-        ? ''
-        : (taxonomy.resolve(figure.move!)?.displayName ?? figure.move!);
+    final renderer = UserFiguresScope.rendererOf(context);
+    final userFigureId = _userFigureId;
+    // A row asking for one of your figures names it, from every figure you
+    // have, so it still reads if Custom Figures is turned off after picking.
+    final userFigureName = userFigureId == null
+        ? null
+        : UserFiguresScope.catalogOf(context)[userFigureId]?.name;
+    final current = switch (figure.move) {
+      null => '',
+      _ when userFigureName != null => renderer.renderFreeText(
+        userFigureName,
+        dialect,
+      ),
+      // In the active dialect, as the suggestion that set it read, its form
+      // named when another form's figure is named alike ("circle · English
+      // (ECD)").
+      final move =>
+        taxonomy.resolve(move) == null
+            ? move
+            : moveLabelWithForm(
+                context,
+                taxonomy,
+                move,
+                FigureRenderer(taxonomy).displayMoveName(move, dialect),
+              ),
+    };
     return MoveTypeAheadField(
       initialText: current,
       taxonomy: taxonomy,
@@ -680,10 +945,23 @@ class _MoveField extends StatelessWidget {
       // narrow-layout sheet's field/options be found by key like every
       // other picker, and gives assistive tech a stable identity per figure.
       fieldKey: 'has-figure-${figure.id}',
-      onSelected: (m) {
-        if (figure.move != m.id) {
-          figure.move = m.id;
+      userFigures: UserFiguresScope.shownCatalogOf(context),
+      dialect: dialect,
+      onSelected: (id) {
+        if (figure.move != id || _userFigureId != null) {
+          figure.move = id;
           figure.params.clear();
+          onChanged();
+        }
+      },
+      // One of your figures is asked for as the index stores a use of it: a
+      // free-text figure carrying its id (#1023).
+      onUserFigureSelected: (view) {
+        if (_userFigureId != view.id) {
+          figure.move = customMove;
+          figure.params
+            ..clear()
+            ..[userFigureRefKey] = view.id;
           onChanged();
         }
       },
@@ -698,12 +976,15 @@ class _MoveField extends StatelessWidget {
   }
 }
 
-/// A reusable move type-ahead: a [ResponsiveAutocomplete] over the
-/// [Taxonomy]'s moves (matching display name, id, or search keywords),
-/// rendered as a dense outlined [TextField]. Shared by the Advanced builder's
-/// "has figure" rows and the By-Phrase panel so both search moves identically.
+/// A reusable move type-ahead over the [Taxonomy]'s moves: the dance editor's
+/// [MoveAutocomplete] (display name, the [dialect]'s own name for the move, id
+/// or search keywords), so search and the editor suggest alike. Shared by the
+/// Advanced builder's "has figure" rows and the By-Phrase panel so both search
+/// moves identically.
 ///
-/// [onSelected] fires when the user picks a move; [onCleared] (optional) fires
+/// [onSelected] fires with the id of the move the user picks, or of an alias
+/// listed as a move ([MoveAlias.listedAsMove]: `long_lines`), which is
+/// searched under its own id; [onCleared] (optional) fires
 /// when the field is emptied. Multi-select callers (e.g. the By-Phrase panel)
 /// show chosen moves as chips and remount this field with a fresh [initialText]
 /// after each pick so the input is ready for the next entry.
@@ -717,10 +998,26 @@ class MoveTypeAheadField extends StatelessWidget {
     this.labelText,
     this.hintText,
     this.fieldKey,
+    this.userFigures = UserFigureCatalog.empty,
+    this.dialect,
+    this.onUserFigureSelected,
   });
 
   final Taxonomy taxonomy;
-  final ValueChanged<MoveDef> onSelected;
+  final ValueChanged<String> onSelected;
+
+  /// The user's own figures to offer before the moves (#1023), each found by
+  /// its name in [dialect] and marked as theirs. Offered only with
+  /// [onUserFigureSelected]; a figure that no longer decodes is never offered,
+  /// since no use of it is searchable.
+  final UserFigureCatalog userFigures;
+
+  /// The dialect [userFigures]' names are shown and matched in; canonical
+  /// when null.
+  final Dialect? dialect;
+
+  /// Fires when the user picks one of [userFigures].
+  final ValueChanged<UserFigureView>? onUserFigureSelected;
   final String initialText;
   final VoidCallback? onCleared;
   final String? labelText;
@@ -738,52 +1035,52 @@ class MoveTypeAheadField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final label = labelText ?? l10n.collectionQueryMoveLabel;
-    return ResponsiveAutocomplete<MoveDef>(
-      initialValue: TextEditingValue(text: initialText),
-      displayStringForOption: (m) => m.displayName,
-      // Reuses the field's own label as the sheet's a11y announcement (e.g.
-      // "Move"), matching the pattern in `MoveAutocomplete`.
-      sheetSemanticLabel: label,
-      optionsBuilder: (value) {
-        final q = value.text.trim().toLowerCase();
-        if (q.isEmpty) return const Iterable<MoveDef>.empty();
-        return taxonomy.moves.values
-            .where((m) {
-              return m.displayName.toLowerCase().contains(q) ||
-                  m.id.toLowerCase().contains(q) ||
-                  m.searchKeywords.any((k) => k.toLowerCase().contains(q));
-            })
-            .take(8);
-      },
-      onSelected: (m) {
-        onSelected(m);
-      },
-      optionTileBuilder: (context, m, onSelected) {
-        return ListTile(
-          key: fieldKey == null ? null : ValueKey('$fieldKey-option-${m.id}'),
-          dense: true,
-          title: Text(m.displayName),
-          onTap: onSelected,
-        );
-      },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
-        return TextField(
-          key: fieldKey == null ? null : ValueKey('$fieldKey-input'),
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: label,
-            hintText: hintText ?? l10n.collectionQueryMoveHint,
-            isDense: true,
-            border: const OutlineInputBorder(),
+    // Looked up only when figures are offered, so a field that offers none
+    // (the By-Phrase panel's) does not rebuild when the catalog changes.
+    final renderer = onUserFigureSelected == null
+        ? null
+        : UserFiguresScope.rendererOf(context);
+    final mine = {
+      if (renderer != null)
+        for (final view in userFigures.figures)
+          if (view.definition != null) view.id: view,
+    };
+    // The dance editor's own picker does the matching and ranking, so a
+    // dialect's move names, exact-name-first order and the cap are the
+    // editor's, not a second copy of them. Aliases are not offered: a figure
+    // leaf compiles to `move = ?` on the stored id, and the search bar reads
+    // an alias's name as text instead. An alias listed as a move is
+    // (`long_lines`, [MoveAlias.listedAsMove]): its figures are stored under
+    // its own id, and it was a move until taxonomy v39.
+    return MoveAutocomplete(
+      taxonomy: taxonomy,
+      dialect: dialect,
+      initialText: initialText,
+      fieldKey: fieldKey,
+      labelText: labelText ?? l10n.collectionQueryMoveLabel,
+      hintText: hintText ?? l10n.collectionQueryMoveHint,
+      includeAliases: false,
+      compoundMarkerLabel: l10n.glossaryCustomMarker,
+      compoundOptions: [
+        for (final view in mine.values)
+          MoveOption(
+            id: view.id,
+            kind: MoveOptionKind.userFigure,
+            displayName: renderer!.renderFreeText(
+              view.name,
+              dialect ?? Dialect.canonical,
+            ),
           ),
-          onChanged: (text) {
-            // Clearing the field clears the move.
-            if (text.trim().isEmpty) onCleared?.call();
-          },
-          onSubmitted: (_) => onSubmit(),
-        );
+      ],
+      onCleared: onCleared,
+      onSelected: (option) {
+        if (option.kind == MoveOptionKind.userFigure) {
+          final view = mine[option.id];
+          if (view != null) onUserFigureSelected?.call(view);
+          return;
+        }
+        // A move, or an alias listed as a move: the only aliases offered.
+        if (taxonomy.resolve(option.id) != null) onSelected(option.id);
       },
     );
   }
@@ -805,21 +1102,22 @@ class _SectionDropdown extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Semantics(
       label: l10n.collectionQuerySectionLabel,
-      child: DropdownButton<String?>(
+      // As wide as its longest entry, so a value is shown whole (the closed
+      // field cannot ellipsize); the enclosing Wrap bounds it by the line, so
+      // on a narrow screen it takes the line instead of widening the row.
+      child: AppDropdownField<String?>(
         key: ValueKey('section-${figure.id}'),
+        compact: true,
+        fillWidth: false,
         value: figure.section,
-        hint: Text(l10n.collectionQueryAnySection),
         onChanged: (value) {
           figure.section = value;
           onChanged();
         },
-        items: [
-          DropdownMenuItem(
-            value: null,
-            child: Text(l10n.collectionQueryAnySection),
-          ),
+        entries: [
+          AppDropdownEntry(value: null, label: l10n.collectionQueryAnySection),
           for (final label in sectionLabels)
-            DropdownMenuItem(value: label, child: Text(label)),
+            AppDropdownEntry(value: label, label: label),
         ],
       ),
     );
@@ -870,9 +1168,9 @@ class _ParamDropdown extends StatelessWidget {
     if (selectable.isEmpty) return const SizedBox.shrink();
     final label = figureParamKeyLabel(l10n, paramKey, moveId: figure.move);
     final stored = figure.params[paramKey] as String?;
-    // Defensive: a value outside the selectable list would trip
-    // `DropdownButton`'s single-match assertion. Unreachable through the UI —
-    // the only writer is this dropdown — but cheap next to a crash.
+    // Defensive: a value outside the selectable list would show as an empty
+    // field rather than "Any <param>". Unreachable through the UI — the only
+    // writer is this dropdown — but cheap next to a blank control.
     final value = selectable.contains(stored) ? stored : null;
     // Coercing the DISPLAY to "Any" is not enough on its own: `_cleanParams`
     // forwards every non-null param into the compiled `FigureLeaf`, so a stored
@@ -897,28 +1195,48 @@ class _ParamDropdown extends StatelessWidget {
     }
     return Semantics(
       label: label,
-      child: DropdownButton<String?>(
+      // Sized like the section dropdown, and bounded by the line the same way.
+      child: AppDropdownField<String?>(
         key: ValueKey('param-${figure.id}-$paramKey'),
+        compact: true,
+        fillWidth: false,
         value: value,
-        hint: Text(l10n.collectionQueryAnyParam(label)),
         onChanged: (v) {
           v == null
               ? figure.params.remove(paramKey)
               : figure.params[paramKey] = v;
           onChanged();
         },
-        items: [
-          DropdownMenuItem(
+        entries: [
+          AppDropdownEntry(
             value: null,
-            child: Text(l10n.collectionQueryAnyParam(label)),
+            label: l10n.collectionQueryAnyParam(label),
           ),
           for (final choice in selectable)
-            DropdownMenuItem(
+            AppDropdownEntry(
               value: choice,
-              child: Text(figureParamChoiceLabel(l10n, spec, dialect, choice)),
+              label: figureParamChoiceLabel(l10n, spec, dialect, choice),
             ),
         ],
       ),
     );
   }
 }
+
+/// Whether a figure of [moveId] whose [param] is [value] is stored under an
+/// alias listed as a move ([MoveAlias.listedAsMove]) instead: a forward and
+/// back in long lines is stored as `long_lines` (taxonomy v39), so a leaf for
+/// `forward_and_back` in long lines, which compiles to the stored id, could
+/// never match. That value is searched by picking the alias.
+bool _storedAsListedAlias(
+  Taxonomy taxonomy,
+  String? moveId,
+  String param,
+  String value,
+) => taxonomy.aliases.values.any(
+  (alias) =>
+      alias.listedAsMove &&
+      alias.targetMove == moveId &&
+      alias.pinnedParams.length == 1 &&
+      alias.pinnedParams[param] == value,
+);

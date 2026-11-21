@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/responsive_autocomplete.dart';
 import 'link_draft.dart';
+import '../../widgets/app_dropdown_field.dart';
 import 'name_picker.dart';
 
 class LinksEditor extends StatelessWidget {
@@ -40,34 +41,32 @@ class LinksEditor extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 120,
-                  child: DropdownButtonFormField<LinkKind>(
-                    key: ValueKey('link-kind-${draft.id}'),
-                    initialValue: draft.kind,
-                    isDense: true,
-                    isExpanded: true,
-                    items: [
-                      DropdownMenuItem(
-                        value: LinkKind.source,
-                        child: Text(l10n.danceEditorLinkKindSource),
-                      ),
-                      DropdownMenuItem(
-                        value: LinkKind.video,
-                        child: Text(l10n.danceEditorLinkKindVideo),
-                      ),
-                      DropdownMenuItem(
-                        value: LinkKind.other,
-                        child: Text(l10n.danceEditorLinkKindOther),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        draft.kind = value;
-                        onChanged();
-                      }
-                    },
-                  ),
+                AppDropdownField<LinkKind>(
+                  key: ValueKey('link-kind-${draft.id}'),
+                  value: draft.kind,
+                  // As wide as its longest kind, at any text size and in any
+                  // language, so the chosen kind is never cut off; the
+                  // address takes the rest of the row. Dense, as it was.
+                  fillWidth: false,
+                  decoration: const InputDecoration(isDense: true),
+                  entries: [
+                    AppDropdownEntry(
+                      value: LinkKind.source,
+                      label: l10n.danceEditorLinkKindSource,
+                    ),
+                    AppDropdownEntry(
+                      value: LinkKind.video,
+                      label: l10n.danceEditorLinkKindVideo,
+                    ),
+                    AppDropdownEntry(
+                      value: LinkKind.other,
+                      label: l10n.danceEditorLinkKindOther,
+                    ),
+                  ],
+                  onChanged: (value) {
+                    draft.kind = value;
+                    onChanged();
+                  },
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
@@ -98,7 +97,7 @@ class LinksEditor extends StatelessWidget {
                 IconButton(
                   key: ValueKey('link-remove-${draft.id}'),
                   tooltip: l10n.danceEditorRemoveLinkTooltip,
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.remove_circle_outline),
                   onPressed: () => onRemove(draft),
                 ),
               ],
@@ -122,9 +121,10 @@ class LinksEditor extends StatelessWidget {
 /// generic [LinksEditor]: it lets the user pick another dance from the
 /// collection and attach an optional free-text note.
 ///
-/// Operates on the shared `_links` list, filtered to
-/// [LinkKind.relatedDance] drafts, so save/load/undo wiring is unchanged. The
-/// note reuses [DanceLink.label] — no schema change is required.
+/// Operates on the dance editor controller's shared [links] draft list (passed
+/// in whole), filtered to [LinkKind.relatedDance] drafts, so save/load/undo
+/// wiring is unchanged. The note reuses [DanceLink.label] — no schema change is
+/// required.
 class RelatedDancesEditor extends StatelessWidget {
   const RelatedDancesEditor({
     super.key,
@@ -212,7 +212,7 @@ class RelatedDancesEditor extends StatelessWidget {
                 IconButton(
                   key: ValueKey('related-dance-remove-${draft.id}'),
                   tooltip: l10n.danceEditorRemoveRelatedDanceTooltip,
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.remove_circle_outline),
                   onPressed: () => onRemove(draft),
                 ),
               ],

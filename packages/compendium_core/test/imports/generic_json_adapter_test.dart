@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_support.dart';
 
 /// Fixtures + tests for [GenericJsonAdapter]: our own canonical
 /// [CompendiumArchive] JSON as a per-dance import source.
@@ -69,6 +70,11 @@ Map<String, Object?> _danceContentJson(Dance dance) {
   for (final key in ['id', 'provenance', 'createdAt', 'updatedAt']) {
     content.remove(key);
   }
+  // A link's id is the sender's, and an import gives it a fresh one.
+  content['links'] = [
+    for (final link in content['links']! as List)
+      Map<String, Object?>.from(link as Map)..remove('id'),
+  ];
   return content;
 }
 
@@ -118,14 +124,14 @@ void main() {
       final d1 = byId['d1']!.dance;
       expect(d1.title, 'Give and Take');
       expect(d1.authorIds, ['c1']);
-      expect(d1.figures, structured.figures);
+      expect(figuresOf(d1), figuresOf(structured));
       expect(d1.sourceCitations, structured.sourceCitations);
       expect(d1.customFields, structured.customFields);
       expect(d1.walkthrough, structured.walkthrough);
       expect(d1.provenance, isNull, reason: 'pipeline attaches provenance');
 
       final d2 = byId['d2']!.dance;
-      expect(d2.figures.single.isCustom, isTrue);
+      expect(figuresOf(d2).single.isCustom, isTrue);
       expect(byId['d2']!.quality.isFullyCustom, isTrue);
     });
 
@@ -250,6 +256,7 @@ void main() {
       final imported = await dances.getById(session.insertedDanceIds.single);
       expect(imported, isNotNull);
       expect(_danceContentJson(imported!), _danceContentJson(source));
+      expect(imported.links.single.id, isNot('link-1'));
     });
 
     test('enumerates one record per dance with correct labels/ids', () async {
@@ -286,6 +293,103 @@ void main() {
       expect(draft.dance.provenance, isNull);
     });
 
+    test(
+      'an upstream (non-json) externalId is namespaced by its source',
+      () async {
+        // ContraDB #457 and The Caller's Box #457 are unrelated dances; the bare
+        // upstream id would make them one `(json, "457")` key.
+        Dance withUpstream(String id, ProvenanceSource source) => _dance(
+          id,
+          'Shared',
+          provenance: Provenance(
+            source: source,
+            externalId: '457',
+            importedAt: _now,
+          ),
+        );
+        final json = encodeArchive(
+          _archive([
+            withUpstream('a', ProvenanceSource.contradb),
+            withUpstream('b', ProvenanceSource.callersbox),
+          ]),
+        );
+        final adapter = GenericJsonAdapter();
+        final discovered = await adapter.discover(ImportRequest(payload: json));
+
+        expect(discovered.map((r) => r.externalId), [
+          'contradb:457',
+          'callersbox:457',
+        ]);
+        final draft = await _importOne(adapter, discovered.first);
+        expect(draft.raw.externalId, 'contradb:457');
+        // The key the same dance was received under before the namespace
+        // existed, so a library holding it still sees a re-import.
+        expect(draft.raw.priorExternalIds, ['457']);
+      },
+    );
+
+    test('a json-sourced externalId is already a receive key and passes '
+        'through unchanged, with no legacy fallback', () async {
+      final json = encodeArchive(
+        _archive([
+          _dance(
+            'a',
+            'Shared',
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: 'contradb:457',
+              importedAt: _now,
+            ),
+          ),
+        ]),
+      );
+      final adapter = GenericJsonAdapter();
+      final discovered = await adapter.discover(ImportRequest(payload: json));
+      final draft = await _importOne(adapter, discovered.single);
+      expect(draft.raw.externalId, 'contradb:457');
+      expect(draft.raw.priorExternalIds, isEmpty);
+    });
+
+    test('a dance received under the bare upstream id re-imports through the '
+        'pipeline (legacy key fallback)', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final dances = DanceRepository(db, contraTaxonomy);
+      final pipeline = ImportPipeline(dances, ChoreographerRepository(db));
+      await dances.create(
+        _dance(
+          'recv-1',
+          'Shared',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: '457',
+            importedAt: _now,
+          ),
+        ),
+      );
+      final json = encodeArchive(
+        _archive([
+          _dance(
+            'orig-1',
+            'Shared',
+            provenance: Provenance(
+              source: ProvenanceSource.contradb,
+              externalId: '457',
+              importedAt: _now,
+            ),
+          ),
+        ]),
+      );
+
+      final batch = await pipeline.plan(
+        GenericJsonAdapter(),
+        ImportRequest(payload: json),
+      );
+      final verdict = batch.records.single.verdict;
+      expect(verdict.kind, DedupeKind.reimport);
+      expect(verdict.targetDanceId, 'recv-1');
+    });
+
     group('parse-never-fails', () {
       test('a fully-custom dance parses without error', () async {
         final json = encodeArchive(
@@ -302,7 +406,7 @@ void main() {
         final draft = await _importOne(adapter, discovered.single);
 
         expect(draft.quality.isFullyCustom, isTrue);
-        expect(draft.dance.figures.every((f) => f.isCustom), isTrue);
+        expect(figuresOf(draft.dance).every((f) => f.isCustom), isTrue);
       });
     });
 
@@ -430,7 +534,7 @@ void main() {
       expect(verdict.targetDanceId, 'existing-99');
     });
 
-    test('re-import updates the persisted walkthrough', () async {
+    test('re-import keeps the persisted walkthrough (INTAKE-7)', () async {
       final db = openTestDatabase();
       addTearDown(db.close);
       final dances = DanceRepository(db, contraTaxonomy);
@@ -465,9 +569,11 @@ void main() {
       );
 
       expect(second.records.single.action, CommitAction.reimport);
+      // The walkthrough is the caller's, not choreography: a re-import only
+      // replaces figures, formation and progression.
       expect(
         (await dances.getById(id))!.walkthrough,
-        'The revised walkthrough.',
+        'The original walkthrough.',
       );
     });
 

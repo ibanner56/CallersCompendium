@@ -8,7 +8,8 @@ python3 tools/ci/check_pr_review_gates.py all <PR_NUMBER> --closes <ISSUE>...
 ```
 
 It runs every gate even when one fails, so a single invocation reports the whole
-picture, and prints one line per gate. Exit codes: `0` all gates passed, `1` at
+picture, and prints one line per gate (after a `repo:` line when `--repo` is not
+given). Exit codes: `0` all gates passed, `1` at
 least one gate failed, `2` at least one gate was unanswerable (a `SKIP` line —
 the environment could not answer, which is not the same as a pass). Read the
 reasoning below when a gate fails, or when you are checking by hand.
@@ -26,6 +27,16 @@ reasoning below when a gate fails, or when you are checking by hand.
 
   If `hasNextPage` is true (or `totalCount` exceeds the nodes returned), fetch
   the rest with `after: "<endCursor>"` before concluding anything.
+
+- **The latest Claude review reads `APPROVE`.** Only when Claude is the
+  reviewer (the default). `findings` prints the latest `## Review verdict:`
+  line and fails on anything else. On `BLOCK` because a blocker on a line
+  outside the diff exists in the review body only, so no inline comment or
+  thread records it and the other gates pass. On `APPROVE-WITH-NITS` because a
+  resolved thread is not a cleared item: fix each item, or dispute it and
+  re-request the review so the next round re-judges it. A dispute the reviewer
+  upholds goes to the maintainer. Details:
+  [code-review.md](code-review.md#requesting-a-claude-review).
 
 - **CI green on the commit being merged.** Re-check after any push; a green run
   on a superseded commit proves nothing about the current head.
@@ -50,6 +61,18 @@ reasoning below when a gate fails, or when you are checking by hand.
   gh pr view <N> --json headRefOid -q .headRefOid
   ```
 
+  The login above is Copilot's. For a Claude review it is `claude[bot]`; the
+  script reads Claude's by default and takes `--reviewer copilot` rather than a
+  login
+  ([code-review.md](code-review.md#choosing-a-reviewer)). Filtering by login is
+  not enough for Claude: a reply to an inline thread and a `claude.yml` answer
+  also record `claude[bot]` review entries, carrying the head, so the script
+  takes Claude's latest entry that carries a `## Review verdict:` line, the
+  same rule `findings` reads the verdict by. By hand, add
+  `select(.body // "" | test("(^|\n)#{1,6}[ \t]*Review verdict:"))` to the
+  filter (jq's `^` matches only at the start of the body, so the `\n` stands in
+  for Python's multiline mode).
+
   `--slurp` wraps all pages into an outer array, so `.[][]` flattens them and
   `last` reliably picks the reviewer's latest entry across pages. (`--slurp` is
   incompatible with `-q`/`--jq`, so the filter is piped to a standalone `jq`.)
@@ -68,6 +91,71 @@ reasoning below when a gate fails, or when you are checking by hand.
 
 - **The PR closes only the issues you intend** (below).
 - **State verified from the remote**, not from memory or a stale local checkout.
+
+## Merging as an agent
+
+GitHub merges when the `official` ruleset is satisfied. That ruleset requires
+only `Merge gate`, allows squash only, and lets nobody bypass it. `Merge gate`
+reads CI job results only (its `needs` in
+[`ci.yml`](../../../.github/workflows/ci.yml)), so nothing on GitHub waits for a
+review of the current head, for open threads, or for an `APPROVE` verdict:
+clear those gates yourself, before either path below.
+[`.claude/settings.json`](../../../.claude/settings.json) lets Claude Code
+sessions take both without a prompt.
+
+- **CI still running: enable auto-merge.** Enable it only once the Claude
+  review of the current head has posted and every gate except `ci` passes:
+
+  ```sh
+  python3 tools/ci/check_pr_review_gates.py findings <PR> &&
+  python3 tools/ci/check_pr_review_gates.py review <PR> &&
+  python3 tools/ci/check_pr_review_gates.py threads <PR> &&
+  python3 tools/ci/check_pr_review_gates.py closes <PR> --closes <ISSUE>...
+  ```
+
+  The chain stops at the first `FAIL` or `SKIP`, so its exit status is `0`
+  only when all four pass. `ci` is the gate auto-merge waits on. **After any
+  push, disable auto-merge first**, then clear the gates again on the new head.
+  Otherwise the PR can merge as soon as CI on the new head goes green, before
+  that head has been reviewed.
+- **CI already green: merge directly.** GitHub refuses to enable auto-merge on
+  a PR whose checks have all passed, which is common when CI finishes before
+  the review posts (#2208). Squash-merge once
+  `check_pr_review_gates.py all <PR> --closes <ISSUE>...` exits `0`, and pass
+  the head SHA the gates checked as the expected head (`sha` in the REST merge
+  call, `expectedHeadSha` in the GitHub MCP tool), so a push in between fails
+  the merge instead of landing an unchecked commit.
+
+A PR whose `findings` gate fails is merged by neither path. When the reviewer
+upholds an item the author disputes, the maintainer decides, and merges by hand
+([code-review.md](code-review.md#requesting-a-claude-review)).
+
+## When GraphQL is refused (Claude Code cloud sessions)
+
+Claude Code cloud sessions answer `gh api graphql` with HTTP 403 ("GitHub
+GraphQL is not available from Claude Code sessions"). On that one error the
+script answers `threads` and `closes` from REST instead of reporting SKIP, and
+labels the evidence line "via REST":
+
+- **`threads`** reads the CCR route `GET /repos/{owner}/{repo}/pulls/{n}/ccr/review_threads`.
+  That route reports no total, so a list of 30 or more threads FAILs ("cannot
+  prove the list is not truncated") rather than passing; check those from an
+  environment with GraphQL.
+- **`closes`** cannot read `closingIssuesReferences` over REST, so it parses the
+  closing keywords from the PR title, body and commit messages, plus the branch
+  name, the same things GitHub links from. **It cannot see a link added by hand
+  in the PR sidebar**, so its PASS is weaker than GraphQL's; the evidence line
+  says so. A denial such as `Does not close #887` still counts, as it does on
+  GitHub.
+
+Repository detection needs no GraphQL either: it reads `--repo`, then
+`GITHUB_REPOSITORY`, then the git remote (`upstream`, else the branch's tracking
+remote, else `origin`), and only then asks `gh repo view`. It prints the repo and
+its source on the first line; check that it is the repo the PR is on, and pass
+`--repo` if not.
+
+Any other GraphQL failure (timeout, auth, rate limit) is still a SKIP, and exit
+2 still means a gate went unanswered.
 
 ## A branch name can close an issue on its own
 
@@ -107,3 +195,18 @@ page reads as "closes fewer issues than it does", and the link it dropped is
 exactly the unintended one you are looking for. If `hasNextPage` is true (or
 `totalCount` exceeds the nodes returned), page with `after: "<endCursor>"`
 before concluding anything.
+
+## Branch-sync PRs
+
+`main` is the only long-lived branch; `athenaeum`, the last other one, is gone.
+A PR that brings another branch into `main` is squash-merged like any other
+(the `official` ruleset allows nothing else), and the gates above, auto-merge
+included, apply to it unchanged.
+
+A squash records no second parent, so it never advances the merge base between
+the two branches. That costs nothing for a branch that ends at the merge (merged
+branches are deleted), and a lot for one that keeps living: every later sync
+re-derives conflicts that were already resolved. If a long-lived branch comes
+back, read
+[#1314](incidents.md#1314-a-squashed-sync-pinned-the-merge-base) before its
+first sync. It records what that cost and how to restore the missing parent.

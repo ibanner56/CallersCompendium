@@ -1,25 +1,34 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../widgets/brand_mark.dart';
+import '../widgets/empty_state.dart';
+import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'programs_list_screen.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Responsive Programs shell (`docs/design/ux.md` §4), mirroring
 /// [CollectionShell].
 ///
-/// **Breakpoint: 900 logical pixels wide.**
-/// - **Narrow (< 900 px):** [ProgramsListScreen] with push-navigation to the
+/// **Breakpoint: [AppBreakpoints.split] (900 px) of window width**, the same
+/// for every destination, so the rail beside this shell does not move it.
+/// - **Narrow (below 900 px):** [ProgramsListScreen] with push-navigation to the
 ///   read-focused [ProgramSummaryScreen] (a Perform-first summary), which in
 ///   turn opens the full-screen [ProgramEditorScreen] builder route on Edit.
-/// - **Wide (≥ 900 px):** master-detail [Row] — a fixed 400 px list pane and a
+/// - **Wide (from 900 px):** master-detail [Row] — a fixed 400 px list pane and a
 ///   lightweight **summary** pane for the selected program. Building/editing
 ///   opens the **full-screen** builder route (not embedded) so the builder's
 ///   slots | picker two-pane gets the full content width.
 class ProgramsShell extends StatefulWidget {
-  const ProgramsShell({super.key});
+  const ProgramsShell({super.key, this.isActive = true});
 
-  static const double splitBreakpoint = 900;
+  /// Whether Programs is the app shell's current destination, handed to
+  /// [ProgramsListScreen.isActive]: leaving Programs hides archived programs
+  /// again.
+  final bool isActive;
+
   static const double listPaneWidth = 400;
 
   @override
@@ -43,9 +52,23 @@ class _ProgramsShellState extends State<ProgramsShell> {
   /// [ScaffoldMessenger] (`collection_shell.dart:116`).
   final _listKey = GlobalKey();
 
-  void _onSelectProgram(String id) {
+  /// Perform's place and clock for each open program (GIG-14). The summary
+  /// pane that launches Perform is rebuilt on every breakpoint crossing while
+  /// Perform stays open on top, so the place is kept here, keyed by program
+  /// id, and dropped when the program is closed: another program selected,
+  /// the program deleted or archived, the program hidden from the list (see
+  /// [ProgramsListScreen.onSelectedProgramHidden]), or the narrow summary
+  /// left.
+  final _performResume = PerformResumeStore();
+
+  /// Selects [id] (or nothing), closing the program selected before.
+  void _select(String? id) {
+    final previous = _selectedProgramId;
+    if (previous != null && previous != id) _performResume.forget(previous);
     setState(() => _selectedProgramId = id);
   }
+
+  void _onSelectProgram(String id) => _select(id);
 
   /// Opens the full-screen builder route and refreshes the browse panes on
   /// return.
@@ -59,10 +82,11 @@ class _ProgramsShellState extends State<ProgramsShell> {
     // No refresh request: both panes are stream-driven (issue #768), so the
     // builder's own write is what reloads them. Only the selection changes
     // here, and that is this shell's state rather than either pane's data.
-    if (result == 'deleted') {
-      setState(() => _selectedProgramId = null);
+    // Archive leaves the builder the way Delete does, and closes the program.
+    if (result == 'deleted' || result == 'archived') {
+      _select(null);
     } else if (result != null) {
-      setState(() => _selectedProgramId = result);
+      _select(result);
     }
   }
 
@@ -70,7 +94,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= ProgramsShell.splitBreakpoint) {
+        if (AppBreakpoints.showsSplit(context, constraints.maxWidth)) {
           return _buildSplitPane();
         }
         // Narrow: single-pane list. Tapping a program pushes the read-focused
@@ -81,7 +105,11 @@ class _ProgramsShellState extends State<ProgramsShell> {
         // program never appeared until restart (issue #768). It needs none now:
         // the list subscribes to its own data, which is a channel that cannot
         // be forgotten at a call site.
-        return ProgramsListScreen(key: _listKey);
+        return ProgramsListScreen(
+          key: _listKey,
+          performResumeStore: _performResume,
+          isActive: widget.isActive,
+        );
       },
     );
   }
@@ -99,6 +127,9 @@ class _ProgramsShellState extends State<ProgramsShell> {
               onSelectProgram: _onSelectProgram,
               onCreateProgram: () => _openBuilder(context),
               selectedProgramId: _selectedProgramId,
+              performResumeStore: _performResume,
+              isActive: widget.isActive,
+              onSelectedProgramHidden: () => _select(null),
             ),
           ),
         ),
@@ -109,11 +140,11 @@ class _ProgramsShellState extends State<ProgramsShell> {
                 ? ProgramSummaryPane(
                     key: ValueKey('summary-$selectedId'),
                     programId: selectedId,
+                    performResumeStore: _performResume,
                     onOpenBuilder: () =>
                         _openBuilder(context, programId: selectedId),
-                    onDeleted: () => setState(() => _selectedProgramId = null),
-                    onNavigateTo: (id) =>
-                        setState(() => _selectedProgramId = id),
+                    onDeleted: () => _select(null),
+                    onNavigateTo: _select,
                   )
                 : const _EmptyEditorPane(),
           ),
@@ -130,32 +161,15 @@ class _EmptyEditorPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.event_note_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.programsSelectTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.programsSelectBody,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-          ],
+      body: EmptyState(
+        // The brand mark, as on the Collection's twin of this pane: the one
+        // quiet touch of the brand on a screen that is otherwise only a hint.
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
+        title: l10n.programsSelectTitle,
+        body: l10n.programsSelectBody,
       ),
     );
   }

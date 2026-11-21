@@ -1,8 +1,11 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_app/src/theme/app_theme.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/formation_colors_controller.dart';
+import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
@@ -41,6 +44,7 @@ Future<void> _pumpWide(
   CompendiumRepositories repos, {
   bool? colorCoding,
   bool highContrast = false,
+  FormationColorsController? formationColors,
 }) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
@@ -52,6 +56,10 @@ Future<void> _pumpWide(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
+      // The app answers the OS high-contrast flag with its High contrast
+      // theme (`highContrastTheme` in main.dart); the flag below is set
+      // inside the app, after the theme is chosen, so pass that theme here.
+      theme: highContrast ? AppTheme.highContrast : null,
 
       builder: (context, child) {
         Widget tree = RepositoriesScope(
@@ -61,6 +69,9 @@ Future<void> _pumpWide(
             child: child!,
           ),
         );
+        if (formationColors != null) {
+          tree = FormationColorsScope(controller: formationColors, child: tree);
+        }
         if (colorCoding != null) {
           tree = SetListColorCodingScope(
             notifier: ValueNotifier<bool>(colorCoding),
@@ -170,14 +181,14 @@ void main() {
         d1,
         setListAccentForShape(
           FormationShape.dupleImproper,
-          highContrast: false,
+          brightPalette: false,
         ),
       );
       expect(
         d2,
         setListAccentForShape(
           FormationShape.sicilianCircle,
-          highContrast: false,
+          brightPalette: false,
         ),
       );
       expect(d1, isNot(d2));
@@ -221,9 +232,7 @@ void main() {
     );
   });
 
-  testWidgets('high-contrast uses the brighter high-contrast palette', (
-    tester,
-  ) async {
+  testWidgets('High contrast uses the bright palette', (tester) async {
     final repos = openTestRepositories();
     await _seedProgram(repos);
     await _pumpWide(tester, repos, colorCoding: true, highContrast: true);
@@ -234,7 +243,7 @@ void main() {
     expect(d1, isNotNull);
     expect(
       d1,
-      setListAccentForShape(FormationShape.dupleImproper, highContrast: true),
+      setListAccentForShape(FormationShape.dupleImproper, brightPalette: true),
     );
     // And it is *not* the light-theme accent.
     expect(
@@ -242,7 +251,7 @@ void main() {
       isNot(
         setListAccentForShape(
           FormationShape.dupleImproper,
-          highContrast: false,
+          brightPalette: false,
         ),
       ),
     );
@@ -264,7 +273,7 @@ void main() {
       setListAccentForShapeAndMixer(
         FormationShape.dupleImproper,
         true,
-        highContrast: false,
+        brightPalette: false,
       ),
     );
     // Must not be the plain contra teal.
@@ -273,7 +282,7 @@ void main() {
       isNot(
         setListAccentForShape(
           FormationShape.dupleImproper,
-          highContrast: false,
+          brightPalette: false,
         ),
       ),
     );
@@ -298,4 +307,84 @@ void main() {
       );
     },
   );
+
+  group('user formation colours (PRES-12)', () {
+    const pink = Color(0xFFE91E63);
+
+    Future<FormationColorsController> controllerWith(
+      CompendiumRepositories repos,
+      Map<FormationShape, Color> colors,
+    ) async {
+      await repos.ensureMigrated();
+      final controller = FormationColorsController(repos.settings);
+      await controller.load();
+      for (final e in colors.entries) {
+        await controller.setColor(e.key, e.value);
+      }
+      return controller;
+    }
+
+    testWidgets('a coloured shape wins over the family tint, an uncoloured '
+        'one keeps it, and the mixer accent still wins', (tester) async {
+      final repos = openTestRepositories();
+      await _seedProgramWithMixer(repos);
+      final c = await controllerWith(repos, {
+        FormationShape.dupleImproper: pink,
+      });
+      await _pumpWide(tester, repos, colorCoding: true, formationColors: c);
+      await tester.tap(find.text('Mixer Program'));
+      await tester.pumpAndSettle();
+
+      expect(_accentBorderColor(tester, 's0'), pink);
+      expect(
+        _accentBorderColor(tester, 's1'),
+        setListAccentForShape(
+          FormationShape.sicilianCircle,
+          brightPalette: false,
+        ),
+      );
+      // s2 is a mixer-flagged duple improper: the shape is coloured, but the
+      // mixer accent is a safety cue and stays.
+      expect(
+        _accentBorderColor(tester, 's2'),
+        setListAccent(FormationFamily.mixer, brightPalette: false),
+      );
+    });
+
+    testWidgets('a coloured shape is honoured under high contrast too', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _seedProgram(repos);
+      final c = await controllerWith(repos, {
+        FormationShape.dupleImproper: pink,
+      });
+      await _pumpWide(
+        tester,
+        repos,
+        colorCoding: true,
+        highContrast: true,
+        formationColors: c,
+      );
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      expect(_accentBorderColor(tester, 's0'), pink);
+    });
+
+    testWidgets('colour-coding off shows no accent even for a coloured shape', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _seedProgram(repos);
+      final c = await controllerWith(repos, {
+        FormationShape.dupleImproper: pink,
+      });
+      await _pumpWide(tester, repos, colorCoding: false, formationColors: c);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      expect(_accentBorderColor(tester, 's0'), isNull);
+    });
+  });
 }

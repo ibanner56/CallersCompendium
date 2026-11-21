@@ -56,6 +56,14 @@ Future<ShorthandMapping? Function()> _pumpEditor(
   return () => popped ? result : null;
 }
 
+/// The error text the token field is showing, or null.
+String? _tokenFieldError(WidgetTester tester) => tester
+    .widget<TextField>(
+      find.byKey(const ValueKey('shorthand-token-field'), skipOffstage: false),
+    )
+    .decoration
+    ?.errorText;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -65,11 +73,12 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
     await tester.pumpAndSettle();
 
+    // On the token field, not in a banner at the top of the page.
+    expect(_tokenFieldError(tester), 'Enter a shorthand token.');
     expect(
       find.byKey(const ValueKey('shorthand-validation-error')),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Enter a shorthand token.'), findsOneWidget);
     // Editor did not pop.
     expect(read(), isNull);
     expect(find.byKey(const ValueKey('shorthand-token-field')), findsOneWidget);
@@ -85,11 +94,46 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey('shorthand-validation-error')),
-      findsOneWidget,
-    );
+    expect(_tokenFieldError(tester), isNotNull);
     expect(read(), isNull);
+  });
+
+  testWidgets('editing the token clears its error', (tester) async {
+    await _pumpEditor(tester);
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+    expect(_tokenFieldError(tester), isNotNull);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'b',
+    );
+    await tester.pump();
+
+    expect(_tokenFieldError(tester), isNull);
+  });
+
+  testWidgets('a token with no target figures says so beside the figure list, '
+      'in view', (tester) async {
+    // A short window so the figure list's error is below the fold unless the
+    // editor scrolls to it.
+    await tester.binding.setSurfaceSize(const Size(600, 240));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpEditor(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'bns',
+    );
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+
+    final error = find.byKey(const ValueKey('shorthand-validation-error'));
+    expect(error, findsOneWidget);
+    expect(_tokenFieldError(tester), isNull);
+    final view = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final rect = tester.getRect(error);
+    expect(rect.top, greaterThanOrEqualTo(0));
+    expect(rect.bottom, lessThanOrEqualTo(view.height));
   });
 
   testWidgets('rejects a token with no target figures', (tester) async {
@@ -107,6 +151,25 @@ void main() {
       findsOneWidget,
     );
     expect(read(), isNull);
+  });
+
+  testWidgets('adding a sequence clears the figure-list error', (tester) async {
+    await _pumpEditor(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'bns',
+    );
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+    const error = ValueKey('shorthand-validation-error');
+    expect(find.byKey(error), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('figure-add-sequence')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(error), findsNothing);
   });
 
   testWidgets('saving an edited mapping returns token + figures', (
@@ -131,6 +194,28 @@ void main() {
     expect(mapping.figures.single.move, 'swing');
   });
 
+  testWidgets('Save applies a move named exactly in a Move box still being '
+      'typed in (AUTH-1)', (tester) async {
+    final read = await _pumpEditor(
+      tester,
+      initial: ShorthandMapping(token: 'bns', figures: [_swing()]),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-move-input')));
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'star',
+    );
+    await tester.pumpAndSettle();
+
+    // Tapping Save does not always take focus from the box, so Save settles it.
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+
+    expect(read()!.figures.single.move, 'star');
+  });
+
   testWidgets('offers meanwhile and modifier targets', (tester) async {
     await _pumpEditor(
       tester,
@@ -142,5 +227,141 @@ void main() {
 
     expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-add-modifier')), findsOneWidget);
+  });
+
+  testWidgets('warns, without blocking, when the token already reads as a '
+      'figure (#1827)', (tester) async {
+    final read = await _pumpEditor(
+      tester,
+      initial: ShorthandMapping(token: 'bns', figures: [_swing()]),
+    );
+    const warning = ValueKey('shorthand-shadow-warning');
+    expect(find.byKey(warning), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'swing',
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(warning), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'zzqx',
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(warning), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'swing',
+    );
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+    expect(read()?.token, 'swing');
+  });
+
+  // #1830: a shorthand expands to a snippet, not a whole dance, so the phrase
+  // labels and the beat total ("Under by N beats") belong to dances only.
+  testWidgets('does not show phrase labels or a beat total for a snippet', (
+    tester,
+  ) async {
+    await _pumpEditor(
+      tester,
+      initial: ShorthandMapping(token: 'sw', figures: [_swing()]),
+    );
+
+    expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
+    // The row keeps an empty label slot; no phrase label such as "A1" reads in it.
+    final label = find.byKey(const ValueKey('figure-0-label'));
+    if (label.evaluate().isNotEmpty) {
+      expect(tester.widget<Text>(label).data, isEmpty);
+    }
+    expect(find.byKey(const ValueKey('figure-beats-total')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-beats-warning')), findsNothing);
+    expect(find.textContaining('Under by'), findsNothing);
+  });
+
+  // UX2-1a: backing out of an edited mapping asks before losing it.
+  group('leaving with unsaved changes', () {
+    ShorthandMapping existing() =>
+        ShorthandMapping(token: 'sw', figures: [_swing()]);
+
+    testWidgets('an untouched mapping leaves on Back without asking', (
+      tester,
+    ) async {
+      await _pumpEditor(tester, initial: existing());
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+    });
+
+    testWidgets('spaces around the token are not a change, since Save trims '
+        'them', (tester) async {
+      await _pumpEditor(tester, initial: existing());
+      await tester.enterText(
+        find.byKey(const ValueKey('shorthand-token-field')),
+        ' sw ',
+      );
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+    });
+
+    testWidgets('a blank row added and left blank is not a change', (
+      tester,
+    ) async {
+      await _pumpEditor(tester);
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      final figureItem = find.byKey(const ValueKey('figure-add-figure'));
+      if (figureItem.evaluate().isNotEmpty) {
+        await tester.tap(figureItem);
+        await tester.pumpAndSettle();
+      }
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+    });
+
+    testWidgets('an edited token asks on Back; Keep editing keeps it', (
+      tester,
+    ) async {
+      await _pumpEditor(tester, initial: existing());
+      await tester.enterText(
+        find.byKey(const ValueKey('shorthand-token-field')),
+        'swg',
+      );
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.text('swg'), findsOneWidget);
+    });
+
+    testWidgets('a removed figure asks on the back arrow; Discard leaves '
+        'with nothing saved', (tester) async {
+      final read = await _pumpEditor(tester, initial: existing());
+      await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-0-summary')), findsNothing);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+      expect(read(), isNull);
+    });
   });
 }

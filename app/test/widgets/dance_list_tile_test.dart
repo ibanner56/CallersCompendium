@@ -6,6 +6,7 @@ import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
+import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/models/dance_list_entry.dart';
 import 'package:compendium_app/src/theme/set_list_accents.dart';
@@ -102,6 +103,31 @@ DanceListEntry _richEntry() => DanceListEntry(
 );
 
 void main() {
+  testWidgets('selection checkbox toggles through the required onTap', (
+    tester,
+  ) async {
+    var taps = 0;
+    final entry = _entry();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: entry,
+            selectionMode: true,
+            onTap: () => taps++,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(ValueKey('batch-checkbox-${entry.dance.id}')));
+    expect(taps, 1);
+    await tester.tap(find.byType(ListTile));
+    expect(taps, 2);
+  });
+
   testWidgets('shows the drill-in chevron by default', (tester) async {
     await _pump(tester, _entry());
 
@@ -149,6 +175,66 @@ void main() {
     expect(find.byIcon(Icons.chevron_right), findsNothing);
   });
 
+  group('Add tags row action (issue #1416)', () {
+    Future<void> pumpWith(
+      WidgetTester tester, {
+      VoidCallback? onAddTags,
+      VoidCallback? onDuplicate,
+    }) => tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: _entry(),
+            onTap: () {},
+            onAddTags: onAddTags,
+            onDuplicate: onDuplicate,
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('the menu offers Add tags and invokes only onAddTags', (
+      tester,
+    ) async {
+      var addTags = 0;
+      var duplicates = 0;
+      await pumpWith(
+        tester,
+        onAddTags: () => addTags++,
+        onDuplicate: () => duplicates++,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Add tags'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dance-action-add-tags')));
+      await tester.pumpAndSettle();
+
+      expect(addTags, 1);
+      expect(duplicates, 0);
+    });
+
+    testWidgets('the menu exists for onAddTags alone', (tester) async {
+      await pumpWith(tester, onAddTags: () {});
+      expect(find.byKey(const ValueKey('dance-actions-d1')), findsOneWidget);
+    });
+
+    testWidgets('no item appears when onAddTags is not wired', (tester) async {
+      await pumpWith(tester, onDuplicate: () {});
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('dance-action-duplicate')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('dance-action-add-tags')), findsNothing);
+    });
+  });
+
   testWidgets('rating indicator shows the value with a semantic label', (
     tester,
   ) async {
@@ -183,7 +269,10 @@ void main() {
     final avatar = find.byType(CircleAvatar);
     expect(avatar, findsOneWidget);
     expect(
-      find.descendant(of: avatar, matching: find.byIcon(Icons.groups_outlined)),
+      find.descendant(
+        of: avatar,
+        matching: find.byIcon(Icons.diversity_3_outlined),
+      ),
       findsOneWidget,
     );
     // ...and the meaning is not glyph-only: the form label is the tooltip.
@@ -310,6 +399,58 @@ void main() {
 
         // Flip back off — the tile returns to the all-occurrences tally.
         notifier.value = false;
+        await tester.pump();
+        expect(label().data, 'called ×3');
+      },
+    );
+
+    testWidgets(
+      'count follows Require an event date live, combined with Require mark '
+      'performed (F6)',
+      (tester) async {
+        final performed = ValueNotifier<bool>(false);
+        final eventDate = ValueNotifier<bool>(false);
+        addTearDown(performed.dispose);
+        addTearDown(eventDate.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: RequirePerformedForHistoryScope(
+                notifier: performed,
+                child: RequireEventDateForHistoryScope(
+                  notifier: eventDate,
+                  child: DanceListTile(
+                    entry: _entry(
+                      callCounts: const DanceCallCounts(
+                        all: 4,
+                        performed: 3,
+                        dated: 2,
+                        performedDated: 1,
+                      ),
+                    ),
+                    onTap: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        Text label() => tester.widget<Text>(
+          find.descendant(of: find.byKey(chipKey), matching: find.byType(Text)),
+        );
+        expect(label().data, 'called ×4');
+
+        eventDate.value = true;
+        await tester.pump();
+        expect(label().data, 'called ×2');
+
+        performed.value = true;
+        await tester.pump();
+        expect(label().data, 'called ×1');
+
+        eventDate.value = false;
         await tester.pump();
         expect(label().data, 'called ×3');
       },
@@ -599,6 +740,63 @@ void main() {
       expect(find.text('Alice'), findsNothing); // authors hidden
       // Spot-check a second chip group to confirm it's not just tags.
       expect(find.text('Improper'), findsNothing); // formation hidden
+    });
+  });
+
+  group('unreadable badge (#1347)', () {
+    // The badge's defining property is that it does NOT belong to the
+    // visible-field configuration: a row whose stored figures or tunes cannot be
+    // decoded looks exactly like a row that simply has none, and a user who has
+    // turned every optional field off is the one least able to tell. The tests
+    // below therefore pump with `visibleFields: const {}` — the state the group
+    // above proves hides everything else — so a refactor that nests this chip
+    // under any configured field reds here instead of passing quietly.
+    DanceListEntry unreadableEntry({
+      bool figures = false,
+      bool tunes = false,
+    }) => DanceListEntry(
+      dance: Dance(
+        id: 'u1',
+        title: 'Unreadable Dance',
+        figuresSource: figures ? const UnreadableFigures('[{"kind":') : null,
+        tunesSource: tunes ? const UnreadableTunes('[1,2,3]') : null,
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+      authorNames: const [],
+      tagNames: const [],
+      listCustomFields: const [],
+      callCounts: const DanceCallCounts(all: 0, performed: 0),
+    );
+
+    testWidgets('shown for unreadable figures with no fields visible', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        unreadableEntry(figures: true),
+        visibleFields: const {},
+      );
+
+      expect(find.text("Can't be read"), findsOneWidget);
+    });
+
+    testWidgets('shown for unreadable tunes with no fields visible', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        unreadableEntry(tunes: true),
+        visibleFields: const {},
+      );
+
+      expect(find.text("Can't be read"), findsOneWidget);
+    });
+
+    testWidgets('absent when both stored lists decode', (tester) async {
+      await _pumpWithFields(tester, _richEntry(), visibleFields: const {});
+
+      expect(find.text("Can't be read"), findsNothing);
     });
   });
 

@@ -5,7 +5,9 @@ import 'package:flutter/foundation.dart';
 
 /// Settings-table key prefix for the program editor's transient autosave drafts.
 ///
-/// Draft keys are dynamic (`program_editor_draft:<programId|new>`) and hold
+/// Draft keys are dynamic ([programEditorDraftKey]:
+/// `program_editor_draft:<programId>`, or `program_editor_draft:new:<editor id>`
+/// for a program not yet saved) and hold
 /// unsaved, device-local in-progress edits — not user content or preferences.
 /// They must never travel in a backup, so `backup_service.dart` excludes this
 /// prefix from both export and restore (see `kBackupSettingsDenylistPrefixes`).
@@ -13,6 +15,34 @@ import 'package:flutter/foundation.dart';
 /// both the editor screen and `BackupService` can share it without a data→UI
 /// dependency.
 const String kProgramEditorDraftKeyPrefix = 'program_editor_draft:';
+
+/// The draft key for [id] under [kProgramEditorDraftKeyPrefix]: a program's
+/// id, or for a program not yet saved, an id made from
+/// [kNewProgramDraftIdPrefix].
+String programEditorDraftKey(String id) => '$kProgramEditorDraftKeyPrefix$id';
+
+/// The draft id every new program shared before each new program got its own,
+/// as each new dance did (AUTH-10). A draft still stored under it is read as
+/// one more new program's.
+const String kLegacyNewProgramDraftId = 'new';
+
+/// How the draft id of a program not yet saved starts: each new-program editor
+/// writes under this plus its own id, so two new programs never share a draft.
+const String kNewProgramDraftIdPrefix = '$kLegacyNewProgramDraftId:';
+
+/// Whether [key] holds the draft of a program not yet saved, under either the
+/// per-editor form or the legacy shared id.
+///
+/// An older build looks for a new program's draft under the shared key
+/// `program_editor_draft:new` only, so after a downgrade it does not offer a
+/// draft written under a per-editor key. The draft is not deleted, and is
+/// offered again once the newer build is back.
+bool isNewProgramEditorDraftKey(String key) {
+  if (!key.startsWith(kProgramEditorDraftKeyPrefix)) return false;
+  final id = key.substring(kProgramEditorDraftKeyPrefix.length);
+  return id == kLegacyNewProgramDraftId ||
+      id.startsWith(kNewProgramDraftIdPrefix);
+}
 
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeProgramDraft] checks this and rejects
@@ -47,6 +77,11 @@ class ProgramEditorDraft {
     required this.notes,
     required this.status,
     required this.hideAlternates,
+    this.dialectName,
+    this.hasDialectName = true,
+    this.payText = '',
+    this.payCurrency,
+    this.hasPay = true,
     required this.slots,
   });
 
@@ -80,6 +115,34 @@ class ProgramEditorDraft {
   /// Whether alternates are hidden from output.
   final bool hideAlternates;
 
+  /// The stored dialect name Perform uses for the program; `null` follows the
+  /// application dialect. Only meaningful when [hasDialectName] is true.
+  final String? dialectName;
+
+  /// Whether this draft recorded the dialect at all. Drafts written before
+  /// issue #1554 carry no `dialectName` key, which must read as "this draft
+  /// never captured the field" (restoring it keeps the program's current
+  /// dialect), not as "the user cleared it". Drafts written now always carry
+  /// the key, with `null` meaning an explicit clear. Decoded from the key's
+  /// presence, so it needs no draft version bump.
+  final bool hasDialectName;
+
+  /// The pay amount as typed (issue #1418), empty when no pay is entered. Kept
+  /// as text, not minor units, so a half-typed or invalid amount survives a
+  /// restore instead of being silently dropped. Only meaningful when [hasPay]
+  /// is true.
+  final String payText;
+
+  /// The ISO 4217 code selected for [payText]; `null` means the locale
+  /// default. Only meaningful when [hasPay] is true.
+  final String? payCurrency;
+
+  /// Whether this draft recorded the pay fields at all. Drafts written before
+  /// issue #1418 carry neither key, which must read as "never captured"
+  /// (restoring keeps the program's current pay), not as "the user cleared
+  /// it". Decoded from key presence, so it needs no draft version bump.
+  final bool hasPay;
+
   /// The in-progress slot list (position-ordered).
   final List<ProgramSlot> slots;
 }
@@ -101,6 +164,9 @@ class ProgramEditorDraft {
 ///   "notes": "...",
 ///   "status": "draft",
 ///   "hideAlternates": false,
+///   "dialectName": null,    // key always written; null = explicitly "use app dialect"
+///   "payText": "250.00",    // as typed; "" = no pay. Absent in older drafts
+///   "payCurrency": "USD",   // omitted when the locale default applies
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
 ///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
@@ -124,6 +190,10 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
     'notes': draft.notes,
     'status': draft.status.name,
     'hideAlternates': draft.hideAlternates,
+    if (draft.hasDialectName) 'dialectName': draft.dialectName,
+    if (draft.hasPay) 'payText': draft.payText,
+    if (draft.hasPay && draft.payCurrency != null)
+      'payCurrency': draft.payCurrency,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
 }
@@ -193,6 +263,11 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
     notes: _str(json, 'notes'),
     status: _parseEnum(ProgramStatus.values, _str(json, 'status')),
     hideAlternates: _bool(json, 'hideAlternates'),
+    dialectName: _strOrNull(json, 'dialectName'),
+    hasDialectName: json.containsKey('dialectName'),
+    payText: _str(json, 'payText'),
+    payCurrency: _strOrNull(json, 'payCurrency'),
+    hasPay: json.containsKey('payText'),
     slots: _parseSlots(json['slots']),
   );
 }

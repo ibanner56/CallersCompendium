@@ -68,6 +68,16 @@ class EditorUndoStack {
     return _history[_index];
   }
 
+  /// Replaces every stored snapshot with [map]'s result, keeping the cursor.
+  /// For a change outside the draft that its history must follow too, such as
+  /// an author merged into another: undoing past it must not bring back an id
+  /// that no longer names a live row.
+  void mapAll(EditorSnapshot Function(EditorSnapshot snapshot) map) {
+    for (var i = 0; i < _history.length; i++) {
+      _history[i] = map(_history[i]);
+    }
+  }
+
   /// Resets the stack to empty.
   void clear() {
     _history.clear();

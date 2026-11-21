@@ -6,6 +6,7 @@ import 'package:compendium_app/src/widgets/json_export_dialog.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import '../support/l10n_harness.dart';
 
@@ -37,6 +38,42 @@ void main() {
 
     expect(choice, JsonExportChoice.copy);
   });
+
+  for (final unsupported in [true, false]) {
+    testWidgets('choice dialog third button is '
+        '${unsupported ? 'Save as… on Linux' : 'Share elsewhere'}', (
+      tester,
+    ) async {
+      final saved = isBundleShareUnsupported;
+      isBundleShareUnsupported = () => unsupported;
+      addTearDown(() => isBundleShareUnsupported = saved);
+      JsonExportChoice? choice;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                choice = await showJsonExportChoiceDialog(context);
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Save as…'),
+        unsupported ? findsOneWidget : findsNothing,
+      );
+      expect(find.text('Share'), unsupported ? findsNothing : findsOneWidget);
+      await tester.tap(find.text(unsupported ? 'Save as…' : 'Share'));
+      await tester.pumpAndSettle();
+      expect(choice, JsonExportChoice.share);
+    });
+  }
 
   testWidgets('dismissing the choice dialog returns null', (tester) async {
     JsonExportChoice? choice = JsonExportChoice.save;
@@ -82,7 +119,10 @@ void main() {
           }) async {
             pickerCalls++;
             expect(suggestedName, 'dance.json');
-            expect(acceptedTypeGroups!.single.extensions, ['json']);
+            expect(
+              acceptedTypeGroups!.single.extensions,
+              jsonBundleTypeGroup().extensions,
+            );
             return FileSaveLocation(path);
           },
     );
@@ -124,7 +164,7 @@ void main() {
         'json-collision-test',
       );
       addTearDown(() => directory.delete(recursive: true));
-      final path = '${directory.path}/dance.json';
+      final path = p.join(directory.path, 'dance.json');
       Future<FileSaveLocation?> pickLocation({
         String? suggestedName,
         List<XTypeGroup>? acceptedTypeGroups,
@@ -147,7 +187,7 @@ void main() {
       );
 
       expect(first!.path, path);
-      expect(second!.path, '${directory.path}/dance (1).json');
+      expect(second!.path, p.join(directory.path, 'dance (1).json'));
       expect(await File(path).readAsString(), '{"version":1}');
       expect(await File(second.path).readAsString(), '{"version":2}');
     },

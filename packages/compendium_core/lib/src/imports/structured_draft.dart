@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../model/dance.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
 import 'raw_record.dart';
 
 /// Severity of a non-fatal note surfaced while parsing a record.
@@ -34,7 +35,7 @@ class ImportIssue {
   /// instead (`app/lib/src/data/import_diagnostic_labels.dart`).
   final String message;
 
-  /// Index into [Dance.figures] this issue concerns, if figure-specific.
+  /// Index into [Dance.figuresSource] this issue concerns, if figure-specific.
   final int? figureIndex;
 
   /// Structured interpolation values for the presentation-layer localizer,
@@ -82,7 +83,7 @@ class ParseQuality {
 
   /// Computes the quality of an already-built figure list recursively: a
   /// top-level figure counts as custom if it is directly custom, or if any
-  /// descendant of either structural container kind is custom.
+  /// descendant of any structural container kind is custom.
   factory ParseQuality.ofFigures(List<Figure> figures) => ParseQuality(
     totalFigures: figures.length,
     customFigures: figures.where((f) => _containsCustomFigure(f)).length,
@@ -122,11 +123,18 @@ class StructuredDraft {
     ParseQuality? quality,
     List<ImportIssue> issues = const [],
     List<String> authorNames = const [],
+    List<String> interpreterNames = const [],
     this.difficultyLevelLabel,
     this.difficultyLevelIdIsCanonical = false,
-  }) : quality = quality ?? ParseQuality.ofFigures(dance.figures),
+  }) : quality =
+           quality ??
+           ParseQuality.ofFigures(switch (dance.figuresSource) {
+             DecodedFigures(:final figures) => figures,
+             UnreadableFigures() => const [],
+           }),
        issues = List.unmodifiable(issues),
-       authorNames = List.unmodifiable(authorNames);
+       authorNames = List.unmodifiable(authorNames),
+       interpreterNames = List.unmodifiable(interpreterNames);
 
   /// The parsed dance. Figures that could not be structured are present as
   /// [customMove] figures carrying their beats + text (the parse-never-fails
@@ -144,6 +152,12 @@ class StructuredDraft {
   /// parse failure — the draft is valid whether or not any resolve.
   final List<String> authorNames;
 
+  /// Raw display names of the people who interpreted the dance, in order,
+  /// resolved by the [ImportPipeline] exactly as [authorNames] are and written
+  /// to [Dance.interpreterIds]. The draft's own `interpreterIds` are never
+  /// written: they are the sender's ids.
+  final List<String> interpreterNames;
+
   /// Source label used to resolve legacy difficulty vocabulary against the
   /// receiver's live configuration, when an adapter provides one.
   final String? difficultyLevelLabel;
@@ -158,6 +172,7 @@ class StructuredDraft {
     ParseQuality? quality,
     List<ImportIssue>? issues,
     List<String>? authorNames,
+    List<String>? interpreterNames,
     String? difficultyLevelLabel,
     bool? difficultyLevelIdIsCanonical,
   }) => StructuredDraft(
@@ -166,6 +181,7 @@ class StructuredDraft {
     quality: quality ?? this.quality,
     issues: issues ?? this.issues,
     authorNames: authorNames ?? this.authorNames,
+    interpreterNames: interpreterNames ?? this.interpreterNames,
     difficultyLevelLabel: difficultyLevelLabel ?? this.difficultyLevelLabel,
     difficultyLevelIdIsCanonical:
         difficultyLevelIdIsCanonical ?? this.difficultyLevelIdIsCanonical,

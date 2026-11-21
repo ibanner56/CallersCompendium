@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'figures_support.dart';
 
 /// An import-gap custom figure carrying [text] as its stored scrubbed source.
 Figure _importGap(String text) =>
@@ -106,12 +107,15 @@ void main() {
 
     // A confirmation dialog appears; nothing has changed yet.
     expect(find.byKey(const ValueKey('reparse-confirm-apply')), findsOneWidget);
-    expect((await repos.dances.getById('a'))!.figures.single.isCustom, isTrue);
+    expect(
+      figuresOf((await repos.dances.getById('a'))!).single.isCustom,
+      isTrue,
+    );
 
     await tester.tap(find.byKey(const ValueKey('reparse-confirm-apply')));
     await tester.pumpAndSettle();
 
-    final figure = (await repos.dances.getById('a'))!.figures.single;
+    final figure = figuresOf((await repos.dances.getById('a'))!).single;
     expect(figure.isCustom, isFalse);
     expect(figure.move, 'swing');
   });
@@ -133,7 +137,10 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('a'))!.figures.single.isCustom, isTrue);
+    expect(
+      figuresOf((await repos.dances.getById('a'))!).single.isCustom,
+      isTrue,
+    );
   });
 
   testWidgets('Settings → General shows the re-check entry and opens it', (
@@ -215,9 +222,7 @@ void main() {
     expect(find.byKey(const ValueKey('reparse-customs-error')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
 
-    await tester.tap(
-      find.byKey(const ValueKey('reparse-customs-retry-button')),
-    );
+    await tester.tap(find.byKey(const ValueKey('load-error-retry')));
     await tester.pumpAndSettle();
 
     // Second attempt succeeds → empty state (no lingering error).
@@ -261,7 +266,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('Could not upgrade figures. Please try again.'),
+      find.text('Couldn\'t upgrade the figures. Try again.'),
       findsOneWidget,
     );
     final button = tester.widget<FilledButton>(

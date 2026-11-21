@@ -33,17 +33,33 @@
     "Restore behavior that drops sync baselines",
     "Deletion revalidation and normalization-state reset"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1291,
+    1294
+  ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Repair reads no local clock and changes only permitted fields.",
       "Unrepairable records remain quarantined rather than being guessed.",
       "Restore forces a fresh attach, preserves and revalidates deletions, and reruns normalization.",
       "Quarantine, repair, and restore converge under the conformance vectors."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Clock-skew quarantine and peer-evidence repair, plus restore/import reset behavior, are implemented and guarded. Restore and shared import drop stale sync conclusions, preserve and revalidate pending deletions, rerun complete-library normalization, and serialize database writers with Device Sync.",
+    "evidence": [
+      "PR #1291 (merged as 5354df032) implements future-timestamp quarantine, projection-neutral comparison hashes, peer-evidence repair, transitive quarantine closure, fallback-aware publication withholding, and legacy-baseline fresh-attach compatibility.",
+      "PR #1294 (merged as 8f867c5a3) serializes backup restore and shared archive import with the Device Sync writer lifecycle, reruns complete-library normalization, makes shared-import cleanup rollback-safe, and preserves post-import Undo behavior.",
+      "packages/compendium_core/test/sync/sync_quarantine_test.dart covers independent timestamp quarantine, peer-agreement repair, local-edit protection, legacy full-body baselines, transitive dependent closure, fallback-aware publication, and no-fallback withholding.",
+      "app/test/sync/sync_coordinator_test.dart covers future-peer rejection, peer-attributed quarantine reports, peer-evidence repair, pre-W9 fresh attach, fallback-dependent publication, alias-normalized reflection, and unreflected-publication diagnostics.",
+      "packages/compendium_core/test/serialization/archive_service_test.dart covers clearing stale baselines, aliases, and review decisions; replace and merge normalization reset plus NFC rerun; and transactional rollback when pending-tombstone revalidation fails.",
+      "packages/compendium_core/test/imports/compendium_archive_import_test.dart covers shared-import cleanup with unrelated pending-deletion preservation, complete-library normalization, and rollback of sync/normalization conclusions and imported content after corrupt pending-tombstone revalidation.",
+      "app/test/incoming_share_wiring_test.dart and app/test/startup_sequence_test.dart cover shared-import and backup quiescence behind an in-flight sync pass, shutdown waiting for the writer boundary, and suppression of post-shutdown writer execution and coordinator recreation.",
+      "packages/compendium_core/test/storage/normalisation_test.dart proves a failed outer transaction after migration clears the memo so a subsequent ensureMigrated reruns the normalization sweep.",
+      "The shutdown guard was mutation-proven: removing the post-disposal shutdown check made the in-flight writer regression fail; restoring fd0f05a3d made it pass.",
+      "The required restore-marker guard was mutation-proven: in `cd packages/compendium_core && fvm dart test test/storage/normalisation_test.dart --plain-name 'restore reset lets the next migration normalize restored text'`, removing the marker DELETE from resetNormalisationStateForRestore made the test red because the stored title remained decomposed; restoring 7d8285822 made it green.",
+      "The migration-memo guard was mutation-proven: removing transaction-failure memo invalidation left restored text unnormalized on retry; restoring fd0f05a3d made the guard pass.",
+      "Targeted app and core restore/lifecycle suites passed, and python3 tools/preflight.py --require-available passed all 30 gates with 0 skipped at PR-B head fd0f05a3d."
+    ]
   }
 }

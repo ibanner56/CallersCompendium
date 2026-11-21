@@ -16,12 +16,15 @@ class FigureDraftSnapshot {
     required this.note,
     required this.progression,
     required this.schemaVersion,
+    this.beatsTouched = false,
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
     this.wordingOverride,
     this.meanwhileSides,
     this.modifierFigures,
+    this.sequenceFigures,
+    this.compound,
   });
 
   factory FigureDraftSnapshot.fromDraft(FigureDraft draft) =>
@@ -32,6 +35,7 @@ class FigureDraftSnapshot {
         note: draft.note,
         progression: draft.progression,
         schemaVersion: draft.schemaVersion,
+        beatsTouched: draft.beatsTouched,
         assumedSubject: draft.assumedSubject,
         customOrigin: draft.customOrigin,
         walkthroughOverride: draft.walkthroughOverride,
@@ -46,6 +50,12 @@ class FigureDraftSnapshot {
             : List.unmodifiable(
                 draft.modifierFigures!.map(FigureDraftSnapshot.fromDraft),
               ),
+        sequenceFigures: draft.sequenceFigures == null
+            ? null
+            : List.unmodifiable(
+                draft.sequenceFigures!.map(FigureDraftSnapshot.fromDraft),
+              ),
+        compound: draft.compound?.copy(),
       );
 
   final String id;
@@ -54,6 +64,12 @@ class FigureDraftSnapshot {
   final String note;
   final bool progression;
   final int schemaVersion;
+
+  /// Whether the caller set this figure's beat count themselves
+  /// ([FigureDraft.beatsTouched]); preserved across undo/redo and autosave so
+  /// a typed count stays protected from a parameter change's recompute after
+  /// an undo or a restore, as it is on the dance as opened (AUTH-5).
+  final bool beatsTouched;
 
   /// Whether the figure's subject was parser-assumed (#460); preserved across
   /// undo/redo and autosave so the non-authoritative marker never silently
@@ -82,6 +98,14 @@ class FigureDraftSnapshot {
   /// Non-null when this snapshot is a modifier group.
   final List<FigureDraftSnapshot>? modifierFigures;
 
+  /// Non-null when this snapshot is a sequence group.
+  final List<FigureDraftSnapshot>? sequenceFigures;
+
+  /// Non-null when this snapshot is a compound placeholder (#709); mirrors
+  /// [FigureDraft.compound]. A private copy: [toDraft] copies it again, so no
+  /// draft ever shares it.
+  final CompoundPlaceholder? compound;
+
   FigureDraft toDraft() => FigureDraft(
     id: id,
     move: move,
@@ -89,6 +113,7 @@ class FigureDraftSnapshot {
     note: note,
     progression: progression,
     schemaVersion: schemaVersion,
+    beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
@@ -99,6 +124,10 @@ class FigureDraftSnapshot {
     modifierFigures: modifierFigures
         ?.map((s) => s.toDraft())
         .toList(growable: true),
+    sequenceFigures: sequenceFigures
+        ?.map((s) => s.toDraft())
+        .toList(growable: true),
+    compound: compound?.copy(),
   );
 }
 
@@ -151,8 +180,11 @@ class EditorSnapshot {
     this.walkthrough = '',
     required this.phrase,
     required this.formationDetail,
+    this.meter = '',
+    this.musicalKey = '',
     required this.form,
     required this.formationShape,
+    this.improper = false,
     required this.progression,
     required this.status,
     this.level,
@@ -161,7 +193,9 @@ class EditorSnapshot {
     this.rating,
     this.composedOn,
     this.revisedOn,
+    this.interpretedOn,
     required this.authorIds,
+    this.interpreterIds = const [],
     required this.tagIds,
     required this.tunes,
     required this.links,
@@ -169,7 +203,62 @@ class EditorSnapshot {
     required this.customValues,
     required this.figureDrafts,
     this.stagedTags = const [],
+    this.textDialect,
+    this.savedAt,
+    this.baseUpdatedAt,
   });
+
+  /// A copy with the given figure state, authors, tags and draft stamps in
+  /// place of this snapshot's. Everything else is shared, which is safe because every
+  /// field is immutable.
+  EditorSnapshot copyWith({
+    List<String>? authorIds,
+    List<String>? interpreterIds,
+    List<String>? tagIds,
+    List<FigureDraftSnapshot>? figureDrafts,
+    Dialect? textDialect,
+    DateTime? savedAt,
+    DateTime? baseUpdatedAt,
+  }) => EditorSnapshot(
+    title: title,
+    hook: hook,
+    notes: notes,
+    walkthrough: walkthrough,
+    phrase: phrase,
+    formationDetail: formationDetail,
+    meter: meter,
+    musicalKey: musicalKey,
+    form: form,
+    formationShape: formationShape,
+    improper: improper,
+    progression: progression,
+    status: status,
+    level: level,
+    mixedLevel: mixedLevel,
+    mixer: mixer,
+    rating: rating,
+    composedOn: composedOn,
+    revisedOn: revisedOn,
+    interpretedOn: interpretedOn,
+    authorIds: authorIds == null
+        ? this.authorIds
+        : List.unmodifiable(authorIds),
+    interpreterIds: interpreterIds == null
+        ? this.interpreterIds
+        : List.unmodifiable(interpreterIds),
+    tagIds: tagIds == null ? this.tagIds : List.unmodifiable(tagIds),
+    tunes: tunes,
+    links: links,
+    sourceCitations: sourceCitations,
+    customValues: customValues,
+    figureDrafts: figureDrafts == null
+        ? this.figureDrafts
+        : List.unmodifiable(figureDrafts),
+    stagedTags: stagedTags,
+    textDialect: textDialect ?? this.textDialect,
+    savedAt: savedAt ?? this.savedAt,
+    baseUpdatedAt: baseUpdatedAt ?? this.baseUpdatedAt,
+  );
 
   // ---- Text fields ----
   final String title;
@@ -181,9 +270,19 @@ class EditorSnapshot {
   final String phrase;
   final String formationDetail;
 
+  /// The tune's written meter and key, as typed ([Dance.meter],
+  /// [Dance.musicalKey]).
+  final String meter;
+  final String musicalKey;
+
   // ---- Enum fields ----
   final DanceForm form;
   final FormationShape formationShape;
+
+  /// Whether the dance starts improper ([Formation.improper]). Kept as set
+  /// whatever the form, so switching to a form without the checkbox and back
+  /// restores it; only a form that records it saves it.
+  final bool improper;
   final Progression progression;
   final DanceStatus status;
 
@@ -206,8 +305,14 @@ class EditorSnapshot {
   /// Author revision date at partial precision; `null` when unspecified.
   final PartialDate? revisedOn;
 
+  /// When the dance was interpreted; `null` when unspecified.
+  final PartialDate? interpretedOn;
+
   // ---- Multi-value lists ----
   final List<String> authorIds;
+
+  /// Ordered ids of the people who interpreted the dance.
+  final List<String> interpreterIds;
   final List<String> tagIds;
   final List<String> tunes;
 
@@ -234,4 +339,24 @@ class EditorSnapshot {
 
   // ---- Figures ----
   final List<FigureDraftSnapshot> figureDrafts;
+
+  /// The dialect the figure notes and custom-figure text in [figureDrafts] are
+  /// written in: the editor shows them in its active dialect, and Save
+  /// canonicalizes them against it, so a snapshot taken under one dialect is
+  /// converted before it is applied under another (AUTH-17). Only its
+  /// [Dialect.roles] take part in that conversion, so an autosave draft
+  /// records only those, and decodes as a dialect holding just them. `null`
+  /// means unknown — a draft written before this was recorded — and the text
+  /// is taken to be in the active dialect.
+  final Dialect? textDialect;
+
+  /// When this snapshot was written as an autosave draft; `null` for an
+  /// in-memory undo entry, or a draft written before this was recorded.
+  final DateTime? savedAt;
+
+  /// The `updatedAt` of the stored dance the draft was edited from, so a
+  /// restore can tell whether the dance has changed since (AUTH-10). `null`
+  /// for a new dance, an in-memory undo entry, or a draft written before this
+  /// was recorded.
+  final DateTime? baseUpdatedAt;
 }

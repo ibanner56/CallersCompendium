@@ -59,6 +59,302 @@ const String _danceHtml = '''
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('a full page sets mayHaveMore on every row', () {
+    String page(Iterable<int> ids) => jsonEncode({
+      'numberMatching': ids.length,
+      'dances': [
+        for (final id in ids)
+          {
+            'id': id,
+            'title': 'Dance $id',
+            'choreographer_name': '',
+            'formation': 'improper',
+          },
+      ],
+    });
+
+    Future<List<OnlineSearchResultRow>> run(
+      OnlineSearchQuery query,
+      Future<String> Function(ContraDbSearchRequest) fetch,
+    ) => ContraDbOnline(searchFetcher: fetch).search(query);
+
+    test('exactly a page: yes; one short of a page: no', () async {
+      final full = await run(
+        const OnlineSearchQuery(title: 'x'),
+        (_) async => page(List.generate(contraDbSearchCount, (i) => i + 1)),
+      );
+      expect(full, hasLength(contraDbSearchCount));
+      expect(full.every((row) => row.mayHaveMore), isTrue);
+
+      final short = await run(
+        const OnlineSearchQuery(title: 'x'),
+        (_) async => page(List.generate(contraDbSearchCount - 1, (i) => i + 1)),
+      );
+      expect(short.every((row) => row.mayHaveMore), isFalse);
+    });
+
+    test('two short spellings that merge past a page: no', () async {
+      // 12 + 12 distinct rows is 24 >= 20, but neither response was full.
+      final rows = await run(
+        const OnlineSearchQuery(title: "Mary's"),
+        (request) async => request.query.contains('\u2019')
+            ? page(List.generate(12, (i) => 100 + i))
+            : page(List.generate(12, (i) => i + 1)),
+      );
+      expect(rows, hasLength(24));
+      expect(rows.any((row) => row.mayHaveMore), isFalse);
+    });
+
+    test(
+      'one spelling filled its page, the other did not: yes, for all',
+      () async {
+        final rows = await run(
+          const OnlineSearchQuery(title: "Mary's"),
+          (request) async => request.query.contains('\u2019')
+              ? page([500])
+              : page(List.generate(contraDbSearchCount, (i) => i + 1)),
+        );
+        expect(rows.every((row) => row.mayHaveMore), isTrue);
+      },
+    );
+
+    test('a source that is not paged never sets it', () {
+      const row = OnlineSearchResultRow(
+        source: OnlineSource.callersBox,
+        id: '1',
+        name: 'x',
+        author: '',
+        formation: '',
+      );
+      expect(row.mayHaveMore, isFalse);
+    });
+  });
+
+  group("a ContraDB response's numberMatching becomes totalMatching", () {
+    String page(int shown, {Object? total}) => jsonEncode({
+      'numberMatching': ?total,
+      'dances': [
+        for (var id = 1; id <= shown; id++)
+          {
+            'id': id,
+            'title': 'Dance $id',
+            'choreographer_name': '',
+            'formation': 'improper',
+          },
+      ],
+    });
+
+    test('a single response: the total is on every row', () async {
+      final rows = await ContraDbOnline(
+        searchFetcher: (_) async => page(contraDbSearchCount, total: 143),
+      ).search(const OnlineSearchQuery(title: 'x'));
+      expect(rows, hasLength(contraDbSearchCount));
+      expect(rows.every((row) => row.totalMatching == 143), isTrue);
+    });
+
+    test('no numberMatching, or a malformed one: no total', () async {
+      for (final total in <Object?>[null, -1, 'many', 2.5]) {
+        final rows = await ContraDbOnline(
+          searchFetcher: (_) async => page(3, total: total),
+        ).search(const OnlineSearchQuery(title: 'x'));
+        expect(rows, hasLength(3), reason: '$total');
+        expect(
+          rows.every((row) => row.totalMatching == null),
+          isTrue,
+          reason: '$total',
+        );
+      }
+    });
+
+    test('two spellings merged: no total, since the counts overlap', () async {
+      final rows = await ContraDbOnline(
+        searchFetcher: (request) async => request.query.contains('\u2019')
+            ? page(2, total: 2)
+            : page(2, total: 2),
+      ).search(const OnlineSearchQuery(title: "Mary's"));
+      expect(rows, isNotEmpty);
+      expect(rows.every((row) => row.totalMatching == null), isTrue);
+    });
+
+    test(
+      'a spelling that failed leaves one response: its total stands',
+      () async {
+        final rows = await ContraDbOnline(
+          searchFetcher: (request) async {
+            if (request.query.contains('\u2019')) throw Exception('down');
+            return page(4, total: 9);
+          },
+        ).search(const OnlineSearchQuery(title: "Mary's"));
+        expect(rows, hasLength(4));
+        expect(rows.every((row) => row.totalMatching == 9), isTrue);
+      },
+    );
+  });
+
+  group('paging and repeats', () {
+    String page(int shown) => jsonEncode({
+      'numberMatching': shown,
+      'dances': [
+        for (var id = 1; id <= shown; id++)
+          {
+            'id': id,
+            'title': 'Dance $id',
+            'choreographer_name': '',
+            'formation': 'improper',
+          },
+      ],
+    });
+
+    test('the query\'s offset is sent on every request', () async {
+      final requests = <ContraDbSearchRequest>[];
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return page(2);
+        },
+      );
+      await online.search(const OnlineSearchQuery(title: "Mary's", offset: 40));
+      expect(requests, hasLength(2), reason: 'both apostrophe spellings');
+      expect(requests.every((r) => r.offset == 40), isTrue);
+
+      requests.clear();
+      await online.search(
+        OnlineSearchQuery(advanced: FigureFilter.leaf('swing'), offset: 20),
+      );
+      expect(requests.single.offset, 20);
+      expect(requests.single.expression, ['figure', 'swing']);
+    });
+
+    test('withOffset keeps the query and changes only the offset', () {
+      final query = OnlineSearchQuery(
+        title: 'x',
+        advanced: FigureFilter.leaf('swing'),
+      );
+      final next = query.withOffset(20);
+      expect(next.offset, 20);
+      expect(next.title, 'x');
+      expect(next.advanced, same(query.advanced));
+      expect(next.requireFigures, query.requireFigures);
+    });
+
+    test(
+      'the same request soon after: answered without asking again',
+      () async {
+        var calls = 0;
+        var now = DateTime(2026, 11, 6, 12);
+        final online = ContraDbOnline(
+          searchFetcher: (_) async {
+            calls++;
+            return page(3);
+          },
+          clock: () => now,
+        );
+        const query = OnlineSearchQuery(title: 'x');
+
+        final first = await online.search(query);
+        now = now.add(const Duration(seconds: 59));
+        final second = await online.search(query);
+
+        expect(calls, 1);
+        expect(second, first);
+      },
+    );
+
+    test('a different offset, text or an expired window asks again', () async {
+      var calls = 0;
+      var now = DateTime(2026, 11, 6, 12);
+      final online = ContraDbOnline(
+        searchFetcher: (_) async {
+          calls++;
+          return page(3);
+        },
+        clock: () => now,
+      );
+      await online.search(const OnlineSearchQuery(title: 'x'));
+      await online.search(const OnlineSearchQuery(title: 'x', offset: 20));
+      await online.search(const OnlineSearchQuery(title: 'y', offset: 20));
+      expect(calls, 3);
+
+      now = now.add(const Duration(seconds: 61));
+      await online.search(const OnlineSearchQuery(title: 'y', offset: 20));
+      expect(calls, 4);
+    });
+
+    test(
+      'a parameter only the translation left out is part of the key',
+      () async {
+        var calls = 0;
+        final online = ContraDbOnline(
+          searchFetcher: (_) async {
+            calls++;
+            return page(2);
+          },
+        );
+        // `swing.endFacing` has no ContraDB counterpart: both queries send the
+        // same expression, but only the second is "partly applied".
+        final plain = await online.search(
+          OnlineSearchQuery(advanced: FigureFilter.leaf('swing')),
+        );
+        final withLeftOut = await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(plain.any((row) => row.advancedPartlyApplied), isFalse);
+        expect(withLeftOut.every((row) => row.advancedPartlyApplied), isTrue);
+        expect(calls, 2, reason: 'not answered with the other\'s rows');
+
+        // The same edit twice in a row is the repeat that is not asked again.
+        await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(calls, 2);
+      },
+    );
+
+    test('a search whose extra spelling failed is not remembered', () async {
+      var calls = 0;
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          calls++;
+          if (request.query.contains('\u2019')) throw Exception('down');
+          return page(2);
+        },
+      );
+      const query = OnlineSearchQuery(title: "Mary's");
+      final first = await online.search(query);
+      expect(first, isNotEmpty);
+      expect(calls, 2);
+
+      await online.search(query);
+      expect(calls, 4, reason: 'the curly spelling is asked for again');
+    });
+
+    test('a failed search is not remembered', () async {
+      var calls = 0;
+      final online = ContraDbOnline(
+        searchFetcher: (_) async {
+          calls++;
+          if (calls == 1) throw Exception('down');
+          return page(3);
+        },
+      );
+      const query = OnlineSearchQuery(title: 'x');
+      await expectLater(online.search(query), throwsException);
+      final rows = await online.search(query);
+      expect(rows, hasLength(3));
+      expect(calls, 2);
+    });
+  });
+
   group('fetchContraDbSearch', () {
     test('POSTs a title-filter JSON body to the search endpoint', () async {
       late http.Request captured;
@@ -144,16 +440,131 @@ void main() {
 
   group('ContraDbOnline.search', () {
     test('fetches and parses the JSON results', () async {
-      final online = ContraDbOnline(searchFetcher: (_) async => _searchJson());
+      final requests = <ContraDbSearchRequest>[];
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return _searchJson();
+        },
+      );
       final results = await online.search(
         const OnlineSearchQuery(title: 'rendezvous'),
       );
+      expect(requests.map((r) => r.query), ['rendezvous']);
       expect(results, hasLength(1));
       expect(results.single.source, OnlineSource.contraDb);
       expect(results.single.id, '1');
       expect(results.single.name, 'The Rendezvous');
       expect(results.single.author, 'Adina Gordon');
       expect(results.single.formation, 'improper');
+    });
+
+    test('searches an apostrophe in both spellings and merges by id', () async {
+      // ContraDB stores both `'` and `’` and matches punctuation exactly.
+      final byQuery = {
+        "anna's": _searchJson(id: '7', title: "Anna's Reel"),
+        'anna’s': jsonEncode({
+          'numberSearched': 2415,
+          'numberMatching': 2,
+          'dances': [
+            {'id': 3, 'title': 'Anna’s Ramble'},
+            {'id': 7, 'title': "Anna's Reel"},
+          ],
+        }),
+      };
+      final requests = <ContraDbSearchRequest>[];
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return byQuery[request.query]!;
+        },
+      );
+      final results = await online.search(
+        const OnlineSearchQuery(title: 'anna’s'),
+      );
+      expect(requests.map((r) => r.query), ["anna's", 'anna’s']);
+      expect(requests.map((r) => r.filter).toSet(), {'title'});
+      expect(results.map((r) => r.id), ['3', '7']);
+    });
+
+    test('a failed curly request alone keeps the ASCII results', () async {
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          if (request.query.contains('’')) {
+            throw const UrlFetchException(
+              UrlFetchFailureReason.contraDbHttpStatus,
+              statusCode: 500,
+            );
+          }
+          return _searchJson(id: '7', title: "Anna's Reel");
+        },
+      );
+      final results = await online.search(
+        const OnlineSearchQuery(title: "anna's"),
+      );
+      expect(results.map((r) => r.id), ['7']);
+    });
+
+    test('a failed curly request on a later page fails the page', () async {
+      // Both spellings page at the same offset: a page that lost one would be
+      // counted as loaded and that spelling's rows there never asked for again.
+      var failCurly = true;
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          if (request.query.contains('’') && request.offset > 0 && failCurly) {
+            throw const UrlFetchException(
+              UrlFetchFailureReason.contraDbHttpStatus,
+              statusCode: 500,
+            );
+          }
+          return _searchJson(id: '7', title: "Anna's Reel");
+        },
+      );
+      const first = OnlineSearchQuery(title: "anna's");
+      expect((await online.search(first)).map((r) => r.id), ['7']);
+      await expectLater(
+        online.search(first.withOffset(20)),
+        throwsA(isA<UrlFetchException>()),
+      );
+      failCurly = false;
+      expect(await online.search(first.withOffset(20)), isNotEmpty);
+    });
+
+    test('a failed ASCII request still fails the search', () async {
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          if (!request.query.contains('’')) {
+            throw const UrlFetchException(
+              UrlFetchFailureReason.contraDbUnreachable,
+            );
+          }
+          return _searchJson(id: '3', title: 'Anna’s Ramble');
+        },
+      );
+      expect(
+        () => online.search(const OnlineSearchQuery(title: "anna's")),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnreachable,
+          ),
+        ),
+      );
+    });
+
+    test('merged rows with the same title are ordered by id', () async {
+      // The ASCII row arrives first; only the id tie-break ("10" < "2") puts
+      // the curly row ahead of it.
+      final online = ContraDbOnline(
+        searchFetcher: (request) async => request.query.contains('’')
+            ? _searchJson(id: '10', title: 'Anna’s Reel')
+            : _searchJson(id: '2', title: "Anna's Reel"),
+      );
+      final results = await online.search(
+        const OnlineSearchQuery(title: "anna's reel"),
+      );
+      expect(results.map((r) => r.id), ['10', '2']);
     });
 
     test(
@@ -189,6 +600,195 @@ void main() {
         expect(request.filter, 'figure');
       },
     );
+
+    group('Advanced filter', () {
+      final petronella = FigureFilter.leaf('petronella');
+
+      Future<List<ContraDbSearchRequest>> run(OnlineSearchQuery query) async {
+        final requests = <ContraDbSearchRequest>[];
+        final online = ContraDbOnline(
+          searchFetcher: (value) async {
+            requests.add(value);
+            return _searchJson();
+          },
+        );
+        await online.search(query);
+        return requests;
+      }
+
+      test('alone is sent as the translated expression', () async {
+        final requests = await run(OnlineSearchQuery(advanced: petronella));
+        expect(requests, hasLength(1));
+        expect(requests.single.expression, ['figure', 'petronella']);
+      });
+
+      test('with title text is one dance-level and', () async {
+        final requests = await run(
+          OnlineSearchQuery(title: ' Rendezvous ', advanced: petronella),
+        );
+        expect(requests.single.expression, [
+          'and',
+          ['title', 'Rendezvous'],
+          ['figure', 'petronella'],
+        ]);
+      });
+
+      test('with author text uses the choreographer operator', () async {
+        final requests = await run(
+          OnlineSearchQuery(author: 'Adina Gordon', advanced: petronella),
+        );
+        expect(requests.single.expression, [
+          'and',
+          ['choreographer', 'Adina Gordon'],
+          ['figure', 'petronella'],
+        ]);
+      });
+
+      test('with Figure text combines both figures', () async {
+        final requests = await run(
+          OnlineSearchQuery(figure: 'Box Circulate', advanced: petronella),
+        );
+        expect(requests.single.expression, [
+          'and',
+          ['figure', 'box circulate'],
+          ['figure', 'petronella'],
+        ]);
+      });
+
+      test('keeps the apostrophe variants, each combined with it', () async {
+        final requests = await run(
+          OnlineSearchQuery(title: "anna's", advanced: petronella),
+        );
+        expect(requests.map((r) => r.expression), [
+          [
+            'and',
+            ['title', "anna's"],
+            ['figure', 'petronella'],
+          ],
+          [
+            'and',
+            ['title', 'anna’s'],
+            ['figure', 'petronella'],
+          ],
+        ]);
+      });
+
+      test(
+        'a then is sent as ContraDB then, with the text as an and',
+        () async {
+          final then = ThenFilter(FigureLeaf('swing'), FigureLeaf('chain'));
+          final requests = await run(OnlineSearchQuery(advanced: then));
+          expect(requests.single.expression, [
+            'then',
+            ['figure', 'swing'],
+            ['figure', 'chain'],
+          ]);
+          final withText = await run(
+            OnlineSearchQuery(title: 'x', advanced: then),
+          );
+          expect(withText.single.expression, [
+            'and',
+            ['title', 'x'],
+            [
+              'then',
+              ['figure', 'swing'],
+              ['figure', 'chain'],
+            ],
+          ]);
+        },
+      );
+
+      test('a param ContraDB has no counterpart for is left out, applied '
+          'for the rest, and flagged on every row', () async {
+        final requests = <ContraDbSearchRequest>[];
+        final online = ContraDbOnline(
+          searchFetcher: (request) async {
+            requests.add(request);
+            return _searchJson();
+          },
+        );
+        final rows = await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'who': 'partners', 'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(requests.single.expression, ['figure', 'swing', 'partners']);
+        expect(rows, isNotEmpty);
+        expect(rows.every((row) => row.advancedPartlyApplied), isTrue);
+      });
+
+      test('nothing left out: the rows are not flagged', () async {
+        final rows =
+            await ContraDbOnline(
+              searchFetcher: (_) async => _searchJson(),
+            ).search(
+              OnlineSearchQuery(
+                advanced: FigureFilter.leaf(
+                  'swing',
+                  params: const {'beats': 8},
+                ),
+              ),
+            );
+        expect(rows.any((row) => row.advancedPartlyApplied), isFalse);
+      });
+
+      test('a text-only query is unchanged: no expression', () async {
+        final requests = await run(const OnlineSearchQuery(title: 'x'));
+        expect(requests.single.expression, isNull);
+        expect(requests.single.filter, 'title');
+      });
+
+      test('a condition ContraDB cannot express is refused unsent', () async {
+        for (final unsupported in <DanceFilter>[
+          const TagFilter('t1'),
+          ThenFilter(FigureLeaf('swing', section: 'A1'), FigureLeaf('chain')),
+          FigureFilter.leaf('swing', section: 'B1'),
+          AndFilter([petronella, const TagFilter('t1')]),
+        ]) {
+          var called = false;
+          final online = ContraDbOnline(
+            searchFetcher: (_) async {
+              called = true;
+              return _searchJson();
+            },
+          );
+          await expectLater(
+            online.search(OnlineSearchQuery(title: 'x', advanced: unsupported)),
+            throwsA(
+              isA<UrlFetchException>().having(
+                (error) => error.reason,
+                'reason',
+                UrlFetchFailureReason.contraDbUnsupportedAdvanced,
+              ),
+            ),
+          );
+          expect(called, isFalse);
+        }
+      });
+
+      test('transport posts the expression as the filter', () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return http.Response(_searchJson(), 200);
+        });
+        await fetchContraDbSearch(
+          '',
+          expression: const [
+            'no',
+            ['figure', 'swing'],
+          ],
+          client: client,
+        );
+        expect(jsonDecode(captured.body)['filter'], [
+          'no',
+          ['figure', 'swing'],
+        ]);
+      });
+    });
 
     test('rejects an unknown Figure before making a request', () async {
       var called = false;
@@ -631,11 +1231,12 @@ void main() {
     );
 
     test(
-      'confident match + identical figures + null provenance (hand-entered): falls through to duplicate (no prompt)',
+      'confident match + identical figures + null provenance (hand-entered): prompts, writes nothing',
       () async {
-        // A hand-entered dance has null provenance. Triggering the cross-source
-        // dialog for it would falsely assert "from a different source". Guard:
-        // existing.provenance == null → falls through to duplicate().
+        // A hand-entered dance has null provenance. It used to fall through to
+        // a silent second copy, because the dialog then said "from a different
+        // source". Its wording now names no source, so a hand-entered match
+        // asks like any other (INTAKE-5).
         final repos = openTestRepositories();
         final existing = Dance(
           id: 'existing-id-hand-entered',
@@ -677,10 +1278,76 @@ void main() {
 
         final result = await ContraDbOnline().import(repos, plan);
 
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
+        expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
+        expect(result.danceId, existing.id);
         final saved = await repos.dances.listAll();
-        expect(saved, hasLength(2));
+        expect(saved, hasLength(1), reason: 'nothing written without consent');
+      },
+    );
+
+    test(
+      'an undecodable existing transcription never compares as identical (#1347, ContraDB)',
+      () async {
+        // The trap this guards: mapping an undecodable side to an empty list
+        // made BOTH sides empty when the incoming dance legitimately has no
+        // figures, so `figuresCanonicallyIdentical` returned true and the flow
+        // skipped confirmation — acting on a comparison that was impossible.
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-id-unreadable',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+          provenance: Provenance(
+            source: ProvenanceSource.callersbox,
+            importedAt: now,
+          ),
+        );
+        await repos.dances.create(existing);
+        await repos.db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[{"kind":', existing.id],
+        );
+
+        // Incoming draft carries NO figures, which is what makes the empty-list
+        // mapping collide with the undecodable side.
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-unreadable',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: const [],
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '99999',
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.95, confident: true),
+          ]),
+        );
+        final result = await ContraDbOnline().import(repos, plan);
+
+        expect(
+          result.kind,
+          OnlineImportKind.needsConfirmation,
+          reason: 'an unreadable side cannot be compared, so the user decides',
+        );
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1), reason: 'nothing written without consent');
       },
     );
   });

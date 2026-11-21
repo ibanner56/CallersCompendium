@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../taxonomy/taxonomy.dart';
 import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
+import 'gendered_terms.dart';
 
 /// Maximum UTF-16 code units retained for one user-authored move wording.
 const int kMaxMoveWordingLength = 512;
@@ -214,16 +215,16 @@ class Dialect {
   );
 
   /// The name used for a user-customized dialect (any dialect not identical to
-  /// a shipped preset). Gendered role terms, if wanted, are entered here rather
-  /// than shipped as presets.
+  /// a shipped preset).
   static const String customName = 'Custom';
 
-  /// All shipped dialect presets, in display order.
+  /// All shipped dialect presets, in display order. Every dance form offers
+  /// the same presets (ADR-006 §9.1, point 1).
   ///
   /// `canonical` is first (the identity/no-op dialect); `larksRobins` is the
   /// modern gender-free default and the app's out-of-box active dialect. Only
-  /// role-neutral presets are shipped — gendered role terms are entered via the
-  /// custom role-terms editor, not baked in.
+  /// role-neutral presets are shipped, and no dialect may show a gendered role
+  /// term ([validate], [fromJson]; ADR-006 §9.1, point 7).
   ///
   /// The list is unmodifiable — callers must not mutate it.
   static final List<Dialect> presets = List.unmodifiable([
@@ -309,6 +310,14 @@ class Dialect {
 
   /// Reconstructs a [Dialect] from [toJson] output. Missing sections default to
   /// empty; malformed entries are skipped rather than throwing.
+  ///
+  /// Words a dialect may no longer show are dropped as they are read, so a
+  /// dialect saved before gendered role terms were refused never shows one
+  /// (ADR-006 §9.1, point 7): a gendered role term reads as the default
+  /// dialect's term for that role ([larksRobins]), and a move, dancer or
+  /// wording substitution that holds a gendered role word is left out, so the
+  /// figure reads as it would without it. The dialect's name is not changed
+  /// here; the dialect library renames a dialect whose name holds one.
   static Dialect fromJson(Map<String, Object?> json) {
     final schemaVersion = json['v'];
     final migrateLegacyTemplates =
@@ -320,7 +329,16 @@ class Dialect {
         final value = entry.value;
         if (value is Map) {
           final term = RoleTerm.fromJson(value.cast<String, Object?>());
-          if (term != null) roles[entry.key.toString()] = term;
+          if (term == null) continue;
+          final roleId = entry.key.toString();
+          if (_showsGenderedWord(term)) {
+            // Saved before gendered role terms were refused (ADR-006 §9.1,
+            // point 7): show the default dialect's term in its place.
+            final replacement = larksRobins.roles[roleId];
+            if (replacement != null) roles[roleId] = replacement;
+            continue;
+          }
+          roles[roleId] = term;
         }
       }
     }
@@ -329,7 +347,10 @@ class Dialect {
     if (movesJson is Map) {
       for (final entry in movesJson.entries) {
         final value = entry.value;
-        if (value is String) moves[entry.key.toString()] = value;
+        if (value is String &&
+            genderedRoleWordIn(value, inProse: true) == null) {
+          moves[entry.key.toString()] = value;
+        }
       }
     }
     final dancers = <String, String>{};
@@ -337,7 +358,11 @@ class Dialect {
     if (dancersJson is Map) {
       for (final entry in dancersJson.entries) {
         final value = entry.value;
-        if (value is String) dancers[entry.key.toString()] = value;
+        // A dancer substitution names dancers, a role position, so "man"
+        // and "men" count there as they do in a role term.
+        if (value is String && genderedRoleWordIn(value) == null) {
+          dancers[entry.key.toString()] = value;
+        }
       }
     }
     final moveWordings = <String, String>{};
@@ -351,6 +376,7 @@ class Dialect {
         if (value is! String) continue;
         final sanitized = sanitizeImportedText(value, allowLineBreaks: false);
         if (sanitized.trim().isEmpty) continue;
+        if (genderedRoleWordIn(sanitized, inProse: true) != null) continue;
         final moveId = entry.key.toString();
         final migrated = migrateLegacyTemplates
             ? _migrateV34WordingTemplate(moveId, sanitized)
@@ -371,6 +397,7 @@ class Dialect {
         );
         final hadCircleWording = moveWordings.containsKey('circle');
         if (sanitized.trim().isNotEmpty &&
+            genderedRoleWordIn(sanitized, inProse: true) == null &&
             (hadCircleWording || wordingCount < kMaxMoveWordingEntries)) {
           final migrated = migrateLegacyTemplates
               ? _migrateV34WordingTemplate('circle', sanitized)
@@ -399,6 +426,7 @@ class Dialect {
             allowLineBreaks: false,
           );
           if (sanitized.trim().isEmpty) continue;
+          if (genderedRoleWordIn(sanitized, inProse: true) != null) continue;
           final migrated = migrateLegacyTemplates
               ? _migrateV34WordingTemplate(moveId, sanitized)
               : sanitized;
@@ -438,9 +466,11 @@ class Dialect {
     );
   }
 
-  /// Rejects mappings that would make canonicalization ambiguous: two
+  /// Rejects mappings that would make canonicalization ambiguous (two
   /// canonical terms substituted by the same word, or a substitution that
-  /// collides with another entry's canonical term.
+  /// collides with another entry's canonical term), and any role term or
+  /// substitution that would show a gendered role word
+  /// (`gendered_role_term`, ADR-006 §9.1, point 7).
   List<ValidationIssue> validate() {
     final issues = <ValidationIssue>[];
     final seen = <String, String>{}; // lowercased substitution → source
@@ -478,8 +508,48 @@ class Dialect {
       }
     }
 
+    void checkGendered(String source, String text, {bool inProse = true}) {
+      final word = genderedRoleWordIn(text, inProse: inProse);
+      if (word == null) return;
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'gendered_role_term',
+          message:
+              '"$source" uses the gendered role word "$word", which the app '
+              'never shows',
+          data: {'source': source, 'word': word},
+        ),
+      );
+    }
+
+    for (final e in roles.entries) {
+      checkGendered(e.key, e.value.singular, inProse: false);
+      checkGendered('${e.key}s', e.value.plural, inProse: false);
+    }
+    for (final e in moves.entries) {
+      checkGendered(e.key, e.value);
+    }
+    for (final e in dancers.entries) {
+      checkGendered(e.key, e.value, inProse: false);
+    }
+    for (final e in moveWordings.entries) {
+      checkGendered(e.key, e.value);
+    }
+    for (final move in moveWordingBranches.entries) {
+      for (final branch in move.value.entries) {
+        checkGendered('${move.key}.${branch.key}', branch.value);
+      }
+    }
     for (final e in roles.entries) {
       check(e.key, e.value.singular);
+      // `canonicalize` reverses the plural too (to `<role>s`), so a plural that
+      // spells another entry's term is the same ambiguity. An invariant plural
+      // (singular == plural, "sheep") is one term, not a self-collision.
+      final term = e.value;
+      if (term.plural.toLowerCase() != term.singular.toLowerCase()) {
+        check('${e.key}s', term.plural);
+      }
     }
     for (final e in moves.entries) {
       check(e.key, e.value);
@@ -512,3 +582,7 @@ class Dialect {
     _listEq.hash(discouragedTerms),
   );
 }
+
+bool _showsGenderedWord(RoleTerm term) =>
+    genderedRoleWordIn(term.singular) != null ||
+    genderedRoleWordIn(term.plural) != null;

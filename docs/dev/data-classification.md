@@ -35,13 +35,16 @@ column, and CI will stop you.
 1. Add the column as usual.
 2. Add an entry to `fieldClassifications`, keyed `table.column` using the **SQL**
    names. For a settings key built at runtime from a prefix rather than
-   declared as an exact `const String kSomethingKey`, add the prefix to
+   declared as an exact `const String somethingKey`, add the prefix to
    `settingsPrefixClassifications` instead (see `kDanceEditorDraftKeyPrefix`
    for the pattern) — `classifySettingsKey` resolves the longest matching
    prefix.
-3. Pick the three axes (below). If it is a close call, say why in the `note` —
+3. Pick the three axes (below) and say why in the `note` —
    a reviewer should never have to guess why a personal-data field is
-   `shareable`.
+   `shareable`. A test requires a note, in the three registries below, on every
+   entry that is not `shareable`, every `shareable` entry whose subject is not
+   `none`, and every third-party entry; the app-user preference settings, which
+   share one note-free classification, are the only exemption.
 4. Regenerate this document:
 
    ```sh
@@ -88,10 +91,10 @@ know exists.
 | Value | Meaning |
 | --- | --- |
 | `shareable` | May travel by any route the user chooses, including project-operated infrastructure: file export, share sheet, device sync |
-| `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control |
+| `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control. One recorded exception: the venue contact columns (`venues.contact*`) go to another person in a program export or share when the user ticks them in the pre-share consent dialog for that one export — see those rows' notes below |
 | `deviceScoped` | Never transmitted **by any route at all**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker, a per-installation key. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. |
-| `protocolIdentifier` | May travel as opaque protocol metadata to the configured endpoint, but carries no user data and is never adopted from a peer — here, the per-installation sync device ID |
-| `accessControlData` | May travel only as the authorization for the configured endpoint, but is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID bearer credential |
+| `protocolIdentifier` | May travel as opaque protocol metadata, only to the store it came from. Carries no user data by construction — random bytes a device minted, or a server-issued hash of data that server already holds — and is never taken as this device's own. Here: the per-attachment sync device ID, a peer's device id as the store lists it, and the `ETag` a kept peer manifest was served with |
+| `storeAddress` | Names *where* a shared store lives on the configured endpoint — in effect a path on the sync server. It travels only to that endpoint, is never serialised as record content, and is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID. **Not a credential or a secret:** the user is expected to hand it to another person so the two can sync together |
 | `derived` | Never transmitted at all. Rebuildable from other fields on arrival, so sending it would be redundant as well as an extra copy to protect |
 
 ## Vocabulary
@@ -215,7 +218,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**218 columns**: 147 shareable, 21 device-local, 25 device-scoped, 25 derived. 26 personal data by category.
+**257 columns**: 176 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -225,6 +228,8 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `baseline_entries` | `wire_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `baseline_state` | `epoch` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `baseline_state` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `baseline_state` | `published_manifest_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `baseline_state` | `published_verified_at` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `choreographers` | `deceased` | `cc:DeceasedFlag` | DeceasedFlag | third party | **device-local** | Personal data about someone who cannot exercise any rights over it. |
 | `choreographers` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind. |
 | `choreographers` | `email` | `pd:EmailAddress` | Contact → EmailAddress | third party | **device-local** | Private contact data for someone who does not use this app. This registry replaces the prose rule that lived on Choreographer.email. |
@@ -274,6 +279,9 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_fts` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_fts` | `sources` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_fts` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_interpreters` | `choreographer_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_interpreters` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_interpreters` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_links` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_links` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_links` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -304,15 +312,19 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `figures_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `form` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_detail` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `formation_improper` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_shape` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `hook` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dances` | `interpreted_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `level_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dances` | `meter` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `mixed_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `mixer` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `musical_key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `phrase_structure` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `progression` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
-| `dances` | `rating` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `rating` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The caller's own curatorial star rating (1..5) of the dance: their opinion, not choreography, so the subject is the app user. Egress: own devices and backups yes, share files no. The app omits it from every dance and program share file (maintainer decision R2-out2-export, 2026-10-30), but Device Sync and Backup keep it. Kept shareable rather than deviceLocal because deviceLocal means never serialised and would stop sync, which the maintainer wants to keep; the share-file strip lives in the share bundle builders (sanitizeDanceForShare), not in the archive codec. Sync can still reach another person when a store is shared (ADR-004 storeAddress), so "travels in sync" is not "stays on my devices". |
 | `dances` | `revised_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `status` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -321,16 +333,25 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `walkthrough` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind. |
 | `difficulty_levels` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
-| `difficulty_levels` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `difficulty_levels` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | One of the fixed ids the app ships its difficulty levels with, or a UUID for a level the user added (sync-spec §4.3): about no one. The level's identity, so it must travel for dances to keep their level. |
 | `difficulty_levels` | `label` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `figure_notes` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Sync carries it, held back with the live rows until every attached device can read the glossary (sync-spec §6.15); backups export live rows only. |
+| `figure_notes` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
+| `figure_notes` | `figure_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The id of the shipped figure (taxonomy move or alias) the note is about: public vocabulary shipped with the app, about no one. The note's identity, so it must travel for the note to reach its figure. |
+| `figure_notes` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes and calling notes are: choreography reference, not about a person, so subject none (see "Freeform fields are classified by intent, not by content"). The subject is the implementer's call, following those precedents; appUser was rejected as giving no reason the text is about the user, and thirdParty as classifying by what a user might type. Shareable because the maintainer decided it travels like custom shorthands (#709, comments of 2026-08-06 and 2026-10-14): in backups, and in sync as the glossaryEntry and figureNote record kinds, once every attached device can read them (the capability gate, sync-spec §6.15). |
+| `figure_notes` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `id_aliases` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `id_aliases` | `losing_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `id_aliases` | `surviving_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `column_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `table_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `peer_manifests` | `body` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Record ids and content hashes another device published, as this device verified them, and that device's per-attachment id. It is never sent anywhere: it is the cached copy of what the server already serves. Never backed up, exported or synchronized. |
+| `peer_manifests` | `epoch` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `peer_manifests` | `etag` | `dpv:NonPersonalData` | NonPersonalData | — | **protocol-identifier** | The server's content hash of a peer manifest: an opaque validator the protocol returns, in If-None-Match, only to the server that issued it. It carries no user data — it is a hash of a body that server already holds — and it is never adopted as anything of this device's. Not deviceScoped, because that class is never transmitted by any route; a value the protocol must put on the wire takes this class instead (EgressClass.deviceScoped). Never backed up, exported or synchronized. |
+| `peer_manifests` | `peer_id` | `dpv:NonPersonalData` | NonPersonalData | — | **protocol-identifier** | A peer's random per-attachment routing id, read from the store's device list and sent back to the same store in a manifest request path. It names no person and carries no user data, and it is never adopted as this device's own id. Kept only beside that peer's cached manifest; never backed up, exported or synchronized. |
 | `pending_deletions` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `pending_deletions` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `pending_deletions` | `tombstone_blob` | `dpv:PersonalData` | PersonalData | third party | shareable | Opaque serialized tombstone may contain third-party record content; shareable because pending deletion retransmits it to sync peers. |
@@ -352,18 +373,22 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `program_slots` | `performed_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `program_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
-| `program_slots` | `text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `program_slots` | `text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Freeform text attached to an event plan, not to a person, place or source, so it does not take _freeformNote's third-party subject. Classified by intent (running order, choreography), not by what a user might type — see "Freeform fields are classified by intent, not by content" in docs/dev/data-classification.md. Names on a program belong in programs.caller, programs.band and program_slots.guest_caller, which are third-party performer credits. Maintainer decision (2026 audit). |
 | `program_slots` | `walkthrough_minutes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `programs` | `archived_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | When the caller archived the program (schema v42); NULL means not archived. A lifecycle stamp like programs.deleted_at, classified the same way: it says when the program left the list, not anything about a person. Egress: own devices and backups yes, share files no (the maintainer chose "sync and backups keep it, share files drop it" when archiving was added, 2026-11-18, recorded in #2218; sanitizeProgramForShare), so a recipient always gets an unarchived program. Kept shareable because deviceLocal would stop sync. |
 | `programs` | `band` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `programs` | `caller` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `programs` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `programs` | `dancer_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. |
+| `programs` | `dialect_name` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | Name of a dialect from the caller's own library (user-authored text, like custom_dialects and active_dialect_ref, which are classified the same way). It names the caller's wording choice, not a venue contact or choreographer, so the subject is the app user. A soft by-name reference: a name that does not resolve on another device silently falls back to that device's app dialect. Egress: own devices and backups yes, share files no (the app omits it from program share files, maintainer decision R2-out2-export, 2026-10-30; sanitizeProgramForShare). Kept shareable because deviceLocal would stop sync. |
 | `programs` | `event_date` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
 | `programs` | `hide_alternates` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
-| `programs` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `programs` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Freeform text attached to an event plan, not to a person, place or source, so it does not take _freeformNote's third-party subject. Classified by intent (running order, choreography), not by what a user might type — see "Freeform fields are classified by intent, not by content" in docs/dev/data-classification.md. Names on a program belong in programs.caller, programs.band and program_slots.guest_caller, which are third-party performer credits. Maintainer decision (2026 audit). |
+| `programs` | `pay_currency` | `pd:Income` | Financial → Transactional → Income | app user | shareable | ISO 4217 code that programs.pay_minor_units is denominated in; meaningless without it, so it carries the same classification, including the share-file omission (sanitizeProgramForShare). |
+| `programs` | `pay_minor_units` | `pd:Income` | Financial → Transactional → Income | app user | shareable | What the caller is paid for the program (DPV pd:Income). The subject is the app user: it is their own earnings, not a fact about the venue, band or any other third party. Egress: own devices and backups yes, share files no. It follows the caller to their other devices (Device Sync) and into their own archive and backup, but the app omits it from program share files and Export JSON (maintainer decision R2-out2-export, 2026-10-30; sanitizeProgramForShare). It is never part of the shared set-list text or PDF. Kept shareable rather than deviceLocal because deviceLocal means never serialised and would stop sync. Sync can still reach another person when a store is shared (ADR-004 storeAddress), so "travels in sync" is not "stays on my devices". |
 | `programs` | `status` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
@@ -387,10 +412,15 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `published_sources` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `published_sources` | `url` | `cc:WebsiteUrl` | WebsiteUrl | — | shareable |  |
 | `published_sources` | `year` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `retained_sync_fields` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `retained_sync_fields` | `payload` | `dpv:PersonalData` | PersonalData | third party | shareable | Opaque record content a newer app version added; unknown to this build, so it may contain third-party data. Shareable only because it is shared back to the sync store it came from, verbatim (maintainer decision, sync-spec §6.7); never backed up or exported. |
+| `retained_sync_fields` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `retained_sync_fields` | `whole_record` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `candidate_blob` | `dpv:PersonalData` | PersonalData | third party | device-scoped | Opaque serialized sync candidate may contain third-party record content; held locally until review and never synchronized as queue state. |
 | `review_queue` | `candidate_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `counterpart_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `review_queue` | `local_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `queued_at` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `reason` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
@@ -405,6 +435,18 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `tags` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `tags` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `tags` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `user_glossary_entries` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | When the entry was first created; never moved by an edit. Travels so every device agrees which of two entries sharing a name is the newer one, the one flagged for rename (#709 consolidated spec, decision 6). Judging "newer" by creation time, so that an edit cannot change which one is flagged, is the implementer's choice. |
+| `user_glossary_entries` | `definition` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes and calling notes are: choreography reference, not about a person, so subject none (see "Freeform fields are classified by intent, not by content"). The subject is the implementer's call, following those precedents; appUser was rejected as giving no reason the text is about the user, and thirdParty as classifying by what a user might type. Shareable because the maintainer decided it travels like custom shorthands (#709, comments of 2026-08-06 and 2026-10-14): in backups, and in sync as the glossaryEntry and figureNote record kinds, once every attached device can read them (the capability gate, sync-spec §6.15). |
+| `user_glossary_entries` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Sync carries it, held back with the live rows until every attached device can read the glossary (sync-spec §6.15); backups export live rows only. |
+| `user_glossary_entries` | `description` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes and calling notes are: choreography reference, not about a person, so subject none (see "Freeform fields are classified by intent, not by content"). The subject is the implementer's call, following those precedents; appUser was rejected as giving no reason the text is about the user, and thirdParty as classifying by what a user might type. Shareable because the maintainer decided it travels like custom shorthands (#709, comments of 2026-08-06 and 2026-10-14): in backups, and in sync as the glossaryEntry and figureNote record kinds, once every attached device can read them (the capability gate, sync-spec §6.15). |
+| `user_glossary_entries` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
+| `user_glossary_entries` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `user_glossary_entries` | `keywords_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes and calling notes are: choreography reference, not about a person, so subject none (see "Freeform fields are classified by intent, not by content"). The subject is the implementer's call, following those precedents; appUser was rejected as giving no reason the text is about the user, and thirdParty as classifying by what a user might type. Shareable because the maintainer decided it travels like custom shorthands (#709, comments of 2026-08-06 and 2026-10-14): in backups, and in sync as the glossaryEntry and figureNote record kinds, once every attached device can read them (the capability gate, sync-spec §6.15). |
+| `user_glossary_entries` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `user_glossary_entries` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes and calling notes are: choreography reference, not about a person, so subject none (see "Freeform fields are classified by intent, not by content"). The subject is the implementer's call, following those precedents; appUser was rejected as giving no reason the text is about the user, and thirdParty as classifying by what a user might type. Shareable because the maintainer decided it travels like custom shorthands (#709, comments of 2026-08-06 and 2026-10-14): in backups, and in sync as the glossaryEntry and figureNote record kinds, once every attached device can read them (the capability gate, sync-spec §6.15). |
+| `user_glossary_entries` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The user's own notes on a glossary entry (#709), classified as the entry's other text is (see user_glossary_entries.definition), for the same reasons. Shareable, so they travel in backups and sync, but a share bundle leaves them out (#1023, plan C12): it carries each of the sender's own figures its dances use, for someone else, and an entry's notes are the owner's own annotations, not part of the figure's definition. That omission is the implementer's call; carrying them was rejected as sending private annotations with a figure the recipient only needs to read the dances. |
+| `user_glossary_entries` | `payload_json` | `dpv:PersonalData` | PersonalData | third party | shareable | The kind's payload: a compound's figures and parameters; a figure of your own's parameters, choice and flag labels, defaults and wording template; or a term's dance form and source citation (#1023). Each kind also keeps keys a newer build wrote. The source citation, which a Caller's Companion import brings in (its `Source`, such as "Give and Take - Larry Jennings"), credits a published work and often its author by name: a choreographer or writer who never touches this app, so the column's subject is thirdParty, as published_sources.author's is. Its category is unclassified personal data, as published_sources.notes' is, not a name: a citation is free text that mixes a title with an author. The rest of the payload is choreography about no person. Shareable, as that published credit is: public by definition, and the entry travels as the glossary text does. This is the implementer's call; keeping subject none was rejected because the glossary text's rule (classified by intent) gives the citation an intent to credit a person, and a column of its own for one optional string was rejected as out of proportion. |
+| `user_glossary_entries` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `venue_provenance` | `external_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venue_provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `venue_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -412,16 +454,16 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `venue_provenance` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venue_provenance` | `source_version` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venue_provenance` | `venue_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
-| `venues` | `address1` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** |  |
-| `venues` | `address2` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** |  |
-| `venues` | `city` | `pd:City` | Contact → PhysicalAddress → City | third party | **device-local** |  |
-| `venues` | `contact1_email` | `pd:EmailAddress` | Contact → EmailAddress | third party | **device-local** |  |
-| `venues` | `contact1_name` | `pd:Name` | Identifying → Name | third party | **device-local** |  |
-| `venues` | `contact1_phone` | `pd:TelephoneNumber` | Contact → TelephoneNumber | third party | **device-local** |  |
-| `venues` | `contact2_email` | `pd:EmailAddress` | Contact → EmailAddress | third party | **device-local** |  |
-| `venues` | `contact2_name` | `pd:Name` | Identifying → Name | third party | **device-local** |  |
-| `venues` | `contact2_phone` | `pd:TelephoneNumber` | Contact → TelephoneNumber | third party | **device-local** |  |
-| `venues` | `country` | `pd:Country` | Location → Country | third party | **device-local** |  |
+| `venues` | `address1` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** | A venue's postal address, classified third-party like the venue's contacts: the people it identifies never use this app and cannot consent to a transfer. Never reaches a share, a PDF, Device Sync or other project-operated infrastructure: a program share or PDF always clears it, with no opt-in (sanitizeVenueForShare, after issue #853 found shares carrying it), and Device Sync carries only fields classified shareable. Only the owner's own full backup holds it. |
+| `venues` | `address2` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** | A venue's postal address, classified third-party like the venue's contacts: the people it identifies never use this app and cannot consent to a transfer. Never reaches a share, a PDF, Device Sync or other project-operated infrastructure: a program share or PDF always clears it, with no opt-in (sanitizeVenueForShare, after issue #853 found shares carrying it), and Device Sync carries only fields classified shareable. Only the owner's own full backup holds it. |
+| `venues` | `city` | `pd:City` | Contact → PhysicalAddress → City | third party | **device-local** | A venue's postal address, classified third-party like the venue's contacts: the people it identifies never use this app and cannot consent to a transfer. Never reaches a share, a PDF, Device Sync or other project-operated infrastructure: a program share or PDF always clears it, with no opt-in (sanitizeVenueForShare, after issue #853 found shares carrying it), and Device Sync carries only fields classified shareable. Only the owner's own full backup holds it. |
+| `venues` | `contact1_email` | `pd:EmailAddress` | Contact → EmailAddress | third party | **device-local** | One exception to device-local: when the user exports or shares a program (PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each populated contact field unticked, and only the fields ticked there go to the recipient, with the user's explicit consent for that one export (sanitizeVenueForShare). Nothing is remembered for the next export, and the field still never reaches Device Sync or other project-operated infrastructure. Allowed because a program handed to another organiser is often unusable without the hall contact, and only the user knows whether that person expects to be passed on. The tick is the user's consent, not the contact's, which is why the subject stays third-party and nothing is ticked by default. |
+| `venues` | `contact1_name` | `pd:Name` | Identifying → Name | third party | **device-local** | One exception to device-local: when the user exports or shares a program (PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each populated contact field unticked, and only the fields ticked there go to the recipient, with the user's explicit consent for that one export (sanitizeVenueForShare). Nothing is remembered for the next export, and the field still never reaches Device Sync or other project-operated infrastructure. Allowed because a program handed to another organiser is often unusable without the hall contact, and only the user knows whether that person expects to be passed on. The tick is the user's consent, not the contact's, which is why the subject stays third-party and nothing is ticked by default. |
+| `venues` | `contact1_phone` | `pd:TelephoneNumber` | Contact → TelephoneNumber | third party | **device-local** | One exception to device-local: when the user exports or shares a program (PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each populated contact field unticked, and only the fields ticked there go to the recipient, with the user's explicit consent for that one export (sanitizeVenueForShare). Nothing is remembered for the next export, and the field still never reaches Device Sync or other project-operated infrastructure. Allowed because a program handed to another organiser is often unusable without the hall contact, and only the user knows whether that person expects to be passed on. The tick is the user's consent, not the contact's, which is why the subject stays third-party and nothing is ticked by default. |
+| `venues` | `contact2_email` | `pd:EmailAddress` | Contact → EmailAddress | third party | **device-local** | One exception to device-local: when the user exports or shares a program (PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each populated contact field unticked, and only the fields ticked there go to the recipient, with the user's explicit consent for that one export (sanitizeVenueForShare). Nothing is remembered for the next export, and the field still never reaches Device Sync or other project-operated infrastructure. Allowed because a program handed to another organiser is often unusable without the hall contact, and only the user knows whether that person expects to be passed on. The tick is the user's consent, not the contact's, which is why the subject stays third-party and nothing is ticked by default. |
+| `venues` | `contact2_name` | `pd:Name` | Identifying → Name | third party | **device-local** | One exception to device-local: when the user exports or shares a program (PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each populated contact field unticked, and only the fields ticked there go to the recipient, with the user's explicit consent for that one export (sanitizeVenueForShare). Nothing is remembered for the next export, and the field still never reaches Device Sync or other project-operated infrastructure. Allowed because a program handed to another organiser is often unusable without the hall contact, and only the user knows whether that person expects to be passed on. The tick is the user's consent, not the contact's, which is why the subject stays third-party and nothing is ticked by default. |
+| `venues` | `contact2_phone` | `pd:TelephoneNumber` | Contact → TelephoneNumber | third party | **device-local** | One exception to device-local: when the user exports or shares a program (PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each populated contact field unticked, and only the fields ticked there go to the recipient, with the user's explicit consent for that one export (sanitizeVenueForShare). Nothing is remembered for the next export, and the field still never reaches Device Sync or other project-operated infrastructure. Allowed because a program handed to another organiser is often unusable without the hall contact, and only the user knows whether that person expects to be passed on. The tick is the user's consent, not the contact's, which is why the subject stays third-party and nothing is ticked by default. |
+| `venues` | `country` | `pd:Country` | Location → Country | third party | **device-local** | A venue's postal address, classified third-party like the venue's contacts: the people it identifies never use this app and cannot consent to a transfer. Never reaches a share, a PDF, Device Sync or other project-operated infrastructure: a program share or PDF always clears it, with no opt-in (sanitizeVenueForShare, after issue #853 found shares carrying it), and Device Sync carries only fields classified shareable. Only the owner's own full backup holds it. |
 | `venues` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind. |
 | `venues` | `event_name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venues` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
@@ -429,91 +471,143 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `venues` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `venues` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | A hall or grange — an organisation, not a person. Shareable so a program keeps a readable venue after a transfer. |
 | `venues` | `notes` | `dpv:PersonalData` | PersonalData | third party | shareable | Unbounded freeform text attached to a person, place or source. Personal data by category, shareable by decision (maintainer ruling: this is the user's own commentary on their own collection). May incidentally contain contact details the user typed there. |
-| `venues` | `plus4` | `pd:PostalCode` | Contact → PhysicalAddress → PostalCode | third party | **device-local** |  |
-| `venues` | `postal_code` | `pd:PostalCode` | Contact → PhysicalAddress → PostalCode | third party | **device-local** |  |
+| `venues` | `plus4` | `pd:PostalCode` | Contact → PhysicalAddress → PostalCode | third party | **device-local** | A venue's postal address, classified third-party like the venue's contacts: the people it identifies never use this app and cannot consent to a transfer. Never reaches a share, a PDF, Device Sync or other project-operated infrastructure: a program share or PDF always clears it, with no opt-in (sanitizeVenueForShare, after issue #853 found shares carrying it), and Device Sync carries only fields classified shareable. Only the owner's own full backup holds it. |
+| `venues` | `postal_code` | `pd:PostalCode` | Contact → PhysicalAddress → PostalCode | third party | **device-local** | A venue's postal address, classified third-party like the venue's contacts: the people it identifies never use this app and cannot consent to a transfer. Never reaches a share, a PDF, Device Sync or other project-operated infrastructure: a program share or PDF always clears it, with no opt-in (sanitizeVenueForShare, after issue #853 found shares carrying it), and Device Sync carries only fields classified shareable. Only the owner's own full backup holds it. |
 | `venues` | `price` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venues` | `sponsor` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | An organisation underwriting a series — part of the venue's public identity (maintainer ruling). Free text, so it can hold a personal name, but unlike a custom field its meaning is fixed and known. |
-| `venues` | `state_prov` | `pd:Region` | Contact → PhysicalAddress → Region | third party | **device-local** |  |
+| `venues` | `state_prov` | `pd:Region` | Contact → PhysicalAddress → Region | third party | **device-local** | A venue's postal address, classified third-party like the venue's contacts: the people it identifies never use this app and cannot consent to a transfer. Never reaches a share, a PDF, Device Sync or other project-operated infrastructure: a program share or PDF always clears it, with no opt-in (sanitizeVenueForShare, after issue #853 found shares carrying it), and Device Sync carries only fields classified shareable. Only the owner's own full backup holds it. |
 | `venues` | `time` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venues` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `venues` | `website` | `cc:WebsiteUrl` | WebsiteUrl | — | shareable | The venue's own public page. |
 
 ### Settings keys
 
-Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
+Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**73 settings keys**: 57 shareable, 7 device-local, 7 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
+**125 settings keys**: 81 shareable, 12 device-local, 30 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
 | `__callersbox_roll_away_role_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__chain_hand_backfill_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__compact_dosido_seesaw_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__custom_field_index_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__custom_number_index_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__derived_rebuild_required__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__ecd_taxonomy_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__grip_single_file_canonical_inclusion_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__inverse_pair_normalisation_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__modifier_container_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__normalisation_derived_index_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__promenade_turn_circle_wording_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__purge_corruption_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__section_rule_version__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__shareable_text_normalisation_scope__` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
+| `__star_promenade_hand_removal_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v33_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v34_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v35_figure_normalization_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__taxonomy_v37_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__taxonomy_v38_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__taxonomy_v39_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `active_custom_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |
+| `active_dialect_ref_ecd` | `dpv:NonPersonalData` | app user | shareable |  |
+| `active_dialect_ref_square` | `dpv:NonPersonalData` | app user | shareable |  |
 | `aggressive_beats_update` | `dpv:NonPersonalData` | app user | shareable |  |
-| `app_locale` | `dpv:NonPersonalData` | app user | shareable |  |
+| `app_locale` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: a phone and the laptop driving a projector can want different interface languages, and a synced change would re-render the other device mid-session. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
-| `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | shareable |  |
+| `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: whether a Perform card should fit the screen depends on the screen, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
+| `calling_card_print` | `dpv:NonPersonalData` | app user | shareable | Whether calling cards are offered, the card size, whether they print several to a page, and the card layout: how the user likes their cards printed. The card stock is the same whichever device prints, and printing onto sheets is a habit more than a property of one printer, so it travels like any preference. The layout can hold free text the user typed for a text block; like walkthrough_snippets, that is configuration the user authored for their own use, classified by what the setting is for rather than by whatever words they choose to print. |
 | `canonical_discouraged_terms` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_figure_text` | `dpv:NonPersonalData` | app user | shareable |  |
+| `capitalize_figures` | `dpv:NonPersonalData` | app user | shareable |  |
+| `collection_hidden_facets` | `dpv:NonPersonalData` | app user | shareable |  |
 | `collection_tile_visible_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |
+| `compound_shorthands` | `dpv:NonPersonalData` | app user | shareable | The user's shorthands for their own compound figures (#709): tokens they chose, a figure's id and name, and values. Shareable like the figure shorthands; held back until every device can read it (SyncCapabilityPolicy.build). |
 | `confirm_before_delete` | `dpv:NonPersonalData` | app user | shareable |  |
+| `confirm_perform_exit` | `dpv:NonPersonalData` | app user | shareable | Whether leaving Perform asks first. A habit of the caller rather than a property of the screen, like confirm_before_delete, so it travels with their other preferences; unlike auto_size_perform_cards it does not depend on screen size. |
 | `custom_dialects` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_dialects_ecd` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_dialects_square` | `dpv:NonPersonalData` | app user | shareable |  |
 | `custom_fields.sharing.disclosed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `custom_themes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format_custom` | `dpv:NonPersonalData` | app user | shareable |  |
 | `decimal_turns` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
+| `default_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_detail_rendering` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_figures_template` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_form` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_formation_shape` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_phrase_structure` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_progression` | `dpv:NonPersonalData` | app user | shareable |  |
+| `default_import_tag_names` | `dpv:NonPersonalData` | app user | shareable | User-chosen list of tag names added to dances imported on their own. The names reference the user's own tags by their natural key, so it survives tag re-identification on sync and merge restore; names with no live tag are ignored. |
 | `default_meanwhile_side_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_modifier_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_move_param_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_program_band` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often their own band. Personal data, shareable for the same reason as programs.band. |
 | `default_program_caller` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often themselves. Personal data, shareable for the same reason as programs.caller. |
 | `default_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
+| `default_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | User-authored semantic slot template for manually created programs. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
+| `ecd_convert_prompt_dismissed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `free_text_entry` | `dpv:NonPersonalData` | app user | shareable |  |
+| `history_order_ignore_undated` | `dpv:NonPersonalData` | app user | shareable |  |
+| `history_order_ignore_unperformed` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_backup_at` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `last_used_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_dance_form` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `mark_all_sets_status` | `dpv:NonPersonalData` | app user | shareable | A behaviour preference: whether Mark all performed also sets the program's status (GIG-12). It names no person and holds no content, and it follows the caller rather than the screen, so it travels like the other calling-history rules beside it. |
 | `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
-| `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable |  |
-| `perform_stage_mode` | `dpv:NonPersonalData` | app user | shareable |  |
+| `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable | No longer read or written by this version (Perform lost its canonical toggle). Kept classified and travelling so older-version peers and backups, which still use it, round-trip it unchanged. |
+| `perform_stage_mode` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: the stage theme is chosen for the lighting a screen is read under, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | **device-local** | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector, but it may travel in a user-controlled local backup. |
+| `program_dance_share_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `program_matrix_columns` | `dpv:NonPersonalData` | app user | shareable |  |
-| `reduce_motion` | `dpv:NonPersonalData` | app user | shareable |  |
+| `recency_require_event_date` | `dpv:NonPersonalData` | app user | shareable |  |
+| `recency_require_performed` | `dpv:NonPersonalData` | app user | shareable |  |
+| `reduce_motion` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: an override set against one screen or one device's system Reduce Motion setting is not an answer for another. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
+| `require_event_date_for_history` | `dpv:NonPersonalData` | app user | shareable |  |
 | `require_performed_for_history` | `dpv:NonPersonalData` | app user | shareable |  |
 | `seed.initialCollection.completed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `set_list_color_coding` | `dpv:NonPersonalData` | app user | shareable |  |
+| `share_set_list_include_caller_band` | `dpv:NonPersonalData` | app user | shareable | A behaviour preference: whether a shared or copied set list (the text export) includes the caller and band. It names no person and holds no content. It never governs the .ccshare or JSON bundle, which always carries the whole program, and it follows the caller rather than the screen, so it travels like the other sharing preferences. |
+| `share_set_list_include_date_venue` | `dpv:NonPersonalData` | app user | shareable | A behaviour preference: whether a shared or copied set list (the text export) includes the date and venue. It names no person and holds no content. It never governs the .ccshare or JSON bundle, which always carries the whole program, and it follows the caller rather than the screen, so it travels like the other sharing preferences. |
+| `share_set_list_include_title` | `dpv:NonPersonalData` | app user | shareable | A behaviour preference: whether a shared or copied set list (the text export) includes the program title. It names no person and holds no content. It never governs the .ccshare or JSON bundle, which always carries the whole program, and it follows the caller rather than the screen, so it travels like the other sharing preferences. |
 | `shorthand_mappings` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_custom_figures` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_glossary` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_individual_perform_timer` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_performed_toggles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_program_slot_caller_notes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
-| `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
-| `sync_id` | `dpv:PersonalData` | app user | **access-control-data** | User-entered bearer credential. It may contain personal information, travels only in Authorization to the configured sync origin, and is never recoverably retained or logged by the server or a proxy; local persistence is governed by this settings classification. |
+| `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-attachment routing identifier, minted anew each time the device attaches so that the identifier itself never links one attachment to the next. Synced content and its blob hashes can still be correlated by the operator; this removes only the identifier as a link. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
+| `sync_enabled` | `dpv:NonPersonalData` | — | device-scoped | Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another. |
+| `sync_endpoint` | `dpv:NonPersonalData` | — | device-scoped | The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup. |
+| `sync_exclude_imports` | `dpv:NonPersonalData` | — | device-scoped | Per-installation toggle that trims what this device publishes. It is a statement about this device's upload budget, not the library, so it never syncs or travels in a backup. |
+| `sync_id` | `dpv:PersonalData` | app user | **store-address** | The address of the shared store this device syncs with — in effect a path on the sync server, which is how the server handles it. It is not a credential and not a secret: the user is expected to hand it to another person so the two can sync together. Being user-chosen it may contain personal information, so it leaves the device over the network only to the configured sync origin, and is never recoverably retained or logged by the server or a proxy — not because it is confidential, but because the operator has no use for it and it names where a user keeps their library. It is never adopted from a peer, which would repoint this device at another store. Local persistence is governed by this settings classification. The status surface can also show it and copy it to the system clipboard when the user asks, so the device that holds it can be joined by another without the phrase having been written down at pairing; that path is user-initiated and stays on the device. |
+| `sync_last_success_at` | `dpv:NonPersonalData` | — | device-scoped | Time of this installation's last completed sync pass, used only for the local status surface and expiry warning. Never synced or restored from a backup. |
+| `sync_last_used_fingerprint` | `dpv:PersonalData` | app user | device-scoped | A set of salted, slow verifiers for previously configured store addresses, used only to recognise one this device has already synced with after detach. They are salted and slow so the marker cannot be turned back into the address it stands for, which names where a user keeps their library; the derived values are never transmitted, adopted from a peer, or restored from a backup. |
+| `sync_wifi_only` | `dpv:NonPersonalData` | — | device-scoped | Per-installation preference to sync only on WiFi. It is a statement about this device's connection, so it never syncs or travels in a backup. |
 | `theme_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `track_history_for_all_callers` | `dpv:NonPersonalData` | app user | shareable |  |
+| `undo_prompt_seconds` | `dpv:NonPersonalData` | app user | shareable |  |
 | `update_auto_check` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_beta_channel` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_dismissed_version` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
+| `update_retirement_notice` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `user_figure_shorthands` | `dpv:NonPersonalData` | app user | shareable | The user's shorthands for their own new figures (#1023): tokens they chose, a figure's id and name, values and beats. Classified as compound_shorthands is (the implementer's call, following that precedent): content the user authored for themselves, naming no one else. Held back until every device can read the figures themselves (glossary.v2, SyncCapabilityPolicy.build). |
 | `venue_call_count` | `dpv:NonPersonalData` | app user | shareable |  |
 | `venue_entity_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `verbose_figure_rendering` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -524,11 +618,12 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 
 Some settings-table keys are built at runtime from a per-entity suffix rather than declared as an exact key (`editor_draft:<id>`), so they cannot appear in the table above. Each prefix below classifies every key it matches; `classifySettingsKey` resolves the longest matching prefix.
 
-**2 settings key prefixes**: 2 device-scoped. 0 personal data by category.
+**3 settings key prefixes**: 1 shareable, 2 device-scoped. 0 personal data by category.
 
 | Key prefix | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
-| `editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
-| `program_editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient program-editor autosave draft, keyed per program (program_editor_draft:<id>). Same rationale as editor_draft:. |
+| `editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>, or editor_draft:new:<editor id> for a dance not yet saved). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
+| `program_editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient program-editor autosave draft, keyed per program (program_editor_draft:<id>, or program_editor_draft:new:<editor id> for a program not yet saved). Same rationale as editor_draft:. |
+| `sync_capabilities:` | `dpv:NonPersonalData` | — | shareable | Sync protocol metadata, keyed per attachment (sync_capabilities:<deviceId>): the names of the sync capabilities the device's build understands, nothing about the user. Travels so every device can see what the others can read (#709 capability gate). The device id in the key is the same protocolIdentifier every manifest already carries. Never restored from a backup (backup_service.dart denylists the prefix), since only its own device may write it, apart from the tombstone written when a device is removed from the store. Erased, not tombstoned, on detach (SyncLocalRepository.clearOnDetach), so the device ids of a store this device has left never reach the next one. |
 
 <!-- END GENERATED: field-catalogue -->

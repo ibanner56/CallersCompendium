@@ -1,6 +1,34 @@
 # ADR-002: Distribution & update channels
 
 - **Status**: Proposed
+- **Erratum (2026-10-29)**: §5 below says the check "fails silently offline —
+  a missing network is a no-op, never an error dialog". That stands for the
+  **automatic** check. A **manual** "Check for updates" is a user-initiated
+  action with an inline status line, not an error dialog, so it now says why it
+  found nothing: "Couldn't check for updates right now" when the manifest could
+  not be fetched, verified or read, and "A newer version is available from the
+  Releases page" when the manifest is authentic but in a format this build
+  cannot read. Neither state adds a request or sends anything, so the privacy
+  contract is unchanged. The accepted text below is left as written; read
+  "fails silently" as applying to the automatic check only. The maintainer
+  decided this (`update-check-wording`, option (c), 2026-10-29).
+- **Erratum (2026-10-29)**: Stage 1 and Stage 1.5 above describe one channel
+  for every build, and say mobile "deep-links to the store/release page". The
+  manifest only describes the sideloaded release channel, so the updater now
+  detects how the running copy was installed (`install_kind.dart`). A copy
+  installed from an app store (iOS, or the Google Play bundle) is updated by its
+  store and **never offers an update**: it has no Check for updates action, no
+  update banner, and nothing it fetches can produce one. It does still read the
+  release information, under the same opt-in **Check automatically** as every
+  other copy, for an end-of-support date only; that notice's "Get update" opens
+  the store listing. A
+  portable copy (the Windows zip, the Linux tar.gz) still checks but is told to
+  download the new archive from the release instead of being handed an
+  installer, which would install a second copy. Detection is local and read-only
+  and adds no request, so the privacy contract is unchanged. The accepted text
+  is left as written. The maintainer decided this (`updater-install-kind`,
+  option (a), 2026-10-29; the end-of-support part, "Notice only, in #2045",
+  2026-10-30).
 - **Roadmap item**: 7.1
 - **Deciders**: @ibanner56
 
@@ -48,7 +76,7 @@ because later Wave-1 PRs will *produce* it (a `release.yml` workflow) and
 GitHub Releases is the **sole artifact host**. Each release publishes a **static
 update manifest** — `stable.json` and `beta.json`, one document per channel —
 as a **release asset** and mirrors it to **GitHub Pages** for a stable
-per-channel URL (`https://ibanner56.github.io/CallersCompendium/<channel>.json`),
+per-channel URL (`https://callerscompendium.com/<channel>.json`, the Pages custom domain),
 which is what the in-app client actually fetches. (The Pages hosting is wired in
 A11c — see [releasing.md](../dev/releasing.md#publishing-the-update-manifest-github-pages).)
 The in-app update check is a plain HTTPS `GET` of that manifest.
@@ -86,6 +114,12 @@ it. Fields:
       "size": 12345678,                // bytes, int, required.
       "minOsVersion": "11.0"           // optional. Per-platform OS floor for this artifact.
     }
+  ],
+  "retirements": [                     // optional. End-of-life announcements; absent = none.
+    {
+      "through": "0.7.0",              // SemVer, required. Every build at or below this is covered.
+      "endOfLife": "2027-01-31"        // YYYY-MM-DD calendar date, required. First unsupported day.
+    }
   ]
 }
 ```
@@ -99,8 +133,9 @@ Field rules:
   `"stable"`), so a mis-published file is detectable.
 - `version` — SemVer; the pure-Dart client compares it against
   `kUpdaterVersion` (`app/lib/src/app_metadata.dart`). Release builds inject the
-  tag's SemVer identity there so a beta compares as `X.Y.Z-beta`, while the
-  visible `kAppVersion` and `app/pubspec.yaml` remain bare `X.Y.Z`.
+  tag's SemVer identity there so a beta compares as `X.Y.Z-beta`, while
+  `kAppVersion` and `app/pubspec.yaml` remain bare `X.Y.Z`. The app shows
+  the injected identity to the user.
 - `codename` — optional display-only release name resolved from the annotated
   tag. Release Flutter builds receive the same value through
   `CALLERS_COMPENDIUM_RELEASE_CODENAME`; local and development builds use the
@@ -112,6 +147,19 @@ Field rules:
 - `artifacts[]` — at least one entry; each is
   `{platform, arch, url, sha256, size, minOsVersion?}`. The client selects the
   entry matching the running platform+arch.
+- `retirements[]` — optional, additive (no `manifestSchemaVersion` bump: a
+  client that predates it ignores it). Each entry is `{through, endOfLife}` and
+  announces that every build whose release identity is **at or below**
+  `through` by SemVer precedence — so `0.7.0-beta` is covered by `0.7.0` —
+  stops being supported on `endOfLife`. When several entries cover a build the
+  earliest date applies. The client applies it to its own `kUpdaterVersion`
+  whether or not the manifest's `version` is newer, so a build whose channel
+  has nothing newer is still warned. A present-but-malformed list refuses the
+  whole manifest, like any other malformed field. The release workflow copies
+  it from the checked-in `tools/release/retirements.json` into every manifest
+  it refreshes; `gen_release_metadata.py` refuses an entry that would retire the
+  build being released. Builds up to and including **0.6.0-beta** predate the
+  field and never read it.
 
 **Deterministic asset naming:**
 
@@ -163,6 +211,31 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
    **cancel**. macOS first presents a native Save As panel and writes directly
    to the user-selected path, preserving user-consented download provenance;
    Windows and Linux use a private temp file.
+
+   *Temp-file lifecycle (Windows/Linux).* Each attempt writes into its own
+   randomly-named `cc_update_<random>` directory under the system temp
+   directory. A failed, cancelled, or checksum-mismatched attempt removes that
+   directory; where the OS still holds the partial file open (Windows), the
+   removal is retried once the file closes, and a **cancel or failure waits at
+   most `kUpdateDiscardCloseTimeout` (3 s)** for the close rather than the 60 s
+   network idle timeout, so Cancel re-arms the action promptly. After a
+   *successful* download the verified installer is deliberately **left in place**
+   (the user can still reach it after "completed"), so nothing removes it at the
+   end of the flow. Instead, **on every launch the app deletes `cc_update_*`
+   directories older than `kUpdateTempDirMinAge` (7 days)**, judged by the
+   newest modification time inside the directory, so with a correct clock a
+   download still being written, or an installer handed over within the week,
+   is not touched (a modification time in the future counts as recent). Age
+   alone is not enough: on Linux the artifact is an AppImage, a portable file
+   the user may keep running from the temp directory (the handoff only reveals
+   the folder), and its directory's age is the download time. So the sweep also
+   **never removes a directory that contains the running executable**
+   (`APPIMAGE`, or `Platform.resolvedExecutable`), compared by resolved path and
+   whole path segments. It matches only names `Directory.createTemp` produces
+   (`cc_update_` plus letters, digits and hyphens) and never follows symlinks. A user who
+   wants to keep an AppImage after a later run should move it out of the temp
+   directory (the user guide says so). The sweep is best-effort and silent; what
+   it cannot remove (a file still in use) is retried at the next launch.
 2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
    **mandatory** integrity gate. A mismatch **fails loudly**: the downloaded
    artifact is deleted and a clear error is surfaced (never a silent no-op).
@@ -174,7 +247,9 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
    verified `.exe`; the installer terminates and replaces the old installation.
    Linux reveals the containing folder for the user to run the artifact. The app
    **never replaces the running binary in place** — that self-update behavior is
-   Stage 2 and stays gated on code-signing.
+   Stage 2. (Update: signing is no longer what holds Stage 2 back; as of the
+   v0.10.0-beta release macOS and Windows are signed, and Stage 2 has simply not
+   been built.)
 
 The download is always **explicit and user-initiated** (there is no automatic
 background download), the "View release" link remains available as a fallback,
@@ -183,13 +258,15 @@ and A11a's dismiss/`dismissedVersion` behavior is preserved. **Mobile
 The download/verify/handoff logic lives behind injectable, Flutter-free seams
 (per §8 / ADR-001), mirroring the Stage-1 fetch seam.
 
-**Stage 2 (true auto-update, gated on code-signing).** Later, desktop gains real
+**Stage 2 (true auto-update; originally gated on code-signing, now simply not built).** Later, desktop gains real
 in-app update via the **`auto_updater`** package (leanflutter — the **same
 ecosystem** as the app's existing `window_manager` / `screen_retriever`
 dependencies), which wraps **Sparkle on macOS** and **WinSparkle on Windows**
 and is driven by the **appcast** generated from the manifest data. This stage is
 **gated on code-signing being in place** (Sparkle/WinSparkle require signed
-updates to be trustworthy), so it does not ship until signing exists. Linux
+updates to be trustworthy), so it did not ship until signing existed. (Update:
+signing is configured and in use as of the v0.10.0-beta release, so it no
+longer gates this stage; Stage 2 has simply not been built.) Linux
 continues to use the Stage-1 path (or distro/Flathub updates). **Sparkle system
 profiling stays OFF** — we never set `sendsSystemProfile` — to honor the
 no-telemetry stance.
@@ -216,6 +293,16 @@ The check is a **plain HTTPS `GET` of the static manifest** and nothing more:
   given version it is not shown again (no nagging) until a newer one appears.
 - The check uses a **short timeout and fails silently offline** — a missing
   network is a no-op, never an error dialog.
+- An **end-of-life notice** (§2 `retirements`) is learned only from a check
+  that runs under these rules — manual, or the opt-in automatic check — never
+  from an extra request. Once an authenticated manifest names a date for the
+  running build, the client stores it on the device and shows a **non-modal
+  banner** on every launch, offline included, until a later authenticated
+  manifest stops announcing it or the app is updated. Unlike an update, it is
+  **not** gated by `dismissedVersion`: "Later" hides it for the current session
+  only, because an end of support is not something the user can decline. A
+  failed check leaves a stored notice in place. Consequence accepted: an
+  install that never checks never learns of its end of life.
 
 ### 6. Per-platform distribution + signing dependency table
 
@@ -414,10 +501,14 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   can leave the machine." The privacy contract (§5) is what keeps this
   acceptable; it must be honored by the Stage-1 client PR.
 - **Escalation flags to resolve before store submission / Stage 2:**
-  - **Apple Developer Program ($99/yr)** — gates macOS notarization and iOS.
-  - **Windows Trusted Signing configuration** — gates SmartScreen-clean
-    installers and WinSparkle-signed updates; the workflow is wired but remains
-    unsigned when its repository variables are absent.
+  - **Apple Developer Program ($99/yr) — RESOLVED.** Gated macOS notarization
+    and iOS. Apple signing is configured and in use as of the v0.10.0-beta
+    release: its macOS job signed and notarized the macOS artifacts.
+  - **Windows Trusted Signing configuration — RESOLVED.** Gated
+    SmartScreen-clean installers and WinSparkle-signed updates; the workflow was
+    wired but stayed unsigned when its repository variables were absent. The
+    variables are configured and in use as of the v0.10.0-beta release: its
+    Windows job signed the Windows binaries and installer.
   - **Android keystore custody policy — RESOLVED.** Policy: the repository owner is accountable for maintaining encrypted backups of the direct-APK signing key; Google retains the
     distinct Play app-signing key. The channel-specific recovery and rotation
     policy is in the
@@ -431,11 +522,13 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   shared by producer and consumer, and a free integrity layer everywhere.
 - **Harder / debts accepted:** we take on maintaining the manifest/appcast
   generation, the downgrade guard + backup-before-migrate wiring, and the
-  per-platform signing pipelines when budget allows.
+  per-platform signing pipelines (since built; see the notes under §6).
 
 ## Revisit triggers
 
-- A signing budget (Apple/Windows) is approved → enable Stage 2 auto-update.
+- Stage 2 auto-update is chosen for the next update stage. (Originally "a signing
+  budget (Apple/Windows) is approved"; signing is configured as of the
+  v0.10.0-beta release, so that is no longer the gate.)
 - A store or ecosystem rejects the naming/distribution scheme.
 - The manifest needs a breaking change → bump `manifestSchemaVersion` and
   re-ratify the contract with the producing/consuming PRs.

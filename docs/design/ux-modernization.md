@@ -108,6 +108,28 @@ is co-owned with Phase 5 Perform mode.
 | focus ring `#FFD54A` / surface (≥3:1) | focus | 14.22 |
 | outline `#FFF3EC` / surface (≥3:1) | borders | 18.44 |
 
+**Keyboard focus.** Material's focus cue is a translucent fill of
+the focus colour (about 1.2:1 against the unfocused state), too faint to find
+across a room. `FocusRingLayer` draws the theme's `focusRing` at
+`focusRingWidth` (2px primary; 3px yellow `#FFD54A` in HC) as an outline 2px outside the
+keyboard-focused control, above every route, for every control including those
+whose Material themes cannot draw one (list tiles, navigation rail/bar,
+checkboxes, switches, radios). Text fields keep their own focused border
+instead. `palette_contrast_test.dart` holds the ring to 3:1 against every
+surface tier in every scheme.
+
+**Motion.** `AppMotion` names the five animation durations in use
+(120 / 200 / 250 / 500 / 1400 ms). With the in-app Reduce motion switch on, the
+theme swaps in instant page transitions and an instant `ExpansionTile`, and
+every `showDialog` / `showModalBottomSheet` call passes
+`AppMotion.styleFor(context)` (a source-scan test enforces it), since dialogs
+and sheets have no theme hook for their animation. Flutter's `showDatePicker`
+takes no animation style, so the app opens the date picker through
+`showAppDatePicker`, which builds the same `DatePickerDialog` and passes the
+style; the scan also rejects the bare picker helpers. On iOS and macOS the
+instant page transition is the Cupertino one at zero duration, because the
+edge swipe back lives in that transition builder.
+
 ### 1c. Typography
 
 - **Display / headings: Fraunces** — a warm optical-size serif; character
@@ -120,21 +142,43 @@ Proposed M3 `TextTheme` (sizes in logical px):
 
 | Style | Family / weight | display | headline | title | body | label |
 |---|---|---|---|---|---|---|
-| large | — | 57 Fraunces w600 | 32 Fraunces | 22 Atkinson w700 | 16 Atkinson w400 | 14 Atkinson w600 |
+| large | — | 57 Fraunces w600 | 32 Fraunces | 22 Atkinson w700 | 16 Atkinson w400 | 14 Atkinson w700 |
 | medium | — | 45 | 28 | 16 | 14 | 12 |
 | small | — | 36 | 24 | 14 | 12 | 11 |
+
+Atkinson Hyperlegible ships at 400 and 700 only, so its styles use exactly
+those weights (labels 700, Perform body 400). Screen titles in the app bar,
+empty-state titles and dialog titles use Fraunces, with app-bar titles leading
+rather than centred on every platform.
 
 Perform mode uses its own scale (Atkinson Bold, ~28px floor, **no upper bound**,
 user-adjustable size/weight/line-spacing).
 
 ### 1d. Spacing, density, shape, elevation
 
-- **Spacing:** 4px base grid — tokens `space` 4 / 8 / 12 / 16 / 24 / 32 / 48.
+- **Spacing:** 4px base grid — tokens `space` 4 / 8 / 12 / 16 / 24 / 32 / 48, plus a 2 for optical insets (`AppSpacing.xxxs`). `EdgeInsets` takes tokens, never number literals, and corner radii take `AppShapes`; `app/test/theme/spacing_literals_test.dart` and `radius_tokens_test.dart` fail on a literal, and `tools/codemod/spacing_tokens.py` rewrites them.
 - **Density:** desktop lists/tables/matrix use `VisualDensity.compact`; touch
   surfaces use comfortable density; selected adaptively by platform.
 - **Shape:** corner radii 8 / 12 / 16, dialogs 28.
 - **Elevation:** prefer tonal `surfaceContainer` tiers over drop shadows (M3
-  idiom); HC theme swaps tonal cues for outlines.
+  idiom). App bars keep the canvas colour when content scrolls under them (no
+  scrolled-under tint). Every scheme, built-in and gallery, defines the full
+  ladder — Lowest, Low, default, High, Highest, Dim, Bright — so cards and
+  bottom sheets (Low), popup and anchored menus and nav bars (default), dialogs
+  (High) and filled inputs (Highest) each sit on their own tone instead of
+  falling back to `surface`; the wide-layout autocomplete option list sits on
+  the menu tier too, and the date and time pickers on the dialog tier. The HC
+  theme keeps the tiers and adds a visible outline to cards, dialogs, bottom
+  sheets, popup menus, anchored (`MenuAnchor`) menus, autocomplete option
+  lists, the date and time pickers, icon buttons, and the menu of every
+  dropdown. Every dropdown is a `DropdownMenu`, through the shared
+  `AppDropdownField`: a form field's closed field takes the app's filled input
+  theme, and a list row's trailing control (Settings rows, the dialect
+  editor's Add pickers, the advanced query's match and figure pickers) is its
+  `compact` variant, the value and an arrow over a thin underline with no
+  filled box. No plain `DropdownButton` is left: Flutter paints its menu with
+  a fixed decoration that no theme can outline, and a source-scan test keeps
+  it out.
 
 ### 1e. Structure — new `app/lib/src/theme/`
 
@@ -160,18 +204,38 @@ pairs color with an icon + text label** — no color-only meaning
 **`ProgramStatus` — `{ draft, finalized, performed }`** (already rendered as
 icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 
-- `statusDraft` → neutral/outline + `edit_note_outlined` "Draft"
-- `statusFinalized` → secondary (green) + `check_circle_outline` "Finalized"
-- `statusPerformed` → tertiary + `event_available_outlined` "Performed"
+- `statusDraft` → onSurfaceVariant, eased by `_chipSafe` (below) + `edit_note_outlined` "Draft"
+- `statusFinalized` → a "done" green + `check_circle_outline` "Finalized": the
+  palette's secondary when it is already green-to-cyan, otherwise a green
+  derived from primary's saturation and lightness, made to clear 3:1 as an icon
+  (`AppThemeExtension._doneColor`). Secondary alone failed in Blue Hour, where it
+  is a dusty rose; primary alone failed in High contrast, Monokai and Gruvbox,
+  where it is red or orange — either way a finished program read like a warning.
+  `status_chip_contrast_test.dart` holds every bundled palette to it: Finalized
+  at least 60° in hue from Broken and 30° from Performed.
+- `statusPerformed` → tertiary, eased by `_chipSafe` + `event_available_outlined` "Performed"
 
 **`DanceStatus` — `{ active, deprecated, broken, draft, variation }`** (already icon+text in
 `dance_list_tile.dart`):
 
 - `statusActive` → no chip (default)
-- `statusDeprecated` → onSurfaceVariant + `history_toggle_off` "Deprecated"
-- `statusBroken` → error + `report_problem_outlined` "Broken"
+- `statusDeprecated` → onSurfaceVariant, eased by `_chipSafe` + `history_toggle_off` "Deprecated"
+- `statusBroken` → error, eased by `_chipSafe` + `report_problem_outlined` "Broken"
+
 - `draft` → statusDeprecated + `edit_note_outlined` "Draft"
 - `variation` → statusDeprecated + `alt_route` "Variation"
+
+`AppThemeExtension._chipSafe` eases each status token (Finalized's green
+included) toward the surface only as far as the chip's `onSurface` label needs
+to clear AA on the token's 10% tint, laid over the canvas or a card or sheet
+(`surfaceContainerLow`). The token stays at least 3:1 against those two as a
+border. Easing can leave the token just under 3:1 against its own tint (Broken
+in Everforest Light measures 2.9:1), and in that palette no single colour gives
+both the label 4.5:1 and the icon 3:1 on the tint, so the icon is drawn in
+`AppThemeExtension.statusIconColor`: the token moved toward `onSurface` only as
+far as it needs to clear 3:1 on the tint over both tiers, and the token itself
+wherever it already does. `palette_contrast_test.dart` checks the label, icon
+and border in every scheme. Chips on dialogs and menus are not covered.
 
 **Other semantic tokens:**
 
@@ -231,8 +295,8 @@ enum AppThemeSelection { system, light, dark, highContrast }
   other data scopes.
 - Persist via `repos.settings.set(kAppThemeKey, …)`, load on boot — mirrors
   `kActiveDialectKey` + `_onDialectChanged`. Define a `const String kAppThemeKey =
-  'theme_mode';` next to `kActiveDialectKey` in `settings_screen.dart` rather than
-  a bare string literal.
+  'theme_mode';` in `src/data/settings_keys.dart` rather than a bare string
+  literal.
 - `main.dart` `MaterialApp`:
   ```dart
   theme: AppTheme.light,
@@ -440,7 +504,14 @@ requested; it's a natural extension of the same registry.
 - **Every gallery palette clears the same bar as Hearth**: WCAG 2.2 **AA** per
   `research/accessibility-baseline.md` — body text ≥ 4.5:1, large text &
   non-text UI ≥ 3:1 — validated by the same contrast test used for §1a during
-  implementation.
+  implementation. Beyond the on-color pairs, `palette_contrast_test.dart`
+  holds every selectable scheme to: onSurface, onSurfaceVariant, primary,
+  secondary, tertiary and error as text (4.5:1) on the surface and on every
+  surface-container tier (cards, menus, dialogs, the filled-input fill); the
+  input and chip border (`outline`) at 3:1 on the same tiers; the SnackBar
+  action (`inversePrimary`) on `inverseSurface`; and the set-list formation
+  accents at 3:1 on the surface and card tier. User-made custom themes are
+  checked only by the theme editor's advisory badges (§4B).
 - Several famous themes are **below AA on some pairings** (Solarized is
   intentionally low-contrast; Monokai comments; low-emphasis text on many dark
   themes). Policy: **preserve the identity hue, tune the tone** until the pairing
@@ -468,8 +539,24 @@ Appearance body with a **grouped swatch gallery**:
 - Preserve single-selection radio semantics: one selected at a time, each card
   exposes name/role/state, keyboard-traversable in visual order, with a visible
   focus indicator (accessibility-baseline). Selection is instant and persisted
-  via the existing `_onThemeChanged` path (live `AppThemeScope` notifier +
-  background `repos.settings.set`).
+  via `_onThemeSelected` in `screens/theme_screen.dart` (live `AppThemeScope`
+  notifier + background `repos.settings.set`).
+
+**Its own screen, with search (issue #2228).** At 35 built-in themes the
+gallery outgrew the Appearance page: everything below it sat several screens
+down. Appearance now holds one **Theme** row, with the theme in use under its
+title (the maintainer's choice, so the row says what it opens). It opens
+`ThemeScreen` (`screens/theme_screen.dart`), laid out like the Venues manager:
+a **Search themes…** box over the gallery, which keeps the sections and order
+above, with saved custom themes after them under their own heading (left
+out while there are none), and a floating **+ Custom theme** button that starts
+a new one (§4B). A search drops the headings and shows just the matching cards
+in one run, in the same order. A theme is found by its name, its section, its
+brightness, or a few hand-picked keywords — color and character words
+(`AppThemeKeyword`, assigned in `AppThemeSelection.keywords`), each resolved to
+localized synonyms by `appThemeKeywordTerms`. Every word of the query must match
+(a name anywhere inside, a keyword from its start), case- and accent-folded by
+`foldForSearch`; `data/theme_search.dart` holds the matcher.
 
 ### 4A.6 Attribution & licensing
 
@@ -494,7 +581,9 @@ Appearance body with a **grouped swatch gallery**:
 ## 4B. Custom themes — copy, edit & save locally (net-new; extends §4A)
 
 Beyond the built-in gallery, users can **copy any theme, tune every color, and
-save it on-device**. Custom themes are personal to the install; nothing syncs.
+save it on-device**. Custom themes were first personal to the install; they now
+travel with the other settings under Device Sync, as one whole-collection key
+(`custom_themes` in `syncWholeCollectionSettingKeys`, `sync_merge.dart`).
 
 ### 4B.1 Model & precedence
 
@@ -525,8 +614,9 @@ save it on-device**. Custom themes are personal to the install; nothing syncs.
   low-contrast palette; the editor flags it rather than blocking. (This is the
   one place the otherwise non-negotiable §4A.4 AA guarantee is advisory, and
   only for user-authored themes.)
-- Surfaces as a **Custom themes** section in Settings: copy from the current
-  theme, then edit / duplicate / delete each saved card.
+- Surfaces on the Theme screen (§4A.5): the floating **+ Custom theme** button
+  copies the current theme, and each saved card under **Custom themes** can be
+  edited, duplicated or deleted.
 
 ## 4C. Settings — sectioned master–detail (net-new; extends §4/§4A/§4B)
 
@@ -537,7 +627,8 @@ shell** (`screens/settings_screen.dart`):
 - A `_SettingsSection` enum (currently **Appearance**, **Dialect**) is the single
   source of truth for the sidebar; adding a page is one enum value plus its
   content in `_content`.
-- **Wide (≥ 720 px):** a left sidebar list + a content pane side by side
+- **Wide (≥ 900 px of window width, the app-wide split width in
+  `theme/app_breakpoints.dart`):** a left sidebar list + a content pane side by side
   (`_SettingsSidebar`), selection shown by the highlighted tile **and** a filled
   icon (never color alone). **Narrow:** the sidebar is a list whose rows push the
   section as its own page with a back-navigable app bar.
@@ -626,7 +717,8 @@ Program X                           Program X   [◐ Draft]  [Export ▾]   ← 
 
 ## 6. Shell / navigation polish — `app_shell.dart`
 
-Within the `ux.md` IA (no re-scoping): style the `NavigationRail` (wide, ≥900px)
+Within the `ux.md` IA (no re-scoping): style the `NavigationRail` (wide, ≥720px since the
+breakpoints were unified in `theme/app_breakpoints.dart`)
 and `NavigationBar` (narrow) with a pill selected-indicator and themed
 icon/label treatment, and add a persistent global-search affordance wired to
 **Ctrl/Cmd-K**. Settings stays reachable from each screen's app bar as today.
@@ -653,8 +745,11 @@ Each step carries accessibility acceptance criteria drawn from
 - **UX-4 — Program builder + matrix.** Slot cards, matrix legend/sticky
   headers/density. *AC: status conveyed non-color; matrix remains AT-navigable as
   a table with pinned headers keyboard-reachable.*
-- **UX-5 — Shell / adaptive polish + Cmd-K + full keyboard map.** *AC: complete
-  desktop keyboard map; global search shortcut; focus visible throughout.*
+- **UX-5 — Shell / adaptive polish + Cmd-K + desktop keyboard map.** *AC: the
+  desktop keyboard map in `ux.md` "Information architecture" (save, new dance,
+  search, Settings, back; mouse Back; right-click on list rows) and the macOS
+  menu bar (PLAT-7, PLAT-8); global search shortcut; focus visible
+  throughout.*
 - **UX-6 — Theme gallery (palette picker).** IDE-inspired palettes (§4A) as
   contrast-validated `ColorScheme`s; extend `AppThemeSelection` + `AppColorSchemes`;
   generalize the `main.dart` theme-slot wiring; swap the Settings Appearance

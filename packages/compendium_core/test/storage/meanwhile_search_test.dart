@@ -167,4 +167,64 @@ void main() {
       );
     },
   );
+
+  test('a container title is found by text search, nested titles too, and '
+      'adds no move row', () async {
+    final run = Figure.sequence(
+      figures: [
+        Figure(move: 'allemande', params: const {'who': 'role2s'}),
+        Figure(move: 'star_promenade', params: const {'who': 'neighbors'}),
+      ],
+      beats: 8,
+      title: 'Flutterwheel',
+    );
+    final sides = Figure.meanwhile(
+      figures: [
+        Figure.sequence(
+          figures: [
+            Figure(move: 'balance'),
+            Figure(move: 'swing'),
+          ],
+          beats: 8,
+          title: 'Quadrille opener',
+        ),
+        Figure(move: 'petronella'),
+      ],
+      beats: 8,
+    );
+    await dances.create(sampleDance(id: 'titled', figures: [run, sides]));
+    await dances.create(
+      sampleDance(
+        id: 'untitled',
+        figures: [
+          Figure.sequence(
+            figures: [
+              Figure(move: 'allemande', params: const {'who': 'role2s'}),
+              Figure(
+                move: 'star_promenade',
+                params: const {'who': 'neighbors'},
+              ),
+            ],
+            beats: 8,
+          ),
+        ],
+      ),
+    );
+
+    expect(await dances.searchText('flutterwheel'), ['titled']);
+    expect(await dances.searchText('quadrille'), ['titled']);
+    final rows = await (db.select(
+      db.danceFigures,
+    )..where((t) => t.danceId.equals('titled'))).get();
+    rows.sort((a, b) => a.idx.compareTo(b.idx));
+    // A title is text, not a move: the leaves are indexed exactly as for an
+    // untitled container.
+    expect(rows.map((r) => r.move), [
+      'allemande',
+      'star_promenade',
+      'balance',
+      'swing',
+      'petronella',
+    ]);
+  });
 }

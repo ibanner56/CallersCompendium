@@ -281,7 +281,7 @@ section { padding: 64px 0; }
 }
 .guide-body blockquote p { margin: .8rem 0; }
 
-/* The app renders guide images as alt-text captions; Pages renders the assets. */
+/* Pages renders the guide images as real assets; the app shows the same files and falls back to alt-text captions. */
 .guide-figure { display: block; color: var(--ink-faint); font-size: .94rem; }
 .guide-body img {
   display: block;

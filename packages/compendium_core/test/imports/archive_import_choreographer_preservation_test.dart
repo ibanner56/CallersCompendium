@@ -51,6 +51,7 @@ void main() {
   late ChoreographerRepository choreographers;
   late ProgramRepository programs;
   late VenueRepository venues;
+  late CompendiumRepositories repositories;
   late CompendiumArchiveImporter importer;
 
   setUp(() {
@@ -59,10 +60,12 @@ void main() {
     choreographers = ChoreographerRepository(db);
     programs = ProgramRepository(db);
     venues = VenueRepository(db);
+    repositories = CompendiumRepositories(db, contraTaxonomy);
     importer = CompendiumArchiveImporter(
       ImportPipeline(dances, choreographers),
       programs,
       venues,
+      repositories: repositories,
     );
   });
 

@@ -31,7 +31,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 
 | Term | Meaning |
 | --- | --- |
-| **sync ID** | A diceware passphrase identifying one store. A bearer credential. |
+| **sync ID** | A diceware passphrase naming one store — its address on the server, classified `storeAddress` (§3.3). Not a secret and not authentication material: §5.1 carries its *encoding* in the `Authorization` header as a transport mechanic. |
 | **store** | Everything held under one sync ID. |
 | **device** | One installation. Holds a baseline and publishes one manifest. |
 | **peer** | Any other device attached to the same store. |
@@ -41,7 +41,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 | **epoch** | An opaque 128-bit value identifying one incarnation of a store. |
 | **pass** | One complete sync cycle. |
 | **quarantine** | Local state of a record whose timestamps are implausible. |
-| **detach** | Stop syncing on *this* device: forget the sync ID and the baseline locally. Purely local. It sends no request, leaves this device's manifest and every blob on the server, and affects no peer. |
+| **detach** | Stop syncing on *this* device: forget the sync ID and the baseline locally. The forgetting is local and never waits on the network. Afterwards the client MAY make one best-effort request to remove this device's own manifest, and only when every entry of it is already carried by a peer manifest (§3.3, *detach clean-up*); otherwise it leaves this device's manifest and every blob on the server. (A client resetting its whole database removes its own manifest unconditionally first; §3.3, *reset-time self-removal*.) It affects no peer's data. |
 | **wipe** | Destroy the whole store server-side via `DELETE /v1/store`, for every device at once. Not reversible, and not what the Settings detach control does. |
 | **report** | Surface a condition to the user as a non-blocking notice that survives the pass which raised it. Reporting MUST NOT block a write, gate a pass, or require a gesture to clear. Distinct from `review_queue`, which holds candidate *records* awaiting a decision: a report names a condition, not a pending choice. |
 | **tick** | The smallest interval the timestamp storage representation can distinguish. Currently **one second**: `DateTimeColumn` persists as a unix second count, so a sub-second increment does not survive a write. Every `+ 1 tick` in this document means this quantity, not a fixed millisecond. |
@@ -87,49 +87,134 @@ soft delete: `settings`, `choreographers`, `tags`, `published_sources`,
 `custom_field_defs`, and `VenueRepository.delete`. The `restore()` paths on
 every kind MUST stamp `existence_at`.
 
-`VenueRepository.hardDelete` is **deliberately excluded** and stays a hard
-delete. It exists solely to revert a just-committed import batch, where the
-caller has already removed the referencing programs, and converting it would
-leave an undone import visible as tombstones. `DanceRepository` and
-`ProgramRepository` set the precedent: both keep a hard-delete path on a kind
-that already soft-deletes.
+`VenueRepository.hardDelete` is **not** converted to an unconditional soft
+delete. It exists solely to revert a just-committed import batch, and a
+rollback that left tombstones behind would advertise the removal of a record
+no other device saw. `DanceRepository` and `ProgramRepository` set the
+precedent: both keep a hard-delete path on a kind that already soft-deletes.
+
+It is nonetheless **subject to the forfeiture rule below**, as every
+hard-delete path is: a record already named by a final manifest snapshot is
+tombstoned rather than erased, because peers may hold it live and erasing it
+locally would have the next pass download it back. So the erasure applies to
+records that were never selected for publication, which is the ordinary case
+for an import the user undoes before a pass runs. An earlier draft of this
+paragraph said the method "stays a hard delete" without that qualification,
+which contradicted the forfeiture rule thirty lines below it and would have
+licensed exactly the resurrection this section exists to prevent.
+
+`hardDelete` MUST also retain any row still referenced by a surviving record,
+including a tombstoned one. `programs.venue_id` is not a foreign key, so
+nothing at the database level rejects erasing a venue a tombstoned program
+still names — but that reference is user-visible data on the program (the
+venue it names), and erasing the venue out from under it would silently
+orphan the reference, with nothing to tell the user their program's venue
+disappeared.
+
+That retention outranks the forfeiture rule above, and "retain" means **leave
+the row alone**, not "tombstone it instead of erasing it". Every venue read
+filters `deleted_at IS NULL` and the program writer refuses to link a
+tombstoned venue, so a tombstone orphans a live referencing program exactly as
+an erasure does; a published *and* still-referenced row is therefore kept live.
+*Amended 2026-10-30 (B9):* for a program in Recently Deleted the two now
+differ, because restoring the program revives a tombstoned venue (§6.8, as
+amended the same day) but cannot bring back an erased one. That is a further
+reason to retain the row, not a reason to tombstone it.
+Forfeiture exists to stop a peer re-downloading a row this device erased,
+which a row nobody deleted cannot trigger.
 
 **The generic hard-delete hatch.** The shipped migration also added a
-`permanent: true` parameter to `delete()`/`remove()` on five repositories —
-`settings`, `choreographers`, `published_sources`, `custom_field_defs` and
-`venues` — which bypasses the tombstone and removes the row outright. Two of
-those kinds (`venue`, `choreographer`) produce blobs (§4.3).
+`permanent: true` parameter to `delete()`/`remove()` on six repositories —
+`settings`, `choreographers`, `published_sources`, `custom_field_defs`,
+`tags` and `venues` — which bypasses the tombstone and removes the row
+outright. `TagRepository.hardDelete` and `DifficultyLevelRepository.hardDelete`
+are batch wrappers over the same hatch. Two of those kinds (`venue`,
+`choreographer`) produce blobs (§4.3). An earlier version of this paragraph
+named five repositories and omitted `tags`, which is how that hatch shipped
+from `v0.2.0-beta` with no referential guard at all (issue #1357).
+
+**Retention applies to every cascading hatch, not only to venues.**
+`dance_authors`, `dance_tags`, `dance_sources` and `custom_field_values` are
+all `ON DELETE CASCADE`, so erasing a choreographer, tag, published source or
+custom field definition that a **tombstoned** dance still references destroys
+that dance's credit, tag, citation or value, and the dance comes back without
+it on restore. Each of those hatches MUST therefore refuse the erasure when
+any join row still names the parent. Venues and the cascading parents resolve
+that refusal differently, and both are deliberate:
+
+| Hatch | Referenced only by a tombstoned owner |
+| --- | --- |
+| `venues` (soft reference, no FK) | retained **live** — the surviving program has no other way to show its venue |
+| cascading parents (FK cascade) | **tombstoned** — the join row survives for the owner's restore, and the parent still leaves every live view, which is what import rollback needs |
+| `difficulty_levels` (FK, no `ON DELETE` action) | **tombstoned**, as a cascading parent — the erasure would fail the foreign key, and the tombstone keeps `dances.level_id` valid |
+
+A **live** owner blocks either kind outright, with a `StateError`.
+
+*Amended 2026-10-30:* the `difficulty_levels` row was added when the local
+level guard stopped counting tombstoned dances (§6.8, amended the same day).
+Until then, import rollback asked a guard that counted them before calling
+`DifficultyLevelRepository.hardDelete`, so the hatch never met this case.
+`hardDelete` now enforces both itself: it refuses a level a live dance uses,
+with `DifficultyLevelInUse`, and tombstones one that only a tombstoned dance
+names.
 
 A hard delete is permitted **only** where the record can never have been
-published to a peer. A tombstone is worth its storage only when there is
-somebody to inform; conversely, a row a peer holds live cannot be removed
-locally without the next pass taking the "absent from baseline, present remotely
-→ download" path (§6.3) and restoring it, reversing the deletion on every pass.
+published to a peer and has no conservative publication-attempt marker. A
+tombstone is worth its storage only when there is somebody to inform;
+conversely, a row a peer holds live cannot be removed locally without the next
+pass taking the "absent from baseline, present remotely → download" path
+(§6.3) and restoring it, reversing the deletion on every pass.
 
-That condition is currently **assumed, not enforced**. Its production callers
-divide in two:
+That condition is enforced where the hard delete happens, not assumed of each
+caller. The repositories' hard-delete paths read the durable marker (§3.2,
+written at §6.3 step 7) and **tombstone a marked record instead of erasing it**:
+`DanceRepository.hardDelete`, `ProgramRepository.hardDelete` and
+`VenueRepository.hardDelete`, `ChoreographerRepository.delete(permanent: true)`,
+and the permanent deletes of the other record kinds. A pass writes the markers
+in a transaction that first checks that no record it would mark for the first
+time was hard-deleted since the scan, and builds again under the lock when one
+was, so a hard delete that lands on either side of the marker leaves a tombstone
+or leaves the record out of the manifest. Its production callers divide in two:
 
 - **Safe by construction** — the editor draft keys (`editor_draft:<id>`,
   `program_editor_draft:<id>`), which are never published because they carry no
   `shareable` classification at all (§3.3).
-- **Not enforced** — import undo, on choreographers (`import_pipeline.dart`) and
-  venues (`compendium_archive_import.dart`,
+- **Guarded by the marker** — import undo, on dances, choreographers, programs
+  and venues (`import_pipeline.dart`, `compendium_archive_import.dart`,
   `callers_companion_usr_import.dart`). `ImportSession` is in memory, so the
-  undo window lasts as long as the user leaves the screen open, and nothing
-  excludes a sync pass from landing inside it.
+  undo window lasts as long as the user leaves the screen open, and a pass can
+  land inside it: Device Sync is opt-in, but once it is on, an import's own
+  writes arm the debounced post-change pass (§6.12). If a pass has published the
+  import, undo tombstones its rows and peers receive the deletion; rows no pass
+  has marked are still erased. A venue a surviving program row still names, a
+  tombstoned one included, is kept live rather than orphaning that reference
+  (#1357). `app/test/sync/sync_import_undo_two_device_test.dart` runs the whole
+  sequence on two devices: import, a pass that publishes it, undo, and the
+  passes after.
 
-A client implementation MUST therefore either suspend sync for the duration of
-an undoable import session, or treat publication as forfeiting the right to hard
-delete — falling back to a tombstone for any record this device has ever named
-in a manifest it `PUT`. The sibling case has already shipped as a real defect
-once: an import undo left a *revived* row live (#903), which would have
-outranked that deletion on every peer once a client exists.
+*Amended (#2266):* this section used to say the condition was "currently
+assumed, not enforced", and that nothing excluded a pass from landing inside an
+import's undo window. The pass can land there, and the repositories' marker
+check is what makes that safe. The first of the two options below (suspending
+sync for the session) is not implemented and not needed.
+
+A client implementation MUST either suspend sync for the duration of
+an undoable import session, or treat a publication attempt as forfeiting the
+right to hard delete — falling back to a tombstone for any record this device
+has named in a final manifest snapshot selected for publication. This client
+takes the second route. The marker is written before blob negotiation, so a
+failed negotiation, upload, or manifest `PUT` may conservatively leave a marker
+even when no peer could fetch the bytes. That over-mark is intentional: the
+alternative is silently losing the ability to publish deletion evidence. The
+sibling case has already shipped as a real defect once: an import undo left a
+*revived* row live (#903), which would have outranked that deletion on every
+peer.
 
 A client taking the forfeiture route MUST evaluate that predicate against the
-durable marker in §3.2, written at §6.3 step 8, and MUST NOT evaluate it against
+durable marker in §3.2, written at §6.3 step 7, and MUST NOT evaluate it against
 the baseline. A baseline entry advances only where a peer was observed to carry
 this device's content hash (§6.3 step 9), so it records *confirmed agreement*,
-not *exposure*. Exposure begins one step earlier, at the `PUT`, so a baseline
+not *exposure*. Exposure begins at the manifest `PUT` in step 8, so a baseline
 test leaves a window between one pass's step 8 and the next pass's step 9 in
 which the bytes are already reachable server-side while the check still answers
 "never published" — a narrower version of the hole this rule exists to close.
@@ -151,11 +236,18 @@ cascades:
 - Every read that joins through to a soft-deletable parent MUST filter
   `parent.deleted_at IS NULL`. Soft delete does not fire the FK cascade that
   previously cleared `dance_tags`, `custom_field_values` and `dance_sources`.
-- The referential guards in `ChoreographerRepository`, `VenueRepository` and
-  `PublishedSourceRepository` MUST be kept. A tombstone applies only where the
-  entity is unreferenced; see §6.8.
+- The referential guards in `ChoreographerRepository`, `VenueRepository`,
+  `PublishedSourceRepository` and `CustomFieldDefRepository` MUST be kept, and
+  `TagRepository`'s erasing branch MUST carry one (it did not until issue
+  #1357). A **live** owner blocks the delete outright; see §6.8. A tombstoned
+  owner does not block it, but it does downgrade an erasure to a tombstone
+  under the §3.1 retention table — so a tombstone applies both where the entity
+  is unreferenced and where its only surviving references are held by
+  tombstoned owners.
 - Any purge added here MUST refuse to hard-delete an entity still referenced by
-  a live record.
+  a live record. Where the reference is a cascading join row held by a
+  *tombstoned* owner, the erasure MUST still be refused — the cascade would
+  destroy that owner's data — per the retention table in §3.1.
 
 ### 3.2 Sync-local tables
 
@@ -166,35 +258,83 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | Table | Columns | Classification |
 | --- | --- | --- |
 | baseline | epoch, and per record `kind`, `record_id`, wire hash, `body` hash | `deviceScoped` |
+| baseline | the last published manifest's hash and confirmation time (§6.3 step 8) | `deviceScoped` |
+| `peer_manifests` | `epoch`, `body` | `deviceScoped` |
+| `peer_manifests` | `peer_id`, `etag` | **`protocolIdentifier`** |
 | `id_aliases` | `losing_id`, `surviving_id`, `kind` | `deviceScoped` |
 | `pending_deletions` | `kind`, `record_id`, `tombstoned_at`, `tombstone_hash` | `deviceScoped` |
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
-| `review_queue` | `kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at` | `deviceScoped` |
+| `review_queue` | `kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at` | `deviceScoped` |
 | `published_records` | `kind`, `record_id` | `deviceScoped` |
 | `normalisation_skips` | `table`, `column`, `record_id` | `deviceScoped` |
+| `retained_sync_fields` | `kind`, `record_id`, `whole_record` | `deviceScoped` |
+| `retained_sync_fields` | `payload` | **`shareable`** |
 
 `tombstone_blob` is `shareable` because it is record content that is
-re-transmitted, not device bookkeeping.
+re-transmitted, not device bookkeeping. `retained_sync_fields.payload` is
+`shareable` for the same reason (§6.7): parts of a peer's record that this build
+does not sync, put back into what it shares. Its content is unknown to this
+build by definition, so it is classified the most cautious way that can still
+travel — `unclassifiedPersonal`, `thirdParty` — as the maintainer decided.
+
+`peer_manifests` keeps each peer's last verified manifest and its `ETag`
+(§5.2), except one listing a record kind this build does not know (§4.5). `peer_id` is another device's per-attachment id, read from the store's
+device list and sent back to that store in a manifest request path, so it is a
+`protocolIdentifier`, as this device's own id is. The `etag` goes back in
+`If-None-Match`, so it is a `protocolIdentifier` too: an opaque validator that
+carries no user data and is returned only to the server that issued it.
+`deviceScoped`'s "any route" is absolute, so a value the protocol must put on the
+wire cannot take that class. The kept `body` names the peer's id too and is
+never sent anywhere.
+
+`retained_sync_fields` is record content, not store state: it MUST survive an
+epoch reset and a detach, like the record it belongs to. A restore of either
+mode and an archive import MUST clear no row: a local edit keeps the kept parts
+and these writes are no different, and a record a restore writes
+is stamped at the backup's creation time (§6.11), still newer than a
+peer's copy that has not changed since, so a body without the
+kept parts would win last-writer-wins and strip them from the peer on every
+device (§6.7). *Amended 2026-11-11 (SYNC-1): this sentence said a restored
+record "is stamped at restore time, newer than the peer's copy". The rule it
+supports is unchanged.* A replace restore deletes the old records first, but the row of a
+record the backup restores under the same id survives and is put back, and the
+row of a record the backup does not hold is dropped by the next snapshot, as
+below, so the restore need not clear anything. A row MUST follow its
+record when two identities become one, and MUST go when its record is
+hard-deleted or purged;
+every snapshot drops a row whose record no longer exists, so third-party
+content never outlives its record. Only the sync engine writes it, so a write
+does not schedule a pass.
 
 **Lifecycle.** All are scoped to the store identity except `published_records`
-and `normalisation_skips`, which are treated separately below. `id_aliases` and
-`review_queue` clear with the baseline. `pending_deletions` MUST survive an
+and `normalisation_skips`, which are treated separately below. `id_aliases`,
+`review_queue` and `peer_manifests` clear with the baseline. `pending_deletions` MUST survive an
 epoch reset and MUST clear on detach; after a restore its rows MUST be
 revalidated against the restored data.
 
 `normalisation_skips` records `(table, column, record_id)` for every row §4.1's
-pass left un-normalised because its target value is occupied. It is
+pass left un-normalised — because its target value is occupied, because the
+value's own object keys normalise to one key, or because the value cannot be
+normalised at all (a JSON column holding malformed text). It is
 `deviceScoped` as bookkeeping rather than as content: it stores no name, only
 the address of a row, and unlike `pending_deletions`' `tombstone_blob` nothing
 in it is ever re-transmitted. Storing the target value would make part of the
 row `shareable` for no gain, since §4.1 requires retry to re-derive the target
 from the live column anyway.
 
+**It is not an inventory of rows other subsystems cannot read.** This table
+records what the normalisation pass could not rewrite, and nothing else. A row
+may be absent from it and still be undecodable by some other reader, and present
+in it and perfectly decodable. A consumer that needs the second question — *can
+this row be read?* — MUST ask that reader, not this table. Keying any gate on
+`normalisation_skips` being empty is therefore not a totality argument for
+anything except the pass itself.
+
 Its primary key is `(table, column, record_id)`, for the reason §4.1 gives: a
 duplicate entry would make a row block itself. Growth is bounded by the number
-of rows the pass could not repair, which is bounded in turn by the number of
-`UNIQUE` collisions the user's own library contains — normally zero, and each
-entry is one row address rather than content. It shrinks as repairs land, so
+of rows the pass could not repair, which is bounded in turn by the `UNIQUE`
+collisions and un-normalisable values the user's own library contains — normally
+zero, and each entry is one row address rather than content. It shrinks as repairs land, so
 unlike `published_records` it needs no monotonic-growth argument.
 
 **It is the only entry here that is not store state at all**, and an
@@ -221,19 +361,28 @@ It is **not** store-scoped bookkeeping and does **not** share
 `pending_deletions`' lifecycle: it MUST NOT be cleared on an epoch reset, on
 detach, or on restore. It is monotonic — an entry is written and never removed.
 
-It records an irreversible physical event, that a record's bytes left this
-device, and no local action can make that false. An epoch reset un-publishes
-nothing: the peers that already downloaded a record still hold it live, and that
-liveness is exactly what forfeiture guards against. **Detach un-publishes
-nothing either**, and it is worth being precise about why, because a
-store-scoped reading is the intuitive one. Detach forgets the sync ID *locally*
-(§6.2 step 3); it does not `DELETE /v1/manifests/{self}`, so this device's
-manifest remains on the server, and by §7.3 a blob is reachable while any
-manifest for its store references it. The record therefore stays downloadable by
-every peer for as long as the store lives, and a re-attach — which is a union
-that deletes nothing (§6.2) — restores it against a device that kept no
-tombstone. Clearing on detach would convert "the deletion sticks" into "the
-deletion silently reverts", which is the defect this rule exists to prevent.
+It records an irreversible publication-protection decision: a record was named
+by a final manifest snapshot and marked before blob negotiation. It does not
+prove that the bytes left this device or that a peer fetched them; a failed
+negotiation, upload, or manifest `PUT` can leave an intentional over-mark.
+An epoch reset un-publishes nothing: peers that already downloaded a record
+still hold it live, and that liveness is exactly what forfeiture guards against.
+**Detach un-publishes nothing either**, and it is worth being precise about why,
+because a store-scoped reading is the intuitive one. Detach forgets the sync ID
+*locally* (§6.2 step 3). The detach clean-up (§3.3) may then
+`DELETE /v1/manifests/{self}`, but only when every entry of that manifest is
+carried, with the identical hash, by a peer manifest written strictly later
+than it — so every publication it named stays reachable through the store's other manifests, and a successful
+publication remains reachable while any manifest references it. The marker is
+retained because a failed attempt cannot later be distinguished from a
+publication that peers may have fetched. Clearing on detach would convert "the
+deletion sticks" into "the deletion silently reverts", which is the defect this
+rule exists to prevent.
+
+*Amended 2026-10-02: this paragraph said detach does not
+`DELETE /v1/manifests/{self}`. It now may, under the detach clean-up's
+reflected-everywhere condition (§3.3); the conclusion is unchanged, because
+that condition is exactly "no publication becomes unreachable".*
 
 Restore needs no revalidation for the same reason it needs no clearing: the
 marker's only consumer is the forfeiture check at hard-delete time, so a row
@@ -243,19 +392,64 @@ restore brought back is still correct.
 **No retirement rule, deliberately.** `id_aliases` retires on a content bound —
 no current peer manifest lists the losing id (§6.6) — and that bound is not
 available here. This device's own manifest is one of the manifests keeping the
-record reachable, and it survives detach; retiring against peer manifests alone
-would ignore it. The failure modes are also asymmetric, which is what settles
+record reachable, and it survives detach unless a peer manifest carries every
+entry of it (§3.3), though a client that resets its database removes it
+unconditionally (§3.3, *reset-time self-removal*); retiring against peer manifests alone would ignore it. The failure modes are also asymmetric, which is what settles
 it: a wrongly-retired alias skips and reports one record, while a
 wrongly-retired marker silently resurrects a deletion. Growth is bounded by the
-number of records ever published rather than by activity: one
+number of records ever selected for publication rather than by activity: one
 `(kind, record_id)` pair per record. Each row is smaller than the baseline entry
 for the same record, which additionally carries a hash — but the row *counts*
 diverge, because the baseline is rebuilt on an epoch reset and drops purged
 records while this table is rebuilt by nothing. On a device with churn this
 table MUST be expected to hold more rows than the baseline. The bound is
 therefore absolute rather than relative: tens of bytes per pair, so a device
-that has published 100,000 records over its lifetime carries a few megabytes.
+that has selected 100,000 records for publication over its lifetime carries a
+few megabytes.
 An entry MUST be retained even after its record is tombstoned and purged.
+
+**A permanently deleted record stays published.** When the user permanently
+deletes a dance or program this marker names, the client blanks it instead of
+erasing it: the body is reduced to the kind's empty values with a placeholder
+title, `deletedAt` is set to the unix epoch, which is what hides it from
+Recently deleted, and `updatedAt` is stamped after the content it replaces. Its
+`retained_sync_fields` row goes with the content. The record is still a
+tombstone, still in this device's manifest, and its marker
+stays. It goes on advertising the deletion, and because content among copies
+that agree on existence is decided by the greatest `updatedAt` (§6.4), every
+peer replaces its own copy of the body with the blank one. The epoch `deletedAt`
+is carried on the envelope like any other, so it hides the record on every peer
+running a build that knows the mark, and after a restore. An older build shows
+it in Recently deleted under the placeholder title.
+
+The retention purge treats an expired published record the same way, with two
+differences, both the implementer's choices rather than part of the decision
+below:
+
+- `existenceAt` is left alone. Expiry is not a new deletion, and any later
+  stamp could outrank, or tie with, a revival a peer made after the record went
+  to the trash. A peer holding the same tombstone ties with it and, on a build
+  with the tie rule in §6.4, takes the mark. A build without that rule keeps its
+  own `deletedAt` and republishes the blank body with it, so the two copies tie
+  on `updatedAt` with different bodies and both devices report
+  `equalUpdatedAt` on every pass until it is updated. Nothing is lost: both
+  copies are the same blank deletion. Advancing `existenceAt` would avoid the
+  report but can tie with, and so delete, a revival stamped one tick after the
+  trash; the report was judged the lesser cost.
+- It never rewrites the records citing a dance. The purge, like the startup
+  sweep that finishes earlier marks, runs before the first sync pass, possibly
+  on a device that has been offline for weeks, and restamping its stale copies
+  of those records would overwrite other devices' edits. A dance a program slot
+  or a related-dance link still cites keeps its title until nothing does. Only
+  the user's own Permanently delete rewrites citers.
+
+*Amended 2026-10-30 (LIFE-2): the maintainer decided on 2026-10-29 (round 2,
+`R2-life2-retire`) to hide and blank such a record and not to retire it, so
+the "no retirement" rule above stands unchanged.*
+
+*Amended 2026-10-30 (LIFE-2 follow-up): the maintainer decided on 2026-10-30
+("Blank on retention too") that the retention purge blanks an expired published
+record as well, as described above.*
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
@@ -268,7 +462,7 @@ privacy registry (`field_registry.dart`, `settings_registry.dart`).
 
 - `shareable` — MAY travel.
 - `deviceLocal`, `deviceScoped`, `derived`, `protocolIdentifier`,
-  `accessControlData` — MUST NOT be serialised into a blob.
+  `storeAddress` — MUST NOT be serialised into a blob.
 
 **`protocolIdentifier` is a fifth `EgressClass`, added by this programme.** It
 covers a value the protocol MUST put on the wire in order to function, and which
@@ -283,7 +477,8 @@ devices one manifest. A `protocolIdentifier` value MUST:
 2. never be serialised into a record blob, exactly as the other four
    non-`shareable` classes;
 3. never be **applied** from a received record or envelope — a device's own
-   identifier is minted once and only ever read from local storage; and
+   identifier is minted locally for each attachment and only ever read from
+   local storage; and
 4. carry a stated retention bound wherever the server durably records it,
    including logs (§7.3) — for `sync_device_id` that bound is the store's
    lifetime rather than the device's, which the paragraph below states
@@ -294,6 +489,101 @@ Rule 3 is the one no other class expresses. `shareable` permits adoption and
 that must travel *and* must never be adopted had no correct classification
 before this member existed.
 
+**`sync_device_id` identifies one attachment, not one installation.** Detach
+and wipe MUST erase it with the sync ID, and pairing MUST erase any value an
+earlier attachment left behind, so every attach — first attach, re-attach after
+detach (to the same store or another), and a new endpoint — publishes under an
+identifier minted for it. A value kept across attachments would let the server,
+or anyone reading its logs, link a device's old store to its new one, and
+moving to a new store is exactly the step this design tells a user to take to
+stop syncing with someone who still has the old sync ID (§6.14 item 2). Two
+paths keep the identifier because they are not new attachments: confirming a
+replacement store (§6.3 step 1) and the automatic rejoin on a changed epoch.
+Both re-use the same sync ID, whose derived `id_key` already links them, so a
+new identifier there would buy no unlinkability.
+
+The cost falls on re-attaching to the **same** store. The previous
+attachment's manifest can stay on the server under its old identifier, and then
+it appears as another device: it occupies one of §5.4's device slots, keeps its
+blobs reachable, and, because it lists this device's own hashes, counts as a
+peer carrying them in §6.3 step 9's baseline advance, until it is removed under
+*Other devices*. Recognising it as this device's would need exactly the link
+between attachments that the rule removes. The detach clean-up below removes it
+in the common case, where the other devices already have everything it lists;
+it remains when they do not, or when the attempt could not be made.
+
+For §6.9's per-peer judgement such a leftover manifest reads as **asleep** — it
+never publishes again — so it raises no notice. It still lists the hashes this
+device published before it detached, so the *Other devices* line for it counts
+as waiting only what changed since, and a record unchanged since that detach is
+not counted as waiting for it even when no live device has it.
+
+**Detach clean-up.** After detach has committed its local clear, a client MAY
+make one attempt to `DELETE /v1/manifests/{self}` for the attachment it has just
+left. It MUST NOT delay or fail the detach, MUST NOT be retried later, MUST hold
+the sync ID, endpoint and old device ID only in memory for its duration, and
+MUST be abandoned if a new pairing starts or Device Sync is turned off. It MUST NOT send the `DELETE` unless
+every one of these holds:
+
+1. the connection would permit a pass under §6.12 (online, and not metered while
+   *Sync only on Wi-Fi* is on), and Device Sync is on;
+2. `GET /v1/store` succeeds and lists at least one device other than this one;
+3. `GET /v1/manifests/{self}` succeeds (a `404` means there is nothing to do);
+4. every other listed device's manifest is fetched, well formed, and in the
+   store's current epoch; and
+5. **every entry** of this device's server-side manifest — kind, id and hash —
+   is carried with the identical hash by at least one of those manifests
+   **whose `writtenAt` is strictly later than this device's own manifest's**.
+   Hashes are compared raw, with no alias resolution: that can only make a
+   carried entry look uncarried, so it may skip a safe removal but never permit
+   an unsafe one. The `writtenAt` floor (amended 2026-10-02, @ibanner56's
+   ruling) keeps this device's own leftover manifest from an earlier attachment
+   — the same hashes, written earlier by the same clock — from counting as the
+   carrier: removing the current manifest on its strength would leave those
+   entries only on a manifest the user may remove next, and then only in this
+   detached device's library. Strictly later, not equal: `writtenAt` is stored
+   to the whole second, so a leftover from an attachment detached and replaced
+   within one second reads as equal to the current manifest. Comparing two
+   devices' clocks can also exclude a live peer whose clock runs slow, or one
+   that published in the same second; that only makes the clean-up skip,
+   which condition 5 is allowed to do. So does a peer that has synced since
+   but had nothing new to publish (§6.3 step 8): it counts only once it
+   publishes again, on a change or when its refresh interval passes.
+
+There is no condition on unsynced local edits, and none is needed: an edit this
+device never published is not in its server manifest, so removing that manifest
+neither loses nor publishes it. The `DELETE`'s answer is not examined. A peer
+part-way through a pass may find the manifest gone and report it as unreadable
+for that pass, which is the hazard removing a device under *Other devices*
+already accepts. The reference client uses a 10-second per-request and 30-second
+overall deadline.
+
+**Reset-time self-removal.** A client that is about to delete its whole local
+database (the reference client's *Reset database* under Developer Options) MAY
+instead remove itself from the store first, because once the database is gone
+so is the sync ID, and with it any way to remove this device's manifest. This is
+a different operation from the detach clean-up above and does not share its
+conditions: it is **unconditional** (no condition 5 — the data the manifest
+describes is about to be destroyed anyway), **awaited** rather than best-effort,
+and **fail-closed**. The client sends `DELETE /v1/manifests/{self}` with the
+sync ID it still holds; `204` (sent whether or not the manifest existed) and
+`404` (the store itself is gone) both mean it is gone, and any other answer, a
+transport failure, or a detach or wipe already in flight means the client MUST
+NOT proceed to delete the database and stays attached. Only then does it clear
+the attachment locally, as detach does. Its cost is that records only this
+manifest named, which no peer has yet pulled, become unreachable for those
+peers; the user is told so before confirming.
+
+*Amended 2026-11-11: wording only. "With the credentials it still holds" is
+now "with the sync ID it still holds", following the maintainer's decision
+quoted at §6.14 item 2; the request is unchanged.*
+
+*Amended 2026-10-02 (@ibanner56's ruling, from a planning session): detach used
+to send no request at all, which left every re-attach's previous manifest
+behind. The clean-up is safe because of condition 5 — with it, removing the
+manifest makes no publication unreachable — and best-effort because nothing
+about it is the user's to act on.*
+
 **Rule 4's bound is the store's lifetime, not the device's.** §7.3 reaps a
 store after 30 days of disuse and cascades its manifests, but `last_seen` is
 refreshed by *any* device, so a device that syncs once and vanishes keeps its
@@ -302,29 +592,45 @@ alive — indefinitely, for a user who goes on syncing. Per-device manifest
 expiry would bound it per device, and is deliberately not specified: retiring a
 merely *dormant* device's manifest retires an alias it still needs, which
 `sync.md` records as the sharper of the two failures. The conforming statement
-is therefore that the identifier lives for the life of the store, with
-`DELETE /v1/manifests/{deviceId}` as the remedy for a device that is genuinely
-gone. A disclosure implying a fixed per-device window would be false.
+is therefore that the identifier lives for the life of the store, with removal
+as the remedy for a device that is genuinely gone — offered in the app as
+Settings ▸ Device Sync ▸ *Other devices*, which issues
+`DELETE /v1/manifests/{deviceId}` for the peer the user picks, behind a warning
+that the removed device can pair again later. A disclosure implying a fixed
+per-device window would be false.
 
-**`accessControlData` is a sixth `EgressClass`, added by this programme.** It
-covers a value whose transmission *is* the authorisation for the request
-carrying it: `sync_id` is the only such value here. It is not `deviceScoped`,
-for the same reason `sync_device_id` is not — that class means never transmitted
-by any route, and this one rides an `Authorization` header on every request. It
-is not `protocolIdentifier` either, and the distinction is the reason the sixth
-member exists rather than a second tenant of the fifth: rule 1 of that class
-requires the value be derived from nothing and carry no user data by
-construction, while §8 permits a **user-chosen** sync ID of four words, each one
-to thirty-two code points and otherwise unrestricted apart from whitespace,
-control characters and `U+002D`. A user-chosen ID can carry personal content, so
-classifying it as a protocol identifier would weaken the guarantee for
-`sync_device_id`, which is the value that class exists to protect. An
-`accessControlData` value MUST:
+**`storeAddress` is a sixth `EgressClass`, added by this programme.** It covers
+a value that names *where* a shared store lives on the configured endpoint — in
+effect a path on the sync server, which is how the server handles it. `sync_id`
+is the only such value here.
+
+**It is not access-control data, and MUST NOT be described as a credential, a
+key, a password or a secret.** A user is allowed and expected to hand it to
+another person so the two can sync together; that is a supported case, not an
+incident. That the server currently addresses a store by presenting the value
+in an `Authorization: Bearer` header is a transport mechanic, not a
+classification of the value.
+
+It is not `deviceScoped`, for the same reason `sync_device_id` is not — that
+class means never transmitted by any route, and this one travels on every
+request. It is not `shareable`, and that is the distinction most easily got
+wrong: `shareable` is not a statement about sensitivity but the switch every
+serialiser reads, so filing an address there would put it in a record blob and
+let a peer's value be adopted over the local one. It is not `protocolIdentifier`
+either, and that distinction is the reason the sixth member exists rather than a
+second tenant of the fifth: rule 1 of that class requires the value be derived
+from nothing and carry no user data by construction, while §8 permits a
+**user-chosen** sync ID of four words, each one to thirty-two code points and
+otherwise unrestricted apart from whitespace, control characters and `U+002D`. A
+user-chosen ID can carry personal content, so classifying it as a protocol
+identifier would weaken the guarantee for `sync_device_id`, which is the value
+that class exists to protect. A `storeAddress` value MUST:
 
 1. never be serialised into a record blob, exactly as the other four
    non-`shareable` classes;
 2. never be **applied** from a received record or envelope — a device's sync ID
-   is entered or generated locally and only ever read from local storage;
+   is entered or generated locally and only ever read from local storage, and
+   adopting a peer's would silently repoint the device at another store;
 3. never be durably recorded by the server, or by any proxy in front of it, in a
    form from which the value can be recovered — only an irreversible derivation
    may be stored (§5.1 requires `HMAC-SHA256(pepper, syncID)`);
@@ -345,18 +651,31 @@ one: §7.5 requires `/v1` to refuse to emit redirects at all.
 
 Rules 3 and 4 are what no other class expresses. Every other class is a rule
 about whether a value **moves**; this one is additionally a rule about what the
-*recipient* may do with a value that has already arrived, because the harm from
-a leaked credential is not that it travelled but that it was kept. Those five
-rules already existed in this specification before the class did — scattered
-across §7.1, §7.3, §7.5 and §8, each attached to `sync_id` individually, with
-nothing naming the property that makes them one set. The classification is where
-a second credential, if one is ever added, inherits all five instead of
+*recipient* may do with a value that has already arrived.
+
+**Those two rules survive the value not being a secret, on their own reasons.**
+A store address is not confidential — the user may hand it to whoever they want
+to sync with — but it is still user-chosen text that may carry personal content,
+and it still names where one person's library lives. An operator has no use for
+the plaintext, because §5.1 addresses the store by an irreversible derivation;
+retaining or printing it is therefore retention without a purpose, and it is
+exactly the kind of by-default leak §7.3 already documents for `{deviceId}` in a
+request path. A share location is not a secret, but it is also not something to
+scatter through logs. Rule 3's requirement is unchanged and so is rule 4's; only
+the reason they are stated has stopped appealing to confidentiality the value
+never had.
+
+Those five rules already existed in this specification before the class did —
+scattered across §7.1, §7.3, §7.5 and §8, each attached to `sync_id`
+individually, with nothing naming the property that makes them one set. The
+classification is where
+a second store address, if one is ever added, inherits all five instead of
 rediscovering them.
 
-`protocolIdentifier` and `accessControlData` are represented by the Dart
+`protocolIdentifier` and `storeAddress` are represented by the Dart
 `EgressClass` enum. Their first registry entries land with **W5**:
 `sync_id` and `sync_device_id` are persisted settings keys, so W5 owns their
-classifications. The access-control value is persisted locally under that
+classifications. The store address is persisted locally under that
 classification, while the server and any proxy must never retain it
 recoverably.
 
@@ -410,7 +729,10 @@ Canonical JSON means:
 - no insignificant whitespace;
 - envelope fields always present, `null` where empty;
 - body fields: explicit `null` for an empty `shareable` field, omission **only**
-  for a field that is not `shareable`;
+  for a field that is not `shareable`, with one exception: a dance's `meter`,
+  `musicalKey`, `formation.improper`, `interpreterIds` and `interpretedOn`
+  (schema v42) are omitted when they hold their default (`''`, `''`, `false`,
+  `[]`, `null`), and a receiver reads a missing one as that default (§6.7);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -586,15 +908,19 @@ form the in-scope column set is defined over — but the point is the shared
 source rather than the choice: §3.3 requires a generated mapping *"proven by
 test rather than hand-maintained"* for the same class of mismatch between
 registry and codec spellings, and the same standard applies here. That source
-has to be built, because nothing importable exists today: the registry's
-identifiers are inline string literals used directly as map keys
-(`'tags.name': _choreography`), not exported constants, and the
-carve-out lives at a separate call site in each of the four in-scope
-repositories. The concrete requirement is therefore named rather than left to
-inference — the identifiers MUST be declared once, as constants or generated
-symbols, and imported at all four sites. Two hand-typed literals reconciled
-after the fact by a test would catch drift once someone thought to write that
-test, which is not the same as making the two spellings the same object. Note
+was built in #1348 as `NormalisationSkipColumn` and the
+`naturalKeyNormalisationColumns` list, declared once beside
+`recordNormalisationSkip` and imported at all four carve-out sites; the one-time
+pass's grouping set is derived from the same list rather than re-typed. It was
+needed because nothing importable existed before: the registry's identifiers are
+inline string literals used directly as map keys (`'tags.name': _choreography`),
+not exported constants, and the carve-out lives at a separate call site in each
+of the four in-scope repositories. The concrete requirement is therefore named
+rather than left to inference — the identifiers MUST be declared once, as
+constants or generated symbols, and imported at all four sites. Two hand-typed
+literals reconciled after the fact by a test would catch drift once someone
+thought to write that test, which is not the same as making the two spellings
+the same object. Note
 that this is not a convergence concern: the table is `deviceScoped` and never
 transmitted, so the damage is confined to a single install, which is why
 nothing downstream would ever surface it.
@@ -779,14 +1105,16 @@ computed.
 
 Recording a column set turns the marker from a presence latch into a settings
 value carrying structured content, which is mechanically ordinary — sweep
-markers already store JSON — but worth one note on classification. Sweep markers
-sit outside the settings classification ratchet: it matches declarations named
-`k…Key`, and every marker is named `…DoneKey` or `…RequiredKey`, so none is
-captured. That is pre-existing and deliberate rather than something this design
-introduces, and §3.3's fail-closed rule contains it — an unclassified key is
-treated as `deviceLocal` and never serialised. The content here is a list of
-schema identifiers, which carries no user data in any case. The marker is
-install state, not store state, and is not part of §3.2's inventory.
+markers already store JSON — but worth one note on classification. When this
+was written the sweep markers sat outside the settings classification ratchet
+(it matched only declarations named `k…Key`, and every marker is named
+`…DoneKey` or `…RequiredKey`), and §3.3's fail-closed rule contained that — an
+unclassified key is treated as `deviceLocal` and never serialised. The ratchet
+has since been widened to any `…Key` declaration and every marker is classified
+`deviceScoped` in `settings_registry.dart`, which §3.3 never serialises either.
+The content here is a list of schema identifiers, which carries no user data in
+any case. The marker is install state, not store state, and is not part of
+§3.2's inventory.
 
 Raise-safety does not rest on this argument. A retry write can only raise if
 some row already holds the target, and condition (b) observes that occupant
@@ -849,11 +1177,32 @@ anything in this design: `DanceRepository.getById` *does* take
 from the one place it is implemented and is not. Implementations MUST therefore
 distinguish three outcomes, not two: a live row, a tombstoned row, and no row.
 
-**A later ordinary write to a row whose target is occupied MUST NOT fail.**
-§4.1's write-path rule requires every write to normalise, which would re-attempt
-the colliding value. The write MUST instead store the value un-normalised and
-record the row in `normalisation_skips`. A user's edit is never rejected to
-satisfy a normalisation rule.
+**A later ordinary write to a row whose target is occupied MUST NOT fail, and
+MUST NOT silently discard the edit either.** §4.1's write-path rule requires
+every write to normalise, which would re-attempt the colliding value. A
+conforming client MUST distinguish two cases, because the remedy below is only
+available in the first:
+
+* **The value is unchanged** — the write derives the same target the row's own
+  stored value derives, which is the case a recorded row reaches whenever it is
+  re-saved (an archive merge re-importing it, a colour or contact edit beside
+  it). The write MUST store the value un-normalised and record the row in
+  `normalisation_skips`. "Un-normalised" defers **composition only**: §4.6's
+  sanitiser has no carve-out and MUST still be applied, so the stored bytes are
+  the sanitised, uncomposed form of the caller's value and therefore still
+  derive the same target the pass will re-attempt.
+* **The value changed onto a value another row holds** — an ordinary rename onto
+  a name already taken. §4.1's remedy cannot apply, because the un-normalised
+  form of the user's typed bytes *is* the incumbent's value and storing it is the
+  `UNIQUE` violation. The write MUST be refused with an error the calling surface
+  can render for the person who made the edit, MUST leave both rows unchanged,
+  and MUST record **no** entry in `normalisation_skips` — nothing was left
+  un-normalised, so an entry would pin the bounded retry open for a collision
+  that ends as soon as the user chooses another value.
+
+A user's edit is never *silently* dropped to satisfy a normalisation rule, and is
+never rejected where §4.1's remedy could have kept it. Merging the two rows is
+excluded on §6.6 step 1's grounds.
 
 **A restore (§6.11) MUST clear both the completion marker and
 `normalisation_skips`, so that the pass runs again over the restored library.**
@@ -872,9 +1221,9 @@ Because the pass never touches `updated_at`, the shared record id then presents
 to the skipping device as `same`/`changed` with **equal** `updatedAt` — its own
 copy is unchanged against its baseline; the peer's has changed. Per §6.3 that
 row's `>` is strict, so the difference is left un-downloaded rather than guessed
-at, and MUST be reported on that pass and on every subsequent pass until a human
-edits one side. The peer meanwhile sees an ordinary `changed`/`same` and
-uploads, so the report is raised by the skipping device; it is a standing,
+at, and MUST be queued for the user's choice (§6.3) until the user decides.
+The peer meanwhile sees an ordinary `changed`/`same` and uploads, so the
+choice is raised by the skipping device; it is a standing,
 visible, non-convergent state over a pair the user already has reason to look
 at, which this specification prefers to a silent merge, but which is a real cost
 and not a formality.
@@ -883,6 +1232,46 @@ and not a formality.
 only failure response, the pass is total: no row raises, so an interrupted pass
 cannot repeat a failure on every launch. Re-running it over already-normalised
 rows is a no-op.
+
+Totality binds the *canonicalisation* too, not only the collision tests. A value
+canonicalised as JSON can fail before any target exists to compare, in three
+ways: the stored text may not parse; its own object keys may normalise to one
+key; or it may parse and then refuse to re-encode. The third is the one an
+implementer will not predict, and it is not hypothetical — `1e999` is legal JSON
+that decodes to an infinity no JSON encoder will emit, so a decode/encode round
+trip is **not** total over the input its own decoder accepts. A conforming
+client MUST treat all three as a skip of that unit — left as stored, recorded in
+`normalisation_skips` — and MUST NOT let the failure escape the pass. This binds
+both halves: the row half under the row's own id, and the settings half under
+the settings key. It is what makes the totality claim above true of an
+implementation rather than only of its collision handling (#1347).
+
+**Totality of this pass is necessary but not sufficient for a startup that
+completes**, and the two sets it turns on are different in both directions. The
+pass triggers a derived rebuild, and the rebuild loads every dance — decoding
+`figures_json` through a decoder whose accepted set is **not** the normaliser's.
+A value may normalise perfectly and fail to decode (`[1, 2, 3]` is valid JSON
+and is not a figure list); a value may decode perfectly and fail to normalise (a
+figure whose params hold both `é` and `e` + `U+0301`). The two sets overlap only
+on text that is not JSON at all. An implementation that makes the pass total and
+stops there has closed one of the two, and a rebuild gate keyed on
+`normalisation_skips` is blind to precisely the case that raises: a row that
+normalises and does not decode.
+
+**A conforming client MUST therefore make the *load* path total as well**,
+holding an undecodable transcription in a form that carries the stored text
+unchanged rather than raising out of it. Two properties of that form are
+load-bearing. It MUST preserve the stored bytes verbatim, because the row is
+still the user's transcription and a later build may be able to read it. And it
+MUST NOT be substitutable for a readable transcription — a boolean flag beside
+an empty list is not sufficient, because every reader keeps compiling and
+silently receives the empty list, and many readers load a record, change one
+field and write it back, which turns a display defect into the user's
+transcription being overwritten with nothing on an ordinary edit.
+
+A client MUST NOT predict which rows the rebuild can read by consulting
+`normalisation_skips` (§3.2). The totality has to come from the load path
+itself; the skip table answers a different question.
 
 **Every pass that rewrites a row MUST commit in three steps, and MUST NOT write
 its completion marker until the derived rebuild has succeeded.** The steps are:
@@ -979,10 +1368,14 @@ the indexes correct and MUST NOT rebuild them.
 four in-scope columns do not feed it.** `runDerivedRebuild` forwards to
 `DanceRepository.rebuildAllDerived`, which clears and repopulates `dance_fts`,
 `dance_substring_fts` and `dance_figures` for every dance; it is the only
-rebuild routine that exists. Its indexed columns are `title, authors, hook,
+whole-library rebuild routine. (`reindexDancesUsingUserFigure`, #1023,
+rebuilds only the dances that use one figure of your own; `reindexDerived`,
+#1920, rebuilds a given set of dances, which an apply batch works out from
+the records it applied, and which this pass has no such mapping for.) Its indexed columns are `title, authors, hook,
 notes, figures_text, custom_values, sources`, and the row is assembled from
-resolved author names, custom-field *values* and source texts
-(`dance_repository.dart:509`–`:531`). Of the four tables this pass exists for,
+resolved author names, custom-field *values*, source texts and, since #1023,
+the live definitions of the user's own figures the dance uses
+(`DanceRepository._insertDerivedRows`). Of the four tables this pass exists for,
 only `choreographers.name` reaches an index, through `authors`; `tags.name`,
 `custom_field_defs.key` and `difficulty_levels.label` reach none. So a pass
 that repairs only tags, custom-field keys or difficulty labels — plausible,
@@ -1093,21 +1486,64 @@ Those rows need no new rule: the send-side rejection above catches them when
 they are first serialised, which is the earliest moment sync can observe
 them.
 
-**Timestamp canonicalisation is mandatory on ingest.** A receiver MUST truncate
-every inbound timestamp to a tick boundary *before* storing it and before
-computing any hash over it, and MUST NOT assume a sender did so.
+**A sub-tick timestamp is malformed, and a receiver MUST reject it rather than
+repair it.** Every timestamp is emitted at one-tick precision. A record blob or
+manifest carrying a non-zero sub-tick component in any timestamp — `updatedAt`,
+`deletedAt`, `existenceAt`, or a manifest's `writtenAt` — MUST be treated as
+malformed and rejected on the terms of §6.7. A receiver MUST NOT truncate it to
+a tick boundary, and MUST NOT assume a sender emitted it correctly.
 
 This is load-bearing, not tidiness. §4.2 hashes each device's **own**
-re-serialisation, so if a peer emits a sub-tick value that the local
-representation cannot store, the receiver persists the truncated value,
-re-serialises a different byte string, and publishes a hash that disagrees with
-the sender's on every subsequent pass. The record then reads `changed`/`changed`
-forever and never converges. Any peer can trigger that, deliberately or by
-carrying a finer representation, so truncating on ingest is what closes the
-round-trip.
+re-serialisation, so a receiver that truncated instead would store a value its
+sender never sent, re-serialise a different byte string, and publish a hash that
+disagrees with the sender's on every subsequent pass. The record would then read
+`changed`/`changed` forever and never converge. Any peer can emit such a value,
+deliberately or by carrying a finer representation, so the repair a truncating
+receiver performs is precisely what makes the round trip unclosable.
+
+Rejecting is also what the rest of this section already requires. A value the
+local representation cannot hold is the same case as the NaN and lone-surrogate
+values above, and the same case as the `nonCanonicalWireBody` rule below: where
+a body would have to be *changed* to be storable, the candidate is refused and
+the sender is told to update, never cleaned in place. Truncation is the one
+outcome that is silently wrong rather than loudly refused.
+
+*Amended 2026-09-22 (maintainer ruling): this paragraph required truncation on
+ingest. The codec rejects any non-zero millisecond or microsecond on every one
+of the four fields, and rejection is the contract. The non-convergence argument the
+paragraph already gave is the reason repair cannot be right; only its conclusion
+was inverted.*
 
 Two devices holding an identical record MUST produce identical bytes. A change
-to canonicalisation is a wire-format break and MUST bump `v`.
+to canonicalisation is a wire-format break and MUST bump `v`, unless no release
+carries the current `v` yet, in which case the change joins it (§7.2, "An
+unreleased `v`").
+
+For `dance` and `program` records, the `updatedAt` and `deletedAt` values in
+the body are redundant projections of the envelope fields, not independent
+content. A receiver MUST overwrite only those two body fields with the trusted
+envelope values before every decode, including reconciliation preflight, and
+MUST preserve `createdAt` and every other body field. The operation is
+idempotent, so the receiver's persisted and republished blob is canonical; its
+wire hash MUST be computed from that canonical blob rather than from the
+original body. The admitted candidate's source blob MUST be replaced by that
+complete canonical envelope, including the projected fields and excluding any
+device-local overlay fields. Pending-tombstone storage and publication MUST use
+that admitted source blob; an original noncanonical body MUST NOT be retained
+for retransmission.
+
+For every other body field, and for every record kind other than this bounded
+timestamp projection, a receiver MUST reject the candidate if shareable JSON
+normalization would change its content. The rejection MUST happen before W7
+natural-key reconciliation, merge winner selection, or any apply preparation,
+skip only that peer candidate, leave local state and reconciliation state
+unchanged, and produce the non-blocking `nonCanonicalWireBody` update-required
+report. A canonical candidate admitted from another peer may still enter merge
+planning; a rejected candidate MUST NOT contribute existence or content fields
+to a synthetic winner. The v1 wire blob does not carry sender schema or
+canonicalization provenance, so a receiver MUST treat every such body as
+requiring the sending device to update before retrying rather than guessing
+whether it came from an old schema or a malformed current client.
 
 ### 4.2 Content hash
 
@@ -1115,13 +1551,18 @@ to canonicalisation is a wire-format break and MUST bump `v`.
 hash = lowercase-hex(SHA-256(canonical-json(blob)))
 ```
 
-The baseline additionally stores a **`body`-scoped** hash over the same
-canonicalisation, used only by §6.9.
+The baseline additionally stores a **`body`-scoped comparison hash**, used only
+by §6.9. For `dance` and `program`, the comparison removes only the
+top-level `updatedAt` and `deletedAt` projections from the body before applying
+the canonicalisation; every other body field and record kind is unchanged.
+The wire hash remains the full canonical blob hash.
 
 ### 4.3 Record blob
 
-Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
-`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`.
+Eleven kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
+`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`,
+and, since #709, `glossaryEntry` and `figureNote` (the user's own glossary;
+see below, and §6.15 for when they are published).
 
 ```json
 {
@@ -1137,15 +1578,78 @@ Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 
 | Field | Requirement |
 | --- | --- |
-| `v` | Envelope version. A client MUST refuse an unknown value rather than guess. |
-| `kind` | One of the nine above. |
-| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `v` | Envelope version. A client MUST refuse an unknown value rather than guess. It MUST read `v` before any other envelope check — the exact key set included — so that a newer envelope which also adds a key is refused as *newer* and reported as such (§6.9), not as malformed. The same applies to a manifest's `v` (§4.5). |
+| `kind` | One of the eleven above. |
+| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, `glossaryEntry` and `figureNote`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, an opaque id of 1–200 UTF-16 code units already in normalised form for `glossaryEntry` (a UUID when the app creates the entry; one restored from a backup keeps the id it was saved with), the id of the shipped figure (move or alias) a note annotates for `figureNote`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |
-| `body` | Archive-codec output, `shareable` fields only. |
+| `body` | Archive-codec output, `shareable` fields only; for `glossaryEntry` and `figureNote`, which the archive does not carry, the body below, through the same projection. |
 
 Join rows are not separate records; they ride inline with their parent.
+
+**The user's glossary (#709).** A `glossaryEntry` body is `id`, `kind`,
+`name`, `definition`, `description`, `keywords` (an array of strings), `notes`
+(string or null), `payload` (string or null) and `createdAt`, every key always
+present. A `figureNote` body is `id` and `notes`. Their timestamps travel on the
+envelope, as every kind's do. Text holds canonical role words, as stored.
+
+- `description` (shown to the user as "More Details") may be an empty string.
+  Builds before this change required 1 to N units of text and skip such a
+  record as malformed, so an entry saved with it blank, or an edit that clears
+  it, does not reach a device on one of those builds, which keeps the version it
+  has. This is not held back by a capability: a build that advertises the
+  capability gating the entry's kind (`glossary.v2` for `term` and
+  `customFigure`, `glossary.v1` for `compound`) is sent it. Accepted by Isaac
+  (maintainer) during the beta rather than gated by a new capability (#1899).
+
+- `payload` is the stored payload **text**, not the JSON value it encodes, and
+  `kind` is the stored kind name. Both travel verbatim, so sync applies, keeps
+  and publishes again byte for byte an entry a build cannot use — a kind it
+  does not know, a payload that no longer decodes as a definition, or one only
+  a newer build reads; sync never drops or rewrites it, and the app shows it as
+  made by a newer version, or as needing repair. Text rather than a JSON value
+  because canonical JSON sorts keys: decoding and re-encoding on the way would
+  rewrite what the author's device stored, and a payload that is not JSON at
+  all could not travel. Carrying it as text is the implementer's choice in
+  #709. The guarantee is sync's only: a backup carries a payload as decoded
+  JSON, so a payload whose text is not JSON at all does not survive a backup
+  restore (judged not worth a second payload form in backups, #1772). The
+  editor and backup restore write only encoded JSON; sync stores such a
+  payload only as a peer sent it, so one first arises from a corrupted row.
+- A receiver MUST refuse (as malformed) a `payload` that parses as JSON but is
+  not in the normalised form storage writes (§4.6), and a body over the bounds
+  every build enforces: storing either would change the record under its
+  peer's wire hash.
+- `createdAt` is a UTC time to the second and MUST be stored unchanged. Of two
+  entries sharing a name, the later-created one is flagged for rename, derived
+  on read and never stored (#709 consolidated spec, decision 6), so carrying
+  the creation time unchanged is what lets every device flag the same one.
+- Names are not natural keys: two entries with one name are two records, so
+  neither kind takes part in collision reconciliation (§6.6).
+
+**A device MUST NOT publish a dance whose stored transcription it cannot
+decode.** The body is the archive codec's output restricted to `shareable`
+fields, and those two facts do not compose safely here. The archive shape
+carries an undecodable transcription verbatim in `figuresRaw`, beside a
+well-formed empty `figures` array — but `figuresRaw` is **not** a `shareable`
+wire field, so the shareable projection drops it, and what would go out is an
+empty `figures` array and nothing else. The marker does not survive the
+projection, so this is not a question of peer vintage: a peer of **any** version
+would receive an empty transcription with no signal that anything was missing,
+and last-writer-wins would replace a transcription it can read with nothing — on
+the strength of a record the sender could not read in the first place.
+
+Withholding is strictly conservative. A record never published cannot overwrite
+anything, the peer keeps what it has, and the local bytes are untouched. The
+alternative is the one outcome that is silently destructive rather than merely
+absent, which is the same trade §4.1 makes for every other value the wire cannot
+faithfully carry.
+
+The archive envelope's own version ledger — including the version that records
+`figuresRaw`, stamped only on an archive that actually carries one — lives with
+the archive codec and is deliberately not restated here. The only part that
+binds sync is that the key never reaches the wire.
 
 ### 4.4 Settings records
 
@@ -1206,6 +1710,38 @@ therefore MUST carry `kind` alongside the record id (§3.2), exactly as
 baseline was the one per-record structure that did not, which is why this is
 stated in both places rather than left to follow.
 
+**A client skips a `records` kind it does not know; the server does not.** A
+peer on a newer build may list a kind this build has no table for. A client
+reading a **peer's** manifest MUST skip that kind and read the rest, rather
+than refuse the whole manifest: refusing it would stop every record that peer
+holds from arriving, over records this build could not store anyway. It
+reports the peer with code `newerRecordKind` (§6.9). Everything else about the
+manifest stays strict, including the shape of the skipped kind's own entries.
+Three readers MUST stay strict, and each for its own reason:
+
+- **The server** (§7.2, below): it reads `records` to decide which blobs are
+  reachable, so a manifest it half understood would let it collect live blobs.
+- **A device's own manifest**: it can only ever hold kinds its own build
+  wrote, and detach clean-up (§3.3) decides from it which of this device's
+  records peers carry, so a kind skipped there is one it would judge carried
+  without having looked. Clean-up also reads its **peers'** manifests strictly.
+  That is the conservative choice rather than a necessity — it only asks peers
+  about kinds in its own manifest, so a skipped peer kind could make an entry
+  look uncarried, never carried — and it means a peer manifest naming an
+  unknown kind leaves clean-up undecided, as an unreadable one does.
+- **A kept copy of a peer manifest** (§5.2). A tolerant decode re-encodes
+  without the skipped kinds, so a client MUST NOT keep one, in the session or
+  on disk: after an update that knows those kinds, a `304` against the kept
+  ETag would keep serving the stripped copy, and that peer's records of those
+  kinds would never download until it next published. Such a manifest is asked
+  for in full on every pass instead.
+
+Added in #709 as the client half of introducing new record kinds. It protects
+only builds that have it: a build older than it still refuses the whole
+manifest. So publishing a new kind's records still has to wait until no
+attached device is older than that; the capability gate (§6.15) does that
+waiting per store.
+
 ### 4.6 Text sanitisation
 
 `sanitizeImportedText`
@@ -1252,19 +1788,28 @@ by this specification: a rule that stripped line breaks from a notes field to
 satisfy sync would be destroying user content to fix a problem sync does not
 have.
 
-**Why this is not a receiver-side repair.** The obvious reading — the receiver
-cleans what it is given — is wrong, and it is wrong in a way that is invisible
-until two devices are running. A receiver that rewrites inbound content breaks
+**Why text sanitisation is not a receiver-side repair.** The obvious reading —
+the receiver cleans what it is given — is wrong, and it is wrong in a way that
+is invisible until two devices are running. A receiver that rewrites inbound
+content-bearing text breaks
 "the hash identifies the content": it stores bytes whose hash is not the one the
 sender's manifest advertised, so under §6.3 step 9 **neither** device's baseline
 ever advances, both then read `changed`/`changed`, and because the receiver
 copies the envelope's `updatedAt` the tie is equal and §6.3 declines to resolve
-it. The result is not a bad pass; it is a conflict reported on both devices on
+it. The result is not a bad pass; it is a conflict raised on both devices on
 every pass, forever, triggered by a user pasting a zero-width space from a web
 page. Sanitising *inbound* is a no-op against a conforming peer for the same
 reason NFC is — the sender already ran it, and the function returns its input
 unchanged when nothing is stripped — and it is the write path plus the one-time
 pass, not the inbound call, that makes that true.
+
+That argument does not prohibit the bounded timestamp normalisation in §4.1.
+The two body timestamp fields are metadata projections, so replacing only those
+fields with the trusted envelope values does not rewrite user content or invent
+a new ordering. The receiver deliberately republishes the resulting canonical
+body and its hash; a peer that ingests that publication receives the same
+timestamp projections. This is distinct from sanitising arbitrary text, which
+would alter content that the sender intentionally hashed.
 
 This closes a divergence that predates sync. Archive **decode** sanitises
 (`archive_codec.dart:980-1042`, and `_sanitizeFigureJson` at `:755-778`) and
@@ -1273,12 +1818,17 @@ typed into the editor was not.
 
 The write-path half of that gap has since closed, and this section's rule is
 what survives it. #1119 routes every repository write through
-`normalizeShareableText`, so `DanceRepository._upsert` does sanitise today.
-What remains is not the transform's absence but its **composition order** —
-that call is `sanitizeImportedText(nfc(value))`, the order ruled out above —
-together with the rows written before #1119 and the rows written since in that
-wrong order. No write path revisits either set, so both are the one-time
-pass's work rather than a second chokepoint's.
+`normalizeShareableText`, so `DanceRepository._upsert` does sanitise today, and
+#1137 corrected that function's **composition order** to
+`NFC(sanitizeImportedText(s))` — the order this section requires. Both halves
+are therefore in place on the write path.
+
+What remains is only the stored rows: those written before #1119 and those
+written between #1119 and #1137 in the reversed order. No write path revisits
+either set, so both are the one-time pass's work rather than a second
+chokepoint's. #1137 bumped the pass's algorithm version to 2 precisely so that
+rows the version-1 pass had already "normalised" in the wrong order are
+revisited rather than skipped as done.
 
 Maintainer's ruling, 2026-08-28, on the scope question this raised: the
 sanitiser runs on **all** `shareable` text, not only the columns sync
@@ -1373,17 +1923,22 @@ the transport to plaintext against anyone positioned to present a certificate.
 The failure has no symptom on either side. A conforming client therefore has no
 "trust this certificate anyway" affordance, no debug flag that becomes a
 shipped one, and no allowance for a user-supplied trust anchor: with the sync ID
-riding every request as a bearer credential, an accepted bad certificate is the
-same total, unrecoverable disclosure that a plaintext request would be.
+riding every request in an `Authorization` header, an accepted bad certificate
+is the same total, unrecoverable disclosure that a plaintext request would be --
+not because the address is a secret, but because §8 makes holding it the whole
+of the read, write and `DELETE` capability.
 
-### 5.1 Authentication
+### 5.1 Carrying the sync ID
 
 The sync ID travels in the `Authorization` request header using the `Bearer`
-scheme. It MUST NOT appear in a URL.
+scheme. It MUST NOT appear in a URL. The header and scheme are how a request
+names the store it addresses; they do not make the ID authentication material
+(§3.3).
 
-**The sync ID is not the credential; its encoding is.** RFC 6750's `b64token`
-grammar is ASCII-only, and §8 deliberately permits arbitrary code points in a
-word, so the identifier and the transport disagree by construction. This is not
+**The header carries an encoding of the sync ID, not the ID itself.** RFC
+6750's `b64token` grammar is ASCII-only, and §8 deliberately permits arbitrary
+code points in a word, so the identifier and the transport disagree by
+construction. This is not
 a mangling risk that degrades gracefully: `dart:io` raises `FormatException:
 Invalid HTTP header field value` when a header value carries any code unit
 outside ASCII 32–127, tab excepted, so a client sending a non-English ID
@@ -1392,22 +1947,31 @@ Latin-1, which matters because it makes the affected population larger than it
 looks: `café` throws exactly as `Δ` does. The user cannot sync at all, and the
 failure is local, so no server log records it.
 
-A client MUST therefore send, as the credential, the **base64url encoding
+A client MUST therefore send, as the `Bearer` value, the **base64url encoding
 (RFC 4648 §5, padding omitted) of the UTF-8 bytes of the §8-normalised sync
-ID**. A server MUST base64url-decode the credential, decode those bytes as
+ID**. A server MUST base64url-decode that value, decode those bytes as
 UTF-8, normalise per §8, and derive the storage key from the result. A
-credential that is not valid base64url, or whose bytes are not well-formed
+`Bearer` value that is not valid base64url, or whose bytes are not well-formed
 UTF-8, MUST be rejected with `401` — never repaired, and in particular never
 decoded with `U+FFFD` substitution, which would map distinct IDs onto one store
 by the mechanism §4.1 rejects for record content.
 
 **The encoding MUST be unconditional — applied to every sync ID, ASCII or
-not.** Encoding only when a character requires it makes the credential
+not.** Encoding only when a character requires it makes the header value
 ambiguous: the server receiving `Y2FmZQ` cannot tell the encoding of `cafe`
 from the literal ASCII ID `Y2FmZQ`, and either reading is a legal ID under §8.
 Whichever way it guesses, some pair of users share a store or one user's ID
 resolves to two — the same one-typed-ID-two-stores failure this section already
 warns about, arriving through a different door.
+
+*Amended 2026-11-11: wording only. This section called the encoded ID "the
+credential" and said "The sync ID is not the credential; its encoding is." It
+now names the `Bearer` value instead, following the maintainer's decision of
+2026-11-11, quoted at §6.14 item 2, that nothing here should imply the store ID
+is authentication material of any kind. What a client sends, what a server
+decodes, and when it answers `401` are unchanged. The same substitution is made
+in §5.4's outcome table and in §9's test vectors. The heading, "5.1
+Authentication", is renamed for the same reason.*
 
 Because the encoding is applied *after* normalisation and unwound *before* the
 HMAC, the storage key is a function of the normalised ID alone. The encoding
@@ -1456,13 +2020,15 @@ header that carries no information the request does not already imply.
 | `DELETE` | `/v1/store` | Wipe store (destructive). |
 | `GET` | `/v1/manifests/{deviceId}` | Fetch one manifest. `ETag` / `If-None-Match`. |
 | `PUT` | `/v1/manifests/{deviceId}` | Publish this device's manifest. |
-| `DELETE` | `/v1/manifests/{deviceId}` | Remove a device's manifest. |
+| `DELETE` | `/v1/manifests/{deviceId}` | Remove a device's manifest. Idempotent: `204` whether or not one existed. `404` only when no store exists for the `id_key`. |
 | `GET` | `/v1/blobs/{hash}` | Fetch one blob. Immutable; long `Cache-Control`. |
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given hashes, return the subset the store lacks. |
+| `POST` | `/v1/blobs/batch` | Given up to 200 hashes, return their blobs in one streamed response. |
+| `PUT` | `/v1/blobs/batch` | Upload up to 50 blobs in one request; each is answered as its own `PUT` would be. |
 
 Blob and manifest bodies are specified byte-exactly in §4.3 and §4.5, because
-they are hashed. The two endpoints below are not content-addressed, so nothing
+they are hashed. The other bodies below are not content-addressed, so nothing
 forced their shape and it is stated here instead.
 
 **`ETag` on a manifest `GET`.** The value MUST be the manifest's own content
@@ -1476,6 +2042,17 @@ entity-tag — some HTTP clients reject it, others pass it through, so a server
 emitting one interoperates with a client library by luck. The failure is a
 permanent fallback to refetching every manifest every pass, which is invisible
 except as traffic.
+
+A client MAY keep its cached manifests across restarts, and the reference
+client does: each peer's last verified manifest and its `ETag` are kept with the
+baseline (never one listing a record kind this build does not know, §4.5), so the first pass after a launch is answered `304` rather than
+fetching every manifest again. A kept manifest is used only in the epoch it was
+fetched in and only for the device it names. One that no longer decodes is
+dropped and fetched again, and one for a device the store no longer lists is
+forgotten. A `304` puts back a kept copy that is missing — after a restore
+clears the kept copies, or after a device drops out of the store's list and
+returns — while a session still holds it. Keeping it changes nothing §6.9 judges: a peer's `writtenAt` is
+first seen by the session on its first pass either way.
 
 **`GET /v1/store`.** MUST NOT create anything. When no store exists for the
 `id_key` it MUST return `404`. Otherwise it returns:
@@ -1496,6 +2073,16 @@ except as traffic.
 | `quota.blobs`, `quota.bytes` | Current usage. |
 | `quota.maxBlobs`, `quota.maxBytes` | The §5.4 caps, echoed so a client can warn before hitting them rather than discovering a `507`. |
 
+**A client warns from the quota, and does not depend on it.** The reference
+client warns that the store is almost full once either `blobs / maxBlobs` or
+`bytes / maxBytes` reaches **80%**, and offers the one remedy this device can
+apply by itself — turning on `sync_exclude_imports` (§6.1) — while that setting
+is off; it MUST NOT offer a wipe there (§5.3). The quota is advice, so a client
+MUST NOT fail a pass because `quota` is absent or malformed: it loses the
+warning and nothing else. Every pass that reads the store carries the reading
+to the status surface, a pass that later fails included, so a `507` at upload
+is shown beside how full the store already was.
+
 `devices` is the peer set that drives step 3's per-peer manifest fetches. A
 client MUST exclude its own id from that iteration.
 
@@ -1513,7 +2100,7 @@ attacker can send ever fails*. A guessed ID is structurally valid, so it is not
 a `401` (§5.1) and not a `403` (§8); it resolves to some `id_key`, and the
 endpoint then manufactures a store and reports success. Wrong guesses became
 successful creations, distinguishable from hits only by an empty `devices` list,
-and §8's enumeration bound rested on a failed-authentication counter that
+and §8's enumeration bound rested on a counter of `401` responses that
 guessing never incremented. Splitting creation out is what makes a wrong guess
 observable to the server as a failure at all, which is what §5.4's budget
 accounts for. That accounting is a load and visibility control and not the
@@ -1563,10 +2150,91 @@ arrays, so either can gain a field without a `v` bump:
 ```
 
 `missing` is the subset of `hashes` the store lacks; a hash the store already
-holds is omitted. Every hash in the request MUST match `^[0-9a-f]{64}$`
+holds is omitted. A store "holds" a hash only if it can serve the bytes: a hash
+whose reference exists but whose file is absent (external file loss or a
+partial restore) MUST be reported missing, so the client's ordinary `PUT`
+below can repair it. Every hash in the request MUST match `^[0-9a-f]{64}$`
 (§7.1) — the whole request is rejected `400` if any does not, rather than the
 offending hash being skipped, so a client cannot read a short response as
 "present".
+
+**`POST /v1/blobs/batch`.** Fetches many blobs in one request, so that a
+device's first download of a large library is not one request per record. The
+request is an object, like `POST /v1/blobs/missing`'s:
+
+```json
+{ "hashes": ["e3b0c442...", "a3f5b1c9..."] }
+```
+
+It MUST name at most 200 hashes (§5.4), each matching `^[0-9a-f]{64}$`, and none
+twice; a request that breaks any of these is rejected whole, `413` for the
+count and `400` otherwise. `GET /v1/blobs/{hash}` is unchanged beside it.
+
+A `200` response has `Content-Type: application/vnd.callers-compendium.blob-batch`
+and `Cache-Control: no-store`, and its body is a sequence of **frames, exactly
+one per requested hash, in request order**:
+
+| Bytes | Field |
+| --- | --- |
+| 1 | Status: `0` blob, `1` missing, `2` not sent. |
+| 32 | The hash the frame answers, as raw bytes. |
+| 4 | Status `0` only: the blob's length, unsigned big-endian. |
+| *length* | Status `0` only: the blob's bytes, exactly as `GET /v1/blobs/{hash}` would serve them. |
+
+- **Missing** means what `404` means on `GET /v1/blobs/{hash}`: the store has no
+  reference to the hash in its current epoch, or the reference survives and its
+  file does not (§7.1). A client MUST treat a missing frame exactly as it treats
+  that `404` (§6.3 step 5).
+- **Not sent** means the response reached its byte cap (§5.4) before this blob.
+  Once one hash is not sent, every later hash in the response is not sent
+  either, so what a response carries is always a prefix of what was asked. The
+  cap is above the largest blob, so the first blob a response names is always
+  sent. A client asks for not-sent hashes again.
+
+The server MUST produce the body as it sends it, reading each blob only when its
+frame is reached, and MUST NOT assemble the whole response first. When the
+request's `Accept-Encoding` admits `gzip`, the server SHOULD send the body with
+`Content-Encoding: gzip`. A client MUST bound what it reads by the response cap
+in §5.4, encoded and decoded. A client MUST NOT apply a fixed expansion-ratio
+limit to this response: canonical record blobs share most of their keys, and a
+batch of them compresses past 10×; the absolute cap is what bounds the memory a
+response can cost.
+
+The status of the whole response is about the whole request. A store that does
+not resolve is `404` and counts as a failed resolution (§5.4), as on every
+store-scoped request; `429` and `5xx` mean what they mean elsewhere. A blob the
+store cannot serve is never a `404` *response*: it is a missing frame inside a
+`200`.
+
+**A frame stream rather than JSON or `multipart/mixed`.** JSON would carry each
+blob base64-encoded, a third larger before compression, and a client could not
+use any blob before the closing brace. Multipart needs a boundary that occurs
+in no blob, which the server can only promise by scanning every blob first,
+and gives the client headers and boundaries to parse for no information it
+uses. Length-prefixed frames are read by a few lines of code, need no
+scanning on either side, and each one names its hash, so a client verifies and
+keeps each blob as it completes. When the connection drops part-way, the blobs
+that arrived whole are already usable.
+
+**A server without this route.** A self-hosted server updates on its own
+schedule, and a proxy in front of one may refuse a `POST` it would let a `GET`
+through. Apart from `429` and the `5xx` statuses that stop downloads (§6.3
+step 5), a client MUST treat any non-success answer to this request — `400`,
+`404`, `405`, `413`, `501` and the rest — a `200` without the media type above,
+or a batch that is malformed or over its caps, as a server that does not serve
+the route. It keeps the blobs that arrived whole, fetches the rest with
+`GET /v1/blobs/{hash}`, raises no notice, and SHOULD NOT ask again for the
+rest of the session; a client that observes a new store epoch MAY ask again.
+`400` matters most: an Athenaeum from before the route reads `batch` as a
+malformed hash. A client MUST NOT report a refusal of the whole batch against
+each of its records: each record gets the answer its own request gets, and a
+proxy's `413` on a `POST` says nothing about any of them.
+
+> **Amended 2026-10-11.** This endpoint, its frame format, the caps in §5.4 and
+> the fallback rule were added by the change that introduced them, on its
+> author's judgement rather than a maintainer ruling. How a batch is charged
+> against the request-rate limits (§5.4) was the author's recommendation,
+> approved by the maintainer on 2026-10-12.
 
 **Blob `PUT` verification.** The server MUST verify that the body hashes to
 `{hash}` under §4.2 and MUST reject `400` if it does not. Without that check
@@ -1575,11 +2243,78 @@ would break the content-addressing that "Immutable; long `Cache-Control`"
 depends on and let a peer serve one record's bytes under another's name. A
 `PUT` to a hash the store already holds MUST be treated as a no-op returning
 `200` and MUST NOT overwrite the stored bytes; once verified the bytes are
-identical by definition, so a rewrite can only be a downgrade. The no-op MUST
-NOT update `uploaded_at` either. That column is the sole input to §7.3's grace
+identical by definition, so a rewrite can only be a downgrade. The one
+exception is a hash whose reference exists but whose file is absent: there are
+no stored bytes to protect, so the `PUT` writes the verified body back (still
+`200`), after checking it against the recorded size, and MUST NOT charge quota
+again or alter the reference. The no-op MUST NOT update `uploaded_at` either. That column is the sole input to §7.3's grace
 window, so refreshing it on each repeat `PUT` would let a client that re-uploads
 the same never-manifested blob every pass keep it collection-immune
 indefinitely, and the window would bound nothing.
+
+**`PUT /v1/blobs/batch`.** Uploads many blobs in one request, so that a device
+publishing a large library of its own is not one request per record.
+`PUT /v1/blobs/{hash}` is unchanged beside it. The request has
+`Content-Type: application/vnd.callers-compendium.blob-batch` and its body is a
+sequence of frames in the format of the batch response above, every one a blob
+frame (status `0`): at most 50 (§5.4), no hash twice, and no blob over the blob
+cap. A request that breaks any of these is rejected whole and stores nothing:
+`413` for the count or a blob's size, `400` for anything else, a frame cut short
+or of another status included. A client SHOULD send the body with
+`Content-Encoding: gzip`. The server MUST NOT apply a fixed expansion-ratio
+limit to it, for the reason given for the batch response; the absolute cap in
+§5.4 bounds it instead.
+
+Each blob is then what its own `PUT /v1/blobs/{hash}` would be: verified against
+its frame's hash (`400`), checked against the allow-list (§7.2, `422`, or `413`
+for JSON nested past the parse depth), and stored (`201`), or a no-op on a hash
+the store already holds (`200`, writing a lost file back as above). A `200` response carries one result per frame, in
+request order:
+
+```json
+{ "results": [ { "hash": "e3b0c442...", "status": 201 },
+               { "hash": "a3f5b1c9...", "status": 422 } ] }
+```
+
+Each status is the one that blob's single `PUT` would get, with two
+differences. Once a new blob would pass a store quota, it and **every later new
+blob in the batch is `507`**, even one small enough to fit, so the new blobs a
+batch stores are always a prefix of the new blobs it carried; a blob the store
+already holds is still `200` after that point. And a batch checks each blob's
+hash and allow-list before the quota, so a malformed or refused blob is `400`
+or `422` even in a full store, where its single `PUT` checks the quota first
+and is `507`. A blob answered `200` or `201` is stored
+whatever the batch's other results are. Below the server's free-space floor
+(§5.4), every blob that passes its hash and allow-list checks is `507`, one the
+store already holds included, as its single `PUT` would be, and the batch
+stores nothing; the response is still a `200`, so a client reads that `507` as
+the refusal that stops its upload and not as a server without the route.
+
+As on the batch read, the status of the whole response is about the whole
+request: a store that does not resolve is `404` and counts as a failed
+resolution (§5.4), and `429` and `5xx` mean what they mean elsewhere. A refused
+blob is never the response's status; it is a result inside a `200`.
+
+**A client sends a blob over the blob cap on its own**, with
+`PUT /v1/blobs/{hash}`, so that the refusal it meets is that blob's own `413`
+and not a refusal of every blob batched with it.
+
+**A server without this route.** Apart from `429` and the `5xx` statuses other
+than `501` and `507`, a client MUST treat any non-success answer to this request,
+or a `200` whose body is not one result per blob in request order, as a server
+that does not serve the route. It uploads those blobs with
+`PUT /v1/blobs/{hash}`, raises no notice, and SHOULD NOT try the batch again for
+the rest of the session; a client that observes a new store epoch MAY try again.
+An Athenaeum from before either batch route answers `400`, reading `batch` as a
+malformed hash, and one that serves only the batch read answers `405`.
+
+> **Amended 2026-10-12.** This endpoint was added by the change that introduced
+> it, on its author's judgement rather than a maintainer ruling: `PUT` on the
+> read's path, its frame format, the 50-blob cap, storing a batch in one
+> transaction, the `507` prefix, and the fallback rule. How a batch upload is
+> charged against the request-rate limits (§5.4) was the author's
+> recommendation, approved by the maintainer on 2026-10-12 as an initial
+> specification.
 
 ### 5.3 Status codes
 
@@ -1592,13 +2327,24 @@ indefinitely, and the window would bound nothing.
 | `400` | Malformed request. |
 | `401` | Missing or malformed `Authorization`. |
 | `403` | Sync ID fails the structural rule (four hyphen-separated words). |
-| `404` | No such blob, manifest, device — or store. On a store-scoped request this is also the signal an enumerating client sees, and §5.4 budgets it. |
+| `404` | No such blob, manifest, device — or store. On a store-scoped request this is also the signal an enumerating client sees, and §5.4 budgets it. Not used by `DELETE /v1/manifests/{deviceId}`, which is idempotent — see below. On `POST /v1/blobs/batch` it means only that the store does not resolve: a blob the batch cannot serve is a *missing* frame inside a `200` (§5.2). The same holds for `PUT /v1/blobs/batch`. |
 | `409` | Conflict: a stale epoch on a manifest `PUT`, or a `POST /v1/store` against an `id_key` that already has one. |
-| `413` | Payload exceeds a cap. |
+| `413` | Payload exceeds a cap. A `POST /v1/blobs/batch` naming more than 200 hashes is `413`; a *response* reaching its byte cap is not an error, and lists the rest as not sent (§5.2). A `PUT /v1/blobs/batch` carrying more than 50 blobs, or a blob over the blob cap, is `413`. |
 | `415` | Body media type is not the one the endpoint expects (optional; see §5.1). |
-| `422` | Payload rejected by the allow-list. |
-| `429` | Rate limited. `Retry-After` set. |
-| `507` | Store quota exhausted. |
+| `422` | Payload rejected by the allow-list. In a `PUT /v1/blobs/batch` this and every other refusal of one blob is a result inside a `200` (§5.2). |
+| `429` | Rate limited. `Retry-After` set. Also a client holding its share of large-body requests in flight (§5.4). |
+| `503` | The server is handling as many large-body requests as it allows at once (§5.4). `Retry-After` set; transient. |
+| `507` | Store quota exhausted, or the server's storage below its free-space floor (§5.4). |
+
+**Deleting a manifest is idempotent, and deleting a store is not.** `DELETE
+/v1/manifests/{deviceId}` MUST return `204` whether or not a manifest existed
+for that device; it MUST NOT return `404` for an absent one. `DELETE /v1/store`
+keeps the opposite rule and returns `404` when no store exists for the `id_key`,
+because that answer is the store-existence signal §5.4 budgets and §5.2's
+create/lookup split exists to preserve. The divergence is deliberate: a device
+retrying after a lost response needs the retry to be safe, and a `404` here
+would tell the caller nothing it could act on — the manifest is gone either way,
+and the caller cannot distinguish "already deleted" from "never published".
 
 There is no distinct "expired" status. Reset detection is the epoch's job. A
 client receiving `404` from a *within-store* endpoint — a manifest, a blob —
@@ -1619,6 +2365,9 @@ number of elements in a request body such as §5.4's hashes-per-request cap — 
 store, and **devices per store**, so the 33rd device attaching receives `507`
 rather than `413` or `429`. A client MUST surface `507` to the user and MUST NOT
 retry it without user action, since nothing the client does alone clears it.
+The same holds for the `507` of the free-space floor (§5.4), which is a
+server-wide condition and not the store's: only the operator clears it, and the
+client has no way to tell the two apart.
 
 That last rule has one qualification the client MUST honour. §7.3 keeps
 unreferenced blobs for a 24-hour grace window, so space freed by deleting
@@ -1640,18 +2389,144 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Blob size | 1 MB |
 | Manifest size | 16 MB |
 | Blobs per store | 100,000 |
-| Bytes per store | 250 MB |
+| Bytes per store (blobs and device manifests) | 250 MB |
 | Devices per store | 32 |
 | Hashes per `POST /v1/blobs/missing` request | 10,000 |
+| Hashes per `POST /v1/blobs/batch` request | 200 |
+| `POST /v1/blobs/batch` request body | 64 KB |
+| Blob bytes per `POST /v1/blobs/batch` response | 2 MB, plus at most 37 bytes of framing per hash; later blobs are *not sent* (§5.2) |
+| Blobs per `PUT /v1/blobs/batch` request | 50 |
+| `PUT /v1/blobs/batch` request body, decoded | 2 MB plus 7,400 bytes, the most a batch response occupies; a client keeps a batch's blob bytes within 2 MB |
 | JSON parse depth | 32 |
-| Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB |
-| Request rate, per client IP | 60/minute, burst 120 |
-| Request rate, per store (`id_key`) | 600/minute |
+| Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
+| Request rate, per client IP | 5/second, burst 300; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below); a `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ (below) |
+| Request rate, per store (`id_key`) | 15/second, burst 600 |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
+| Store creations (`201` from `POST /v1/store`), per client IP | 5, refilled at 5/hour |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
+| Large-body requests in flight, per client IP | 4; one more is `429` with `Retry-After` |
+| Large-body requests in flight, server-wide | 16; one more is `503` with `Retry-After` |
+| Free space on the filesystem holding the server's data | blob and manifest writes are `507` below 1 GiB |
 
-The request-rate rows bound load. The failed-store-resolution rows raise the
+**The client IP is keyed by network, not by every address, for IPv6.** The
+per-client-IP rows count an IPv4 client per address and an IPv6 client per
+**/64**. A subscriber is normally delegated a /64 or more and can present 2⁶⁴
+distinct source addresses inside it, so a per-address key would hand an IPv6
+client a fresh full bucket per address — the per-IP row would see nothing of a
+guessing campaign (§7.5 requirement 6) — and minting addresses would fill the
+server's bounded bucket tables and evict honest clients. An IPv4-mapped address
+(`::ffff:a.b.c.d`) is keyed as its IPv4 address: its /64 is the same for every
+IPv4 client, and masking it would be one global bucket. Textual variants and
+zone IDs of one address are one client. A /48 holder still gets 65,536 buckets;
+that is accepted, and a wider mask was rejected because it would merge unrelated
+subscribers at carriers that give each device a /64.
+
+The request-rate rows bound load: the work every request costs whatever it
+carries — decoding the header, the store lookup and its `last_seen` write, the
+request-path deletion retry (§7.3) — and the bytes it sends. **A
+`POST /v1/blobs/batch` naming *n* hashes costs 1 + ⌈*n*/20⌉ tokens on both
+rows**, so a full batch of 200 costs 11. The server MUST charge the extra
+⌈*n*/20⌉ only once the store resolves: a request for a store that does not
+resolve costs one token, as any request does, and counts as a failed
+resolution. A batch that either bucket cannot cover MUST be refused whole with
+`429`, taking nothing beyond its request token, and never trimmed to what is
+affordable — a `429` on a batch then always means nothing was sent, which is
+what §6.3 step 5 stops on. Its `Retry-After` is how long until both buckets
+could pay for the same batch sent again, request token included, rounded up to
+whole seconds. The charge is capped at what a full bucket holds, so a burst an
+operator configures below 11 delays a full batch rather than refusing every
+one. An operator may change the 20 with the rest of these values.
+
+**A `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ tokens on both
+rows**, so a full batch of 50 costs 6, under every rule above for a batch read:
+charged only once the store resolves, refused whole with `429` and the same
+`Retry-After` when either bucket cannot cover it — and a refused batch stores
+nothing — and capped at what a full bucket holds. A blob the store already holds
+costs what a new one does. The server can count the blobs only once it has read
+the body, so a batch refused here has still cost that read, up to the body cap.
+An operator may change the 10 with the rest of these values.
+
+**Why 1 + ⌈*n*/20⌉.** Measured on the reference server (in-process, a 4-vCPU
+Xeon at 2.1 GHz, across runs), a single-blob `GET` costs 0.45–0.65 ms of handler
+time and a 200-hash batch 7–11 ms, or 10.5–15 ms with gzip — about 22 single
+`GET`s, for 200 records: nearly all of a request's cost is paid once whatever
+it carries. At the per-IP row's 5 a second, charged one token, a batch would
+let one address pull 60,000 records a minute instead of 300 and double the
+worst-case bytes a token buys. Charged 1 + ⌈*n*/20⌉, one address sustains about
+5,500 records a minute in about 0.8 MB of gzip; a token still buys at most
+1 MB, so the worst case per address stays at 300 MB a minute; and because the
+50 ms deletion retry is charged per request, the worst-case handler time per
+address falls from about 15 s a minute to about 1.4 s. A 5,000-record first
+download needs 275 tokens for its 25 batches, inside the 300-token burst. (These
+figures were first worked at the earlier 60 a minute, where each is a fifth as
+large, and the rule was approved on them.)
+Exempting batches from the per-IP row instead was rejected: the per-store row
+alone bounds nothing per address, which can hold any number of stores, and the
+per-IP row is what bounds the work of guessing at stores. When
+the per-IP limit is enforced at the proxy (§7.5 requirement 6), the proxy
+counts requests, not this cost; the server's own row still applies.
+
+**Why 5 a second, burst 300.** When this rate was chosen, downloads were
+batched and a device's first *upload* was still one `PUT` per record (§6.3
+step 7), so the per-IP row mostly paced that upload: a 1,000-record upload
+spent the burst, met the limit, and finished over a few passes a minute apart
+(§6.12; four, measured), where 60 a minute stretched it over a quarter of an hour.
+Uploads are now batched too (below). The row is also what a guess at a store costs, so
+§8's figures scale with it, five times those at 60 a minute; the maintainer
+chose 5 a second, burst 300, on 2026-10-12 with those figures in front of them,
+over 10 and 20 a second and over keeping 1 a second with a larger burst. The
+per-store row is three times the per-IP row, so that a few of one store's
+devices syncing together are not held to one device's pace; that ratio is the
+change author's choice. `server/tool/load_test.dart` measures what one server
+process sustains on given hardware, and runs these rows with
+`--shipped-request-limits` to show where they refuse.
+
+**A server-wide request limit was considered and rejected.** It would cap the
+load every client together can place, but it refuses before the store lookup
+and so refuses everyone alike: at 150 a second, about thirty addresses at the
+per-IP rate, sending even malformed requests, would hold every honest user
+out. The server-wide failure row is scoped to failures for exactly that reason
+(below). Without one, a server past its capacity answers slowly, and the client
+already treats a timed-out request as transient and retries (§6.12).
+
+**Why the batch caps are what they are.** 200 hashes is a request body of about
+13 KB and, at the median record size measured when the route was added (1.7 KB
+for a dance, 4 KB for a program), a response of about 350 KB before
+compression and about 30 KB after it, so a 1,000-record first download takes
+five requests. The 2 MB byte cap keeps even a response of unusually large
+records inside the client's 30-second request deadline on a slow connection —
+about 16 seconds at 1 Mbit/s with no compression at all — and is twice the 1 MB
+blob cap, so the first blob always fits.
+
+**Why an upload batch holds 50 blobs, and how it is charged.** The server stores
+a batch in one SQLite transaction: one quota check and one commit instead of one
+per blob, which is most of what a single `PUT` costs. The reference server
+serves every request on one thread, so nothing else is answered while a batch
+is stored. Measured on the reference server (in-process, a 4-vCPU Xeon, across
+runs, into a store of about 5,000 blobs), a single `PUT` costs 4–13 ms of
+handler time, growing with the store because its quota check scans the store's
+blob rows; a batch of 200 cost 210–250 ms, a stall every other user of the
+server would feel, and a batch of 50 costs 58–147 ms. 50 keeps the stall to
+what ten to twenty single `PUT`s cost.
+
+**Why 1 + ⌈*n*/10⌉.** A blob costs far more to store than to read — 1.2–2.9 ms
+each in a batch of 50, against 35–75 µs in a batch read — so the read's 20 per
+token would let one address spend, in the typical case, up to about three times
+the server time single `PUT`s let it spend: at the per-IP row's 5 a second, 75
+full batches a minute, 4.4–11 s of handler time against 1.2–3.9 s. At 10 per
+token one address sustains 2,500 blobs a minute in at most 50 batches,
+2.9–7.4 s, and in the worst case, with the 50 ms deletion retry on every
+request, about 9.9 s against single `PUT`s' 18.9 s. (These figures were first
+worked at the earlier 60 a minute, where each is a fifth as large, and the rule
+was approved on them.) Measured end to end through the reference client against
+the reference server at the shipped limits, a device publishing 1,000 records
+of its own finished in one pass and 19 seconds and 5,000 in two passes and about
+2.5 minutes, where one `PUT` a record, measured the same way, took four passes
+and about 4 minutes and seventeen passes and about 26 minutes. 5 per token would match a single `PUT`'s handler
+time per token and lengthen those waits.
+
+The failed-store-resolution rows raise the
 cost of casual probing and make an enumeration attempt visible in the operator's
 metrics, and the server-wide row keeps a distributed prober from consuming the
 service — a per-IP limit alone is defeated by distributing the guessing, which
@@ -1672,7 +2547,7 @@ qualify, and a server MUST count all four:
 
 | Outcome | What it reveals |
 | --- | --- |
-| `401` | The credential was malformed (§5.1). |
+| `401` | The `Bearer` value was malformed (§5.1). |
 | `403` | The sync ID fails the structural rule (§8). |
 | `404` on a store-scoped request | No store exists for this `id_key`. |
 | `409` on `POST /v1/store` | A store *does* exist for this `id_key`. |
@@ -1687,15 +2562,120 @@ row matters for the same reason in the opposite direction: without it, `POST`
 becomes the oracle that `GET` used to be, since "already exists" is as
 informative as "found".
 
-**The creation row bounds storage rather than guessing.** Every `POST` that
-succeeds costs a row that lives until §7.3 reaps it, and no per-ID limiter
-engages because each creation uses a fresh `id_key`. Honest creation happens
-once per store in its lifetime, so 60/minute is several orders of magnitude
-above legitimate demand and still caps live empty stores at roughly 2.6 million
-against the 30-day TTL. Without this row the failure budget alone would leave
-creation unbounded, because a *successful* creation is not a failure and must
-not be counted as one — an honest first pairing would otherwise consume the same
-budget as an attack.
+**The creation rows bound store rows rather than guessing, and not bytes.**
+Every `POST` that succeeds costs a row that lives until §7.3 reaps it, and no
+per-ID limiter engages because each creation uses a fresh `id_key`. Honest
+creation happens once per store in its lifetime, so 60/minute is several orders
+of magnitude above legitimate demand and still caps live empty stores at roughly
+2.6 million against the 30-day TTL. Without this row the failure budget alone
+would leave creation unbounded, because a *successful* creation is not a failure
+and must not be counted as one — an honest first pairing would otherwise consume
+the same budget as an attack. An earlier version of this paragraph said the row
+bounds *storage*. It bounds rows: each store it admits may still fill its own
+byte quota, so what the server-wide row protects is the store table and the
+sweep that walks it, and the bytes on disk are bounded only by the free-space
+floor below (amended 2026-11-11, with the floor).
+
+**The per-client-IP creation row is in front of the server-wide one.** The
+server-wide row is one window every address shares, so without a share per
+address one client could spend all of it — sixty creations, then `429` for
+every honest first pairing anywhere for the rest of the minute. A request the
+per-IP row refuses is not charged to the server-wide row, and one the
+server-wide row refuses gives its per-IP token back, so an address is charged
+only for stores it actually created. A burst of 5, refilled at 5 an hour,
+covers a household pairing and then replacing a store (§6.3 step 1) with room
+to spare; past it, `Retry-After` is the time to the next token, about twelve
+minutes. Behind carrier-grade NAT every subscriber sharing one IPv4 address
+shares one share, so a first pairing there can wait for a token; that is
+accepted, because creation is once per store and the wait is bounded. The
+server-wide row stays because the per-IP row binds nothing against
+a client holding many addresses — a /48 holds 65,536 /64s — and is what still
+bounds the store table then. Both values are the change author's choice
+(2026-11-11), and an operator may tune them with the rest.
+
+**Large-body requests are counted while they are in flight.** A manifest `PUT`
+and `POST /v1/blobs/missing` may carry 16 MB, a `PUT /v1/blobs/batch` 2 MB and a
+blob `PUT` 1 MB, and the reference server holds each body in memory while it
+reads, decodes and stores it. The request-rate rows count requests, not
+requests in flight, so they do not bound that memory: one address may start
+some 600 requests in a minute (the burst of 300 and 5 a second after it), and a
+client that sends its body slowly keeps each one open. Measured on the reference
+server before these rows (2026-11-11), 40 stalled 15 MB manifest `PUT`s took its
+resident memory from 169 MB to 740 MB, and 40 unread `GET`s of a 15 MB manifest
+from 170 MB to 746 MB, held there until the connections closed. With these rows
+and the streamed `GET`s below, the same `PUT`s ended at 137 MB from one address
+and 362 MB from 40, and the `GET`s at 123 MB.
+
+A server MUST bound how many it holds at once, per client IP and server-wide,
+and refuse one past either bound before reading its body: past the client's own
+share with `429`, past the server's with `503`, both with `Retry-After`. Other
+requests are not counted — their bodies are capped at 64 KB or absent — so a
+lookup, a read or a delete is never refused by these rows. A counted request's
+body MUST arrive whole within a deadline, or the server stops reading it,
+releases its slot and closes the connection; without one, a client that
+trickles its body, or sends part of it and falls silent, holds its slot for as
+long as the proxy lets it, and a handful of addresses doing so would hold every
+upload on the server out. The reference server closes the connection without a
+response, so the client sees a dropped connection rather than a status. Its
+deadline is 60 seconds, twice the reference client's 30-second request
+deadline, so it never cuts off a request that client is still waiting on.
+
+The reference server also answers a manifest `GET` and a blob `GET` from storage
+a chunk at a time as the client reads it, rather than holding the body whole
+until it is sent, so a client that stops reading pins about one chunk. A
+manifest `GET` is not a snapshot: each chunk is read afresh, and if the device
+replaces its manifest before the last chunk is read, the response ends short
+rather than splicing two manifests, and the reader fails the request as it
+would on a dropped connection. A reader on a slow link fetching a large
+manifest from a device that publishes often can therefore fail more than once;
+the change author accepted that over holding every manifest being sent in
+memory, since the next attempt starts again with the then-current manifest.
+
+The server-wide row refuses honest uploads while it is full, which is the cost
+§5.4 rejected for a server-wide *request* limit (above). It is accepted here
+because the alternative is not a slow server but an exhausted one, which
+refuses everyone everything; because it engages only on large-body requests,
+after each address's share, so it takes several addresses each holding its
+whole share to fill it; and because the body deadline bounds how long any
+request can hold a slot. It does not stop an attacker with many addresses — a
+/48 holds 65,536 /64s — from keeping it full by sending slow bodies one after
+another, any more than the server-wide creation row stops one from spending
+its creations; it turns what would be a server out of memory into uploads
+refused for as long as the attack lasts, with lookups, reads and deletes
+unaffected, and the reference server raises an operational alert when it
+engages. A client refused it treats the `503` as transient and retries by
+itself (§6.12). The values, 4 per client IP and 16 server-wide, are the change
+author's choice (2026-11-11): the reference client sends one request at a time,
+so 4 leaves room for a few devices behind one address, and 16 holds the worst
+case near 256 MB of bodies. An operator may change them.
+
+**The free-space floor keeps a full disk from becoming an outage** (amended
+2026-11-11). Every quota above is per store, and creating a store needs only a
+structurally valid sync ID, so nothing per store bounds the bytes all stores
+together write. When the disk fills, every SQLite write fails for everyone,
+including the `last_seen` write every request makes, and the server stops
+answering correctly at all. So a server MUST refuse blob and manifest writes
+with `507` while the filesystem holding its data has less free space than a
+floor, and MUST keep serving reads and deletes below it. It MUST still admit a
+manifest `PUT` no larger than the manifest that device already has stored:
+a manifest that drops entries without naming any new blob — the one a device
+publishes after the user turns on *Skip unused imported dances*, which is the
+advice the reference client gives with a `507`, or after records are erased
+outright — is how a user shrinks what a device holds in the store, and refusing
+it would leave `DELETE /v1/manifests/{deviceId}` and `DELETE /v1/store` as the
+only remedies, where §5.3 forbids offering the destructive one first. Deleting
+a record does not shrink anything below the floor: it publishes a tombstone,
+which is a new blob, and that upload is refused like any other. A
+store's other requests — creation, lookup, `POST /v1/blobs/missing` — write at
+most a row and are not refused. A server that cannot read its free space admits
+the write: the floor is a margin ahead of a full disk, and refusing every upload
+because the margin cannot be measured would be an outage of its own. A floor,
+rather than a server-wide byte quota or a cap on live stores, was the
+maintainer's (@ibanner56's) choice among the remedies the 2026-11 server audit
+put to them; the rule's details and the reference server's default of 1 GiB
+are the change author's. That default is four times what its large-body
+requests in flight can write at once, so writes already past the check cannot
+take the disk to empty; an operator may change it, or set it to zero.
 
 These specific values are my choice, not a derivation from anything in the
 design; what is derived is the *shape* — that the limit which matters counts
@@ -1707,8 +2687,8 @@ bounded guessing to begin with.
 
 A server-wide failure limit would be a denial-of-service vector if it could lock
 out honest users, so it MUST be scoped to requests that *fail*: while it is
-saturated the server MUST continue to serve correctly-authenticated requests
-normally, and reject only those that would have produced one of the four
+saturated the server MUST continue to serve requests that resolve an existing
+store normally, and reject only those that would have produced one of the four
 outcomes above anyway. This is the rule that stops the budget from bounding
 guessing — a refused guess is still an answered guess — and it is kept anyway,
 because the alternative hands every attacker a total outage for the price of
@@ -1721,6 +2701,11 @@ budget is saturated is refused, which is the one honest case this control can
 delay; it is bounded by the same window, and it is the price of making a wrong
 guess cost something.
 
+*Amended 2026-11-11: wording only, following the maintainer's decision quoted
+at §6.14 item 2. "Correctly-authenticated requests" is now "requests that
+resolve an existing store" — the set the rule's second clause already
+implied, and the wording §9's vector for this rule already used. The requirement is unchanged.*
+
 ## 6. Client conformance
 
 ### 6.1 Enablement
@@ -1731,10 +2716,10 @@ top-level Settings blade.
 
 Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync,
 with two exceptions: `sync_device_id` is `protocolIdentifier` and `sync_id` is
-`accessControlData` (§3.3). Both travel on every request and MUST NEVER be
+`storeAddress` (§3.3). Both travel on every request and MUST NEVER be
 applied from a peer. Neither exception widens what a *record* may carry: both
 are forbidden from every blob, and a blanket rule that omitted them would
-classify the bearer credential as never-transmittable while the protocol
+classify the store address as never-transmittable while the protocol
 requires it on every request.
 
 **Every key the feature introduces MUST also be excluded from the JSON
@@ -1742,7 +2727,7 @@ backup.** `isBackupEligibleSettingKey` treats `kBackupSettingsDenylist` as the
 whole of the exclusion and everything else as content a restore replaces, so a
 key that is merely classified still travels. W5 and W13 MUST denylist each key
 they add, and a restore test MUST assert that restoring a backup taken on a
-syncing device leaves sync off, adopts no device ID, and stores no credential.
+syncing device leaves sync off, adopts no device ID, and stores no sync ID.
 
 This does **not** follow from the classifications above, and MUST NOT be
 justified that way. The backup filter is not derived from `EgressClass` and
@@ -1756,8 +2741,13 @@ A restored `sync_enabled` contradicts the first paragraph of this section,
 which requires sync be off until the user turns it on — consent given on one
 device is not consent on another. A restored `sync_device_id` is exactly the
 adoption §3.3 rule 3 forbids, and hands two devices one manifest by a route no
-envelope check sees. A restored `sync_id` puts a bearer credential into a
-plaintext file users mail to themselves.
+envelope check sees. A restored `sync_id` puts a store address into a
+plaintext file users mail to themselves, and attaches whatever device restores
+it to that store.
+
+*Amended 2026-11-11: wording only. The restore test's "stores no credential" is
+now "stores no sync ID", the only value it ever referred to, following the
+maintainer's decision quoted at §6.14 item 2. The test is unchanged.*
 
 **`sync_exclude_imports`** is one of those keys: a per-device toggle, default
 **off**, which trims what this installation publishes. It is `deviceScoped`
@@ -1802,7 +2792,8 @@ republishes, which is an ordinary upload and needs no special path.
    from §6.3 step 1, where durable prior success permits the client to explain
    disappearance and offer replacement.
 3. **Fresh attach** always: on first attach, on re-attach after detach, and on
-   `409`. Detach MUST forget the sync ID entirely.
+   `409`. Detach MUST forget the sync ID entirely, and the device ID with it
+   (§3.3); the attach that follows mints a new one.
 4. Upload every local record; download every remote record. Inbound rejection
    (§6.9) applies here as in steady state.
 5. **Union**, then dedupe (§6.10). **Absence never deletes during a fresh
@@ -1824,23 +2815,39 @@ republishes, which is an ordinary upload and needs no special path.
    deleted. Where two peers advertise the same id with different content, the
    higher `updatedAt` wins. Where the two `updatedAt` values are **equal** and
    the bodies differ, §6.3's tie treatment applies here too: neither body wins,
-   the local one is left in place, and the divergence MUST be reported. Step 6
-   then persists that local body's hash as the baseline, so the record presents
-   as `same`/`changed` on every later pass and carries §6.3's reporting duty
-   from then on. What a fresh attach MUST NOT do is apply one body over the
-   other silently. The two devices do not converge either way — that is why this
-   sits in §10 — so the report is the whole of the requirement, and suppressing
-   it is the whole of the harm.
-6. Persist the epoch and the resulting manifest as the new baseline. Quarantine
+   the local one is left in place, and the versions MUST be queued for the
+   user's choice (§6.6, *Conflict choices*). **No peer carries the local hash,
+   so step 6 records no baseline entry for that record** (§6.3 step 9). It is
+   absent from the baseline on both sides, resolves as `changed`/`changed` on
+   every later pass, and stays queued until the user chooses. What a fresh
+   attach MUST NOT do is apply one body over the other silently. The two devices
+   do not converge until someone chooses, so the queued choice is the whole of
+   the requirement, and dropping it is the whole of the harm.
+
+   *Amended 2026-10-02: this step required the divergence to be reported. A
+   report re-raised the same tie on every pass and offered no way to settle it
+   but an unrelated edit; the queue asks the question once and terminates when
+   it is answered, for the reason §6.6 step 2 already routes there.*
+
+   *Amended 2026-09-22: this step used to have step 6 baseline the tied local
+   body's hash, so the record would present as `same`/`changed` afterwards. That
+   contradicts §6.3 step 9, §3.1 and ADR-004, which advance an entry only where
+   a peer was observed to carry this device's hash — which, in a tie, none does.
+   Baselining it would record an agreement no peer confirmed. The reporting duty
+   the step was reaching for is unchanged; `changed`/`changed` carries it too.*
+6. Persist the epoch and the resulting manifest as the new baseline, advancing
+   **only** entries a peer was observed to carry (§6.3 step 9). Quarantine
    and repair run **after** this, never during the union.
 7. **Immediately run one steady-state pass (§6.3).** Attach itself publishes
-   nothing: it uploads blobs at step 4 and writes no manifest, so until §6.3
-   step 8 runs, this device is absent from §7.1's `devices` list, no peer can
-   see any record it holds, and by §7.3 the blobs it just uploaded are
-   unreferenced and become collectable once the grace window elapses. A device
-   attaching to an empty store — the shape on first attach, and again after a
-   user confirms replacement of a store that no longer exists — would otherwise
-   seed nothing at all.
+   nothing: it uploads blobs at step 4 and writes no manifest, so the
+   attach-only upload MUST NOT mark `published_records`. Until §6.3's final
+   snapshot is protected before its blob negotiation and its step 8 manifest
+   runs, this device is absent from §7.1's `devices` list, no peer can see any
+   record it holds, and by §7.3 the blobs it just uploaded are unreferenced
+   and become collectable once the grace window elapses. A device attaching to
+   an empty store — the shape on first attach, and again after a user confirms
+   replacement of a store that no longer exists — would otherwise seed nothing
+   at all.
 
    This pass is a **continuation of the attach**, not a second concurrent
    operation, and §6.12's single-flight rule MUST NOT be read as forbidding it.
@@ -1862,8 +2869,46 @@ republishes, which is an ordinary upload and needs no special path.
    blob or `POST` request while the decision is pending. Confirmation issues
    exactly one `POST /v1/store`, then fresh-attaches and stops; declining leaves
    sync configured but paused so a later user action can reconsider.
+   Confirmation is a manual attempt and is subject to §6.12's connection gate,
+   so on a metered connection with *Sync only on Wi-Fi* on it sends nothing and
+   the decision stays pending; and a `409` on that `POST` means only that a
+   store exists for this `id_key` (§5.3), which on this path can only be another
+   holder of the same sync ID, so the client MUST adopt it and fresh-attach
+   without a second `POST` rather than re-asking. Any other non-2xx fails the
+   attempt and leaves the decision pending.
 2. Compute the local manifest.
-3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`.
+3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`. A `429`
+   here ends the pass as a transient failure (§6.12) before anything is
+   applied. It MUST NOT be reported as an unreadable peer manifest, and on a
+   fresh attach it MUST NOT fail the attach as a peer that could not be read:
+   it is this device's request rate, not the peer, and it clears by waiting.
+   A `5xx` other than `507` here is the server failing, not the peer. On a
+   fresh attach, which cannot finish without every peer's list (§6.2), it
+   ends the pass as a transient failure, so the client retries by itself
+   rather than asking the user to see to their other devices. In steady state
+   the pass carries on as for any unreadable peer manifest: without that
+   peer's list no baselined record can be decided, so every one waits for the
+   next pass, and only records new to this device arrive from the peers that
+   could be read. It MUST NOT be reported as an unreadable peer manifest,
+   whose remedy is the other device. The pass still applies, publishes and
+   advances the baseline as far as it can (steps 4–9), and then ends as that
+   transient failure rather than as completed: a completed pass would cancel
+   the automatic retry (§6.12) and move the last-success time that §6.14
+   item 4's expiry warning reads, so a fault that persisted would hold every
+   shared edit back while the status said synced. Any other non-success answer,
+   a `404` included, is still about that peer's list and is reported as
+   before.
+
+   > **Amended 2026-10-12.** A `5xx` on a peer manifest was reported as an
+   > unreadable manifest in steady state and failed a fresh attach as a peer
+   > that could not be read; both pointed the user at their other devices
+   > for a server fault. The maintainer chose this split in the session that
+   > made the change, over stopping every pass on a `5xx` (which would also
+   > lose the records new to this device that the readable peers can still
+   > deliver) and over leaving it as it was. In the same session the
+   > maintainer chose ending the finished steady-state pass as the transient
+   > failure, over keeping it completed and over raising a server-fault
+   > notice instead; the first version of this rule kept it completed.
 4. Per record, resolve existence first (§6.4), then compare hashes and
    `updatedAt`:
 
@@ -1914,40 +2959,90 @@ republishes, which is an ordinary upload and needs no special path.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 49 settings keys are
-   `shareable`. Records with UUID ids reach it too, because archive
+   before the next pass reach exactly this state, and 64 settings keys are
+   `shareable` (exact keys in `settingsClassifications` whose egress is
+   `shareable`, counted 2026-10-15), as is one prefix entry,
+   `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
    Resolving it as `changed`/`changed` rather than inventing a rule keeps one
    tie-break in the document: the higher `updatedAt` wins, an equal `updatedAt`
-   with differing bodies does not resolve and MUST be reported, and §6.2 step
-   5 — which already specifies this situation for fresh attach — stays
-   consistent with steady state instead of being the only place it is written
-   down.
+   with differing live bodies does not resolve and MUST be queued for the
+   user's choice, and §6.2 step 5 — which already specifies this situation for
+   fresh attach — stays consistent with steady state instead of being the only
+   place it is written down.
 
    Both `updatedAt` comparisons are strict, and that is deliberate. Where
-   `updatedAt` is **equal** and the bodies differ, the `changed`/`changed` row
-   does **not** resolve: neither side wins, neither body is applied, and the
-   divergence MUST be reported. The `same`/`changed` row's strict `>` likewise
-   leaves an equal-`updatedAt` difference un-downloaded rather than guessing,
-   and MUST report it on the same terms. That row carries a reporting duty
-   because it is where a tie left unresolved anywhere else — including at a
-   fresh attach (§6.2 step 5) — resurfaces on every subsequent pass; without it
-   the divergence would be permanent *and* silent, and §10's claim that ties are
-   reported bilaterally would be false. An implementation MUST NOT invent a
-   tie-break — silently keeping local and silently taking remote are both
-   non-convergent, and a device choosing either disagrees permanently with a
-   peer that chose the other.
+   `updatedAt` is **equal** and the live bodies differ, the `changed`/`changed`
+   row does **not** resolve: neither side wins, neither body is applied, and
+   every distinct version MUST be queued for the user's choice (§6.6,
+   *Conflict choices*). The `same`/`changed` row's strict `>` likewise leaves
+   an equal-`updatedAt` difference un-downloaded rather than guessing, and MUST
+   queue it on the same terms. That row carries the duty because it is where a
+   tie left unresolved anywhere else — including at a fresh attach (§6.2 step
+   5) — resurfaces on every subsequent pass; without it the divergence would be
+   permanent *and* silent. Where the tied versions are all tombstones there is
+   nothing a user could choose between, and the divergence MUST be reported
+   instead. An implementation MUST NOT invent a tie-break — silently keeping
+   local and silently taking remote are both non-convergent, and a device
+   choosing either disagrees permanently with a peer that chose the other — and
+   it MUST NOT substitute a convergent rule (an ordering of body hashes, say)
+   for the user's choice: a rule that converges still discards one device's
+   edit without asking, which is the outcome this row exists to prevent
+   (@ibanner56's ruling, 2026-10-02).
+
+   The choice is put to the user only when the tied versions differ in
+   something the user is shown. Bodies are compared as this device would
+   store them: without the body's own `id`, and with references to records
+   natural-key reconciliation merged away (§6.6, `id_aliases`) read as the
+   records they were merged into. A peer's copy of a merged-away record is
+   evaluated under the surviving id but still names its own, and the
+   reconciled survivor carries that copy's `updatedAt`, so counting either id
+   as content would queue a record against itself. Versions whose
+   user-visible fields (`syncUserVisibleBody` in
+   `packages/compendium_core/lib/src/sync/sync_conflict_compare.dart`: the
+   fields the conflict comparison shows, plus a dance's import source and
+   licence, which its page shows) are equal but whose other content differs —
+   provenance details, say — are settled without the user. A part this build
+   keeps for a newer version is never one of the fields shown, whatever the
+   kind and however deep it sits in a field shown whole (§6.7). Every synced
+   field is either shown or listed in `syncUserHiddenFields` with the reason nothing
+   shows it, and `sync_user_visible_fields_test.dart` fails the build for a
+   synced field in neither, so a new field is never settled silently by
+   omission. Such a tie is settled the same way everywhere: every device keeps
+   the version whose content hash is lowest, so all of them keep the same one.
+   That is the convergent rule the ruling above forbids, applied only where
+   choosing is arbitrary because nothing the user could weigh differs. The
+   exception is not part of that ruling: it was requested in
+   [PR #1729](https://github.com/ibanner56/CallersCompendium/pull/1729)
+   (2026-10-11), and is the owner's to keep or reverse there.
+   Where several versions are offered, one that looks the same as this
+   device's or as another offered version is not shown. A version offered
+   from a merged-away copy is written through the apply engine, which rewrites
+   its id to the survivor.
+
+   **Whole-collection settings.** Eight settings keys hold a whole user-built
+   collection behind one key: `compound_shorthands`, `custom_dialects`,
+   `custom_dialects_ecd`, `custom_dialects_square`, `custom_themes`, `shorthand_mappings`, `user_figure_shorthands` and
+   `walkthrough_snippets`. For these, a
+   `changed`/`changed` conflict MUST be queued for the user's choice whatever
+   the two `updatedAt` values, because last-writer-wins would discard one
+   device's entire set rather than one edit. Both sides must have changed since
+   the baseline; with no baseline (a fresh attach) both count as changed. A
+   one-sided change still uploads or downloads as the table says.
 
    One tick is one second (§2), so this is reachable in ordinary use: bulk
    imports, fresh attaches, and concurrent repairs (§6.9) all produce edits that
    land within the same second. Recorded as a limitation in §10.
 
    With N peers, evaluate against all and take the newest `updatedAt`.
-5. `POST /v1/blobs/missing`; `PUT` only what is missing.
-6. `GET /v1/blobs/{hash}` for each needed hash. The client MUST verify the hash
-   before applying, and MUST verify that the decoded envelope's `kind` and `id`
+5. Fetch the blob for each needed hash that this device does not already
+   hold: `POST /v1/blobs/batch` (§5.2) for up to 200 at a time, in the order
+   the records are needed (below), and `GET /v1/blobs/{hash}` against a server
+   without that route. A hash a response did not send is asked for again in
+   the next batch. The client MUST verify every blob's hash before applying,
+   however it arrived, and MUST verify that the decoded envelope's `kind` and `id`
    are exactly the pair the fetched manifest entry was filed under (§4.5).
    A blob whose envelope declares a different identity MUST be skipped and
    reported, never applied under either identity. Hash verification alone does
@@ -1960,29 +3055,135 @@ republishes, which is an ordinary upload and needs no special path.
    manifest's identity stores one record's body under another's id; applying it
    under the envelope's identity mutates a record the manifest never named while
    step 9 advances the baseline for the one it did.
-   A `404` here MUST be treated as an **unresolved reference**
+   A `404` here — or a *missing* frame in a batch, which means the same —
+   MUST be treated as an **unresolved reference**
    — skip the record and report it (§6.7) — and MUST NOT be treated as a
    deletion, since absence never deletes (§6.8) and the peer's manifest still
    asserts the record exists. The record MUST NOT advance in the baseline, so
-   the next pass retries it; if this device is the record's origin, step 5 will
-   find the blob missing and re-upload it. This is reachable without a faulty
-   peer: a manifest can outlive its blob by §7.3.
-7. Apply in one transaction (§6.7). Rebuild derived indexes.
-8. `PUT /v1/manifests/{self}`. A client relying on §3.1's forfeiture rule MUST
-   record every record the manifest names in `published_records` **before**
-   issuing the request. A crash between the two then over-marks rather than
-   under-marks, and those costs are not equivalent: an under-mark forfeits the
-   guarantee, while an over-mark makes a later hard delete of that record fall
-   back to a tombstone. The over-mark is not free — a tombstone left behind by
-   an undone import is exactly what §3.1's `hardDelete` exemption exists to
-   avoid — but it is recoverable and visible, where the under-mark is neither.
-   This step is the only point at which a record becomes exposed: §6.2 performs
-   no manifest `PUT` of its own, and by §7.3 a blob is unreachable until some
-   manifest references it, so the blobs uploaded at attach step 4 create no
-   window ahead of the first mark. Attach reaches publication by *running this
-   pass* (§6.2 step 7), which is why there is still exactly one publication
-   point to reason about — and why those blobs are published well inside §7.3's
-   grace window rather than relying on it.
+   the next pass retries it; if this device is the record's origin, step 7 will
+   find the blob missing and re-upload it — at the latest once the refresh
+   interval of step 8 has passed, since until then step 7 does not ask again
+   about a blob its published manifest already names. This is reachable
+   without a faulty peer: a manifest can outlive its blob by §7.3.
+
+   **A `429`, a `5xx` other than `507`, or a network failure is not about the
+   record, and MUST NOT be reported as one.** After a `429` every later
+   request fails the same way until the limit refills, and such a `5xx` or a
+   dropped connection says the server or the link is in trouble, so the client
+   MUST stop requesting blobs for the rest of the pass. This holds for a batch
+   exactly as for a single request, with one addition: every blob a batch
+   delivered whole before its connection dropped is kept, verified and applied
+   like any other. The record whose request failed, and every record still to
+   fetch, is *not fetched yet*: it is excluded from the merge, the
+   baseline does not advance for it, and nothing is decided about it — exactly
+   as for a `404` — but it raises no report, because nothing was skipped. A
+   record whose blob this device already holds needs no request and is still
+   taken. The client then merges and applies what it did fetch (step 6) and
+   ends the pass as a transient failure (§6.12), carrying the server's
+   `Retry-After`, without steps 7–9: every one of their requests would meet
+   the same limit or fault. A fresh attach stopped this way stays unfinished
+   and is resumed by the next pass. Reporting each such record as unresolved
+   told the user that a large first download had skipped most of the library
+   because of a version mismatch, and re-fetched it into the same limit on
+   every later pass. A `404` and a hash mismatch stay reports, as above.
+
+   So that each later pass resumes rather than restarts, the client MUST fetch
+   in kind order across all peers — every other kind a record can cite
+   before the record's own kind — and MUST hold back, unreported and as not fetched yet,
+   every fetched record that cites a not-fetched one, directly or through
+   other fetched records. Kind order alone cannot do it: a dance can link to
+   another dance, and those links can form a cycle. Without both, stopping
+   between a dance and a tag or dance it names turns the dance into an
+   unresolved-reference report about a record that is merely not fetched yet.
+   The client SHOULD also keep the blobs it has fetched for the rest of the
+   session, keyed by hash, so a record held back costs no request next time. Without the second, a
+   blob fetched and then not applied — the local copy won, or the choice waits
+   for the user — is fetched again by every pass, and enough of them ahead of
+   the rest can spend every pass's request budget on the same records. The
+   reference client keeps up to 8 MB of fetched blobs in memory, never on
+   disk.
+
+   > **Amended 2026-10-11, batches.** Step 5 fetched one blob per request,
+   > so a first download of 1,000 records met the per-IP request limit
+   > (§5.4) every minute and took about 16 minutes over 17 passes. The batch
+   > route and the order of fetching by batch were added by the change that
+   > added this note, by its author rather than the maintainer.
+   >
+   > **Amended 2026-10-11.** Step 5 said only how a `404` is treated, and the
+   > reference client treated every non-success response the same way. A
+   > user's first connection met the per-IP request limit (§5.4) part-way and
+   > reported 140 records as skipped. Whether `5xx` other than `507` and
+   > network failures stop the pass with it was decided in the change that added this paragraph, by
+   > its author rather than the maintainer: they are what §6.12 already calls
+   > transient on every other request in a pass.
+6. Apply in one transaction (§6.7), bringing the derived indexes up to date
+   inside it for what the batch applied (§6.7, *Derived indexes*).
+7. Recompute the local manifest from the post-apply state. Before any
+   publication network request, a client relying on §3.1's forfeiture rule
+   MUST record every address named by this final manifest in
+   `published_records`. Then issue `POST /v1/blobs/missing`; `PUT` only what is
+   missing from that final manifest. The marker protects a concurrent hard
+   delete during blob negotiation and upload, even if either request fails.
+
+   A client MAY leave out of that `POST` any hash named by the manifest it
+   last published (step 8), while that publication is *current*: it is
+   recorded as landed, the store still lists this device, and the store
+   confirmed every blob that manifest names less than the refresh interval
+   ago (12 hours in the reference client) by this device's clock, which has
+   not gone back since. Such a blob is in the store and stays there while
+   this device's manifest names it (§7.3). Asking about every hash again is
+   always conforming. A pass that leaves hashes out does not reset the
+   interval; one that asks about every hash does.
+
+   Upload with `PUT /v1/blobs/batch` (§5.2), up to 50 blobs and 2 MB of blob
+   bytes at a time, and with `PUT /v1/blobs/{hash}` for a blob over the blob cap
+   and against a server without the route. A blob a batch refuses is that
+   refusal of its single `PUT`, and stops the upload as it would; every blob
+   the batch stored counts as stored, before the refusal or after it. A `429`,
+   a `5xx` other than `501` and `507`, or a network failure answering the whole
+   batch stops the upload as it would on a single `PUT`.
+
+   > **Amended 2026-10-12, batches.** Step 7 uploaded one blob per request, so
+   > a device publishing 1,000 records of its own met the per-IP request limit
+   > (§5.4): over about 16 minutes at the 60 a minute then in force, and over
+   > four passes and about 4 minutes at 5 a second, measured. The batch upload was added by the change that added
+   > this note, by its author rather than the maintainer.
+8. `PUT /v1/manifests/{self}`, unless the last publication is current (step
+   7), the final manifest, encoded with its `writtenAt` fixed, is
+   byte-identical to the one it recorded, and the pass took every record its
+   peers' manifests list. A pass that left any peer's record unresolved,
+   refused it (§6.9) or held it back as quarantined publishes regardless, so
+   that a device refusing a record keeps publishing as §6.9's judgement of it
+   requires. A peer manifest that could not be read, for any reason including
+   a `5xx` (step 3), lists records the pass did not take, so it counts the same
+   whether or not this device has a baseline. A client that skips the `PUT` skips
+   step 7's network requests with it, and still stores the baseline (step 9).
+   The record of what was published MUST be cleared before every `PUT` and
+   written only after one succeeds: a `PUT` whose answer was lost may still
+   have replaced the manifest. A device the store no longer lists has lost its
+   manifest (§5.3), so its publication is never current.
+
+   > **Amended 2026-10-13.** Every pass re-checked every blob of the library
+   > and rewrote the manifest, and the new `writtenAt` alone gave it a new
+   > `ETag`, so each peer downloaded it in full on its next pass even when
+   > nothing had changed. The maintainer asked for unchanged passes to send
+   > neither, and for the record to persist across restarts. The 12-hour
+   > interval, which bounds how long a blob lost to the stall case of §7.3
+   > goes unrepaired and how stale a busy device's `writtenAt` can get (§6.9),
+   > was chosen by the change that added this note, by its author rather than
+   > the maintainer.
+
+   The marker was written in step 7 before blob
+   work, and the client MUST retain that protection before issuing this
+   request. A crash between the marker and the request then over-marks rather
+   than under-marks, and those costs are not equivalent: an under-mark forfeits
+   the guarantee, while an over-mark makes a later hard delete of that record
+   fall back to a tombstone. The over-mark is not free — a tombstone left
+   behind by an undone import is exactly what §3.1's `hardDelete` exemption
+   exists to avoid — but it is recoverable and visible, where the under-mark
+   is neither. Attach reaches publication only by *running this pass*
+   (§6.2 step 7); its attach-only blobs create no exposure window because no
+   manifest can reference them before this continuation.
 9. Store the new baseline. A record's entry advances **only** where a peer's
    manifest was observed to carry this device's current content hash.
 
@@ -1997,9 +3198,8 @@ any path.
 existence silently, on any path that reaches this rule.** Where the comparison
 above would resolve a local row to non-existence and that row is **absent from
 this device's baseline** — created here, never observed on any peer manifest —
-the resolution MUST be reported rather than applied, on the same terms as
-§6.3's equal-`updatedAt` divergence. Report and leave the local row in place; do
-not invent a tie-break. §6.6 step 2 states the same obligation for the
+the resolution MUST be reported rather than applied. Report and leave the local
+row in place; do not invent a tie-break. §6.6 step 2 states the same obligation for the
 natural-key collision path, which reaches non-existence without consulting this
 comparison at all; both paths need it, and neither subsumes the other. The
 obligation is shared but the **outcome is not**: §6.6 step 2 routes its pair to
@@ -2066,6 +3266,31 @@ above that tombstone by construction, so it cannot tie with it — leaving only
 genuinely concurrent transitions on two devices that have not yet seen each
 other's, within one tick of each other.
 
+**Between tombstones, a tie takes the permanent-deletion mark.** When a
+tombstone tied at the greatest `existenceAt` carries
+`deletedAt` = the unix epoch (§3.2, *a permanently deleted record stays
+published*), the existence winner, and so the `deletedAt` every device keeps, is
+that copy. Both copies record the same deletion; the marked one has only gone
+further, and taking the other's `deletedAt` would list the record in Recently
+deleted again. The rule chooses among deleted copies only, so it never decides
+between a tombstone and a revival. *Amended 2026-10-30 (LIFE-2 follow-up); the
+implementer's choice, so that the retention purge need not stamp
+`existenceAt`.*
+
+**"By construction" holds only where the tombstone was applied to the row.** A
+tombstone held pending under §6.8 is deliberately *not* written to the row, so
+the row's `existenceAt` is still its pre-deletion value and the causal floor
+carries no knowledge of the tombstone at all. Cancelling such a hold MUST
+therefore floor explicitly against the held tombstone's own `existenceAt`,
+taking `max(localNow, currentExistenceAt + 1 tick, heldExistenceAt + 1 tick)`.
+Flooring against the row alone yields the bare clock, and a device whose clock
+is behind the deleting peer's — or one that deletes, syncs and edits inside a
+single tick — would stamp at or below the tombstone it is cancelling, which
+this section then resolves in the tombstone's favour. The floor MUST be read
+from the retained tombstone blob, never from `pending_deletions.tombstoned_at`,
+for the reason given below: `deletedAt` is a state indicator, never a second
+comparand.
+
 This rule MUST be applied on every path that can decide existence:
 
 | Path | Requirement |
@@ -2107,16 +3332,50 @@ both:
 > advance its `updatedAt`.
 
 > **I2.** No write may advance `updatedAt` while leaving both `body` and the
-> record's existence state unchanged.
+> record's existence state unchanged — except a conflict choice, or a
+> reconsideration of one, that keeps a version whose body this device already
+> holds (§6.6, *Conflict choices*).
 
 I1 protects the merge discriminator; a record's serialised form includes fields
 hydrated from other tables, so a write that never touches the record's own row
 can still change what it publishes. I2 protects the repair classifier in §6.9,
 which compares body hashes: a metadata-only re-stamp would be invisible to it.
 
-**I1 has exactly one exception, and it is stated as a property rather than as a
-name.** An operation MAY change serialised content without advancing
-`updatedAt` if and only if it satisfies **both** of the following.
+I2's one exception is the user keeping a version this device already holds —
+their own in a conflict choice, or, when reconsidering a choice, the version
+the first choice already wrote. The body is unchanged by definition, and the re-stamp is the only thing that
+lets it reach the other devices as a newer edit. It does not weaken what I2
+protects: the stamp is computed from the versions on offer and the local clock,
+and a decision that would land outside the clock window is refused rather than
+written (§6.6), so the re-stamp can never be the poisoned value §6.9 repairs.
+
+A dance's body carries a custom-field value only while that field's definition is
+live and shareable, so the definition's wire eligibility is such a join-hydrated
+input to every dance holding a value for it. Changing it — flipping `shareable`,
+deleting the definition, or restoring it — MUST advance `updated_at` on every
+such dance, live or tombstoned, in the same transaction, and MUST NOT when
+eligibility is unchanged (a private definition's delete or restore alters no
+body, so I2 forbids the stamp). The stamp is at least one stored tick past the dance's current `updated_at`, so
+it never ties or moves backward. Inbound definition writes are exempt (§6.7).
+Without the stamp two devices hold one `updatedAt` over two bodies and §6.3
+raises the same conflict on every pass.
+
+**Inbound envelope timestamp normalisation is a separate, narrower exception.**
+For `dance` and `program`, a receiver MAY change only the body's redundant
+`updatedAt` and `deletedAt` projections without advancing the envelope's
+`updatedAt` when it replaces them with the trusted envelope values. It MUST
+preserve `createdAt` and every other body field, apply the rule before every
+decode and before reconciliation, and compute any republished wire hash from
+the complete projected blob. This exception is deliberately limited to
+metadata whose authoritative copy is already in the envelope. An arbitrary
+normalization change MUST instead be rejected and reported as
+`nonCanonicalWireBody`; the report skips only that record and does not gate the
+rest of the batch.
+
+**Apart from that inbound metadata rule, I1 has exactly one content-derived
+exception, and it is stated as a property rather than as a name.** An operation
+MAY change serialised content without advancing `updatedAt` if and only if it
+satisfies **both** of the following.
 
 1. **Content-derived.** Its output is a pure, idempotent function of the
    database's existing content. It MUST NOT consult the clock, the device
@@ -2213,6 +3472,36 @@ rule that decides on "local" versus "incoming" does not converge.
 `deviceLocal` coalescing applies to step 2 only. Step 1 involves two
 pre-existing local rows and MUST NOT coalesce.
 
+**A step-1 row's identity layout is the reverse of a tombstone row's, and the
+reversal is load-bearing.** The candidate is an update to a record this device
+already holds, so the queued row carries that record's id as `record_id` — the
+candidate blob's own id — and the *other* local row, the one currently holding
+the natural key, as `counterpart_id`. A tombstone row carries the live local
+row as `record_id` and the peer's tombstoned id as `counterpart_id`. An
+implementation that shares one identity precondition across both reasons
+rejects every step-1 row without saying so.
+
+**Step-1 rows MUST be resolvable**, by the generic keep-both-or-merge decision
+and by nothing kind-specific:
+
+- **Keep both** renames the row holding the name — `counterpart_id` — to a name
+  the user supplies, which MUST be rejected if any row already holds it
+  (including a tombstoned one, since the indexes are not filtered on
+  `deleted_at`), and then applies the candidate to `record_id` unchanged.
+- **Merge** adopts onto the lexicographically smaller of the two ids, except
+  that a canonical shipped difficulty ID outranks it where one applies, and
+  MUST NOT coalesce: the losing row's `deviceLocal` values are not carried
+  across. A client MUST tell the user before a merge that discards values held
+  nowhere else, which today means a choreographer's contact block.
+- Both actions MUST first re-validate the persisted candidate hash and the
+  `local_hash` rule below, and MUST refuse if the counterpart no longer holds
+  the colliding natural key — a user who renamed one side by hand has already
+  answered the question.
+
+Leaving these rows unresolvable is not a neutral omission. The peer's update is
+skipped on every pass while the row stands, so the record stops converging
+until the user happens to rename one side with nothing telling them to.
+
 **A record this device created and no peer has seen MUST NOT be reconciled out
 of existence silently.** Where step 2 resolves the survivor to non-existence
 and the losing local row is **absent from this device's baseline** — created
@@ -2271,6 +3560,70 @@ to fall outside the window; and repair revisits only records already flagged,
 so no repair path reaches it. Without this rule the record the user created
 moments ago disappears from their own device, with nothing reported.
 
+**A persisted review also carries the local version that made the choice
+safe.** For every actionable baseline-absence tombstone row **and every
+actionable step-1 rename-collision row**, `local_hash` MUST be the complete
+`wireHash` of `record_id` when the row is queued. Before any alias, rename, merge, tombstone, or candidate write, the
+resolver MUST reconstruct that local record inside the transaction and require
+that its current wire hash equals the non-NULL `local_hash`. A NULL legacy
+value or a mismatch MUST fail with the stale-candidate outcome and MUST retain
+the queue row without writing. This check is in addition to the persisted
+candidate blob/hash, natural-key, and `existence_at` checks. A row left stale
+this way is recovered by the next pass, which re-observes the pair and refreshes
+the row to the current hashes (below); it does not need an epoch reset, and MUST
+NOT be repaired by relaxing the check.
+
+**A queued row is refreshed when the pair moves, and left alone when it does
+not.** Re-observing a pair whose `reason`, `candidate_blob`, `candidate_hash`
+and `local_hash` all match the queued row MUST be a no-op — in particular it
+MUST NOT rewrite `queued_at`, so a row's age stays the age of the observation
+that raised it. Where any of those four has moved, the row MUST be replaced
+atomically with the current values and a fresh `queued_at`. A decision taken
+against the row as it was before a replacement MUST fail with the
+stale-candidate outcome, because the resolver compares the whole row and not the
+queue key alone.
+
+Refresh updates the inputs of a pending *choice*; it never decides it. §6.10's
+"a queued pair MUST NOT be re-resolved while pending" is unaffected, and so is
+step 2's argument above, which rests on that rule and not on the row's fields
+being frozen.
+
+> **Amended 2026-11-05.** A step-1 row whose collision has ended is dropped.
+> Refresh replaces only a row that a pass observes again, and a collision
+> that has ended is observed by nothing: the user renamed the name-holder by
+> hand and the update then landed, or the peer renamed the record again onto
+> a free name. Both actions then refuse the row with the stale-candidate
+> outcome for ever, so the review screen kept asking about a pair that no
+> longer collides (follow-up N2-T1). After each pass applies, the client MUST
+> drop every step-1 row that local state alone shows has ended: `record_id`
+> or `counterpart_id` resolves through an alias; `record_id` is missing; its
+> wire hash differs from `local_hash`, or `local_hash` is NULL; or the
+> counterpart is missing or no longer holds the candidate's natural key. A
+> pass that still sees the collision has re-queued the row with the current
+> hashes before this runs, so nothing still being asked is dropped. Neither
+> side being a tombstone ends the collision: a tombstoned `record_id` still
+> meets the peer's live copy every pass, and Keep both still resolves a
+> tombstoned counterpart. An undecodable row is left for the resolver to
+> report. The client MUST NOT drop a row merely because the pass did not
+> observe it: a peer the pass could not read is not evidence that the
+> collision ended. Both rules are the implementing session's choices, not the
+> maintainer's.
+
+Fresh-attach dance ambiguity rows follow the same rule and the same
+local-version check. Explicit dance reconciliation may additionally delete
+affected ambiguity rows and reinsert derived pairs; each reinsert records the
+current left/`record_id` wire hash as `local_hash` and the right/`counterpart_id`
+wire hash as `candidate_hash`.
+
+*Amended 2026-09-22 (maintainer ruling): this paragraph required
+`insertOrIgnore` immutability, and the implementation refreshes deliberately.
+Under immutability the `local_hash` check above would make any row edited after
+queuing permanently unresolvable — the check would fail forever and nothing
+would ever update the hash — so an ordinary edit to a queued record would strand
+a review until an epoch reset. Immutability was reaching for "a pending choice
+must not be decided behind the user's back"; that property is stated directly
+above instead, where it does not also freeze the row's inputs.*
+
 This does not disturb the equal-`existenceAt` rule below, which resolves
 silently by design. That case is a genuine tie between two transitions each
 stamped against a real prior value; this one is an *unequal* comparison against
@@ -2301,6 +3654,24 @@ Distinct losing UUIDs cannot collide at full length. If the full-length key is
 *also* taken — reachable only if a user authored that exact key — the record
 MUST route to the review queue rather than renaming again, so the rule always
 terminates.
+
+**Shareability is the other custom-field collision, and it resolves the other
+way round.** Where an inbound `shareable` definition's `key` matches a local
+definition with a **different** UUID that is `shareable: false`, the *private
+local* definition MUST be the one renamed, under the same suffix derivation as
+above but keyed on its own UUID; the inbound definition is applied unchanged,
+keeping its bare key and its own `updatedAt`. If neither suffixed form is free,
+the record routes to the review queue as above.
+
+This is not an exception to the symmetric-survivor rule at the head of this
+section, and it must not be read as one. A private definition is projected to
+an empty body and never reaches the wire, so no peer can observe this collision
+at all: every device that *can* see it sees the identical pair and renames the
+identical row, which is the convergence the rule exists to produce. Choosing by
+smaller UUID here would instead rename a *shared* field on every peer whenever
+the shareable UUID happened to be the larger one — on account of a row only one
+device holds — which is the divergence the rule exists to prevent. Renaming the
+inbound definition, the third option, is device-relative and forbidden outright.
 
 The coordination-free property above covers the primary derivation only. Whether
 a key is "already taken" is decided against **local** state, and reconciliation
@@ -2337,6 +3708,238 @@ manifest each pass.
 `venues` and `published_sources` have no `UNIQUE` key and insert without
 reconciliation.
 
+#### User merges (amended 2026-10-30)
+
+> **Amended 2026-10-30.** That this section is amended for a user's merge is
+> the maintainer's decision (N2-1 = (a), 2026-10-30, recorded in
+> `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`):
+> "Merges record an alias, so a
+> device that tagged dances offline lands on the merged entry; T1 must still
+> choose the fix for one open risk." The rules below are what the implementing
+> branch built (`docs/design/tags-and-people.md`, T1). Rules 4 to 7 are that
+> branch's own choices, found by its two-device tests, and are not maintainer
+> decisions; each names the alternative it rejected.
+>
+> Three things now write `id_aliases`: reconciliation, the fresh-attach dance
+> merge (§6.10), and a user's merge of two or more tags, authors or sources
+> (`ReferenceEditRepository.merge`). A user merge adds no record kind and no
+> key, so §6.15's gate does not apply. Its peers learn of it from ordinary
+> records.
+>
+> 1. **The surviving id is the lexicographically smaller UUID** of all the
+>    entries merged, whichever one the user merged *into*. That entry's fields
+>    are written under the surviving id. Opposite merges on two devices then
+>    keep the same id, and differ only in the survivor's fields, which
+>    last-writer-wins settles.
+> 2. **Each loser gives up its name, then is tombstoned, not erased.** The
+>    name becomes `<name>_<first 8 hex digits of its UUID>`, or all 32 if that
+>    is taken, by a write that changes only the name and `updatedAt`. It
+>    cancels no pending deletion and is not a revival (§6.4, §6.8). The
+>    tombstone that follows is stamped past the loser's `updated_at` as well
+>    as its `existence_at`, so the two bodies never share a stamp (I1).
+>    Erasing the loser would leave peers holding it live, and the next pass
+>    would download it back (§3.1).
+> 3. **The merge records `loser → survivor` through the remap above**, which
+>    collapses chains, moves retained sync fields and unions publication
+>    markers. The loser's join rows move to the survivor, trashed dances'
+>    included, and every affected dance is bumped (I1).
+> 4. **A loser's tombstone keeps its own id.** Where this device still holds a
+>    row for an alias's losing id, a tombstone at that id is published,
+>    merged and applied under it, and is never resolved through `id_aliases`.
+>    A peer manifest's entry at that id is judged under it too (§6.9), or the
+>    peer would never be seen to carry the tombstone.
+>    Live copies at that id, and references to it, still resolve.
+>    Reconciliation never leaves such a row (it erases or migrates its loser),
+>    so this changes nothing for it.
+>
+>    Without this rule the merge never reached a peer. The merging device
+>    resolved its own tombstone onto the survivor and left it out of its
+>    manifest, so its peers kept the loser live, and the survivor's rename
+>    collided with it on every pass. A peer's own tombstone of the loser,
+>    resolved the same way, would also have tombstoned the survivor.
+> 5. **A peer's edit of the loser, made before it saw the merge, does not
+>    survive.** The loser's tombstone wins it, as any deletion wins an earlier
+>    edit (§6.4). Only the peer's citations of the loser move, through the
+>    alias. Rejected: landing the edit on the survivor, as the design note
+>    sketched. The merging device would have to prefer the loser's copy over
+>    the survivor's own at the survivor's address, overriding fields the user
+>    just chose in the merge.
+> 6. **Step 1 waits, without queueing, while the row holding the name is
+>    leaving it.** That is the case when the holder's own tombstone or edit is
+>    in the same batch under another name, or this device holds the holder's
+>    deletion pending (§6.8) and that tombstone gave up this very name. Gave
+>    up means it is named `<holder's name>_<hex of its own UUID>`, as rules 2
+>    and 7 and a user rename name it. Either way, no other row may hold the
+>    holder's next name. The colliding update is then neither applied nor
+>    queued. It is planned again next pass, and applies once the holder has
+>    gone. Tags and choreographers only.
+>
+>    Such a hold lasts as long as this device's own citations of the loser,
+>    which round-trip through the merging device's alias. Any other held
+>    deletion can last as long as a dance only this device holds keeps citing
+>    it, so its collision is queued as before.
+>
+>    This is the fix for the open risk N2-1 names. A peer holding the loser's
+>    deletion keeps the row live under its old name, so the survivor's rename
+>    collided with it, was queued as "renamed onto a name this device already
+>    uses", and stayed queued after the collision ended. The same held for a
+>    merge's Undo, and for a rename that frees a tombstone's name on a peer
+>    holding that tombstone's deletion. Rejected:
+>
+>    - applying the held row's name from its tombstone while keeping it live.
+>      Every dance still citing the held row would show the suffixed name until
+>      the deletion lands, and §6.8 would gain a write to a held row.
+>    - ordering natural-key tombstones before renames. A held row keeps its
+>      name whatever the order, and reconciliation checks collisions before
+>      any record of the batch is written.
+>
+>    Where the holder's next name is taken too, as when two rows swap names,
+>    nothing guarantees it ever moves, and the pair is queued as before.
+> 7. **At step 1, a tombstone gives up a tag's or choreographer's name.**
+>    Where either side of the collision is a tombstone, the tombstone is
+>    renamed as rule 2 renames a loser. A local one is renamed in place. An
+>    inbound one is applied renamed, stamped past its own `updatedAt`. Where
+>    both are tombstones, the larger UUID yields. The derived name depends only
+>    on the tombstone's own UUID, so every device derives the same one.
+>
+>    This settles a peer that deleted the loser on its own before hearing of
+>    the merge. That tombstone still holds the old name, and is newer than the
+>    merge's, so it wins the existence comparison everywhere. Queued, the pair
+>    would ask the user, on every device, about an entry nobody can see.
+>    Rejected: queueing, as before. Custom fields and difficulty levels are
+>    unchanged, because their keys follow rules of their own above.
+> 8. **Undo** writes the survivor's old fields first, then revives each loser
+>    under its old name. Each revival is stamped past the tombstone's
+>    `existence_at` (§6.4) and its `updated_at` (I1). Undo puts each loser's
+>    join rows back, and the alias rows the remap added or rewrote, except an
+>    alias row a pass has changed since. It is refused, writing nothing, if a
+>    live record that was not there at the merge now holds an old name. The survivor's
+>    publication marker stays: a marker is never dropped, and a pass in
+>    between may have published the survivor in its own right.
+>
+> **Limits.** The branch's tests found these, and did not close them:
+>
+> - **Three-way merges do not converge.** Suppose A merges L into S while B
+>   merges L into T, with S < L < T. A keeps S and tombstones L. B keeps L,
+>   under T's name, and tombstones T. Each device then holds pending the
+>   deletion the other made of an entry its dances still cite, and each is
+>   asked to choose between two versions of such a dance. Nothing is lost,
+>   and the user's choice is the only way out. The smaller-UUID rule settles
+>   the two-way case only.
+> - **A citation that arrives after its alias has gone is not rewritten.** An
+>   alias is retired once no current peer manifest lists the losing id, and
+>   is dropped at an epoch reset. A peer that kept citing the loser lists it,
+>   so retirement needs its manifest gone from the store, or a reset, and
+>   then the peer attaches afresh. Tested by removing the alias by hand: the
+>   merging device reports the peer's dance as citing an unavailable record
+>   on every pass, and the peer keeps holding the deletion.
+> - **Matches that differ only in case exist only on the merging device.**
+>   Step 2 compares natural keys case-folded, so a peer reconciles "flowy" and
+>   "Flowy" into one row at its first sync, and never holds both.
+
+#### Conflict choices (amended 2026-10-02)
+
+A record whose versions only the user can settle — an equal-`updatedAt` live
+tie (§6.3, §6.2 step 5), or a `changed`/`changed` conflict on a
+whole-collection setting (§6.3) — is queued in `review_queue` under its own
+reason:
+
+- one row per offered version that is not this device's own, with `record_id`
+  the record itself and `counterpart_id` the version's wire hash, so the
+  primary key stays unique however many devices disagree;
+- `candidate_blob` holding that version: the newest copy of each version that
+  looks different from this device's and from each other (§6.3, compared by
+  what the user is shown);
+- `local_hash` holding this device's wire hash when the row was queued, null
+  when this device holds no live copy;
+- one further row, under a reason of its own and never listed, for every other
+  copy on offer that is not shown: an older copy of a shown version, or a copy
+  that looks the same as this device's or a shown version (the same body, or
+  one differing only in fields the user is not shown), each under its own wire
+  hash. Two devices
+  holding one body at different stamps publish two hashes. Deciding goes against
+  both copies, so both have to be known when the choice is written (below).
+
+Every pass MUST bring the queue in line with that pass's merge: queue each
+conflict it raises, drop every queued choice it no longer raises, and leave
+untouched the rows of any address the merge skipped (a peer that could not be
+read is not evidence the conflict ended). An unchanged row keeps its
+`queued_at`. A record awaiting a choice is excluded from §6.9's per-peer
+judgement: it is judged neither asleep nor refusing and is not counted as
+waiting, since it would otherwise be reported a second time.
+
+Deciding writes the kept version — this device's, or one of the queued
+candidates — through the inbound apply path, with `updatedAt` one tick past
+every version that was on offer, or the local clock if later, and with
+existence untouched: a content choice decides nothing about existence. A batch
+of decisions is all or none. A decision MUST be refused, writing nothing, when
+this device's copy has changed since the row was queued (its wire hash no
+longer matches `local_hash`), and when the stamp would fall outside the local
+clock window (§6.9). The written version reaches every other device as an
+ordinary newer edit. For an equal-`updatedAt` tie that settles it: last-writer-wins
+takes the decision, so the other devices' queued choices for that record clear
+on their next pass. If two devices decide before either syncs, the later decision wins,
+by the same last-writer-wins — unless both decisions land in the same stored
+tick with different bodies, which is itself an equal-`updatedAt` tie and is
+queued again.
+
+**Whole-collection decisions** (amended 2026-10-06, @ibanner56's ruling).
+The whole-collection rule (§6.3) ignores `updatedAt`, so on its own the
+decision cannot end the conflict. The baseline advances only once a peer
+carries the decided version (§6.3 step 9). Until then, a peer that has not
+synced since still publishes the version the user chose against. A leftover
+manifest from an earlier attachment (§3.3) never stops publishing it. Both
+still count as changed. So when a choice is written for a whole-collection
+setting, the deciding device MUST record every version that was on offer and
+was not written: every copy of the other versions, shown or not, and its own
+pre-decision copy. It records
+them in `review_queue` under their own reason, one row per wire hash, with no
+candidate body, and never lists them for review. The whole-collection rule
+MUST then not count a changed version whose wire hash is recorded. This
+device's own copy always counts. Last-writer-wins settles what remains, and the
+decision wins it by construction. The deciding device therefore raises no
+conflict for that record on its next pass, or on any later pass, while the
+versions it chose against are still published. The record is local. It is
+cleared with the rest of `review_queue` whenever the baseline is (§3.2).
+
+The record is local by design, and that sets a limit. Another device that also
+changed the set sees the decision as an ordinary concurrent change and is asked
+once more, unless the user kept that device's version, which matches its own
+body. Taking the decided version there settles both, because every copy then
+has the same body. Keeping its own version instead writes a newer version, which
+the first device has not chosen against, so the first device is asked again. Stopping the other devices from asking would need a
+wire-visible marker on the written blob naming the versions it supersedes, or a
+last-writer-wins rule for blobs marked as decisions. Either is a wire change,
+deferred to the next one.
+
+**Combine both** (amended 2026-10-05, @ibanner56's ruling). For a
+whole-collection setting with exactly two versions on offer, the user may
+combine them instead of keeping one: every entry either version holds, in this
+device's order and then the other's, matched as each library identifies its
+entries (a dialect by name, a theme by id, a shorthand by its normalized token,
+a snippet by its figure signature). Snippet libraries are first read as the
+library loads them, so a version saved under an older signature scheme is
+migrated to the current one before matching, and the combination is written at
+the current scheme; the alternatives either library retained for a signature
+are all kept. Where both hold an entry with different contents, the user
+chooses that entry's version; none is preselected. The combined value is
+written exactly as a kept version is. A combination holding
+more entries than its library keeps (128 dialects, 500 shorthands, 2000
+snippets) MUST be refused rather than written, because loading it would drop
+entries without a word.
+
+**Undo** (amended 2026-10-05, @ibanner56's ruling). Once written, a choice is
+the newest version everywhere, so the record cannot be returned to undecided.
+The next pass on the deciding device raises no conflict for it. For a tie, that
+holds on every device; for a whole-collection setting, see above. Undo instead
+reconsiders the choice. It offers again the versions the choice was made
+between, held in memory by the client and never queued or stored; the
+decided-against record above keeps only their hashes. It writes nothing until the
+user chooses again. The new choice is written as any choice is, stamped one tick
+past the first choice too, so it supersedes it on every device. It MUST be
+refused, writing nothing, when this device's copy is no longer what the first
+choice wrote: something newer has arrived, and undoing would overwrite it.
+
 ### 6.7 Apply
 
 Apply MUST be read-modify-write inside the apply transaction — never the
@@ -2346,38 +3949,260 @@ repository `upsert` path, which writes every column:
 2. overlay only the fields the blob carries;
 3. write the merged result.
 
+In this implementation every kind has a `writeFromSync` entry point and the
+`sync-interactive-upsert` ratchet (`tools/ci/check_sync_invariants.py`) fails
+the build on any `upsert*` call or tear-off inside the inbound write path (the
+core `sync/` directory), whatever its receiver, outside a `writeFromSync*` body;
+a deliberate exception carries `// sync-invariant-exclusion: upsert — <reason>`
+on the line above. The rule is structural rather than behavioural on purpose: `upsert`
+carries behaviour that exists for a person editing a record and is wrong for a
+peer's — adopting a tombstoned row's identity, and keeping the local name when
+another row holds the incoming one, which stores an altered copy while still
+reporting success. Auditing today's behaviour would not hold, because the risk
+is a future edit to the editor's path silently changing what an inbound apply
+does.
+
+> **Amended 2026-11-05.** One effect of a local custom-field edit also belongs
+> to the inbound write. When an applied definition's type or options no longer
+> admit a value that a dance in Recently deleted holds, `writeFromSync`
+> deletes that value, as a local edit has done since #2062. Without it, a
+> peer's type change left that dance unreadable here: a text value under a
+> number field does not decode. Unlike the local edit, the inbound write does
+> not restamp the dance. The device that changed the field dropped the same
+> value from its own copy and restamped that copy, which reaches this device
+> as an ordinary newer edit. A live dance's value is never dropped, here or by
+> a local edit. This is the implementing session's choice, not the
+> maintainer's. Rejected: restamping here too, which would make every
+> receiving device republish the same change under its own stamp.
+>
+> **Limits.** A dance restored on this device while another device changed
+> the field is live here, so it keeps a value that no longer fits, as it did
+> before this amendment. A peer on a build older than #2062 neither drops nor
+> restamps, so it and this device hold the trashed dance at one `updatedAt`
+> with different bodies until the peer updates.
+
 **Sender/receiver contract.** The sender emits explicit `null` for an empty
 `shareable` field and omits only non-`shareable` fields. The receiver MUST
-independently consult the registry to decide which absences mean *preserve*, and
-MUST **refuse the whole record** — one record skipped, batch intact, local state
-unchanged, reported as in §6.9 — if it carries any key not classified
-`shareable` for that kind and nesting context. For `kind: "setting"` the
-receiver MUST additionally look the record id up in `settingsClassifications`
-and refuse anything not `shareable`.
+independently consult the registry to decide which absences mean *preserve*.
 
-Refusing rather than dropping the offending key is what keeps the hash
-meaningful. Dropping it changes the content before it is stored, so this
-device's serialisation no longer hashes to the blob the peer advertises and §6.3
-step 9 never advances the baseline for that record. What follows is an
-equal-`updatedAt` tie — the receiver copies the envelope stamp — which §6.3
-declines to resolve and requires reported on every pass, over a field the user
-cannot see or edit because their own build does not classify it. Failing closed
-is also the argument the ADR already makes for preferring an allow-list to a
-deny-list on the server, and it applies unchanged here: an unrecognised key
-cannot be distinguished from a newer peer's legitimate field, so storing a
-truncated copy is the one outcome that is silently wrong rather than loudly
-refused.
+The exception is the dance fields added after Device Sync shipped, listed in
+`omittedDanceDefaults` and `omittedFormationDefaults`
+(`archive_entity_codec.dart`): `meter`, `musicalKey` and `formation.improper`
+(ADR-006 §12, F2 and F3), and `interpreterIds` and `interpretedOn` (ADR-006
+§9.2). The sender omits each when it holds its default, so a
+dance that never had one keeps the body, and the content hash, it had before
+the field existed: no device republishes every dance on updating, and a device
+on an older build has nothing to keep for it. A receiver that knows the field
+reads its absence as the default, not as *preserve*, and fills it in before
+applying the body (`syncInboundKnownBody`), so a value cleared on one device is
+cleared on the others. A receiver that does not know the field keeps the key
+when present and drops it when absent, which gives the same result. Decided by
+Claude while implementing ADR-006 W3; the rejected alternative, always sending
+the keys as this section otherwise requires, changes every dance's body at once
+and leaves every dance with kept parts on an older device.
 
-**Ordering**, within the transaction:
+`interpreterIds` cites choreographers as `authorIds` does: identity
+reconciliation rewrites it, a dance naming a choreographer the receiver lacks
+is an unresolved reference, and a choreographer it names is held back from an
+inbound tombstone while a live dance cites it. A fresh-attach merge unions it
+as it does `authorIds` and takes `interpretedOn` from the latest copy; neither
+is part of the choreography fingerprint. **Limit:** a device on a build older
+than v42 keeps the key aside without knowing it cites anyone, so a deletion of
+a person credited only as interpreter there is not refused, and a merge of two
+people there leaves the kept key naming the loser until a newer device
+rewrites it through the alias.
 
+**A field the receiver does not sync is kept, not dropped and not applied.**
+Any part of an inbound body that the receiver does not classify `shareable` for
+that kind and nesting context — a field a newer build added, or one a newer
+build reclassified to travel that this build keeps private — MUST be stored
+verbatim beside the record (`retained_sync_fields`, §3.2) and put back, in the
+same place, into every body this device builds for that record: what it
+publishes, hashes, offers in a review, matches for dedupe and compares for a
+natural key. It MUST NOT be written into the record itself, so a peer's value
+for a field this build keeps private never reaches this device's own column.
+Overlay (step 2 below) applies the part the receiver syncs; the kept part
+replaces whatever was kept for the record before, because the inbound body is
+the whole record: a field it no longer carries is gone everywhere. Decided by
+Isaac (maintainer) in planning this change, including that a known-but-private
+field is kept like an unknown one.
+
+> **Amended 2026-10-29, by the maintainer's decision.** A setting that this
+> build *withdrew* from sync is not kept. It is dropped. Here, withdrawn means
+> an older build classified the key `shareable` and this build does not. The
+> withdrawn keys are named in `syncWithdrawnSettingKeys`
+> (`packages/compendium_core/lib/src/sync/sync_withdrawn_settings.dart`):
+> `app_locale`, `reduce_motion`, `auto_size_perform_cards` and
+> `perform_stage_mode`. The maintainer made these per-device on 2026-10-29
+> (settings-sync-scope), and the settings registry classifies them
+> `deviceLocal`.
+>
+> A client MUST leave a withdrawn setting out of every peer manifest it reads
+> for a pass, so the record is never downloaded or merged. Its apply MUST also
+> discard any such record that still reaches it. The record is not applied,
+> not stored, not published back and not reported. The copy of a peer's
+> manifest kept for the next `ETag` request stays as the peer published it.
+>
+> Keeping the record whole, as this section otherwise requires, would never
+> end. Every pass would publish the kept copy back. A peer that upgrades later
+> would receive its own last value from this device, keep it in turn and
+> publish it on. It would also raise `keptNewerFields` on every pass, which
+> tells an up-to-date user to update the app. Dropping it loses no data: a
+> record absent from a manifest is never a deletion (§4.5), so the older peer
+> keeps its own value. A later build that makes a withdrawn key `shareable`
+> again MUST remove it from the list in the same change. The detach clean-up
+> (§3.3) judges this device's own manifest without them too, since no upgraded
+> peer carries them. The maintainer chose dropping on 2026-10-29, answering a
+> question raised while this change was built (recorded in its pull request).
+> The alternatives were keeping the record but suppressing the notice, and
+> leaving the notice standing.
+>
+> **Amended 2026-10-30, by the maintainer's decision.** The drop has a cost on
+> the *older* device, which the first version of this amendment did not state.
+> A device on an older build that has set one of these keys keeps publishing
+> it. No upgraded peer carries it, so once an upgraded peer has published
+> twice, the older device raises `unreflectedPublication` against that peer
+> (§6.9). The user sees a "needs you" notice saying the upgraded device isn't
+> taking some changes and may need an app update. The peer's waiting count
+> under *Other devices* stays above zero too. Both are false, and an older
+> build cannot be changed to stop them. They clear once the older device is
+> updated, because its own copy is then `deviceLocal` and no longer
+> published. The user guide says so. Keeping the record whole would have
+> avoided this notice. The maintainer kept the drop anyway, because it is
+> temporary and clears itself. Keeping the record would have had every
+> upgraded device republish, indefinitely, values the registry classifies
+> `deviceLocal`.
+>
+> **Amended 2026-10-30, by the maintainer's decision (closing a gap).** A
+> conflict choice (§6.3) for a withdrawn setting may already be queued, because
+> an older build raised it before the upgrade. This build can neither offer it
+> nor resolve it, since no peer's copy of the key is read. A client MUST
+> therefore drop every queued conflict choice for a withdrawn setting when it
+> refreshes the queue after a pass, including one whose record the pass did not
+> evaluate (`refreshConflictReviews`). It MUST NOT queue one. Conflict choices
+> for every other record are unchanged.
+
+A record this device shares none of has no body to put kept parts back into. A
+custom-field definition made private (`shareable: false`) projects to an empty
+body (§6.6), so what was kept for it MUST NOT be merged into one and published;
+the kept parts are discarded, as for a record that no longer exists. Making the
+definition shareable again publishes it as this device holds it, without the
+parts a newer version had added, at a newer `updatedAt`, so devices running that
+newer version lose them as well. Holding the parts while the definition is
+private would not avoid that: newer copies from peers are not applied while it
+is private, so the held parts would go stale and re-sharing would overwrite the
+peers' current ones with them.
+
+A part is kept where it can be put back exactly: a key at the top level, a key
+inside a nested object (`formation`, `provenance`), or a key inside an item of
+a list whose items carry a stable id (`links` and `slots` by `id`,
+`customFields` by `fieldId`, `sourceCitations` by `sourceId`). A part with no
+such place — a key inside a dance's `figures` (or a container's
+`params.figures`), a `customOrigin` or figure `schemaVersion` this build does
+not know, a tune that is not a string, a kept part on a list item with no usable
+id — MUST instead **refuse the whole record**: one record skipped, batch
+intact, local state unchanged, reported as in §6.9. Figure decoding drops
+unknown keys silently, so applying such a dance would store a truncated copy.
+
+**A kept part this build later syncs moves into the record.** After an
+upgrade that starts syncing a field a device kept, the kept copy MUST NOT be put
+back over the record — it would overwrite what the device now holds, including
+the user's own edit, on every share. A conforming client MUST move such values
+into the record before anyone can edit it after the upgrade (this one does it
+at open, rewriting the record as the version it held, so its timestamps and
+wire hash are unchanged), keep only what it still does not sync, and drop
+already-synced paths from kept parts wherever it puts them back. A setting
+kept whole is applied the same way once its key is synced, unless the device
+already holds a newer copy of it, which wins. A kept part that this build now
+syncs but cannot decode (a value its decoder refuses) is not moved: it is
+dropped like a refused inbound body (§6.9), what the build still does not sync
+stays kept, and opening the app MUST NOT fail over it. No body or hash this
+device builds changes by it, since the part was already dropped from every body
+once the build synced its field.
+
+**A deleted record is not promoted.** The move above skips a soft-deleted
+record. Its kept row stays, and is pruned from every body this device builds
+like any already-synced part, so it cannot win over the record. Two costs
+follow and are not fixed: while such a row exists, every open builds
+a full snapshot to look at it; and a record restored from the trash after the
+upgrade holds the field empty until the next open, because the kept value was
+never stored in it. Nothing in a trash restore touches the kept row, so that
+open then writes the kept value into the record, over any edit made to that
+field in between. A restore from a backup does the same when it writes such a
+record live (either mode, or an archive import), because it clears no kept row
+(§3.2): the kept value then replaces the backup's value for that field.
+Writing the tombstone through the ordinary record writer is
+not a remedy: for a dance whose choreographer or source is also deleted it
+drops the dance's links to them, and a deleted record that a live one still
+cites would become a pending deletion.
+
+For `kind: "setting"`, a key this build does not classify `shareable` is kept
+**whole**: the peer's blob is stored as it came, published back as this
+device's copy of that record, and never written to `settings`. The two
+transport keys (`sync_id`, `sync_device_id`) are the exception and MUST still
+be refused; republishing either would repoint a store.
+
+Keeping rather than dropping is what keeps the hash meaningful. Dropping a part
+changes the content before it is stored, so this device's serialisation no
+longer hashes to the blob the peer advertises and §6.3 step 9 never advances
+the baseline for that record; worse, the device's next edit would share the
+record without the part, and last-writer-wins would erase it everywhere.
+Putting it back exactly makes this device's rebuilt blob byte-identical to the
+peer's. The receiver still cannot tell a newer peer's field from a defective
+one's: it keeps either, applies neither, and shares back only what it was given.
+
+**Admission and ordering**, before merge planning and within the apply
+transaction:
+
+0. Before merge planning, the coordinator MUST admit each downloaded peer
+   candidate. The apply engine MUST admit those candidates again before
+   reconciliation, then admit each resulting candidate once more inside the
+   apply transaction after reconciliation rewrites its address. Reject any
+   `nonCanonicalWireBody` candidate before it can enter merge winner selection,
+   `prepared`, natural-key reconciliation, reference validation, parent/join
+   processing, or tombstone context. The accepted candidate includes the
+   complete canonical source blob.
 1. Reconcile `UNIQUE`-key collisions, building the remap.
 2. Apply the remap to every inbound record in the batch.
 3. Apply parent records by UUID.
 4. Apply join rows last.
 
 A record whose reference cannot be resolved MUST be skipped and reported.
-**Exception:** a dangling `Programs.venueId` MUST be nulled before the program
-reaches the repository and reported — `ProgramRepository` throws otherwise.
+**Exception:** `Programs.venueId` is not a database foreign key — integrity is
+enforced at the app layer, not by the schema (§6.9 exempts it from FK
+withholding for the same reason) — so a dangling value MUST be persisted
+**verbatim**, never nulled or otherwise altered, and reported as an
+unresolved reference. Nulling it would not qualify for I1's one
+content-derived exception (§6.5): venue liveness is not a pure function of the
+record being written, so the change is not content-derived, and republishing
+the nulled body under the peer's unchanged `updatedAt` presents a different
+body at that timestamp — an equal-`updatedAt`, differing-hash pair §6.3 cannot
+resolve, reported forever with no user action able to clear it, because a
+tombstoned program cannot be edited. The receiver's rebuilt wire hash for the
+record MUST equal the peer's. `ProgramRepository`'s live-venue guard exists to
+protect interactive `create`/`update`; the inbound sync write paths
+(`writeFromSync`, `writeFromSyncParent`, `writeFromSyncRelations`) MUST NOT run
+it — they persist the peer's `venueId` as given, live or not.
+
+**Derived indexes.** The batch MUST leave `dance_fts`, `dance_substring_fts` and
+`dance_figures` exactly as `DanceRepository.rebuildAllDerived` would write them
+for the post-apply state (the same rows; FTS rowids may differ), and MUST do so
+inside the apply transaction, so a crash cannot commit records beside stale
+index rows. It SHOULD rewrite only the dances whose rows can have changed: that
+transaction holds the database's write lock, and a whole-library rebuild there
+stalled every app write for seconds on a large library (#1920). Which dances
+those are is read off what `_insertDerivedRows` reads, not off the FTS schema
+(the principle of #1346 and #1370 in §4.1): an applied dance, or one whose
+parent row the batch wrote before it dropped out for a failed same-group
+dependency; every dance, in the Trash or not, crediting an applied
+choreographer, citing an applied published source, holding a value for an
+applied custom-field definition, or using an applied glossary entry as a figure
+of your own; and every dance whose references reconciliation rewrote. A batch of
+only tags, difficulty levels, venues, programs, settings or figure notes
+rewrites no derived row. A pending tombstone released outside any batch (§6.8,
+when its last live citation goes) MUST be followed in the same transaction by
+the same reindex of the dances that read it. Dances in the Trash keep their
+rows, filtered at query time, because the full rebuild indexes them too.
 
 **Hostile input.** Per-record decode MUST catch `Error` as well as `Exception`;
 `PartialDate.parse` throws `ArgumentError` for a well-shaped invalid date. Text
@@ -2396,9 +4221,93 @@ be applied. Such a device MUST:
 - **not** advance its baseline entry for that record;
 - apply the deletion when its last citation goes.
 
-A pending tombstone is cancelled **only** by a deliberate user edit, gated on
-`existenceAt` per §6.4 — never on a newer `updatedAt`, since several sync
-mechanisms advance that without user involvement.
+Every kind counts live owners only. A dance or program in Recently Deleted
+holds nothing back, exactly as the local delete guards do not count it.
+
+> **Amended 2026-10-30, by the maintainer's decision.** This paragraph made
+> difficulty levels the exception: their citation count included
+> **tombstoned** dances, because a deleted dance can be restored, matching a
+> `DifficultyLevelRepository.delete` that refused while any dance, live or in
+> Recently Deleted, used the level. On 2026-10-29 the maintainer decided that
+> the trash does not protect what its records use (trash-policy, option b). On
+> 2026-10-30 they chose to amend the documents to match rather than reverse
+> that decision (R2-trash-docs, option a). They are recorded in
+> `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md` and
+> `maintainer-decisions-2026-10-30.md` respectively. The local guard and
+> this count changed together, so an inbound level tombstone is still held
+> pending exactly when a local delete would be refused.
+>
+> A dance in Recently Deleted keeps its `level_id`, which then names a
+> tombstoned level; the tombstone is applied as a tombstone, never an erasure,
+> so the reference stays valid. A peer on an older build still counts its
+> tombstoned dances, so it may hold pending a level tombstone that this build
+> applies. That is the ordinary pending state above: it advertises the
+> tombstone, and it converges once that peer's trashed dance is purged or
+> stops citing the level.
+>
+> *Further amended 2026-10-30 (B9), by the same two decisions ("restore must
+> then cope with missing venues and fields").* Restoring a dance from Recently
+> Deleted revives, in the same transaction, the tombstoned difficulty level and
+> custom-field definitions it names; restoring a program revives the
+> tombstoned venue it links to. Each revival is that record's own existence
+> transition under §6.4, so it outranks the tombstone and every peer revives
+> the record too, whichever device deleted it. It is not one of the
+> cancellations below: the revival is derived from another record's restore,
+> so it passes `clearPending: false` and leaves any hold in place. A tombstoned
+> record can still carry one, because holds are revalidated lazily: a peer's
+> tombstone held while a live dance cited the record survives a local delete
+> made after that dance was trashed. Restoring the dance then revives the
+> record locally, but this device goes on advertising it as a tombstone, so
+> peers keep it deleted, until the hold resolves by the rules of this section.
+> A permanently deleted record (the
+> epoch `deletedAt` of §3.2) is not in Recently Deleted, and restoring it
+> neither revives it nor anything it names. An archive merge, which
+> overwrites the restored row straight away, revives nothing; nor does the
+> Caller's Companion import, whose undo would not re-tombstone a revived venue,
+> so a program it restores keeps a link to a venue deleted meanwhile, as
+> before.
+
+A pending tombstone is cancelled by exactly two things, and by nothing else.
+
+**A deliberate local user edit**, gated on `existenceAt` per §6.4 — never on a
+newer `updatedAt`, since several sync mechanisms advance that without user
+involvement. This includes editing a row that is live *because* it is held: a
+held row never reaches Recently Deleted, so an explicit restore can never be
+the cancellation for it, and without this the deferred deletion later overlays
+the retained tombstone body onto the edited row and discards the user's work.
+The cancellation is an existence decision and MUST stamp under §6.4's held-hold
+floor above.
+
+Because "deliberate" is a property of the write's **provenance** and not of its
+result, an implementation MUST NOT infer it. A record write that reaches the
+same code path from an import, an archive restore, reconciliation, a reference
+rewrite, a normalisation pass, or automatic derivation of one record from
+another MUST NOT cancel a hold, however recent the `updatedAt` it produces.
+
+Provenance is decided by where the written **content** comes from, not by which
+gesture triggered the write. A user-initiated action that replaces a record's
+fields from an external source — re-importing one record's choreography, say —
+is an import for this purpose and MUST NOT cancel, even though a person asked
+for it. Reading it the other way round would let any deletion be reversed by
+content the user never authored, which is the asymmetry this rule exists to
+prevent; the user's own edit afterwards still cancels, because that write is
+authored.
+
+**An inbound revival that outranks it.** Where a peer's live copy wins the
+§6.4 existence comparison against the pending tombstone, the deferred deletion
+has been overtaken and MUST be discarded with it. Retaining the row would let
+the deletion land anyway the moment the last citation clears, silently undoing
+a revival that had already won — and the pending row is invisible to the user,
+so nothing would explain the record disappearing a second time. The comparison
+is the ordinary one: equal stamps resolve to the tombstone, so the revival's
+`existenceAt` must be strictly greater. That is not a narrow case, because
+§6.4 makes a revival stamp above the tombstone it revives by construction.
+
+An earlier draft gave only the first of these, which read as though an inbound
+revival could never cancel a deferral. That left the two rules in conflict —
+§6.4 decides existence "on any path", while a surviving pending row would
+re-apply the deletion afterwards — and the merge was decided in favour of
+§6.4.
 
 Fresh attach MUST run the revive-on-citation rule; without it an attaching
 device can land holding a record that cites a tombstone.
@@ -2410,6 +4319,90 @@ device can land holding a record that cites a tombstone.
 batch intact, local state unchanged. Values MUST NOT be clamped. A rejected hash
 is reported once per session (in memory).
 
+A body that is not canonical under the receiver's shareable JSON normalizer
+MUST likewise be refused before reconciliation, except for the bounded
+`dance`/`program` timestamp projection in §§4.1 and 6.5. It MUST be reported
+with code `nonCanonicalWireBody` and a message telling the user to update the
+sending device before retrying. The report is non-blocking, skips only that
+record, includes the peer identity when the coordinator knows it, and is
+coalesced by code, kind, record, and peer for the pass. The receiver MUST NOT
+silently repair arbitrary text or keys under the peer's timestamp and hash.
+
+**A newer envelope is not a malformed one.** A blob or manifest whose `v` is
+greater than the receiver's MUST be refused (§4.3) and reported with code
+`newerWireVersion` rather than `malformedRecord`, because the remedy differs:
+nothing is wrong with the record, and the only fix is updating the app on the
+*receiving* device. A blob's report carries its kind and id; a manifest's
+carries only the peer, since a manifest the receiver cannot read does not say
+what it lists. The status surface shows it as a needs-you notice naming how
+many records of each kind are waiting, when every report in the notice names a
+record; a manifest names none, so a notice that includes one gives no count
+and says only that the other device's changes wait on an update. A blob reaches an older
+client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
+reaches it only once the server has been updated first.
+
+**A newer version's record kind is reported the same way.** A peer manifest
+listing a kind this build does not know is read without it (§4.5) and reported
+with code `newerRecordKind`, naming only the peer: the kind is not one this
+build can name in a report. It joins the same needs-you notice, with the same
+remedy.
+
+**A newer version's record this build cannot keep is reported the same way.**
+A blob whose envelope `v` is current but whose body carries a part this build
+can neither apply nor keep (§6.7) is refused whole and reported with code
+`newerRecordFields`, or `newerFigures` when the part is inside a dance's
+figures, rather than `malformedRecord`. Both are what a newer build looks like
+to an older one, and the remedy is the same as a newer envelope's, so the
+status surface shows them, with `newerRecordKind` (§4.5), in one needs-you
+notice. When it can count (see above),
+the notice says how many records of each kind are waiting — "2 programs, 1
+setting" rather than a bare item count — and lists only those records, apart from records skipped for
+any other reason; a dance refused for its figures is marked as having figures
+only a newer version can read, so the user learns what this build does not
+understand rather than only that it is behind.
+
+The receiver cannot tell a newer sender from a defective one, and this rule
+names the newer sender. Decided by Isaac (maintainer) in review of #1728: the
+app's releases are under the maintainer's control, so a version difference is
+the case worth naming. A body that is structurally wrong — a setting with no
+`value`, an id that does not match its envelope — stays `malformedRecord`, and
+so does a shareable field whose value no longer has the type this build
+expects: a newer build MUST NOT change a synced field's type without a `v`
+bump.
+
+**Kept parts are information, not a problem.** Every snapshot reports each
+record this device publishes with kept parts (`keptNewerFields`, `kind` and
+`recordId`, no peer), and the status surface shows them as one informational
+notice: the records sync, and updating the app shows the details.
+
+**A tie this build cannot judge is left to one that can.** When versions with
+the same `updatedAt` differ in a kept part, this build can neither show the
+difference nor tell which copy to keep. Unless a field it does show also
+differs — then the tie is a review as in §6.6, and the user's choice carries
+its kept parts with it — it MUST NOT settle the tie, even where everything it
+syncs is identical (§6.3's settlement of a tie in nothing the user is shown
+could keep the copy without the newer field, on every device), and MUST NOT
+ask, since its user would see no difference. It keeps its own copy, writes
+nothing, and reports `newerRecordFields`; a device that understands the field
+settles or asks, and that outcome then arrives here as a newer version.
+Comparing what a user is shown draws only on the part this build syncs. Decided
+by Isaac (maintainer) in planning this change.
+
+The same holds when two records collide on a natural key (§6.6) and tie on
+`updatedAt` while differing only in a part this build keeps (two tags with one
+name, one copy carrying a kept part the other lacks). The collision path compares
+whole bodies, kept parts included, so it does not settle the tie: it queues a
+review, `natural-key collision has different bodies at the same updatedAt`,
+that this build does not offer the user to resolve
+(`SyncReviewQueueItem.isActionable` is false for it, kept part or not),
+reports nothing, and does not apply the peer's copy. Comparing only the
+parts this build knows would pick the inbound copy on every device, so two
+devices holding different kept parts would each take the other's copy and stay
+different at one `updatedAt`, which this section forbids. Accepted by Isaac
+(maintainer) on review, 2026-10-16; the alternative of comparing known parts only was rejected for that
+reason. The test is `sync_retained_fields_storage_test.dart`, "two tags with one
+name, the same updatedAt, and a kept part on only one side".
+
 Rejecting both fields is what makes a poisoned value always **local**.
 
 **Quarantine.** A record whose own `existenceAt` or `updatedAt` exceeds
@@ -2419,9 +4412,80 @@ schema.
 A quarantined record MUST NOT be uploaded, MUST be excluded from the merge table
 and from a fresh attach's union with its local row retained, and its manifest
 entry MUST fall back to the last agreed **wire** hash. A quarantined record with
-no agreed hash is omitted, and every record citing it MUST be withheld with it —
-computed as a **fixpoint over the publish set**, scoped to references that are
-database-enforced foreign keys. `Programs.venueId` is exempt (§6.7).
+no agreed hash is omitted, and every record citing it MUST be withheld with it.
+When an agreed fallback hash is advertised, database-enforced dependents MAY
+publish against that fallback because the referenced address remains in the
+manifest; the quarantined root's current blob is still never uploaded. The
+withholding case is computed as a **fixpoint over the publish set**, scoped to
+references that are database-enforced foreign keys. `Programs.venueId` is
+exempt (§6.7). Before publishing a fallback, the client MUST negotiate that
+wire hash through `POST /v1/blobs/missing`. If the store reports the fallback
+missing and the client has no body for that hash, the client MUST treat the
+root as having no usable fallback for this pass, omit it, and recompute the
+same foreign-key withholding fixpoint. If the body is locally available, the
+client uploads it before publishing the manifest.
+
+**A record a device holds but cannot read is a third publication state, and it
+is not quarantine.** Quarantine is a derived predicate over timestamps, it has
+a fallback hash, and repair clears it. A dance whose stored transcription cannot
+be decoded (§4.3) has none of those: the row is live, it is not deleted, no
+clock is involved, and nothing a later pass does will make the device able to
+read it. It is simply never offered to a peer, because the device cannot speak
+for a record it cannot read.
+
+The withhold MUST cover **every** path that would publish or match the record.
+Publishing is not funnelled through a single chokepoint: the fresh-attach
+snapshot builds bodies and wire hashes directly from model objects, and so do
+the dedupe plan and the merge-candidate build, so a guard on any one of them
+leaves the others live. Two consequences follow and are accepted rather than
+worked around: such a dance is **not offered as a fresh-attach dedupe match**,
+and is **not considered as a merge candidate**.
+
+Earlier text here counted a fourth publish path, the record-body read, and
+described the three above as the ones a guard on it would miss. That was wrong
+about which direction the body read serves. Its only caller fetches the current
+local body so that an arriving peer record can be overlaid onto it, which makes
+it an **inbound** path: it withholds nothing from a peer, and a guard there
+never protected any of the three. It MUST still return nothing for a record this
+device cannot read — an overlay base carrying the transcription as an empty
+array is the same hazard one hop later — but it is not a publish path and it
+raises no withheld report.
+
+The wire hash folds the whole body, so this was never a display concern — an
+unwithheld record would reach dedupe and merge identity. The withhold removes
+that question rather than answering it; if it is ever relaxed, the hash question
+returns with it.
+
+A device MUST report a record withheld this way, so the gap is visible to the
+user rather than silent (#1347). A dance that is simply absent from every peer,
+with nothing said about it, is indistinguishable from one that synced, and the
+absence is permanent: no later pass clears this state.
+
+**Only a live row is reported.** The state defined above is a live, non-deleted
+row; a soft-deleted record is not in it and MUST raise no report, even though
+the withhold itself still applies to it. A record held under a **pending
+deletion** (§6.8) MUST likewise raise no report: its live row is retained only
+until an inbound tombstone can apply, so it is on its way out and the remedy
+below does not apply to it either. This is stated here rather than left to
+the contrast with quarantine above, which lists "the row is live, it is not
+deleted" as a property of the state and not as a scope on reporting — an
+implementation read it the second way and reported deleted rows. The remedy the
+notice gives is what makes this more than bookkeeping: it tells the reader
+nothing has been deleted and to open the dance and enter its figures or tunes
+again, and for a record they deleted deliberately every clause of that is wrong.
+
+Each withholding path raises one report per record, carrying the record's kind
+and id and **no peer id** — the null peer id is what says the fault is a row on
+this device. Reports coalesce on that tuple, so a pass that reaches several
+withholding paths for the same record still raises one notice. The notice MUST
+be distinct from the one used for an unusable record received from a peer: that
+copy sends the user to check another device, which is the wrong device and the
+wrong remedy here. It MUST also be distinct from the quarantine notice, which
+sends the user to this device's clock — no clock is involved in this state.
+
+The report is **not** a per-record prompt, per the sizing rule in
+design/sync-implementation.md: the surface groups reports into conditions, and
+this is one condition however many records raise it.
 
 **Repair** runs during a sync pass, not on a user gesture, and reads no clock.
 For each out-of-window field, gather peer copies, discard any whose value **for
@@ -2430,14 +4494,16 @@ that field** is outside the local window, and take the greatest of what remains:
 | Field | Verbatim when | Otherwise |
 | --- | --- | --- |
 | `existenceAt` | peers agree with local live-or-deleted state | `peer + 1 tick` |
-| `updatedAt` | local body matches this device's own **baseline body hash** | `peer + 1 tick` |
+| `updatedAt` | local comparison body matches this device's own **baseline comparison hash** | with no baseline, `peer + 1 tick`; with a non-null baseline but no agreeing in-window peer, remain quarantined |
 
 The adopted timestamp MUST come from the peer whose body matched, not the global
 maximum. Repair MUST NOT leave a record at equal `updatedAt` with content
 differing from the peer that supplied that timestamp. A field inside the window
 MUST be left untouched. A rebuilt value is re-checked against the local window
 before the record is considered repaired; one that still fails leaves the record
-quarantined.
+quarantined. The `peer + 1 tick` branch for `updatedAt` therefore applies only
+when no baseline exists; a baseline without an agreeing peer is evidence that
+the local content cannot be safely classified and MUST remain quarantined.
 
 **Missing baseline entry**, by cause:
 
@@ -2445,29 +4511,65 @@ quarantined.
 | --- | --- |
 | No entry at all | Never agreed; compare local body to peers' |
 | Wire hash, no body hash | Agreed pre-upgrade; verbatim if body matches a peer, else stays quarantined |
-| Wholesale wipe | Cannot occur — fresh attach repersists the baseline first |
+| Legacy full-body hash | Drop the old epoch-scoped baseline and force a fresh attach before repair; never interpret it as a comparison hash |
+| Wholesale wipe | Only the legacy compatibility transition may clear the baseline; fresh attach repersists it before steady-state repair/publication |
 
-The body hash starts null on upgrade and populates on the first pass that
-observes agreement. There is no safe backfill.
+On upgrade, the client cannot backfill comparison hashes. It recognizes the
+unmarked pre-upgrade full-body values, clears the old epoch-scoped baseline, and
+performs a fresh attach; that attach repopulates comparison hashes only after a
+peer's agreement is observed. There is no safe backfill.
 
 **Clock-suspect** is a derived per-pass diagnostic: it holds when at least one
 peer value was observed and every value observed in that pass fell outside the
 local window. Zero observed peers is NOT clock-suspect. It gates nothing and
-MUST NOT restrict user writes. A device MUST also report when its own published
-records go unreflected by every observed peer across three consecutive passes
-(session-scoped counter), **with at least one peer observed in each of those
-passes**. Zero observed peers is not evidence, for the same reason it is not
-evidence of a slow clock: with no peer observed, "unreflected by every observed
-peer" is vacuously true, and a solo install would otherwise report its uploads
-as unreachable forever.
+MUST NOT restrict user writes. A device MUST also judge, **per observed peer**,
+whether the records it publishes are reaching that peer, from the peer
+manifest's `writtenAt`:
+
+- **Asleep** — the peer has not published since this device published the
+  record. This is the ordinary state of a device that is not running, and MUST
+  NOT be reported. A client SHOULD show it as a status line instead (the
+  reference client's *Other devices* list counts the changes waiting for each
+  peer).
+- **Refusing** — the peer has published at least twice since, with distinct
+  `writtenAt` values, and its manifest still does not carry the record's hash.
+  A peer that refuses or cannot take a record publishes on every pass that
+  does so, unchanged or not (§6.3 step 8), so this judgement is unaffected by
+  peers skipping publications that carry nothing new.
+  This MUST be reported, once per record and peer, and the report MUST carry
+  the peer's id. Twice, not once: a pass that was already running when this
+  device published can finish afterwards without having read its manifest.
+
+"Since" MUST be judged by the order in which this device observed the peer's
+`writtenAt` values — first seen on a later pass than the one that published the
+record — and not by comparing that `writtenAt` with this device's clock: this
+signal exists for the device whose own clock runs fast, whose records its peers
+refuse as future-dated, and that device's publication time is later than any
+`writtenAt` a peer will write. A peer that holds a version of the record no
+older than this device's — content at least as new, or a strictly newer
+existence transition (an equal `existenceAt` is not newer: an ordinary edit
+leaves it unchanged) — is not refusing it, whatever its hash; that
+disagreement is reported, if at all, by the conditions that own it. A record
+with a conflict choice queued (§6.6) is judged neither asleep nor refusing and
+is not counted as waiting. The evidence is
+session-scoped and restarts on an epoch change. Zero observed peers is not
+evidence, for the same reason it is not evidence of a slow clock: with no peer
+observed, no peer can be refusing anything.
+
+*Amended 2026-10-02 (@ibanner56's ruling, from a planning session): this
+paragraph required a report when published records went unreflected by every
+observed peer across three consecutive passes. That fired chiefly because
+another device had not been opened, named no device, and could not tell the two
+cases apart.*
 
 A solo install has no repair path. A never-corrected clock does not self-heal.
 
 ### 6.10 Fresh-attach dedupe
 
 Union matches on record id. Silent merge only where both hold an exact
-normalized-title match **and** `_choreographyEquals`. Tombstones MUST NOT be
-dedupe candidates.
+normalized-title match **and** the shared `choreographyFingerprint` contract
+from `packages/compendium_core/lib/src/imports/dedupe.dart`. Tombstones MUST
+NOT be dedupe candidates.
 
 **Normalized title** means the transformation implemented by `normalizeTitle`
 in `packages/compendium_core/lib/src/imports/dedupe.dart`, applied in this
@@ -2510,29 +4612,90 @@ Turkish-locale device lowercasing `I` to `ı` and declining a merge every peer
 performs.
 
 On silent merge the survivor is the lexicographically smaller UUID; id
-collections the equality test ignores are unioned; `program_slots.dance_id` MUST
-be rewired to the survivor; scalars `_choreographyEquals` does not compare
-(`walkthrough`, `rating`, `status`, `composedOn`, `revisedOn`) resolve by
-last-writer-wins. Dance merges write `id_aliases` entries.
+collections outside the choreography fingerprint are unioned;
+`program_slots.dance_id` MUST be rewired to the survivor; scalars outside the
+fingerprint (`walkthrough`, `rating`, `status`, `composedOn`, `revisedOn`)
+resolve by last-writer-wins. Dance merges write `id_aliases` entries.
 
 Where `updatedAt` is **equal** and such a scalar differs, the survivor's value
 MUST be taken. This is the one place the survivor's values win, and it does not
 reopen the rule above: at a tie there is no more-recently-edited copy to
 prefer, so nothing is lost by falling back to the ordering the merge already
 uses, while "keep local" and "take remote" are the same non-convergent pair
-§6.3 rejects. **Unlike §6.3 this path cannot report the tie and leave both
+§6.3 rejects. **Unlike §6.3 this path cannot queue the tie and leave both
 bodies in place**, because the merge has already collapsed two rows into one;
 declining to choose here would leave two devices holding different bodies under
-a single surviving id, which is the divergence §6.3's reporting duty exists to
+a single surviving id, which is the divergence §6.3's conflict choice exists to
 prevent rather than an instance of it. One tick is one second (§2), so the tie
 is reachable in ordinary use: two devices that separately entered or imported
 the same dance carry different UUIDs, and their last edits need only land in
 the same second.
 
-Everything else `DedupeIndex` flags is deferred to `review_queue`. Queuing MUST
-be idempotent under the canonical tie-break ordering, MUST carry an immutable
-candidate blob and hash, and a queued pair MUST NOT be re-resolved while
-pending. The queue MUST NOT denormalise contact fields.
+**Fresh-attach dedupe is the exact-normalized-title tier, and only that
+tier.** Live dances are grouped by exact `normalizeTitle`; within a group,
+equal `choreographyFingerprint` merges silently under the rules above, and a
+group whose choreography differs is deferred to `review_queue` as a
+same-title ambiguity. Pairs whose titles are merely *similar* are not compared
+and not queued: after attach they simply remain two dances, visible in the
+collection and mergeable by hand.
+
+Rows this section does queue MUST be idempotent under the canonical tie-break
+ordering, MUST carry the candidate blob and hash the resolution will be checked
+against, and actionable rows MUST carry the queue-time local wire hash. A queued
+pair MUST NOT be re-resolved while pending. Both baseline-tombstone and
+dance-ambiguity rows follow §6.6's refresh rule: re-observing an unchanged pair
+is a no-op that keeps `queued_at`, and a pair whose candidate blob, candidate
+hash or current local wire hash has moved replaces the row atomically. The
+explicit dance reconciliation path may additionally delete and reinsert derived
+pairs. The queue MUST NOT denormalise contact fields.
+
+#### Why there is no fuzzy tier (amended 2026-09-22)
+
+Until this amendment this section read "Everything else `DedupeIndex` flags is
+deferred to `review_queue`", and ADR-004 said fresh attach runs `DedupeIndex`'s
+fuzzy title-and-author matching. No implementation ever did. The requirement
+was implemented against #1355, measured, and **removed by decision** — recorded
+here rather than dropped, so a later reader does not restore it believing it
+was merely forgotten.
+
+The motivating case in ADR-004 is the same source imported separately on two
+devices before pairing. That produces **identical** titles, which the
+exact-title tier above already handles: identical content merges silently,
+divergent content goes to review. A fuzzy tier adds only independently-arising
+near-title variants, which is a narrow slice of real duplicates.
+
+Its cost was not narrow. Comparing every pair is quadratic in the library size,
+and the obvious sound prefilter — skipping pairs whose normalized titles differ
+too much in length to reach the threshold — prunes almost nothing here, because
+dance titles cluster in length. Measured over a synthetic corpus of generated
+`<adjective> <noun>` titles, at `DedupeIndex.defaultThreshold`, counting
+distinct unordered pairs and excluding equal normalized titles:
+
+| library size | pairs offered to the scorer | pairs flagged | wall time |
+| --- | --- | --- | --- |
+| 1 000 | 476 028 of 499 500 (95.3%) | 660 | 4.9 s |
+| 4 000 | 7 630 165 of 7 998 000 (95.4%) | 3 642 | 102.2 s |
+| 11 500 | 62 452 828 of 66 119 250 (94.5%) | 17 112 | 912.8 s |
+
+Fifteen minutes inside the fresh-attach transaction at the 11 500-dance figure
+ADR-004 itself uses. Roughly 93% of that is `DedupeIndex.fuzzyMatches`
+re-normalizing every indexed title and author set on every call — n² times
+across a sweep rather than n — so removing that repetition would bring 11 500
+dances to about 70 seconds. Still quadratic, still inside the transaction.
+
+The queue volume is the other half. **The 17 112 figure above overstates a real
+library and should not be quoted as a prediction**: the corpus generator
+exhausts its 60×60 vocabulary grid at 3 600 titles and then emits
+deliberately self-similar variants, so every measurement above 3 600 is
+inflated by titles manufactured to be near-duplicates. The defensible figure is
+the ~0.64 rows per dance measured inside the base grid, which still puts a
+3 000-dance library at roughly 1 900 review rows — the "wall" ADR-004 warns
+against, against a review surface with no pagination.
+
+Raising the threshold to control that volume was rejected: it silently narrows
+a stated guarantee. Deferring above a library-size cutoff was rejected: it
+makes the guarantee stop applying on exactly the libraries it was written for,
+without saying so.
 
 ### 6.11 Restore
 
@@ -2557,10 +4720,80 @@ judged, in either mode.** The codebase has three such entry points —
 `replace`. Today the shipped UI path uses `replace`, so the merge case is
 latent; but a merge writes rows the pass never saw exactly as a replace does, so
 the rule is stated over the event and not over the mode, and holds unchanged
-when merge-mode sharing ships.
+when merge-mode sharing ships. The one clearing this does not extend to is
+`retained_sync_fields` (§3.2), whose rows are record content: no restore of
+either mode and no archive import clears them.
 
 Restore converges on a deletion only while some peer still advertises the
 tombstone.
+
+> **Amended 2026-11-11 (SYNC-1).** This section said nothing about the stamps
+> a restore writes, and §3.2 assumed they were the restore's own time. The
+> client stamped every record whose backed-up form carries no timestamp, every
+> setting, glossary entry and figure note, and every deletion the restore
+> made, at restore time; the fresh attach above then resolved each
+> `changed`/`changed` pair in the restore's favour, so restoring an old backup
+> on one device silently undid, on every device, the renames, deletions and
+> edits made elsewhere after the backup. Dances and programs were unaffected,
+> because they carry their own `updatedAt`. The maintainer, judging the
+> blind-spot audit finding, chose to stamp a restore's writes with the
+> backup's creation time instead (the finding's option (b)). The rules below
+> are that decision; their wording is the implementing session's.
+
+**A backup restore MUST stamp what it writes at the backup's creation time**,
+not at the time of the restore. Call that time *T*.
+
+- Every record the restore writes whose backed-up form carries no `updatedAt`
+  — the reference kinds, settings, glossary entries and figure notes — MUST
+  take *T* as its `updatedAt`. A record whose backed-up form carries its own
+  (a dance, a program) keeps it.
+- A record the restore creates, revives or deletes MUST take *T* as its
+  `existenceAt` (and, for a deletion, its `deletedAt`), including a setting,
+  glossary entry or figure note that the backup does not hold and the restore
+  therefore deletes. This stamp is **not** causal: it MAY be lower than the
+  value the row held before, which is what lets a peer's later deletion or
+  revival win. Two exceptions keep the causal floor. A tombstoned tag the
+  restore writes and then deletes takes *T* plus one tick. A merge restore's
+  revival or deletion of a dance, program or reference-kind record the device
+  already holds takes the ordinary causal stamp above that row's own
+  `existenceAt`, which can be well above *T*, so it can outrank a peer's
+  transition made after the backup; that is a known gap, not the intended
+  behaviour. The shipped restore is a replace, which clears those kinds
+  first, so neither the UI nor its retry reaches it.
+
+Anything changed on any device after the backup therefore wins at the next
+sync and comes back to the restoring device, and the backup wins over
+anything older. *T* MUST be clamped to the restoring device's clock, so a
+future-dated backup can neither outrank edits made after the restore nor be
+refused by peers under §6.9. A backup that records no creation time is
+stamped at the Unix epoch, so every peer's copy wins. A part of the restore
+that runs again on its own afterwards (the reference client's retry of the
+settings, glossary and figure-note step) MUST drop the baseline again and be
+serialized with Device Sync as the restore is: a pass may have run in between,
+and against its baseline the backup-dated writes would read as local changes
+that every peer refuses. A client that offers a
+restore while paired SHOULD say that records changed on a synced device since
+the backup will come back from it.
+
+These rules bind backup restore only. A sample-library seed is not a restore
+of earlier state and stamps as an ordinary write; a shared-archive import is
+not a restore and is unchanged.
+
+At the currently shipped backup UI boundary, the client MUST serialize the
+restore operation with Device Sync: before `BackupService.restoreFromJson`
+begins any write, it MUST prevent new sync work and await the active
+coordinator pass; no pre-restore pass may apply, publish, or advance the
+baseline after the restore begins. Once the restore operation completes, the
+client MUST recreate the coordinator from the current settings, including
+integrity/incomplete refusal, settings-apply failure after a committed core
+restore, and thrown-error paths. This lifecycle clause protects the
+`BackupService.restoreFromJson` writer without changing the event-wide
+definition above.
+
+The event-wide requirement includes `CompendiumArchiveImporter` as well as
+`BackupService.restoreFromJson`. The app's general sync-writer lifecycle
+surface supplies the same quiesce/await/recreate boundary to both entry points,
+so neither writer can race a pass that captured the old dataset.
 
 ### 6.12 Failure, offline and triggers
 
@@ -2570,20 +4803,86 @@ trigger.
 **What a failure guarantees, stated precisely, because the obvious wording is
 false.** The guarantee is that no pass leaves a *partial* apply: §6.7's apply is
 one transaction, so it either commits whole or not at all. It is **not** that a
-failed pass leaves local data untouched. §6.3 commits that transaction at step
-7 and publishes at step 8, so a network error or an epoch `409` between them
-leaves local data legitimately changed by a pass that then failed. That is
-correct behaviour and MUST NOT be undone: the applied content was validly
-merged, and rolling it back would discard a peer's record on a transport error.
+failed pass leaves local data untouched. §6.3 applies and commits that
+transaction at step 6, uploads blobs missing from the post-apply final
+manifest at step 7, and publishes at step 8, so a network error or an epoch
+`409` between them leaves local data legitimately changed by a pass that then
+failed — as does a pass whose record downloads stopped at step 5, which
+applies what it fetched and then fails without steps 7–9. That is correct behaviour and MUST NOT be undone: the applied content
+was validly merged, and rolling it back would discard a peer's record on a
+transport error.
 What the failure leaves unadvanced is the **published manifest and the
 baseline** — step 9 runs only after step 8 — so the next pass republishes and
 converges. The ordering cannot be reversed to make the two atomic, because
 publishing a manifest before applying would advertise content this device has
 not stored.
 
-Triggers: app start, a debounced interval after a change, and a manual "Sync
-now" (a delta pass). *Sync only on WiFi* defaults to on; on a metered connection
-automatic sync does not run and a manual attempt routes to the setting.
+Triggers: app start, the app returning to the foreground, a debounced interval
+after a change, a manual "Sync now" (the same pass as an automatic trigger), and the automatic retry
+below. *Sync only on Wi-Fi* defaults to on; on a metered connection automatic
+sync does not run and a manual attempt routes to the setting. Every trigger
+passes the same connection gate, and a pass the gate suppresses runs at the next
+trigger.
+
+The "change" that arms the debounce is a change to something sync carries. A
+write to a `settings` key the privacy registry classifies as anything but
+`shareable` (a window frame, an update-check marker) is not one and schedules no
+pass; a `shareable` key, an unclassified key, and a batch that also touches any
+other table sync carries still do (the sync engine's own bookkeeping tables do
+not count). The decision comes from `classifySettingsKey`, not a key
+list, so a key changes sides by changing its registry entry.
+
+> **Amended 2026-10-02.** This section said only that "a failure MUST retry on
+> the next trigger", and the client did exactly that: a pass that failed on a
+> dropped connection waited for the next app start, edit or manual Sync now.
+> Isaac (maintainer) decided in planning that a failure which clears by itself
+> should also be retried by itself, and that returning to the app should sync.
+> The two rules below are that decision.
+
+**A transient failure is retried by itself.** A failure is *transient* when
+the server could not be reached, a request timed out, the server answered
+`5xx` other than `507`, or it answered `429`. After a transient failure the
+client MUST schedule one automatic retry, waiting 1, 2, 4, 8 and 16 minutes for
+successive failures and 30 minutes for every one after that. A `Retry-After`
+on the response is a floor on that wait, never a ceiling; the reference client
+holds the floor to at most one day, so one answer cannot park retries
+indefinitely while every other trigger still runs. A completed pass resets the
+sequence, and so does a pass whose record downloads stopped (§6.3 step 5) after
+it had fetched at least one record, or whose uploads (§6.3 step 7) stopped after
+the store had accepted at least one blob; any other result cancels a pending
+retry without resetting it. The exception exists because a large first
+upload or download, against a server without the batch routes (§5.2) or too
+large for one pass's tokens even in batches, meets the per-IP
+limit (§5.4) on every pass until it is done: each such pass moved it on — the store keeps an accepted blob, so the
+next pass's `POST /v1/blobs/missing` no longer names it — and doubling the
+wait through them would stretch minutes of transfer over hours: a few minutes
+for a thousand records at §5.4's rates, a quarter of an hour at the 60 a minute
+they replaced or on a server an operator configures as low. The download half, like the step 5 paragraph it
+rests on, was decided by the change's author, not the maintainer; the upload
+half the maintainer asked for (2026-10-12, in the session that wrote both).
+Disabling sync, detaching, wiping, pairing and shutting down cancel it. A retry
+the connection gate suppresses is not rescheduled: it waits, as any suppressed
+pass does, for the next trigger. Every other failure is *needs-you*, and is not
+retried by itself: §5.3 forbids that for `507` and `422`, and nothing else
+that fails clears by waiting. A failed replacement confirmation (§6.3 step 1)
+is not retried either, since confirming creates a store and that stays the
+user's decision.
+
+**Returning to the foreground is a trigger, at most once per five minutes.**
+It starts a pass unless any pass started in the last five minutes; a resume
+the connection gate suppresses started nothing, and does not count. Both new
+triggers are automatic, so neither lifts the pause a declined replacement
+leaves (§6.3 step 1).
+
+**How the status surface speaks about a failure.** A transient failure is shown
+as a calm status — the user's changes are saved on this device and the client
+is retrying — with no error styling; a long-running one is escalated only by the
+§6.14 item 4 expiry warning. A needs-you failure keeps its warning, always with
+text and never colour alone, its cause and the one thing to do. When the server
+refuses an upload (`400`, `415`, `422`) the advice names the side that has to
+act: on the default server the app is ahead of it (ADR-004's release-ordering
+consequence), so the user's changes wait safely until the server is updated;
+on a server the user chose, the user is asked to update it.
 
 **At most one sync pass MUST be in flight per installation.** A trigger that
 fires while a pass is running MUST be coalesced into at most one queued
@@ -2647,10 +4946,39 @@ this document is invisible to it by construction.
    is last-writer-wins with no attribution and no prompt (§6.3), so one of two
    concurrent edits to the same record disappears with no trace. The client
    MUST state this where a second person could be added, not in help text.
-2. **The sync ID is a bearer credential with no recovery and no revocation**,
-   and the pairing flow MUST say so. Losing it makes the store unreachable;
-   leaking it is remediable only by moving every device to a new ID. This
-   follows from there being no accounts (§8) and is not otherwise visible.
+2. **The sync ID has no recovery and no revocation, and the pairing flow MUST
+   say so.** Whoever holds it can read everything the store syncs, change or
+   delete any of it on every connected device, and delete the store from the
+   server — holding it is all that is required (§8). Losing it makes the store
+   unreachable; once someone else has it, it cannot be taken back, so
+   continuing to sync without them means moving every device to a new ID —
+   which on its own leaves the old store readable and writable by whoever still
+   has the old ID, making wipe (§5.3) the only remedy that acts at once. The two are
+   complementary and the disclosure MUST NOT present either as the whole answer.
+   This follows from there being no accounts (§8) and is not otherwise visible.
+
+   *Amended 2026-09-23: this item used to classify the sync ID as a bearer
+   credential. The capability and the irreversibility are unchanged — they are
+   now stated outright rather than carried by that word, which §2 and §5.1
+   reserve for the `Authorization` header encoding — §3.3 classifies the value
+   itself as `storeAddress`. Nothing the pairing flow must disclose is narrower
+   than before; it is wider, because the capability is now spelled out instead
+   of implied.*
+
+   *Amended 2026-11-11: this item said the ID could be "leaked" and that the old
+   store stays writable by "whoever holds the leaked one". Those words framed the
+   ID as a secret, and the maintainer decided on 2026-11-11 that "the wording
+   should be changed to remove any implication that the store id is
+   authentication material of any kind." It now says what happens when someone
+   else has the ID: it cannot be taken back, and whoever still has the old ID
+   keeps access to the old store until wipe removes it.
+   Handing it to someone to sync with is a supported case (§3.3), not an
+   incident. The 2026-09-23 note's remark that §2 and §5.1 reserve
+   "credential" for the header encoding no longer holds: neither uses the word
+   for it now. Nothing
+   the pairing flow must disclose has changed: no recovery, no revocation, the
+   full capability of whoever holds the ID, and that moving devices to a new ID
+   and wipe are complementary.*
 3. **Sync is not backup, and the UI MUST say so wherever it reports success.**
    A store is reaped after 30 days of disuse (§7.3), which makes it a relay
    with a grace period. The file backup remains the recovery path. A green
@@ -2678,10 +5006,169 @@ this document is invisible to it by construction.
    choice available for later.
 
 Requirements 1 to 3, 5 and 6 are MUSTs because each states something the user
-cannot discover before the harm: a silently discarded edit, an unrecoverable
-credential, a backup that is not one, and a store that is not the one they
-meant, or replacement of a collection without consent. Requirement 4 is a
-SHOULD because what it prevents is surprise, not loss.
+cannot discover before the harm: a silently discarded edit, an address that can
+be neither recovered nor taken back, a backup that is not one, and a store that
+is not the one they meant, or replacement of a collection without consent.
+Requirement 4 is a SHOULD because what it prevents is surprise, not loss.
+
+### 6.15 Capability gate
+
+Added in #709. A new record kind, or a new shareable settings key, may be data
+an older build cannot hold. Publishing it breaks a peer on such a build: a
+manifest naming a kind it does not know is unreadable to a build without the
+client half of §4.5, and a setting it does not sync shows as kept for a newer
+version. So data of that kind waits, per store, until every attached device
+says it can read it.
+
+**Capabilities.** A capability is a name (`glossary.v1`) for a set of record
+kinds and settings keys, and of `glossaryEntry` records by the entry's `kind`
+(#1023): an entry of a kind gated on a capability of its own waits for that
+one, and any other entry for its record kind's. A build advertises the
+capabilities it fully supports, sync included. Named rather than numbered, so
+features may ship or be backported in any order.
+
+**Advertising.** Each device writes one settings record,
+`sync_capabilities:<deviceId>`, whose value is
+`{"capabilities": [<sorted names>]}`. It is an ordinary `shareable` setting,
+classified by prefix, and it is never itself gated. A device writes only its
+own, before the snapshot of each pass, and only when the stored one is missing
+or lists something else, so an unchanged record is never re-stamped. A build
+that advertises nothing writes none. The prefix is excluded from backups: only
+its own device may write the record, and a restore would delete the others' or
+re-stamp them over their owners'. A build since v0.7.0 that does not know the
+key keeps it whole (§6.7) and shows the informational kept-for-a-newer-version
+notice; an older build reports it as a malformed record. Decided by Isaac
+(maintainer) as an accepted consequence of advertising this way (#709
+consolidated spec, decision 13).
+On detach every capability record is erased, not tombstoned: each names a
+device of the store being left, and a tombstone would carry those device IDs
+to the next store, as keeping this device's own ID would (§3.3). Removing a
+device under *Other devices* (§3.3) is the one write of another device's
+record: once the server has deleted that device's manifest, the device that
+removed it tombstones the removed device's record if it holds one, and the
+tombstone syncs, so every device that holds it drops it. A removed device that
+is still attached, or that pairs again under the same ID, finds its record
+missing on the pass after the tombstone reaches it (its record is written
+before the pull) and writes it afresh; until then its peers hold back the data
+it gates and name it in the held-back notice, and nothing is lost. Decided by Isaac
+(maintainer), 2026-10-15. Nothing else removes a capability record: the record
+of an old device ID after a detach and re-attach stays and is republished by
+the devices that hold it, counting for nothing in the gate.
+
+**The gate.** A capability is open on a device, for a pass, only when its own
+build advertises it **and** every other device in that pass's store device
+list (§7.1) has a capability record listing it. A device with no record, or a
+malformed one, holds every capability closed. A record of a device the list no
+longer names counts for nothing. The records read are the synced settings as
+they stand after the pass's pull.
+
+**Holding back.** While a capability is closed, every record of a kind, key or
+entry kind gated on it, tombstones included, is left out of the device's
+**publication** only: set to no candidate, as the import filter does, so it is
+not in the manifest and its blob is not uploaded. Absence from a manifest is
+never a deletion (§4.5). The rows, and the merge's view of them, are untouched:
+a local edit stays the newer copy, nothing is downloaded over it, and it
+publishes on the first pass after the capability opens. The filter MUST be
+applied where publications are built and MUST NOT be applied inside the
+store's snapshot, because a fresh attach merges against the snapshot's
+publication (§6.2). A row
+hidden from the merge looks absent, so a peer's older copy is chosen for
+download; in the reference client only the apply step's concurrency check
+(§6.7) then stops it, as a deferred change raised again on every pass, so the
+merge's view is the wrong place to filter even where it loses nothing. A row
+held back is still recorded as published with the manifest's own records (a
+fresh attach records it before its blob upload, so a failed upload cannot
+leave it unprotected), so that a deletion made while it waits keeps its
+tombstone: a row never named by a publication may be hard-deleted without one,
+which would lose a deletion the gate is only postponing. It follows that a
+gated row created and deleted while the gate is closed, never having left the
+device, is still published as a tombstone once the gate opens, and a tombstone
+blob carries its body (§4.3): over-marking, as §3.1 and §6.3 step 8 accept
+elsewhere, within the data's own `shareable` class. Receiving is never gated: a
+device applies a gated kind whenever a peer publishes it. The gate is evaluated
+on every pass, so it closes again when a device without the capability
+attaches.
+
+**Self-contained data.** No record of an ungated kind or key may hold a
+*hard* reference to a record of a gated one, because the referring record
+publishes while what it refers to is held back, and a peer would receive a
+dangling reference. A capability's records may refer to each other and to
+ungated records. #709's data meets this: a compound expands into ordinary
+figures when a dance is saved, and the expanded figures record no origin.
+
+A *soft* reference is permitted (#1023; decided by Isaac, maintainer, in
+planning). The referring data carries everything needed to show it without
+the referent: its own fallback. A device that lacks the referent, or holds it
+only as a tombstone, shows the fallback, and never refuses, drops or rewrites
+the referring data for want of it. A soft reference is not a citation in
+§6.8's sense: the referent's deletion never waits on it.
+
+**Reporting.** A device holding data back raises `withheldAwaitingDevices` once
+per device holding a capability closed, naming that device as the peer and
+every such capability that held something back this pass. It is
+shown per device, by its tag, as information: nothing is lost, and the remedy
+is updating or removing that device. A capability that is closed only because
+this build does not advertise it has no device to name and raises no report,
+however much it holds back: the user is told of nothing, and the data stays
+on the device without a notice until the build advertises the capability.
+
+**What it cannot see.** The store's device list names only devices that have
+published a manifest (§7.1), and a build without §4.5's client half cannot
+finish a fresh attach to a store whose peers publish a kind it does not know
+(§6.2: every peer manifest must be readable). So a device on such a build
+cannot join a store once the gate has opened, and the gate never sees it.
+Decided by Isaac (maintainer) in planning as accepted, with a warning in the
+pairing screens (#709 consolidated spec, decision 13): the pairing screen says so, on
+both its paths, while the build advertises any capability. There is no
+timeout: a device that never updates keeps the gate closed until it is
+removed.
+
+**Rollout.** The first pass of a build that advertises a capability finds
+every other device without it: on a build from before the capability gate it
+has written no capability record, and on a later build its record does not list
+this capability. Either reads as closed (*The gate*), and the device is named in
+a held-back notice, when the pass holds something back, until it updates. That
+is the expected state of every existing store, not a fault, and it is the case
+a build that advertises a capability is most likely to get wrong: a gate tested
+only with its peers' records already seeded can hold everything back for ever,
+or release it too early, and pass every test. So a change that first advertises
+a capability should ship a test of this case against
+`SyncCapabilityPolicy.build` itself, not a hand-built policy, which would go on
+passing if the shipped one changed. With every other device in the store
+lacking a record, or holding one that does not list the capability, it should
+show that the capability's records are left out of the manifest and their blobs
+not uploaded, that the rows are recorded as published, that each such device is
+named once, and that the records publish once every device lists the
+capability. This requirement and its wording are a proposal of the change that
+added it; the maintainer approved the documentation and the test, not the
+rule. The reference client's test is `rollout: beside peers that have not
+written a capability record yet…` in the `the capability gate (#709)` group of
+`app/test/sync/sync_coordinator_test.dart`, with the group `the shipped policy`
+in `packages/compendium_core/test/sync/sync_capabilities_test.dart`.
+
+**`glossary.v1`.** The first capability. It gates the `glossaryEntry` and
+`figureNote` kinds and the `show_custom_figures` and `compound_shorthands`
+settings (#709). The reference client advertises it from the change that
+syncs the two kinds (#1776); before that change it gated the two settings
+without advertising the capability, so they stayed on their device, with no
+notice, as `glossary.v2`'s did until #1023 was complete.
+
+**`glossary.v2`.** Gates `glossaryEntry` records whose entry kind is `term` or
+`customFigure`, the user's own terms and figures (#1023), tombstones included:
+a tombstone blob carries its body, so its kind. An entry of any other kind,
+`compound` and kinds the build does not know included, stays on `glossary.v1`.
+A build that knows only `glossary.v1` would read such an entry as one it cannot
+use. It also gates the `user_figure_shorthands` setting, the shorthands for
+those figures, which a peer that cannot read the figures has no use for. The
+reference client advertises it from the change that completes #1023; before
+that change it gated them without advertising the capability, so they were
+held back on every pass with no notice. That change is subject to *Rollout*:
+a device on a build that lists only `glossary.v1` holds `glossary.v2` closed and
+is named for it, while what `glossary.v1` gates publishes past it.
+
+**Server.** The server needs no code for the gate. It validates settings keys
+and record kinds through the registry it is built from, so it MUST be deployed
+before any client emits the capability prefix or a gated kind (§7.5).
 
 ## 7. Server conformance
 
@@ -2735,6 +5222,19 @@ CREATE TABLE blob_refs (
   size INTEGER NOT NULL, uploaded_at INTEGER NOT NULL,
   PRIMARY KEY (id_key, epoch, hash)
 );
+-- The blob hashes each stored manifest names, and the manifest etag they
+-- were read from (§7.3).
+CREATE TABLE manifest_refs (
+  id_key TEXT NOT NULL, epoch TEXT NOT NULL, device_id TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  PRIMARY KEY (id_key, epoch, device_id, hash)
+);
+CREATE INDEX manifest_refs_hash_idx ON manifest_refs (id_key, epoch, hash);
+CREATE TABLE indexed_manifests (
+  id_key TEXT NOT NULL, epoch TEXT NOT NULL, device_id TEXT NOT NULL,
+  etag TEXT NOT NULL,
+  PRIMARY KEY (id_key, epoch, device_id)
+);
 ```
 
 Blobs MUST be namespaced per store **and per epoch**, on disk as well as in
@@ -2772,17 +5272,25 @@ fresh-attaches when it differs, so an implementation that reproduces an old
 epoch after a wipe leaves every peer believing its baseline still describes the
 store, and no device ever detects the reset.
 
-Store creation MUST be an atomic upsert on the `stores` primary key, and
-concurrent creators MUST both observe the **same** epoch — the loser of the
-race returns the winner's row rather than minting a second one.
+Store creation MUST be atomic on the `stores` primary key. Exactly one
+concurrent creator receives `201`, and every other receives `409` (§5.2)
+**without minting an epoch**. All of them then observe the winner's epoch
+through `GET /v1/store`.
+
+*Amended 2026-09-22: this rule used to have the losing creator receive the
+winning row instead of minting one, which predates §5.2's `GET`/`POST` split.
+Handing the loser a row would stop `409` counting as a failed resolution under
+§5.4 and reopen the store-existence oracle that split closes. The property that
+mattered — concurrent creators MUST all end up on one epoch, never two — is
+unchanged; only the mechanism was wrong.*
 
 **Stored content MUST be namespaced by epoch, not by `id_key` alone.** The
 `id_key` is `HMAC-SHA256(pepper, syncID)` of an unchanging sync ID, so it is
 identical across every incarnation of a store, and a layout that keys blobs and
-manifests on it alone **reuses the same physical paths after every reset**. An
-atomic upsert on the `stores` row does not make the destruction of that content
-atomic with it. A `DELETE /v1/store`, or a sweep reaping the store (§7.3), can
-still be removing blobs when a concurrent `POST /v1/store` mints the next epoch
+manifests on it alone **reuses the same physical paths after every reset**.
+Atomic creation of the `stores` row does not make the destruction of that
+content atomic with it. A `DELETE /v1/store`, or a sweep reaping the store
+(§7.3), can still be removing blobs when a concurrent `POST /v1/store` mints the next epoch
 and a device begins uploading into it — and the removal, walking paths it
 enumerated before the reset, deletes blobs belonging to the new incarnation. The
 interleaving needs no adversarial timing: the two creation cases named above are
@@ -2819,6 +5327,14 @@ and proven by test — a hand-maintained list drifts and is worse than useless.
 This is a second line of defence. The client serialiser is the control, and
 neither is sufficient alone.
 
+**Record-like envelope detection.** A JSON object whose top-level keys include
+`kind`, `id`, and `body` is a record-envelope candidate even when `v` or
+another required envelope key is absent. The server MUST reject (`422`) that
+candidate as an invalid record envelope rather than treating it as opaque.
+Unknown or duplicate envelope keys and malformed candidate content are likewise
+rejected before any blob is stored. This minimum-shape rule does not require
+the server to parse arbitrary non-record JSON or binary opaque blobs.
+
 **Deployment ordering.** Because that mapping is generated from the client's
 registry and lives on the server, **the server MUST be deployed before any
 client emits a new `shareable` field or a new record kind.** Adding either does
@@ -2838,6 +5354,35 @@ that changes body *structure* enough that the key check no longer applies is
 the exception, and MUST be deployed server-first for the same reason a new
 field is.
 
+**Manifests are the exception, and a manifest change is always server-first.**
+The blob tolerance above MUST NOT be extended to manifests. The server MUST
+reject (`400`) a manifest whose `v` it does not know, and MUST reject (`400`) a
+manifest carrying any top-level key outside `v`, `deviceId`, `epoch`,
+`writtenAt` and `records` (§4.5). Consequently **any** change to the manifest
+envelope — a `v` bump, an added key, a removed key — MUST be deployed to the
+server before any client emits it, exactly as a new `shareable` field must be.
+
+The asymmetry is not an inconsistency: the server *interprets* a manifest and
+does not interpret a blob. §7.3 reads `records` to decide which blobs are
+reachable, so a tolerant server accepting a manifest whose `records` shape it
+does not understand would find no references in it and would collect live blobs
+once the grace window elapsed. Tolerance costs nothing on a blob the server
+only stores; on a manifest it is silent data loss on the server's own schedule.
+Clients refuse an unknown manifest `v` too, so a manifest change is a
+coordinated break in both directions either way, and nothing is bought by
+loosening one end of it.
+
+**An unreleased `v`.** A wire-version bump that no release carries yet is
+amended rather than bumped again: a further envelope or canonicalisation change
+joins it. A server image built after the bump already enforces it (the server
+validates manifests with the client's codec), so a server deployed in between
+is redeployed before any client emits the amended form, under the rule above.
+Blobs and manifests written from source at the earlier form of an unreleased
+`v` are development data. A store holding them is recreated, never
+interpreted. (Contributor process: the maintainer's direction of 2026-10-13,
+recorded in the description of #1752; CONTRIBUTING.md, "Versioned
+formats".)
+
 ### 7.3 TTL and garbage collection
 
 A sweeper runs hourly:
@@ -2847,7 +5392,9 @@ DELETE FROM stores WHERE last_seen < (now - 30 days);
 ```
 
 then cascades manifests, blob refs and blob files. `last_seen` is refreshed by
-any authenticated request, making this a rolling TTL on activity.
+any request that resolves the store, making this a rolling TTL on activity.
+*Amended 2026-11-11: wording only ("any authenticated request"), following the
+maintainer's decision quoted at §6.14 item 2; the rule is unchanged.*
 
 A blob is reachable while any manifest for its store references it. After each
 manifest `PUT`, and during the sweep, unreferenced blobs for that store are
@@ -2855,10 +5402,24 @@ deleted — **except** that a blob whose `uploaded_at` is within the last **24
 hours** MUST NOT be collected, whether or not any manifest references it. A
 recent upload is a temporary GC root.
 
+A manifest references a blob when its hash appears as a value under
+`records.<kind>.<id>`. The server reads those values once, when the manifest is
+written, into `manifest_refs` (§7.1), in the same transaction as the manifest
+row, and deletes them with it. GC is then one indexed query for stale
+`blob_refs` rows that no `manifest_refs` row names, and decodes no manifest
+body the index covers. GC holds the database write lock on a single-isolate server, so decoding
+every body (up to 250 MB per store) on every `PUT` let one store stall every
+other (#1910). `indexed_manifests` records which etag each device's rows were
+read from. A manifest without a current row — stored before the index existed,
+or written by an earlier server image after a rollback — is indexed at startup,
+and until then GC reads its body as before. A body that does not decode stays
+unindexed; GC reading it fails without collecting anything in that epoch, as it
+did before the index existed.
+
 Without that exemption the specified GC deletes live data, because every upload
-passes through a window in which no manifest names it: the client uploads blobs
-at §6.3 step 5 and publishes its manifest at step 8, with a full
-download-and-apply in between. Device A `PUT`s a blob; before A's manifest
+passes through a window in which no manifest names it: the client applies inbound
+records, uploads the final manifest's blobs at §6.3 step 7, and publishes its
+manifest at step 8. Device A `PUT`s a blob; before A's manifest
 lands, device B `PUT`s its own manifest, which triggers store-scoped GC; A's
 blob is unreferenced and is deleted, and A then publishes a manifest naming a
 blob the store no longer holds. The hourly sweep firing in the same window
@@ -2868,7 +5429,7 @@ reproduces it with a single device.
 are one pass, bounded by request timeouts, so the exposure is seconds to
 minutes and the margin is three orders of magnitude. The cost of being generous
 is bounded twice over — by the 250 MB store cap, and by the fact that an
-abandoned upload is *reused* rather than duplicated, since step 5's
+abandoned upload is *reused* rather than duplicated, since step 7's
 `POST /v1/blobs/missing` reports it present. An age bound is preferred to an
 upload session or a client-declared intent because it keeps the server free of
 per-client state and needs no new endpoint, which is the property §7's
@@ -2876,8 +5437,10 @@ architecture is built on.
 
 A pass that stalls for longer than the grace period and then publishes will
 name a collected blob. That is not silently wrong: peers skip and report the
-record (§6.7), and the next pass re-uploads it, because `blobs/missing` reports
-it missing again. The server is deliberately **not** required to reject a
+record (§6.7), and the origin re-uploads it on the first pass that asks
+`blobs/missing` about it again — the next pass that publishes a changed
+manifest without relying on its last one, and at the latest the first after
+§6.3 step 8's refresh interval. The server is deliberately **not** required to reject a
 manifest naming a blob it lacks — that would make manifest `PUT` referentially
 interpret its own body, which §7.1 forbids, to catch a case the client already
 self-heals.
@@ -2912,11 +5475,11 @@ MUST be disclosed alongside §7.4's.
 request paths.** `GET`, `PUT` and `DELETE /v1/manifests/{deviceId}` therefore
 put a `protocolIdentifier` (§3.3) into the default log line of every common
 server and proxy, without anyone deciding to log it. That identifier is
-linkable: it correlates every request one installation ever makes, alongside
+linkable: it correlates every request one attachment ever makes, alongside
 whatever else the format records. So either the `{deviceId}` segment MUST be
 redacted before the line is written, or the log MUST carry a bounded retention
 stated and disclosed on the same terms as §7.4's. An operator who does neither
-holds an indefinite per-installation request history while passing every other
+holds an indefinite per-attachment request history while passing every other
 test in §9.
 
 The sync ID is governed more strictly and separately: §7.5 requirement 4 forbids
@@ -2934,16 +5497,47 @@ promises are stated over the store and the log is not part of it.
 
 ### 7.4 Break-glass access log
 
-Break-glass access MUST write to a **separate database** holding exactly:
+Break-glass access MUST write to a **separate database** holding exactly two
+tables. `break_glass_access` has one row per access:
 
 | Column | Retention |
 | --- | --- |
 | `id_key` | Derived sync storage path: `HMAC-SHA256(pepper, syncID)`, never plaintext. Nulled after 30 days. |
 | `accessed_at` | Retained. |
 
+`break_glass_reads` names what that access requested, one row per item: one
+device's manifest or one blob. It is written before the lookup, so a request
+for a store or item that does not exist is recorded too. It never holds the
+item's content.
+
+| Column | Retention |
+| --- | --- |
+| `kind` | `manifest` or `blob`. Retained. |
+| `id_key` | As above. Nulled after 30 days. |
+| `epoch` | The store epoch requested; when none is, the current epoch, recorded after the lookup and before any read (null if the store is not found). Nulled with `id_key`. |
+| `device_id` | The device whose manifest was read; null for a blob. Nulled with `id_key`. |
+| `hash` | The blob read; null for a manifest. Nulled with `id_key`, because a content hash can confirm a guessed record. |
+| `accessed_at` | Retained. |
+
+Both rows MUST be written, in one transaction, before the store is looked up
+or any byte is read, and a failure to write them MUST abort the access. All
+content reads go through this command; there is no other audited path to a
+manifest or a blob.
+
 Separate so that reaping a store cannot destroy evidence of access to it. Its
 retention is therefore not the 30-day disuse TTL and MUST be stated in the
 privacy policy.
+
+The break-glass command is a read, run as a second process against the live
+volume. It opens the store database read-only and performs none of the startup
+work of §7.3 (schema and index creation, manifest indexing, orphan-blob
+reconcile, pending-deletion retry), which assume no other process is writing;
+only the break-glass log database is opened for writing. When no epoch is
+requested, the command records the store's current epoch on the read row after
+the lookup and before reading, and aborts if it cannot. The server's own
+connection waits a short, bounded time (250 ms) for a competing writer rather
+than failing at once, and no longer, because a wait stalls every request on a
+single-isolate server (#1917).
 
 ### 7.5 Deployment
 
@@ -2963,7 +5557,7 @@ behaviour of at least one common proxy violates it.
 | 3 | The proxy MUST NOT decompress request bodies. | §4 puts the decompression limit on the receiver, enforced streaming-abort style. Inflating at the proxy moves a security control to a component that does not implement it. |
 | 4 | The sync ID MUST NOT be written to any log. | Common log formats omit headers, so this holds by default and is lost the moment someone adds `%{Authorization}i` or `$http_authorization` to a debug format. §5.1 keeps the ID out of URLs for the same reason. |
 | 5 | The public listener MUST NOT serve `/v1` over plaintext HTTP. A plaintext request to `/v1` MUST be **refused**, never proxied and never redirected; other paths MAY redirect. The `https` origin SHOULD send `Strict-Transport-Security` with a `max-age` of at least six months, as browser-only defence in depth. | A vhost that owns `:80` for ACME HTTP-01 (which the reference deployment does — see ADR-004) will serve whatever its configuration reaches, and a `ProxyPass` written outside a vhost, or copied into both, silently exposes the API on both ports. Nothing in the response distinguishes the two. |
-| 6 | The **per-IP** rate limit MUST be enforced against the real client address — either by the proxy itself, or by the server reading a client-IP header the proxy is required to set. If the header route is taken, the proxy MUST **overwrite** any inbound value rather than append to it, and the server MUST accept the header only when the socket peer is loopback and MUST ignore it otherwise. | The server binds loopback, so its socket peer is the proxy on every request. A server that rate-limits by socket peer puts every user on earth in one bucket, and one active device can exhaust the limit for everybody. A server that trusts a forwarding header without the two conditions above is strictly worse than having no limit: an attacker sets a different value on every request and buys unlimited guesses against the small space §8 permits a user-chosen ID to occupy, while an honest shared-NAT user is still throttled. |
+| 6 | The **per-IP** rate limit MUST be enforced against the real client address (for IPv6, its /64; §5.4) — either by the proxy itself, or by the server reading a client-IP header the proxy is required to set. If the header route is taken, the proxy MUST **overwrite** any inbound value rather than append to it, and the server MUST accept the header only when the socket peer is loopback and MUST ignore it otherwise. | The server binds loopback, so its socket peer is the proxy on every request. A server that rate-limits by socket peer puts every user on earth in one bucket, and one active device can exhaust the limit for everybody. A server that trusts a forwarding header without the two conditions above is strictly worse than having no limit: an attacker sets a different value on every request and buys unlimited guesses against the small space §8 permits a user-chosen ID to occupy, while an honest shared-NAT user is still throttled. Keyed on the full IPv6 address, the limit would likewise bind nothing, since one client holds a /64 of them. |
 
 A server behind a proxy that violates (1) or (2) is **not conforming**: it will
 reject valid requests. Violations of (3), (4), (5) or (6) are not visible in
@@ -2990,19 +5584,19 @@ but a server that answers on `:80` is reachable by things that are not
 conforming clients: an older build, a `curl` in a support thread, a user who
 typed the endpoint without a scheme into something that defaulted to `http`, or
 a redirect from an unrelated site. The cost of one such request is not
-proportionate to its likelihood. The sync ID is a bearer credential sent on
-every request, and §8 records that it is simultaneously the store address and
+proportionate to its likelihood. The sync ID is sent on every
+request, and §8 records that it is simultaneously the store address and
 the entire read, write and `DELETE` capability, with no accounts, no rotation
 and no revocation — so a single plaintext request discloses it in full to
 anything on the path, permanently and unrecoverably.
 
 **What refusal buys is not the first disclosure, which is already unrecoverable
-by the time the listener can respond at all.** The credential is on the wire in
+by the time the listener can respond at all.** The sync ID is on the wire in
 the request; no status code recalls it. What refusal prevents is a *working*
 plaintext sync — every subsequent request, on every subsequent run — and that
 is the whole of the justification. This is also why `/v1` MUST be refused
 rather than redirected, and the two are not interchangeable here — but not
-because the redirect itself carries the credential onward. Scheme is part of an
+because the redirect itself carries the sync ID onward. Scheme is part of an
 origin, so an `http`→`https` redirect is a *cross-origin* hop, and both clients
 named below strip `Authorization` across it: `dart:io`'s `HttpClient` copies no
 sensitive header unless scheme, host and port all match (`_isSameOrigin`,
@@ -3020,11 +5614,11 @@ non-app callers, since those fixes shipped in Dart 2.16 on 2022-02-03 and curl
 gets a sync that *works*, over a redirect, which is the outcome this
 requirement exists to deny: nothing then surfaces the misconfiguration, so it
 is never corrected, and every subsequent run repeats the plaintext request that
-discloses the bearer in full. Refusal produces the same visible failure for
+discloses the sync ID in full. Refusal produces the same visible failure for
 every client whatever its header policy, and that uniformity is the point. A
 deployment MUST NOT have to reason about which clients will reach it in order
 to be safe. A redirect remains the right answer for other paths, which carry no
-credential.
+sync ID.
 
 `Strict-Transport-Security` is listed as a SHOULD, and separately from the
 refusal, because it protects a different population than the one above: HSTS is
@@ -3059,10 +5653,42 @@ strength of ~2⁴⁰, and a client MUST warn when it falls below — but the sco
 score MUST be computed over the **normalised** ID of the rule below, not the
 string as typed: normalisation lowercases and applies NFC before the ID is
 hashed, so an estimator run on the raw string credits case and Unicode-form
-distinctions that collapse to the same credential, and reports a strength the
-user does not have. Generated EFF words receive the uniform 7,776-word score;
-user-entered common credential words use their ranked guess positions, and
-other user words receive a conservative lower estimate.
+distinctions that collapse to the same sync ID, and reports a strength the
+user does not have.
+
+**Scoring is provenance-independent, and MUST be.** The estimator is a function
+of the phrase alone — it cannot tell a generated word from a typed one, and MUST
+NOT be given a parameter that claims to. Every word is scored the same way, in
+this order: a word on the common-credential rank table scores by its ranked
+guess position; otherwise a word on the EFF long list receives the uniform
+7,776-word score; anything else receives a conservative lower estimate from its
+shape.
+
+The rank table is consulted **first**, and that ordering is the point rather
+than an accident. Five words are on both lists — `password`, `football`,
+`freedom`, `computer` and `secret` — and they score by rank wherever they
+appear. Checking the EFF list first would credit a *typed* `password` with
+log₂(7776) ≈ 12.93 bits, which is exactly the false-strength report this
+paragraph exists to prevent: someone who types `password-…` should be told it is
+weak, and the estimator has no way to know they typed it.
+
+**A generator MAY discard and re-draw a phrase that falls below the warning
+floor.** Because the rank table outranks the EFF score, a four-word draw
+containing `password` estimates 3 × 12.93 + 0 = 38.78 bits and a draw containing
+two of the five estimates at most 38.61 — both under the advisory floor — so a
+generator that re-rolls anything it would itself have to warn about will
+sometimes discard a structurally valid draw. This is accepted. Each of the five
+is drawn with probability ≈ 1/7776 per word, so the deviation from a uniform
+draw is bounded well under 0.1% of the output space, and the alternative is a
+generator that hands the user a phrase and immediately warns about it. The
+advisory floor applies to generated and typed phrases alike, which is what makes
+the re-roll coherent rather than a special case.
+
+*Amended 2026-09-22 (maintainer ruling): this paragraph used to promise one
+score for words the generator drew and another for words the user typed. The
+estimator sees only the phrase and has no provenance to consult, so the promise
+was unkeepable by construction; the code is right and the sentence was what
+changed.*
 
 **Nothing rejects an ID for weakness.** The server enforces only the
 *structural* rule and returns `403` for a violation of it:
@@ -3157,7 +5783,8 @@ request is issued, against all of:
 A hop failing any of these MUST be refused rather than followed, and the
 `Authorization` header of §5.1 MUST NOT be sent to any origin other than the
 configured endpoint's. A client MAY instead refuse cross-origin redirects
-outright; it MUST NOT follow one while still carrying the credential.
+outright; it MUST NOT follow one while still carrying the `Authorization`
+header.
 
 Each request MUST have a **30-second** cancellable deadline covering both the
 response-header wait and body consumption. A deadline expiry is a transient
@@ -3169,10 +5796,10 @@ that satisfies every cosmetic check and terminates at an attacker-controlled
 https host on port 443 with no userinfo is exactly the case that matters, and it
 is not exotic: §7.5 treats a reverse proxy as the reference deployment, so a
 misconfigured proxy, an open redirect, or a stale `Location` target reaches this
-path without anyone doing anything unusual. The sync ID is not a session token —
-it is simultaneously the store address and the entire read, write and `DELETE`
-credential, with no accounts, no rotation and no revocation — so a single
-credentialed request to a foreign origin is unrecoverable and total. Bounding
+path without anyone doing anything unusual. The sync ID is the store address,
+and holding it is the entire read, write and `DELETE` capability, with no
+accounts, no rotation and no revocation — so a single request that carries it
+to a foreign origin cannot be taken back and hands over everything. Bounding
 the shape of a hop while leaving its destination unbounded protects nothing.
 
 Scheme and Port are formally **subsumed** by Origin, which already fixes scheme,
@@ -3188,10 +5815,29 @@ The user-configured endpoint is validated on entry: https or an exactly-matched
 MUST be shown prominently and a change MUST warn.
 
 **Threat model.** Anyone holding the sync ID has full read and write access,
-including `DELETE /v1/store`. This is inherent to the bearer model and MUST be
-disclosed. A peer can write any `shareable` record; it cannot write
-`deviceLocal` or `deviceScoped` fields, because the receiver filters
-independently of the server.
+including `DELETE /v1/store`. This is inherent to there being no accounts —
+holding the ID is all that is required — and MUST be disclosed. A peer can
+write any `shareable` record; it cannot write `deviceLocal` or `deviceScoped`
+fields, because the receiver filters independently of the server.
+
+*Amended 2026-11-11: wording only, following the maintainer's decision quoted
+at §6.14 item 2. The threat model said "inherent to the bearer model", and the
+redirect rule above said "while still carrying the credential" where it now
+says "the `Authorization` header". Both requirements are unchanged.*
+
+**What these protections are for.** The enumeration bound below, the strength
+warning for a chosen ID, and keeping the ID out of logs, URLs and the status
+surface all make a store's address hard to *discover*, the way an unlisted
+link is hard to find. None of them makes the ID a password or a credential:
+whoever has the address may use it (§3.3), and there is nothing to sign in to.
+The failure budget (§5.4) is not one of them: it bounds load and gives
+visibility, not guessing.
+
+*Amended 2026-11-11: paragraph added. The maintainer chose on 2026-11-11 to
+keep these protections exactly as specified and to describe them as making
+store addresses hard to discover ("Hard-to-guess address"), not as protecting
+a secret; the decision is recorded in the description of #2164. No
+requirement changed.*
 
 **Enumeration.** Guessing is bounded by the ID's own strength — guaranteed for a
 generated ID, warned about but not guaranteed for a chosen one — and by the
@@ -3225,7 +5871,7 @@ merely named.
 
 The conclusion is unchanged at 2⁴⁰–2⁵². What has changed three times is *which
 control does the work*: first from the per-IP limit to the server-wide one, then
-from a counter of authentication failures to a counter of store-resolution
+from a counter of `401` responses to a counter of store-resolution
 failures, and finally away from counting altogether. Each correction exists so
 that weakening the wrong control later cannot read as safe. The check a reviewer
 should run before any other is **not** whether the enumerating request produces
@@ -3259,28 +5905,28 @@ nothing.
 
 What survives as a bound is the per-IP request rate, and §5.4 already says in
 the next paragraph that an attacker defeats a per-IP limit by distributing. At
-60 requests a minute per address, `M` addresses answer `3.15 × 10⁷ × M` guesses
-a year — `2³¹·⁶` at a hundred addresses, `2³⁴·⁹` at a thousand, and rising
+5 requests a second per address, `M` addresses answer `1.58 × 10⁸ × M` guesses
+a year — `2³³·⁹` at a hundred addresses, `2³⁷·²` at a thousand, and rising
 linearly with a number the attacker chooses rather than one the operator sets.
 The figure this section used to publish, `2²⁹`, is not a ceiling on guessing;
 it is the annual throughput of §5.4's server-wide budget of a thousand failed
 resolutions a minute — the number this subsection has just finished retiring as
-a bound. A single well-behaved client reaches `2²⁴·⁹`, sixteen times less, so
-the retired figure never described one.
+a bound. A single client at the per-IP limit reaches `2²⁷·²`, about a third of
+it, so the retired figure never described one.
 
 **So the enumeration bound rests on entropy, and on nothing else.** That is
 sufficient, and it is worth being precise about why. Against a generated
-identifier the expected number of stores found in a year is `N × 3.15 × 10⁷ × M
+identifier the expected number of stores found in a year is `N × 1.58 × 10⁸ × M
 / 2⁵²`: for five hundred stores and ten thousand attacking addresses — two
 orders of magnitude more than is needed to saturate the failure budget — that is
-about **0.035**, and every further order of magnitude of attacker costs the
+about **0.18**, and every further order of magnitude of attacker costs the
 defender nothing, because 2⁵² is not a number a distributed guesser reaches. The
 default is safe by construction rather than by throttling.
 
 **A user who overrides the pre-filled identifier gives that up, and the same
 arithmetic says so plainly.** At the ~2⁴⁰ reference the strength meter warns
 about, the same five hundred stores and a hundred attacking addresses give
-roughly **1.4** expected findings a year, and a thousand addresses give **14**.
+roughly **7** expected findings a year, and a thousand addresses give **72**.
 There is no rate limit standing behind that number and this specification does
 not pretend there is one.
 
@@ -3288,7 +5934,7 @@ not pretend there is one.
 optimistic case.** The strength meter scores a guess-rank estimate, not an
 entropy distribution, and human-chosen identifiers are skewed: a guesser who
 orders candidates by likelihood finds the early ones sooner than uniform
-sampling predicts. So 1.4 and 14 are a **floor** on the cost of overriding, not
+sampling predicts. So 7 and 72 are a **floor** on the cost of overriding, not
 a forecast of it, and they describe an identifier at the reference rather than
 the population of everyone who dismissed the warning. Modelling that population
 would not change what the design owes the user, which is why this section
@@ -3302,8 +5948,8 @@ cosmetic.
 **The rate limits keep their other jobs.** The request-rate rows bound load. The
 failure rows raise the cost of casual probing, keep a single client from
 consuming the service, and make an enumeration attempt visible in the operator's
-metrics rather than silent — which is worth having, and is why §5.4 is
-unchanged. What they must not do is carry a security bound they cannot support:
+metrics rather than silent — which is worth having, and is why §5.4 kept
+them. What they must not do is carry a security bound they cannot support:
 this section made that mistake once, and the correction is recorded here rather
 than in the commit log because the wrong version was specific, quantified, and
 read as rigorous.
@@ -3415,7 +6061,7 @@ matching that row** (mutation: set the rebuild-owed flag only on the one-time
 pass — retry writes the repaired row, dies before the rebuild, and its next
 rescan finds nothing to write and is forbidden from rebuilding). **A sync ID
 containing non-ASCII code points produces a request that is actually issued, and
-its `Authorization` credential is the base64url of the normalised UTF-8 bytes**
+its `Authorization` header value is the base64url of the normalised UTF-8 bytes**
 (mutations: send the raw ID — on `dart:io` the client throws
 `FormatException` before the socket is touched, so the test must assert a
 request was *issued*, not merely that sync failed; encode only when a character
@@ -3472,12 +6118,17 @@ skipped, and is normalised on a later run once that tombstone is purged**
 (mutations: ignore soft-deleted rows when grouping — the write then fails
 against an index that does not filter `deleted_at`; treat a skip as final — the
 live row is blocked forever by a record the user cannot see or list). **An
-ordinary edit to a blocked row succeeds** (mutation: apply the write-path
-normalisation rule unconditionally — the user's edit is rejected to satisfy an
-internal invariant). **`settings.key` is not rewritten by the pass** (mutation:
-include every `shareable` string column without excluding record identity — the
-settings record is renamed rather than repaired). **Re-running the pass changes
-nothing** (mutation: make any step non-idempotent — a pass interrupted after
+ordinary edit to a blocked row succeeds when it leaves the value unchanged, and
+a rename onto a value another row holds is refused visibly and records no skip**
+(mutations: apply the write-path normalisation rule unconditionally — the
+unchanged re-save is rejected to satisfy an internal invariant; take the
+carve-out for every collision — the row's **old** value is written back and a
+skip is recorded for an edit that never happened, which is the bounded retry
+carrying an entry nothing can discharge). **`settings.key` is not rewritten by
+the pass** (mutation: include every `shareable` string column without excluding
+record identity — the settings record is renamed rather than repaired).
+**Re-running the pass changes nothing** (mutation: make any step non-idempotent
+— a pass interrupted after
 its last write then repeats it). **A row whose text changed is still found by
 search afterwards** (mutation: skip the derived rebuild — the index keeps the
 pre-normalisation text and matches nothing).
@@ -3497,8 +6148,18 @@ test passes while one record's body lands under another's id).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
-with differing bodies ties and is reported, rather than producing a silent
-winner (mutations: break the tie by keeping local; break it by taking remote).
+with differing live bodies is queued for the user's choice from both sides,
+rather than producing a silent winner (mutations: break the tie by keeping
+local; break it by taking remote; break it by any convergent rule). A
+whole-collection setting changed on both sides is queued even when one edit is
+newer (mutation: drop the whole-collection rule). A decision converges every
+device on the kept version (mutation: stamp the decision at the tie instead of
+one tick past it). After a whole-collection decision, the deciding device's
+next pass raises nothing. That holds while a peer still publishes the version
+chosen against, and while a leftover manifest re-offers it on every pass
+(mutation: stop dropping recorded versions in the whole-collection rule). A
+peer that also changed the set is asked exactly once (this pins the documented
+limit of a local record).
 ≥3-device convergence with interleaved edits. A record absent from the baseline
 and present on **both** sides converges — two devices independently setting the
 same shareable settings key, whose id is the key itself, is the cheapest fixture
@@ -3612,8 +6273,9 @@ therefore matches the one a peer computes over the same visible text (mutation:
 sanitise on the inbound apply path *instead* of on write, which is the reading
 the archive decoder already models — every single-device test passes, both
 devices then hold one record id and two byte strings, and the resulting
-`changed`/`changed` has an equal `updatedAt`, so §6.3 reports it on every pass
-and no edit on either device resolves it). A second vector asserts the transform
+`changed`/`changed` has an equal `updatedAt`, so §6.3 queues it for a choice
+that no choice can settle, because both devices then re-derive the divergence
+from their own sanitisation). A second vector asserts the transform
 is a **no-op on the inbound path against conforming input**, which is what makes
 "the hash identifies the content" true; a receiver whose sanitiser can alter a
 conforming peer's bytes has broken it regardless of what the write path does.
@@ -3655,15 +6317,22 @@ leaves the local identifier unchanged, asserted by reading it back after apply
 every serialisation test still passes because the send side never emits it — the
 adoption bug is receive-only). A `protocolIdentifier` value is also never
 serialised into a blob, on the same terms as the other non-`shareable` classes.
-**An `accessControlData` value is never adopted, never serialised and never
-logged**: a received envelope naming a `sync_id` leaves the local credential
+**A `storeAddress` value is never adopted, never serialised and never
+logged**: a received envelope naming a `sync_id` leaves the local address
 untouched (mutation: apply it, which locks the device out of its own store on
-the next request and is receive-only in the same way); no blob, manifest or
-export carries it (mutation: classify it `shareable`); and no server or proxy
-log line contains it, checked against the response to a request that fails
-authentication as well as one that succeeds (mutation: log the request line
-verbatim — the failing case is the one a naive implementation logs, because it
-is the one an operator wants to debug).
+the next request and is receive-only in the same way); no blob carries it
+(mutation: classify it `shareable`, caught by the send-side fail-closed list
+over `SyncSettingsRecord.toBlob`); a manifest and an archive export cannot carry
+it at all, so both are pinned structurally rather than by that mutation — a
+manifest's entries are record id to SHA-256 hash, its only free-form strings
+being the `protocolIdentifier` device id and the server-minted epoch, and an
+archive carries entity rows with no settings representation of any kind (the
+backup document, the one export that carries settings at all, excludes
+`sync_id` by name rather than by class — see *Configuration egress* above); and
+no server or proxy log line contains it, checked against the response to a
+request answered `401` as well as one that succeeds (mutation: log the
+request line verbatim — the failing case is the one a naive implementation
+logs, because it is the one an operator wants to debug).
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
 Inbound references to the losing UUID are remapped. `deviceLocal` fields
@@ -3720,13 +6389,17 @@ slow clock does not rewrite the collection downward. Repair adopts the matching
 peer's timestamp, not the greatest. Repair does not push stale content. A local
 edit made while poisoned survives. An in-window field is never touched. An
 out-of-window `updatedAt` is rebuilt. A poisoned `updatedAt` never enters
-circulation. A quarantined record advertises its last agreed hash. Withholding
-reaches the second hop. A program citing a quarantined venue still publishes.
+circulation. A quarantined record probes its last agreed hash before advertising it; an
+unavailable fallback omits the root and withholds its dependents. No-fallback
+withholding reaches the second hop. A program citing a quarantined venue still
+publishes.
 
 **Deletion.** Absence never deletes (mutation: make absence delete). A pending
 tombstone is never republished. A pending-held row is never advertised as live.
-A referenced entity cannot be tombstoned away. Purge refuses to cascade off live
-records. An epoch reset does not discard a pending deletion. A published record
+An entity referenced by a **live** owner cannot be tombstoned away; one whose
+only surviving references are held by tombstoned owners is tombstoned rather
+than erased, so the cascade cannot destroy the owner's data (§3.1). Purge
+refuses to cascade off live records. An epoch reset does not discard a pending deletion. A published record
 tombstones instead of hard-deleting (mutation: evaluate forfeiture against the
 baseline, which answers "never published" for a record `PUT` in the pass that no
 peer has confirmed yet). A detach-and-re-attach does not reverse a completed
@@ -3736,11 +6409,66 @@ Reconciliation carries the publication marker onto the survivor (mutation:
 remap without it, then hard-delete the survivor while a peer still advertises
 the losing id).
 
+**Per-peer reflection (§6.9).** A peer that has not published since raises no
+report however many passes run (mutation: report after three passes unreflected
+by every peer, the rule this replaced). A peer that has published twice since
+without the record is reported, naming it; after once, it is not (mutation:
+accept one publication). A manifest first seen on the publishing pass is not
+evidence (mutation: drop the pass-order test, with a peer clock running fast).
+A device whose own clock runs fast is still reported against (mutation: compare
+the peer's `writtenAt` with this device's clock). A peer holding a newer version
+is not refusing it (mutation: judge on hash inequality alone). Zero observed
+peers judges nothing.
+
+**Kept peer manifests (§5.2).** A restart asks with the kept `ETag` and takes
+the `304` (mutation: consult only the session cache). A full answer is kept
+(mutation: don't write it) and a `304` leaves it as it was — unless it lists a
+record kind this build does not know, which is kept neither in the session nor
+on disk, so the next pass asks without an `ETag` (mutation: keep it). A kept copy that does
+not decode is dropped, even when the refetch fails (mutation: keep it); one from
+another epoch, or naming another device, is not used (mutation: drop either
+check); one for a device the store no longer lists, or whose manifest turns out
+malformed or stops carrying a validator, is forgotten (mutation: skip the
+forget). After a restore clears the kept copies, a `304` puts each back
+(mutation: keep trusting the session's view of what is kept).
+
+**Unchanged publication (§6.3 steps 7–8).** A second pass over an unchanged
+library sends neither `POST /v1/blobs/missing` nor the manifest `PUT` (mutation:
+always publish). A changed record asks only about its own new hash (mutation:
+ask about every hash) and keeps the earlier confirmation time (mutation: stamp
+it now). The interval passing, the clock going back, and the store no longer
+listing this device each publish in full (mutation: drop the check). A failed
+`PUT` — refused, stale-epoch or thrown — leaves nothing recorded (mutation:
+clear only after it). A pass that cannot take a peer's record still publishes
+(mutation: skip it anyway). A fresh attach records its continuation's
+publication after the baseline it starts (mutation: record it before). A new session
+relies on the stored record and checks every blob when the manifest changed.
+A blob this device holds locally but does not publish — an import
+`sync_exclude_imports` keeps back, the live row behind a pending tombstone — is
+not downloaded (mutation: take only the publication's hashes as held).
+
+**Detach clean-up (§3.3).** Removes this device's manifest when every entry is
+carried with the identical hash by some peer written later; keeps it when the
+only carrier was written earlier, such as this device's own leftover manifest
+(mutation: drop the `writtenAt` floor), and when it was written in the same
+second (mutation: accept an equal `writtenAt`); keeps it when one entry is carried
+only at another hash (mutation: drop the per-entry check), when a peer manifest
+cannot be read (mutation: skip it) or lists a record kind this build does not
+know (mutation: decode peers tolerantly), when a peer manifest is in another epoch
+(mutation: drop the epoch check), and when no other device is listed (mutation:
+drop that check — the per-entry check then refuses it anyway, so the test asserts
+no manifest was read). Sends nothing offline or on a metered connection with
+*Sync only on Wi-Fi* on, and does not route the user to that setting (mutation:
+reuse the manual-sync gate). Detach returns before the first request, which
+finds the phrase already gone from disk. The device ID is read before the clear
+(mutation: read it after — the clear has erased it, and nothing is ever sent). A new pairing cancels it (mutation: drop the
+cancel). It gives up at its deadline.
+
 **Attach and restore.** Epoch mismatch → fresh attach, never deletion. Union and
-silent merge. An equal-`updatedAt` fresh-attach tie is reported rather than
-swallowed, and is reported again on the next steady pass (mutation: apply the
-remote body and skip the report — a mutation that merely keeps local is
-indistinguishable from the rule). Fresh attach stays referentially closed across
+silent merge. An equal-`updatedAt` fresh-attach tie is queued for the user's
+choice rather than swallowed, and stays queued across the next steady pass
+(mutation: apply the remote body and skip the queue — a mutation that merely
+keeps local is indistinguishable from the rule). Fresh attach stays referentially closed across
 a pending hold. Three-peer fresh attach (deleter, pending holder, stale peer). A
 restore converges rather than diverging. **An attach publishes**: after
 attaching to an empty store, this device appears in §7.1's `devices` list and a
@@ -3751,13 +6479,17 @@ attach runs **does not re-enter attach** when the epoch changed underneath it:
 it stops without publishing and the next trigger performs the fresh attach
 (mutation: recurse, and assert boundedness against a store re-created on every
 `POST /v1/store`).
-**A create answered `409` reports and stops**: the client neither joins the
-existing store nor discards a baseline it does not hold, and only a stale-epoch
-`409` from `PUT /v1/manifests/{deviceId}` triggers fresh attach (mutation: treat
-any `409` as the reset signal — every epoch-mismatch test still passes, because
-all of them arrive through the manifest `PUT`, and the damage needs a *create*
-against an ID already in use, which is exactly the silent join §6.2 step 2
-exists to prevent).
+**A *pairing* create answered `409` reports and stops**: the client neither
+joins the existing store nor discards a baseline it does not hold (mutation:
+treat a pairing `409` as a join — every epoch-mismatch test still passes,
+because all of them arrive through the manifest `PUT`, and the damage needs a
+*create* against an ID already in use, which is exactly the silent join §6.2
+step 2 exists to prevent). The rule is about *whose* store it would be, not
+about the status code: on the §6.3 step 1 replacement path the only possible
+creator is another holder of this device's own sync ID, so there a `409` is
+adopted and fresh-attached. A stale-epoch `409` from `PUT
+/v1/manifests/{deviceId}` remains the only `409` that triggers fresh attach on
+the steady-state path.
 **A previously used store answered `404` does not auto-create**: before
 confirmation there is no `POST`, manifest or blob request; declining preserves
 the baseline and server state; accepting creates exactly once and then runs
@@ -3771,7 +6503,17 @@ under differing whitespace and Unicode form (mutation: normalise on one side
 only — the second device silently gets an empty store rather than an error,
 which no status-code test can catch). A manifest `GET` returns a quoted strong
 `ETag` equal to the manifest content hash, and honours `If-None-Match` with
-`304`. A `Content-Type` carrying `; charset=utf-8` is accepted. `DELETE
+`304`. A `Content-Type` carrying `; charset=utf-8` is accepted. **A manifest
+whose `v` is unknown, a `v: 1` manifest carrying one extra top-level key, and
+one naming a record kind the server does not know are each rejected `400`, while a blob whose `v` is unknown is accepted `201`**
+(mutation: route the manifest through the same tolerant path as the blob — every
+blob test still passes, and a manifest whose `records` shape the server cannot
+read then reports success while §7.3 finds no references in it and reaps the
+live blobs it should have protected). **`DELETE /v1/manifests/{deviceId}`
+returns `204` both when a manifest exists and when it never did, and `404` only
+when no store exists for the `id_key`** (mutation: `404` on an absent manifest,
+copying the `DELETE /v1/store` precedent — a retry after a lost response then
+reports a failure that did not happen). `DELETE
 /v1/store` removes grace-window blobs immediately (mutation: apply the 24-hour
 exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
 Two stores upload a byte-identical blob and one is wiped; the survivor can still
@@ -3810,9 +6552,9 @@ level — contains a blob body, a manifest body or decoded record content
 sweep and `DELETE /v1/store`). **A plaintext request to `/v1` on the public
 listener is refused, never proxied and never redirected** (mutation: place the
 `ProxyPass` outside a vhost, or in both the `:80` and `:443` vhosts — the API
-answers identically on each, and the bearer credential is disclosed on every
+answers identically on each, and the sync ID is disclosed on every
 plaintext call. Second mutation: answer `301` to the `https` origin instead of
-refusing — the credential is already disclosed by the plaintext request itself,
+refusing — the sync ID is already disclosed by the plaintext request itself,
 and what the redirect adds is that a client which follows it *and retains*
 `Authorization` across the hop gets a sync that **works**, so nothing ever
 surfaces the misconfiguration and every run repeats the disclosure. A client
@@ -3822,8 +6564,9 @@ but which of the two reaches a given deployment is not the operator's to know
 deployment test against the running configuration, since no unit test of the
 server process can observe which port a proxy accepted the request on). **The
 per-IP rate limit is enforced against the real client address**, per §7.5
-requirement 6: two clients presenting different forwarded addresses through the
-loopback proxy are limited separately, and a client-IP header arriving from a
+requirement 6: two clients presenting different forwarded addresses (distinct
+IPv4 addresses, or IPv6 addresses in different /64s, §5.4) through the loopback
+proxy are limited separately, and a client-IP header arriving from a
 **non**-loopback socket peer is ignored (mutation: trust the header
 unconditionally, then assert that 1,000 guesses bearing 1,000 distinct forwarded
 addresses are still throttled — the socket-peer mutation is the complementary
@@ -3832,7 +6575,7 @@ together). **No log line contains a raw `{deviceId}`, and any log that records
 one carries a stated retention bound** (mutation: log the request path verbatim
 — the body-logging vector above still passes, because the identifier is in the
 path and never in a body, and §7.3's own reaping never reaches it). **A
-credential that is not valid base64url, or whose bytes are not well-formed
+`Bearer` value that is not valid base64url, or whose bytes are not well-formed
 UTF-8, is rejected `401`** (mutation: decode with `U+FFFD` substitution, then
 assert two distinct sync IDs differing only in an invalid byte do not resolve to
 one store). **While the server-wide failure limit is saturated, a request that
@@ -3862,16 +6605,51 @@ not.** Asserted by driving each of `401`, `403`, `404`-on-store-scoped and
 not move (mutation: count only `401`, which is what an earlier draft did and
 which leaves the enumerating request — well-formed, structurally valid,
 resolving to some `id_key` — costing an attacker nothing at all; the mutation
-passes every test that exercises malformed credentials). The complementary
+passes every test that exercises malformed `Bearer` values). The complementary
 mutation is to count successful resolutions too, which throttles an honest
 device's ordinary polling and is caught by the success run.
 
-**The creation cap bounds storage independently of the failure budget**: a run
-of successful creations is refused at the §5.4 rate while an unrelated existing
-store still resolves (mutation: fold creation into the failure budget, so a
-single honest first pairing consumes the guessing allowance, or drop the cap
-entirely, so an attacker converts an unbounded creation right into stored rows
-the sweep only reaches 30 days later).
+**The creation cap bounds store rows independently of the failure budget**: a
+run of successful creations is refused at the §5.4 rate while an unrelated
+existing store still resolves (mutation: fold creation into the failure budget,
+so a single honest first pairing consumes the guessing allowance, or drop the
+cap entirely, so an attacker converts an unbounded creation right into stored
+rows the sweep only reaches 30 days later).
+
+**One address cannot spend the creations every address shares**: an address
+past its per-client-IP share is refused while another address still creates,
+an IPv6 address shares its /64's share, a refusal by the per-IP row leaves the
+server-wide row unspent, and a creation that fails gives the address its token
+back (mutations: drop the per-IP row, which lets one address hold every honest
+first pairing out for the rest of the minute; charge the server-wide row before
+the per-IP one; drop the refund).
+
+**Large-body requests in flight are bounded per address and server-wide**:
+with a request of each counted route held open mid-body, one more from the same
+address is `429` with `Retry-After` while another address is served, a lookup
+from the first address is not refused, one past the server-wide cap is `503`
+with `Retry-After`, and a slot is free again once its request ends, by
+completing, by failing part-way, or by a body that does not arrive within the
+deadline, whether it trickles in or stops arriving altogether, plain or gzip
+(mutations: count nothing, which is the server these rows were added to; read a
+body without a deadline, which lets one trickling client keep its slot; count
+the body's bytes in an `async*` generator, whose cancel waits on a client that
+has fallen silent). A manifest `GET` reads the manifest a bounded chunk
+at a time as the response is consumed, and a manifest replaced, or a read that
+fails, part-way through is a response cut short that the client fails rather
+than a body spliced from two manifests or ended cleanly (mutations: answer from
+one whole read; end the stream without an error). A blob `GET` likewise
+streams its file, and a file gone part-way fails the stream with an error that
+names no path (mutations: read the file whole; let the file error escape).
+
+**The free-space floor refuses writes and nothing else**: below the floor a
+blob `PUT`, a manifest `PUT` and every checked blob of a batch upload are
+`507` and store nothing, while lookups, blob and manifest `GET`s,
+`POST /v1/blobs/missing` and deletes succeed; a manifest `PUT` no larger than
+the device's stored manifest is admitted and a larger one is not; a floor of
+zero is never read, and a reading that fails admits the write (mutations: never
+refuse, the server before the floor; refuse every manifest `PUT`, which leaves
+a user only deletes to free space with; admit a larger replacement).
 
 **User-visible sync obligations.** With `sync_exclude_imports` on, an imported
 dance that no published record cites is absent from this device's manifest,
@@ -3904,7 +6682,25 @@ replacement mutation is to issue `POST` before confirmation; cancellation MUST
 leave that mutation observably red.
 
 **Client isolate and robustness.** Hostile peer blob: a malformed date rejects
-one record without aborting the batch or escaping the isolate. **An interrupted
+one record without aborting the batch or escaping the isolate. **An undecodable
+local transcription is withheld on every publish path** — asserted separately
+against the fresh-attach snapshot, the dedupe plan and the merge-candidate
+build, because publishing is not funnelled through one chokepoint (mutation:
+guard only one of them — the others still build blobs straight from model
+objects, and the record goes out with an empty `figures` array that overwrites a
+peer's readable copy). Earlier text listed the record-body read as a fourth
+publish path and made it the mutation target; it is an inbound overlay read, and
+a guard there protects none of the three. **And the withhold says so**: each of
+the three raises a report the pass surfaces as a notice, asserted per path and
+per stored column, each path driven by its own entry point rather than through a
+delegation to another (mutation: emit the report for the figures column only —
+an undecodable tune list satisfies every figure-shaped assertion while going
+unreported, which is how four earlier guards passed over it). The complementary
+vector is that a **healthy** library is unaffected: no new key appears in its
+blobs, it raises no withheld report, and its archive stamps the same envelope
+version as before (mutation: emit the key, report unconditionally, or bump the
+version unconditionally — each is invisible to any test that only exercises the
+undecodable row). **An interrupted
 pass leaves no partial apply** — kill the isolate mid-apply and assert the
 library is exactly pre-pass or exactly post-apply, never between. The
 complementary assertion is that a pass killed *after* step 7 and before step 8
@@ -3951,17 +6747,108 @@ the other, since a range test rejects `localhost.example.com` correctly while
 admitting every address §5 excludes). **A `302` to a foreign https host is
 refused, and no request carrying `Authorization` is issued to it** (mutation:
 validate only scheme, userinfo and port — every cosmetic check still passes and
-the sync ID, which is the whole credential, leaves for an attacker-controlled
-origin on the first hop). **§6.12's triggers behave as specified**: *Sync only
-on WiFi* defaults to on; on a metered connection no automatic pass runs and a
+the sync ID, and with it the whole read, write and `DELETE` capability, leaves
+for an attacker-controlled origin on the first hop). **§6.12's triggers behave
+as specified**: *Sync only on Wi-Fi* defaults to on; on a metered connection no automatic pass runs and a
 manual attempt routes to the setting rather than failing; and a pass suppressed
 for either reason runs at the next trigger without user action (mutation: treat
 a suppressed pass as a completed one — nothing reports an error, and the device
 simply stops syncing on any connection it considers metered, which the user
-experiences as sync having quietly stopped working). These are client-side and
+experiences as sync having quietly stopped working). **A transient failure is
+retried by itself and a needs-you one is not**: an unreachable server, a
+timeout, a `5xx` other than `507` or a `429` schedules one retry on the §6.12
+backoff, never sooner than `Retry-After`, while a `507` or `422` schedules
+none (mutation: drop the transient test — every retry test still passes, and a
+store that is full is hammered every few minutes against §5.3's rule). **A
+`429` part-way through record downloads stops them and reports nothing**: what
+was fetched is applied, nothing else is baselined, the pass fails as
+transient, and the next pass fetches only the rest (mutation: treat it as any
+other non-success response — every record after the limit is reported as
+skipped and the pass completes). **The same holds for a batch, which also
+keeps what arrived**: a `429` on the second `POST /v1/blobs/batch` stops
+downloads with nothing reported and the next pass asks only for the rest
+(mutation: report the batch's records as refused), and a connection dropped
+part-way through a batch keeps and applies the blobs that arrived whole
+(mutation: discard a batch's blobs when its stream breaks). **A missing frame is
+a `404`** (mutation: drop the frame — the record is silently not fetched and
+never reported). **A server without the batch route is asked once per
+session**: `400`, `404`, `405`, `413` and `501` each fall back to single
+requests with nothing reported, as does a malformed batch, which keeps the
+blobs that arrived (mutation: do not remember the fallback — the next record
+asks for a batch again). **Uploads go in batches of at most 50, and a refusal
+inside one is its single `PUT`'s**: a `507` or `422` result stops the upload as
+that blob's `PUT` would, counting every blob the batch stored as progress
+(mutations: ignore the refused result — the pass publishes a manifest naming a
+blob the store refused; or count no stored blob — a full store reads as no
+progress). A `429` or `503` answering a batch stops the upload, and `400`,
+`404`, `405`, `413` and `501` fall back to single `PUT`s for the session
+(mutations: fall back on `429` — the next request meets the same limit; do not
+remember the fallback). A blob over the blob cap goes alone (mutation: batch it —
+its `413` refuses every blob beside it). The fallback is forgotten on a new
+store epoch and carried into the sync isolate. **A
+newer envelope is reported as `newerWireVersion`, a newer one that also adds
+a key included** (mutation: run the exact-key check before the version check —
+the plain `v` bump still passes, and the newer envelope that adds a key is
+reported as malformed). **A peer manifest naming a record kind this build
+does not know still delivers its known records and reports `newerRecordKind`**
+(mutation: decode it strictly — every record that peer holds is skipped). **A
+body field this build does not sync is kept and shared back byte for byte** — top level, nested object and id-keyed list item;
+unknown or known but private — so the device's rebuilt wire hash equals the
+peer's, and it survives the device's own edit (mutation: drop the kept parts
+from the snapshot — the record publishes without the field, and its hash
+differs from the peer's at the same `updatedAt`). **A part it cannot keep
+refuses the record as `newerRecordFields` or `newerFigures`** (mutation: let
+figure decoding drop the key — the dance applies, truncated). **A tie in kept
+parts is left to a device that understands them** (mutation: settle it as a tie
+in nothing the user is shown — the copy without the newer field can win
+everywhere; on a natural-key collision, compare the known parts only — the
+inbound copy wins on every device). **A restore of either mode or an archive import
+keeps the parts kept for every record, those it writes included** (mutation:
+clear the rows of the records a restore writes, or the whole table after a
+replace — the restored copy is stamped newer, `SyncMergeEngine.plan` uploads a
+body without the field, and it is stripped from the peer everywhere; a test
+pins both modes, and that the row of a record a replace left out is dropped by
+the next snapshot). **After an upgrade that starts syncing a kept field, the record
+holds it and the kept copy no longer wins** (mutation: keep putting the kept
+copy back — the user's edit to the now-synced field is shared with the old
+value). These are client-side and
 are grouped here rather than under **Server** because the server never parses
 record content beyond §7.2's key check — a server suite written from a list that
 included them would be testing rules its implementation is forbidden to have.
+
+**Server, `POST /v1/blobs/batch`.** Every requested hash is answered once, in
+request order; a hash with no reference in the current epoch, or whose file is
+gone, is *missing* (mutation: emit *not sent* for it — the client asks again
+forever). The byte cap ends the response's blobs at a prefix and lists the rest
+as *not sent* (mutation: drop the cap). The response is streamed: a blob deleted
+after the first frame has been read comes back *missing* (mutation: build the
+whole body before returning it). A request naming more than 200 hashes is
+`413`, and a store that does not resolve is a failed resolution under §5.4
+(mutation: answer its `404` without counting it). `gzip` is used when accepted
+and not when refused with `q=0`. A batch costs 1 + ⌈*n*/20⌉ on both request-rate
+rows and one that overdraws either is refused whole, with a `Retry-After` that
+covers the same batch sent again (mutations: charge one token — a full batch
+then costs what a single `GET` does; skip the per-store row; trim instead of
+refusing); a batch for a store that does not resolve costs only its request
+token (mutation: charge before the lookup).
+
+**Server, `PUT /v1/blobs/batch`.** Each blob is answered in request order with
+the status its own `PUT` would get — `201`, `200` for a held hash, `422` for the
+allow-list and `400` for a body that does not hash to its frame (mutations:
+skip the hash check, or the allow-list — the batch then stores what a single
+`PUT` refuses), and a held hash whose file was lost is written back. Once a new
+blob would pass the quota, it and every later new blob is `507` and the earlier
+ones are stored and charged (mutations: let a later, smaller blob in; stop
+counting stored blobs against the quota). A blob whose deletion is pending in
+the current epoch is not charged twice when uploaded again. More than 50 blobs
+or a blob over the cap is `413`; a duplicate hash, a cut frame or a frame of
+another status is `400`; none of them stores anything. A store that does not
+resolve is a failed resolution. A `gzip` body compressed past 10× is accepted.
+A batch upload costs 1 + ⌈*n*/10⌉ on both request-rate rows, held blobs
+included, and one that overdraws either is refused whole, storing nothing, with
+a `Retry-After` that covers the same batch sent again (mutations: charge one
+token; charge one per 20 blobs, the read's rate; round down); a batch for a
+store that does not resolve costs only its request token.
 
 A blob uploaded but not yet manifested survives a concurrent peer's manifest
 `PUT` and survives the sweep (mutation: collect every unreferenced blob
@@ -4000,19 +6887,23 @@ The following are recorded as known and are not specified here:
   on the order of one expected finding per year against 500 stores from a
   hundred attacking addresses, and ten times that from a thousand. Generated
   IDs, which is the default, are unaffected at ~2⁵².
-- Equal `updatedAt` with differing bodies does not converge on the paths that
-  compare one record against its own counterpart (§6.2 step 5, §6.3). The
-  divergence is reported bilaterally rather than resolved, because every
-  tie-break available *there* is non-convergent. §6.10's dance merge is not an
-  exception: having already collapsed two rows into one, it has the surviving
-  UUID to order by, and takes that row's value. These paths differ in what they
-  can still decline to do, not in how they read a clock.
+- Equal `updatedAt` with differing bodies does not converge on its own on the
+  paths that compare one record against its own counterpart (§6.2 step 5,
+  §6.3). It is queued for the user's choice on every device that sees it, and
+  converges once anyone decides; until then the devices differ. No automatic
+  rule decides it: the non-convergent ones disagree forever, and a convergent
+  one discards an edit without asking (@ibanner56's ruling, 2026-10-02). The
+  one exception is a tie in which nothing the user is shown differs, which a
+  convergent rule settles (§6.3).
+  §6.10's dance merge is not an exception: having already collapsed two rows
+  into one, it has the surviving UUID to order by, and takes that row's value.
+  These paths differ in what they can still decline to do, not in how they read
+  a clock.
 - **The baseline-absence guard diverges by design** (§6.4). Where §6.4's copy
   fires, the creating device reports and keeps its row while the deleting
   device applies its own tombstone and reports nothing, so the two hold
   different states permanently until a human acts. That is the intended trade —
-  a reported divergence in place of a silent loss — and it is structurally the
-  same accepted case as the equal-`updatedAt` entry above. **§6.6 step 2's copy
+  a reported divergence in place of a silent loss. **§6.6 step 2's copy
   is deliberately not listed here.** It routes to `review_queue` instead of
   reporting, so its divergence lasts until the user answers a question they
   were actually asked, rather than until a human happens to notice a report.
@@ -4049,3 +6940,19 @@ The following are recorded as known and are not specified here:
   worked through, and because the DNS-01 path exists today. The maintainer
   reviewed this trade and accepted it on those terms, keeping pinning available
   as the way to remove the cost later; it is deferred rather than rejected.
+
+## Wire version history
+
+`syncWireVersion` (`sync_codec.dart`) is the envelope version `v` that every
+record blob and manifest carries (§4.3, §4.5). Every bump appends its entry
+here, in the same PR; `tools/ci/check_version_history.py` fails a PR that moves
+the constant without the matching entry. A wire change that no release carries
+yet joins the current version and amends its entry instead (§7.2, "An
+unreleased `v`"); the gate cannot see that case, because the constant does not
+move.
+
+- v1: the envelope this document specifies. A client refuses a record blob or
+  manifest written at a higher `v` and reports it as written by a newer build
+  (§4.3, §6.9). The server rejects a manifest whose `v` it does not know, and
+  does not reject a blob solely for an unknown `v` (§7.2). Carried by every
+  release since v0.3.1-beta.

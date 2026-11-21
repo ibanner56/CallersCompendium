@@ -1,7 +1,7 @@
 # Caller's Compendium — User Guide
 
 Welcome! This is the home for **Caller's Compendium** user documentation — the
-guides that help you *use* the app, whether you are cataloguing dances, building a
+guides that help you *use* the app, whether you are cataloging dances, building a
 program for Saturday's gig, or calling from the stage.
 
 **Caller's Compendium** is a free, open-source dance organizer for contra-dance
@@ -40,6 +40,8 @@ Everything else can wait until you need it.
 | Import a signed published collection | [Imports & migration — Import a published collection](imports.md#import-a-published-collection) |
 | Find one dance in a big collection | [Collection & search — Search across your dances](collection.md#search-across-your-dances) |
 | Narrow a list by level, formation, or tag | [Collection & search — Narrow things down with filters](collection.md#narrow-things-down-with-filters) |
+| Tag, rate, or delete many dances at once | [Collection & search — Change many dances at once](collection.md#change-many-dances-at-once) |
+| Rename or merge tags, authors, or sources | [Settings — Dances](settings.md#dances) |
 | Write a new dance, or fix one that came in wrong | [Write & edit dances](authoring.md) |
 | Record how a dance is taught | [Write & edit dances — Walkthrough](authoring.md#walkthrough) |
 | Build a set list for an event | [Programs & matrix](programs.md) |
@@ -48,13 +50,15 @@ Everything else can wait until you need it.
 | Change a dance mid-evening | [Perform mode — Adjust on the fly](perform.md#adjust-on-the-fly) |
 | Email, print, or hand off a set list | [Share, print & export](sharing.md) |
 | Send a program to another caller | [Share, print & export — Share a program with its dances](sharing.md#share-a-program-with-its-dances) |
+| Print dances on index cards to call from | [Share, print & export — Print calling cards](sharing.md#print-calling-cards) |
 | Move everything to a new device | [Backup & portability](backup-portability.md) |
+| Keep my library in step across my own devices | [Settings — Device Sync](settings.md#device-sync) |
 | Call it "larks and robins" (or anything else) | [Dialect](dialects.md) |
 | Use a screen reader, big text, or the keyboard only | [Accessibility](accessibility.md) |
 | Change how the app looks or behaves | [Settings](settings.md) |
 | Send a crash report to the developers | [Settings — Diagnostics](settings.md#diagnostics) |
 | Work out why something isn't behaving | [FAQ & troubleshooting](faq.md) |
-| Look up a word I don't recognise | [Glossary](glossary.md) |
+| Look up a word I don't recognize | [App terms](glossary.md) |
 
 ## All guides
 
@@ -100,7 +104,7 @@ Everything else can wait until you need it.
 | Guide | What it covers |
 |---|---|
 | [FAQ & troubleshooting](faq.md) | Common questions and fixes for common snags |
-| [Glossary](glossary.md) | Plain definitions of the terms used throughout |
+| [App terms](glossary.md) | Plain definitions of the terms used throughout |
 
 ## Reading these guides inside the app
 
@@ -111,8 +115,9 @@ Programs, and Settings in the app's main navigation, and also has a link at
 
 The in-app copy is the same text you are reading now, with two differences:
 
-- It is **text only**. Any illustration appears as its description in italics
-  rather than a picture.
+- Screenshots are bundled with the app and appear in the guide offline. Each
+  has a text description that screen readers announce; if a picture ever fails
+  to load, that description is shown in italics instead.
 - Links between guides open in the panel, and **Back** returns you to where you
   were. Links out to the web open in your browser — nothing is fetched unless
   you choose to open it.

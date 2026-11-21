@@ -11,6 +11,46 @@ the loopback-only forwarded-address trust boundary.
 
 1. Install Docker, Apache 2.4.40 or newer, and the Apache modules `ssl`,
    `headers`, `proxy`, `proxy_http`, `reqtimeout`, and `rewrite`.
+
+   Then check that the root filesystem is not mounted with `discard`:
+
+   ```sh
+   findmnt -no OPTIONS /
+   ```
+
+   Some VPS images set it (Hostinger's Ubuntu 26 image did). With it, ext4 sends
+   the disk a discard for the freed blocks after every large deletion, and on a
+   slow virtual disk the journal then waits behind it: on the reference KVM
+   host, synced 4 KB writes fell from about 700 a second to about 5 for over
+   half an hour after one `rm -rf` of a large directory. The server's
+   hourly sweep deletes expired stores' blob directories, so production hits
+   this too. If the output contains `discard`, turn it off now and in
+   `/etc/fstab`, and let the weekly `fstrim.timer` trim in one batch at a quiet
+   hour instead:
+
+   ```sh
+   sudo mount -o remount,nodiscard /
+   sudo sed -i.bak -e '/[[:space:]]\/[[:space:]]/ s/discard,//' \
+     -e '/[[:space:]]\/[[:space:]]/ s/,discard\([[:space:]]\)/\1/' \
+     -e '/[[:space:]]\/[[:space:]]/ s/\([[:space:]]\)discard\([[:space:]]\)/\1defaults\2/' /etc/fstab
+   sudo systemctl daemon-reload && sudo findmnt --verify
+   sudo install -d /etc/systemd/system/fstrim.timer.d
+   printf '%s\n' '[Timer]' 'OnCalendar=' 'OnCalendar=Sun 04:00' \
+     'RandomizedDelaySec=0' 'Persistent=false' |
+     sudo tee /etc/systemd/system/fstrim.timer.d/override.conf >/dev/null
+   sudo systemctl daemon-reload && sudo systemctl enable --now fstrim.timer
+   ```
+
+   Check the root line of `/etc/fstab` afterwards: a reboot with `discard`
+   still there turns it back on. A remount does not cancel discards already
+   queued; a reboot drops them. To check the disk, time 200 synced writes
+   before and after deleting a large directory; on a healthy disk each run
+   takes well under a second:
+
+   ```sh
+   sudo dd if=/dev/zero of=/var/lib/dd-sync-test bs=4k count=200 oflag=dsync
+   sudo rm -f /var/lib/dd-sync-test
+   ```
 2. Create a dedicated directory owned by the container user for the three
    SQLite databases and blob directory:
 
@@ -70,7 +110,7 @@ the loopback-only forwarded-address trust boundary.
    install a matching certificate, enable the site, and reload Apache. The
    `:80` vhost may serve ACME challenges, but `/v1` must remain refused and must
    never redirect or proxy. Both vhosts serve the status page at `/` and proxy
-   the credential-free `/heartbeat` liveness check; only the TLS vhost proxies
+   the `/heartbeat` liveness check (which takes no sync ID); only the TLS vhost proxies
    `/v1/`.
 5. Start the container with host networking and the persistent volume:
 
@@ -91,40 +131,116 @@ the loopback-only forwarded-address trust boundary.
    Verify the reservation before every first start with the range-aware
    `port_reserved` check from step 2 (not an exact-token grep). Port `33333`
    must not be published or exposed on a non-loopback interface.
+6. Install the alert forwarder, which emails each alert line the container
+   writes (see *Alerts* under Operations). It needs a working `mail` command;
+   with msmtp:
+
+   ```sh
+   sudo apt install msmtp msmtp-mta bsd-mailx
+   sudo install -m 755 server/deploy/athenaeum-alert-email \
+     /usr/local/sbin/athenaeum-alert-email
+   sudo install -m 644 server/deploy/athenaeum-alert-email.service \
+     /etc/systemd/system/athenaeum-alert-email.service
+   ```
+
+   Set `ATHENAEUM_ALERT_TO` in the unit to the on-call address. Configure
+   `/etc/msmtprc` (mode 600) for the SMTP account and keep its password in a
+   separate mode-600 file read with `passwordeval`, never in the unit. Answer
+   **No** when the msmtp package asks about AppArmor: its profile stops
+   `passwordeval` from running `cat` on a file under `/root`, and sending then
+   fails with `cat: Permission denied` and sendmail exit 78. Then enable the
+   unit and send a test through the same path:
+
+   ```sh
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now athenaeum-alert-email.service
+   printf '%s\n' '{"alert":{"kind":"sweep_failure","source":"manual_test","errorType":"Test"}}' |
+     sudo ATHENAEUM_ALERT_TO=on-call@example.invalid /usr/local/sbin/athenaeum-alert-email
+   ```
+
+   The forwarder reads the container log from its end, so an alert written
+   while it is not running is never sent: install it before the service takes
+   traffic, and on a move to a new host, before cutover. While the container
+   is stopped the unit restarts every five seconds; that is expected.
 
 ## Proxy and security contract
 
 The vhost must preserve `Authorization`, allow a 32 MiB wire body (the
-application enforces the 16 MiB decoded manifest limit), avoid decompressing
+application enforces the 16 MiB decoded manifest limit and also caps gzip
+bytes on the wire per route, so `LimitRequestBody` is defence in depth), avoid decompressing
 request bodies, overwrite `X-Forwarded-For` with the connecting client
 address, and proxy only over loopback. The application trusts that header only
-when the socket peer is loopback; Apache derives it from the underlying
-connection peer (`CONN_REMOTE_ADDR`) even if host-level `mod_remoteip` is
-enabled, and the application otherwise uses its peer address. The
-limits are independent: 10 failures per IP per minute, a burst of 20 failures
-per IP, 1,000 failures per minute server-wide, and 60 store creations per
-minute. A saturated server-wide failure budget must not block authenticated
-access to an existing store.
+when the socket peer is loopback, and then reads only the rightmost entry, so a
+client-supplied prefix cannot choose the rate-limit key even behind a proxy that
+appends instead of overwriting. The reference vhost sets it from the
+underlying connection peer (`CONN_REMOTE_ADDR`) and turns off mod_proxy's own
+forwarding headers with `ProxyAddHeaders Off`. Both are needed: with mod_proxy's
+default (`ProxyAddHeaders On`), Apache appends a second entry after the one
+`RequestHeader set` wrote, that entry is `REMOTE_ADDR` *after* any host-level
+`mod_remoteip` rewrite, and it is the rightmost entry the application reads. On
+a host with `mod_remoteip` enabled, the rate-limit key would then be whatever
+address remoteip resolved, which is client-chosen if remoteip trusts a header
+the client can send. With no forwarded header the application uses its peer
+address. Either way the
+rate-limit key is the IPv4 address, or for IPv6 the /64 (the address's first 64
+bits), because one IPv6 subscriber can present 2^64 addresses inside its
+delegated /64; an IPv4-mapped IPv6 address (`::ffff:a.b.c.d`) is keyed as its
+IPv4 address. A deployment that enforces a per-IP limit in the proxy too should
+apply the same /64 rule. The
+limits are independent: 5 requests per IP per second with a burst of 300, 15
+requests per store per second with a burst of 600, 10 failures per IP per
+minute, a burst of 20 failures per IP, 1,000 failures per minute server-wide,
+5 store creations per IP (refilled at 5 an hour), and 60 store creations per
+minute server-wide. There is deliberately no server-wide request-rate limit
+(spec §5.4); `server/tool/load_test.dart` measures what the host sustains. A
+saturated server-wide failure budget must not block requests that resolve an
+existing store. Large-body requests (manifest and blob uploads, and
+`POST /v1/blobs/missing`) are also counted while in flight: 4 per IP, then
+`429`, and 16 server-wide, then `503`. See *Server-wide limits* below for how to
+change these and the free-space floor.
+
+**Existing hosts:** a vhost installed before `ProxyAddHeaders Off` was added to
+the reference configuration does not have it, and nothing deploys it for you:
+the release workflow replaces the container, not the Apache configuration. Add
+the line by hand inside the Athenaeum `*:443` vhost, next to the
+`RequestHeader set X-Forwarded-For` directive, then check and reload:
+
+```sh
+# Edit the file behind the enabled site; sudoedit will not follow the symlink.
+sudoedit "$(readlink -f /etc/apache2/sites-enabled/athenaeum.conf)"
+sudo apachectl -t && sudo systemctl reload apache2
+```
+
+The smoke test below refuses a vhost without it.
 
 Use a no-redirect probe after every Apache change in a direct-origin or staging
 deployment:
 
 ```sh
-ATHENAEUM_CREDENTIAL='encoded-credential-for-a-new-disposable-store' \
+ATHENAEUM_CREDENTIAL='encoded-sync-id-of-a-new-disposable-store' \
   ATHENAEUM_APACHE_CONFIG=/etc/apache2/sites-enabled/athenaeum.conf \
   sh server/deploy/smoke_test.sh sync.example.invalid
 curl --max-time 10 --max-redirs 0 --include http://sync.example.invalid/v1/store
 curl --max-time 10 --include https://sync.example.invalid/v1/store
 ```
 
-The credential must be new and belong to a disposable test store; the script
+The encoded sync ID must be new and belong to a disposable test store; the script
 deletes stores it creates. If cleanup is rate-limited after the failure-budget
 probe, it retries after the rolling 60-second window before reporting failure.
 The first request must be a refusal (not 3xx and not an Athenaeum response).
-The script then exercises real client buckets and
-forwarded-header overwrite through Apache, the 1,000-failure and 60-creation
-budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
-authenticated Athenaeum create/lookup responses over HTTPS with
+The script refuses a vhost whose TLS vhost lacks `ProxyAddHeaders Off`, then
+exercises real client buckets and forwarded-header overwrite through Apache
+(including forged `X-Forwarded-For`, `X-Real-IP`, `CF-Connecting-IP`,
+`True-Client-IP`, `X-Client-IP`, and any `RemoteIPHeader` named in the vhost or
+in `conf-enabled/` or `mods-enabled/` under `ATHENAEUM_APACHE_ROOT`, default
+`/etc/apache2`; sent from a loopback client, none of them may change its
+rate-limit key. The probe catches a vhost that does not overwrite the header,
+but an appended remoteip-resolved entry shows up there only where
+`mod_remoteip` trusts loopback, so on hosts that trust only CDN ranges the
+`ProxyAddHeaders Off` check is the guard), the 1,000-failure budget, the
+5-per-IP and 60-per-minute creation budgets, the inclusive 16 MiB boundary,
+compressed-body preservation, and
+Athenaeum create/lookup responses over HTTPS with
 `Strict-Transport-Security`. The harness also inspects the active vhost
 configuration to ensure no request decompression directive is enabled;
 the successful gzip upload then exercises the backend's own gzip decoder.
@@ -275,7 +391,7 @@ SSLVerifyDepth 1
 
 Reload Apache, enable **Global Authenticated Origin Pulls** under
 **SSL/TLS > Origin Server** in Cloudflare, and confirm the proxied HTTPS
-endpoint still returns the expected unauthenticated `401`. Then change
+endpoint still returns the expected `401` for a request without a sync ID. Then change
 `SSLVerifyClient optional` to `SSLVerifyClient require` and reload Apache.
 Global Origin Pulls causes Cloudflare to present its certificate for proxied
 hostnames in the zone; enforcement remains Athenaeum-only because this vhost
@@ -294,7 +410,7 @@ curl --noproxy '*' --connect-timeout 5 --max-time 15 \
 ```
 
 The public HTTP request must be a refusal rather than a redirect, and public
-HTTPS must return Athenaeum's unauthenticated `401`. The direct HTTPS request
+HTTPS must return Athenaeum's `401` for a request without a sync ID. The direct HTTPS request
 must fail TLS client-certificate verification without returning an HTTP
 response. The standard smoke harness intentionally connects to loopback, so it
 cannot run while `SSLVerifyClient require` is enforced; use a direct/staging
@@ -348,7 +464,7 @@ same invalid authorization. It must return `401`, not `429`. Correlate each
 request with the redacted Apache access log by timestamp: its `%h` client
 address must match the address reported by `/cdn-cgi/trace`, never a
 Cloudflare range. This verifies both independent client buckets and the
-trusted `CF-Connecting-IP` path without logging credentials or request
+trusted `CF-Connecting-IP` path without logging sync IDs or request
 headers.
 
 ```sh
@@ -359,18 +475,71 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   https://sync.example.invalid/v1/store
 ```
 
+## Server-wide limits
+
+Every store quota is per store, so three limits protect the server as a whole
+(spec §5.4). Each is set by an environment variable or the matching
+command-line option; the defaults suit the reference host.
+
+| Variable | Option | Default | What it does |
+| --- | --- | --- | --- |
+| `ATHENAEUM_MIN_FREE_BYTES` | `--min-free-bytes` | `1073741824` (1 GiB) | Blob and manifest uploads answer `507` while the filesystem holding `/var/lib/athenaeum` has less free space than this. Lookups, downloads, `POST /v1/blobs/missing`, store creation, every delete, and a manifest upload no larger than the one that device already has keep working, so a user can still shrink a device's share by turning on *Skip unused imported dances*. `0` turns the floor off. |
+| `ATHENAEUM_MAX_LARGE_BODIES` | `--max-large-bodies` | `16` | Manifest `PUT`s, blob `PUT`s (single and batch) and `POST /v1/blobs/missing` requests handled at once, server-wide; one more answers `503` with `Retry-After: 5`. Each can hold up to 16 MiB in memory while it is read and stored. |
+| `ATHENAEUM_MAX_LARGE_BODIES_PER_IP` | `--max-large-bodies-per-ip` | `4` | The same requests one client address (an IPv4 address or an IPv6 /64) may have in flight; one more answers `429` with `Retry-After: 5`. |
+
+Set them in `/root/athenaeum.env` beside the pepper, one `NAME=value` line
+each, and restart the container. Prefer the variables to the options: the
+release workflow's deploy recreates the container with the env file and the
+image's default arguments, so options passed after the image name are lost at
+the next release, while the env file is kept. A counted request whose body has
+not arrived whole after 60 seconds has its connection closed and its slot
+released, so a client sending its body slowly, or not at all, cannot hold a
+slot for longer than that; the deadline is not configurable.
+
+The container reads free space with `statvfs(3)` on the bind-mounted data
+directory, which reports the host filesystem behind the mount. If the server
+cannot read it, it writes `Athenaeum cannot read free space on this platform;
+the --min-free-bytes floor is not enforced` to stderr at startup and admits
+every write; the reference image on 64-bit Linux always can. Keep the floor
+above what the large-body requests in flight can write at once
+(`ATHENAEUM_MAX_LARGE_BODIES` × 16 MiB): a write admitted just above the floor
+can still land.
+
+A `507` from the floor raises a `quota_exhaustion` alert whose `source` is
+`free_space_floor` and `errorType` is `FreeSpaceBelowFloor`. Clients show it as
+a full store, the nearest message they have, and do not retry a `507` by
+themselves (spec §5.3). Grow the disk, or free space on the host: the hourly
+sweep deletes the blob files of expired stores, but SQLite reuses the pages
+their rows held rather than returning them to the filesystem, so reaping does
+not shrink `athenaeum.sqlite`. Each user's next sync that they start then
+succeeds.
+
+The server-wide cap refusing a request raises a `capacity_exhaustion` alert
+(`source` `large_bodies`). Occasional ones mean the cap is tight for the load;
+a steady stream with ordinary traffic means clients are holding slots open, and
+the Apache access log shows from where. Reinstall
+`server/deploy/athenaeum-alert-email` from step 6 of the first deployment so the
+forwarder sends this kind too.
+
 ## Operations
 
 - **Logs:** retain only the redacted Apache access/error logs and container
   stderr according to the host's retention policy. The safe access format
-  excludes request targets and headers, so sync IDs and credentials are not
-  written. Restrict log access to operators.
-- **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion` or
-  `sweep_failure` from container stderr to the on-call notification path.
+  excludes request targets and headers, so sync IDs, in plain or encoded
+  form, are not written. Restrict log access to operators.
+- **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion`,
+  `sweep_failure` or `capacity_exhaustion` from container stderr to the
+  on-call notification path. A
+  `quota_exhaustion` alert with `source` `free_space_floor` means the host's
+  disk is below the free-space floor (see *Server-wide limits*), not that one
+  store is full. The
+  reference path is the email forwarder installed in step 6 of the first
+  deployment (`server/deploy/athenaeum-alert-email` and its unit); a failed
+  send is logged to the unit's journal and skipped.
   Repeated alerts with the same kind, source, and exception type are limited to
   one notification per minute; the next notification includes the aggregate
   count. Payloads contain only a category, source, exception type, and optional
-  count; they never contain user content, bearer credentials, sync IDs, or
+  count; they never contain user content, sync IDs (plain or encoded), or
   device IDs.
 - **Quota probe:** in a staging deployment, create data until the service
   returns `507`, record the UTC timestamp and alert/incident URL, then remove
@@ -380,33 +549,98 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   `sweep_failure` alert reaches a human, record the timestamp and incident URL,
   then repeat without the injected failure to verify removal.
 - **Retention:** after the sweep, query the disposable store and expect
-  "not found". Search ordinary access/error/container logs for its credential,
-  sync ID, and content; all must be absent.
+  "not found". Search ordinary access/error/container logs for its sync ID, plain
+  and encoded, and its content; all must be absent.
 - **Break-glass:** obtain an incident/ticket approval before access. Record the
   operator, reason, approval reference, and UTC time in the ticket, then use
-  the supported command below. It accepts the raw sync ID on stdin, writes the
-  separate audit row before looking up the store or reading the requested
-  manifest, and writes only the manifest bytes to stdout:
+  the supported command below; never read the blob directory or SQLite
+  directly, because that bypasses the audit. It accepts the raw sync ID on
+  stdin and reads exactly one item per run: one device's manifest
+  (`--break-glass-device-id <device-id>`) or one blob
+  (`--break-glass-blob <hash>`), in the store's current epoch unless
+  `--break-glass-epoch <epoch>` names another. The blob hashes a device holds
+  are the values inside its manifest's `records` map (kind, then record ID,
+  then hash; spec §4.5), so read the manifest first. Before
+  looking up the store, the command writes, in one transaction, the access row
+  (`break_glass_access`: derived `id_key`, time) and a row naming the item
+  (`break_glass_reads`: `manifest` or `blob`, `id_key`, epoch, device ID or
+  blob hash, time); when no epoch was given it then records the current one.
+  If either write fails it exits `1` without reading anything. The audit never
+  holds the item's content. It writes only the item's bytes to stdout:
   ```sh
   printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
     /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
     --break-glass-device-id device-one > /secure/incident/manifest.bin
+  printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
+    /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
+    --break-glass-blob "$BLOB_HASH" > /secure/incident/blob.bin
   ```
+  Options that do not name exactly one valid item (both or neither of
+  `--break-glass-device-id` and `--break-glass-blob`, a malformed device ID,
+  hash, or epoch) exit `2` before the sync ID is read, and record nothing.
+  The command is a **read**: it opens `athenaeum.sqlite` read-only and runs
+  none of the server's startup work (no schema or index creation, manifest
+  indexing, orphan-blob reconcile, or pending-deletion retry), so it is safe to
+  run against the live volume and neither blocks nor is blocked by the running
+  server's writes to `athenaeum.sqlite`. Only the break-glass log database is
+  written, which is where the audit rows go. The running server's retention
+  sweep writes that database too, so each side waits up to 250 ms for the
+  other; past that, this command exits with `break-glass read failed` (re-run
+  it) or the sweep reports a `break_glass_retention` failure. It never creates
+  `athenaeum.sqlite`: if the server has never run on the volume the command
+  fails (`SqliteException`) rather than reporting "store not found" against a
+  fresh empty file. Run it as the same user as the server, or with write access
+  to the data directory: a read-only connection to a WAL database still needs
+  the `-shm` file, and creates it if the server has shut down cleanly and left
+  no `-wal`/`-shm`.
   Use a secure terminal and output path; do not put the sync ID or returned
   content in shell history, ordinary logs, or chat. Inspect the separate
-  break-glass database for exactly one row with the derived `id_key` and
-  timestamp. Never write this audit row to the ordinary store.
+  break-glass database for one `break_glass_access` row and one
+  `break_glass_reads` row per run, with the derived `id_key`, the item read,
+  and the timestamp. Never write these audit rows to the ordinary store. Then
+  add an entry to
+  [`docs/user/breakglass-access-record.md`](../user/breakglass-access-record.md)
+  saying what was read by kind and count, not by hash or device ID, and never
+  its content. After 30 days the hourly sweep nulls the `id_key` of the
+  access row and the `id_key`, epoch, device ID, and hash of the read row,
+  leaving the time and, on the read row, the kind.
 - **Lost ID:** a lost sync ID cannot be recovered by design. Verify ownership
   through the normal support process, explain that the server stores only a
   one-way derived key, and direct the user to create a new store.
 
 ## Upgrade, rollback, and release order
 
+Before deploying a server release with a free-space floor for the first time,
+check `df -B1 --output=avail /var/lib/athenaeum` on the host. Below the
+floor (1 GiB unless `ATHENAEUM_MIN_FREE_BYTES` says otherwise), every upload
+answers `507` from the moment the new container starts.
+
 Build a new immutable image tag, stop the old container, start the new tag with
 the same volume and pepper, and verify the HTTPS and plaintext probes before
 declaring success. To roll back, stop the new tag and restart the previous
 image; do not replace the volume or pepper. Keep the previous image until the
 post-upgrade retention and break-glass checks complete.
+
+Startup indexes the blob references of any manifest the reference index does
+not cover ([sync-spec §7.3](../design/sync-spec.md#73-ttl-and-garbage-collection)).
+The first start of an image with the index reads every stored manifest body
+once, so it takes longer than later starts; afterwards it reads only manifests
+an earlier image wrote, which is what a rollback followed by a fresh upgrade
+leaves behind. Rolling back is safe without further steps: the earlier image
+ignores the index, and the next upgrade rebuilds whatever it changed.
+
+An image older than the `break_glass_reads` table ignores that table, so while
+it runs its sweep does not null the table's `id_key`, epoch, device ID, or
+hash after 30 days. The next upgrade's first sweep nulls every row then past
+the period. Do not leave a host on such an image for longer than the period
+after a break-glass read.
+
+The release workflow performs this upgrade itself: its `deploy_server` job builds
+`callers-compendium-athenaeum:<version>` from the tagged commit and swaps the
+container before the mobile uploads and the update manifest
+([Deploying the Athenaeum server](releasing.md#deploying-the-athenaeum-server)).
+A failed job after the old container is removed leaves you to roll back by hand
+as above.
 
 Before beta or public client distribution, deploy and smoke-test the compatible
 Athenaeum service first. Record the image digest, proxy probe results, alert

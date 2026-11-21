@@ -1,3 +1,5 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/editor/pending_move_text_controller.dart';
 import 'package:compendium_app/src/widgets/move_autocomplete.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -15,19 +17,28 @@ Future<void> _pump(
   Dialect? dialect,
   ValueChanged<MoveOption>? onSelected,
   ValueChanged<String>? onCustomSubmitted,
+  bool Function(String text)? submitsAsText,
+  List<MoveOption> compoundOptions = const [],
   bool includeModifier = false,
+  bool includeAliases = true,
+  Taxonomy? taxonomy,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: MoveAutocomplete(
-          taxonomy: contraTaxonomy,
+          taxonomy: taxonomy ?? contraTaxonomy,
           dialect: dialect,
           initialText: '',
           fieldKey: 'move',
           onSelected: onSelected ?? (_) {},
           onCustomSubmitted: onCustomSubmitted,
+          submitsAsText: submitsAsText,
+          compoundOptions: compoundOptions,
           includeModifier: includeModifier,
+          includeAliases: includeAliases,
         ),
       ),
     ),
@@ -35,6 +46,114 @@ Future<void> _pump(
 }
 
 void main() {
+  group('moves of several dance forms (ADR-006)', () {
+    testWidgets('an ECD dance offers its own circle, not contra\'s', (
+      tester,
+    ) async {
+      await _pump(tester, taxonomy: shippedTaxonomies.forForm(DanceForm.ecd));
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'circle',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_circle')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('move-option-circle')), findsNothing);
+    });
+
+    testWidgets('an ECD dance offers only its own form\'s figures', (
+      tester,
+    ) async {
+      // ADR-006 §12.2, S1: contra's swing has no ECD counterpart, so an ECD
+      // dance is not offered it at all, alone or among others.
+      await _pump(
+        tester,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        includeAliases: true,
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'swing');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-swing')), findsNothing);
+      for (final id in contraTaxonomy.moves.keys) {
+        expect(
+          find.byKey(ValueKey('move-option-$id')),
+          findsNothing,
+          reason: 'contra\'s $id offered in an ECD dance',
+        );
+      }
+      // Positive control: the same field does offer ECD's own turn.
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'turn');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_hand_turn')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a contra dance offers only contra\'s figures', (tester) async {
+      await _pump(
+        tester,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.contra),
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'turn');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_hand_turn')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a search over every dance offers both, the other form named', (
+      tester,
+    ) async {
+      await _pump(tester, taxonomy: shippedTaxonomies.anyForm);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'circle',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-circle')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_circle')),
+        findsOneWidget,
+      );
+      expect(find.text('circle · English (ECD)'), findsOneWidget);
+    });
+
+    testWidgets(
+      'a listed alias of each form is offered, the other form named',
+      (tester) async {
+        // Contra's and ECD's "hand cast" (ADR-006 §9.4) are both listed as
+        // moves; a search over every dance tells them apart as it does moves.
+        for (final includeAliases in [true, false]) {
+          await _pump(
+            tester,
+            taxonomy: shippedTaxonomies.anyForm,
+            includeAliases: includeAliases,
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('move-input')),
+            'hand cast',
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('move-option-hand_cast')),
+            findsOneWidget,
+            reason: 'includeAliases: $includeAliases',
+          );
+          expect(
+            find.byKey(const ValueKey('move-option-ecd_hand_cast')),
+            findsOneWidget,
+            reason: 'includeAliases: $includeAliases',
+          );
+          expect(find.text('hand cast · English (ECD)'), findsOneWidget);
+        }
+      },
+    );
+  });
+
   testWidgets('matches and displays a dialect move substitution', (
     tester,
   ) async {
@@ -57,6 +176,105 @@ void main() {
     expect(find.text('swing'), findsWidgets);
     // The dialect term isn't shown when the active dialect is canonical.
     expect(find.text('buzz'), findsNothing);
+  });
+
+  group('indistinguishable aliases', () {
+    testWidgets('offers a single "pull by" for the move and its v34 aliases', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'pull');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('move-option-pull_by')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('move-option-pull_by_dancers')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('move-option-pull_by_direction')),
+        findsNothing,
+      );
+      expect(find.text('pull by'), findsOneWidget);
+    });
+
+    testWidgets('submitting "pull by" still selects the canonical move', (
+      tester,
+    ) async {
+      MoveOption? picked;
+      await _pump(tester, onSelected: (o) => picked = o);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'pull by',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(picked?.id, 'pull_by');
+    });
+
+    testWidgets('still offers an alias whose label differs from its move', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'seesaw',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('move-option-see_saw')), findsOneWidget);
+    });
+
+    testWidgets('without aliases still offers long lines, listed as a move', (
+      tester,
+    ) async {
+      await _pump(tester, includeAliases: false);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'long lines',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-long_lines')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'seesaw',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-see_saw')), findsNothing);
+    });
+
+    testWidgets('with aliases offers long lines once', (tester) async {
+      await _pump(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'long lines',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-long_lines')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('never hides a move that shares a dialect term with another', (
+      tester,
+    ) async {
+      final dialect = Dialect(
+        name: 'Custom',
+        moves: const {'swing': 'buzz', 'balance': 'buzz'},
+      );
+      await _pump(tester, dialect: dialect);
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'buzz');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('move-option-swing')), findsOneWidget);
+      expect(find.byKey(const ValueKey('move-option-balance')), findsOneWidget);
+    });
   });
 
   testWidgets('offers a structural modifier option when enabled', (
@@ -148,6 +366,360 @@ void main() {
 
       expect(custom, 'a brand new move');
       expect(find.byType(BottomSheet), findsNothing);
+    });
+  });
+
+  // October behaviour audit, AUTH-8: Enter used to take the first option whose
+  // name merely contained the text.
+  group('Enter chooses', () {
+    Future<(MoveOption?, String?)> submit(
+      WidgetTester tester,
+      String text, {
+      bool Function(String text)? submitsAsText,
+      List<MoveOption> compoundOptions = const [],
+    }) async {
+      MoveOption? picked;
+      String? custom;
+      await _pump(
+        tester,
+        onSelected: (o) => picked = o,
+        onCustomSubmitted: (v) => custom = v,
+        submitsAsText: submitsAsText,
+        compoundOptions: compoundOptions,
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), text);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      return (picked, custom);
+    }
+
+    testWidgets('the move named exactly, not the first containing it', (
+      tester,
+    ) async {
+      final (picked, custom) = await submit(tester, 'star');
+      expect(picked?.id, 'star');
+      expect(custom, isNull);
+    });
+
+    testWidgets('the app\'s move over your figure that contains its name', (
+      tester,
+    ) async {
+      final (picked, _) = await submit(
+        tester,
+        'Hey',
+        compoundOptions: const [
+          MoveOption(
+            id: 'twist',
+            displayName: 'Hey with a twist',
+            kind: MoveOptionKind.compound,
+          ),
+        ],
+      );
+      expect(picked?.id, 'hey');
+    });
+
+    testWidgets('your figure when you name it exactly', (tester) async {
+      final (picked, _) = await submit(
+        tester,
+        'hey with a twist',
+        compoundOptions: const [
+          MoveOption(
+            id: 'twist',
+            displayName: 'Hey with a twist',
+            kind: MoveOptionKind.compound,
+          ),
+        ],
+      );
+      expect(picked?.id, 'twist');
+    });
+
+    testWidgets('a shorthand as typed, not the move containing it', (
+      tester,
+    ) async {
+      final (picked, custom) = await submit(
+        tester,
+        'rl',
+        submitsAsText: (text) => text == 'rl',
+      );
+      expect(picked, isNull);
+      expect(custom, 'rl');
+    });
+
+    testWidgets('an exact name over a shorthand with the same token', (
+      tester,
+    ) async {
+      final (picked, custom) = await submit(
+        tester,
+        'swing',
+        submitsAsText: (_) => true,
+      );
+      expect(picked?.id, 'swing');
+      expect(custom, isNull);
+    });
+
+    testWidgets('otherwise the first option, as before', (tester) async {
+      final (picked, _) = await submit(tester, 'sw');
+      expect(picked?.id, 'swing');
+    });
+  });
+
+  // October behaviour audit, AUTH-1, maintainer decision AUTH-1-move-blur =
+  // (a): leaving a row's Move box without Enter applies an exact move name or
+  // shorthand, as Enter would, and puts anything else back.
+  group('leaving the box (AUTH-1)', () {
+    /// A Move box over a row that holds [rowMove], with a second field to move
+    /// focus to. The row takes what the box applies, as a figure row does, so
+    /// the box is rebuilt with it.
+    Future<
+      ({
+        List<MoveOption> picked,
+        List<String> custom,
+        PendingMoveTextController pending,
+      })
+    >
+    pumpRow(
+      WidgetTester tester, {
+      String rowMove = 'balance',
+      bool commitOnBlur = true,
+      bool allowCustom = true,
+      bool Function(String text)? submitsAsText,
+    }) async {
+      final picked = <MoveOption>[];
+      final custom = <String>[];
+      final pending = PendingMoveTextController();
+      addTearDown(pending.dispose);
+      var current = rowMove;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PendingMoveTextScope(
+              controller: pending,
+              child: StatefulBuilder(
+                builder: (context, setState) => Column(
+                  children: [
+                    MoveAutocomplete(
+                      taxonomy: contraTaxonomy,
+                      initialText: current,
+                      fieldKey: 'move',
+                      commitOnBlur: commitOnBlur,
+                      submitsAsText: submitsAsText,
+                      onSelected: (o) {
+                        picked.add(o);
+                        setState(() => current = o.displayName);
+                      },
+                      onCustomSubmitted: allowCustom
+                          ? (text) {
+                              custom.add(text);
+                              setState(() => current = text);
+                            }
+                          : null,
+                    ),
+                    const TextField(key: ValueKey('elsewhere')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return (picked: picked, custom: custom, pending: pending);
+    }
+
+    Finder box() => find.byKey(const ValueKey('move-input'));
+
+    String boxText(WidgetTester tester) =>
+        tester.widget<TextField>(box()).controller!.text;
+
+    Future<void> typeThenLeave(WidgetTester tester, String text) async {
+      await tester.enterText(box(), text);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('applies the move named exactly', (tester) async {
+      final row = await pumpRow(tester);
+      await typeThenLeave(tester, 'star');
+      expect([for (final o in row.picked) o.id], ['star']);
+      expect(boxText(tester), 'star');
+    });
+
+    testWidgets('puts back text that only part of a name matches', (
+      tester,
+    ) async {
+      final row = await pumpRow(tester);
+      await typeThenLeave(tester, 'sw');
+      expect(row.picked, isEmpty);
+      expect(row.custom, isEmpty);
+      expect(boxText(tester), 'balance');
+    });
+
+    testWidgets('puts back text that matches nothing, rather than making a '
+        'custom figure', (tester) async {
+      final row = await pumpRow(tester);
+      await typeThenLeave(tester, 'scoop them up');
+      expect(row.custom, isEmpty);
+      expect(boxText(tester), 'balance');
+    });
+
+    testWidgets('applies a shorthand', (tester) async {
+      final row = await pumpRow(tester, submitsAsText: (t) => t == 'rl');
+      await typeThenLeave(tester, 'rl');
+      expect(row.picked, isEmpty);
+      expect(row.custom, ['rl']);
+    });
+
+    testWidgets('does nothing when the box is not set to', (tester) async {
+      final row = await pumpRow(tester, commitOnBlur: false);
+      await typeThenLeave(tester, 'star');
+      expect(row.picked, isEmpty);
+      expect(boxText(tester), 'star');
+    });
+
+    testWidgets('after Enter, applies nothing a second time', (tester) async {
+      final row = await pumpRow(tester);
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      final afterEnter = row.picked.length;
+      expect(row.picked.last.id, 'star');
+
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+      expect(row.picked, hasLength(afterEnter));
+    });
+
+    testWidgets('after Enter on a shorthand, applies it only once', (
+      tester,
+    ) async {
+      final row = await pumpRow(tester, submitsAsText: (t) => t == 'rl');
+      await tester.enterText(box(), 'rl');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+      expect(row.custom, ['rl']);
+    });
+
+    testWidgets('after Enter that applies nothing, leaving still puts the '
+        'text back', (tester) async {
+      final row = await pumpRow(tester, allowCustom: false);
+      await tester.enterText(box(), 'zzz');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(row.picked, isEmpty);
+      expect(boxText(tester), 'balance');
+    });
+
+    testWidgets('settled by the scope while it keeps focus, it still tells '
+        'the scope about what is typed next', (tester) async {
+      final row = await pumpRow(tester);
+      await tester.tap(box());
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(box()).focusNode!.hasFocus, isTrue);
+
+      await tester.enterText(box(), 'swing');
+      await tester.pumpAndSettle();
+      expect(row.pending.hasPendingText, isTrue);
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect([for (final o in row.picked) o.id], ['star', 'swing']);
+    });
+
+    testWidgets('a choice from the options wins over the exact name typed', (
+      tester,
+    ) async {
+      final row = await pumpRow(tester);
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('move-option-star_through')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+      expect([for (final o in row.picked) o.id], ['star_through']);
+    });
+
+    testWidgets('tells the scope while text would apply, and the scope can '
+        'settle it', (tester) async {
+      final row = await pumpRow(tester);
+      await tester.tap(box());
+      await tester.enterText(box(), 'sw');
+      await tester.pumpAndSettle();
+      expect(row.pending.hasPendingText, isFalse);
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      expect(row.pending.hasPendingText, isTrue);
+
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect([for (final o in row.picked) o.id], ['star']);
+      expect(row.pending.hasPendingText, isFalse);
+    });
+
+    group('on a phone', () {
+      Future<void> openSheet(WidgetTester tester) async {
+        await tester.tap(box(), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+      }
+
+      Future<void> closeSheet(WidgetTester tester) async {
+        // The barrier above the sheet, as a tap outside it.
+        await tester.tapAt(const Offset(180, 20));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+      }
+
+      testWidgets('opening the sheet changes nothing', (tester) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await closeSheet(tester);
+        expect(row.picked, isEmpty);
+        expect(boxText(tester), 'balance');
+      });
+
+      testWidgets('closing the sheet applies the move named exactly', (
+        tester,
+      ) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await tester.enterText(box(), 'star');
+        await tester.pumpAndSettle();
+        await closeSheet(tester);
+        expect([for (final o in row.picked) o.id], ['star']);
+      });
+
+      testWidgets('closing the sheet drops text that only part of a name '
+          'matches', (tester) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await tester.enterText(box(), 'sw');
+        await tester.pumpAndSettle();
+        await closeSheet(tester);
+        expect(row.picked, isEmpty);
+        expect(boxText(tester), 'balance');
+      });
+
+      testWidgets('Enter in the sheet applies once', (tester) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await tester.enterText(box(), 'star');
+        await tester.pumpAndSettle();
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+        expect([for (final o in row.picked) o.id], ['star']);
+      });
     });
   });
 }

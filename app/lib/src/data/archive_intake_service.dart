@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 
+import 'import_io.dart' show ImportFileTooLargeException, readCappedBytes;
+
 /// Hard cap on the size of an incoming shared archive, in bytes.
 ///
 /// A received file is **untrusted input** (OWASP): AirDrop / "Open with" hands
@@ -11,6 +13,11 @@ import 'package:compendium_core/compendium_core.dart';
 /// fully into memory, so a hostile or accidental multi-gigabyte file can't
 /// exhaust memory. 25 MiB is far above any realistic program+dances bundle
 /// (which is compact JSON) while still bounding the blast radius.
+///
+/// The Android, iOS and macOS staging code enforces the same limit while copying
+/// the file (so an oversize file is never fully staged) and reports it as
+/// [ArchiveIntakeRejectionReason.tooLarge]; this Dart check remains the backstop.
+/// `test/incoming_native_limits_test.dart` pins the native literals to this one.
 const int kMaxIncomingArchiveBytes = 25 * 1024 * 1024;
 
 /// Reads the bytes of a file at [path]. The default reads from disk (enforcing
@@ -50,18 +57,20 @@ enum ArchiveIntakeRejectionReason {
   /// non-archive JSON, or an unreadable envelope).
   notArchive,
 
-  /// The archive was written by a newer app version than this build understands.
-  newerVersion,
-
   /// The archive decoded fine but carried neither dances nor programs.
   noContent,
+
+  /// The file is a full backup (its root is the `backupContainer` envelope),
+  /// which Restore reads, not a share file (PLAT-2). Told apart from
+  /// [noContent] so the caller is not told a whole library is empty.
+  backup,
 }
 
 /// The outcome of an [ArchiveIntakeService] attempt. Intake **never throws** to
 /// the caller: every failure — missing/unreadable file, oversized input,
-/// non-text bytes, non-archive JSON, an unsupported (newer) schema, or an empty
-/// bundle — resolves to a [rejected] result carrying a stable, non-leaking
-/// [reason] the UI maps to a user-facing string.
+/// non-text bytes, non-archive JSON, or an empty bundle — resolves to a
+/// [rejected] result carrying a stable, non-leaking [reason] the UI maps to a
+/// user-facing string.
 ///
 /// A [validated] result carries the decoded [archive], the raw [json] the
 /// review screen re-plans from, and the pre-computed [entityCount]
@@ -129,12 +138,15 @@ class ArchiveIntakeValidation {
 /// collection without the user confirming first (issue #432).
 ///
 /// Validation (OWASP — the file is untrusted):
-/// - **Size cap** enforced before the file is read into memory.
+/// - **Size cap** enforced while the file is read, whatever length it reports.
+/// - **Read deadline** ([readTimeout]): a read that never finishes, such as a
+///   named pipe with no writer or a hung network drive, is rejected as
+///   unreadable, so intake always ends and the next file can follow.
 /// - Bytes must decode as UTF-8 text.
 /// - The text must decode as a **well-formed** [CompendiumArchive]; a root that
 ///   isn't a Compendium archive is rejected.
-/// - The archive's schema version must not be **newer** than this build
-///   understands (refuse forward, gracefully — don't guess).
+/// - An archive from a **newer** build is not refused: it is read for the
+///   fields this build knows, and the review says so for the whole file.
 /// - An empty bundle (no dances and no programs) is rejected.
 /// - **Parse-never-throws:** all of the above resolve to an
 ///   [ArchiveIntakeValidation] — the caller never sees an exception.
@@ -142,17 +154,24 @@ class ArchiveIntakeService {
   ArchiveIntakeService({
     ArchiveByteReader? readBytes,
     this.maxBytes = kMaxIncomingArchiveBytes,
+    this.readTimeout = const Duration(seconds: 30),
   }) : _injectedReader = readBytes;
 
   final ArchiveByteReader? _injectedReader;
   final int maxBytes;
+
+  /// Longest a file read may take before it is rejected as unreadable. Far
+  /// above the time to read [maxBytes] from any local disk.
+  final Duration readTimeout;
 
   /// Reads the file at [path], then validates it. Any read failure is rejected
   /// gracefully; an oversized file is rejected without being read into memory.
   Future<ArchiveIntakeValidation> validateFromPath(String path) async {
     final Uint8List bytes;
     try {
-      bytes = await (_injectedReader ?? _readFileWithCap)(path);
+      bytes = await (_injectedReader ?? _readFileWithCap)(
+        path,
+      ).timeout(readTimeout);
     } on OversizedArchiveException {
       // diagnostics: silent — surfaced via ArchiveIntakeValidation.rejected(tooLarge) to the intake screen
       return ArchiveIntakeValidation.rejected(
@@ -215,16 +234,18 @@ class ArchiveIntakeService {
       );
     }
 
+    // An archive from a newer build is let through: the review reads the
+    // fields this build knows and says, once for the file, that some may be
+    // left out, as it does for a file picked on the Import screen. That is
+    // what a version bump is for (`archiveSchemaVersion`): refusing the file
+    // here kept every bumped bundle out of a share-sheet or "Open with" import.
     final archive = read.archive;
-    if (archive.schemaVersion > archiveSchemaVersion) {
-      return ArchiveIntakeValidation.rejected(
-        ArchiveIntakeRejectionReason.newerVersion,
-      );
-    }
 
     if (archive.dances.isEmpty && archive.programs.isEmpty) {
       return ArchiveIntakeValidation.rejected(
-        ArchiveIntakeRejectionReason.noContent,
+        _isBackupContainer(json)
+            ? ArchiveIntakeRejectionReason.backup
+            : ArchiveIntakeRejectionReason.noContent,
       );
     }
 
@@ -235,12 +256,45 @@ class ArchiveIntakeService {
     );
   }
 
+  /// Whether [json]'s root is a backup's envelope (`backupContainer`, written
+  /// by `encodeBackup`). Decoded again only on this rejection path, and
+  /// [decodeArchive] has already parsed it, so it cannot throw here.
+  static bool _isBackupContainer(String json) {
+    final root = jsonDecode(json);
+    return root is Map && root.containsKey('backupContainer');
+  }
+
+  /// Reads [path], stopping once more than [maxBytes] have arrived
+  /// ([readCappedBytes]). The reported length is only a fast path and a buffer
+  /// size hint: a device, a `/proc` file or a FUSE file can report 0 and
+  /// stream without end, and a file can grow after it was measured, so the
+  /// read itself is what is capped. Length and read share one open handle, so
+  /// both see the same file.
   Future<Uint8List> _readFileWithCap(String path) async {
-    final file = File(path);
-    final length = await file.length();
-    if (length > maxBytes) {
-      throw OversizedArchiveException(length);
+    final file = await File(path).open();
+    try {
+      final length = await file.length();
+      if (length > maxBytes) {
+        throw OversizedArchiveException(length);
+      }
+      return await readCappedBytes(
+        _chunks(file),
+        maxBytes: maxBytes,
+        sizeHint: length,
+      );
+    } on ImportFileTooLargeException catch (error) {
+      // diagnostics: silent — rethrown as the intake's own oversize signal
+      throw OversizedArchiveException(error.length);
+    } finally {
+      await file.close();
     }
-    return file.readAsBytes();
+  }
+
+  static Stream<List<int>> _chunks(RandomAccessFile file) async* {
+    while (true) {
+      final chunk = await file.read(64 * 1024);
+      if (chunk.isEmpty) return;
+      yield chunk;
+    }
   }
 }

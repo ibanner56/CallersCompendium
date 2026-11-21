@@ -3,6 +3,58 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // A custom figure never renders a wording override (renderer.dart:
+  // `figure.isCustom ? null : _renderWordingOverride`) and the editor offers no
+  // field for it, so toFigure must not persist one (#1394).
+  group('FigureDraft.toFigure wordingOverride on a custom figure', () {
+    test('a custom leaf draft drops a stale override', () {
+      final draft = FigureDraft(move: customMove, params: {'text': 'my call'})
+        ..wordingOverride = 'stale wording';
+      expect(draft.toFigure()!.wordingOverride, isNull);
+    });
+
+    test('a custom child of a container drops a stale override', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: customMove, params: {'text': 'my call'})
+            ..wordingOverride = 'stale wording',
+          FigureDraft(move: 'swing'),
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure()!.subFigures;
+      expect(sides.first.isCustom, isTrue);
+      expect(sides.first.wordingOverride, isNull);
+    });
+
+    test('a move-less side materialised as a custom drops an override', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing'),
+          FigureDraft()..wordingOverride = 'stale wording',
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure()!.subFigures;
+      expect(sides.last.isCustom, isTrue);
+      expect(sides.last.wordingOverride, isNull);
+    });
+
+    test('a structured figure and a container keep their override', () {
+      final structured = FigureDraft(move: 'swing')
+        ..wordingOverride = 'keep me';
+      expect(structured.toFigure()!.wordingOverride, 'keep me');
+      final container =
+          FigureDraft(
+              meanwhileSides: [
+                FigureDraft(move: 'swing'),
+                FigureDraft(move: 'roll_away'),
+              ],
+            )
+            ..params['beats'] = 8
+            ..wordingOverride = 'keep me too';
+      expect(container.toFigure()!.wordingOverride, 'keep me too');
+    });
+  });
+
   group('FigureDraft.toFigure customOrigin', () {
     test('a manually created custom commits as userEntered', () {
       final draft = FigureDraft(move: customMove, params: {'text': 'my call'});
@@ -117,6 +169,62 @@ void main() {
       ).clone();
       expect(copy.assumedSubject, isFalse);
       expect(copy.toFigure()!.assumedSubject, isFalse);
+    });
+  });
+
+  group('FigureDraft.toFigure canonicalises custom text (DIA-02)', () {
+    String canon(String t) => canonicalizeText(t.trim(), Dialect.larksRobins);
+
+    test('a custom leaf draft stores params[text] canonically', () {
+      final draft = FigureDraft(
+        move: customMove,
+        params: {'text': 'Larks chain wide'},
+      );
+      expect(
+        draft.toFigure(canonicalizeNote: canon)!.params['text'],
+        'role1s chain wide',
+      );
+      // The draft keeps the dialect text being edited.
+      expect(draft.params['text'], 'Larks chain wide');
+    });
+
+    test('re-saving already-canonical text is idempotent', () {
+      final draft = FigureDraft(
+        move: customMove,
+        params: {'text': 'role1s chain wide'},
+      );
+      expect(
+        draft.toFigure(canonicalizeNote: canon)!.params['text'],
+        'role1s chain wide',
+      );
+    });
+
+    test('a structured figure keeps its params untouched', () {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'Larks'});
+      expect(draft.toFigure(canonicalizeNote: canon)!.params['who'], 'Larks');
+    });
+
+    test('a custom child inside a meanwhile is canonicalised', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: customMove, params: {'text': 'Robins gypsy'}),
+          FigureDraft(move: 'swing'),
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure(canonicalizeNote: canon)!.subFigures;
+      expect(sides.first.params['text'], 'role2s gypsy');
+    });
+
+    test('an incomplete side materialised as a custom is canonicalised', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing'),
+          FigureDraft()..params['text'] = 'Larks wait',
+          FigureDraft(move: 'allemande'),
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure(canonicalizeNote: canon)!.subFigures;
+      expect(sides.map((f) => f.params['text']), contains('role1s wait'));
     });
   });
 
@@ -260,6 +368,26 @@ void main() {
       expect(figure.subFigures.map((child) => child.move), ['swing', 'roll']);
     });
 
+    test('a row with no move but a note saves as a custom figure holding the '
+        'note (AUTH-2)', () {
+      final draft = FigureDraft()..note = 'gents start on the left';
+      // toFigure still reads "no move chosen yet"; the rows the dance saves
+      // keep the note.
+      expect(draft.toFigure(), isNull);
+      final saved = draft.toFigures(resolveCompound: (_) => null);
+      expect(saved, hasLength(1));
+      expect(saved.single.move, customMove);
+      expect(saved.single.note, 'gents start on the left');
+    });
+
+    test('a blank row with no move still saves nothing', () {
+      expect(FigureDraft().toFigures(resolveCompound: (_) => null), isEmpty);
+      expect(
+        (FigureDraft()..note = '   ').toFigures(resolveCompound: (_) => null),
+        isEmpty,
+      );
+    });
+
     test('does not materialize a partial modifier container', () {
       final draft = FigureDraft(modifierFigures: [FigureDraft(move: 'swing')])
         ..params['beats'] = 8;
@@ -337,6 +465,70 @@ void main() {
           );
 
       expect(FigureDraft.fromFigure(original).toFigure(), original);
+    });
+  });
+
+  group('FigureDraft container title', () {
+    FigureDraft sequence() => FigureDraft(
+      sequenceFigures: [
+        FigureDraft(move: 'balance', params: {'who': 'partners', 'beats': 4}),
+        FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 12}),
+      ],
+    );
+
+    test('round-trips through fromFigure and toFigure, nested included', () {
+      final inner = Figure.sequence(
+        figures: [
+          Figure(move: 'balance', params: const {'beats': 4}),
+          Figure(move: 'swing', params: const {'beats': 4}),
+        ],
+        beats: 8,
+        title: 'Balance and swing',
+      );
+      final figure = Figure.meanwhile(
+        figures: [
+          inner,
+          Figure(move: 'swing'),
+        ],
+        beats: 8,
+        title: 'Both at once',
+      );
+      final draft = FigureDraft.fromFigure(figure);
+      expect(draft.containerTitle, 'Both at once');
+      expect(
+        draft.containerChildren!.first.containerTitle,
+        'Balance and swing',
+      );
+      final rebuilt = draft.toFigure()!;
+      expect(rebuilt.containerTitle, 'Both at once');
+      expect(rebuilt.subFigures.first.containerTitle, 'Balance and swing');
+    });
+
+    test('a blank title removes it, and an untitled group stores no key', () {
+      final draft = sequence()..containerTitle = 'Name';
+      expect(draft.toFigure()!.containerTitle, 'Name');
+      draft.containerTitle = '   ';
+      expect(draft.params.containsKey(containerTitleKey), isFalse);
+      expect(draft.toFigure()!.params.containsKey(containerTitleKey), isFalse);
+    });
+
+    test('saves the title through the note canonicalizer, then normalized', () {
+      final draft = sequence()..containerTitle = '  larks\nbalance  ';
+      final built = draft.toFigure(
+        canonicalizeNote: (text) => text.trim().replaceAll('larks', 'role1s'),
+      )!;
+      expect(built.containerTitle, 'role1s balance');
+    });
+
+    test('survives a clone', () {
+      final draft = sequence()..containerTitle = 'Name';
+      expect(draft.clone().containerTitle, 'Name');
+    });
+
+    test('a non-string title from a damaged draft reads as none', () {
+      final draft = sequence()..params[containerTitleKey] = 7;
+      expect(draft.containerTitle, '');
+      expect(draft.toFigure()!.containerTitle, isNull);
     });
   });
 }

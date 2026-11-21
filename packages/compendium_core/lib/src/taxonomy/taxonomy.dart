@@ -4,6 +4,8 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../validation/validation.dart';
 import 'move_def.dart';
+import 'param_types.dart';
+import 'user_figure_use.dart';
 
 /// A versioned, per-form move taxonomy.
 ///
@@ -17,7 +19,9 @@ class Taxonomy {
     required this.form,
     required List<MoveDef> moves,
     List<MoveAlias> aliases = const [],
-  }) : moves = Map.unmodifiable({for (final m in moves) m.id: m}),
+    String? label,
+  }) : label = label ?? '${form.name} taxonomy',
+       moves = Map.unmodifiable({for (final m in moves) m.id: m}),
        aliases = Map.unmodifiable({for (final a in aliases) a.id: a}) {
     for (final alias in aliases) {
       final target = this.moves[alias.targetMove];
@@ -36,9 +40,11 @@ class Taxonomy {
       }
     }
     // Build the inverse-pair lookup table from aliases that declare one.
-    // Each alias with an inversePairId pins exactly ONE param on a two-valued
-    // axis; the lookup maps (moveId, paramKey, oppositeValue) → counterpartId
-    // in BOTH directions.
+    // Each alias with an inversePairId pins exactly ONE param; the lookup maps
+    // (moveId, paramKey, pinnedValue) → counterpartId in BOTH directions. The
+    // axis may have more than two values (`long_lines` ⇄ `forward_and_back`
+    // on `formation`): the alias side routes away on any value but its pin,
+    // and the target side routes to the alias on the pin alone.
     final pairs = <String, _InversePairEntry>{};
     for (final alias in aliases) {
       final inversePairId = alias.inversePairId;
@@ -90,6 +96,11 @@ class Taxonomy {
 
   final int version;
   final DanceForm form;
+
+  /// What this taxonomy is called in a validation message: `contra taxonomy`
+  /// by default, or a registry's name for a taxonomy that lays several forms'
+  /// moves together (`TaxonomyRegistry`).
+  final String label;
   final Map<String, MoveDef> moves;
   final Map<String, MoveAlias> aliases;
 
@@ -160,10 +171,66 @@ class Taxonomy {
     if (paramBeats != null &&
         !normalized.params.containsKey('beats') &&
         !(alias?.pinnedParams.containsKey('beats') ?? false)) {
-      final derived = paramBeats.byValue[effective[paramBeats.param]];
+      final derived = paramBeats.derive(effective);
       if (derived != null) effective['beats'] = derived;
     }
     return effective;
+  }
+
+  /// The params the figure editor seeds when [moveId] is first picked: the
+  /// move's [effectiveParams], with each spec's [ParamSpec.entryDefault]
+  /// laid over its [ParamSpec.defaultValue]. Everything that reads a stored
+  /// figure keeps using [effectiveParams]; only entry differs.
+  Map<String, Object?> entryParams(String moveId) {
+    final params = effectiveParams(Figure(move: moveId));
+    final def = resolve(moveId);
+    if (def == null) return params;
+    for (final entry in def.params.entries) {
+      final seeded = entry.value.entryDefault;
+      if (seeded != null) params[entry.key] = seeded;
+    }
+    dropUnstatedParams(moveId, params);
+    return params;
+  }
+
+  /// Removes the params a figure keeps only while they are stated, from
+  /// [params] in place: a fraction's `amount` (#2120) unless an `other`
+  /// fraction states it, and a figure 8's `double` unless it is true. Neither
+  /// is an entry default, so a figure 8 or poussette that states neither stores
+  /// no such key, and a peer still on taxonomy v38 (whose `validateFigure`
+  /// rejects a param it does not know) only ever meets one on a figure that
+  /// states it. Every path that fills a figure's params from
+  /// [effectiveParams] (picking the move, and the free-text entry's draft)
+  /// passes through here.
+  void dropUnstatedParams(String moveId, Map<String, Object?> params) {
+    if (statedFractionAmount(params) == null) {
+      params.remove(fractionAmountParam);
+    }
+    if (moveId == 'figure_8' && params[figure8DoubleParam] != true) {
+      params.remove(figure8DoubleParam);
+    }
+  }
+
+  /// [params] as a figure of [move] stores them: without a value an alias
+  /// listed as a move ([MoveAlias.listedAsMove]) pins, which the alias
+  /// supplies itself. So a `long_lines` never stores `formation: longLines`:
+  /// a build before taxonomy v39 knows no `formation`, and its
+  /// [validateFigure] rejects the key, which drops, among others, a synced
+  /// shorthand holding the figure. Every other alias keeps what it stores.
+  /// Returns [params] itself when nothing is dropped.
+  Map<String, Object?> withoutListedAliasPins(
+    String move,
+    Map<String, Object?> params,
+  ) {
+    final alias = aliases[move];
+    if (alias == null || !alias.listedAsMove) return params;
+    bool pinned(String key, Object? value) =>
+        alias.pinnedParams.containsKey(key) && alias.pinnedParams[key] == value;
+    if (!params.entries.any((e) => pinned(e.key, e.value))) return params;
+    return {
+      for (final e in params.entries)
+        if (!pinned(e.key, e.value)) e.key: e.value,
+    };
   }
 
   /// Converts v34 move ids and parameter keys to the v35 representation.
@@ -297,8 +364,9 @@ class Taxonomy {
   /// Returns the move id [figure] should carry given its effective params.
   ///
   /// For inverse-pair aliases (`box_the_gnat` ⇄ `swat_the_flea` on `hand`,
-  /// `do_si_do` ⇄ `see_saw` on `shoulder`), the move id routes to the half
-  /// whose pin matches the effective param value. Returns [figure.move]
+  /// `do_si_do` ⇄ `see_saw` on `shoulder`, `forward_and_back` ⇄ `long_lines`
+  /// on `formation`), the move id routes to the half whose pin matches the
+  /// effective param value. Returns [figure.move]
   /// unchanged when no re-routing applies.
   ///
   /// Call when an authoring surface needs the effective move (the editor may
@@ -344,11 +412,27 @@ class Taxonomy {
           code: 'unknown_move',
           message:
               'move "${figure.move}" is not in the '
-              '${form.name} taxonomy (v$version)',
+              '$label (v$version)',
         ),
       ];
     }
+    // A use of a figure of your own (#1023) is a custom figure with exactly
+    // three more keys; they are checked as a whole, by shape.
+    if (def.id == customMove && hasUserFigureReferenceKeys(figure)) {
+      if (userFigureUseOf(figure) == null) {
+        issues.add(
+          const ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'invalid_param_value',
+            message: 'a use of a figure of your own is malformed',
+          ),
+        );
+      }
+    }
     for (final entry in figure.params.entries) {
+      if (def.id == customMove && userFigureReferenceKeys.contains(entry.key)) {
+        continue;
+      }
       final spec = def.params[entry.key];
       if (spec == null) {
         issues.add(
@@ -375,7 +459,10 @@ class Taxonomy {
     if (goodBeats != null &&
         goodBeats.isNotEmpty &&
         beats is int &&
-        !goodBeats.contains(beats)) {
+        !goodBeats.contains(beats) &&
+        // A count the move's own value-driven rule derives is typical for the
+        // value stated (a 1½ figure 8 is 24 beats, #2120).
+        def.paramBeats?.derive(figure.params) != beats) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.warning,

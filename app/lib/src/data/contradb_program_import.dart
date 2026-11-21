@@ -1,13 +1,17 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import 'online_search.dart';
+import 'online_title_lookup.dart' show isConnectionFailure;
 import 'program_import_online_resolver.dart';
+import 'program_import_rollback.dart';
 
 /// How one ContraDB program activity resolved into a program slot (epic #291,
 /// sub-issue #314). Drives the preview's per-slot label and the commit summary.
 enum ContraDbActivityResolution {
-  /// A linked dance imported (or de-duplicated) directly from ContraDB by its
-  /// `/dances/{id}` identity — the strongest, exact result.
+  /// A linked dance resolved directly from ContraDB by its `/dances/{id}`
+  /// identity: imported, matched to an earlier import of that id, or matched
+  /// to a dance already in the collection with the same title, author and
+  /// figures (INTAKE-3), whatever that dance's source.
   linkedContraDb,
 
   /// The ContraDB dance couldn't be scraped (e.g. unpublished/removed), so the
@@ -86,9 +90,13 @@ class ResolvedContraDbActivity {
 /// - **Linked dance** → resolved **identity-first**: imported via [contraDb]
 ///   ([OnlineSearchService.loadPreview] + [OnlineSearchService.import]) using the
 ///   known `/dances/{id}` id, so the shipped provenance/dedupe guards link to an
-///   already-imported copy instead of duplicating. A same-titled *local* dance is
-///   never assumed to be this dance — resolution keys on the ContraDB id, not a
-///   fuzzy title. If the ContraDB scrape fails (unpublished/removed), it falls
+///   already-imported copy instead of duplicating. A dance already in the
+///   collection that confidently matches it (title and author) **with the same
+///   figures** is linked too, from any source or entered by hand (#685,
+///   INTAKE-3); a confident match whose figures differ is imported as a
+///   variation of that match, with no per-dance prompt (#797). A same-titled
+///   local dance is never assumed to be this dance on its title alone. If the
+///   ContraDB scrape fails (unpublished/removed), it falls
 ///   back to [callersBox] by title under the #313 confident unique-exact rule;
 ///   if that also fails, the verbatim title (plus any attached note) is kept as a
 ///   note slot — nothing is invented or dropped.
@@ -97,19 +105,39 @@ class ResolvedContraDbActivity {
 /// resolution with seam-backed fetchers and never touch the network. One fetch
 /// per dance for the ContraDB identity import (+ one search/import for a Caller's
 /// Box fallback); no crawling.
+///
+/// **Stopping.** A source that cannot be reached (`isConnectionFailure`) throws
+/// [ProgramImportConnectionFailed] at once instead of degrading that dance — and
+/// every dance after it — to a note: a program of notes built while offline
+/// would claim the archives had nothing. A ContraDB dance page that answers
+/// with an HTTP error is about that dance (unpublished or removed), so it still
+/// falls back to The Caller's Box. [isCancelled] is checked before each dance;
+/// once it returns true this throws [ProgramImportCancelled]. [onProgress]
+/// reports `(done, total)` over the dance activities.
+///
+/// **Undo.** Every dance written is recorded in [rollback] when one is
+/// supplied. Nothing here reverts them on a throw: the caller owns the ledger
+/// and decides (see [ProgramImportRollback]).
 Future<List<ResolvedContraDbActivity>> resolveContraDbProgram(
   ContraDbProgram program, {
   required OnlineSearchService contraDb,
   required OnlineSearchService callersBox,
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
+  void Function(int done, int total)? onProgress,
+  bool Function()? isCancelled,
 }) async {
+  final total = program.activities.where((a) => a.isDance).length;
+  var done = 0;
+  if (total > 0) onProgress?.call(done, total);
   final resolved = <ResolvedContraDbActivity>[];
   for (final activity in program.activities) {
     if (!activity.isDance) {
       resolved.add(ResolvedContraDbActivity.note(activity.text ?? ''));
       continue;
     }
+    if (isCancelled?.call() ?? false) throw const ProgramImportCancelled();
     resolved.add(
       await _resolveDance(
         activity,
@@ -117,8 +145,11 @@ Future<List<ResolvedContraDbActivity>> resolveContraDbProgram(
         callersBox: callersBox,
         repos: repos,
         now: now,
+        rollback: rollback,
       ),
     );
+    done++;
+    onProgress?.call(done, total);
   }
   return resolved;
 }
@@ -129,6 +160,7 @@ Future<ResolvedContraDbActivity> _resolveDance(
   required OnlineSearchService callersBox,
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
 }) async {
   final title = activity.title ?? '';
   final attachedNote = activity.text;
@@ -144,16 +176,38 @@ Future<ResolvedContraDbActivity> _resolveDance(
       formation: '',
     );
     final preview = await contraDb.loadPreview(repos, row, now: now);
+    // #685: a dance the user already has, with the same figures, is reused,
+    // never duplicated (INTAKE-3). Whatever its source, hand-entered included:
+    // the slot links the existing dance and nothing is written.
+    final identicalId = await confidentIdenticalMatchId(repos, preview.plan);
+    if (identicalId != null) {
+      return ResolvedContraDbActivity.linked(
+        resolution: ContraDbActivityResolution.linkedContraDb,
+        danceId: identicalId,
+        title: title,
+        text: attachedNote,
+      );
+    }
+    // A confident match that is not identical has differing (or unreadable)
+    // figures. It is imported as a variation of that match, linked back to it
+    // (Q-3, maintainer 2026-11-05). For differing figures that is the Caller's
+    // Box path's outcome; for unreadable figures (or a target that cannot be
+    // loaded) that path declines, and this one still imports the variation,
+    // because it reads no figures. Without a confident match, a possible match is imported as
+    // its own dance. Program import is non-interactive (#797), so a resolution
+    // is always passed: the service's confirmation outcomes are bypassed by
+    // construction rather than by assumption.
+    final confident = preview.plan.verdict.candidates.where((c) => c.confident);
     final result = await contraDb.import(
       repos,
       preview.plan,
       now: now,
-      // Program import is non-interactive — no per-dance prompt (#797).
-      // Pass duplicate() explicitly so the confident-match detection block
-      // in the service is bypassed and pre-#797 behaviour is preserved by
-      // construction rather than by assumption.
-      ambiguousResolution: DedupeResolution.duplicate(),
+      ambiguousResolution: confident.isEmpty
+          ? DedupeResolution.duplicate()
+          : DedupeResolution.variation(confident.first.danceId),
     );
+    final session = result.session;
+    if (session != null) await rollback?.record(session);
     final danceId = result.danceId;
     if (danceId != null) {
       return ResolvedContraDbActivity.linked(
@@ -163,7 +217,10 @@ Future<ResolvedContraDbActivity> _resolveDance(
         text: attachedNote,
       );
     }
-  } on Exception catch (_) {
+  } on Exception catch (e) {
+    // Without HTTP-status reasons: a dance page answering 404 is that dance
+    // missing, which is exactly what the fallback below is for.
+    if (isConnectionFailure(e)) throw const ProgramImportConnectionFailed();
     // diagnostics: silent — scrape/import failure (e.g. an unpublished dance)
     // degrades to the Caller's Box fallback and ultimately a note slot;
     // surfaced via ResolvedContraDbActivity to the program import screen.
@@ -176,6 +233,7 @@ Future<ResolvedContraDbActivity> _resolveDance(
       service: callersBox,
       repos: repos,
       now: now,
+      rollback: rollback,
     );
     if (tcbId != null) {
       return ResolvedContraDbActivity.linked(

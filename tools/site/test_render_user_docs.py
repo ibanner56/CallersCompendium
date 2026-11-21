@@ -41,6 +41,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import render_user_docs as rud  # noqa: E402
+import markdown_to_html as mth  # noqa: E402
+from markdown_to_html import render  # noqa: E402
 
 REPO_ROOT = rud.REPO_ROOT
 
@@ -603,6 +605,325 @@ def test_real_pages_are_well_formed_html() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Image alt text (docs/user/style-guide.md, "Alt-text policy")
+# ---------------------------------------------------------------------------
+
+
+def _pics(root: Path, body: str, *, images: tuple[str, ...] = ("a.png", "new.png")) -> Path:
+    """A docs tree whose ``pics.md`` is ``body``, with real files for ``images``."""
+    user = _make_docs(root)
+    (user / "pics.md").write_text(body, encoding="utf-8")
+    pictures = user / "images"
+    pictures.mkdir()
+    for name in images:
+        (pictures / name).write_bytes(b"\x89PNG\r\n\x1a\n")
+    return user
+
+
+def _image_errors(body: str, **kwargs) -> list[str]:
+    decorative = kwargs.pop("decorative", frozenset())
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _pics(Path(tmp), body, **kwargs)
+        return rud.check_images(user, decorative=decorative)
+
+
+def test_the_real_corpus_has_alt_text_on_every_image_and_every_file_exists() -> None:
+    assert rud.check_images() == []
+
+
+def test_the_style_guides_fenced_example_images_are_not_images() -> None:
+    # The style guide's two example images sit inside fenced code and point at
+    # files that do not exist; a checker that did not skip fences fails on them.
+    source = (rud.USER_DOCS / "style-guide.md").read_text(encoding="utf-8")
+    assert "```markdown" in source and "![" in source
+    assert render(source).images == []
+
+
+def test_the_renderers_image_list_is_the_images_it_resolves() -> None:
+    # check_images() trusts RenderResult.images. Pin it to the other thing the
+    # renderer does with an image, calling the resolver, over every real guide.
+    for path in sorted(rud.USER_DOCS.glob("*.md")):
+        calls: list[str] = []
+        result = render(
+            path.read_text(encoding="utf-8"),
+            image_resolver=lambda href, calls=calls: calls.append(href),
+        )
+        assert [image.dest for image in result.images] == calls, path.name
+
+
+def test_decorative_images_start_empty() -> None:
+    assert rud.DECORATIVE_IMAGES == frozenset()
+
+
+def test_an_image_with_no_alt_text_names_the_guide_and_line() -> None:
+    errors = _image_errors("# Pics\n\nIntro.\n\n![](images/new.png)\n")
+    assert len(errors) == 1, errors
+    assert errors[0].startswith("docs/user/pics.md:5: "), errors
+    assert "has no alt text" in errors[0] and "images/new.png" in errors[0]
+
+
+def test_the_same_image_inside_a_fence_is_not_an_image() -> None:
+    for fence in ("```", "~~~", "````"):
+        body = f"# Pics\n\n{fence}markdown\n![](images/new.png)\n{fence}\n"
+        assert _image_errors(body) == [], fence
+
+
+def test_images_in_code_spans_comments_and_escapes_are_not_images() -> None:
+    body = (
+        "# Pics\n\n"
+        "A code span: `![](images/new.png)` here.\n\n"
+        "<!-- ![](images/new.png) -->\n\n"
+        "An escape: \\![x](images/new.png)\n"
+    )
+    assert _image_errors(body) == []
+
+
+def test_a_fence_closes_so_an_image_after_it_is_checked() -> None:
+    body = "# Pics\n\n```\n![](images/new.png)\n```\n\n![](images/a.png)\n"
+    errors = _image_errors(body)
+    assert len(errors) == 1 and ":7: " in errors[0], errors
+
+
+def test_images_in_lists_quotes_tables_and_links_are_found_on_their_own_line() -> None:
+    body = (
+        "# Pics\n\n"
+        "- item ![](images/a.png)\n"
+        "> quoted ![](images/a.png)\n\n"
+        "| h |\n| --- |\n| ![](images/a.png) |\n\n"
+        "[![](images/a.png)](https://example.com)\n"
+    )
+    lines = sorted(int(e.split(":")[1]) for e in _image_errors(body))
+    assert lines == [3, 4, 8, 10], lines
+
+
+def test_alt_text_that_is_a_file_name_or_a_placeholder_is_flagged() -> None:
+    for alt in ("image", "Image", "screenshot", "Screenshot.", "new.png", "new", "images/new.png", "NEW.PNG"):
+        errors = _image_errors(f"# Pics\n\n![{alt}](images/new.png)\n")
+        assert len(errors) == 1 and "file name or a bare placeholder" in errors[0], (alt, errors)
+
+
+def test_real_alt_text_passes_even_if_it_mentions_the_word_screenshot() -> None:
+    body = "# Pics\n\n![A screenshot of the Collection screen with three dances](images/new.png)\n"
+    assert _image_errors(body) == []
+
+
+def test_alt_text_is_what_the_renderer_would_emit() -> None:
+    # Emphasis and code in the label are reduced to plain text, as in the HTML.
+    refs = render("![**bold** and `code` alt](x.png \"a title\")").images
+    assert [(r.line, r.alt, r.dest) for r in refs] == [(1, "bold and code alt", "x.png")]
+
+
+def test_an_image_with_two_problems_is_one_error_naming_both() -> None:
+    errors = _image_errors("# Pics\n\n![](images/nope.png)\n")
+    assert len(errors) == 1, errors
+    assert errors[0].startswith("docs/user/pics.md:3: ")
+    assert "has no alt text" in errors[0] and "does not resolve" in errors[0], errors
+
+
+def test_a_missing_image_file_is_flagged_not_silently_a_caption() -> None:
+    errors = _image_errors("# Pics\n\n![A real description](images/nope.png)\n")
+    assert len(errors) == 1 and ":3: " in errors[0], errors
+    assert "does not resolve" in errors[0] and "images/nope.png" in errors[0]
+
+
+def test_an_external_or_out_of_tree_image_is_flagged() -> None:
+    for dest in ("https://example.com/x.png", "../design/ux.md", "/abs/x.png"):
+        errors = _image_errors(f"# Pics\n\n![A description]({dest})\n")
+        assert any("does not resolve" in e for e in errors), (dest, errors)
+
+
+def test_a_decorative_image_is_allowed_only_by_name() -> None:
+    body = "# Pics\n\n![](images/new.png)\n"
+    assert _image_errors(body, decorative=frozenset({("pics.md", "images/new.png")})) == []
+    other_doc = _image_errors(body, decorative=frozenset({("other.md", "images/new.png")}))
+    assert any("has no alt text" in e for e in other_doc), other_doc
+    other_image = _image_errors(body, decorative=frozenset({("pics.md", "images/a.png")}))
+    assert any("has no alt text" in e for e in other_image), other_image
+
+
+def test_the_no_alt_text_message_tells_you_how_to_mark_one_decorative() -> None:
+    (message,) = _image_errors("# Pics\n\n![](images/new.png)\n")
+    assert "DECORATIVE_IMAGES" in message and "'pics.md'" in message
+
+
+def test_a_stale_decorative_entry_is_flagged() -> None:
+    errors = _image_errors(
+        "# Pics\n\nNo images.\n",
+        decorative=frozenset({("pics.md", "images/gone.png")}),
+    )
+    assert len(errors) == 1 and "stale exemption" in errors[0], errors
+
+
+def test_a_decorative_entry_for_an_image_that_now_has_alt_text_is_flagged() -> None:
+    errors = _image_errors(
+        "# Pics\n\n![Now described in words](images/new.png)\n",
+        decorative=frozenset({("pics.md", "images/new.png")}),
+    )
+    assert len(errors) == 1 and "now has alt text" in errors[0], errors
+
+
+def test_an_image_spanning_lines_is_still_checked() -> None:
+    # The renderer joins a paragraph, so it sees this image; a line-by-line scan
+    # would not. The line reported is the one holding the closing paren.
+    body = "# Pics\n\n![a description\nacross lines](images/nope.png)\n"
+    errors = _image_errors(body)
+    assert len(errors) == 1 and ":4: " in errors[0] and "does not resolve" in errors[0], errors
+    assert _image_errors("# Pics\n\n![a description\nacross lines](images/new.png)\n") == []
+
+
+def test_fenced_code_inside_a_quote_or_a_deep_list_item_is_still_code() -> None:
+    quote = "# Pics\n\n> ```md\n> ![](images/missing.png)\n> ```\n"
+    nested_quote = "# Pics\n\n> > ```md\n> > ![](images/missing.png)\n> > ```\n"
+    deep_item = "# Pics\n\n10. one\n\n    ```md\n    ![](images/missing.png)\n    ```\n"
+    bullet = "# Pics\n\n- one\n\n  ```md\n  ![](images/missing.png)\n  ```\n"
+    for name, body in (("quote", quote), ("nested quote", nested_quote), ("10. item", deep_item), ("bullet", bullet)):
+        assert _image_errors(body) == [], name
+
+
+def test_a_real_image_after_a_quoted_fence_is_still_checked() -> None:
+    body = "# Pics\n\n> ```md\n> ![](images/missing.png)\n> ```\n\n![](images/new.png)\n"
+    errors = _image_errors(body)
+    assert len(errors) == 1 and ":7: " in errors[0], errors
+
+
+def test_a_phantom_and_a_missed_image_cannot_cancel_out() -> None:
+    # The shape that fooled a count-based cross-check: a fenced (non-)image the
+    # scanner counted, plus a real multi-line image it did not. Judging by the
+    # renderer alone, the real one is checked and its missing file is reported.
+    body = (
+        "# Pics\n\n> ```md\n> ![Real alt](images/new.png)\n> ```\n\n"
+        "![across\nlines](images/missing.png)\n"
+    )
+    errors = _image_errors(body)
+    assert len(errors) == 1 and "images/missing.png" in errors[0], errors
+
+
+def test_the_same_destination_used_twice_is_attributed_to_both_lines() -> None:
+    body = "# Pics\n\n![](images/new.png)\n\n![A real description](images/new.png)\n\n![](images/new.png)\n"
+    lines = sorted(int(e.split(":")[1]) for e in _image_errors(body))
+    assert lines == [3, 7], lines
+    # Two uses on one line are both found.
+    two = "# Pics\n\n![](images/new.png) and ![](images/new.png)\n"
+    assert len(_image_errors(two)) == 2
+
+
+def _lines(markdown: str) -> list[int]:
+    return [image.line for image in render(markdown).images]
+
+
+def test_the_error_line_is_the_image_not_a_fenced_example_of_it() -> None:
+    # The same destination inside a fence, then the real image (the reviewer's repro).
+    assert _lines("# P\n\n```\n![](images/new.png)\n```\n\n![](images/new.png)\n") == [7]
+    quoted = "# P\n\n> ```\n> ![](images/new.png)\n> ```\n\n![](images/new.png)\n"
+    assert _lines(quoted) == [7]
+    deep = "# P\n\n10. one\n\n    ```md\n    ![](images/new.png)\n    ```\n\n![](images/new.png)\n"
+    assert _lines(deep) == [9]
+    errors = _image_errors("# Pics\n\n```\n![](images/new.png)\n```\n\n![](images/new.png)\n")
+    assert len(errors) == 1 and errors[0].startswith("docs/user/pics.md:7: "), errors
+
+
+def test_a_fence_with_a_blank_line_or_tildes_still_hides_its_example() -> None:
+    # A triple-backtick fence without blank lines also reads as one code span, so
+    # these are the shapes that only the explicit fence tracking handles.
+    blank_inside = "# P\n\n```\nfirst\n\n![](images/new.png)\n```\n\n![](images/new.png)\n"
+    assert _lines(blank_inside) == [9]
+    tilde = "# P\n\n~~~\n![](images/new.png)\n~~~\n\n![](images/new.png)\n"
+    assert _lines(tilde) == [7]
+    quoted_blank = "# P\n\n> ```\n> a\n>\n> ![](images/new.png)\n> ```\n\n![](images/new.png)\n"
+    assert _lines(quoted_blank) == [9]
+    # A fence inside a list item can hold a truly empty line, which ends the run
+    # the source scan reads, so only the container-aware fence tracking hides it.
+    in_item = (
+        "# P\n\n10. one\n\n    ```md\n    first\n\n    ![](images/new.png)\n    ```\n\n"
+        "![](images/new.png)\n"
+    )
+    assert _lines(in_item) == [11]
+
+
+def test_a_mention_of_the_file_is_not_mistaken_for_the_image() -> None:
+    assert _lines("# P\n\nSee `images/new.png` and images/new.png.\n\n![](images/new.png)\n") == [5]
+    assert _lines("# P\n\nx data.png y\n\n![](a.png)\n") == [5]
+    assert _lines("# P\n\n[the file](images/new.png)\n\n![](images/new.png)\n") == [5]
+    assert _lines("# P\n\nA `![](images/new.png)` span.\n\n![](images/new.png)\n") == [5]
+
+
+def test_two_uses_on_one_line_and_on_different_lines_each_get_their_own_line() -> None:
+    assert _lines("# P\n\n![a](x.png) and ![b](x.png)\n") == [3, 3]
+    assert _lines("# P\n\n![a](x.png)\n\n![b](x.png)\n") == [3, 5]
+
+
+def test_an_image_spanning_lines_is_reported_on_its_last_line() -> None:
+    # The line holding its closing paren, which is the destination's line here.
+    assert _lines("# P\n\n![across\nlines](images/new.png)\n") == [4]
+    # With a title wrapped onto the next line it is the title's line: pinned so the
+    # documented rule ("the closing paren's line") is the tested one.
+    assert _lines('# P\n\n![Search](images/new.png\n"Collection search")\n') == [4]
+
+
+def test_a_wrapped_image_does_not_take_the_line_of_a_later_use_of_its_destination() -> None:
+    # The reviewer's repro: the wrapped image has no one-line form of its own.
+    assert _lines("# P\n\n![across\nlines](x.png)\n\n![b](x.png)\n") == [4, 6]
+
+
+def test_lines_are_exact_inside_lists_quotes_tables_and_links() -> None:
+    assert _lines("# P\n\n- one ![](x.png)\n- two ![](y.png)\n") == [3, 4]
+    assert _lines("# P\n\n| h |\n| --- |\n| ![](x.png) |\n") == [5]
+    assert _lines("# P\n\n> q ![](x.png)\n") == [3]
+    assert _lines("# P\n\n[![](x.png)](https://example.com)\n") == [3]
+
+
+def test_the_real_corpus_pairs_images_exactly_and_never_falls_back() -> None:
+    # check_images() reports a line for each image; the fallback is a heuristic,
+    # so pin that every real guide takes the exact path: the images read from the
+    # source are precisely the ones the renderer parsed, in the same order.
+    for path in sorted(rud.USER_DOCS.glob("*.md")):
+        source = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+        lines = mth._strip_html_comments(source.split("\n"))
+        written = [dest for _, dest in mth._written_images(lines, mth._fenced_lines(lines))]
+        assert written == [image.dest for image in render(source).images], path.name
+
+
+def test_the_fallback_still_reports_a_sensible_line_when_the_two_readings_disagree() -> None:
+    # A destination the renderer reports but the source scan did not find (here
+    # forced): placed on the first unfenced line that mentions it, else the cursor.
+    lines = ["```", "ghost.png", "```", "mentions ghost.png here"]
+    refs = mth._attribute_lines(lines, [("", "ghost.png"), ("", "nowhere.png")])
+    # The fenced mention on line 2 is skipped; the second image has no mention at
+    # all and stays on the previous image's line.
+    assert [(r.dest, r.line) for r in refs] == [("ghost.png", 4), ("nowhere.png", 4)]
+
+
+def test_punctuation_alone_is_not_alt_text() -> None:
+    for alt in (".", "-", "...", " "):
+        errors = _image_errors(f"# Pics\n\n![{alt}](images/new.png)\n")
+        assert len(errors) == 1 and "has no alt text" in errors[0], (alt, errors)
+
+
+def test_one_decorative_use_does_not_make_the_exemption_stale() -> None:
+    body = "# Pics\n\n![](images/new.png)\n\n![A described use](images/new.png)\n"
+    decorative = frozenset({("pics.md", "images/new.png")})
+    # The empty-alt use is exempt, the described one is fine, and the entry is
+    # still needed: no error either way.
+    assert _image_errors(body, decorative=decorative) == []
+
+
+def test_raw_html_and_reference_style_images_are_not_images_to_this_renderer() -> None:
+    # They come out as literal text on the site, so they are not images here
+    # (and the docs tell authors to write ![alt](path)); pinned so a renderer
+    # change that starts treating them as images is noticed.
+    body = '# Pics\n\n<img src="images/new.png">\n\n![alt][ref]\n\n[ref]: images/new.png\n'
+    assert render(body).images == []
+
+
+def test_every_guide_is_scanned_including_the_unpublished_one() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _pics(Path(tmp), "# Pics\n")
+        (user / "style-guide.md").write_text("# Style\n\n![](images/new.png)\n", encoding="utf-8")
+        errors = rud.check_images(user)
+    assert len(errors) == 1 and errors[0].startswith("docs/user/style-guide.md:3: "), errors
+
+
+# ---------------------------------------------------------------------------
 # Site staging
 # ---------------------------------------------------------------------------
 
@@ -829,6 +1150,33 @@ def test_check_site_links_flags_a_stale_landing_page_link() -> None:
         assert len(errors) == 2, errors
         assert "retired-guide.html" in errors[0]
         assert "no matching heading" in errors[1]
+
+
+def _main_with_image_errors(argv: list[str]) -> tuple[int, str]:
+    """Run ``rud.main(argv)`` with check_images stubbed to report one problem."""
+    original = rud.check_images
+    rud.check_images = lambda *args, **kwargs: [
+        "docs/user/x.md:1: image y.png has no alt text."
+    ]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()) as captured:
+            code = rud.main(argv)
+    finally:
+        rud.check_images = original
+    return code, captured.getvalue()
+
+
+def test_main_check_mode_runs_the_image_check() -> None:
+    code, output = _main_with_image_errors(["--check"])
+    assert code == 1, output
+    assert "has no alt text" in output, output
+
+
+def test_main_build_mode_runs_the_image_check() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        code, output = _main_with_image_errors(["--out", str(Path(tmp) / "build" / "site")])
+    assert code == 1, output
+    assert "has no alt text" in output, output
 
 
 def test_main_check_mode_passes_on_the_real_corpus() -> None:

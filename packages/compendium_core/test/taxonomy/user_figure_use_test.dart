@@ -1,0 +1,602 @@
+import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
+import 'package:test/test.dart';
+
+/// Uses of figures of your own in a dance (#1023): the soft reference inside a
+/// free-text figure's params, and how the renderer shows it.
+void main() {
+  final created = DateTime.utc(2026, 10, 15);
+
+  UserGlossaryEntry entry({
+    String id = 'zoom-id',
+    String kind = 'customFigure',
+    String name = 'zoom',
+    Object? payload,
+  }) => UserGlossaryEntry(
+    id: id,
+    kindName: kind,
+    name: name,
+    definition: 'A zoom.',
+    description: 'Fast.',
+    payload:
+        payload ??
+        {
+          'form': 'contra',
+          'template': '{who} {move} [{hand} hand,] then {otherHand} {style}',
+          'defaultBeats': 6,
+          'params': [
+            {'key': 'who', 'kind': 'dancerSet', 'default': 'neighbors'},
+            {'key': 'hand', 'kind': 'handedness'},
+            {
+              'key': 'style',
+              'kind': 'choice',
+              'choices': [
+                {'id': 'f', 'label': 'fast'},
+                {'id': 's', 'label': 'slow'},
+              ],
+            },
+          ],
+        },
+    createdAt: created,
+  );
+
+  final catalog = UserFigureCatalog.fromEntries([entry()]);
+  final renderer = FigureRenderer(contraTaxonomy, userFigures: catalog);
+  final bare = FigureRenderer(contraTaxonomy);
+
+  Figure use(Map<String, Object?> args, {String text = 'stored line'}) =>
+      userFigureUseFigure(id: 'zoom-id', args: args, text: text);
+
+  test('a number reads as its digits, where places adds its own word', () {
+    UserFigureCatalog catalogOf(String kind) => UserFigureCatalog.fromEntries([
+      entry(
+        id: 'count-id',
+        name: 'count',
+        payload: {
+          'form': 'contra',
+          'template': '{move} {n}',
+          'defaultBeats': 4,
+          'params': [
+            {'key': 'n', 'kind': kind},
+          ],
+        },
+      ),
+    ]);
+    String show(String kind, int n) =>
+        FigureRenderer(contraTaxonomy, userFigures: catalogOf(kind)).render(
+          userFigureUseFigure(id: 'count-id', args: {'n': n}, text: 'stored'),
+          Dialect.larksRobins,
+        );
+
+    expect(show('number', 3), 'count 3');
+    expect(show('number', 1), 'count 1');
+    expect(show('places', 3), 'count 3 places');
+    expect(show('places', 1), 'count 1 place');
+  });
+
+  test('a number is a whole number from 0 to 99', () {
+    const spec = ParamSpec(ParamKind.number, defaultValue: null);
+    for (final ok in [0, 1, 99]) {
+      expect(spec.validate(ok), isTrue, reason: '$ok');
+    }
+    for (final bad in [-1, 100, 1.5, '3', true, null]) {
+      expect(spec.validate(bad), isFalse, reason: '$bad');
+    }
+  });
+
+  test('a direction reads as the figure\'s own template words it', () {
+    // Built-in moves word a direction as a call ("on right diagonal",
+    // "facing in"); a figure of your own supplies its own words around the
+    // slot, so it gets the plain direction.
+    final drift = FigureRenderer(
+      contraTaxonomy,
+      userFigures: UserFigureCatalog.fromEntries([
+        entry(
+          id: 'drift-id',
+          name: 'drift',
+          payload: {
+            'form': 'contra',
+            'template': '{move} on the {where}, then face {facing}',
+            'defaultBeats': 8,
+            'params': [
+              {'key': 'where', 'kind': 'direction'},
+              {'key': 'facing', 'kind': 'direction'},
+            ],
+          },
+        ),
+      ]),
+    );
+    expect(
+      drift.render(
+        userFigureUseFigure(
+          id: 'drift-id',
+          args: const {'where': 'rightDiagonal', 'facing': 'in'},
+          text: 'stored',
+        ),
+        Dialect.larksRobins,
+      ),
+      'drift on the right diagonal, then face in',
+    );
+  });
+
+  group('the reference', () {
+    test('rides inside params, so builds before it keep it whole', () {
+      final figure = use(const {'hand': 'right'});
+      expect(figure.move, customMove);
+      expect(figure.customOrigin, CustomOrigin.userEntered);
+      final json = figureToJson(figure);
+      expect(unsupportedFigurePath([json]), isNull);
+      expect(figureFromJson(json), figure);
+      expect(userFigureUseOf(figureFromJson(json))!.args, {'hand': 'right'});
+    });
+
+    test('is attached while its stored line is the one written with it, and '
+        'detached once something else edits the line', () {
+      final figure = use(const {});
+      expect(userFigureUseOf(figure)!.attached, isTrue);
+      final edited = figure.copyWith(
+        params: {...figure.params, 'text': 'typed on an older device'},
+      );
+      expect(userFigureUseOf(edited)!.attached, isFalse);
+    });
+
+    test('its check is taken over the text as the repository stores it', () {
+      expect(
+        userFigureTextCheck('cafe\u0301 zoom'),
+        userFigureTextCheck('caf\u00e9 zoom'),
+        reason: 'NFC-equivalent text has one check',
+      );
+      expect(
+        userFigureTextCheck('zoom\u200b'),
+        userFigureTextCheck('zoom'),
+        reason: 'what normalisation strips does not count',
+      );
+    });
+
+    test('a reference of the wrong shape reads as none', () {
+      // invalid-fixture: deliberately malformed references, one per case.
+      Figure withParams(Map<String, Object?> extra) => Figure(
+        move: customMove,
+        params: {
+          'text': 'x',
+          userFigureRefKey: 'zoom-id',
+          userFigureArgsKey: const <String, Object?>{},
+          userFigureCheckKey: userFigureTextCheck('x'),
+          ...extra,
+        },
+      );
+      expect(userFigureUseOf(withParams(const {})), isNotNull);
+      for (final bad in <Map<String, Object?>>[
+        {userFigureRefKey: 7},
+        {userFigureRefKey: '../etc'},
+        {userFigureRefKey: 'x' * 65},
+        {userFigureArgsKey: 'nope'},
+        {
+          userFigureArgsKey: {
+            'a': [1],
+          },
+        },
+        {
+          userFigureArgsKey: {'a': 'x' * 1001},
+        },
+        {
+          userFigureArgsKey: {for (var i = 0; i < 17; i++) 'k$i': i},
+        },
+        {userFigureCheckKey: 'XYZ'},
+      ]) {
+        expect(userFigureUseOf(withParams(bad)), isNull, reason: '$bad');
+      }
+      expect(
+        userFigureUseOf(Figure(move: 'swing', params: const {})),
+        isNull,
+        reason: 'only a free-text figure holds one',
+      );
+    });
+
+    test('detaching can freeze the line the use renders to now', () {
+      final frozen = detachUserFigureUse(
+        use(const {}, text: 'line stored before an edit'),
+        text: 'line after the edit',
+      );
+      expect(frozen.params, {'text': 'line after the edit'});
+    });
+
+    test('detaching keeps the line and drops only the reference', () {
+      final figure = userFigureUseFigure(
+        id: 'zoom-id',
+        args: const {'hand': 'left'},
+        text: 'neighbors zoom',
+        beats: 6,
+        note: 'smile',
+        progression: true,
+      );
+      final frozen = detachUserFigureUse(figure);
+      expect(frozen.params, {'text': 'neighbors zoom', 'beats': 6});
+      expect(frozen.note, 'smile');
+      expect(frozen.progression, isTrue);
+      expect(hasUserFigureReferenceKeys(frozen), isFalse);
+    });
+
+    test('a figure transform reaches leaves inside containers, and returns '
+        'the same list when nothing changed', () {
+      final inner = use(const {});
+      final meanwhile = Figure.meanwhile(
+        figures: [
+          inner,
+          Figure(move: 'swing', params: const {}),
+        ],
+        beats: 8,
+      );
+      final figures = [meanwhile];
+      expect(identical(mapFigureLeaves(figures, (f) => f), figures), isTrue);
+      final frozen = mapFigureLeaves(figures, detachUserFigureUse);
+      expect(hasUserFigureReferenceKeys(frozen.single.subFigures.first), false);
+      expect(userFigureIdsUsedBy(figures), {'zoom-id'});
+      expect(userFigureIdsUsedBy(frozen), isEmpty);
+    });
+  });
+
+  group('validation', () {
+    test('a well-formed use is a valid custom figure', () {
+      expect(
+        contraTaxonomy.validateFigure(use(const {'hand': 'right'})),
+        isEmpty,
+      );
+    });
+
+    test('any other key on a custom figure is still an error', () {
+      final figure = use(const {});
+      final extra = figure.copyWith(params: {...figure.params, 'surprise': 1});
+      expect(
+        contraTaxonomy.validateFigure(extra).map((i) => i.code),
+        contains('unknown_param'),
+      );
+    });
+
+    test('a malformed or partial reference is an error', () {
+      final figure = use(const {});
+      final partial = figure.copyWith(
+        params: {
+          for (final e in figure.params.entries)
+            if (e.key != userFigureCheckKey) e.key: e.value,
+        },
+      );
+      expect(
+        contraTaxonomy.validateFigure(partial).map((i) => i.code),
+        contains('invalid_param_value'),
+      );
+    });
+  });
+
+  group('rendering', () {
+    test('renders live from the definition, in the dialect, on every path', () {
+      final figure = use(const {
+        'who': 'role1s',
+        'hand': 'right',
+        'style': 's',
+      });
+      expect(
+        renderer.render(figure, Dialect.larksRobins),
+        'larks zoom right hand, then left slow',
+      );
+      expect(
+        renderer.renderSummary(figure, Dialect.larksRobins),
+        'larks zoom right hand, then left slow',
+      );
+      expect(
+        renderer.renderVerbose(figure, Dialect.larksRobins),
+        'larks zoom right hand, then left slow',
+      );
+      expect(
+        renderer.renderCanonical(figure),
+        'role1s zoom right hand, then left slow',
+      );
+    });
+
+    Dialect withMine({String? name, String? wording}) =>
+        Dialect.larksRobins.copyWith(
+          moves: {
+            ...Dialect.larksRobins.moves,
+            userFigureKeyFor('zoom-id'): ?name,
+          },
+          moveWordings: {
+            ...Dialect.larksRobins.moveWordings,
+            userFigureKeyFor('zoom-id'): ?wording,
+          },
+        );
+
+    test('a dialect names and words the figure its own way, never on the '
+        'canonical path (#1023)', () {
+      final figure = use(const {'who': 'role1s', 'hand': 'right'});
+      final dialect = withMine(
+        name: 'whizz',
+        wording: '{move} by {who}, {hand} hand first',
+      );
+      expect(
+        renderer.render(figure, dialect),
+        'whizz by larks, right hand first',
+      );
+      expect(
+        renderer.renderSummary(figure, dialect),
+        'whizz by larks, right hand first',
+      );
+      expect(
+        renderer.renderCanonical(figure),
+        'role1s zoom right hand, then left',
+        reason: 'what a dance stores and the index reads is the figure\'s own',
+      );
+      expect(
+        renderer.renderUserFigureCanonical(figure),
+        'role1s zoom right hand, then left',
+      );
+      expect(
+        renderer.render(figure, withMine(name: 'whizz')),
+        'larks whizz right hand, then left',
+        reason: 'a name alone fills the figure\'s own wording',
+      );
+    });
+
+    test('deleting the figure leaves a dialect without its name and wording '
+        '(#1023)', () {
+      final dialect = withMine(name: 'whizz', wording: '{move}');
+      final kept = dialectWithoutUserFigure(dialect, 'zoom-id');
+      expect(kept.moves.containsKey(userFigureKeyFor('zoom-id')), isFalse);
+      expect(
+        kept.moveWordings.containsKey(userFigureKeyFor('zoom-id')),
+        isFalse,
+      );
+      expect(kept.moves, Dialect.larksRobins.moves);
+      expect(
+        identical(dialectWithoutUserFigure(kept, 'zoom-id'), kept),
+        isTrue,
+        reason: 'nothing to drop leaves the dialect as it was',
+      );
+    });
+
+    test('a dialect\'s wording the figure can\'t use falls back to its own '
+        '(#1023)', () {
+      final figure = use(const {'who': 'role1s', 'hand': 'right'});
+      for (final wording in [
+        '{move} with {gone}',
+        '{move} [unbalanced',
+        '   ',
+      ]) {
+        expect(
+          renderer.render(figure, withMine(wording: wording)),
+          'larks zoom right hand, then left',
+          reason: wording,
+        );
+      }
+      for (final name in ['%S zoom', '  ']) {
+        expect(
+          renderer.render(figure, withMine(name: name)),
+          'larks zoom right hand, then left',
+          reason: name,
+        );
+      }
+    });
+
+    test('an unset argument takes the default, or renders nothing, and an '
+        'emptied optional group goes', () {
+      expect(renderer.renderCanonical(use(const {})), 'neighbors zoom then');
+    });
+
+    test('a renderer without the figure shows the stored line', () {
+      final figure = use(const {'hand': 'right'}, text: 'neighbors zoom');
+      expect(bare.render(figure, Dialect.larksRobins), 'neighbors zoom');
+      expect(bare.renderCanonical(figure), 'neighbors zoom');
+    });
+
+    test(
+      'a detached use shows its stored line, even with the figure known',
+      () {
+        final figure = use(const {'hand': 'right'});
+        final edited = figure.copyWith(
+          params: {...figure.params, 'text': 'typed elsewhere'},
+        );
+        expect(renderer.renderCanonical(edited), 'typed elsewhere');
+      },
+    );
+
+    test('an argument outside its values, such as a removed choice, shows the '
+        'stored line', () {
+      expect(
+        renderer.renderCanonical(use(const {'style': 'gone'})),
+        'stored line',
+      );
+      expect(
+        renderer.renderCanonical(use(const {'hand': 'sideways'})),
+        'stored line',
+      );
+    });
+
+    test('a definition that no longer decodes shows the stored line', () {
+      final broken = FigureRenderer(
+        contraTaxonomy,
+        userFigures: UserFigureCatalog.fromEntries([
+          entry(payload: const {'template': 3}),
+        ]),
+      );
+      expect(broken.renderCanonical(use(const {})), 'stored line');
+    });
+
+    test('only figures of your own enter the catalog', () {
+      final mixed = UserFigureCatalog.fromEntries([
+        entry(id: 'c', kind: 'compound'),
+        entry(id: 't', kind: 'term'),
+        entry(),
+      ]);
+      expect(mixed.figures.map((f) => f.id), ['zoom-id']);
+    });
+
+    test(
+      'an argument is inserted literally: it can never fill another slot',
+      () {
+        final textual = FigureRenderer(
+          contraTaxonomy,
+          userFigures: UserFigureCatalog.fromEntries([
+            entry(
+              payload: const {
+                'template': '{move} to {where}',
+                'defaultBeats': 8,
+                'params': [
+                  {'key': 'where', 'kind': 'text'},
+                ],
+              },
+            ),
+          ]),
+        );
+        expect(
+          textual.renderCanonical(use(const {'where': '{move} {beats}\u202e'})),
+          'zoom to {move} {beats}',
+        );
+      },
+    );
+
+    test('the beats slot reads the use\'s beats, else the default', () {
+      final beaty = FigureRenderer(
+        contraTaxonomy,
+        userFigures: UserFigureCatalog.fromEntries([
+          entry(
+            payload: const {
+              'template': '{move} ({beats})',
+              'defaultBeats': 6,
+              'params': <Object?>[],
+            },
+          ),
+        ]),
+      );
+      expect(beaty.renderCanonical(use(const {})), 'zoom (6)');
+      expect(
+        beaty.renderCanonical(
+          userFigureUseFigure(
+            id: 'zoom-id',
+            args: const {},
+            text: 'x',
+            beats: 4,
+          ),
+        ),
+        'zoom (4)',
+      );
+    });
+
+    test('a flag renders its label when set, and nothing otherwise', () {
+      final flagged = FigureRenderer(
+        contraTaxonomy,
+        userFigures: UserFigureCatalog.fromEntries([
+          entry(
+            payload: const {
+              'template': '{move} [{prefix}]',
+              'defaultBeats': 8,
+              'params': [
+                {'key': 'prefix', 'kind': 'flag', 'label': 'with a flourish'},
+              ],
+            },
+          ),
+        ]),
+      );
+      expect(
+        flagged.renderCanonical(use(const {'prefix': true})),
+        'zoom with a flourish',
+      );
+      expect(flagged.renderCanonical(use(const {'prefix': false})), 'zoom');
+    });
+
+    test('the canonical line a stored line is refreshed to, and none '
+        'without the figure', () {
+      final figure = use(const {'who': 'role1s', 'hand': 'left', 'style': 'f'});
+      expect(
+        renderer.renderUserFigureCanonical(figure),
+        'role1s zoom left hand, then right fast',
+      );
+      expect(bare.renderUserFigureCanonical(figure), isNull);
+    });
+
+    test(
+      'a text argument is one line, and its role words follow the dialect',
+      () {
+        final textual = FigureRenderer(
+          contraTaxonomy,
+          userFigures: UserFigureCatalog.fromEntries([
+            entry(
+              payload: const {
+                'template': '{move} to {where}',
+                'defaultBeats': 8,
+                'params': [
+                  {'key': 'where', 'kind': 'text'},
+                ],
+              },
+            ),
+          ]),
+        );
+        final figure = use(const {'where': 'the role1s\nand back'});
+        expect(textual.renderCanonical(figure), 'zoom to the role1s and back');
+        expect(
+          textual.render(figure, Dialect.larksRobins),
+          'zoom to the larks and back',
+        );
+      },
+    );
+  });
+
+  group('the dance diff key', () {
+    test('keys an attached use by its figure and arguments, not its line', () {
+      final a = use(const {'hand': 'right'}, text: 'old wording');
+      final b = use(const {'hand': 'right'}, text: 'new wording');
+      final c = use(const {'hand': 'left'}, text: 'new wording');
+      expect(
+        figureCanonicalKey(a, contraTaxonomy),
+        figureCanonicalKey(b, contraTaxonomy),
+      );
+      expect(
+        figureCanonicalKey(a, contraTaxonomy),
+        isNot(figureCanonicalKey(c, contraTaxonomy)),
+      );
+    });
+
+    test('no argument value can read as a separator, and case is kept', () {
+      String key(Map<String, Object?> args) =>
+          figureCanonicalKey(use(args), contraTaxonomy);
+      expect(key(const {'a': 'x,b=y'}), isNot(key(const {'a': 'x', 'b': 'y'})));
+      expect(key(const {'a': 'Paris'}), isNot(key(const {'a': 'paris'})));
+    });
+
+    test('keys a detached use by its line, as any free-text figure', () {
+      final frozen = detachUserFigureUse(use(const {}, text: 'a line'));
+      expect(
+        figureCanonicalKey(frozen, contraTaxonomy),
+        figureCanonicalKey(customFigure('a line'), contraTaxonomy),
+      );
+    });
+  });
+
+  group('elsewhere', () {
+    test('#417\'s re-parse never replaces a use, whatever its origin says', () {
+      final figure = testFigure(
+        move: customMove,
+        params: use(const {}, text: 'neighbors swing').params,
+        customOrigin: CustomOrigin.importGap,
+      );
+      final result = reparseImportGapFigures([
+        figure,
+      ], taxonomy: contraTaxonomy);
+      expect(result.figures.single, figure);
+      expect(result.upgradedCount, 0);
+    });
+
+    test('a figure shorthand never holds a use: builds before it would drop '
+        'the mapping', () {
+      final mappings = ShorthandMappings.decode([
+        {
+          'token': 'zz',
+          'figures': [figureToJson(use(const {}))],
+        },
+        {
+          'token': 'sw',
+          'figures': [figureToJson(Figure(move: 'swing', params: const {}))],
+        },
+      ], taxonomy: contraTaxonomy);
+      expect([for (final m in mappings.mappings) m.token], ['sw']);
+    });
+  });
+}

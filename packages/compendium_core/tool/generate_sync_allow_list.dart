@@ -50,8 +50,14 @@ String renderSyncAllowList() {
   for (final kind in SyncRecordKind.values) {
     final paths = <String>{};
     for (final field in syncWireFields[kind]!) {
+      // A multi-source path carries every one of its columns on the wire, so it
+      // is admitted only when they are ALL shareable. `any` admitted the whole
+      // path on one shareable column and emitted the rest with it — a
+      // fail-open rule in the artefact whose entire job is to fail closed
+      // (#1359). `isNotEmpty` still excludes structural containers, which carry
+      // no column of their own; without it `every` would admit them all.
       if (field.sourceFields.isNotEmpty &&
-          field.sourceFields.any(_isShareable)) {
+          field.sourceFields.every(_isShareable)) {
         paths.add(field.path);
         var parent = field.path;
         while (parent.contains('.')) {

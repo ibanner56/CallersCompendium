@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 
 import 'baby_rose_seed_generator.dart';
 import '../test_package_root.dart';
+import '../figures_support.dart';
 
 void main() {
   group('Baby Rose seed asset', () {
@@ -33,7 +34,12 @@ void main() {
     //   dart run test/seed/generate_baby_rose_seed.dart
     test('checked-in asset matches freshly generated output', () async {
       final generated = await buildBabyRoseSeedArchiveJson(fixtureHtml);
-      final onDisk = File(assetPath).readAsStringSync();
+      // Normalize CRLF -> LF so a Windows checkout is compared like-for-like
+      // against the LF-emitting generator; only line endings are stripped, so
+      // real content drift still fails. See the repository .gitattributes.
+      final onDisk = File(
+        assetPath,
+      ).readAsStringSync().replaceAll('\r\n', '\n');
       expect(
         onDisk,
         '$generated\n',
@@ -74,7 +80,7 @@ void main() {
       //   B1 (16) partners balance & swing
       //   B2 (8)  ladles chain
       //   B2 (8)  star left 4 places to new neighbors  (progression)
-      final figures = dance.figures;
+      final figures = figuresOf(dance);
       expect(figures, hasLength(6));
 
       expect(figures[0].move, 'swing');

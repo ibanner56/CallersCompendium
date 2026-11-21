@@ -1,4 +1,9 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/data/date_format_scope.dart';
+import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/screens/dance_detail/calling_history_section.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -7,6 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
+
+/// The System date format (PLAT-12): the device locale's numeric date.
+String _systemDate(DateTime d) =>
+    DateFormat.yMd(PlatformDispatcher.instance.locale.toString()).format(d);
 
 /// Tests for the app's first reactive read (issue #768).
 ///
@@ -30,9 +39,11 @@ void main() {
     String? venue,
     String? venueId,
     DateTime? updatedAt,
+    DateTime? eventDate,
   }) => Program(
     id: id,
     title: title,
+    eventDate: eventDate,
     venue: venue,
     venueId: venueId,
     slots: slots,
@@ -44,6 +55,7 @@ void main() {
     WidgetTester tester,
     CompendiumRepositories repos, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     int venueCallCount = 3,
   }) async {
     await tester.pumpWidget(
@@ -58,6 +70,7 @@ void main() {
               repositories: repos,
               danceId: 'd1',
               performedOnly: performedOnly,
+              requireEventDate: requireEventDate,
               trackAllCallers: true,
               venueCallCount: venueCallCount,
               onOpenProgram: (_) {},
@@ -215,6 +228,38 @@ void main() {
     expect(find.byKey(const ValueKey('calling-history-s-performed')), findsOne);
     expect(
       find.byKey(const ValueKey('calling-history-s-planned')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('flipping requireEventDate re-queries and drops undated programs '
+      '(F6)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('d1', 'Petronella'));
+    await repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Autumn Ball',
+        eventDate: DateTime.utc(2026, 10, 3),
+        slots: [ProgramSlot(id: 's-dated', position: 0, danceId: 'd1')],
+      ),
+    );
+    await repos.programs.create(
+      program(
+        id: 'p2',
+        title: 'Copy of Autumn Ball',
+        slots: [ProgramSlot(id: 's-undated', position: 0, danceId: 'd1')],
+      ),
+    );
+
+    await pumpSection(tester, repos);
+    expect(find.byKey(const ValueKey('calling-history-s-dated')), findsOne);
+    expect(find.byKey(const ValueKey('calling-history-s-undated')), findsOne);
+
+    await pumpSection(tester, repos, requireEventDate: true);
+    expect(find.byKey(const ValueKey('calling-history-s-dated')), findsOne);
+    expect(
+      find.byKey(const ValueKey('calling-history-s-undated')),
       findsNothing,
     );
   });
@@ -558,6 +603,256 @@ void main() {
           'the stats ride the history stream, so they must land in the same '
           'rebuild rather than one emit behind it',
     );
+  });
+
+  // performedAt and programUpdatedAt are instants stored in UTC; eventDate is
+  // a calendar date stored as UTC midnight. A row must show the local day of
+  // an instant, or a dance called at 22:30 in New York (02:30Z) reads as the
+  // next day. The test host usually runs in UTC, where the two agree, so the
+  // conversion is swapped for New York's (UTC-4 in October) to make the row
+  // discriminate on any host.
+  // Status -> Performed stamps each slot with the program's event date, a
+  // calendar date at UTC midnight (#356). It must render as that date, not
+  // converted to the previous evening west of UTC (GIG-2). The conversion is
+  // swapped for New York's so the test discriminates on a UTC host; run with
+  // `TZ=America/New_York` it also exercises the real `toLocal`.
+  testWidgets('a stamp copied from the event date shows that calendar date', (
+    tester,
+  ) async {
+    final previous = callingHistoryToLocal;
+    callingHistoryToLocal = (instant) {
+      final ny = instant.subtract(const Duration(hours: 4));
+      return DateTime(ny.year, ny.month, ny.day, ny.hour, ny.minute);
+    };
+    addTearDown(() => callingHistoryToLocal = previous);
+    final eventDate = DateTime.utc(2026, 10, 24);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: CallingHistoryRow(
+            record: DanceCallingRecord(
+              slotId: 's1',
+              programId: 'p1',
+              programTitle: 'Autumn Ball',
+              programUpdatedAt: DateTime.utc(2026, 10, 25, 14),
+              eventDate: eventDate,
+              performedAt: eventDate,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 24))),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 23))),
+      findsNothing,
+    );
+  });
+
+  // GIG-2 (maintainer decision 2026-10-29): a dated program's row shows its
+  // event date whenever the slot was marked. Before, only a stamp within five
+  // minutes of the event date did; one tapped later showed the tap's day.
+  test('callingHistoryDisplayDate shows the event date of a dated program, '
+      'whenever its slot was marked performed', () {
+    final eventDate = DateTime.utc(2026, 10, 24);
+    DanceCallingRecord marked(DateTime performedAt) => DanceCallingRecord(
+      slotId: 's1',
+      programId: 'p1',
+      programTitle: 'T',
+      programUpdatedAt: performedAt,
+      eventDate: eventDate,
+      performedAt: performedAt,
+    );
+    for (final performedAt in [
+      // Copied from the event date by Status -> Performed (#356).
+      eventDate,
+      // A re-stamp, bumped a second past the event date per used second.
+      eventDate.add(const Duration(seconds: 2)),
+      // Marked past midnight during the dance, in New York.
+      DateTime.utc(2026, 10, 25, 4, 30),
+      // Marked with Mark all performed on the Monday after.
+      DateTime.utc(2026, 10, 26, 13),
+    ]) {
+      expect(
+        callingHistoryDisplayDate(marked(performedAt)),
+        eventDate,
+        reason: 'stamp $performedAt',
+      );
+    }
+  });
+
+  // FIND-1: the call date has a SQL form (`callingHistoryDateSql`) and two
+  // Dart forms. The core test `called_filter_scopes_test.dart` pins the SQL
+  // against [DanceCallingRecord.effectiveDate]; this pins the detail page's
+  // display date against it, so editing either Dart copy alone fails a test.
+  // The recency date is a window date, not a display date: it is pinned against
+  // its own SQL there (`callingHistoryRecencyDateSql` and `recencyDate`).
+  test('callingHistoryDisplayDate picks the same date as effectiveDate, for '
+      'every combination of dates', () {
+    final previous = callingHistoryToLocal;
+    // West of UTC, so a converted instant cannot pass for an unconverted one.
+    callingHistoryToLocal = (instant) =>
+        instant.subtract(const Duration(hours: 5)).copyWith(isUtc: false);
+    addTearDown(() => callingHistoryToLocal = previous);
+    final eventDate = DateTime.utc(2026, 9, 5);
+    final performedAt = DateTime.utc(2026, 9, 7, 21, 30);
+    final updatedAt = DateTime.utc(2026, 10, 1, 9);
+    for (final event in [eventDate, null]) {
+      for (final performed in [performedAt, null]) {
+        final record = DanceCallingRecord(
+          slotId: 's',
+          programId: 'p',
+          programTitle: 'T',
+          programUpdatedAt: updatedAt,
+          eventDate: event,
+          performedAt: performed,
+        );
+        final reason = 'event $event, performed $performed';
+        expect(
+          callingHistoryDisplayDate(record),
+          record.eventDate ?? callingHistoryToLocal(record.effectiveDate),
+          reason: reason,
+        );
+      }
+    }
+  });
+
+  testWidgets('a slot marked performed days later shows the event date', (
+    tester,
+  ) async {
+    final previous = callingHistoryToLocal;
+    callingHistoryToLocal = (instant) {
+      final ny = instant.subtract(const Duration(hours: 4));
+      return DateTime(ny.year, ny.month, ny.day, ny.hour, ny.minute);
+    };
+    addTearDown(() => callingHistoryToLocal = previous);
+    final monday = DateTime.utc(2026, 10, 26, 13);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: CallingHistoryRow(
+            record: DanceCallingRecord(
+              slotId: 's1',
+              programId: 'p1',
+              programTitle: 'Autumn Ball',
+              programUpdatedAt: monday,
+              eventDate: DateTime.utc(2026, 10, 24),
+              performedAt: monday,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 24))),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 26))),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a row renders its date per the Date format setting', (
+    tester,
+  ) async {
+    final notifier = ValueNotifier<DateFormatSetting>(
+      DateFormatSetting(DateFormatPref.dmy),
+    );
+    addTearDown(notifier.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DateFormatScope(
+          notifier: notifier,
+          child: Scaffold(
+            body: CallingHistoryRow(
+              record: DanceCallingRecord(
+                slotId: 's1',
+                programId: 'p1',
+                programTitle: 'Autumn Ball',
+                programUpdatedAt: DateTime.utc(2026, 10, 25),
+                eventDate: DateTime.utc(2026, 10, 24),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.textContaining('24/10/2026'), findsOneWidget);
+  });
+
+  testWidgets('a row shows the local day it was performed, not the UTC day', (
+    tester,
+  ) async {
+    final previous = callingHistoryToLocal;
+    callingHistoryToLocal = (instant) {
+      final ny = instant.subtract(const Duration(hours: 4));
+      return DateTime(ny.year, ny.month, ny.day, ny.hour, ny.minute);
+    };
+    addTearDown(() => callingHistoryToLocal = previous);
+    final instant = DateTime.utc(2026, 10, 4, 2, 30);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: CallingHistoryRow(
+            record: DanceCallingRecord(
+              slotId: 's1',
+              programId: 'p1',
+              programTitle: 'Autumn Ball',
+              programUpdatedAt: instant,
+              performedAt: instant,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 3))),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 4))),
+      findsNothing,
+    );
+  });
+
+  group('callingHistoryDisplayDate', () {
+    final instant = DateTime.utc(2026, 10, 4, 2, 30);
+    DanceCallingRecord record({DateTime? performedAt, DateTime? eventDate}) =>
+        DanceCallingRecord(
+          slotId: 's1',
+          programId: 'p1',
+          programTitle: 'Autumn Ball',
+          programUpdatedAt: instant,
+          performedAt: performedAt,
+          eventDate: eventDate,
+        );
+
+    test('shows a performed or last-updated instant in local time', () {
+      for (final r in [record(performedAt: instant), record()]) {
+        final shown = callingHistoryDisplayDate(r);
+        expect(shown.isUtc, isFalse);
+        expect(shown, instant.toLocal());
+      }
+    });
+
+    test('shows a calendar event date as stored', () {
+      final day = DateTime.utc(2026, 10, 4);
+      final shown = callingHistoryDisplayDate(record(eventDate: day));
+      expect(shown, day);
+      expect(shown.isUtc, isTrue);
+    });
   });
 }
 

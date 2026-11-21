@@ -2,6 +2,8 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/figure_source.dart';
+import '../model/tunes_source.dart';
 import '../model/difficulty_level.dart';
 import '../model/formation.dart';
 import '../model/program.dart';
@@ -12,6 +14,12 @@ import '../model/tag.dart';
 import '../model/venue.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
+
+// Every key the `archive*ToJson` functions below write is classified in
+// `tools/ci/archive_key_versions.json` by the version case that stamps it,
+// and `tools/ci/check_archive_key_versions.py` fails on a key that has none:
+// an older reader drops a key it does not know without a word unless the
+// file's version tells it the file is newer.
 
 /// Builds the archive-shaped body for a choreographer.
 Map<String, Object?> archiveChoreographerToJson(
@@ -89,17 +97,50 @@ Map<String, Object?> archiveDanceToJson(
   ),
   'progression': d.progression.name,
   'phraseStructure': d.phraseStructure.raw,
-  'figures': [for (final f in d.figures) figureToJson(f)],
+  // `figures` stays a well-formed array even when the stored transcription is
+  // not JSON at all — the raw text cannot go inside it without making the
+  // archive itself unparseable, which is why it travels in its own string-typed
+  // key below rather than here.
+  'figures': switch (d.figuresSource) {
+    DecodedFigures(:final figures) => [
+      for (final f in figures) figureToJson(f),
+    ],
+    UnreadableFigures() => const <Object?>[],
+  },
+  // Emitted ONLY for a transcription that could not be decoded, so an archive
+  // from a healthy library is byte-identical to what this encoder produced
+  // before the key existed — which is what keeps the schema stamp below
+  // conditional rather than universal (#1347).
+  if (d.figuresSource case UnreadableFigures(:final storedJson))
+    'figuresRaw': storedJson,
   'hook': d.hook,
   'callingNotes': d.callingNotes,
   'walkthrough': d.walkthrough,
+  // Written only when given, so a dance without them encodes byte-identically
+  // to what builds before these keys wrote: its sync body and content hash do
+  // not change, and an older device keeps nothing for a newer one (sync-spec
+  // §6.7). `includeOptionalFields` does not force them, for the same reason;
+  // every reader takes a missing key as its default, and Device Sync fills
+  // the defaults in before applying a body ([withOmittedDanceDefaults]), so
+  // clearing one still reaches other devices. Stamped by
+  // [archiveSchemaVersionEcdDanceFields].
+  if (d.meter.isNotEmpty) 'meter': d.meter,
+  if (d.musicalKey.isNotEmpty) 'musicalKey': d.musicalKey,
   'status': d.status.name,
   if (includeOptionalFields || d.difficultyLevelId != null)
     'difficultyLevelId': d.difficultyLevelId,
   'mixedLevel': d.mixedLevel,
   'mixer': d.mixer,
   if (includeOptionalFields || d.rating != null) 'rating': d.rating,
-  'tunes': d.tunes,
+  // Well-formed array even when the stored text is not JSON; the raw text
+  // travels in its own string-typed key below, for the same reason
+  // `figuresRaw` does.
+  'tunes': switch (d.tunesSource) {
+    DecodedTunes(:final tunes) => tunes,
+    UnreadableTunes() => const <String>[],
+  },
+  if (d.tunesSource case UnreadableTunes(:final storedJson))
+    'tunesRaw': storedJson,
   'customFields': [
     for (final v in d.customFields)
       if (!excludedFieldIds.contains(v.fieldId))
@@ -126,6 +167,10 @@ Map<String, Object?> archiveDanceToJson(
           ),
   if (includeOptionalFields || d.composedOn != null)
     'composedOn': d.composedOn?.serialize(),
+  // Written only when set, even with [includeOptionalFields], for the reason
+  // given at [omittedDanceDefaults].
+  if (d.interpreterIds.isNotEmpty) 'interpreterIds': d.interpreterIds,
+  if (d.interpretedOn != null) 'interpretedOn': d.interpretedOn!.serialize(),
   if (includeOptionalFields || d.revisedOn != null)
     'revisedOn': d.revisedOn?.serialize(),
   'createdAt': archiveIso(d.createdAt),
@@ -134,12 +179,48 @@ Map<String, Object?> archiveDanceToJson(
     'deletedAt': d.deletedAt == null ? null : archiveIso(d.deletedAt!),
 };
 
+/// The dance body keys [archiveDanceToJson] leaves out when they hold their
+/// default, with that default. Each was added after Device Sync shipped
+/// (ADR-006 §12, F2 and F3, and §9.2's interpreter credits); omitting a
+/// default keeps every other dance's body, and so its content hash, as it was.
+const Map<String, Object?> omittedDanceDefaults = {
+  'meter': '',
+  'musicalKey': '',
+  'interpreterIds': <String>[],
+  'interpretedOn': null,
+};
+
+/// The formation keys [archiveFormationToJson] leaves out when they hold their
+/// default, with that default; see [omittedDanceDefaults].
+const Map<String, Object?> omittedFormationDefaults = {'improper': false};
+
+/// [body], a dance body, with each omitted default ([omittedDanceDefaults],
+/// [omittedFormationDefaults]) written in where it is missing.
+///
+/// Device Sync applies an inbound body by overlaying it on the stored record,
+/// key by key, so a key the sender left out would keep the stored value. For
+/// these keys a missing key means the default, so it is filled in first and a
+/// value cleared on one device is cleared on the others (sync-spec §6.7). A
+/// body with no `formation` is not a whole dance body and is returned as is.
+Map<String, Object?> withOmittedDanceDefaults(Map<String, Object?> body) {
+  final formation = body['formation'];
+  if (formation is! Map) return body;
+  return {
+    ...omittedDanceDefaults,
+    ...body,
+    'formation': {...omittedFormationDefaults, ...formation},
+  };
+}
+
 Map<String, Object?> archiveFormationToJson(
   Formation f, {
   bool includeOptionalFields = false,
 }) => {
   'shape': f.shape.name,
   if (includeOptionalFields || f.detail != null) 'detail': f.detail,
+  // Written only when set, as `meter` and `musicalKey` are and for the same
+  // reason; a reader takes a missing key as `false`, proper.
+  if (f.improper) 'improper': true,
 };
 
 Map<String, Object?> archiveCustomFieldValueToJson(
@@ -206,6 +287,20 @@ Map<String, Object?> archiveProgramToJson(
   'status': p.status.name,
   if (includeOptionalFields || p.hideAlternates)
     'hideAlternates': p.hideAlternates,
+  // Emitted only when set, in every mode — unlike `venueId` above. Sync bodies
+  // pass includeOptionalFields, and a null-valued key there would change the
+  // wire hash of every program that has no dialect.
+  if (p.dialectName != null) 'dialectName': p.dialectName,
+  // Same rule, same reason: only when set, so a program without pay keeps its
+  // wire hash. The two keys travel together. Neither raises the archive
+  // version; a backup carrying them is stamped by the app's backup envelope
+  // instead (`requiredBackupVersion`), and a share file not at all (#1885).
+  if (p.payMinorUnits != null) 'payMinorUnits': p.payMinorUnits,
+  if (p.payCurrency != null) 'payCurrency': p.payCurrency,
+  // Only when set, for the same wire-hash reason. Stamped by the backup
+  // envelope (`requiredBackupVersion`), like pay; share files never carry it,
+  // because the share bundles strip it (`sanitizeProgramForShare`).
+  if (p.archivedAt != null) 'archivedAt': archiveIso(p.archivedAt!),
   'slots': [
     for (final s in p.slots)
       archiveProgramSlotToJson(s, includeOptionalFields: includeOptionalFields),

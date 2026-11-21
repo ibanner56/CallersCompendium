@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 import '../model/enums.dart';
@@ -23,6 +24,7 @@ class RawRecord {
   const RawRecord({
     required this.source,
     this.externalId,
+    this.priorExternalIds = const [],
     this.sourceVersion,
     required this.payload,
     this.contentType,
@@ -37,6 +39,14 @@ class RawRecord {
   /// as the primary dedupe key `(source, externalId)`; `null` for sources that
   /// have no stable per-record id.
   final String? externalId;
+
+  /// Keys an earlier version of the adapter recorded this same record's
+  /// provenance under, tried in order by exact dedupe only when [externalId]
+  /// has no match — so a library that imported the record under an old key
+  /// still sees a re-import rather than a duplicate. Not persisted: a
+  /// re-import rewrites the matched dance's provenance to [externalId].
+  /// Empty for every source whose key has never changed.
+  final List<String> priorExternalIds;
 
   /// Opaque source/schema version tag (e.g. a snapshot date or format
   /// revision). Feeds `provenance.source_version`.
@@ -61,6 +71,7 @@ class RawRecord {
   RawRecord copyWith({
     ProvenanceSource? source,
     String? externalId,
+    List<String>? priorExternalIds,
     String? sourceVersion,
     String? payload,
     String? contentType,
@@ -69,6 +80,7 @@ class RawRecord {
   }) => RawRecord(
     source: source ?? this.source,
     externalId: externalId ?? this.externalId,
+    priorExternalIds: priorExternalIds ?? this.priorExternalIds,
     sourceVersion: sourceVersion ?? this.sourceVersion,
     payload: payload ?? this.payload,
     contentType: contentType ?? this.contentType,
@@ -81,6 +93,10 @@ class RawRecord {
       other is RawRecord &&
       other.source == source &&
       other.externalId == externalId &&
+      const ListEquality<String>().equals(
+        other.priorExternalIds,
+        priorExternalIds,
+      ) &&
       other.sourceVersion == sourceVersion &&
       other.payload == payload &&
       other.contentType == contentType &&
@@ -91,6 +107,7 @@ class RawRecord {
   int get hashCode => Object.hash(
     source,
     externalId,
+    const ListEquality<String>().hash(priorExternalIds),
     sourceVersion,
     payload,
     contentType,

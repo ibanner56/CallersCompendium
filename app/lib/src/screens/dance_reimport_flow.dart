@@ -3,17 +3,28 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/dance_reimport.dart';
+import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
+import '../theme/app_motion.dart';
+import '../widgets/dirty_dialog_guard.dart';
 import 'dance_detail_screen.dart';
 
-enum _ReimportSource { callersBox, contraDb, json }
+enum _ReimportSource { callersBox, contraDb, link, json }
 
 /// Source selection and explicit online-row selection shared by the routed and
-/// split-pane owners. It only returns an in-memory dance; owners decide where
-/// the preview lives and when to commit it.
+/// split-pane owners. An online dance is found either by searching the source
+/// for the saved title, or from a Caller's Box or ContraDB link or id the user
+/// pastes. It only returns an in-memory dance; owners decide where the preview
+/// lives and when to commit it.
+///
+/// Throws a [UrlFetchException] already attributed to the source that failed
+/// (`attributeFetchFailure`), a [DanceReimportFiguresUnavailableException]
+/// when the source withheld the dance's figures, or a
+/// [DanceReimportJsonException] for an unusable file. Owners map each to a
+/// message; anything else is an unexpected failure.
 Future<DanceDetailData?> selectReimportDance(
   BuildContext context, {
   required Dance target,
@@ -33,6 +44,7 @@ Future<DanceDetailData?> selectReimportDance(
           for (final entry in [
             (_ReimportSource.callersBox, OnlineSource.callersBox.label),
             (_ReimportSource.contraDb, OnlineSource.contraDb.label),
+            (_ReimportSource.link, l10n.danceReimportLinkOrId),
             (_ReimportSource.json, l10n.danceReimportJson),
           ])
             ListTile(
@@ -43,6 +55,7 @@ Future<DanceDetailData?> selectReimportDance(
         ],
       ),
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   if (source == null || !context.mounted) return null;
   if (source == _ReimportSource.json) {
@@ -52,60 +65,263 @@ Future<DanceDetailData?> selectReimportDance(
     return reimportPreviewData(plan.draft.dance);
   }
 
-  final service = source == _ReimportSource.callersBox ? callersBox : contraDb;
-  final results = await service.search(OnlineSearchQuery(title: target.title));
-  if (!context.mounted) return null;
-  if (results.isEmpty) {
-    await showDialog<void>(
+  OnlineSearchService serviceFor(OnlineSource online) =>
+      online == OnlineSource.callersBox ? callersBox : contraDb;
+
+  final OnlineSearchResultRow selected;
+  if (source == _ReimportSource.link) {
+    final link = await showDialog<_ReimportLink>(
+      context: context,
+      builder: (context) => _ReimportLinkDialog(
+        initialSource: _onlineSourceOf(target.provenance?.source),
+      ),
+      animationStyle: AppMotion.styleFor(context),
+    );
+    if (link == null || !context.mounted) return null;
+    // The shape an OS-shared link uses (`main.dart`): the service rebuilds its
+    // own canonical fetch URL from the validated id.
+    selected = OnlineSearchResultRow(
+      source: link.source,
+      id: link.id,
+      name: '',
+      author: '',
+      formation: '',
+    );
+  } else {
+    final online = source == _ReimportSource.callersBox
+        ? OnlineSource.callersBox
+        : OnlineSource.contraDb;
+    final results = await _attributed(
+      online,
+      () => serviceFor(online).search(OnlineSearchQuery(title: target.title)),
+    );
+    if (!context.mounted) return null;
+    if (results.isEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.danceReimport),
+          content: Text(l10n.danceReimportNoResults),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.commonClose),
+            ),
+          ],
+        ),
+        animationStyle: AppMotion.styleFor(context),
+      );
+      return null;
+    }
+    final chosen = await showDialog<OnlineSearchResultRow>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.danceReimport),
-        content: Text(l10n.danceReimportNoResults),
+        title: Text(l10n.danceReimportChooseResult),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+          ),
+          child: SizedBox(
+            width: 500,
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final result in results)
+                  ListTile(
+                    key: ValueKey(
+                      'reimport-result-${result.source.name}-${result.id}',
+                    ),
+                    title: Text(result.name),
+                    subtitle: Text(
+                      [
+                        result.author,
+                        result.formation,
+                      ].where((s) => s.isNotEmpty).join(' · '),
+                    ),
+                    onTap: () => Navigator.pop(context, result),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      animationStyle: AppMotion.styleFor(context),
+    );
+    if (chosen == null || !context.mounted) return null;
+    selected = chosen;
+  }
+  final preview = await _attributed(
+    selected.source,
+    () => serviceFor(selected.source).loadPreview(repos, selected),
+  );
+  rejectFigurelessReimport(preview.plan);
+  return preview.detail;
+}
+
+/// Runs [request] against [source], re-labelling a generic fetch failure (a
+/// bare HTTP status, unreachable, timeout) as that source's own, so a missing
+/// Caller's Box id reads "no dance with that id" rather than a status code
+/// (#1497).
+Future<T> _attributed<T>(
+  OnlineSource source,
+  Future<T> Function() request,
+) async {
+  try {
+    return await request();
+  } on UrlFetchException catch (error, stackTrace) {
+    // diagnostics: silent — rethrown, relabelled; every owner of
+    // selectReimportDance logs it where it is shown.
+    Error.throwWithStackTrace(
+      attributeFetchFailure(error, switch (source) {
+        OnlineSource.callersBox => ImportSourceKind.callersBox,
+        OnlineSource.contraDb => ImportSourceKind.contraDb,
+      }),
+      stackTrace,
+    );
+  }
+}
+
+/// The online source a dance was imported from, or null when it has none or
+/// came from somewhere a link cannot name (a file, a manual entry).
+OnlineSource? _onlineSourceOf(ProvenanceSource? source) => switch (source) {
+  ProvenanceSource.callersbox => OnlineSource.callersBox,
+  ProvenanceSource.contradb => OnlineSource.contraDb,
+  _ => null,
+};
+
+/// What [_ReimportLinkDialog] returns: a validated dance id and its source.
+typedef _ReimportLink = ({OnlineSource source, String id});
+
+/// Asks for a Caller's Box or ContraDB dance link or id. A recognised pasted
+/// link always selects its own source; the selector only decides where a bare
+/// id is looked up, and it starts on [initialSource] -- the target dance's own
+/// source -- so an id copied from that source is not fetched from the other.
+/// Input the URL builders reject is reported here, inline, so it can be fixed
+/// without starting over; nothing is fetched until it is valid.
+class _ReimportLinkDialog extends StatefulWidget {
+  const _ReimportLinkDialog({this.initialSource});
+
+  /// Null starts on The Caller's Box.
+  final OnlineSource? initialSource;
+
+  @override
+  State<_ReimportLinkDialog> createState() => _ReimportLinkDialogState();
+}
+
+class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
+  final _controller = TextEditingController();
+  late var _source = widget.initialSource ?? OnlineSource.callersBox;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    // Unlike the Import screen, a manual choice does not pin the source: here
+    // it only matters for a bare id, and a link names its own source.
+    final detected = switch (detectSourceForUrl(
+      value,
+      defaultImportSources(),
+    )?.kind) {
+      ImportSourceKind.callersBox => OnlineSource.callersBox,
+      ImportSourceKind.contraDb => OnlineSource.contraDb,
+      _ => null,
+    };
+    setState(() {
+      if (detected != null) _source = detected;
+      _error = null;
+    });
+  }
+
+  void _submit() {
+    final input = _controller.text;
+    try {
+      final id = switch (_source) {
+        OnlineSource.callersBox => callersBoxDanceIdFromInput(input),
+        OnlineSource.contraDb => contraDbDanceIdFromInput(input),
+      };
+      Navigator.pop<_ReimportLink>(context, (source: _source, id: id));
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_reimport_flow._ReimportLinkDialog._submit',
+      );
+      setState(
+        () => _error = importErrorMessage(AppLocalizations.of(context), error),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.danceReimportLinkOrId),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SegmentedButton<OnlineSource>(
+                key: const ValueKey('reimport-link-source'),
+                segments: [
+                  for (final online in OnlineSource.values)
+                    ButtonSegment(
+                      value: online,
+                      label: Text(
+                        online.label,
+                        key: ValueKey('reimport-link-source-${online.name}'),
+                      ),
+                    ),
+                ],
+                selected: {_source},
+                onSelectionChanged: (selection) => setState(() {
+                  _source = selection.single;
+                  _error = null;
+                }),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('reimport-link-field'),
+                controller: _controller,
+                autofocus: true,
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                onChanged: _onChanged,
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.importReviewUrlLabel,
+                  hintText: l10n.importReviewUrlHint,
+                  errorText: _error,
+                  errorMaxLines: 4,
+                ),
+              ),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.commonClose),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('reimport-link-fetch'),
+            onPressed: _submit,
+            child: Text(l10n.importReviewFetch),
           ),
         ],
       ),
     );
-    return null;
   }
-  final selected = await showDialog<OnlineSearchResultRow>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(l10n.danceReimportChooseResult),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.6,
-        ),
-        child: SizedBox(
-          width: 500,
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              for (final result in results)
-                ListTile(
-                  key: ValueKey(
-                    'reimport-result-${result.source.name}-${result.id}',
-                  ),
-                  title: Text(result.name),
-                  subtitle: Text(
-                    [
-                      result.author,
-                      result.formation,
-                    ].where((s) => s.isNotEmpty).join(' · '),
-                  ),
-                  onTap: () => Navigator.pop(context, result),
-                ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-  if (selected == null || !context.mounted) return null;
-  return (await service.loadPreview(repos, selected)).detail;
 }
 
 /// Owns the routed re-import flow shared by saved-detail owners.
@@ -184,7 +400,7 @@ class DanceReimportCoordinator {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(
-                        AppLocalizations.of(context).danceReimportSourceFailed,
+                        AppLocalizations.of(context).danceReimportApplyFailed,
                       ),
                     ),
                   );
@@ -199,6 +415,37 @@ class DanceReimportCoordinator {
       if (context.mounted && committed == true) {
         messenger.showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
+        );
+      }
+    } on UrlFetchException catch (error, stackTrace) {
+      // Log-safe by construction: a typed reason plus status/timeout numbers.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_reimport_flow.DanceReimportCoordinator.open',
+      );
+      if (context.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              importErrorMessage(AppLocalizations.of(context), error),
+            ),
+          ),
+        );
+      }
+    } on DanceReimportFiguresUnavailableException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_reimport_flow.DanceReimportCoordinator.open',
+      );
+      if (context.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).danceReimportFiguresUnavailable,
+            ),
+          ),
         );
       }
     } on DanceReimportJsonException catch (error) {

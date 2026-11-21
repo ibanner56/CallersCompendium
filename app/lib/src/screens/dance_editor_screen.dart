@@ -7,20 +7,34 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/editor_draft_shutdown_scope.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../editor/draft_save_health.dart';
+import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/scroll_to_error.dart';
+import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
-import '../widgets/choreographer_details_dialog.dart';
+import '../widgets/app_bar_text_action.dart';
+import '../widgets/app_shortcuts.dart';
+import '../widgets/author_details_flow.dart';
+import '../widgets/confirm_discard_changes.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/published_source_details_dialog.dart';
 import 'dance_editor/dance_editor_controller.dart';
 import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
+import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -56,11 +70,10 @@ class DanceEditorScreen extends StatefulWidget {
 
 class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
-  late final DanceEditorController _controller;
+  late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
+  final _formScroll = ScrollController();
   final _moreDetailsController = ExpansibleController();
-
-  static final Taxonomy _taxonomy = contraTaxonomy;
 
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), loaded once in
   /// [_load] from the saved Defaults. Empty until loaded (and on any read
@@ -79,11 +92,15 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// kept in sync with [ActiveDialectScope] in [didChangeDependencies], so the
   /// prose fields restyle live when the caller switches dialects — mirroring
   /// the figure/move field.
-  Dialect _activeDialect = Dialect.larksRobins;
+  DialectsByForm _activeDialects = DialectsByForm.defaults;
 
   bool _dependenciesInitialized = false;
+  void Function()? _unregisterShutdownFlush;
   Object? _loadError;
   bool _saving = false;
+
+  /// Re-entrancy guard for [_delete]; see the note there.
+  bool _deleting = false;
 
   // ---- Reference-data caches (shared entities) ----
   //
@@ -120,8 +137,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// below), mirroring the choreographer caches.
   Map<String, PublishedSource> _sourcesById = {};
 
-  /// The live reference-data subscription, opened once in
-  /// [didChangeDependencies] alongside [_load] and cancelled in [dispose].
+  /// The live reference-data subscription, opened in [didChangeDependencies]
+  /// alongside [_load], reopened by [_retryLoad], and cancelled in [dispose].
   StreamSubscription<DanceEditorReferenceData>? _refDataSub;
 
   /// Resolves once the subscription above has delivered its first event
@@ -132,7 +149,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// benefit (see [_subscribeReferenceData]'s doc). Completed defensively in
   /// [dispose] too, so a widget disposed before the first event arrives does
   /// not leave [_load]'s continuation suspended forever.
-  final Completer<void> _initialReferenceDataReady = Completer<void>();
+  Completer<void> _initialReferenceDataReady = Completer<void>();
 
   @override
   void didChangeDependencies() {
@@ -143,28 +160,80 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // equality, so only walk the controllers when the dialect actually changed
     // (identity fast-path first) to avoid needless O(n) comparisons and
     // listener churn.
-    final newDialect = ActiveDialectScope.of(context);
+    final newDialects = ActiveDialectScope.of(context);
     if (!_dependenciesInitialized) {
       // Kick off exactly once per widget instance: `_load()` appends into the
       // controller's mutable collections, so a second run would duplicate
       // state and leak controllers.
       _dependenciesInitialized = true;
-      _activeDialect = newDialect;
+      _activeDialects = newDialects;
       _repos = RepositoriesScope.of(context);
-      _controller = DanceEditorController(
-        repositories: _repos,
-        danceId: widget.danceId,
-        dialect: newDialect,
-        initialTitle: widget.initialTitle,
-      );
-      _controller.addListener(_onControllerChanged);
+      _createController();
       _load();
       _subscribeReferenceData();
-    } else if (!identical(newDialect, _activeDialect) &&
-        newDialect != _activeDialect) {
-      _activeDialect = newDialect;
-      _controller.updateDialect(newDialect);
+    } else if (!identical(newDialects, _activeDialects) &&
+        newDialects != _activeDialects) {
+      _activeDialects = newDialects;
+      _controller.updateDialects(newDialects);
     }
+  }
+
+  /// Lets the controller re-check the dialect the dance is shown in, which
+  /// is lark and robin for the roles while its title and authors say its
+  /// choreographer asked for them (`dialectForDance`): after the title, the
+  /// authors or an author's name changed.
+  void _syncEditorDialect() {
+    if (!_dependenciesInitialized) return;
+    _controller.setAuthorNames(_choreographerNames);
+  }
+
+  void _createController() {
+    _controller = DanceEditorController(
+      repositories: _repos,
+      danceId: widget.danceId,
+      dialects: _activeDialects,
+      initialTitle: widget.initialTitle,
+    );
+    _controller.addListener(_onControllerChanged);
+    _controller.titleController.addListener(_syncEditorDialect);
+    final shutdownController = EditorDraftShutdownScope.maybeOf(context);
+    if (shutdownController != null) {
+      _unregisterShutdownFlush = shutdownController.register(
+        _controller.prepareShutdownFlush,
+        flushPending: _controller.flushPendingAutosave,
+      );
+    }
+  }
+
+  /// Retries after a load error.
+  ///
+  /// When the controller finished loading, the error came from the
+  /// reference-data stream failing mid-edit, so the draft it holds is live:
+  /// only that subscription is reopened and the draft is kept.
+  ///
+  /// Otherwise [_load] failed part-way. It appends into the controller's
+  /// collections, so re-running it on the same controller could duplicate
+  /// state; replacing the controller is the one way to start clean. Nothing is
+  /// lost by that: the controller never loaded, so there is no draft in it.
+  void _retryLoad() {
+    if (_loadInFlight) return;
+    if (_controller.loaded) {
+      unawaited(_refDataSub?.cancel());
+      setState(() => _loadError = null);
+      _subscribeReferenceData();
+      return;
+    }
+    _unregisterShutdownFlush?.call();
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
+    unawaited(_refDataSub?.cancel());
+    _initialReferenceDataReady = Completer<void>();
+    setState(() {
+      _loadError = null;
+      _createController();
+    });
+    unawaited(_load());
+    _subscribeReferenceData();
   }
 
   /// Rebuilds the screen whenever the controller's draft/undo/autosave state
@@ -172,6 +241,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// callback that outlived the route) is a no-op.
   void _onControllerChanged() {
     if (mounted) {
+      // The authors may have changed; a conversion this starts notifies
+      // again, and the second pass finds nothing left to change.
+      _syncEditorDialect();
       setState(_rebuildTagOptions);
     }
   }
@@ -197,7 +269,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// choreographers, tags, all dances and published sources, re-read whenever
   /// a write touches any of them.
   ///
-  /// Started once, alongside [_load], which awaits
+  /// Started alongside [_load] (and reopened by [_retryLoad]), which awaits
   /// [_initialReferenceDataReady] (completed below, on this subscription's
   /// first event) before proceeding to [DanceEditorController.load] — so the
   /// caches above are populated (or the failure already known) before the
@@ -226,9 +298,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// treats a failure: `_loadError` is set and the existing error body at
   /// `_buildBody` renders. The in-memory draft and autosave are untouched by
   /// this (only the *rendered* body changes), so nothing already typed is
-  /// lost — but it is a UX regression, not a null bug, so it should be
-  /// bounded in size the same way `_load` is if this class of failure ever
-  /// turns out to be reachable mid-edit. `cancelOnError: false` so a
+  /// lost. [_retryLoad] is the way out: once the controller has loaded it
+  /// keeps the draft and only reopens this subscription. `cancelOnError: false` so a
   /// subsequent write can still recover the subscription — including when the
   /// *first* event was the failure: `_controller.load` still runs (once
   /// [_initialReferenceDataReady] completes, error or not), so the screen
@@ -262,6 +333,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _danceNamesById = data.danceNamesById;
             _sourcesById = data.sourcesById;
           });
+          // An author renamed elsewhere can change what the dance requires.
+          _syncEditorDialect();
         }
         completeInitialReadyOnce();
       },
@@ -278,10 +351,16 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     );
   }
 
+  /// Whether the one-shot title focus request for a new dance has been made.
+  bool _titleFocusRequested = false;
+
   @override
   void dispose() {
+    _formScroll.dispose();
     if (_dependenciesInitialized) {
+      _unregisterShutdownFlush?.call();
       _controller.removeListener(_onControllerChanged);
+      _controller.titleController.removeListener(_syncEditorDialect);
       _controller.dispose();
       _moreDetailsController.dispose();
     }
@@ -296,7 +375,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     super.dispose();
   }
 
+  /// Whether a [_load] is still running. [_retryLoad] does nothing while it is,
+  /// and the Try again button is disabled, so two loads never fill one controller.
+  bool _loadInFlight = false;
+
   Future<void> _load() async {
+    _loadInFlight = true;
     try {
       // `fieldDefs` and `dance` seed [_controller] below and are read once,
       // here — not from [_subscribeReferenceData]'s stream; see that method's
@@ -331,6 +415,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         // diagnostics: silent — per-move param defaults read failed; falls back to empty map.
         _moveParamDefaults = {};
       }
+      _controller.moveParamDefaults = _moveParamDefaults;
 
       // Load the opt-in "Free-text entry" toggle (#419). A read/parse failure
       // falls back to off, so the Add flow keeps its structured behaviour.
@@ -346,7 +431,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // new-dance defaults), seeds custom-field controllers, recomputes
       // warnings, detects a pending autosave draft, and pushes the initial
       // undo entry. Its final notify triggers the loaded-state rebuild.
-      await _controller.load(dance: dance, fieldDefs: fieldDefs);
+      await _controller.load(
+        dance: dance,
+        fieldDefs: fieldDefs,
+        freeTextEntry: _freeTextEntry,
+      );
 
       // Show the restore/discard dialog AFTER the first build frame so
       // WidgetTester.pumpAndSettle() can settle on the loaded editor before
@@ -359,26 +448,57 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'dance_editor_screen._load');
       if (mounted) setState(() => _loadError = error);
+    } finally {
+      _loadInFlight = false;
+      if (mounted) setState(() {});
     }
   }
 
   Future<void> _save() async {
+    // Text typed into a Move box and not yet applied is settled as leaving the
+    // box settles it (AUTH-1): a move name or shorthand is applied, anything
+    // else put back. Tapping Save does not always take focus from the box.
+    _controller.pendingMoveText.settle();
+    // A line still in the free-text composer is added as Enter would add it,
+    // so the dance saves with the figure the caller just typed. A line that
+    // could not be added stays in the box and the save waits.
+    if (!_controller.freeTextComposer.submitPendingLine()) return;
     final hasInvalidCustomFieldNumber = _controller.hasInvalidCustomFieldNumber;
     final formIsValid = _formKey.currentState?.validate() ?? false;
     if (!formIsValid || hasInvalidCustomFieldNumber) {
       if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
-      // Ensure the user sees the first error even if it is above the fold.
+      // `validate()` has put each message on its own field, and scrolls to
+      // none of them, so the first is brought into view here. The
+      // custom-number message is the list's first entry, above every field,
+      // and a lazy list may have let go of it: scroll to the top instead.
       setState(() {});
+      if (hasInvalidCustomFieldNumber) {
+        scrollToTopForError(context, _formScroll);
+      } else {
+        scrollToFirstInvalidField(context, _formKey);
+      }
       return;
     }
     setState(() => _saving = true);
+    final Dance dance;
     try {
-      final dance = _controller.buildDance();
+      // Expand compound placeholders with each compound as it is stored now,
+      // not as the last watch event left it (#709), and save a use of a
+      // figure deleted meanwhile as plain text (#1023). A dance without
+      // either does not depend on the user's glossary being readable.
+      if (_controller.hasCompoundPlaceholders ||
+          _controller.hasUserFigureUses) {
+        await _controller.refreshCompounds();
+      }
+      dance = _controller.buildDance();
       await _repos.transaction(() async {
         final tagIds = <String, String>{};
         for (final tag in _controller.stagedTags.values) {
           if (!dance.tagIds.contains(tag.id)) continue;
-          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          tagIds[tag.id] = await _repos.tags.upsertStaged(
+            tag,
+            localUserEdit: true,
+          );
         }
         final committedTagIds = <String>[];
         final seenTagIds = <String>{};
@@ -393,13 +513,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           original: _controller.original,
         );
       });
-      // Clear the autosave draft — work is now committed.
-      await _controller.clearDraft();
-      _controller.clearStagedTags();
-      _controller.markSaved();
-      if (mounted) {
-        Navigator.of(context).pop(dance.id);
-      }
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'dance_editor_screen._save');
       if (kDebugMode) {
@@ -411,6 +524,56 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.danceEditorSaveError)));
+      return;
+    }
+    // The dance is committed. Nothing below may report the save as failed or
+    // leave the editor open: for a new dance a second Save would mint a fresh
+    // id (`buildDance`) and insert a duplicate.
+    if (_controller.original == null) await _rememberNewDanceForm(dance.form);
+    await _clearDraftAfterCommit();
+    _controller.clearStagedTags();
+    _controller.markSaved();
+    if (mounted) {
+      Navigator.of(context).pop(dance.id);
+    }
+  }
+
+  /// Records [form] as the form of the last new dance, which a new dance
+  /// starts as while the default form is "last used" (ADR-006 §12.2, S2).
+  /// Best-effort: the dance is already saved, so a failure is only logged,
+  /// and the next new dance starts as the form recorded before.
+  Future<void> _rememberNewDanceForm(DanceForm form) async {
+    try {
+      await _repos.settings.set(kLastUsedDanceFormKey, form.name);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._rememberNewDanceForm',
+      );
+    }
+  }
+
+  /// How many times [_clearDraftAfterCommit] tries to remove the autosave draft
+  /// before giving up.
+  static const int _draftCleanupAttempts = 3;
+
+  /// Best-effort removal of the autosave draft after a committed save. A
+  /// failure is logged, not surfaced: the work is already saved, so the editor
+  /// still closes. If every attempt fails the stale draft remains and would be
+  /// offered for restore the next time an editor opens on the same draft key.
+  Future<void> _clearDraftAfterCommit() async {
+    for (var attempt = 1; attempt <= _draftCleanupAttempts; attempt++) {
+      try {
+        await _controller.clearDraft();
+        return;
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_editor_screen._clearDraftAfterCommit',
+        );
+      }
     }
   }
 
@@ -420,34 +583,50 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// for an existing dance (the action is hidden while `widget.isNew`).
   Future<void> _delete() async {
     final id = widget.danceId;
-    if (id == null) return;
+    if (id == null || _deleting) return;
     final l10n = AppLocalizations.of(context);
     final title =
         _controller.original?.title ?? l10n.danceEditorFallbackDanceTitle;
-    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
-    if (!mounted) return;
-    final now = DateTime.now().toUtc();
-    await _repos.dances.softDelete(id, at: now);
-    if (!mounted) return;
-    // Drop the autosave draft so it can't resurface for a deleted dance.
-    await _controller.clearDraft();
-    if (!mounted) return;
-    // Capture the messenger before popping so the snackbar is enqueued while
-    // this Scaffold is still registered with it.
-    final messenger = ScaffoldMessenger.of(context);
-    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    showUndoSnackBar(
-      messenger,
-      key: const ValueKey('deleted-snackbar'),
-      message: l10n.commonDeletedSnack(title),
-      undoLabel: l10n.commonUndo,
-      accessibleNavigation: accessibleNavigation,
-      onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
-    );
-    // Pop without a result: the editor's routes are typed `<void>`/`<String>`
-    // and every caller reloads independently, so navigating back is enough.
-    Navigator.of(context).pop();
+    // Re-entrancy guard (same pattern as `_saving`): a second tap that lands
+    // while the soft-delete is still awaiting would run the whole method
+    // again — a second write and a second `pop()`, which targets the route
+    // *underneath* this one because the first pop is already in flight.
+    setState(() => _deleting = true);
+    var deleted = false;
+    try {
+      // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!mounted) return;
+      final now = DateTime.now().toUtc();
+      await _repos.dances.softDelete(id, at: now);
+      if (!mounted) return;
+      // Drop the autosave draft so it can't resurface for a deleted dance.
+      await _controller.clearDraft();
+      if (!mounted) return;
+      deleted = true;
+      // Capture the messenger before popping so the snackbar is enqueued while
+      // this Scaffold is still registered with it.
+      final messenger = ScaffoldMessenger.of(context);
+      final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('deleted-snackbar'),
+        message: l10n.commonDeletedSnack(title),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: accessibleNavigation,
+        onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
+      );
+      // Pop without a result: the editor's routes are typed `<void>`/`<String>`
+      // and every caller reloads independently, so navigating back is enough.
+      Navigator.of(context).pop();
+    } finally {
+      // Once the delete has gone through the route is on its way out, so the
+      // control stays disabled: re-enabling it during the exit transition would
+      // let a keyboard activation fire a second pop. Declined or failed
+      // deletes re-enable it.
+      if (!deleted && mounted) setState(() => _deleting = false);
+    }
   }
 
   /// Shows the restore/discard dialog for a pending autosave draft.
@@ -464,7 +643,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(ctx).danceEditorUnsavedDraftTitle),
-        content: Text(AppLocalizations.of(ctx).danceEditorUnsavedDraftMessage),
+        content: _restoreDraftMessage(ctx, draft),
         actions: [
           TextButton(
             key: const ValueKey('draft-discard'),
@@ -478,12 +657,26 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
 
     if (!mounted) return;
 
     if (restore == true) {
-      _controller.applyRestoredDraft(draft);
+      EditorSnapshot current;
+      try {
+        current = await _controller.withLiveReferences(draft);
+      } catch (error, stackTrace) {
+        // A failed read must not lose the draft: restore it as written.
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_editor_screen._restoreDraft',
+        );
+        current = draft;
+      }
+      if (!mounted) return;
+      _controller.applyRestoredDraft(current);
       setState(() {
         _rebuildTagOptions();
       });
@@ -492,55 +685,114 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
   }
 
-  /// Prompts before discarding unsaved edits when the user backs out of a dirty
-  /// editor. Returns `true` when it is safe to leave (no unsaved changes, or the
-  /// user confirmed the discard). Mirrors `_confirmDiscard` in the program
-  /// editor (`program_editor_screen.dart`) so the two editors share the same
-  /// 'Discard changes?' affordance. Named in prose because it is a private
-  /// member of a private `State` class in another library, which a bracketed
-  /// reference cannot resolve to.
-  Future<bool> _confirmDiscard() async {
-    if (!_controller.dirty) return true;
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(
-          AppLocalizations.of(context).danceEditorDiscardChangesTitle,
-        ),
-        content: Text(
-          AppLocalizations.of(context).danceEditorDiscardChangesMessage,
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('discard-cancel'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(AppLocalizations.of(context).danceEditorKeepEditing),
-          ),
-          FilledButton(
-            key: const ValueKey('discard-confirm'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(AppLocalizations.of(context).danceEditorDiscard),
+  /// The restore prompt's text (AUTH-10): whose draft it is, when it was
+  /// saved, and whether the dance has changed since, which restoring would
+  /// replace. A draft written before drafts recorded those leaves them out.
+  Widget _restoreDraftMessage(BuildContext context, EditorSnapshot draft) {
+    final l10n = AppLocalizations.of(context);
+    final title = draft.title.trim();
+    final lead = !_controller.pendingDraftIsAnotherNewDance
+        ? l10n.danceEditorUnsavedDraftMessage
+        : title.isEmpty
+        ? l10n.danceEditorUnsavedNewDanceDraftUntitledMessage
+        : l10n.danceEditorUnsavedNewDanceDraftMessage(title);
+    final savedAt = draft.savedAt;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(lead),
+        if (savedAt != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.danceEditorUnsavedDraftSavedAt(
+              formatEventDateTime(
+                savedAt,
+                DateFormatScope.of(context),
+                MaterialLocalizations.of(context),
+                l10n,
+              ),
+            ),
           ),
         ],
-      ),
+        if (_controller.danceChangedSince(draft)) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.danceEditorUnsavedDraftChangedSince,
+            key: const ValueKey('draft-changed-since'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+      ],
     );
-    return discard ?? false;
+  }
+
+  /// Prompts before discarding unsaved edits when the user backs out of a dirty
+  /// editor. Returns `true` when it is safe to leave (no unsaved changes, or the
+  /// user confirmed the discard). Uses the shared [confirmDiscardChanges]
+  /// prompt, with this editor's own wording.
+  Future<bool> _confirmDiscard() async {
+    if (!_controller.dirty) return true;
+    final l10n = AppLocalizations.of(context);
+    final choice = await confirmDiscardChanges(
+      context,
+      title: l10n.danceEditorDiscardChangesTitle,
+      message: l10n.danceEditorDiscardChangesMessage,
+      keepEditingLabel: l10n.danceEditorKeepEditing,
+      discardLabel: l10n.danceEditorDiscard,
+    );
+    return choice == DiscardChangesChoice.discard;
   }
 
   /// Mints (or, on a natural-key match, revives) a [Choreographer] for [name],
-  /// upserts it, and returns its id. The in-memory cache update below is an
-  /// optimistic patch reconciled a moment later by
-  /// [_subscribeReferenceData]'s live stream, kept for the same immediate-
-  /// appearance reason documented on [_createSource].
-  Future<String> _createChoreographer(String name) async {
+  /// upserts it, and returns its id — or `null` when a live author already holds
+  /// the name, in which case the snackbar below has said so and nothing is
+  /// added. The in-memory cache update is an optimistic patch reconciled a
+  /// moment later by [_subscribeReferenceData]'s live stream, kept for the same
+  /// immediate-appearance reason documented on [_createSource].
+  ///
+  /// **This catch is a net, not the fix.** `NamePicker` suppresses "create" for
+  /// a name that matches an option under [naturalKeyMatchKey], which is the key
+  /// the repository resolves the incumbent by, so a collision should not reach
+  /// here at all. It is caught anyway because the two sides agreeing is a
+  /// property nothing enforces: before #1410 the picker compared `toLowerCase()`
+  /// on raw text while the repository composed to NFC, and the resulting throw
+  /// left an unawaited `async` callback — no author, and no message. A future
+  /// divergence should cost a snackbar, not silence.
+  Future<String?> _createChoreographer(String name) async {
     final minted = Choreographer(id: uuidV4(), name: name.trim());
-    // `upsert` returns the id the row actually occupies, which differs from the
-    // minted one when a tombstone already holds this name (schema v25 natural-key
-    // adoption). Caching the minted id would point the dance at a row that does
-    // not exist, and `dance_authors.choreographer_id` is a real FK, so the save
-    // fails rather than corrupting — but it fails on an ordinary action: delete a
-    // choreographer, then type that name again.
-    final id = await _repos.choreographers.upsert(minted);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final String id;
+    try {
+      // `upsert` returns the id the row actually occupies, which differs from
+      // the minted one when a tombstone already holds this name (schema v25
+      // natural-key adoption). Caching the minted id would point the dance at a
+      // row that does not exist, and `dance_authors.choreographer_id` is a real
+      // FK, so the save fails rather than corrupting — but it fails on an
+      // ordinary action: delete a choreographer, then type that name again.
+      id = await _repos.choreographers.upsert(minted, localUserEdit: true);
+    } on DuplicateNaturalKeyError catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._createChoreographer',
+      );
+      if (!mounted) return null;
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('choreographer-create-duplicate-snackbar'),
+          // Not [danceEditorChoreographerDuplicate]: that one says the name was
+          // not changed, which describes a rename. Here nothing was created and
+          // the existing author is untouched, so the user's next step is to pick
+          // it rather than to rename anything.
+          content: Text(
+            l10n.danceEditorChoreographerCreateDuplicate(minted.name),
+          ),
+        ),
+      );
+      return null;
+    }
     final choreographer = minted.id == id
         ? minted
         : Choreographer(id: id, name: minted.name);
@@ -558,31 +810,111 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// [_createSource]). This is an immediate shared-entity write — independent
   /// of the dance draft/autosave/undo stack (author *selection* lives in the
   /// snapshot; contact data does not).
+  ///
+  /// A new name another live author already holds is offered as a merge
+  /// (`docs/design/tags-and-people.md` T3), as the Authors manager offers it;
+  /// until T3 it was refused. A merge rewrites every dance's credits, this
+  /// one's draft and undo history included ([DanceEditorController.
+  /// replaceAuthors]), and offers Undo, which puts the draft back too.
   Future<void> _editChoreographer(String id) async {
     final existing = _choreographers.firstWhere(
       (c) => c.id == id,
       orElse: () => Choreographer(id: id, name: _choreographerNames[id] ?? id),
     );
-    final updated = await ChoreographerDetailsDialog.show(context, existing);
-    if (updated == null || !mounted) return;
-    // Safe discard: `updated` carries the id of the already-persisted
-    // `existing` row. No fresh UUID is minted here, so tombstone adoption
-    // cannot redirect the id; the returned id is always identical to updated.id.
-    // ignore: unused_result
-    await _repos.choreographers.upsert(updated);
-    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final AuthorDetailsOutcome? outcome;
+    try {
+      outcome = await editAuthorDetails(context, _repos, existing);
+    } on DuplicateNaturalKeyError catch (error, stackTrace) {
+      // A net: a collision with no live holder is renamed over a deleted
+      // one by `editAuthorDetails`, so this is reached only if `upsert`
+      // raises it some other way. The rename was not saved, so the caches must
+      // not move (#1348).
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._editChoreographer',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('choreographer-duplicate-snackbar'),
+          content: Text(l10n.danceEditorChoreographerDuplicate(error.value)),
+        ),
+      );
+      return;
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._editChoreographer',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.libraryManagerEditFailed)),
+      );
+      return;
+    }
+    if (outcome == null || !mounted) return;
+    switch (outcome) {
+      case AuthorDetailsSaved(:final stored):
+        _patchChoreographer(stored);
+      case AuthorDetailsMerged(:final merge):
+        await _applyAuthorMerge(merge, fromName: existing.name);
+    }
+  }
+
+  /// Replaces [stored]'s entry in the in-memory caches, or appends it if the
+  /// author wasn't cached (mirrors the defensive `orElse` in
+  /// [_editChoreographer]), so the caches never go stale after a
+  /// shared-entity edit. [stored] is the row read back rather than what the
+  /// dialog returned: sync-spec §4.1's collision carve-out may store the name
+  /// un-normalised.
+  void _patchChoreographer(Choreographer stored) {
     setState(() {
-      // Replace the existing cache entry, or append if the author wasn't
-      // cached (mirrors the defensive `orElse` in the lookup above), so the
-      // in-memory caches never go stale after a shared-entity edit.
-      final hasEntry = _choreographers.any((c) => c.id == id);
+      final hasEntry = _choreographers.any((c) => c.id == stored.id);
       _choreographers = [
         for (final c in _choreographers)
-          if (c.id == id) updated else c,
-        if (!hasEntry) updated,
+          if (c.id == stored.id) stored else c,
+        if (!hasEntry) stored,
       ];
-      _choreographerNames = {..._choreographerNames, id: updated.name};
+      _choreographerNames = {..._choreographerNames, stored.id: stored.name};
     });
+    _syncEditorDialect();
+  }
+
+  /// Follows [merge] in the draft: every merged author becomes the survivor.
+  /// Undo reverses the merge and puts the draft's authors, and its undo
+  /// history, back as they were, unless the draft has been edited since.
+  Future<void> _applyAuthorMerge(
+    AuthorMerge merge, {
+    required String fromName,
+  }) async {
+    final survivorId = merge.survivorId;
+    final replacement = _controller.replaceAuthors(
+      merge.mergedIds.difference({survivorId}),
+      survivorId,
+    );
+    final survivor = await _repos.choreographers.getById(survivorId);
+    if (!mounted) return;
+    if (survivor != null) _patchChoreographer(survivor);
+    final l10n = AppLocalizations.of(context);
+    final repos = _repos;
+    showLibraryUndoSnackBar(
+      context,
+      keyPrefix: 'dance-editor-author-merge',
+      message: merge.snackText(l10n, fromName),
+      onUndo: () async {
+        await repos.references.undo(merge.undo);
+        if (!mounted) return;
+        _controller.restoreAuthors(replacement);
+        for (final id in merge.mergedIds) {
+          final restored = await repos.choreographers.getById(id);
+          if (restored != null && mounted) _patchChoreographer(restored);
+        }
+      },
+    );
   }
 
   /// Opens the source details dialog to create a new [PublishedSource] with the
@@ -602,7 +934,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final draft = PublishedSource(id: uuidV4(), title: title.trim());
     final created = await PublishedSourceDetailsDialog.show(context, draft);
     if (created == null || !mounted) return null;
-    await _repos.publishedSources.upsert(created);
+    await _repos.publishedSources.upsert(created, localUserEdit: true);
     if (!mounted) return null;
     setState(() {
       _publishedSources = [
@@ -626,7 +958,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (existing == null) return;
     final updated = await PublishedSourceDetailsDialog.show(context, existing);
     if (updated == null || !mounted) return;
-    await _repos.publishedSources.upsert(updated);
+    await _repos.publishedSources.upsert(updated, localUserEdit: true);
     if (!mounted) return;
     setState(() {
       _publishedSources = [
@@ -639,7 +971,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   /// Mints a [Tag] for [name] and stages it until the owning dance is saved.
   /// Commit-time natural-key reuse/revival happens in [TagRepository.upsertStaged].
-  Future<String> _createTag(String name) async {
+  ///
+  /// Widened to `Future<String?>` with the rest of `NamePicker.onCreate` so
+  /// there is one contract for "the create did not happen" rather than two.
+  /// **It never returns null**: staging writes nothing, so there is no
+  /// collision to refuse here, and `upsertStaged` resolves a live natural-key
+  /// match to the incumbent's id at commit without raising. Every case that
+  /// could already happen behaves exactly as before.
+  Future<String?> _createTag(String name) async {
     final minted = Tag(id: uuidV4(), name: name.trim());
     _controller.stageTag(minted);
     if (mounted) {
@@ -696,6 +1035,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _RedoIntent: CallbackAction<_RedoIntent>(
               onInvoke: (_) => _controller.redo(),
             ),
+            // Ctrl/Cmd-S, bound app-wide ([appShortcuts]); the same rule as
+            // the Save button's.
+            SaveIntent: CallbackAction<SaveIntent>(
+              onInvoke: (_) {
+                if (_controller.loaded && !_saving) unawaited(_save());
+                return null;
+              },
+            ),
           },
           child: Focus(
             autofocus: true,
@@ -708,11 +1055,15 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                 ),
                 actions: [
                   if (_controller.loaded) ...[
+                    if (_controller.draftSaveFailed)
+                      const DraftNotSavedMarker(),
                     Semantics(
                       label: l10n.commonUndo,
                       child: IconButton(
                         key: const ValueKey('undo-button'),
-                        tooltip: l10n.danceEditorUndoShortcutTooltip,
+                        tooltip: l10n.danceEditorUndoShortcutTooltip(
+                          shortcutPlatform(context),
+                        ),
                         icon: const Icon(Icons.undo),
                         onPressed: _controller.canUndo
                             ? _controller.undo
@@ -723,7 +1074,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                       label: l10n.danceEditorRedoLabel,
                       child: IconButton(
                         key: const ValueKey('redo-button'),
-                        tooltip: l10n.danceEditorRedoShortcutTooltip,
+                        tooltip: l10n.danceEditorRedoShortcutTooltip(
+                          shortcutPlatform(context),
+                        ),
                         icon: const Icon(Icons.redo),
                         onPressed: _controller.canRedo
                             ? _controller.redo
@@ -735,32 +1088,29 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                         key: const ValueKey('delete-dance'),
                         tooltip: l10n.danceEditorDeleteDanceTooltip,
                         icon: const Icon(Icons.delete_outline),
-                        onPressed: _delete,
+                        onPressed: _deleting ? null : _delete,
                       ),
+                    // Save goes last in the top bar, as in every full-screen
+                    // editor (`docs/design/ux.md`, "Where Save, New and the
+                    // record's name go"): a floating Save covered the form's
+                    // fields. On a phone it is the check icon; a spinner
+                    // stands in for it while a save runs.
+                    AppBarTextAction(
+                      key: const ValueKey('save-dance'),
+                      label: l10n.commonSave,
+                      icon: Icons.check,
+                      maxWidthFraction:
+                          MediaQuery.sizeOf(context).width <
+                              AppBreakpoints.compact
+                          ? 0
+                          : 0.4,
+                      busy: _saving,
+                      onPressed: _saving ? null : _save,
+                    ),
                   ],
                 ],
               ),
               body: _buildBody(),
-              // Save mirrors the program builder: a bottom-right extended FAB
-              // (`docs/design/ux.md` §3) rather than an AppBar action, so the
-              // primary commit affordance is consistent across editors. Undo /
-              // redo stay in the AppBar. The `_saving` disabled state and inline
-              // spinner are preserved.
-              floatingActionButton: _controller.loaded
-                  ? FloatingActionButton.extended(
-                      key: const ValueKey('save-dance'),
-                      heroTag: 'save-dance',
-                      onPressed: _saving ? null : _save,
-                      icon: _saving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(l10n.commonSave),
-                    )
-                  : null,
             ),
           ),
         ),
@@ -770,25 +1120,44 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   Widget _buildBody() {
     if (_loadError != null) {
-      return Center(
-        child: Text(AppLocalizations.of(context).danceEditorLoadError),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: AppLocalizations.of(context).danceEditorLoadError,
+        onRetry: _loadInFlight ? null : _retryLoad,
       );
     }
     if (!_controller.loaded) {
       return const Center(child: CircularProgressIndicator());
     }
     // Registers a dependency so the whole editor rebuilds (and prose fields
-    // restyle) when the active dialect changes; also passed down to the lingo
-    // hints so they reflect the current dialect's discouraged terms.
-    final dialect = ActiveDialectScope.of(context);
+    // restyle) when a dialect changes. The controller holds the dialect of the
+    // dance's own form, passed down to the lingo hints so they reflect that
+    // dialect's discouraged terms.
+    ActiveDialectScope.of(context);
+    final dialect = _controller.dialect;
+    // The outer shortcut Focus(autofocus: true) owns focus from the spinner
+    // frame, so the title's own autofocus is dropped; request it once here.
+    if (widget.isNew && !_titleFocusRequested) {
+      _titleFocusRequested = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _controller.titleFocusNode.requestFocus();
+      });
+    }
     return DanceEditorForm(
       controller: _controller,
       formKey: _formKey,
+      scrollController: _formScroll,
       moreDetailsController: _moreDetailsController,
-      taxonomy: _taxonomy,
+      taxonomy: _controller.taxonomy,
       moveParamDefaults: _moveParamDefaults,
       freeTextEntry: _freeTextEntry,
       shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
+      compoundShorthands: ShorthandMappingsScope.maybeOf(
+        context,
+      )?.compoundStore,
+      userFigureShorthands: ShorthandMappingsScope.maybeOf(
+        context,
+      )?.userFigureStore,
       dialect: dialect,
       isNew: widget.isNew,
       authorOptions: [
@@ -806,6 +1175,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         // the editor may have been disposed meanwhile.
         if (!mounted) return;
         _controller.addAuthor(id);
+      },
+      onAddInterpreter: (id) {
+        if (!mounted) return;
+        _controller.addInterpreter(id);
       },
       onAddTag: (id) {
         if (!mounted) return;

@@ -8,6 +8,319 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Changed
+
+- The generated sync allow-list now accepts `archivedAt` on the `program`
+  record kind (schema v42, program archiving). Deploy this server before any
+  client on app `0.11.0` syncs an archived program: an older server rejects
+  that program's record with `422`. Programs that are not archived carry no
+  such key, so they are unaffected. The server's own code is unchanged.
+
+## [0.5.0] - 2026-11-16
+
+### Added
+
+- `--break-glass` can read one blob through the audited command
+  (`--break-glass-blob <hash>`), as well as one device's manifest, so reading
+  content no longer means going around the audit to the blob directory. Each
+  run now also records *what* it read, before reading it: a new
+  `break_glass_reads` table in `athenaeum-break-glass.sqlite` gets one row
+  (`manifest` or `blob`, the derived `id_key`, epoch, device ID or blob hash,
+  time) in the same transaction as the existing `break_glass_access` row. A
+  failure to write either reads nothing. Content is never recorded. The hourly
+  sweep nulls the new row's `id_key`, epoch, device ID and hash after 30 days,
+  with the access row's `id_key`, leaving the time and the kind. **Upgrade
+  note:** the table is created automatically on the first start or
+  break-glass run of this version; there is no migration step and no schema
+  version. An earlier image ignores the table, so after a rollback its rows are
+  not nulled until this version runs again. Options that do not name exactly
+  one valid item now exit `2` before the sync ID is read.
+
+## [0.4.0] - 2026-11-12
+
+### Added
+
+- Large-body requests — manifest `PUT`, blob `PUT` (single and batch) and
+  `POST /v1/blobs/missing` — are counted while in flight: 4 per client address,
+  then `429` with `Retry-After: 5`, and 16 server-wide, then `503` with
+  `Retry-After: 5`. Before, nothing limited how many such bodies the server held
+  in memory at once; 40 stalled 15 MB manifest uploads took it from 169 MB to
+  740 MB resident. Set with `--max-large-bodies-per-ip` and
+  `--max-large-bodies`, or `ATHENAEUM_MAX_LARGE_BODIES_PER_IP` and
+  `ATHENAEUM_MAX_LARGE_BODIES`. Such a body must arrive whole within 60
+  seconds or the server closes the connection and frees the slot, so a client
+  trickling its body, or falling silent part-way, cannot hold one longer. The
+  server-wide cap refusing a request raises a new `capacity_exhaustion` alert,
+  which the updated `server/deploy/athenaeum-alert-email` forwards.
+- A free-space floor: blob and manifest uploads answer `507` while the data
+  directory's filesystem has less than 1 GiB free (`--min-free-bytes` or
+  `ATHENAEUM_MIN_FREE_BYTES`; `0` turns it off). Lookups, downloads, deletes
+  and a manifest upload no larger than the device's stored one keep working
+  below it, so a user can still shrink a device's share by turning on *Skip
+  unused imported dances*. **Upgrade note:** on a host already below the
+  floor, every upload answers `507` from the first start; check free space
+  before deploying. It raises a `quota_exhaustion` alert with `source`
+  `free_space_floor`. Free space is read with `statvfs(3)` through `dart:ffi`
+  on 64-bit Linux; elsewhere the server says at startup that it cannot read it,
+  and admits every write. The server now depends on `package:ffi` directly.
+- A per-address store-creation limit in front of the server-wide 60 a minute:
+  5 per client address (an IPv4 address or an IPv6 /64), refilled at 5 an hour.
+  One address could previously spend the whole server-wide budget and hold
+  every other first pairing out for the rest of the minute.
+
+### Changed
+
+- A blob `GET` streams the blob file 64 KiB at a time, with a
+  `Content-Length`, instead of reading it whole into the response.
+- A manifest `GET` streams the manifest from SQLite 1 MiB at a time as the
+  client reads it, with a `Content-Length`, instead of reading it whole into
+  the response. 40 unread `GET`s of a 15 MB manifest took the server from
+  170 MB to 746 MB resident; they now leave it at 123 MB. A manifest replaced
+  or unreadable part-way through ends the response early, and the client fails
+  the request as on a dropped connection.
+
+### Fixed
+
+- **Manual deploy step:** the reference vhost (`server/deploy/athenaeum.conf`)
+  now sets `ProxyAddHeaders Off` in the TLS vhost. Without it, mod_proxy's
+  default appends a second `X-Forwarded-For` entry after the one
+  `RequestHeader set` writes from `CONN_REMOTE_ADDR`. That entry is
+  `REMOTE_ADDR` after any host-level `mod_remoteip` rewrite, and the server
+  reads the rightmost entry, so on a host with `mod_remoteip` enabled the
+  rate-limit key was the remoteip-resolved address rather than the socket peer.
+  Existing hosts must add the line by hand: see "Existing hosts" under "Proxy
+  and security contract" in `docs/dev/athenaeum-operations.md`. No server code,
+  schema or wire change.
+- `server/deploy/smoke_test.sh` refuses a configuration whose TLS vhost lacks
+  `ProxyAddHeaders Off`, and checks that forged `X-Forwarded-For`, `X-Real-IP`,
+  `CF-Connecting-IP`, `True-Client-IP`, `X-Client-IP` and any configured
+  `RemoteIPHeader` values sent from a loopback client cannot change its
+  rate-limit key. Before, it could not tell an
+  overwritten header from an appended one.
+- After a large deletion — a caller dropping an old imported library, or
+  turning on `sync_exclude_imports` near quota — every quota check re-read
+  each queued blob deletion from the filesystem, and `PUT /v1/blobs/batch`
+  did so once per new blob, on the server's single isolate. Measured on a
+  4-CPU container with 20,000 queued deletions, each quota check took about
+  1 s and a 50-blob batch 56 s, past the client's 30 s deadline, stalling
+  every other request meanwhile; they now take under 1 ms and under 50 ms. Pending deletions are
+  now charged from a running per-store total, adjusted as jobs are queued and
+  run, and a batch reads it once. The cost moves to the garbage collection
+  that queues the deletions, which stats each queued file once, so the
+  manifest `PUT` that drops a large library takes longer, once: 1.7 s rather
+  than 0.6 s for 20,000 blobs in the same measurement. The total is
+  derived from the filesystem after a restart and after a change the server
+  cannot account for file by file; a pending file removed by hand while the
+  server runs stays charged until then.
+- The cleanup each request runs before it is served now drains as many jobs
+  as fit in its 50 ms budget, rather than stopping at 16, so while a backlog
+  lasts each request can spend up to about 50 ms on it. It stops at the first
+  job whose filesystem removal fails, so a job that keeps failing costs each
+  request one attempt rather than the whole budget.
+- The hourly sweep no longer blocks the server for its whole run, which grew
+  with the number of stores. It runs in slices of about 50 ms and yields between them, does
+  not start while the previous sweep is still running, and reaps a store only
+  if it is still past the disuse TTL when its own deletion runs. Shutdown
+  stops a sweep in progress at its next slice before closing the database.
+
+The server limits above change no schema, stored format or wire format, and
+no version constant.
+
+## [0.3.3] - 2026-11-02
+
+### Changed
+
+- The `compendium_core` dependency advances to `0.10.0`. The schema moves from
+  v40 to v41, which adds lookup indexes over the dance join tables. The
+  generated sync allow-list is unchanged, so this release adds no wire fields
+  or record kinds.
+
+## [0.3.2] - 2026-10-26
+
+### Changed
+
+- The `compendium_core` dependency advances to `0.9.1`. The schema stays at
+  v40 and the generated sync allow-list is unchanged, so this release adds no
+  wire fields or record kinds.
+
+- `--break-glass` opens `athenaeum.sqlite` read-only and runs none of the
+  server's startup work (schema and index creation, manifest indexing,
+  orphan-blob reconcile, pending-deletion retry), so running it against the live
+  volume no longer contends with the server's writes. Only the break-glass log
+  database, which holds the audit row, is opened for writing. The command no
+  longer creates `athenaeum.sqlite`: where the server has never run on the
+  volume it now exits `1` with `break-glass read failed (SqliteException)`
+  instead of reporting "store not found" against a fresh empty file. The
+  server's connections to both databases now wait up to 250 ms for a competing
+  writer before failing with `SQLITE_BUSY`; they used to fail at once. The wait
+  is deliberately short because it stalls every request on this single-isolate
+  server. The break-glass procedure and its failure modes are in
+  `docs/dev/athenaeum-operations.md`.
+
+### Fixed
+
+- A store fault while logging an ordinary refusal (a 4xx) no longer escapes the
+  request handler. Recording a refused request for a known store looks the store
+  up again; if that lookup failed (busy past its timeout, an I/O error), the
+  exception skipped the handler's catch-all and reached shelf, which logs its
+  text, including the failing statement and the store's `id_key`. The request
+  now still answers its original status, and only the error's type is logged.
+  No configuration or schema change.
+
+- Garbage collection no longer decodes every stored manifest body, under the
+  database write lock, on each manifest `PUT`: on a store with large manifests
+  that stalled every other store's requests. A manifest `PUT` now records the
+  blob hashes its records name in two new tables, `manifest_refs` and
+  `indexed_manifests`, in the same transaction as the manifest, and GC finds
+  unreferenced stale blobs with one indexed query. The tables are created
+  automatically; there is no migration step. **Upgrade note:** startup indexes
+  every manifest the index does not cover, so the first start of this version
+  reads every stored manifest body once and takes longer than later starts,
+  roughly in proportion to the data stored; the server accepts no requests until
+  it finishes. Later starts read only manifests an earlier image wrote.
+  Rolling back to the previous image is safe: it ignores the index, and the next
+  upgrade re-indexes whatever it changed. A body that does not decode is left
+  unindexed and GC still reads it, so GC fails closed as before. See
+  `docs/dev/athenaeum-operations.md` (upgrade section).
+
+- An exception no route anticipated is now caught and answered `500` with the
+  JSON body `{"error": "internal error"}`, and the server logs only its type
+  (`Athenaeum request failed unexpectedly (<Type>)`). Left to escape, shelf
+  logged the exception's text and stack, which for a SQLite error includes the
+  failing statement with its parameters (store identifier, epoch, device ID,
+  etag) and for a file error the blob path. The `/heartbeat` probe is covered
+  too and stays non-200 when it fails. An error inside a streamed
+  `POST /v1/blobs/batch` response, after its headers are sent, cannot become a
+  `500`: it is logged by type and the stream ends early, which the client
+  treats as an incomplete response.
+
+- A manifest `PUT` for a store that was deleted or reaped between the request's
+  store lookup and the write is answered with a `404` that counts as a failed
+  resolution (§5.4), instead of `409`. `409` on a manifest `PUT` now means only
+  a stale epoch, the one `409` that tells a client its store was reset under it
+  (sync spec §7.1); a store that no longer exists is `404`, as it already was on
+  the blob routes. No configuration or schema change.
+
+- The per-IP request and failed-resolution limits now count an IPv6 client by
+  its /64 instead of its full address. A single IPv6 subscriber can present 2^64
+  addresses inside its delegated /64, so each used to get a fresh bucket, the
+  limit never bound it, and minting addresses could evict honest clients from
+  the bounded bucket tables. IPv4 clients, and IPv4-mapped IPv6 addresses
+  (`::ffff:a.b.c.d`, keyed as the IPv4 address), are still counted per address.
+  The rule applies to both the socket peer and the loopback-trusted
+  `X-Forwarded-For` value. No configuration or schema change.
+
+## [0.3.1] - 2026-10-17
+
+### Changed
+
+- The `compendium_core` dependency advances to `0.9.0`, taking the schema from v39 → v40 for syncing your own figures and your notes on built-in figures. The generated sync allow-list now accepts the `glossaryEntry` record kind (`createdAt`, `definition`, `description`, `id`, `keywords`, `kind`, `name`, `notes`, `payload`) and the `figureNote` record kind (`id`, `notes`). Deploy this server before clients on app `0.8.0`: older servers reject the new records and fields. Clients can now skip record kinds they do not know in a peer manifest; the server still decodes manifests strictly and rejects them. The server's own code is unchanged.
+
+## [0.3.0] - 2026-10-14
+
+### Fixed
+
+- The reference Apache vhost (`server/deploy/athenaeum.conf`) proxied
+  `/heartbeat` to `/heartbeat/heartbeat`, because a `ProxyPassMatch` target
+  without a backreference has the request path appended, so the liveness check
+  and the status page that polls it got the server's `404`. Both vhosts now
+  capture the path and pass it on. Existing deployments must update their
+  installed vhost and reload Apache; the server itself is unchanged.
+
+### Changed
+
+- The request-rate limits are counted per second (sync spec §5.4): 5 requests
+  a second per client IP with a burst of 300, was 60 a minute with a burst of
+  120, and 15 a second per store with a burst of 600, was 600 a minute.
+  `AthenaeumBudgetLimits.perIpRequestsPerSecond` and `perStoreRequestsPerSecond`
+  replace the per-minute fields. The failure and creation budgets are
+  unchanged and still per minute.
+
+- The `compendium_core` schema advances from v38 → v39 for Device Sync
+  bookkeeping. The generated sync allow-list diff is empty, so this bump added
+  no shareable wire fields or record kinds. Clients running app `0.7.0` continue
+  to sync against older servers through one-blob requests; deploy server
+  `0.3.0` to enable the batch blob endpoints and per-second request budgets.
+
+### Added
+
+- A reference alert forwarder in `server/deploy/`: `athenaeum-alert-email`
+  emails each `quota_exhaustion` or `sweep_failure` line the container writes,
+  and `athenaeum-alert-email.service` feeds it from `docker logs --follow`. A
+  failed send is logged and skipped rather than stopping the forwarder. The
+  operations runbook installs it as first-deployment step 6, and now also
+  checks the root filesystem for `discard`, which stalled synced writes for
+  over half an hour after large deletions on the reference host.
+
+- `POST /v1/blobs/batch` returns the blobs for up to 200 hashes in one
+  response (sync spec §5.2): a frame per hash, in request order, carrying the
+  blob or saying it is missing, or that the 2 MB response cap was reached
+  before it. The response is streamed one blob at a time and gzip-compressed
+  when the client accepts it. A store that does not resolve counts as a failed
+  resolution, as on every store-scoped route. A batch of *n* hashes costs
+  1 + ⌈*n*/20⌉ tokens of both the per-IP and the per-store request limits
+  (`AthenaeumBudgetLimits.blobBatchHashesPerToken`, default 20); one either
+  limit cannot cover is refused `429` whole, with a `Retry-After` computed for
+  that batch. `GET /v1/blobs/{hash}` is unchanged.
+- `PUT /v1/blobs/batch` stores up to 50 blobs in one request and one
+  transaction (sync spec §5.2): the body is the batch read's frames, every one
+  a blob, and the `200` response gives each blob the status its own
+  `PUT /v1/blobs/{hash}` would get, in request order. Once one new blob would
+  pass the store quota, it and every later new blob in the batch is `507`. A
+  body over 50 blobs, with a blob over 1 MB, a duplicate hash or a frame that is
+  not a blob is refused whole. A gzip body is not held to the 10× expansion
+  ratio; the absolute cap bounds it. A batch of *n* blobs costs 1 + ⌈*n*/10⌉
+  tokens of both the per-IP and the per-store request limits
+  (`AthenaeumBudgetLimits.blobUploadBlobsPerToken`, default 10), charged once
+  the store resolves; one either limit cannot cover is refused `429` whole,
+  storing nothing. `PUT /v1/blobs/{hash}` is unchanged.
+
+## [0.2.2] - 2026-10-01
+
+### Fixed
+
+- `POST /v1/blobs/missing` reports a blob whose reference survives but whose
+  file is gone, and a repeated `PUT` of the same bytes now restores the file
+  without charging quota again or changing the reference. A body that does not
+  match the recorded size or hash is rejected `400`.
+
+### Changed
+
+- Request-path cleanup retry stops between jobs once a 50 ms monotonic-clock budget
+  is spent (at least one job always runs). Startup orphan reconciliation walks
+  one store epoch at a time and queues each epoch in a single transaction.
+  
+### Security
+
+- Gzip request bodies are now capped on their encoded (wire) size per route, and
+  an over-long `Content-Length` on a gzip body is rejected up front with `413`.
+  Previously a stream of empty gzip members decoded to no chunks and evaded the
+  size checks.
+- When forwarded headers are trusted (loopback peer), the rightmost
+  `X-Forwarded-For` entry keys the per-client budget instead of the leftmost.
+  Behaviour behind the reference Apache (which overwrites the header) is
+  unchanged.
+
+## [0.2.1] - 2026-09-24
+
+### Changed
+
+- `PUT /v1/blobs/{hash}` answers `404 store not found` instead of
+  `409 stale blob epoch` when the store is deleted or reaped mid-request, and
+  counts the response against the failed-resolution budget. No blob endpoint
+  emits `409`, which the specification reserves for a stale-epoch manifest `PUT`
+  and a duplicate `POST /v1/store`.
+
+### Removed
+
+- The compile-time `ATHENAEUM_PEPPER` fallback. The pepper now comes only from
+  runtime configuration — the environment variable or `--pepper` — so a build
+  cannot embed one and a server with none configured refuses to start. The
+  documented local example passes it through the environment rather than argv,
+  where the process list exposes it to other users on the host.
+
+## [0.2.0] - 2026-09-19
+
 ### Added
 
 - Serve a dedicated static status page from the Apache root instead of the
@@ -33,6 +346,14 @@ the app and of `compendium_core`; version headings below refer to
   diagnostic-event store with privacy filtering and 30-day retention.
 
 ### Fixed
+
+- Count device manifest bodies toward the per-store byte quota. Manifest and
+  blob uploads and store metadata now include manifest bytes, and a manifest
+  upload that would exceed the quota is refused with `507` before its body is
+  buffered, charging a replacement only for its size difference.
+
+- Reject incomplete record-like blob envelopes before privacy allow-list
+  validation so private fields cannot bypass the boundary by omitting `v`.
 
 - Route Apache error logs through a redactor so module messages cannot persist
   request targets.

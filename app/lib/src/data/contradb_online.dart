@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
@@ -31,22 +33,47 @@ class ContraDbOnline implements OnlineSearchService {
   ContraDbOnline({
     ContraDbSearchFetcher? searchFetcher,
     UrlFetcher? htmlFetcher,
-  }) : _searchFetcher =
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now,
+       _searchFetcher =
            searchFetcher ??
-           ((request) =>
-               fetchContraDbSearch(request.query, filter: request.filter)),
+           ((request) => fetchContraDbSearch(
+             request.query,
+             filter: request.filter,
+             expression: request.expression,
+             offset: request.offset,
+           )),
        _htmlFetcher = htmlFetcher ?? fetchImportUrl;
 
   final ContraDbSearchFetcher _searchFetcher;
   final UrlFetcher _htmlFetcher;
+  final DateTime Function() _clock;
+
+  /// How long the last successful search answers an identical request without
+  /// asking ContraDB again. ContraDB scans every dance for each request, so a
+  /// repeat (an Advanced edit that did not change the expression sent, a page
+  /// scrolled back to) should not cost one.
+  static const Duration _repeatWindow = Duration(seconds: 60);
+
+  String? _lastKey;
+  DateTime? _lastAt;
+  List<OnlineSearchResultRow> _lastRows = const [];
 
   @override
   OnlineSource get source => OnlineSource.contraDb;
 
   /// Searches ContraDB by the selected title, author, or exact canonical figure
-  /// criterion and returns the parsed result rows. Figure input accepts
+  /// criterion and/or the Advanced builder's figure query ([OnlineSearchQuery.advanced]),
+  /// and returns the parsed result rows. A text criterion with an Advanced query
+  /// is sent as one `and` expression. Figure input accepts
   /// case/whitespace variants and is resolved to ContraDB's source spelling
-  /// before the request. Throws a typed [UrlFetchException] on any fetch
+  /// before the request. Title and author text containing an apostrophe or
+  /// double quote is searched in both its ASCII and its curly spelling
+  /// ([contraDbTitleQueryVariants]) — two requests — and the rows are merged
+  /// by id; on the first page a failure of the curly request alone is ignored,
+  /// while on a later page (`offset > 0`) it fails the search like any other
+  /// fetch failure, so the caller shows Try again. Throws a typed
+  /// [UrlFetchException] on any other fetch
   /// failure, unsupported Figure input, or when there is nothing to search.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
@@ -69,32 +96,165 @@ class ContraDbOnline implements OnlineSearchService {
         UrlFetchFailureReason.contraDbUnsupportedFigure,
       );
     }
-    if (title.isEmpty && author.isEmpty && figure.isEmpty) {
+    final translation = _advancedTranslation(query.advanced);
+    final advanced = translation?.expression;
+    final hasText = textCriteria == 1;
+    if (!hasText && advanced == null) {
       throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
     }
     final queryText = title.isNotEmpty
         ? title
         : author.isNotEmpty
         ? author
-        : canonicalFigure!;
+        : (canonicalFigure ?? '');
     final filter = title.isNotEmpty
         ? 'title'
         : author.isNotEmpty
         ? 'choreographer'
         : 'figure';
-    final body = await _searchFetcher(
-      ContraDbSearchRequest(query: queryText, filter: filter),
-    );
-    return [
-      for (final r in parseContraDbSearchResults(body))
-        OnlineSearchResultRow(
-          source: OnlineSource.contraDb,
-          id: r.id,
-          name: r.name,
-          author: r.author,
-          formation: r.formation,
-        ),
+    // ContraDB matches punctuation exactly and stores both `'` and `’` (and
+    // both `"` and `“”`), so free text is sent in each spelling and the
+    // results merged. A figure is already its canonical source spelling.
+    final variants = !hasText
+        ? [queryText]
+        : filter == 'figure'
+        ? [queryText]
+        : contraDbTitleQueryVariants(queryText);
+    // A text criterion and the Advanced filter must both hold, which is
+    // ContraDB's dance-level `and`; either alone is sent as it is.
+    ContraDbSearchRequest requestFor(String variant) {
+      if (advanced == null) {
+        return ContraDbSearchRequest(
+          query: variant,
+          filter: filter,
+          offset: query.offset,
+        );
+      }
+      if (!hasText) {
+        return ContraDbSearchRequest.expression(advanced, offset: query.offset);
+      }
+      return ContraDbSearchRequest.expression(<Object?>[
+        'and',
+        <Object?>[filter, variant],
+        advanced,
+      ], offset: query.offset);
+    }
+
+    // The same request again, soon after it was answered: answer from that.
+    // The parameters the translation left out are part of the key: they change
+    // no expression sent, but they decide the rows' `advancedPartlyApplied`, so
+    // an edit to only such a parameter must not be answered with the old flag.
+    final key = jsonEncode([
+      [
+        for (final variant in variants)
+          () {
+            final request = requestFor(variant);
+            return [
+              request.filter,
+              request.query,
+              request.expression,
+              request.offset,
+            ];
+          }(),
+      ],
+      (translation?.ignoredParams.toList() ?? <String>[])..sort(),
+    ]);
+    final lastAt = _lastAt;
+    if (key == _lastKey &&
+        lastAt != null &&
+        _clock().difference(lastAt) < _repeatWindow) {
+      return List.of(_lastRows);
+    }
+
+    Future<String> fetch(String variant) => _searchFetcher(requestFor(variant));
+    // On the first page only the first (ASCII) spelling decides whether the
+    // search failed. The curly spelling is a widening: if it alone fails, the
+    // search returns what it would have returned before that spelling was sent
+    // at all. A later page cannot do that: both spellings are paged at the same
+    // offset, so a page that lost one would be counted as loaded and the
+    // missing spelling's rows at that offset would never be asked for again.
+    // There a failed spelling fails the page, and the caller shows Try again.
+    final firstPage = query.offset == 0;
+    Future<String?> widen(String variant) async {
+      if (!firstPage) return fetch(variant);
+      try {
+        return await fetch(variant);
+      } on Exception {
+        // diagnostics: silent — optional widening request; the primary request's own failure still surfaces to the caller
+        return null;
+      }
+    }
+
+    final bodies = await Future.wait<String?>([
+      fetch(variants.first),
+      for (final variant in variants.skip(1)) widen(variant),
+    ]);
+    final pages = [
+      for (final body in bodies.nonNulls) parseContraDbSearchResults(body),
     ];
+    // A response that came back with a whole page may have been cut off. This
+    // is judged per response: the merged count of two short pages (the two
+    // spellings of an apostrophe query) says nothing about either being full.
+    final mayHaveMore = pages.any((page) => page.length >= contraDbSearchCount);
+    // The source's own total, only when a single response answered: two
+    // spelling variants may both count a dance that matches either, so their
+    // totals cannot be added.
+    final totalMatching = bodies.nonNulls.length == 1
+        ? parseContraDbNumberMatching(bodies.nonNulls.single)
+        : null;
+    final seenIds = <String>{};
+    final rows = [
+      for (final page in pages)
+        for (final r in page)
+          if (seenIds.add(r.id))
+            OnlineSearchResultRow(
+              source: OnlineSource.contraDb,
+              id: r.id,
+              name: r.name,
+              author: r.author,
+              formation: r.formation,
+              mayHaveMore: mayHaveMore,
+              totalMatching: totalMatching,
+              advancedPartlyApplied:
+                  translation?.ignoredParams.isNotEmpty ?? false,
+            ),
+    ];
+    // Each response is already title-sorted; re-sort only a merged set, by
+    // titleMatchKey so `’` and `'` titles interleave rather than group. The
+    // id tie-break makes equal titles deterministic (List.sort is unstable).
+    if (bodies.nonNulls.length > 1) {
+      rows.sort((a, b) {
+        final byTitle = titleMatchKey(a.name).compareTo(titleMatchKey(b.name));
+        return byTitle != 0 ? byTitle : a.id.compareTo(b.id);
+      });
+    }
+    // A search whose extra spelling failed answered less than it should, so it
+    // is not remembered: the repeat asks for that spelling again.
+    if (bodies.nonNulls.length == variants.length) {
+      _lastKey = key;
+      _lastAt = _clock();
+      _lastRows = List.of(rows);
+    }
+    return rows;
+  }
+
+  /// The ContraDB filter for the Advanced builder's [filter], or `null` when it
+  /// has none. Throws [UrlFetchFailureReason.contraDbUnsupportedAdvanced] when it
+  /// holds a condition ContraDB cannot express with the same meaning
+  /// ([translateDanceFilterToContraDb]); the search is refused rather than
+  /// sent with that condition dropped, which would return a wider result set
+  /// than the panel describes. The exception is a figure parameter with no
+  /// ContraDB counterpart: it is left out and reported in
+  /// [ContraDbAdvancedExpression.ignoredParams], carried on the rows as
+  /// `advancedPartlyApplied`.
+  static ContraDbAdvancedExpression? _advancedTranslation(DanceFilter? filter) {
+    if (filter == null) return null;
+    return switch (translateDanceFilterToContraDb(filter)) {
+      final ContraDbAdvancedExpression expression => expression,
+      ContraDbAdvancedRefused() => throw const UrlFetchException(
+        UrlFetchFailureReason.contraDbUnsupportedAdvanced,
+      ),
+    };
   }
 
   /// Fetches the per-dance HTML for [result], parses it with
@@ -140,18 +300,24 @@ class ContraDbOnline implements OnlineSearchService {
   }
 
   /// Commits [plan] into the local collection using the dedup-aware default
-  /// (identical policy to [CallersBoxOnline.import]): a brand-new dance is
-  /// created; an exact re-import match is reported as already-in-collection
+  /// (identical policy to [CallersBoxOnline.import]): a dance that matches
+  /// nothing is created; an exact re-import match is reported as already-in-collection
   /// (nothing written); a fuzzy near-match with a confident title+author
   /// candidate and differing figures returns
   /// [OnlineImportKind.needsConfirmation] (nothing written) so the caller can
   /// show a resolution dialog (issue #797); a fuzzy near-match with a confident
   /// title+author candidate, **canonically identical** figures (same moves and
-  /// order; beats and notes may differ), and a confirmed different source
-  /// returns [OnlineImportKind.needsConfirmationIdentical] (nothing written) so
-  /// the caller can show a cross-source duplicate dialog (issue #811); dances
-  /// with null provenance fall through rather than being falsely labelled "from
-  /// a different source"; any other fuzzy near-match is imported as a new dance.
+  /// order; beats and notes may differ), and either a different source or a
+  /// hand-entered existing dance returns
+  /// [OnlineImportKind.needsConfirmationIdentical] (nothing written) so the
+  /// caller can show the duplicate dialog (issue #811; INTAKE-5); with no
+  /// confident candidate, a possible match under
+  /// another title returns [OnlineImportKind.needsPossibleMatchChoice]
+  /// (nothing written, issue #1907); any other fuzzy near-match is imported as
+  /// a new dance.
+  ///
+  /// The policy lives in [commitPreviewedOnlinePlan], including the rule that an
+  /// undecodable transcription never compares as identical (#1347).
   ///
   /// Pass [ambiguousResolution] to skip the needsConfirmation check and commit
   /// immediately with the given resolution (used on the retry after the dialog).
@@ -164,93 +330,18 @@ class ContraDbOnline implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
-    final title = plan.draft.dance.title;
-    if (plan.verdict.kind == DedupeKind.reimport) {
-      return OnlineImportResult(
-        kind: OnlineImportKind.alreadyInCollection,
-        title: title,
-        danceId: plan.verdict.targetDanceId,
-        danceCount: 1,
-      );
-    }
-
-    // When the verdict is ambiguous and a confident candidate exists, check
-    // whether the figures differ. If they do and no resolution has been
-    // supplied yet, return needsConfirmation so the caller can prompt the user
-    // before writing anything (issue #797). Mirrors the detection in
-    // program_import_online_resolver.dart:resolveConfidentOnlineDanceId.
-    if (ambiguousResolution == null &&
-        plan.verdict.kind == DedupeKind.ambiguous &&
-        plan.verdict.hasConfidentMatch) {
-      final candidateId = plan.verdict.candidates
-          .firstWhere((c) => c.confident)
-          .danceId;
-      final existing = await repos.dances.getById(candidateId);
-      if (existing != null) {
-        final identical = figuresCanonicallyIdentical(
-          oldFigures: existing.figures,
-          newFigures: plan.draft.dance.figures,
-          taxonomy: contraTaxonomy,
-        );
-        if (!identical) {
-          return OnlineImportResult(
-            kind: OnlineImportKind.needsConfirmation,
-            title: title,
-            danceId: candidateId,
-            danceCount: 1,
-          );
-        } else if (existing.provenance?.source != null &&
-            plan.draft.raw.source != existing.provenance!.source) {
-          // Canonically identical figures (same moves and order; beats and
-          // notes may differ) from a confirmed different source: prompt the
-          // user instead of silently creating a second copy (issue #811).
-          // Condition guards are:
-          //   - existing.provenance.source != null: skip hand-entered dances
-          //     (null provenance) so we never claim they are "from a different
-          //     source".
-          //   - sources differ: a same-source re-import with a drifted
-          //     externalId stays silent (DedupeResolution.duplicate() below).
-          return OnlineImportResult(
-            kind: OnlineImportKind.needsConfirmationIdentical,
-            title: title,
-            danceId: candidateId,
-            danceCount: 1,
-          );
-        }
-      }
-    }
-
-    final resolutions = plan.verdict.kind == DedupeKind.ambiguous
-        ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
-        : const <int, DedupeResolution>{};
-
-    final pipeline = ImportPipeline(
-      repos.dances,
-      repos.choreographers,
-      difficultyLevels: repos.difficultyLevels,
-    );
-    final session = await pipeline.commit(
-      ImportBatchResult(records: [plan]),
-      now: now ?? DateTime.now().toUtc(),
-      newId: uuidV4,
-      resolutions: resolutions,
-    );
-
-    final record = session.records.first;
-    if (!record.succeeded || record.danceId == null) {
-      // Keep the raw commit error for debug logging only; the UI gets a generic
-      // localized message so no lower-layer detail leaks (CWE-209).
-      if (kDebugMode && record.error != null) {
-        debugPrint('ContraDB import commit failed: ${record.error}');
-      }
-      throw const UrlFetchException(UrlFetchFailureReason.contraDbImportFailed);
-    }
-    return OnlineImportResult(
-      kind: OnlineImportKind.created,
-      title: title,
-      danceId: record.danceId,
-      danceCount: session.committedCount,
+    // The commit flow (reimport / needs-confirmation / unreadable-figures
+    // guard / pipeline commit) is shared with the other online source.
+    return commitPreviewedOnlinePlan(
+      repos,
+      plan,
+      now: now,
+      ambiguousResolution: ambiguousResolution,
+      defaultTagIds: defaultTagIds,
+      importFailedReason: UrlFetchFailureReason.contraDbImportFailed,
+      debugLabel: 'ContraDB',
     );
   }
 

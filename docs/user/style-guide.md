@@ -59,20 +59,27 @@ gig.
   **Perform**, **Settings**, the **Import** button.
 - Put the most common path first; tuck edge cases and power-user details under a
   later "More options" or "Troubleshooting" heading.
-- Cross-link generously to other guides and to the [Glossary](./glossary.md)
+- Cross-link generously to other guides and to [App terms](./glossary.md)
   rather than re-explaining the same concept in several places.
 
 ## Terminology conventions
 
 Consistent words reduce confusion. Use these, and **link the first use of a term
-in each guide to the [Glossary](./glossary.md)** so newcomers can get a
+in each guide to [App terms](./glossary.md)** so newcomers can get a
 definition without leaving the page. Link to the term's own anchor — for example
 `./glossary.md#program` or `./glossary.md#dialect` — so the reader lands directly
 on that definition rather than the top of the page.
 
 - **Caller's Compendium** — the app's full name; "the app" is fine after first use.
 - **dance** — a single transcription in your **collection**.
-- **collection** — your whole library of dances.
+- **library** — everything the app keeps for you: your collection, your
+  programs and your settings. Backup, restore, migration and Device Sync copy
+  the library, so their copy says "library". The maintainer chose this
+  (2026-11-18).
+- **collection** — your dances, and only your dances. It is what the
+  **Collection** screen lists. Copy that is about dances alone (importing into
+  it, searching it, a large imported collection) says "collection". The
+  maintainer chose this (2026-11-18).
 - **figure** / **move** — a single action in a dance (for example, "neighbors
   balance and swing"). Use "figure" for the entry in a dance; "move" for the
   underlying named action.
@@ -81,7 +88,10 @@ on that definition rather than the top of the page.
 - **program** — an ordered set list for an event; the individual entries are
   **slots**, and an alternate dance is an **alt**.
 - **matrix** — the figures-by-dances grid inside a program.
-- **Perform mode** — the large-print, stage-ready calling view.
+- **Perform mode** — the large-print, stage-ready calling view. This is its
+  only name: not "Perform view", "program Perform" or "individual Perform". The
+  nav label and the "Exit Perform?" question say **Perform**, "Perform cards"
+  are the cards it shows, and everything else says "Perform mode".
 - **dialect** — your personal choice of role names and wording (for example,
   **Larks/Robins** or **Leads/Follows**), applied everywhere the app shows text.
   Present it as *your words, your way* — not as a technical mapping.
@@ -90,9 +100,124 @@ on that definition rather than the top of the page.
 - **backup / restore** — saving all your data to a single file and loading it back.
 
 When community usage has moved on from an older term, use the current one (for
-example, "shoulder round," not the older gendered term) and let the Glossary note
+example, "shoulder round," not the older gendered term) and let [App terms](./glossary.md) note
 the history. Never bake gendered role names into examples; use Larks/Robins as the
 default and mention that any wording is configurable in your dialect.
+
+## App strings: spelling and case
+
+This section is the rule for the text inside the app itself, the English
+strings in `app/lib/l10n/app_en.arb`. It was decided by the maintainer as D-4
+(option c) in the October 2026 behavior audit. The guides in this folder ship
+inside the app, so they follow the same US spelling, and where they quote an
+on-screen label they match it exactly, case included. Sentence case is a rule
+for labels and headings, not for the guides' running prose.
+
+- **US spelling.** *color*, *canceled*, *recognize*, *customize*, *gray*,
+  *neighbor*. The app already said "neighbor" and "License"; this makes the
+  rest agree.
+- **Sentence case.** Capitalize the first word and proper names, and nothing
+  else, in titles, headers, buttons, menu items inside the app, settings rows
+  and hints: "Developer options", "Back up + reset", "Recently deleted".
+  Acronyms keep their capitals (JSON, USR, CCW).
+- **Feature and product names stay capitalized** wherever they appear:
+  Caller's Compendium, Device Sync, Custom Figures, Perform, Collection,
+  Programs, Glossary, The Caller's Box, ContraDB. A label that merely
+  *mentions* one ("Turn on Device Sync", "Show glossary") is still sentence
+  case.
+- **Exception: the macOS menu bar.** Menu-bar items follow the platform's Title
+  Case convention ("New Dance", "Import Dances…"). In the ARB these are the
+  `menu*` keys. Sentence case there would look out of place beside every other
+  Mac app's menus.
+- **Text the user types keeps its spelling.** Shorthand tokens, search syntax
+  and identifiers (settings keys, ARB keys, code names such as
+  `ColourDanceTheme`) are not app strings and are not renamed.
+- **English only.** Danish, Dutch, French, German and Japanese keep their own
+  conventions.
+- **Quotes are straight.** See [App strings: straight quotes](#app-strings-straight-quotes).
+
+`app/test/l10n/us_spelling_sentence_case_test.dart` enforces the spelling and
+case rules on the English ARB.
+
+## App strings: names, buttons and errors
+
+More rules for the English strings in `app/lib/l10n/app_en.arb`. Where a rule
+names a decision, the maintainer made it; the rest are calls made while writing
+this guide, with the alternative they beat noted so a later change can reopen
+them. `app/test/l10n/one_name_each_test.dart` keeps the retired wordings out.
+
+**Names**
+
+- **Custom Figures** is the feature, wherever it is named as a feature (the
+  setting, its screen, the row that opens it). One of the user's own is "your
+  figure". "Combination", "new figure" and "term" name the three kinds of
+  Glossary entry, and are used for nothing else. Not "Your figures" as a
+  heading, "figures of your own", "your new figures" or "your combinations".
+  An earlier maintainer decision (2026-10-29) also keeps the plural "your own
+  figures" in running text and "No custom figures yet" in the empty state; those
+  stay.
+- **Library and collection** are defined in the terminology list above. A
+  Settings header must not call a subset the "library": the header over title
+  sorting, figure capitalization, tags, authors and sources is **Dances**.
+  (Call: "Tags, authors and sources" was rejected because it leaves out the
+  two display preferences under the same header.)
+- **Perform mode**: see the terminology list above.
+
+**Buttons**
+
+- **Cancel** abandons a dialog or sheet. **Not now** defers an offer. **Dismiss**
+  hides a banner. "Later", "Decide later" and "Skip" are not used for these.
+  **Skip** stays where it is one of several per-item choices in an import review
+  (skip this dance, skip all possible matches), and on the three offers made
+  once at the end of an import (terms, shorthands, figures to add), where the
+  offer does not come back, so "Not now" would promise too much.
+- **Try again** is the one name for repeating a failed action, on buttons and in
+  sentences. Not "Retry". (Call: "Retry" was rejected because the error
+  sentences already say "try again", so one name covers both.)
+- **Delete** destroys; **Remove** takes something out of a list.
+
+**Punctuation**
+
+- Irreversibility is always "This can't be undone." as its own sentence.
+- Menu paths use one arrow, ▸: "Settings ▸ Diagnostics". This guide's
+  prose uses it too.
+- Write "and" in running text, not "&" or "+". Kept on purpose, because the
+  space is short and they are fixed labels or names: the settings headings
+  "Language & region", "Backup & restore", "Dance details & shorthands",
+  "Surface & text" and "Outline & effects"; the button "Download & install";
+  "Back up + reset" on the startup recovery screen; "+" as the name of the add
+  icon; and "neighbor balance & swing", an example of text the user types.
+- Mark only optional fields, with "(optional)". Required fields have no
+  asterisk: the form's validator says "Title is required" when one is left
+  empty.
+
+**Errors**
+
+Every error message has one shape: what happened, whether the user's work is
+safe, and what to do next. "Couldn't save the program. Your changes are still
+here. Try again."
+
+- Say "Couldn't", never "Could not", and never "Please".
+- Say the work is safe only where the code guarantees it: a failed load or
+  search changed nothing, and a failed save that leaves the editor open keeps
+  the edits. Where nothing is guaranteed, leave the claim out and keep the
+  other two parts.
+- No "Something went wrong". Say what could not be done.
+- Keep implementation words out of the main sentence: no HTTP status, ids, byte
+  counts, "taxonomy" or "integrity check". A detail a support request needs goes
+  in a separate secondary line or behind **Copy details**.
+- Never show an exception's own message; map it to a localized string.
+
+**Success feedback**
+
+Returning to the list, or to a screen that shows the result, is confirmation
+enough, so saving a program or a venue from a screen that closes shows no
+message. A snackbar is for what the user cannot see afterwards: a save that
+leaves them on the same screen (the embedded program editor), a bulk action, and
+every delete or merge that offers Undo. A message is shown only after the write
+is seen to succeed. The autosave editor has no "saved" indicator: the maintainer
+ruled it out as too busy. (Call: "every save shows a snackbar" was rejected as
+noisier on the screens that already show the result.)
 
 ## Writing accessibly
 
@@ -106,7 +231,7 @@ text zoom — the same audience the app itself is built for. Model good practice
   ("see the [import guide](./imports.md)"), never "click here"
   or a bare URL.
 - **Don't rely on color or symbols alone.** Wherever a guide describes an icon or
-  a coloured marker, name it in words too — "a star, labelled *Introduced here*"
+  a colored marker, name it in words too — "a star, labeled *Introduced here*"
   — so the meaning survives for a reader who cannot see it.
 - **Spell out abbreviations** on first use.
 - **Keep tables simple** with a header row; avoid merged cells and layout tables.
@@ -116,6 +241,13 @@ text zoom — the same audience the app itself is built for. Model good practice
 ## Alt-text policy
 
 Every image in the user docs **must** have alt text. This is not optional.
+`python3 tools/site/render_user_docs.py --check` fails on an image written as
+`![alt](path)` with no alt text (code examples in fenced blocks are skipped), on
+alt text that is just the file name or a bare "image" or "screenshot", and on an
+image file that is missing. Always write images that way: a raw `<img>` tag or a
+`![alt][ref]` reference is not an image to the guide renderer and shows up as
+plain text. A purely decorative image is allowed only by name, in
+`DECORATIVE_IMAGES` in that script.
 
 - **Informative images (screenshots, diagrams):** write alt text that conveys the
   same information the image gives a sighted reader — what screen it is and what
@@ -146,28 +278,32 @@ Every image in the user docs **must** have alt text. This is not optional.
 
 ## Screenshots and images
 
-**The in-app user guide is text-only.** The guides are bundled into the app and
-the in-app reader does not render images — it shows the alt text as a caption
-instead. GitHub and the hosted Pages guide render screenshots as images. A guide
-that *needs* a picture to make sense is still broken for readers in the app, so
-every illustration remains an enhancement rather than a load-bearing step.
+**Screenshots appear in the app, on GitHub and on the hosted Pages guide.** The
+in-app reader shows each bundled image and gives screen readers its alt text. If
+an image cannot be loaded, the reader falls back to the alt text as a caption.
+Screen-reader and low-vision readers get the alt text, not the pixels, so a guide
+that *needs* a picture to make sense is still broken for them: every
+illustration remains an enhancement rather than a load-bearing step.
 
-Write every explanation so it stands on its own words. If you do add an image,
-treat it as an enhancement, never as a load-bearing part of a procedure, and
-follow the rules below.
+Write every explanation so it stands on its own words. Treat an image as an
+enhancement, never as a load-bearing part of a procedure, and follow the rules
+below.
 
 - **Naming:** lowercase, hyphen-separated, `screen-topic.png` — for example
   `perform-mode-dark.png`, `programs-matrix.png`. Group a series with a shared
   prefix.
-- **Format:** PNG for screenshots, SVG for diagrams and wireframes.
+- **Format:** PNG for screenshots, SVG for diagrams and wireframes. Only PNGs are
+  bundled into the app; an SVG shows as its alt text there.
 - **Size and cropping:** crop to the relevant region; keep each file small (aim
   well under 500 KB). Capture at a standard zoom so text is legible.
 - **Themes:** show Perform-mode shots on the dark-stage theme to convey its
   high-contrast intent; show general screens on the default light theme unless the
   guide is specifically about appearance.
 - **Store images** in [`images/`](images/) and reference them with relative paths.
-  The Pages build publishes these assets beside the hosted guides; the in-app
-  bundle deliberately keeps only the alt text.
+  The Pages build publishes these assets beside the hosted guides, and
+  `tools/ci/sync_user_docs.py` mirrors them into the in-app bundle
+  (`app/assets/docs/user/images/`). Run it with `--write` after adding or
+  replacing an image, or the drift check fails.
 
 ## Describing platform behavior neutrally
 
@@ -190,6 +326,29 @@ so that a reader on any platform feels the docs are for them.
 - **Avoid platform-loaded verbs** like "force-quit" or OS-specific menu names
   unless the guide is specifically about that platform.
 
+## App strings: straight quotes
+
+The English strings in `app/lib/l10n/app_en.arb` use **straight** quotes and
+apostrophes: `"` and `'`, never the curly “ ” ‘ ’. The maintainer chose this on
+2026-10-31 (conflict 10, option "Straight everywhere") over the typographic
+alternative: straight marks are the easiest to type and to search for.
+
+- **Values only.** Keys and the `@key` metadata (developer descriptions) are not
+  user-visible and are not checked.
+- **English only.** Danish, Dutch, French, German and Japanese keep their own
+  quote conventions.
+- **Text the user types is exempt from rewriting.** If a curly character is part
+  of syntax the user types, list its key under `literal` in
+  `tools/ci/arb_quote_allowlist.json` with a reason. None exist today.
+- **How it is enforced.** `python3 tools/ci/arb_quote_style.py` rewrites
+  `app_en.arb` to the rule and is safe to re-run (it refuses to run if
+  `use-escaping` is ever enabled in `l10n.yaml`, because `'` would then stop
+  being a plain character). `tools/ci/check_arb_quote_style.py` fails any new or
+  edited string that has a curly mark. The allow-list of earlier strings is
+  empty, so every curly mark fails. The fix for a failure is
+  `python3 tools/ci/arb_quote_style.py --only KEY...` on the reported keys (re-run
+  `flutter gen-l10n` after it), not `--regenerate`.
+
 ## Markdown conventions
 
 - One H1 (`#`) per file, matching the guide's title. **The in-app reader uses
@@ -208,7 +367,7 @@ so that a reader on any platform feels the docs are for them.
 - **Keep every heading in a guide distinct.** Two headings that reduce to the
   same anchor are ambiguous — GitHub would silently number them, the in-app
   reader would jump to the last one, and the website build fails outright.
-  Reword one of them; a heading that needs its neighbour for context usually
+  Reword one of them; a heading that needs its neighbor for context usually
   reads better spelled out anyway.
 - End each guide with a **Where to go next** section of onward links.
 - Fenced code blocks only for literal input the reader types or file contents —
@@ -247,9 +406,10 @@ Four things follow from that:
   ```
 
 - **Write for all three.** A guide must read correctly on GitHub, in the app's
-  panel, and on the web. GitHub and Pages show image assets; the app shows their
-  alt text as a caption, so every image needs useful descriptive alt text and
-  every procedure must stand on its own words. Headings stay plain text.
+  panel, and on the web. GitHub, Pages and the app all show the image assets (the
+  app falls back to the alt text as a caption if one cannot load, and screen
+  readers get the alt text), so every image needs useful descriptive alt text
+  and every procedure must stand on its own words. Headings stay plain text.
 - **New guides need no registration** — every consumer discovers whatever is in
   `docs/user/`. This style guide is deliberately excluded from both the app
   bundle and the website, because it is for contributors rather than callers;

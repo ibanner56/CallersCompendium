@@ -1,5 +1,6 @@
 import '../model/dance.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
 import '../taxonomy/taxonomy.dart';
 import 'snippet_library.dart';
 import 'snippet_signature.dart';
@@ -40,7 +41,10 @@ String assembleWalkthrough({
   String separator = '\n\n',
 }) {
   final lines = <String>[];
-  for (final figure in dance.figures) {
+  for (final figure in switch (dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => const <Figure>[],
+  }) {
     final text = resolveFigureSnippet(figure, library, taxonomy);
     if (text != null) lines.add(text);
   }
@@ -58,7 +62,10 @@ bool danceHasAssemblableWalkthrough(
   WalkthroughSnippetLibrary library,
   Taxonomy taxonomy,
 ) {
-  for (final figure in dance.figures) {
+  for (final figure in switch (dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => const <Figure>[],
+  }) {
     if (resolveFigureSnippet(figure, library, taxonomy) != null) return true;
   }
   return false;

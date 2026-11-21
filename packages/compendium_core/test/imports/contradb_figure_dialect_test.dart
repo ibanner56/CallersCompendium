@@ -664,7 +664,22 @@ void main() {
       expect(f.params['fraction'], 'half');
       expect(f.params['who'], 'ones');
       expect(f.params['whom'], 'neighbors');
-      expect(f.params['direction'], 'clockwise');
+      // ContraDB writes clockwise as "back then left" (libfigure
+      // `poussetteWords`); this test asserted the reverse before #2121.
+      expect(f.params['direction'], 'counterclockwise');
+      expect(
+        _parse(
+          'half poussette - ones pull neighbors back then left',
+        ).params['direction'],
+        'clockwise',
+      );
+      // A tail keeps the line from the app's display reader, so this reaches
+      // ContraDB's own poussette reader.
+      final tail = _parse(
+        'half poussette - ones pull neighbors back then left (gently)',
+      );
+      expect(tail.params['direction'], 'clockwise');
+      expect(tail.note, '(gently)');
     });
 
     test('cross trails', () {
@@ -912,12 +927,28 @@ void main() {
       },
     );
 
-    test('non-pair hey ricochet subject remains verbatim in the note', () {
-      const suffix = '- partners ricochet first time';
+    test('a hey no pair inverts calls the other dancers others', () {
+      // The renderer's own wording for a non-pair hey: no pair inverts
+      // `partners`, so the dancers who are not partners are "others".
       final f = _parse(
-        'partners start a full hey - rights in center, lefts on ends $suffix',
+        'partners start a full hey - rights on ends, lefts in center - '
+        'partners ricochet first time, others ricochet second time',
+      );
+      expect(f.params['pass1'], 'partners');
+      expect(f.params['rico1'], isTrue);
+      expect(f.params['rico4'], isTrue);
+      expect(f.note, isNull);
+    });
+
+    test('a ricochet subject that is neither pass remains in the note', () {
+      // `pass2` is never displayed, so a pair named only by its ricochet
+      // cannot be placed.
+      const suffix = '- role1s ricochet first time';
+      final f = _parse(
+        'partners start a full hey - rights on ends, lefts in center $suffix',
       );
       expect(f.params['rico1'], isNot(true));
+      expect(f.params['rico2'], isNot(true));
       expect(f.note, suffix);
     });
   });
@@ -1477,6 +1508,77 @@ void main() {
 
     test('empty after scrubbing yields null (front-end-independent)', () {
       expect(parseContraDbFigureLine('   '), isNull);
+    });
+
+    group('core + modifier → `modifier`, not `meanwhile` (#1415)', () {
+      void expectModifier(String line, List<String> moves) {
+        final f = parseContraDbFigureLine(line, beats: 8);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isModifier, isTrue, reason: line);
+        expect(f.isMeanwhile, isFalse, reason: line);
+        expect(f.params['beats'], 8, reason: line);
+        expect(f.subFigures.map((s) => s.move), moves, reason: line);
+        expect(
+          f.subFigures.every((s) => !s.params.containsKey('beats')),
+          isTrue,
+          reason: line,
+        );
+      }
+
+      // `long lines forward` alone recognizes as a non-custom `long_lines`
+      // whose NOTE swallows the tail, so only the note-swallow guard lets these
+      // lines reach the fan-out at all.
+      test('long lines forward while <who> take <whom> (take-only)', () {
+        expectModifier('long lines forward while ladles take neighbors', [
+          'long_lines',
+          'give_and_take',
+        ]);
+      });
+
+      test('long lines forward while <who> give & take <whom>', () {
+        expectModifier(
+          'long lines forward while ladles give & take neighbors',
+          ['long_lines', 'give_and_take'],
+        );
+      });
+
+      test('long lines forward while a roll away', () {
+        expectModifier('long lines forward while larks roll away neighbors', [
+          'long_lines',
+          'roll_away',
+        ]);
+      });
+
+      test('long lines forward & back while a roll away', () {
+        expectModifier(
+          'long lines forward & back while larks roll away neighbors',
+          ['long_lines', 'roll_away'],
+        );
+      });
+
+      test('slice while a roll away', () {
+        expectModifier('slice left while ladles roll away neighbors', [
+          'slice',
+          'roll_away',
+        ]);
+      });
+
+      test('a genuine two-group line still builds a meanwhile', () {
+        final f = parseContraDbFigureLine(
+          'larks swing while robins circle left',
+          beats: 8,
+        );
+        expect(f!.isMeanwhile, isTrue);
+        expect(f.isModifier, isFalse);
+      });
+
+      test('the reversed order is not classified', () {
+        final f = parseContraDbFigureLine(
+          'larks roll away neighbors while long lines forward',
+          beats: 8,
+        );
+        expect(f!.isModifier, isFalse);
+      });
     });
   });
 

@@ -52,22 +52,48 @@ class MoveDef {
 /// derive `beats` when a figure does not carry an explicit value.
 @immutable
 class ParamBeats {
-  const ParamBeats({required this.param, required this.byValue});
+  const ParamBeats({
+    required this.param,
+    required this.byValue,
+    this.beatsPerAmount,
+  });
 
   /// Name of the parameter whose value selects the beat count.
   final String param;
 
   /// Canonical beats for each value of [param]. A value absent here falls back
-  /// to the move's flat `beats` spec default.
+  /// to [beatsPerAmount] when that applies, else to the move's flat `beats`
+  /// spec default.
   final Map<Object?, int> byValue;
+
+  /// For a [ParamKind.fraction] driver: beats per full amount, applied to the
+  /// amount an `other` fraction states (`statedFractionAmount`). `figure_8`
+  /// sets 16, ContraDB's `half_or_full * 16` carried past `full` (a 1½ figure
+  /// 8 is 24 beats). Null, or an `other` that states no amount, falls back to
+  /// the flat default.
+  final int? beatsPerAmount;
+
+  /// The beats these rules derive from a figure's [effective] params, or null
+  /// when they derive none.
+  int? derive(Map<String, Object?> effective) {
+    final byName = byValue[effective[param]];
+    if (byName != null) return byName;
+    final perAmount = beatsPerAmount;
+    if (perAmount == null) return null;
+    final amount = statedFractionAmount(effective, fractionParam: param);
+    return amount == null ? null : (amount * perAmount).round();
+  }
 }
 
 /// An alias entry: resolves to a canonical move with pinned params
 /// (e.g. `see saw` → `do_si_do{shoulder: left}`).
 ///
-/// When [inversePairId] is set, this alias is one half of a two-valued
-/// inverse pair: toggling the pinned param to its opposite value should
-/// re-route the figure to [inversePairId] (and vice versa). The taxonomy's
+/// When [inversePairId] is set, this alias is one half of an inverse pair:
+/// moving the pinned param off the pinned value should re-route the figure
+/// to [inversePairId], and that move taking the pinned value should re-route
+/// it back. The axis need not be two-valued: `long_lines` pins
+/// `forward_and_back.formation` to one of twelve formations, and any other
+/// formation is a `forward_and_back`. The taxonomy's
 /// [Taxonomy.resolvedMoveId] uses this to enforce the invariant at write
 /// time.
 @immutable
@@ -79,6 +105,7 @@ class MoveAlias {
     this.pinnedParams = const {},
     this.searchKeywords = const [],
     this.inversePairId,
+    this.listedAsMove = false,
   });
 
   final String id;
@@ -93,4 +120,20 @@ class MoveAlias {
   /// `'do_si_do'`. `null` when the alias is not part of an inverse pair
   /// (e.g. `meltdown_swing`).
   final String? inversePairId;
+
+  /// Whether this alias stands as a move of its own outside the taxonomy:
+  /// pickers that offer moves and not aliases (the dialect editor, Advanced
+  /// search's "Has figure", Settings' per-move defaults) offer it too, without
+  /// its pinned params, and a dialect's name and wording for it apply to it
+  /// while its target's never do. False for every alias but three. One is
+  /// `long_lines` (taxonomy v39), which was a move until then: its figures
+  /// are stored under its own id, so a search must be able to name it;
+  /// dialects hold entries keyed on it; and its name is a formation where its
+  /// target's, `forward_and_back`, is a direction, so a name for one would
+  /// misread the other. The others are `hand_cast` (taxonomy v40) and ECD's
+  /// `ecd_hand_cast` (ADR-006 §9.4), aliases of `gate` and `ecd_gate` that pin
+  /// nothing: their figures are stored under their own ids too, and a
+  /// dialect's name for a gate would otherwise rename every hand cast. Every
+  /// other alias takes its target's dialect entries.
+  final bool listedAsMove;
 }

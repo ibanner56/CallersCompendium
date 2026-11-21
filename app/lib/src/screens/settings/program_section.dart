@@ -1,26 +1,38 @@
 // Part of the Settings screen, split by section. The Program section gathers
 // the program-facing preferences — venues, the programming matrix, Perform
 // mode, and calling history — that previously lived under General (issue #935).
+import 'package:compendium_core/compendium_core.dart'
+    show CallingHistoryTracking;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'matrix_column_editor_screen.dart';
 import 'settings_keys.dart';
+import '../../data/mark_all_sets_status_scope.dart';
 import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/program_auto_commit_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/set_list_share_scope.dart';
+import '../../data/require_event_date_for_history_scope.dart';
+import '../../data/calling_history_tracking_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
+import '../../data/show_performed_toggles_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../widgets/link_typed_venues_offer.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import '../venue_manager_screen.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The Program settings section: preferences that shape how programs are built,
 /// checked, and performed — the reusable-venues toggle plus the venue manager,
-/// the programming-matrix collision mode, the Perform auto-size toggle, and the
-/// calling-history rules. Owns the auto-size lazy read and its load-race guard.
+/// the programming-matrix collision mode, the Perform toggles (auto-size,
+/// timer, caller notes, exit confirmation), and the calling-history rules.
+/// Owns the auto-size lazy read and its load-race guard.
 ///
 /// This is the home later phases attach the matrix column editor to (issue
 /// #935). Every moved toggle keeps its original widget key and semantics — only
@@ -41,15 +53,12 @@ class _ProgramSectionState extends State<ProgramSection> {
   bool? _showIndividualPerformTimer;
   bool _showIndividualPerformTimerRequested = false;
   bool _showIndividualPerformTimerUserSet = false;
+  bool? _confirmPerformExit;
+  bool _confirmPerformExitRequested = false;
+  bool _confirmPerformExitUserSet = false;
   bool? _showProgramSlotCallerNotes;
   bool _showProgramSlotCallerNotesRequested = false;
   bool _showProgramSlotCallerNotesUserSet = false;
-  bool? _autoCommitProgramChanges;
-  bool _autoCommitRequested = false;
-  bool _autoCommitUserSet = false;
-  int? _venueCallCount;
-  bool _venueCallCountRequested = false;
-  bool _venueCallCountUserSet = false;
 
   /// Lazily loads the persisted auto-size preference the first time this section
   /// is built (avoids reading settings in `initState`). A late read must not
@@ -63,12 +72,16 @@ class _ProgramSectionState extends State<ProgramSection> {
         .then((value) {
           // Don't overwrite a selection the user made before the read resolved.
           if (!mounted || _autoSizeUserSet) return;
-          setState(() => _autoSizePerform = value is bool ? value : true);
+          setState(
+            () => _autoSizePerform = value is bool
+                ? value
+                : kAutoSizePerformDefault,
+          );
         })
         .catchError((_) {
           // diagnostics: silent — auto-size setting read failed; falls back to on-by-default.
           if (!mounted || _autoSizeUserSet) return;
-          setState(() => _autoSizePerform = true);
+          setState(() => _autoSizePerform = kAutoSizePerformDefault);
         });
   }
 
@@ -78,7 +91,7 @@ class _ProgramSectionState extends State<ProgramSection> {
       _autoSizePerform = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kAutoSizePerformKey, value);
+    await persistSetting(repos.settings, kAutoSizePerformKey, value);
   }
 
   void _ensureIndividualTimerLoaded(BuildContext context) {
@@ -106,7 +119,39 @@ class _ProgramSectionState extends State<ProgramSection> {
       _showIndividualPerformTimer = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kShowIndividualPerformTimerKey, value);
+    await persistSetting(repos.settings, kShowIndividualPerformTimerKey, value);
+  }
+
+  /// "Confirm before leaving Perform": read lazily like
+  /// the toggles above; a late read never overwrites the user's own flip.
+  void _ensureConfirmPerformExitLoaded(BuildContext context) {
+    if (_confirmPerformExitRequested) return;
+    _confirmPerformExitRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kConfirmPerformExitKey)
+        .then((value) {
+          if (!mounted || _confirmPerformExitUserSet) return;
+          setState(
+            () => _confirmPerformExit = value is bool
+                ? value
+                : kConfirmPerformExitDefault,
+          );
+        })
+        .catchError((_) {
+          // diagnostics: silent — use the default-on setting behavior.
+          if (!mounted || _confirmPerformExitUserSet) return;
+          setState(() => _confirmPerformExit = kConfirmPerformExitDefault);
+        });
+  }
+
+  Future<void> _onConfirmPerformExitChanged(bool value) async {
+    setState(() {
+      _confirmPerformExitUserSet = true;
+      _confirmPerformExit = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kConfirmPerformExitKey, value);
   }
 
   void _ensureProgramSlotCallerNotesLoaded(BuildContext context) {
@@ -134,67 +179,25 @@ class _ProgramSectionState extends State<ProgramSection> {
       _showProgramSlotCallerNotes = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kShowProgramSlotCallerNotesKey, value);
+    await persistSetting(repos.settings, kShowProgramSlotCallerNotesKey, value);
   }
 
-  void _ensureAutoCommitLoaded(BuildContext context) {
-    if (_autoCommitRequested) return;
-    _autoCommitRequested = true;
-    final repos = RepositoriesScope.of(context);
-    repos.settings
-        .get(kAutoCommitProgramChangesKey)
-        .then((value) {
-          if (!mounted || _autoCommitUserSet) return;
-          setState(
-            () => _autoCommitProgramChanges = value is bool ? value : false,
-          );
-        })
-        .catchError((_) {
-          // diagnostics: silent — auto-commit preference read failed; stays off.
-          if (!mounted || _autoCommitUserSet) return;
-          setState(() => _autoCommitProgramChanges = false);
-        });
-  }
-
+  // Auto-commit and the venue call count are live app preferences: read their
+  // scopes in [build] (so a backup restore shows through) and flip the scope's
+  // notifier first, then persist.
   Future<void> _onAutoCommitChanged(bool value) async {
-    setState(() {
-      _autoCommitUserSet = true;
-      _autoCommitProgramChanges = value;
-    });
     final scoped = ProgramAutoCommitScope.maybeOf(context);
     if (scoped != null) {
       ProgramAutoCommitScope.notifierOf(context).value = value;
     }
-
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kAutoCommitProgramChangesKey, value);
-  }
-
-  void _ensureVenueCallCountLoaded(BuildContext context) {
-    if (_venueCallCountRequested) return;
-    _venueCallCountRequested = true;
-    final repos = RepositoriesScope.of(context);
-    repos.settings
-        .get(kVenueCallCountKey)
-        .then((value) {
-          if (!mounted || _venueCallCountUserSet) return;
-          setState(() => _venueCallCount = venueCallCountFromStored(value));
-        })
-        .catchError((_) {
-          // diagnostics: silent — invalid or unavailable preference uses default.
-          if (!mounted || _venueCallCountUserSet) return;
-          setState(() => _venueCallCount = kVenueCallCountDefault);
-        });
+    await persistSetting(repos.settings, kAutoCommitProgramChangesKey, value);
   }
 
   Future<void> _onVenueCallCountChanged(int value) async {
-    setState(() {
-      _venueCallCountUserSet = true;
-      _venueCallCount = value;
-    });
     VenueCallCountScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVenueCallCountKey, value);
+    await persistSetting(repos.settings, kVenueCallCountKey, value);
   }
 
   /// Opens the venue manager (browse/create/edit/delete reusable venues).
@@ -212,7 +215,14 @@ class _ProgramSectionState extends State<ProgramSection> {
     // never clears the other mode's value.
     VenueEntityModeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVenueEntityModeKey, value);
+    await persistSetting(repos.settings, kVenueEntityModeKey, value);
+    // GIG-7 = (b): when records are turned on, offer to link older programs
+    // whose typed venue matches an existing record. Turning it off offers
+    // nothing: the typed text was never cleared.
+    if (!value || !mounted) return;
+    final venues = await repos.venues.listAll();
+    if (!mounted) return;
+    await offerToLinkTypedVenues(context, venues: venues);
   }
 
   Future<void> _onMatrixExactBeatCollisionChanged(bool value) async {
@@ -221,7 +231,7 @@ class _ProgramSectionState extends State<ProgramSection> {
     // immediately (issue #962), then persist in the background.
     MatrixCollisionModeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kMatrixExactBeatCollisionKey, value);
+    await persistSetting(repos.settings, kMatrixExactBeatCollisionKey, value);
   }
 
   Future<void> _onRequirePerformedForHistoryChanged(bool value) async {
@@ -230,7 +240,63 @@ class _ProgramSectionState extends State<ProgramSection> {
     // rebuilds immediately, then persist in the background.
     RequirePerformedForHistoryScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kRequirePerformedForHistoryKey, value);
+    await persistSetting(repos.settings, kRequirePerformedForHistoryKey, value);
+  }
+
+  Future<void> _onShowPerformedTogglesChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: flip the live notifier so an
+    // open program view adds or drops its row toggles immediately, then persist.
+    ShowPerformedTogglesScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kShowPerformedTogglesKey, value);
+  }
+
+  Future<void> _onMarkAllSetsStatusChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: an open program editor's
+    // status helper text follows the flip immediately, then persist.
+    MarkAllSetsStatusScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kMarkAllSetsStatusKey, value);
+  }
+
+  Future<void> _onRequireEventDateForHistoryChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as "Require mark performed":
+    // every surface reading calling history follows the flip immediately.
+    RequireEventDateForHistoryScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kRequireEventDateForHistoryKey, value);
+  }
+
+  Future<void> _onRecencyRequireEventDateChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    RecencyRequireEventDateScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kRecencyRequireEventDateKey, value);
+  }
+
+  Future<void> _onRecencyRequirePerformedChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    RecencyRequirePerformedScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kRecencyRequirePerformedKey, value);
+  }
+
+  Future<void> _onHistoryOrderIgnoreUndatedChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    HistoryOrderIgnoreUndatedScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kHistoryOrderIgnoreUndatedKey, value);
+  }
+
+  Future<void> _onHistoryOrderIgnoreUnperformedChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    HistoryOrderIgnoreUnperformedScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kHistoryOrderIgnoreUnperformedKey,
+      value,
+    );
   }
 
   Future<void> _onTrackHistoryForAllCallersChanged(bool value) async {
@@ -239,7 +305,35 @@ class _ProgramSectionState extends State<ProgramSection> {
     // re-derives its scoped calling history/counts immediately, then persist.
     TrackHistoryForAllCallersScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kTrackHistoryForAllCallersKey, value);
+    await persistSetting(repos.settings, kTrackHistoryForAllCallersKey, value);
+  }
+
+  // The Sharing toggles are live app preferences: flip the scope's notifier
+  // first, then persist (the same pattern as the history toggles above).
+  Future<void> _onShareSetListTitleChanged(bool value) async {
+    ShareSetListTitleScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kShareSetListIncludeTitleKey, value);
+  }
+
+  Future<void> _onShareSetListCallerBandChanged(bool value) async {
+    ShareSetListCallerBandScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kShareSetListIncludeCallerBandKey,
+      value,
+    );
+  }
+
+  Future<void> _onShareSetListDateVenueChanged(bool value) async {
+    ShareSetListDateVenueScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kShareSetListIncludeDateVenueKey,
+      value,
+    );
   }
 
   Future<void> _onConfigureMatrixColumns() async {
@@ -252,32 +346,48 @@ class _ProgramSectionState extends State<ProgramSection> {
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
-    _ensureVenueCallCountLoaded(context);
+    _ensureConfirmPerformExitLoaded(context);
     _ensureProgramSlotCallerNotesLoaded(context);
-    final scopedAutoCommit = ProgramAutoCommitScope.maybeOf(context);
-    if (scopedAutoCommit == null) _ensureAutoCommitLoaded(context);
+    final setListShare = SetListShareOptions.of(context);
     return _ProgramView(
+      setListShare: setListShare,
+      onShareSetListTitleChanged: _onShareSetListTitleChanged,
+      onShareSetListCallerBandChanged: _onShareSetListCallerBandChanged,
+      onShareSetListDateVenueChanged: _onShareSetListDateVenueChanged,
       venueEntityMode: VenueEntityModeScope.of(context),
       onVenueEntityModeChanged: _onVenueEntityModeChanged,
       onManageVenues: _onManageVenues,
       matrixExactBeatCollision: MatrixCollisionModeScope.of(context),
       onMatrixExactBeatCollisionChanged: _onMatrixExactBeatCollisionChanged,
       onConfigureMatrixColumns: _onConfigureMatrixColumns,
-      autoSizePerform: _autoSizePerform ?? true,
+      autoSizePerform: _autoSizePerform ?? kAutoSizePerformDefault,
       onAutoSizeChanged: _onAutoSizeChanged,
       showIndividualPerformTimer: _showIndividualPerformTimer ?? true,
       onShowIndividualPerformTimerChanged: _onIndividualTimerChanged,
+      confirmPerformExit: _confirmPerformExit ?? kConfirmPerformExitDefault,
+      onConfirmPerformExitChanged: _onConfirmPerformExitChanged,
       showProgramSlotCallerNotes: _showProgramSlotCallerNotes ?? true,
       onShowProgramSlotCallerNotesChanged: _onProgramSlotCallerNotesChanged,
-      autoCommitProgramChanges:
-          scopedAutoCommit ?? _autoCommitProgramChanges ?? false,
+      autoCommitProgramChanges: ProgramAutoCommitScope.of(context),
       onAutoCommitChanged: _onAutoCommitChanged,
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
+      showPerformedToggles: ShowPerformedTogglesScope.of(context),
+      onShowPerformedTogglesChanged: _onShowPerformedTogglesChanged,
+      markAllSetsStatus: MarkAllSetsStatusScope.of(context),
+      onMarkAllSetsStatusChanged: _onMarkAllSetsStatusChanged,
+      requireEventDateForHistory: RequireEventDateForHistoryScope.of(context),
+      onRequireEventDateForHistoryChanged: _onRequireEventDateForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
       onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
-      venueCallCount: _venueCallCount ?? kVenueCallCountDefault,
+      venueCallCount: VenueCallCountScope.of(context),
       onVenueCallCountChanged: _onVenueCallCountChanged,
+      tracking: callingHistoryTrackingOf(context),
+      onRecencyRequireEventDateChanged: _onRecencyRequireEventDateChanged,
+      onRecencyRequirePerformedChanged: _onRecencyRequirePerformedChanged,
+      onHistoryOrderIgnoreUndatedChanged: _onHistoryOrderIgnoreUndatedChanged,
+      onHistoryOrderIgnoreUnperformedChanged:
+          _onHistoryOrderIgnoreUnperformedChanged,
     );
   }
 }
@@ -287,6 +397,10 @@ class _ProgramSectionState extends State<ProgramSection> {
 /// notifiers and persistence.
 class _ProgramView extends StatelessWidget {
   const _ProgramView({
+    required this.setListShare,
+    required this.onShareSetListTitleChanged,
+    required this.onShareSetListCallerBandChanged,
+    required this.onShareSetListDateVenueChanged,
     required this.venueEntityMode,
     required this.onVenueEntityModeChanged,
     required this.onManageVenues,
@@ -297,17 +411,37 @@ class _ProgramView extends StatelessWidget {
     required this.onAutoSizeChanged,
     required this.showIndividualPerformTimer,
     required this.onShowIndividualPerformTimerChanged,
+    required this.confirmPerformExit,
+    required this.onConfirmPerformExitChanged,
     required this.showProgramSlotCallerNotes,
     required this.onShowProgramSlotCallerNotesChanged,
     required this.autoCommitProgramChanges,
     required this.onAutoCommitChanged,
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
+    required this.showPerformedToggles,
+    required this.onShowPerformedTogglesChanged,
+    required this.markAllSetsStatus,
+    required this.onMarkAllSetsStatusChanged,
+    required this.requireEventDateForHistory,
+    required this.onRequireEventDateForHistoryChanged,
     required this.trackHistoryForAllCallers,
     required this.onTrackHistoryForAllCallersChanged,
     required this.venueCallCount,
     required this.onVenueCallCountChanged,
+    required this.tracking,
+    required this.onRecencyRequireEventDateChanged,
+    required this.onRecencyRequirePerformedChanged,
+    required this.onHistoryOrderIgnoreUndatedChanged,
+    required this.onHistoryOrderIgnoreUnperformedChanged,
   });
+
+  /// The Sharing toggles: what a shared or copied set list includes. They
+  /// never affect the `.ccshare` / JSON bundle.
+  final SetListShareOptions setListShare;
+  final ValueChanged<bool> onShareSetListTitleChanged;
+  final ValueChanged<bool> onShareSetListCallerBandChanged;
+  final ValueChanged<bool> onShareSetListDateVenueChanged;
 
   final bool venueEntityMode;
   final ValueChanged<bool> onVenueEntityModeChanged;
@@ -327,6 +461,10 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onAutoSizeChanged;
   final bool showIndividualPerformTimer;
   final ValueChanged<bool> onShowIndividualPerformTimerChanged;
+
+  /// Whether leaving Perform asks first. On by default.
+  final bool confirmPerformExit;
+  final ValueChanged<bool> onConfirmPerformExitChanged;
   final bool showProgramSlotCallerNotes;
   final ValueChanged<bool> onShowProgramSlotCallerNotesChanged;
   final bool autoCommitProgramChanges;
@@ -334,16 +472,34 @@ class _ProgramView extends StatelessWidget {
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
+  final bool showPerformedToggles;
+  final ValueChanged<bool> onShowPerformedTogglesChanged;
+
+  /// Whether Mark all performed also sets the program's status (GIG-12). On
+  /// by default.
+  final bool markAllSetsStatus;
+  final ValueChanged<bool> onMarkAllSetsStatusChanged;
+  final bool requireEventDateForHistory;
+  final ValueChanged<bool> onRequireEventDateForHistoryChanged;
   final bool trackHistoryForAllCallers;
   final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
   final int venueCallCount;
   final ValueChanged<int> onVenueCallCountChanged;
 
+  /// The resolved recency and history-order toggles, shown under their own
+  /// header so the two global gates above (which decide what counts) read apart
+  /// from these four (which only date and order).
+  final CallingHistoryTracking tracking;
+  final ValueChanged<bool> onRecencyRequireEventDateChanged;
+  final ValueChanged<bool> onRecencyRequirePerformedChanged;
+  final ValueChanged<bool> onHistoryOrderIgnoreUndatedChanged;
+  final ValueChanged<bool> onHistoryOrderIgnoreUnperformedChanged;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return ListView(
-      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+      keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsGeneralVenuesHeader),
         SwitchListTile(
@@ -387,6 +543,31 @@ class _ProgramView extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: onConfigureMatrixColumns,
         ),
+        SectionHeader(title: l10n.settingsSharingHeader),
+        SwitchListTile(
+          key: const ValueKey('settings-share-set-list-title'),
+          value: setListShare.includeTitle,
+          onChanged: onShareSetListTitleChanged,
+          title: Text(l10n.settingsSharingTitleTitle),
+          subtitle: Text(l10n.settingsSharingSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-share-set-list-caller-band'),
+          value: setListShare.includeCallerBand,
+          onChanged: onShareSetListCallerBandChanged,
+          title: Text(l10n.settingsSharingCallerBandTitle),
+          subtitle: Text(l10n.settingsSharingSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-share-set-list-date-venue'),
+          value: setListShare.includeDateVenue,
+          onChanged: onShareSetListDateVenueChanged,
+          title: Text(l10n.settingsSharingDateVenueTitle),
+          subtitle: Text(l10n.settingsSharingSubtitle),
+          isThreeLine: true,
+        ),
         SectionHeader(title: l10n.settingsGeneralPerformanceHeader),
         SwitchListTile(
           key: const ValueKey('settings-auto-size-perform'),
@@ -409,6 +590,13 @@ class _ProgramView extends StatelessWidget {
           value: showProgramSlotCallerNotes,
           onChanged: onShowProgramSlotCallerNotesChanged,
         ),
+        SwitchListTile(
+          key: const ValueKey('settings-confirm-perform-exit'),
+          title: Text(l10n.settingsConfirmPerformExitTitle),
+          subtitle: Text(l10n.settingsConfirmPerformExitSubtitle),
+          value: confirmPerformExit,
+          onChanged: onConfirmPerformExitChanged,
+        ),
         SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
         SwitchListTile(
           key: const ValueKey('general-require-performed-for-history'),
@@ -421,6 +609,32 @@ class _ProgramView extends StatelessWidget {
           isThreeLine: true,
         ),
         SwitchListTile(
+          key: const ValueKey('general-show-performed-toggles'),
+          value: showPerformedToggles,
+          onChanged: onShowPerformedTogglesChanged,
+          title: Text(l10n.settingsGeneralShowPerformedTogglesTitle),
+          subtitle: Text(l10n.settingsGeneralShowPerformedTogglesSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-mark-all-sets-status'),
+          value: markAllSetsStatus,
+          onChanged: onMarkAllSetsStatusChanged,
+          title: Text(l10n.settingsGeneralMarkAllSetsStatusTitle),
+          subtitle: Text(l10n.settingsGeneralMarkAllSetsStatusSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-require-event-date-for-history'),
+          value: requireEventDateForHistory,
+          onChanged: onRequireEventDateForHistoryChanged,
+          title: Text(l10n.settingsGeneralRequireEventDateForHistoryTitle),
+          subtitle: Text(
+            l10n.settingsGeneralRequireEventDateForHistorySubtitle,
+          ),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
           key: const ValueKey('general-track-history-for-all-callers'),
           value: trackHistoryForAllCallers,
           onChanged: onTrackHistoryForAllCallersChanged,
@@ -428,24 +642,58 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsGeneralTrackHistoryForAllCallersSubtitle),
           isThreeLine: true,
         ),
-        ListTile(
-          key: const ValueKey('general-venue-call-count'),
+        SettingsDropdownRow(
+          tileKey: const ValueKey('general-venue-call-count'),
           title: Text(l10n.settingsProgramVenueCallCountTitle),
           subtitle: Text(l10n.settingsProgramVenueCallCountSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<int>(
+          dropdownBuilder: (expanded) => AppDropdownField<int>(
+            key: const ValueKey('program-venue-call-count'),
+            compact: true,
+            fillWidth: expanded,
             value: venueCallCount,
-            onChanged: (value) {
-              if (value != null) onVenueCallCountChanged(value);
-            },
-            items: [
+            onChanged: onVenueCallCountChanged,
+            entries: [
               for (var count = 0; count <= kVenueCallCountMax; count++)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: count,
-                  child: Text(l10n.settingsProgramVenueCallCountOption(count)),
+                  label: l10n.settingsProgramVenueCallCountOption(count),
                 ),
             ],
           ),
+        ),
+        SectionHeader(title: l10n.settingsTrackingHeader),
+        SwitchListTile(
+          key: const ValueKey('general-recency-require-event-date'),
+          value: tracking.recencyRequireEventDate,
+          onChanged: onRecencyRequireEventDateChanged,
+          title: Text(l10n.settingsRecencyRequireEventDateTitle),
+          subtitle: Text(l10n.settingsRecencyRequireEventDateSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-recency-require-performed'),
+          value: tracking.recencyRequirePerformed,
+          onChanged: onRecencyRequirePerformedChanged,
+          title: Text(l10n.settingsRecencyRequirePerformedTitle),
+          subtitle: Text(l10n.settingsRecencyRequirePerformedSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-history-order-ignore-undated'),
+          value: tracking.orderIgnoreUndated,
+          onChanged: onHistoryOrderIgnoreUndatedChanged,
+          title: Text(l10n.settingsHistoryOrderIgnoreUndatedTitle),
+          subtitle: Text(l10n.settingsHistoryOrderIgnoreUndatedSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-history-order-ignore-unperformed'),
+          value: tracking.orderIgnoreUnperformed,
+          onChanged: onHistoryOrderIgnoreUnperformedChanged,
+          title: Text(l10n.settingsHistoryOrderIgnoreUnperformedTitle),
+          subtitle: Text(l10n.settingsHistoryOrderIgnoreUnperformedSubtitle),
+          isThreeLine: true,
         ),
       ],
     );

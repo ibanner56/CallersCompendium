@@ -5,37 +5,49 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
+import '../taxonomy/cast_vocabulary.dart';
 import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
+import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
 import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
+import '../taxonomy/param_types.dart' show ParamVocab;
 
 /// A [SourceAdapter] that imports dances from **The Caller's Box** (TCB)
 /// per-dance JSON, as served by
 /// `ibiblio.org/contradance/thecallersbox/dance.php?id=N&format=JSON`
 /// (surveyed in `docs/research/callersbox.md`; conventions in
-/// `docs/design/imports.md` §"CallersBox" and `docs/design/callersbox-snapshot.md`).
+/// `docs/design/imports.md` §1 "CallersBox").
 ///
 /// **Core is I/O-free** — this adapter never fetches the endpoint. It parses a
-/// payload *string* that the app layer supplies (a separate PR adds the URL
-/// fetch + in-app wiring, at which point ROADMAP 6.2/6.3 tick). The same parse
-/// path is reused by the future 6.2 hosted-snapshot NDJSON import.
+/// payload *string* that the app layer supplies: the app's by-link import
+/// (`buildCallersBoxJsonUrl`) resolves a pasted TCB URL or id to the JSON
+/// endpoint and fetches it once.
 ///
-/// ## Scope: figures imported as CUSTOM (dialect-scrubbed text + beats)
+/// ## Scope: figures go through the shared structured parser
 /// TCB figure lines are free text of the form `(beats) text` (e.g.
-/// `(4) Neighbor balance`). A `(beats) text` → **structured-move** grammar
-/// parser is a genuinely separate, large effort and is **deferred to a
-/// follow-up** (the same call the ContraDB 6.4 and Caller's Companion 6.5
-/// adapters made). Here every figure line is imported as a [customFigure]
-/// carrying its beats and its **canonicalized** text, so the headline asks —
-/// by-link parsing + gendered-term dialect scrubbing — are fully delivered and
-/// `parse` never fails on figure content.
+/// `(4) Neighbor balance`). Every line runs through [parseFigureLines]
+/// (`figure_parser.dart`): recognised moves become structured taxonomy
+/// figures and anything else degrades to a [customFigure] carrying its beats
+/// and **canonicalized** text, so `parse` never fails on figure content.
+/// Compound TCB blocks — a `(beats) text:` parent line followed by indented
+/// `(beats)` children summing exactly to the parent's — are read by
+/// [_tryParseCompound] before the per-line parse. It collapses the block to
+/// one of three readings: a known parent name structures to a single
+/// taxonomy figure (children subsumed into its note); an unknown parent whose
+/// children ALL structure expands to those children, each keeping its own
+/// beats, grouped as one sequence titled with the parent's name where the
+/// merge left them whole ([CallersBoxAdapter._groupNamedCompounds]); anything
+/// else falls back to one [customFigure] with the parent text and the
+/// children in its note. See `docs/design/imports.md` §1 and
+/// §"Shared free-text figure parser".
 ///
 /// ## Dialect scrubbing (the headline ask)
 /// Each figure line's text is routed through the CORE canonicalization
@@ -96,6 +108,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No Caller\'s Box payload provided to import.',
       );
     }
@@ -107,6 +120,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notJson,
         message: 'Payload is not valid JSON: ${e.message}',
         cause: e,
       );
@@ -117,6 +131,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notCallersBoxDance,
         message:
             'Payload is not a Caller\'s Box dance export: expected a TCB dance '
             'object (with "ID"/"Name"), an array of dances, or an object with '
@@ -130,6 +145,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.noDanceAtId,
         message:
             'Payload does not contain a Caller\'s Box dance: no element has an '
             '"ID" or "Name".',
@@ -217,7 +233,16 @@ class CallersBoxAdapter implements SourceAdapter {
     final permission = (_asString(dance['Permission'])?.trim() ?? '')
         .toLowerCase();
     final isFull = permission == 'full';
-    final figures = isFull ? _parseFigures(dance['phrases']) : const <Figure>[];
+    final figures = isFull
+        ? _assumeCastShoulders(
+            _parseFigures(
+              dance['phrases'],
+              longestPhraseBeats: PhraseStructure.parseOrStandard(
+                phraseStructure,
+              ).longestPhraseBeats,
+            ),
+          )
+        : const <Figure>[];
     if (!isFull) {
       issues.add(
         ImportIssue(
@@ -276,7 +301,13 @@ class CallersBoxAdapter implements SourceAdapter {
   /// never crosses a section boundary: TCB phrase entries map to the A1/A2/…
   /// sections, and the balance+move / hall+bend pairs it folds are always
   /// written within a single phrase entry.
-  List<Figure> _parseFigures(Object? phrases) {
+  ///
+  /// [longestPhraseBeats] is the dance's longest phrase: a named compound
+  /// longer than it is not grouped ([_groupNamedCompounds]).
+  List<Figure> _parseFigures(
+    Object? phrases, {
+    required int longestPhraseBeats,
+  }) {
     if (phrases is! List) return const [];
     final figures = <Figure>[];
     for (final phrase in phrases) {
@@ -292,7 +323,26 @@ class CallersBoxAdapter implements SourceAdapter {
         if (text == null) continue;
         rawLines.add(text);
       }
-      figures.addAll(_mergeCrossLineFigures(_parsePhraseFigures(rawLines)));
+      final standaloneSquareThroughs = Map<Figure, String>.identity();
+      final namedCompounds = <_NamedCompound>[];
+      final merged = _groupNamedCompounds(
+        _mergeCrossLineFigures(
+          _parsePhraseFigures(
+            rawLines,
+            standaloneSquareThroughs,
+            namedCompounds,
+          ),
+        ),
+        namedCompounds,
+        longestPhraseBeats: longestPhraseBeats,
+      );
+      figures.addAll([
+        for (final f in merged)
+          switch (standaloneSquareThroughs[f]) {
+            final text? => beatImpliedBalance(text, f),
+            null => f,
+          },
+      ]);
     }
     return figures;
   }
@@ -300,17 +350,26 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Parses one phrase's raw figure lines into figures, collapsing TCB's
   /// compound convention ([_tryParseCompound]) into one or more figures and
   /// routing every other line through the per-line parser unchanged.
-  List<Figure> _parsePhraseFigures(List<String> rawLines) {
+  /// [standaloneSquareThroughs] collects the square throughs the per-line
+  /// parser leaves for after the merge (see [_parseFigureLine]), and
+  /// [namedCompounds] the named blocks emitted as their children, for
+  /// [_groupNamedCompounds] to group after the merge.
+  List<Figure> _parsePhraseFigures(
+    List<String> rawLines,
+    Map<Figure, String> standaloneSquareThroughs,
+    List<_NamedCompound> namedCompounds,
+  ) {
     final out = <Figure>[];
     var i = 0;
     while (i < rawLines.length) {
       final compound = _tryParseCompound(rawLines, i);
       if (compound != null) {
         out.addAll(compound.figures);
+        if (compound.named case final named?) namedCompounds.add(named);
         i = compound.nextIndex;
         continue;
       }
-      out.addAll(_parseFigureLine(rawLines[i]));
+      out.addAll(_parseFigureLine(rawLines[i], standaloneSquareThroughs));
       i += 1;
     }
     return out;
@@ -337,7 +396,10 @@ class CallersBoxAdapter implements SourceAdapter {
   ///   emit the CHILDREN, each carrying its OWN stated beats. The exact-sum
   ///   guard below already proves those sum to the parent's, so the section
   ///   total is byte-identical to the collapsed reading. The parent's shorthand
-  ///   name is preserved as a `note` on the FIRST child rather than dropped.
+  ///   name is preserved as a `note` on the FIRST child rather than dropped,
+  ///   and the block is recorded as a [_NamedCompound] so that, after the
+  ///   cross-line merge, [_groupNamedCompounds] can make it one sequence
+  ///   titled with that name instead.
   /// - **Anything else** — one [customFigure] with the parent text and the
   ///   parent's beats, children in the note. This is the fallback whenever ANY
   ///   child fails to structure, so a block is never half-structured.
@@ -415,7 +477,20 @@ class CallersBoxAdapter implements SourceAdapter {
         // custom figure whose definition is stranded in a note.
         final children = _structuredCompoundChildren(childTexts, childBeats);
         if (children != null) {
-          return _Compound(_withParentShorthandNote(children, parsed), i);
+          final emitted = _withParentShorthandNote(children, parsed);
+          final name = (parsed.params['text'] as String? ?? '').trim();
+          return _Compound(
+            emitted,
+            i,
+            named: name.isEmpty
+                ? null
+                : _NamedCompound(
+                    name: name,
+                    beats: parentBeats,
+                    emitted: emitted,
+                    children: children,
+                  ),
+          );
         }
         base = parsed; // unknown parent → already-scrubbed custom fallback
       } else {
@@ -491,6 +566,87 @@ class CallersBoxAdapter implements SourceAdapter {
     caseSensitive: false,
   );
 
+  /// Makes each named compound block ([_NamedCompound]) one sequence titled
+  /// with the block's name, `"flutterwheel - <its figures>"`, in place of its
+  /// children emitted one by one with the name as the first child's note.
+  ///
+  /// It runs AFTER the cross-line merge and groups a block only when every
+  /// figure it emitted came through that merge untouched, still adjacent and
+  /// in order (the same objects, compared by identity). A fold that consumed
+  /// any of them, inside the block or across its edge (a balance line before
+  /// it folding into its first child), means the block keeps the flat form
+  /// the merge produced. So grouping never costs a fold: the choreography is
+  /// exactly what the flat form says, and only its grouping differs.
+  ///
+  /// A block also stays flat when it cannot be a sequence: longer than
+  /// [longestPhraseBeats], the dance's longest phrase (a sequence must fit
+  /// one, as the editor requires and `deriveSections` warns), fewer than two or
+  /// more than [kMaxSequenceFigures] figures, a figure that is itself a
+  /// sequence, a nested container deeper than the model allows, or a name the
+  /// title would have to shorten or rewrite ([normalizeContainerTitle]). The
+  /// first-child note says the name in full there, as it always has.
+  ///
+  /// The sequence carries the block's own [_NamedCompound.beats], which the
+  /// compound guard has already proven equal to its children's sum, so the
+  /// section totals are unchanged; the first child gets its own note back.
+  static List<Figure> _groupNamedCompounds(
+    List<Figure> figures,
+    List<_NamedCompound> named, {
+    required int longestPhraseBeats,
+  }) {
+    if (named.isEmpty) return figures;
+    final byFirst = Map<Figure, _NamedCompound>.identity();
+    for (final block in named) {
+      byFirst[block.emitted.first] = block;
+    }
+    final out = <Figure>[];
+    var i = 0;
+    while (i < figures.length) {
+      final block = byFirst[figures[i]];
+      final grouped = block == null || block.beats > longestPhraseBeats
+          ? null
+          : _namedSequence(block, figures, i);
+      if (grouped != null) {
+        out.add(grouped);
+        i += block!.emitted.length;
+        continue;
+      }
+      out.add(figures[i]);
+      i += 1;
+    }
+    return out;
+  }
+
+  /// [block] as one titled sequence when its figures sit untouched at
+  /// [figures] from [start] and it can be a sequence, else `null`. See
+  /// [_groupNamedCompounds].
+  static Figure? _namedSequence(
+    _NamedCompound block,
+    List<Figure> figures,
+    int start,
+  ) {
+    final emitted = block.emitted;
+    if (emitted.length < 2 || emitted.length > kMaxSequenceFigures) {
+      return null;
+    }
+    if (start + emitted.length > figures.length) return null;
+    for (var k = 0; k < emitted.length; k++) {
+      if (!identical(figures[start + k], emitted[k])) return null;
+    }
+    if (normalizeContainerTitle(block.name) != block.name) return null;
+    try {
+      return Figure.sequence(
+        figures: block.children,
+        beats: block.beats,
+        title: block.name,
+      );
+    } on ArgumentError {
+      // A child the model will not hold in a sequence (another sequence, or
+      // a container below a container): keep the block flat.
+      return null;
+    }
+  }
+
   /// Parses a compound's children into structured figures, or `null` when ANY
   /// child fails to structure — the all-or-nothing guard that keeps a block from
   /// ever being emitted half-structured.
@@ -564,7 +720,18 @@ class CallersBoxAdapter implements SourceAdapter {
   /// one figure per clause by [parseFigureLines], which keeps the whole line
   /// custom unless every clause structures and preserves the source beats total
   /// on the first clause. Single-clause lines behave exactly as before.
-  List<Figure> _parseFigureLine(String line) {
+  ///
+  /// The balance a line's beats imply ([withBeatImpliedBalance], #1975) is
+  /// applied here, except to a line that reads as one square through: that one
+  /// is recorded in [standaloneSquareThroughs] with its text and given its
+  /// balance after the cross-line merge, and only if no balance line folded
+  /// into it. Applying it first would stop Fold 1 taking in a balance line
+  /// before a square through long enough for its own balance, which main
+  /// folds: `(4) Partner balance` + `(12) Square through 4 (…)`.
+  List<Figure> _parseFigureLine(
+    String line,
+    Map<Figure, String> standaloneSquareThroughs,
+  ) {
     final match = _beatsPrefix.firstMatch(line);
     int beats = 0;
     String text = line.trim();
@@ -589,11 +756,16 @@ class CallersBoxAdapter implements SourceAdapter {
     // Route through the shared parser: recognised moves become structured
     // figures; the rest fall back to custom. Empty when the line is empty
     // after scrubbing.
-    return parseFigureLines(
+    final figures = parseFigureLines(
       text,
       beats: beats,
       frontEnd: tcbFigureFrontEnd,
     ).map(_preserveBalanceWaveBracketNote).toList();
+    if (figures.length == 1 && figures.single.move == 'square_through') {
+      standaloneSquareThroughs[figures.single] = text;
+      return figures;
+    }
+    return withBeatImpliedBalance(text, figures);
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------
@@ -645,7 +817,11 @@ class CallersBoxAdapter implements SourceAdapter {
   ///  - a balance LINE immediately preceding a swing / petronella /
   ///    rory_o_more / box_the_gnat / swat_the_flea / box_circulate /
   ///    square_through folds into that move (swing → `prefix: 'balance'`;
-  ///    the others → `balance: true`, upgrading rory's neutral `false`);
+  ///    the others → `balance: true`, upgrading rory's neutral `false`) —
+  ///    but only when the merged figure balances the same dancers in the same
+  ///    formation the balance line did ([_balanceMatchesMove]): a stated
+  ///    subject must equal the move's, a ring balance folds only into
+  ///    petronella, and a balance-WAVE line only into a wave move;
   ///  - a bend-the-line LINE immediately following a structured down/up the hall
   ///    folds in as `ender: 'bendTheLine'` (upgrading the neutral `'none'`).
   ///  - a balance-WAVE LINE immediately following a `pass_the_ocean` /
@@ -673,8 +849,8 @@ class CallersBoxAdapter implements SourceAdapter {
   /// ([parseFigureLines]) now puts source prose on structured figures, that is
   /// reachable: `Balance the ring; face up` structures to
   /// `balance_the_ring` + the note `face up`, is still a balance LINE, and folds
-  /// into a following swing. Losing the note there would make structuring cost
-  /// information the custom fallback kept. Folds 2/3/4 consume only CUSTOM
+  /// into a following petronella. Losing the note there would make structuring
+  /// cost information the custom fallback kept. Folds 2/3/4 consume only CUSTOM
   /// lines, which carry no note, so the propagation is defence in depth there.
   static List<Figure> _mergeCrossLineFigures(List<Figure> figures) {
     final merged = <Figure>[];
@@ -850,8 +1026,16 @@ class CallersBoxAdapter implements SourceAdapter {
 
   /// Dancer-set words that [scrubFigureText] produces for role/couple prefixes
   /// in TCB figure lines (`Men` → `role1s`, `Women` → `role2s`, `Ones` →
-  /// `ones`, `Twos` → `twos`).
-  static const _tcbDancerPrefixes = {'role1s', 'role2s', 'ones', 'twos'};
+  /// `ones`, `Twos` → `twos`), and since taxonomy v40 the third and fourth
+  /// couples (`Threes`, `Fours`).
+  static const _tcbDancerPrefixes = {
+    'role1s',
+    'role2s',
+    'ones',
+    'twos',
+    'threes',
+    'fours',
+  };
 
   /// A bend-the-line line: a custom figure whose scrubbed text is "bend the
   /// line" (or the bare "bend" / "bend line" shorthands). Bend never recognises
@@ -881,24 +1065,77 @@ class CallersBoxAdapter implements SourceAdapter {
   static bool _isHall(Figure f) =>
       f.move == 'down_the_hall' || f.move == 'up_the_hall';
 
+  /// Fold-1 targets whose balance is a balance of a RING (petronella) or of a
+  /// WAVE (Rory O'More, box circulate). Every other target in
+  /// [_balanceMergeMoves] (swing, box the gnat, swat the flea, square through)
+  /// is a SUBJECT move: its folded figure renders `<who> balance & <move>`
+  /// (swing via `prefix`, the rest via `balance: true`), so it claims the
+  /// balance was danced by the move's `who`.
+  static const _ringBalanceMoves = {'petronella'};
+  static const _waveBalanceMoves = {'rory_o_more', 'box_circulate'};
+
+  /// Whether folding [balance] into [move] keeps WHO and WHAT is balanced, so
+  /// the merged figure claims no balance the source did not describe. [move]
+  /// is already known to be in [_balanceMergeMoves].
+  ///
+  ///  * A dancer balance with a STATED subject (`Partner balance`,
+  ///    `Neighbor balance (RH)`, `Ones balance`) folds only into a move whose
+  ///    effective `who` (explicit, else the taxonomy default) is the SAME set.
+  ///    `Neighbor balance` / `Partner swing` stay two figures, and so does
+  ///    `Partner balance` / `Petronella` — petronella has no subject; its
+  ///    balance is the whole ring's.
+  ///  * A bare `Balance` (the recognizer ASSUMED its subject —
+  ///    [Figure.assumedSubject]) folds only into a ring or wave move, whose
+  ///    render names no balancing subject. Folded into a swing it would render
+  ///    `partners balance & swing`: a partner balance the source never stated.
+  ///  * `Balance ring` / `Balance the ring` folds only into petronella, whose
+  ///    balance IS the ring's. Folded into a swing it would turn the whole
+  ///    ring's balance into the swing pair's.
+  ///  * A custom balance line naming a WAVE (`Balance wave of four (NR,WL)`,
+  ///    `Balance long wave (NR, women face in)`) folds only into a wave move.
+  ///    Folded into a swing it would erase the wave's sides, centre and hands,
+  ///    claim the swing pair's balance, and — for `Balance wave of four` /
+  ///    `Ones swing` — lose the twos' balance outright. It stays its own figure
+  ///    instead, which [_promoteBalanceWaveLines] maps onto the wave-formation
+  ///    move with `balance: true` when it can decode the line.
+  ///  * A custom balance line naming the ring folds only into petronella.
+  ///  * Any other custom balance line (`Balance diamond`) names a formation we
+  ///    do not identify, so it never folds: merging would drop the formation
+  ///    word and assert a balance of a different set.
+  static bool _balanceMatchesMove(Figure balance, Figure move) {
+    final target = move.move;
+    final ringOrWave =
+        _ringBalanceMoves.contains(target) ||
+        _waveBalanceMoves.contains(target);
+    if (balance.move == 'balance') {
+      if (balance.assumedSubject) return ringOrWave;
+      final balanceWho = balance.params['who'];
+      final moveWho = _effectiveWho(move);
+      return balanceWho != null && moveWho != null && balanceWho == moveWho;
+    }
+    if (balance.move == 'balance_the_ring') {
+      return _ringBalanceMoves.contains(target);
+    }
+    if (!balance.isCustom) return false;
+    final words = _figureWords(balance).map(_stripEdgePunctuation).toSet();
+    if (words.contains('wave') || words.contains('waves')) {
+      return _waveBalanceMoves.contains(target);
+    }
+    // Fold only a formation we positively identify; an unknown one
+    // (`Balance diamond`) stays its own figure.
+    if (words.contains('ring')) return _ringBalanceMoves.contains(target);
+    return false;
+  }
+
   /// Returns [move] with the preceding [balance] folded in, or `null` when
   /// [move] is not a mergeable target (leaving both as separate figures) or
   /// already carries the balance (guarding against a double-fold of a
   /// single-line "balance and swing" / meltdown swing / already-balanced move).
   static Figure? _foldBalanceIntoMove(Figure balance, Figure move) {
     if (!_balanceMergeMoves.contains(move.move)) return null;
-    // Mismatched-who guard: a structured balance line carries its own `who`
-    // (e.g. "Neighbor balance" → who: neighbors). Only fold when the dancers
-    // agree — if BOTH the balance and the move name an explicit, DIFFERING
-    // `who`, they are distinct figures ("Neighbor balance" then "Partner
-    // swing"), so merging would silently drop the balance's choreography.
-    // Either side without a `who` (custom balance forms, balance_the_ring,
-    // petronella) still merges.
-    final balanceWho = balance.params['who'];
-    final moveWho = move.params['who'];
-    if (balanceWho != null && moveWho != null && balanceWho != moveWho) {
-      return null;
-    }
+    // Subject/formation guard (see [_balanceMatchesMove]): fold only when the
+    // merged figure balances exactly who and what the balance line did.
+    if (!_balanceMatchesMove(balance, move)) return null;
 
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
@@ -988,6 +1225,38 @@ class CallersBoxAdapter implements SourceAdapter {
     );
   }
 
+  /// The Caller's Box's cast-back convention (taxonomy v40, #770): a role's
+  /// cast that states no shoulder is over the role's usual one, role2s right
+  /// and role1s left ([castBackShoulderForWho]), as a chain assumes a role's
+  /// hand. The maintainer's ruling limits it to this adapter: other sources,
+  /// typed text and a re-check of stored lines leave an unstated shoulder
+  /// unstated. Recurses into containers, so a `||` side is covered.
+  static List<Figure> _assumeCastShoulders(List<Figure> figures) => [
+    for (final figure in figures) _assumeCastShoulder(figure),
+  ];
+
+  static Figure _assumeCastShoulder(Figure figure) {
+    if (figure.isContainer) {
+      final children = figure.subFigures;
+      final mapped = _assumeCastShoulders(children);
+      var changed = false;
+      for (var i = 0; i < children.length; i++) {
+        if (!identical(children[i], mapped[i])) changed = true;
+      }
+      return changed
+          ? figure.copyWith(params: {...figure.params, 'figures': mapped})
+          : figure;
+    }
+    if (figure.move != 'cast') return figure;
+    final direction = figure.params['direction'];
+    if (direction != null && direction != ParamVocab.unspecified) {
+      return figure;
+    }
+    final shoulder = castBackShoulderForWho(figure.params['who']);
+    if (shoulder == null) return figure;
+    return figure.copyWith(params: {...figure.params, 'direction': shoulder});
+  }
+
   static bool _isMeltdownSetup(Figure figure) {
     if (figure.beats != 2) return false;
     final words = figure.isMeanwhile
@@ -995,8 +1264,18 @@ class CallersBoxAdapter implements SourceAdapter {
         : figure.isCustom
         ? _figureWords(figure)
         : const <String>[];
-    return words.contains('cast') &&
-        words.contains('back') &&
+    // Since taxonomy v40 (#770) the "Women cast back" side reads as a
+    // structured `cast`, so it no longer leaves its words behind. A cast back
+    // is one that travels neither up nor down the set.
+    final castSide =
+        figure.isMeanwhile &&
+        figure.subFigures.any(
+          (f) =>
+              f.move == 'cast' &&
+              f.params['direction'] != 'up' &&
+              f.params['direction'] != 'down',
+        );
+    return (castSide || (words.contains('cast') && words.contains('back'))) &&
         words.contains('go') &&
         words.contains('forward');
   }
@@ -1066,6 +1345,13 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     final beats = _sumBeats(wave, balance);
     final decoded = _balanceWaveAsFormMove(balance);
+    // A custom balance line whose annotation does not decode (`Balance wave of
+    // four (SRNR,1CL)` — `SRN` and `1C` are not modelled codes) would lose
+    // that annotation in the fold: only decoded params and a decoded note are
+    // carried over. Refuse, so the line stays custom with its text intact.
+    if (decoded == null && balance.isCustom && _hasAnnotation(balance)) {
+      return null;
+    }
     final extra = decoded == null
         ? const <String, Object?>{}
         : _compatibleFormParams(wave.move, decoded);
@@ -1080,6 +1366,12 @@ class CallersBoxAdapter implements SourceAdapter {
       },
       note: combineFigureNotes(wave.note, balanceNote),
     );
+  }
+
+  /// Whether a custom figure's text carries a `()` or `[]` annotation.
+  static bool _hasAnnotation(Figure f) {
+    final text = f.params['text'];
+    return text is String && (text.contains('(') || text.contains('['));
   }
 
   /// The params of a decoded balance-wave line that mean the same thing on
@@ -1136,9 +1428,12 @@ class CallersBoxAdapter implements SourceAdapter {
   // emitted.
   //
   // Runs AFTER the fold walk, over leftovers only, so:
-  //  * a balance that belongs to a FOLLOWING action (`Balance wave of four` then
-  //    `Neighbor swing` / petronella / rory / box the gnat / box circulate) has
-  //    already been consumed by Fold 1 and is never seen here; and
+  //  * a balance that belongs to a FOLLOWING wave action (`Balance wave of
+  //    four` then a Rory O'More or box circulate) has already been consumed by
+  //    Fold 1 and is never seen here. A balance wave before a swing / box the
+  //    gnat / swat the flea / petronella is NOT consumed — Fold 1 refuses it
+  //    ([_balanceMatchesMove]), because folding would erase the wave and hand
+  //    its balance to the move's pair — so it reaches this promotion; and
   //  * a balance that follows an explicitly-formed wave has already been folded
   //    into that figure by Fold 4, so exactly one form figure results.
   //
@@ -1150,12 +1445,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// TCB people codes that name a ROLE/COUPLE pair — the dancers in the CENTRE
   /// of a short wave (`M`/`W` roles, `1`/`2` the ones/twos). Everything ELSE in
   /// [tcbPassPeople] names a pair RELATIONSHIP (the wave's sides): `N`,
-  /// `N0`–`N4`, `P`/`P1`, `P0`/`P2`–`P5`, `S`/`S1`/`S2`. TCB uses one
-  /// people-code notation across heys, grand-right-and-lefts and wave
-  /// annotations, so this reuses that single map rather than duplicating it —
-  /// and a code the map omits (square corners, out-of-range partner/neighbor/
-  /// shadow codes, phantoms, trail buddies, …) keeps the line custom, exactly
-  /// as it does everywhere else.
+  /// `N0`–`N4`, `P`/`P1`, `P0`/`P2`–`P5`, `S`/`S1`/`S2`, and since taxonomy
+  /// v38 the square corners `C1`–`C3` (#1975). TCB uses one people-code
+  /// notation across heys, grand-right-and-lefts and wave annotations, so this
+  /// reuses that single map rather than duplicating it — and a code the map
+  /// omits (`C4`+, out-of-range partner/neighbor/shadow codes, phantoms, trail
+  /// buddies, …) keeps the line custom, exactly as it does everywhere else.
   static const Map<String, String> _waveRoleCodes = {
     'm': 'role1s',
     'w': 'role2s',
@@ -1462,8 +1757,17 @@ class CallersBoxAdapter implements SourceAdapter {
 
     final lower = base.toLowerCase();
     FormationShape? shape;
+    // Set shapes first: "Proper Triplet (231)" is a triplet, not a duple proper.
+    final set = classifyFormationSetName(lower);
     if (lower.contains('becket')) {
       shape = _becketShape(dance['Direction'], lower, issues);
+    } else if (set != null) {
+      return Formation(
+        set.shape,
+        detail: joinFormationDetail(set.qualifier, extra),
+      );
+    } else if (lower == 'duple minor - progressed improper') {
+      shape = FormationShape.progressedImproper;
     } else if (lower == 'duple minor - reverse progression improper') {
       shape = FormationShape.reverseProgressionImproper;
     } else if (lower.contains('improper')) {
@@ -1474,8 +1778,6 @@ class CallersBoxAdapter implements SourceAdapter {
       shape = FormationShape.dupleProper;
     } else if (lower.contains('triple')) {
       shape = FormationShape.tripleMinor;
-    } else if (lower.contains('triplet')) {
-      shape = FormationShape.triplet;
     } else if (lower.contains('four facing four') ||
         lower.contains('four face four')) {
       shape = FormationShape.fourFaceFour;
@@ -1490,8 +1792,6 @@ class CallersBoxAdapter implements SourceAdapter {
       shape = FormationShape.grid;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
-    } else if (lower.contains('quadruplet')) {
-      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }
@@ -1537,14 +1837,11 @@ class CallersBoxAdapter implements SourceAdapter {
     final flag = _asString(dance['Mixer?'])?.trim().toLowerCase();
     if (flag == 'yes') return true;
     // NOTE (issue #732): this inference is intentionally scoped to The Caller's
-    // Box and is NOT applied by the ContraDB or Caller's Companion adapters.
-    // ContraDB has no first-class mixer category to read. Caller's Companion may
-    // — Chris builds his collection in CC and exports to The Caller's Box, so
-    // his data probably aligns, but "mixer" may be a custom field of his rather
-    // than a native CC concept, and we have not confirmed which. Rather than
-    // guess a mapping for a source we have not verified, those adapters leave
-    // `mixer` at its `false` default. This was considered and declined, not
-    // overlooked; revisit if an explicit request for those sources arrives.
+    // Box and is NOT applied by the ContraDB adapter, which has no first-class
+    // mixer category to read. A Caller's Companion `.USR` reads its own stated
+    // mixer types instead (#1972: `Type` "Circle Mixer"/"Scatter Mixer", a
+    // square's `SubType` "Mixer, …"), not an inference from the shape; the CC
+    // text export keeps its earlier mapping and leaves `mixer` false.
     return formation.shape == FormationShape.circleMixer ||
         formation.shape == FormationShape.scatterMixer;
   }
@@ -1622,8 +1919,8 @@ class CallersBoxAdapter implements SourceAdapter {
           severity: ImportIssueSeverity.warning,
           code: 'callersbox_phrase_structure_unreadable',
           message:
-              'PhraseStructure "$text" is not "phrases*bars*beatsPerBar"; '
-              'default structure used.',
+              'PhraseStructure "$text" is not "phrases*bars*beatsPerBar" or is larger '
+              'than supported; default structure used.',
         ),
       );
       return '';
@@ -1825,10 +2122,37 @@ class CallersBoxAdapter implements SourceAdapter {
 /// parent (known parent, or an unstructurable decomposition), or the structured
 /// children when TCB's own decomposition is preferred (#295) — and [nextIndex],
 /// the index of the first line AFTER the consumed block, so the caller resumes
-/// there.
+/// there. [named] is set for the #295 reading, whose block
+/// [CallersBoxAdapter._groupNamedCompounds] may make one titled sequence.
 class _Compound {
-  const _Compound(this.figures, this.nextIndex);
+  const _Compound(this.figures, this.nextIndex, {this.named});
 
   final List<Figure> figures;
   final int nextIndex;
+  final _NamedCompound? named;
 }
+
+/// A compound block read as its structured children (#295), remembered so it
+/// can become one sequence titled [name] after the cross-line merge.
+///
+/// [emitted] are the exact figure objects the block put in the phrase (the
+/// first carrying [name] as its note); [children] are the same figures with
+/// the first's own note, for the sequence. [beats] is the parent line's count.
+class _NamedCompound {
+  const _NamedCompound({
+    required this.name,
+    required this.beats,
+    required this.emitted,
+    required this.children,
+  });
+
+  final String name;
+  final int beats;
+  final List<Figure> emitted;
+  final List<Figure> children;
+}
+
+/// The moves a preceding balance folds into ([CallersBoxAdapter]'s Fold 1),
+/// shared with Caller's Companion's comma split so both sources fold the same
+/// moves (#1975).
+const Set<String> balanceFoldMoves = CallersBoxAdapter._balanceMergeMoves;

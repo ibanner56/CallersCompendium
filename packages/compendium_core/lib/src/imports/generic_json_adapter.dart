@@ -1,5 +1,6 @@
 import '../model/choreographer.dart';
 import '../model/dance.dart';
+import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../serialization/archive_codec.dart';
@@ -8,6 +9,10 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+
+/// [ImportIssue.code] of the batch warning raised when an archive was written
+/// by a newer app version than this one.
+const String archiveNewerSchemaCode = 'archive_newer_schema';
 
 /// A [SourceAdapter] that imports dances from our own canonical
 /// [CompendiumArchive] JSON — the generic-JSON format written by
@@ -41,7 +46,7 @@ import 'structured_draft.dart';
 ///   (parse-never-fails); it throws only when the payload is not a valid record
 ///   of this source (undecodable / zero dances). Codec errors and warnings are
 ///   surfaced as non-fatal [ImportIssue]s on the draft.
-class GenericJsonAdapter implements SourceAdapter {
+class GenericJsonAdapter implements SourceAdapter, BatchWarningSource {
   GenericJsonAdapter();
 
   @override
@@ -70,6 +75,13 @@ class GenericJsonAdapter implements SourceAdapter {
   /// [RawRecord.sourceVersion] and used to re-serialize single-dance archives.
   int _schemaVersion = archiveSchemaVersion;
 
+  List<ImportIssue> _batchWarnings = const [];
+
+  /// One `archive_newer_schema` warning when the archive was written by a newer
+  /// app version, whose extra fields this version drops; empty otherwise.
+  @override
+  List<ImportIssue> get batchWarnings => _batchWarnings;
+
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
     // Reset discovery state up front so a failed attempt never leaves stale
@@ -78,12 +90,14 @@ class GenericJsonAdapter implements SourceAdapter {
     _choreographersById.clear();
     _difficultyLevelsById.clear();
     _schemaVersion = archiveSchemaVersion;
+    _batchWarnings = const [];
 
     final payload = request.payload;
     if (payload == null || payload.trim().isEmpty) {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No archive payload provided to import.',
       );
     }
@@ -96,6 +110,7 @@ class GenericJsonAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notCompendiumArchive,
         message:
             'Payload is not a decodable Compendium archive: '
             '${rootError.message}',
@@ -110,16 +125,63 @@ class GenericJsonAdapter implements SourceAdapter {
       result.archive.difficultyLevels.map((l) => MapEntry(l.id, l)),
     );
     _schemaVersion = result.archive.schemaVersion;
+    if (_schemaVersion > archiveSchemaVersion) {
+      _batchWarnings = [
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: archiveNewerSchemaCode,
+          message:
+              'archive schemaVersion $_schemaVersion is newer than supported '
+              '$archiveSchemaVersion; fields added by the newer version are '
+              'left out',
+        ),
+      ];
+    }
 
     return [
       for (final dance in result.archive.dances)
         DiscoveredRecord(
           source: source,
-          externalId: dance.provenance?.externalId ?? dance.id,
+          externalId: externalIdFor(dance),
           label: dance.title,
           locator: {'danceId': dance.id},
         ),
     ];
+  }
+
+  /// The `(json, externalId)` key a bundled [dance] is received under.
+  ///
+  /// A bundle preserves each dance's upstream provenance — where the *sender*
+  /// got it — and upstream sources hand out overlapping small integer ids
+  /// (ContraDB and The Caller's Box both do), so the bare upstream id made
+  /// ContraDB #457 and The Caller's Box #457 one key: inside a bundle the
+  /// original-id correlation then pointed a program slot at the wrong dance.
+  /// The upstream id is therefore namespaced by its source (`contradb:457`).
+  /// An upstream that is itself `json` — the sender received the dance from a
+  /// bundle — already carries a key in this space and passes through
+  /// unchanged, so a re-shared dance still matches the copy received directly.
+  /// A dance with no upstream id is keyed on its archive id.
+  ///
+  /// [CompendiumArchiveImporter] correlates the archive's original dance ids
+  /// with committed records through this same function; the two must agree.
+  static String externalIdFor(Dance dance) {
+    final provenance = dance.provenance;
+    final upstreamId = provenance?.externalId;
+    if (provenance == null || upstreamId == null || upstreamId.isEmpty) {
+      return dance.id;
+    }
+    if (provenance.source == ProvenanceSource.json) return upstreamId;
+    return '${provenance.source.name}:$upstreamId';
+  }
+
+  /// The key [externalIdFor] produced before the source namespace existed —
+  /// the bare upstream id — when it differs from the current key; `null`
+  /// otherwise. Fed to [RawRecord.priorExternalIds] so a library that received
+  /// the dance under the old key re-imports it instead of gaining a duplicate.
+  static String? legacyExternalIdFor(Dance dance) {
+    final upstreamId = dance.provenance?.externalId;
+    if (upstreamId == null || upstreamId.isEmpty) return null;
+    return externalIdFor(dance) == upstreamId ? null : upstreamId;
   }
 
   @override
@@ -141,12 +203,16 @@ class GenericJsonAdapter implements SourceAdapter {
       );
     }
 
+    final legacyExternalId = legacyExternalIdFor(dance);
     return RawRecord(
       source: source,
       externalId: record.externalId,
+      priorExternalIds: legacyExternalId == null
+          ? const []
+          : [legacyExternalId],
       sourceVersion: '$_schemaVersion',
       payload: _encodeSingleDance(
-        dance,
+        _withRelatedTargetsByExternalId(dance),
         _referencedChoreographers(dance),
         _referencedDifficultyLevels(dance),
         _schemaVersion,
@@ -155,8 +221,34 @@ class GenericJsonAdapter implements SourceAdapter {
     );
   }
 
+  /// [dance] with each `relatedDance` link's target, a dance id of the
+  /// sender's, rewritten to that dance's [externalIdFor] key when the archive
+  /// carries it. That key is what the target is committed and received under,
+  /// so [ImportPipeline.commit] can resolve the link to the target's receiver
+  /// id, including when the target is a row the user skipped because they
+  /// already have it. A target the archive does not carry keeps the sender's
+  /// id, which is also its key when it had no upstream provenance.
+  Dance _withRelatedTargetsByExternalId(Dance dance) {
+    if (!dance.links.any((l) => l.kind == LinkKind.relatedDance)) return dance;
+    return dance.copyWith(
+      links: [
+        for (final link in dance.links)
+          if (_dancesById[link.targetDanceId] case final target?)
+            DanceLink(
+              id: link.id,
+              kind: link.kind,
+              targetDanceId: externalIdFor(target),
+              label: link.label,
+              transitive: link.transitive,
+            )
+          else
+            link,
+      ],
+    );
+  }
+
   /// The choreographers this [dance] credits — the ones whose ids appear in its
-  /// `authorIds`, deduped by id, skipping ids that were not present in the
+  /// `authorIds` or `interpreterIds`, deduped by id, skipping ids that were not present in the
   /// discovered archive (best-effort — an unresolved author id is simply
   /// dropped, never fatal). The single-dance payload carries ONLY these, keeping
   /// it minimal and leaking no unrelated authors. ([parse] recovers names in
@@ -165,7 +257,7 @@ class GenericJsonAdapter implements SourceAdapter {
   List<Choreographer> _referencedChoreographers(Dance dance) {
     final referenced = <Choreographer>[];
     final seen = <String>{};
-    for (final id in dance.authorIds) {
+    for (final id in [...dance.authorIds, ...dance.interpreterIds]) {
       if (!seen.add(id)) continue;
       final choreographer = _choreographersById[id];
       if (choreographer != null) referenced.add(choreographer);
@@ -178,6 +270,12 @@ class GenericJsonAdapter implements SourceAdapter {
     final level = id == null ? null : _difficultyLevelsById[id];
     return level == null ? const [] : [level];
   }
+
+  /// Prefix of the codec's newer-schema warning (`archive_codec.dart`).
+  static const String _newerSchemaPrefix = 'archive schemaVersion ';
+
+  static bool _isNewerSchema(RawRecord raw) =>
+      (int.tryParse(raw.sourceVersion ?? '') ?? 0) > archiveSchemaVersion;
 
   @override
   StructuredDraft parse(RawRecord raw) {
@@ -216,11 +314,15 @@ class GenericJsonAdapter implements SourceAdapter {
           message: e.toString(),
         ),
       for (final w in result.warnings)
-        ImportIssue(
-          severity: ImportIssueSeverity.info,
-          code: 'archive_read_warning',
-          message: w,
-        ),
+        // The newer-version note is raised once for the whole file as a batch
+        // warning; repeating it on every dance would bury the real per-row
+        // notes.
+        if (!(_isNewerSchema(raw) && w.startsWith(_newerSchemaPrefix)))
+          ImportIssue(
+            severity: ImportIssueSeverity.info,
+            code: 'archive_read_warning',
+            message: w,
+          ),
     ];
 
     // Recover author display names from the payload's own choreographers (a
@@ -234,13 +336,20 @@ class GenericJsonAdapter implements SourceAdapter {
     final nameById = {
       for (final c in result.archive.choreographers) c.id: c.name,
     };
-    final authorNames = <String>[];
-    final seenAuthorIds = <String>{};
-    for (final id in dance.authorIds) {
-      if (!seenAuthorIds.add(id)) continue;
-      final name = nameById[id]?.trim();
-      if (name != null && name.isNotEmpty) authorNames.add(name);
+    List<String> namesOf(List<String> ids) {
+      final names = <String>[];
+      final seen = <String>{};
+      for (final id in ids) {
+        if (!seen.add(id)) continue;
+        final name = nameById[id]?.trim();
+        if (name != null && name.isNotEmpty) names.add(name);
+      }
+      return names;
     }
+
+    final authorNames = namesOf(dance.authorIds);
+    // Interpreters the same way; the pipeline resolves them as it does authors.
+    final interpreterNames = namesOf(dance.interpreterIds);
     DifficultyLevel? difficultyLevel;
     for (final level in result.archive.difficultyLevels) {
       if (level.id == dance.difficultyLevelId) {
@@ -256,6 +365,7 @@ class GenericJsonAdapter implements SourceAdapter {
       raw: raw,
       issues: issues,
       authorNames: authorNames,
+      interpreterNames: interpreterNames,
       difficultyLevelLabel: difficultyLevel?.label,
       difficultyLevelIdIsCanonical: difficultyLevel != null,
     );

@@ -7,7 +7,9 @@ import '../model/formation.dart';
 import '../taxonomy/param_types.dart';
 import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
+import 'contradb_dancer_vocab.dart';
 import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -64,7 +66,9 @@ import 'structured_draft.dart';
 /// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `notes` →
 /// [Dance.callingNotes]; normalized `preamble` → [Formation.detail].
 /// `start_type` free text is classified to a [FormationShape] best-effort;
-/// recognized text is shape-only, while an unclassifiable string yields a
+/// recognized text is shape-only (except that a set shape such as a triplet
+/// keeps its Proper / Improper / Indecent start word as detail, ahead of any
+/// preamble), while an unclassifiable string yields a
 /// warning and [FormationShape.other]. If both an unclassifiable `start_type`
 /// and a preamble are present, both normalized values are retained in detail.
 ///
@@ -102,6 +106,7 @@ class ContraDbAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No ContraDB payload provided to import.',
       );
     }
@@ -113,6 +118,7 @@ class ContraDbAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notJson,
         message: 'Payload is not valid JSON: ${e.message}',
         cause: e,
       );
@@ -123,6 +129,7 @@ class ContraDbAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notContraDbDance,
         message:
             'Payload is not a ContraDB export: expected a dance object, an '
             'array of dances, or an object with a "dances"/"records" array.',
@@ -385,7 +392,11 @@ class ContraDbAdapter implements SourceAdapter {
         );
         continue;
       }
-      params[spec.name] = converted;
+      if (converted is _ParamGroup) {
+        params.addAll(converted.params);
+      } else {
+        params[spec.name] = converted;
+      }
     }
 
     if (paramList.length > specs.length) {
@@ -523,10 +534,17 @@ class ContraDbAdapter implements SourceAdapter {
     final lower = text.toLowerCase();
 
     FormationShape? shape;
+    // Set shapes first: "Proper Triplet (231)" is a triplet, not a duple proper.
+    final set = classifyFormationSetName(lower);
     if (lower.contains('becket')) {
       shape = (lower.contains('ccw') || lower.contains('counter'))
           ? FormationShape.becketCcw
           : FormationShape.becketCw;
+    } else if (set != null) {
+      return Formation(
+        set.shape,
+        detail: joinFormationDetail(set.qualifier, detail),
+      );
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
@@ -541,8 +559,6 @@ class ContraDbAdapter implements SourceAdapter {
       shape = FormationShape.scatterMixer;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
-    } else if (lower.contains('quadruplet')) {
-      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }
@@ -656,9 +672,17 @@ class ContraDbAdapter implements SourceAdapter {
 
 typedef _Conv = Object? Function(Object? raw);
 
+/// A conversion that sets several params from one positional value: a
+/// fraction amount sets `fraction` and `amount` together (#2120).
+final class _ParamGroup {
+  const _ParamGroup(this.params);
+  final Map<String, Object?> params;
+}
+
 /// One positional parameter in a ContraDB move's `parameter_values`: our
 /// named [name] and a [convert] that maps the ContraDB value into our
-/// vocabulary (returning `null` when it cannot convert cleanly).
+/// vocabulary (returning `null` when it cannot convert cleanly, or a
+/// [_ParamGroup] when it sets more than one param).
 class _PosParam {
   const _PosParam(this.name, this.convert);
   final String name;
@@ -717,47 +741,10 @@ num? _asNum(Object? v) {
   return null;
 }
 
-/// ContraDB dancer-set vocabulary → our canonical tokens. Roles migrate from
-/// ContraDB gentlespoons/ladles to our role1/role2 (`docs/research/contradb.md`).
-const Map<String, String> _dancerVocab = {
-  'everyone': 'everyone',
-  'all': 'everyone',
-  'gentlespoons': 'role1s',
-  'gentlespoon': 'role1s',
-  'gents': 'role1s',
-  'larks': 'role1s',
-  'ladles': 'role2s',
-  'ladle': 'role2s',
-  'ravens': 'role2s',
-  'robins': 'role2s',
-  'role1s': 'role1s',
-  'role2s': 'role2s',
-  'ones': 'ones',
-  'twos': 'twos',
-  'partners': 'partners',
-  'partner': 'partners',
-  'neighbors': 'neighbors',
-  'neighbor': 'neighbors',
-  'same roles': 'sameRoles',
-  'first corners': 'firstCorners',
-  'second corners': 'secondCorners',
-  'shadows': 'shadows',
-  'second shadows': 'secondShadows',
-  'previous neighbors': 'prevNeighbors',
-  'next neighbors': 'nextNeighbors',
-  'third neighbors': 'thirdNeighbors',
-  'fourth neighbors': 'fourthNeighbors',
-  'centers': 'centers',
-  'first gentlespoon': 'onesRole1',
-  'first ladle': 'onesRole2',
-  'second gentlespoon': 'twosRole1',
-  'second ladle': 'twosRole2',
-};
-
 Object? _dancers(Object? raw) {
   final s = _asString(raw);
   if (s == null) return null;
-  return _dancerVocab[s.trim().toLowerCase()];
+  return contradbDancerVocab[s.trim().toLowerCase()];
 }
 
 Object? _hand(Object? raw) {
@@ -800,14 +787,19 @@ Object? _places(Object? raw) {
   return places;
 }
 
+/// ContraDB `half_or_full`. ContraDB itself writes only 0.5 and 1.0 (the
+/// half-or-full stringifier in its libfigure `param.js` throws on anything
+/// else), so any other number
+/// is foreign data. A quarter step up to 2½ keeps its amount, as `other` with
+/// [fractionAmountParam] when no named value states it (#2120); a number
+/// outside that domain is still not a named fraction, so it is `other` with
+/// no amount, which reads as unstated rather than as a guess.
 Object? _fraction(Object? raw) {
   final n = _asNum(raw);
   if (n != null) {
-    if (n == 0.25) return 'quarter';
-    if (n == 0.5) return 'half';
-    if (n == 0.75) return 'threeQuarter';
-    if (n == 1 || n == 1.0) return 'full';
-    return 'other';
+    final params = fractionParamsForAmount(n);
+    if (params == null) return 'other';
+    return params.length == 1 ? params['fraction'] : _ParamGroup(params);
   }
   final s = _asString(raw)?.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
   switch (s) {

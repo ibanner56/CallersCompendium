@@ -40,29 +40,90 @@ searchKeywords: [allemande, almond]
 - **Taxonomy is versioned data** (`taxonomyVersion`), shipped with the app,
   loaded per dance-form. Adding moves/params is additive; renames are
   migrations. Stored figures carry `schemaVersion` so old data always parses.
+- **Each form's taxonomy is chosen by `TaxonomyRegistry`**
+  (`shippedTaxonomies`). Contra's owns every move ID with no prefix; another
+  form's IDs all carry its prefix (`ecd_`, ADR-006 §5.1), so a stored ID names
+  the taxonomy that defines it. `forForm(form)` is what a dance of that form
+  is edited and checked with (the form's own taxonomy over contra's, or
+  contra's alone while the form has none); `anyForm` reads a stored figure of
+  any form, for code with no single dance in hand (programs, the repository,
+  sync, search). It resolves IDs; it is not a vocabulary to parse a dance's
+  text with, so the repository re-parses a dance's import-gap lines with
+  `forForm(dance.form)`. The Glossary lists each form's built-in figures
+  from `forForm(form)`; the user's own figures and terms, shorthand and
+  Settings defaults surfaces, including decoding a stored compound's figures,
+  still use contra's taxonomy directly, until they gain a form of their own.
+- **English Country Dance has its own taxonomy** (`ecdTaxonomy`,
+  `ecd_taxonomy.dart`): the 52 movements of ADR-006 §7, each stored under an
+  `ecd_` ID, and two aliases (`ecd_swat_the_flea`, and `ecd_hand_cast`,
+  which is listed as a move of its own). Its `who` is a
+  [`dancerList`](#parameter-types), and every value a source can leave out
+  defaults to `unspecified` (ADR-006 §5.3); the editor's suggestions
+  (`everyone`, a set to the right, a right turn single, forward) are
+  `entryDefault`s; a forward and back's double is its stored default, the
+  one exception ADR-006 makes to storing what the source says. Its
+  templates use ADR-006 §6.3's notation, which `ecd_display.dart` expands:
+  `[...]` is dropped when a value inside it is empty, `{?flag}` keeps its
+  group only while the flag is set, and a stated `destination` is worded as a
+  phrase ("back to place", "to second place"). Contra templates use none of
+  it. An ECD sequence may carry one span for steps with no timing of their
+  own (`ecdSequenceSpanIssue`, ADR-006 §5.5). The containers and `custom`
+  stay shared and unprefixed.
 - **Aliases** are entries that resolve to a canonical move with pinned params
   (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
-  left}). Search de-aliases automatically.
+  left}; long lines → forward and back{formation: longLines}). A structured
+  search matches the id a figure is stored under, so a search for the move
+  does not find its alias's figures. An alias with an `inversePairId` routes
+  a figure between itself and its target as the pinned param changes
+  (`Taxonomy.resolvedMoveId`).
 - **`custom`** is a first-class move: `{text, beats}`; its text is
   dialect-processed and FTS-indexed. `contra corners` and `turn alone` embed an
   optional custom sub-text the same way.
+- **A use of a figure of your own** (#1023) is a `custom` figure with three
+  more params: `userFigure` (the glossary entry's id), `userFigureArgs` (every
+  argument by parameter key, scalars only) and `userFigureCheck` (the first
+  eight hex digits of the SHA-256 of `text` as the repository stores it,
+  after `normalizeShareableText`). `validateFigure` accepts exactly
+  these three on `custom`, checked together by shape; any other extra key is
+  still `unknown_param`. `text` holds the line last rendered from the
+  definition, which every build shows, so the reference is soft (sync-spec
+  §6.15). When `text` no longer matches the check, something that does not
+  know the reference edited the line, and the use reads as plain text. The
+  renderer renders an attached use live from the definition
+  (`FigureRenderer.userFigures`) on every path, canonical included, and falls
+  back to `text` when the figure is unknown, no longer decodes, or an argument
+  is outside its values. #417's re-parse and figure shorthands never take a
+  use (`hasUserFigureReferenceKeys`).
+
+### Namesakes across dance forms
+
+A figure several dance forms name alike (contra `box_the_gnat`, ECD
+`ecd_box_the_gnat`) is defined once per taxonomy, and a change to one may need
+the same change to the other. Namesakes may legitimately differ, so nothing
+enforces it: a PR that changes a figure definition gets an advisory that lists
+the same-named figures in the other taxonomies, matched on display name and on
+the id after the form's prefix (`tools/ci/report_figure_namesakes.py`). It reads
+the forms from `danceFormMovePrefixes` and never fails the build; it is a prompt
+to look, not a claim of drift.
 
 ## Parameter types
 
 | Type | Values | Notes |
 |---|---|---|
-| dancerSet | everyone, larks*, robins*, ones, twos, firstCorners, secondCorners, partners, neighbors, sameRoles, shadows, nextNeighbors, prevNeighbors, nextPartners, prevPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
+| dancerSet | everyone, larks*, robins*, ones, twos, threes, fours, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, nextNeighbors, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
 | dancerPair | subset of dancerSet valid for the move | |
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
 | rotation | 0.25 … 2.5 in quarter steps | replaces ContraDB degrees (90–900) |
-| places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places" |
-| fraction | 1/4, 1/2, 3/4, full, other | heys, poussettes |
+| places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places". `circle.places` and `star.places` may also be `unspecified`, which renders nothing (v39) |
+| number | 0 … 99 int | a plain count; renders the digits alone, no unit word. Figures of your own, and `starburst.travel` (v39), the one built-in slot of this kind |
+| fraction | 1/4, 1/2, 3/4, full, other | figure 8, poussette; `other` states its amount in the move's `amount` param (v39) |
 | beats | 0–64 int | 0 allowed for formation labels |
 | direction | along, across, rightDiagonal, leftDiagonal, in, out, up, down | |
 | enum(...) | move-specific lists (grips, enders, prefixes…) | e.g. downTheHallEnder |
 | text | free string | dialect-aware |
 | flag | bool | e.g. withBalance |
+| dancerList | a list of dancerSet tokens | ECD's `who` (ADR-006 §5.2): at least one token, none repeated, in the order entered; `everyone` and `unspecified` only on their own. Renders as an English list ("twos and threes") |
 
 ### Roles
 Canonical role IDs are **`role1` / `role2`** (position semantics: role1 =
@@ -79,16 +140,19 @@ Adopted from ContraDB, with renames noted:
 
 allemande · arch & dive · balance · balance the ring ·
 box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
-California twirl · chain (role-parameterized, not "ladies chain") · circle ·
-contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
+California twirl · cast (v40, not in ContraDB) · chain (role-parameterized, not "ladies chain") · circle ·
+circular hey (alias: square hey; v36, not in ContraDB) · contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
-form long wave / ocean wave / long waves · gate · give & take ·
+form long wave / ocean wave / long waves · forward and back (alias: long
+lines; v39, formations beyond ContraDB) · gate (alias: hand cast, v40) ·
+give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
-hey · long lines · mad robin · orbit · pass by · pass through · petronella ·
+hey · hey for three (v39, not in ContraDB) · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
 right left through · roll away · Rory O'More · slice · slide along set ·
-square through · stand still · star · star promenade · swing (alias:
-meltdown swing) · turn alone · zig zag
+square through · stand still · star · starburst (v39, not in ContraDB) ·
+star promenade · swing (alias: meltdown swing) · trade the wave (v39, not in
+ContraDB) · turn alone · zig zag
 
 Parameter-level details (per-move param sets, defaults, valid beats) follow
 ContraDB's definitions as surveyed in research/contradb.md and are finalized
@@ -99,8 +163,12 @@ ContraDB does not model. `courtesy_turn` (v23) is the clearest case: ContraDB
 has no such figure at all (0 hits for "courtesy" repo-wide — it treats the
 courtesy turn as an unparameterized sub-component of `chain` and `right left
 through`), while The Caller's Box writes one as its own figure line 115 times in
-the 24,107-dance corpus. Such a move is added only with a corpus census behind
-each of its params; see the version history below.
+the 24,107-dance corpus. `cast` (v40) is another: ContraDB defines no cast,
+and The Caller's Box writes one on about 2,000 lines. Such a move is added only
+with a corpus census behind each of its params; see the version history below. A move added at a user's
+request instead (`circular_hey`, v36; `trade_the_wave`, `starburst` and
+`hey_for_three`, v39) is defined by that request, which its version-history
+entry records, and an importer reads it only where a census supports doing so.
 
 ## Implementation status (v0.1 engine, roadmap 2.4)
 
@@ -223,12 +291,13 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   (`ParamKind.dancerSet`, default `unspecified`) to `hey`, finally encoding
   ContraDB's deferred `dancer%%N` meeting *target* — WHICH pair you run a partial
   hey until you meet. The value domain is ContraDB `chooser_pairz`
-  (extended at v24 with five mixer partner-series tokens, issue #732)
+  (extended at v24 with five mixer partner-series tokens, issue #732, and at
+  v38 with `thirdCorners` and `opposites`, #1975)
   (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
-  `neighbors`/`sameRoles`/`firstCorners`/`secondCorners`/`shadows`/
-  `secondShadows`/`prevNeighbors`/`nextNeighbors`/`thirdNeighbors`/
-  `fourthNeighbors`/`prevPartners`/`nextPartners`/`thirdPartners`/
-  `fourthPartners`/`fifthPartners` + `unspecified`) — **pairs only** (single
+  `neighbors`/`sameRoles`/`shadows`/`secondShadows`/`prevNeighbors`/
+  `nextNeighbors`/`thirdNeighbors`/`fourthNeighbors`/`firstCorners`/
+  `secondCorners`/`thirdCorners`/`opposites`/`prevPartners`/`nextPartners`/
+  `thirdPartners`/`fourthPartners`/`fifthPartners` + `unspecified`) — **pairs only** (single
   dancers, `everyone`, and `centers` are excluded, as ContraDB does). Our
   `length` already carries the meeting *count*
   (`lessThanHalf`=first meeting/%%1, `betweenHalfAndFull`=second/%%2), so
@@ -290,7 +359,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     1/2"); ContraDB has no standalone orbit figure (only the combined form), so
     TCB is the source. A conservative whole-line recognizer requires BOTH the
     direction and the amount to be stated (never fabricated); a bare "orbit"
-    degrades to a custom figure.
+    degrades to an unrecognized figure.
   - The combined figure is now `meanwhile[allemande, orbit]`: once `orbit` is
     recognized standalone, the TCB `||` fan-out and the ContraDB `while`
     fan-out both produce the container automatically. The ContraDB combined
@@ -351,7 +420,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     the amount silently dropped from a structured figure.
   - Conservative whole-line recognizers require BOTH stated facts; a bare "mad
     robin" / "butterfly whirl" (ContraDB's own phrasing) or any leftover token
-    still degrades to a faithful custom figure.
+    still degrades to a faithful unrecognized figure.
 - **No version change (`grand right and left` + `flutterwheel`, issue #295):**
   both are **compound shorthands**, not moves, so the taxonomy is deliberately
   left alone — no `grand_right_and_left` / `flutterwheel` `MoveDef`, no version
@@ -366,14 +435,16 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     corpus lines as a compound whose children are `allemande ½` +
     `star promenade ½`; ContraDB models no flutterwheel either. The importer
     now emits those children rather than a custom parent.
-  - **What is NOT modeled, and why.** The pass-list codes `C1`–`C3` are TCB's
-    *square* corners ("the non-partner next to you… your opposite… the
-    remaining person"), a different relationship from the ECD *first/second
-    corners* that `ParamVocab.firstCorners`/`secondCorners` model — so they are
-    left unmapped and such lines stay `custom` rather than being approximated
-    onto a token that means something else. The same holds for a mixer's
-    future partners (`P2`+), out-of-range neighbors/shadows, phantoms and trail
-    buddies. See `docs/design/imports.md` for the recognizer rules and
+  - **What is NOT modeled, and why.** Until taxonomy v38 the pass-list codes
+    `C1`–`C3`, TCB's *square* corners ("the non-partner next to you… your
+    opposite… the remaining person"), were left unmapped as a different
+    relationship from the ECD *first/second corners*. v38 maps them to
+    `firstCorners`, `opposites` and `thirdCorners` (#1975: the maintainer ruled
+    that a square's corner is a contra first corner). Codes past `C3`, a
+    mixer's partners beyond the modelled depth (`P6`+), out-of-range
+    neighbors/shadows, phantoms and trail buddies are still left unmapped, and
+    such lines stay `custom` rather than being approximated onto a token that
+    means something else. See `docs/design/imports.md` for the recognizer rules and
     `docs/research/callersbox.md` for the glossary evidence and corpus counts.
 - **v21 (wave-formation balance, issue #295 — subsumes #296):** models The
   Caller's Box's largest custom bucket, the "balance an existing wave" line
@@ -664,7 +735,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   The centre is preserved as a NOTE on TCB imports (`role2s by the right in the
   center`), storing canonical role tokens so it renders under the active
   dialect rather than freezing a gendered `W`. ContraDB star promenades import
-  as custom figures instead — an accepted structure regression, because ContraDB
+  as unrecognized figures instead — an accepted structure regression, because ContraDB
   supplies the centre role rather than the pick-up relationship.
 
   Removing a declared param changes `figureCanonicalKey` for *every*
@@ -746,6 +817,9 @@ kinds:
   gate `face`, down-the-hall/zig-zag enders, hey length, all/center/outsides,
   figure-8 dir, left/right spins).
 - **`half_or_full`** — DONE (PR3): maps onto `fraction` (`half`/`full`).
+  ContraDB writes nothing else (`stringParamHalfOrFullNotN` throws on any
+  other value); since v39 a foreign quarter-step amount up to 2½ is kept as
+  `other` with `amount` (#2120).
 - **`hey`** (pass pairs, shoulder, length, dir, four ricochet flags, beats,
   `meetTarget`) and the **ocean/long-wave family** — DONE (PR5 + v6 + v17):
   modeled with existing kinds (no new `ParamKind`). The full set of ContraDB
@@ -771,9 +845,28 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
   (`FigureRenderer.renderVerbose`, roadmap 5.4): a dialect-aware, spoken-friendly
   string that spells out notation glyphs (e.g. `1½` → "one and a half times")
   and is surfaced via `Semantics` labels on the dance detail card and the
-  large-print performance view, while the visible text stays terse.
+  large-print Perform mode, while the visible text stays terse.
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
+- Display may put a move's details in a different order from its canonical
+  text where the template reads as search text rather than as a call:
+  `pull by right across` (canonical `pull by across right`) and
+  `slide left along set` (canonical `slide along set left`; a dialect that
+  renames the move keeps its name whole, `sashay left`). A set direction
+  reads the same way on every built-in move that shows one: a diagonal as
+  `on right diagonal`, a facing direction as `facing in`, and
+  `across`/`along` as themselves (`pull by right on left diagonal`, `robins
+  chain facing in`); a hey or an ocean wave names it after the figure (`a
+  half hey along`, `an ocean wave on right diagonal`). A figure of your own
+  keeps the plain direction, since its template supplies the words around
+  it. Cross trails says `passing` before each shoulder, so a direction never
+  reads as the shoulder's side (`partner on right diagonal passing right
+  shoulders`). Rory O'More's balance follows its subject (`larks balance &
+  Rory O'More right`). A subject the verb after it agrees with stays plural
+  (`neighbors take right hands`), while a subject that only prefixes the
+  move reads singular (`neighbor swing`). All of this is display-only
+  (`_displayDirection`, `_displayRenderTemplates` and `_displayBaseRenderers`
+  in `renderer.dart`), so canonical text and the FTS index are unchanged.
 
 ### Derived (computed-at-render) taxonomy values — convention WITHDRAWN (v22)
 
@@ -846,6 +939,15 @@ from `CompendiumDatabase.schemaVersion`: a taxonomy bump implies no database
 migration unless its own entry says so. `tools/ci/check_version_history.py`
 fails a PR that moves the constant without adding the matching entry.
 
+**Bump only when the current version has shipped.** While the latest release
+tag carries an older `contraTaxonomyVersion` than `main`, the head version is
+unreleased: a further taxonomy change joins it and amends its entry here,
+rather than adding a version no release will carry. CONTRIBUTING.md
+("Versioned formats") gives the check. The gate cannot see an amendment,
+because the constant does not move. A one-time rebuild pass that already ran
+on a dev database at that version (a `…DoneKey` marker) does not run again.
+If the amended change needs that pass to re-run, it needs a marker of its own.
+
 - v2: roadmap 2.4a PR2 (dancer-interaction moves).
 - v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
 - v4: roadmap 2.4a PR4 (places family + `ParamKind.places`).
@@ -873,7 +975,9 @@ fails a PR that moves the constant without adding the matching entry.
     from CompendiumDatabase.schemaVersion — no DB migration is implied.
 - v11: adds `box_circulate` (ContraDB-sourced; modeled on `box_the_gnat`) and
     `star_through` (a balance+twirl figure modeled on `california_twirl` +
-    a balance flag), plus the `weave the line` → `zig_zag` recognizer alias.
+    a balance flag), plus the `weave the line` → `zig_zag` recognizer alias (the
+    alias sets no `slide`; TCB's `(R;L …)`/`(L;R …)` bracket is read into it by
+    `_weaveSlideAnnotation`, #1415).
     Both new moves carry a neutral `balance` flag (default false) that the
     CallersBox cross-line merge upgrades to true; like `box_the_gnat` their
     balanced beat count comes only from that merge sum, so neither takes a
@@ -1390,11 +1494,12 @@ fails a PR that moves the constant without adding the matching entry.
 
     **Role→side table.** [chainHandForWho] (`param_types.dart`) is the
     single source of truth for `role2s`→`right`, `role1s`→`left`, mirroring
-    ContraDB's `chainChange` (`figure.js:256-263`). It is consulted at six
-    write/read sites so none can drift: the ContraDB and shared-recognizer
-    `_chain` parsers, both `_selectMove` implementations and the `who`
-    branch of `_applyNonBeatsParamChange` in `figure_list_editor.dart`, and
-    the one-time backfill sweep below. It is NOT baked into `chain.hand`'s
+    ContraDB's `chainChange` (`figure.js:256-263`). Every site that writes or
+    reads a role-implied side consults it, so none can drift: the ContraDB
+    and shared-recognizer `_chain` parsers, core's `seedChainHand` (`param_change_rules.dart`) —
+    which both `_selectMove` implementations, the meanwhile side editor and
+    every `who` edit through `applyParamChange` call — and the one-time
+    backfill sweep below. It is NOT baked into `chain.hand`'s
     taxonomy default — see the param's own doc comment for why.
 
     **Role-word scoping (#976 §6.1.3).** A hand is populated only at a
@@ -1532,10 +1637,12 @@ fails a PR that moves the constant without adding the matching entry.
     like `dir`'s existing canonical behaviour of always rendering even at its
     default.
 
-    **Editor.** `figure_list_editor.dart` hides `turn` (and resets it to the
-    `unspecified` sentinel via an explicit write, never `.remove()` — removal
-    would fall back to the concrete default and render it) whenever `dir` is
-    `in`/`out`/`up`/`down`, where a rotation sense is meaningless. It also
+    **Editor.** `figure_list_editor.dart` hides `turn` whenever `dir` is
+    `in`/`out`/`up`/`down`, where a rotation sense is meaningless, and the
+    change that sets `dir` there resets `turn` to the `unspecified` sentinel
+    via an explicit write, never `.remove()` — removal would fall back to the
+    concrete default and render it. The reset is core's `applyParamChange`
+    (`param_change_rules.dart`, #709), which the editor calls. It also
     hides `destination` whenever `dir == 'across'` (mirroring the render
     gate), leaving its stored value untouched rather than clearing it.
     `figure_param_editors.dart`'s Clear affordance is gated on the new
@@ -1600,6 +1707,680 @@ fails a PR that moves the constant without adding the matching entry.
   normalization. The container projection is also guarded by the
   `modifierContainerCanonicalRebuildDoneKey` one-shot sweep; stored figure JSON
   and the SQLite schema remain unchanged.
+- v36: adds `circular_hey`, the four-dancer hey passing by shoulders (alias
+    "square hey"), defined for contra on its own terms using
+    [ADR-006](../adr/006-english-country-dance-canonical-grammar.md) §7.4 as a
+    starting point; ADR-006 §2 keeps the ECD definition separate. Params: `who`
+    (default `neighbors`; the group that passes first, so there is no `whom`,
+    mirroring `square_through.who`), `changes` (`ParamKind.places`, any whole
+    number 1..10 like `circle.places`, default 4), `shoulder` (default
+    `right`), `where` (default `across`) and `beats`. `changes` drives
+    `paramBeats`: 1 -> 2, 2 -> 4, 3 -> 8, 4 -> 12 (default), 5 and above -> 16.
+    Above six changes 16 is a placeholder the user is expected to override.
+    Canonical text names the count ("3 changes"), not "places". The display
+    line is "3/4 circular hey, neighbors pass right across", showing `N/4` for
+    any count but four. The shared free-text recognizer reads that sentence for
+    every count but four (`1/4`..`10/4`, `1/2`, `full`, and "square hey"); the
+    full circuit's display omits the extent, so that line stays custom text
+    unless written with `full`. The recognizer requires the extent,
+    group, shoulder and direction rather than defaulting them. Purely
+    additive: no schema migration, no derived-index rebuild (no existing
+    figure changes). *Superseded in part by #2121 (not a taxonomy change): a
+    line with no extent now reads as the full four changes, so the full
+    circuit's display line reads back; the group, shoulder and direction are
+    still required, and the direction may also be one of the display's
+    diagonal or facing phrases (`on right diagonal`, `facing in`).*
+- v37: adds `circular_hey.who2`, the group passed second, by the other
+    shoulder — the counterpart of `hey.pass2`. It defaults to the
+    `unspecified` sentinel and draws from the same pair vocabulary as
+    `pass2`. When stated, the display line gains a second pass ("3/4 circular
+    hey, neighbors pass right across, shadows pass left"); unstated, it
+    renders exactly as v36 did. Like `pass2`, `who2` is not in the canonical
+    template, so no stored canonical text changes. The free-text recognizer
+    reads the second pass back and rejects a same-shoulder one. The Caller's
+    Box `Square through <n> without hands (<pass list>)` now imports as a
+    `circular_hey` with `who2` from the even cells. Purely additive: no schema
+    migration, no derived-index rebuild, and already-imported dances keep
+    their custom text (no backfill, maintainer decision).
+  v37 also changes the `courtesy_turn.direction` default from `clockwise` to
+    `counterclockwise`. The ordinary courtesy turn (after a role2s' chain, a
+    right and left through or a promenade across) wheels counterclockwise with
+    the left-hand dancer backing up (TCB glossary, "Courtesy turn"); clockwise
+    is the mirrored turn, chiefly after a role1s' chain (maintainer, on the PR
+    that made this change). v23's reading — "clockwise by construction", with
+    the 10 corpus lines that state `clockwise` taken as confirmations — was
+    wrong: a source names the rotation only when it is the unusual one, so
+    those lines are the mirrored case. The display now silences
+    `counterclockwise` and states `clockwise`. Source JSON is unchanged — a
+    stored courtesy turn without a stated direction now means the ordinary
+    turn, and one that states `clockwise` keeps it — but the canonical text of
+    every courtesy turn without a stated direction changes, so v37 owes a
+    one-time canonical/FTS rebuild, guarded by
+    `taxonomyV37CanonicalRebuildDoneKey`.
+- v38: changes ten seeded defaults, chosen as the values both ContraDB (all
+    2,439 dances its listing API returned) and a random 2,000-dance sample of
+    The Caller's Box use most (maintainer, decided on #1969). Stored-figure
+    defaults, which change what a figure that omits the param means:
+    `circle.places` 4 -> 3, `allemande.travel` 1 -> 1.5, `star.hand` right ->
+    left, `poussette.who` `ones` -> `role1s`, `square_through`
+    `places`/`beats` 4/16 -> 2/8, `roll_away.who` `neighbors` -> `role1s`,
+    `orbit.who` `ones` -> `role1s`, `arch_and_dive.who` `ones` -> `twos`,
+    `box_the_gnat.who` `partners` -> `neighbors` (so `swat_the_flea`, its
+    alias, follows), and `figure_8.where` `none` -> `above`. `none` stays a
+    valid stored `figure_8.where`. `square_through.goodBeats` becomes `[8, 16]`
+    so existing four-place, 16-beat figures keep raising no `atypical_beats`
+    warning. Source JSON is unchanged: a stored figure that never stated one of
+    these now means the new default, and one that stated a value keeps it. The
+    canonical text of every figure that leaves one of them unstated changes, so
+    v38 owes a one-time canonical/FTS rebuild, guarded by
+    `taxonomyV38CanonicalRebuildDoneKey`. No backfill pins the old values into
+    stored figures (maintainer's call on #1969: the editor should offer the new
+    defaults), so a device still on v37 renders such a figure with the old
+    default until it updates.
+  v38 also adds `ParamSpec.entryDefault`, a value the figure editor seeds on
+    picking a move when it should differ from `defaultValue`
+    (`Taxonomy.entryParams`). It is never read for a figure that omits the
+    param, so it changes no stored meaning and owes no rebuild. It is used for
+    the balance flag, which authors usually set but which a source that does not
+    state it leaves unbalanced: `box_the_gnat`, `box_circulate` and
+    `pass_the_ocean` seed `balance` true with 8 beats, and `form_long_waves`
+    seeds `balance` true with 4 (its 0-beat formation label plus the balance's
+    4). Each is the state the editor's own "+4 beats when balance turns on"
+    rule reaches by ticking balance, so unticking returns the plain default.
+    `box_the_gnat.goodBeats` and `box_circulate.goodBeats` become `[4, 8]` so
+    the seeded 8 raises no `atypical_beats` warning. The Settings per-move
+    defaults diff against `entryParams`, so a saved override is a diff from
+    what the editor actually offers, and changing `balance` there records the
+    matching `beats` too (the same +/-4 rule), because a saved default is
+    applied to a new figure as plain values.
+  v38 also adds two `pairDancerSets` tokens, `thirdCorners` and `opposites`
+    (#1975, maintainer decisions), and moves the corners after the neighbour
+    series, so the picker reads ... `fourthNeighbors`, `firstCorners`,
+    `secondCorners`, `thirdCorners`, `opposites`, then the mixer partner
+    series. A square's corner is a contra first corner, and The Caller's Box's
+    square corners C1, C2 and C3 are the first corners, the opposites and the
+    third corners. Both tokens are added to `_heyMeetTargetChoices` (and so to
+    the mad robin and butterfly whirl pairs), beyond ContraDB's
+    `chooser_pairz`, as v24 did for the partner series; that is the author's
+    call. Neither has a pair inverse or a compound opposite, the author's
+    call: `invertPairDancerSet` mirrors ContraDB, which has neither token.
+    Purely additive for stored data: no figure's meaning or canonical text
+    changes, and the order of `pairDancerSets` is display order only. A device
+    still on v37 shows the new tokens humanized ("third corners",
+    "opposites"), but its figure editor replaces a value it does not know with
+    the param's default when the figure is opened, so editing such a figure
+    there loses it, as with v24's partner series.
+  v38 also makes `form_short_waves` a zero-count figure without its balance
+    (#1975, maintainer decision): its `beats` default becomes 0, a
+    `paramBeats` rule gives 4 with the balance and 0 without, and `goodBeats`
+    becomes `[0, 4, 8]` (8 for The Caller's Box's folded form-and-balance
+    lines, the author's call, so they raise no new `atypical_beats` warning).
+    Its `balance` default stays false and it seeds nothing in the editor; the
+    Settings per-move defaults record the matching `beats` when `balance`
+    changes, as they do for a move that seeds one; this now covers every move
+    whose `paramBeats` follows its balance, so Rory O'More and petronella too. A stored form short waves
+    that omits `beats` now counts 0 rather than 4; one that states its beats
+    keeps them. The derived `dance_figures.beats` and `deriveSections` read a
+    figure's own stored `beats`, not the taxonomy default, and `beats` is not in
+    its canonical text, so nothing is owed beyond v38's existing rebuild.
+- v39: a figure 8 or poussette fraction of `other` states its amount (#2120,
+    maintainer decisions relayed 2026-11-11). Before, `other` stored no amount:
+    the ContraDB adapter turned any number but 0.25/0.5/0.75/1 into a bare
+    `other`, the editor offered `other` with nowhere to put the amount, and the
+    line read "ones other figure 8".
+  - `figure_8` and `poussette` gain an `amount` param
+    (`fractionAmountParam`): a `ParamKind.rotation` (quarter steps, 0.25–2.5)
+    that opts into the `unspecified` sentinel and defaults to it. It is read
+    only while `fraction` is `other`; an amount left under a named fraction
+    means nothing and is dropped by the editor. An amount a named fraction
+    states is stored as that fraction (`fractionParamsForAmount`), so in
+    practice `other` carries 1¼–2½. **Why a sibling param and not a numeric
+    `fraction`:** nothing on the sync, share or archive path validates param
+    values, and an older build's editor rewrites a fraction it does not know
+    to `half` when the figure is opened, then syncs that back. A sibling param
+    is left alone by an older build, which keeps showing "other". Thirds and
+    eighths are not representable; contra calls them essentially never, and a
+    free-text amount (the rejected alternative) could not be filtered, checked
+    or turned into beats.
+  - `figure_8.paramBeats` gains `beatsPerAmount: 16` (ContraDB's
+    `half_or_full * 16` carried past `full`, our extension: ContraDB has no
+    amount beyond full), so a 1½ figure 8 is 24 beats; validation does not
+    flag a count the move's own rule derives as atypical. Poussette still has
+    no per-value beats.
+  - Wording: an `other` with an amount renders as the amount (`ones 1½ figure
+    8`, `1½ poussette - …`; `one and a half` verbose; a whole amount is spelled
+    `two`, because a line that opens with a bare number is read as its beat
+    count). One with no amount renders `an unstated amount of` on display and
+    `unstated amount` in canonical text, never the bare token. The poussette
+    line now uses the verbose fraction words too ("three quarters
+    poussette"). The display read-back (#2121) reads the new wording, and the
+    word `other` still reads back as an `other` with no amount.
+  - Producers: the ContraDB adapter keeps a quarter-step number up to 2½ as
+    `other` with `amount` (a number outside that domain is still a bare
+    `other`, which reads as unstated); the figure parser reads a mixed amount
+    (`1 1/2`, `1½`) for a figure 8 or poussette, where it used to fall back to
+    a custom figure.
+  - Migration: none of stored data. An `other` stored before v39 stays an
+    `other` with no amount, because nothing it came from survives to say what
+    the amount was (the provenance raw payload went in schema v21, #781, and
+    ContraDB never produces such an amount anyway). Its canonical text changes
+    ("other" -> "unstated amount"), so v39 owes a one-time canonical/FTS
+    rebuild, guarded by `taxonomyV39CanonicalRebuildDoneKey` and listed in
+    `oneTimeRepairMarkers`, so the pre-repair snapshot covers it.
+  - Keys: `figureSnippetSignature` and the re-import diff key
+    (`figureCanonicalKey`) include the amount only while it is stated, so every
+    key a pre-v39 figure had is unchanged and no snippet-signature version
+    bump is owed. The v1 signature migration's legacy `amount` -> `travel`
+    rename is narrowed to `orbit`, the only move that had one, because conflict
+    keys pass through it on every load.
+  - Figures of your own no longer offer `other` for a fraction argument, nor
+    does a per-move default in Settings ▸ Defaults (`offersFractionChoice`):
+    an argument cannot carry an amount through to the move it fills, and a
+    default seeds none. Settings does not offer `amount` either. One already
+    chosen still validates and is still shown; a figure of your own expands
+    it as an unstated amount (no amount is seeded), and a saved `other`
+    default is no longer applied (`skipsMoveDefault`).
+  - `figure_8` gains a `double` flag (default false), amending v39 because
+    v39 has not shipped. Display wording only: it changes the figure's line
+    ("ones lead a double half figure 8 up between twos, twos cast down the
+    outside"), not canonical text or beats, so it owes no rebuild. The cast is
+    the first pass mirrored (up -> down, down -> up) by the pair the line names
+    between (`others` included); across casts "to follow"; with no direction
+    stated there is nothing to mirror and no cast clause is written. The
+    display read-back reads the double wording only with its mirrored cast.
+    Because canonical text omits it, a double and a single figure 8 index
+    identically for search; ContraDB has no such param, so none is imported.
+    **Stored only while true** (`figure8DoubleParam`): `entryParams` and the
+    free-text entry's draft both pass through `Taxonomy.dropUnstatedParams`
+    (which also drops an unstated `amount`), and `applyParamChange` removes the
+    key when turned off, so a figure 8 that is not double carries nothing a v38 peer's `validateFigure` would
+    reject as `unknown_param`. Like `amount`, only a figure 8 marked double
+    meets the "Older devices" limit above: a compound of the user's own whose
+    template holds one is marked "needs repair" there. No maintainer decision
+    covers widening that limit, so it is kept to figures that state `double`.
+  - **Older devices (taxonomy v38, app 0.9.x).** A v38 build stores, syncs,
+    shares and restores an `amount` it receives unchanged (the figure codec
+    and the sync figure check never look inside params), renders such a figure
+    as "other", and opening it in the editor keeps `other` (a valid value) and
+    the amount. Its `validateFigure` rejects the unknown param
+    (`unknown_param`), and the one place that bites is a compound of the
+    user's own whose template holds such a figure: `decodeCompoundDefinition`
+    returns null there, so the entry is marked "needs repair" and cannot be
+    placed or used by a shorthand on that device, and a repair there means
+    removing or changing the figure, which drops the amount and syncs back.
+    Maintainer decision, 2026-11-12 (on #2120): accept and document it, with
+    no refusal of such templates and no sync capability gate. The limit is
+    general: an older build's validator rejects any param a later taxonomy
+    adds, so every such bump has it. To keep it to figures that state an
+    amount, the key is written only then: `Taxonomy.entryParams` does not seed
+    the `unspecified` default, the editor drops it with a named fraction, and
+    compound expansion does not seed one (an `other` argument expands as an
+    unstated amount).
+  - v39 also adds `forward_and_back`, forward and back in a named formation,
+    and makes `long_lines`, a move until now, its alias. The formation list,
+    the alias, its `longLines` default, routing between the two ids, and
+    keeping dialect entries keyed on `long_lines` are the maintainer's choices
+    in the session that wrote this, recorded in the description of the PR
+    that adds it.
+    - `forward_and_back` has `long_lines`' params, `goBack` and `beats` with its
+      `paramBeats` (8 with `goBack`, 4 without), plus `formation`: a
+      `ParamKind.choice` of `longLines`, `inSquares`, `linesOfThree`,
+      `linesOfFour`, `linesOfFive`, `linesOfSix`, `asCouples`, `headCouples`,
+      `sideCouples`, `inARing`, `inLinesAtHeads` and `inLinesAtSides`
+      (`forwardAndBackFormations`), defaulting to `longLines`. ContraDB has
+      long lines only, so its advanced filter refuses a `forward_and_back`
+      leaf, and `long_lines` there carries no formation.
+    - `long_lines` is an alias pinning `formation: longLines`, with
+      `inversePairId: forward_and_back`, so `resolvedMoveId` routes a long lines
+      whose formation changes to `forward_and_back`, and a forward and back left
+      in long lines to `long_lines`. This is the first inverse pair on an axis of
+      more than two values; the routing already handled one (the alias side
+      routes away on any value but its pin, the target side back on the pin
+      alone), so only its documentation changed. Stored `long_lines` figures
+      keep their source JSON, canonical text (`long lines`) and display lines;
+      their effective params gain `formation: longLines`, the alias's pin.
+      Importers and the `while` modifier still produce and recognise
+      `long_lines`. A figure starts under the id it is stored with: picking
+      forward and back in the figure editor, or typing a bare `forward and
+      back`, gives a long lines, since long lines is the default formation.
+    - Wording: a forward and back displays as its formation then `forward &
+      back` (verbose `forward and back`), or `forward` without `goBack` (`lines
+      of three forward & back`, `in a ring forward`); its canonical text is
+      `<formation> forward and back` either way, as `goBack` never was in long
+      lines' canonical text. `long_lines` keeps its own lines: the display base
+      renderer for `forward_and_back` is not used for it. Both camelCase
+      humanizers (the renderer's and the app's `humanizeToken`) now break
+      before a capital that starts a word after a one-letter capital word, so
+      `inARing` reads `in a ring`; no earlier token has that shape, so no
+      canonical text changes.
+    - `MoveAlias.listedAsMove` (true for `long_lines` alone) keeps long lines
+      standing as a move outside the taxonomy. The pickers that offer moves and
+      not aliases (the dialect editor, Advanced search's "Has figure", Settings'
+      per-move defaults) offer it, without its pinned `formation`: its figures
+      are stored under `long_lines`, so a structured search must be able to
+      name it. A dialect's name and wording for it apply to it and its
+      target's never: dialects hold entries keyed on `long_lines` from when it
+      was a move, and long lines' name is a formation where forward and back's
+      is a direction, so a name for one would misread the other. A search never
+      maps an alias's id through a dialect's names, as it never did a move's.
+    - Free text reads a forward and back's displayed line back (a reader used
+      by free-text entry only, so imports are unchanged), and a bare `forward
+      and back` reads as long lines, the default formation. The note-tail rule
+      now sees `forward and back` as a move's name, so `(8) Slice left, forward
+      and back` typed as free text stays custom rather than a slice with that
+      note.
+    - A copy of long lines into a figure of your own is a long lines (its
+      wording `{move}`, no formation parameter, copied from `long_lines`), and
+      its wordings in a dialect offer no `formation` slot or condition: its
+      name already says the formation. A note repeating long lines' own name is
+      read as its name, as for every move (#1975). Picking forward and back in
+      the figure editor applies the defaults saved for it, then long lines'
+      when the pick is stored as long lines; a default formation other than
+      long lines keeps it a forward and back.
+    - The walkthrough-snippet signature (`figureSnippetSignature`) of an alias
+      listed as a move is its own id without the params it pins, so every long
+      lines keeps the key `long_lines` it had as a move (a forward and back in
+      long lines shares it) and no signature version bump is owed; the other
+      formations sign as `forward_and_back(formation=…)`. The re-import diff key
+      (`figureCanonicalKey`) of a long lines changes, to `forward_and_back` with
+      its formation, but it is computed on both sides of each diff and never
+      stored, so nothing is migrated.
+    - A matrix column saved on `long_lines` (parameterized or a compound step)
+      matches its target with the alias's pin added, so it still counts long
+      lines and no other formation. The column editor opens it as forward and
+      back in long lines, and saves a column or step on forward and back that
+      states long lines back on `long_lines` without the pin
+      (`savedMatrixConstraint`), so a build before v39 still reads it; one that
+      leaves the formation open stays on `forward_and_back`. Specificity counts the resolved constraint, so a
+      column saved on long lines ranks as the same column saved on forward and
+      back with the pin. The built-in long lines column follows forward and
+      back's, where it stood as a move, and is labelled by a dialect's name for
+      long lines, never for forward and back.
+    - Migration: none, and no rebuild: no stored figure's canonical text
+      changes, since nothing could store a `forward_and_back` before v39.
+      **Older devices (v38).** A `forward_and_back` figure is an unknown move
+      there and displays as its raw id, as every added move does. No long lines
+      stores `formation`: `Taxonomy.withoutListedAliasPins` drops the alias's pin
+      where a figure is built for storage (the editor's `FigureDraft.toFigure`,
+      the dance repository's write-time routing, the free-text read-back, and
+      switching a figure of your own to forward and back, which also routes a
+      use switched to long lines to `long_lines`, since shorthands and default
+      lists are not routed on write as dances are), although the editor seeds
+      and shows it. A v38 build's `validateFigure`
+      would reject the key as `unknown_param`, and its shorthand mappings drop a
+      whole mapping holding such a figure, so a long lines entered on v39 must
+      read on v38 exactly as one entered there.
+  - v39 also adds `trade_the_wave`, the Modern Western Square Dance call: from
+    short waves everyone steps forward, turns to face the other way and trades
+    with the dancer facing the same way, passing right shoulders, reforming
+    short waves facing the other direction with centers and ends swapped. It
+    was added from a figure of the user's own of the same name, which
+    `trade_the_wave_test.dart` reproduces, and the choices below that are not
+    that figure's are the authoring session's, each with its reason.
+    - Params are that figure's, key for key, so switching one's uses to the
+      move (#1023) maps every parameter to the one of the same key: `sides`
+      (`dancerSet`, default `neighbors`), `center` (`dancerSet`, `role1s`),
+      `centerHand` (`handedness`, `right`), `axis` (`direction`, `across`) and
+      `balance` (`flag`). As in `form_short_waves`, `center`, `centerHand` and
+      `sides` name the wave the figure ends in, and the side hand is the other
+      hand. The defaults are the figure's, and are also the wave trading
+      `form_short_waves`' default wave gives and the one The Caller's Box
+      glossary's sample notation ends in.
+    - `balance` defaults to false with an entry default of true, and `beats`
+      to 4 with an entry default of 8, as `pass_the_ocean`'s do; `paramBeats`
+      is 8 with the balance and 4 without. The figure of the user's own
+      defaulted its balance to true; a stored default of false is the
+      authoring session's choice, so that a figure stating no balance (a
+      typed bare name) never asserts one.
+    - Wording: canonical text is the move name alone (`trade the wave`), as
+      `form_short_waves`' is. The display is the figure's own line: "trade the
+      wave - all step forward and face across, partners pass right shoulder
+      and reform new short waves facing the other direction - role1s by the
+      right in the center, neighbors by the left on the sides[ - and
+      balance]". The dancers who trade are `sides`' opposite as a figure of
+      your own computes it (`ParamOpposites`: partners and neighbors swap),
+      and `others` when `sides` has none. The trade always passes right
+      shoulders: the call has no left-shoulder form. The dancers are plural
+      throughout, the verb agreeing with them: a figure of your own's live
+      display writes them singular ("neighbor pass"), but its stored line, and
+      so every use's text, is plural.
+    - Reading: free-text entry reads the whole display line back
+      (`readDisplayedTradeTheWave`, called from free-text entry only, as the
+      courtesy turn's `whom` reader is), refusing a line whose traders are not
+      `sides`' opposite or whose two hands are the same, and reads the bare
+      name as the move, as it does every move's. No importer reads it, so
+      imports are unchanged: The Caller's Box writes a bare "Trade the wave",
+      which names none of the wave it ends in, so it stays custom text, and
+      ContraDB has no such figure, so its advanced filter refuses a
+      `trade_the_wave` leaf. The note-tail rule now sees `trade the wave` (and
+      the search keyword `trade wave`) as a move's name, so a typed line whose
+      note would start with it (`neighbors balance, trade the wave`) stays
+      custom rather than a figure with that note.
+    - Migration: none, and no rebuild: nothing could store a `trade_the_wave`
+      before v39, and no stored figure is converted. Uses of a figure of your
+      own with this name become the move only through the existing switch
+      (#1023), which the user starts. **Older devices (v38).** A
+      `trade_the_wave` figure is an unknown move there and displays as its raw
+      id, as every added move does.
+  - v39 also adds `starburst`: a zig zag's path danced without hands, the
+    dancers arcing out of the set around `travel` couples and back in on the
+    side they started. It is in neither ContraDB nor The Caller's Box. The
+    maintainer asked for it in the session that wrote this, from a figure of
+    their own of that name, keeping its parameters, defaults and wording
+    template, except that `travel` is a `ParamKind.number` where theirs was
+    `places`; the PR that adds it records the request.
+    - Params: `direction` (`spinDirection`, default `counterclockwise`),
+      `travel` (`number`, default 1: the couples passed, not places around a
+      ring, so it renders as the digits alone), `who` (`dancerSet`, default
+      `role1s`, the dancers who lead), `whom` (`dancerPair`, default
+      `partners`, those they lead out), and `beats` (default 8, `goodBeats`
+      `[8]`, the author's choice from that figure's 8 default beats). Search
+      keyword `dolphin loop`. `starburst` is the first built-in
+      slot of `ParamKind.number`, so the combination editor now offers that
+      kind as well as the figure-of-your-own editor.
+    - Wording: the template of the figure of the maintainer's own, with its
+      literal `starburst` replaced by `{move}`, is the canonical
+      `renderTemplate`: `{move} {direction} around {travel}, {who} lead {whom}
+      out of the set`. The display takes the same template, and so, as their
+      figure did, names a positional dancer in the singular, as the display
+      does wherever one appears (`role2s lead partner out of the set`). As a
+      modifier side it reads `doing a starburst`.
+    - Free text reads the display line back
+      (`readDisplayedStarburst`, called only by free-text entry, so no
+      import's grammar changes), under its own name or a dialect's name for
+      it. Every slot is required and only the whole line is read. Under a
+      dialect whose roles are lead and follow, the verb `lead` is also a role
+      word, and canonicalizing the whole line reads it as one before a dancer
+      it does not take as an object (`leads lead third neighbor`), so the
+      reader also tries each `lead` with the role words on either side
+      canonicalized apart.
+    - As for `forward_and_back`, the new name and keyword are now move words
+      to the note-tail rule, so a typed line whose note names one stays custom
+      (`(8) Slice left, starburst` or `…, dolphin loop`, where `…, sunburst`
+      is still a slice with that note), and a glossary entry named `dolphin
+      loop` now meets a shipped figure's keyword, as `starburst` meets its
+      name.
+    - ContraDB has no such figure, so its advanced filter refuses a
+      `starburst` leaf.
+    - Migration: none, and no rebuild: no stored figure can reference a move
+      that did not exist. A v38 build displays a `starburst` by its raw id, as
+      it does every added move. A figure of your own named starburst now
+      shares a shipped figure's name, which the app reports as it does any
+      such collision (#1023). A switch must map every parameter, onto one of
+      the same kind or, for `places`, onto a plain `number`, which takes every
+      count places can (`userFigureSwitchTargets`). So a figure of your own
+      whose `travel` is `places`, as the maintainer's export declared it, can
+      switch its uses to the move; each count is kept, and reads `around 2`
+      where it read `around 2 places`. The maintainer asked for that widening
+      as a follow-up to #2200, which added the move and whose description
+      proposed it.
+  - v39 also adds the third and fourth couples' dancers: `threesRole1`,
+    `threesRole2`, `foursRole1` and `foursRole2`, appended to
+    `ParamVocab.singleDancers` and so at the end of `ParamVocab.dancerSets`,
+    after `twosRole2`. In the session that wrote this the maintainer asked
+    for "third role1s/role2s and fourth role1s/role2s" at the end of the
+    dancer list, confirmed the reading as one dancer of the third or fourth
+    couple, and asked for `figure_8.lead` and `dolphin_hey.whom` to offer them
+    and for The Caller's Box's `M3`/`W3`/`M4`/`W4` to read as them. The token
+    names and the rest below are the author's calls.
+    - Domain: every param that takes any dancer (no `choices`, or
+      `_dancerOrUnspecified`: `gate`, `mad_robin.who`, `courtesy_turn`,
+      `promenade` and `pull_by`) offers them, and so do the single-dancer
+      params `figure_8.lead` and `dolphin_hey.whom`, which now take all of
+      `ParamVocab.singleDancers` rather than ContraDB's `chooser_dancer` four.
+      They are not hey meet targets (single dancers never are) and have no
+      pair inverse or opposite.
+    - Wording: the display reads them as `third`/`fourth` and the role's
+      singular term, as it reads the ones and twos (`third lark`, `fourth
+      follow`); a dialect's `dancers` substitution wins, and the dialect
+      editor lists them.
+    - Reading: free-text entry reads them back wherever it reads `first lark`
+      (the figure parser, the dancer-and-name table, the display-line
+      readers), and the role canonicalizer counts `fourth`/`4th` as a
+      determiner and an ordinal, as it counted `third`, so `fourth follow`
+      stays a role under Leads/Follows. That includes the figure 8's
+      `LEAD leading` and the dolphin hey's `passing WHOM`. ContraDB has no
+      such dancer and never names one, and its advanced filter skips them.
+    - The Caller's Box: `M3`/`W3` and `M4`/`W4` are the third and fourth
+      couples' role1 and role2 (`dancerWords`), as `M1`/`W1` and `M2`/`W2`
+      are the ones' and twos', so `M3 figure eight up` reads with `who`
+      `threesRole1`. A line an earlier import kept as custom text for one of
+      them reads as the figure when the user re-checks unrecognized figures.
+      The per-role annotation synthesis is unchanged: `(M1 past M3, W1 past
+      W2)` still declines.
+    - Migration: none, and no rebuild: nothing could store them before.
+      **Older devices (v38).** A v38 build displays one humanized (`threes
+      role1`), and its figure editor replaces a value it does not know with
+      the param's default when the figure is opened (for a param whose
+      default is `unspecified`, such as `gate.who`, "not stated"), so editing
+      such a figure there loses it, as v37 did for v38's corners.
+  - v39 also adds `hey_for_three`. The maintainer asked for it in the session
+    that wrote this: "matching the parameters and display text for 'dolphin
+    hey' except that the 'who' param matches the specific dancers list used
+    for 'whom' rather than including all dancer options". The PR that adds it
+    records the request.
+    - Params: the dolphin hey's, in its order: `who`, `whom`, `shoulder`
+      (default `right`) and `beats` (default 16, `goodBeats` `[16]`), with
+      its canonical template `{who} {move} {shoulder}` and no search keyword.
+      `who`, the dancer who starts, takes `ParamVocab.singleDancers`, as
+      `whom` (default `onesRole1`) does, where `dolphin_hey.who` takes any
+      dancers. Its default, `twosRole2`, is the author's call: the dolphin
+      hey's `ones` is not one dancer, and `onesRole1` would start the hey
+      passing themselves under `whom`'s default, so `whom` keeps the dolphin
+      hey's default and `who` takes the other couple's role2.
+    - Wording: the dolphin hey's display under the move's own name: `hey for
+      three - start with second robin passing first lark by right
+      shoulders`. Both dancers render as single dancers, in the dialect's
+      words. As a modifier side it reads `doing a hey for three`. The
+      glossary text is checked against The Caller's Box's "Hey for three"
+      entry, which the maintainer supplied after #2205 merged. That entry
+      says only that some variants make a couple one of the three; the
+      glossary names the dolphin hey as one of them, which is the author's
+      reading, and its beat count is the taxonomy's.
+    - Reading: free-text entry reads the bare name and the whole display
+      line back (`readDisplayedHeyForThree`, called only by free-text entry,
+      as starburst's reader is), under its own name or a dialect's name for
+      it, reading role words by the dialect. It also reads the name with the
+      numeral, `hey for 3`, alone (a typed phrasing, as `hey for 4` is the
+      hey's) or opening the display line. No importer reads it, so imports
+      are unchanged: ContraDB has no such figure, and its advanced filter
+      refuses a `hey_for_three` leaf. The figure-text corpus fixture has one
+      line for it, from a beta tester's Caller's Companion library (`Hey for
+      3 along set (N1 pass R, N2 L-sh, …)`), which states a direction and a
+      four-pass list the move has no slots for; it stays custom text.
+    - Migration: none, and no rebuild: no stored figure can reference a move
+      that did not exist. A v38 build displays a `hey_for_three` by its raw
+      id, as it does every added move. A figure of your own named hey for
+      three now shares a shipped figure's name, which the app reports as it
+      does any such collision (#1023), offering to switch its uses to the
+      move.
+  - v39 also lets a dance leave a circle's or star's distance unstated. The
+    maintainer asked for it in the session that wrote this: "Remove the
+    requirement that a circle or a star set a value for places in the dance
+    editor." The PR that adds it records the request; the design below is
+    the author's.
+    - Params: `circle.places` and `star.places` list `ParamVocab.unspecified`
+      in `choices`, and `ParamKind.places` now admits the sentinel when a spec
+      lists it, as `ParamKind.rotation` does (`ParamSpec.validate`,
+      `paramDomain`; a compound param bound to no slot admits it too, as an
+      unbound rotation does). Their defaults stay 3
+      and 4, so a figure that omits `places` still reads that many places, and
+      a new figure in the editor starts with that many unless the user's own
+      Settings default for the move leaves it unstated.
+      Making `unspecified` the default instead was rejected: it would change
+      how every stored figure that omits `places` renders (a figure the parser
+      read from `circle left` with no count), which the request did not ask
+      for. `facing_star.places`, `square_through.places` and
+      `circular_hey.changes` still require a number; the request named only
+      the circle and the star.
+    - Editor: the places field of a param that admits the sentinel may be left
+      empty. Empty stores `unspecified` and shows "not stated" instead of the
+      range error; a field opened on the sentinel is empty. Any other text
+      that is not a count from 1 to 10 is still an error. Every editor built
+      on the param's spec gets this: the dance editor, the Settings per-move
+      defaults, the program matrix's figure columns, and a compound's argument
+      bound to such a slot (which shows the empty field rather than a made-up
+      count; a compound's argument summary now reads "not stated" for the
+      sentinel of any kind but text, where it read "unspecified").
+    - Wording: the sentinel renders as nothing on every path, display and
+      canonical, single file included: `circle left`, `star right - wrist
+      grip` (the grip clause drops the dash that would lead into the count),
+      `single file promenade right (circle, counterclockwise)`.
+      Snippet signatures write it as `places=unspecified`, and
+      `describeFigureSignature` now reads that token back for any numeric
+      param that admits it (`gate.travel` too, which used to fall back to the
+      raw signature).
+    - Reading: no reader produces the sentinel. A line with no count, such as
+      `circle left` or the display of an unstated circle, still reads as
+      `places` omitted, so it comes back with the default. Free-text entry of
+      an unstated circle's display line therefore gains a count.
+    - Migration: none, and no rebuild: no stored figure could hold the
+      sentinel before, and every canonical text is unchanged. **Older devices
+      (v38).** A v38 build has no sentinel in these specs, so it renders such a
+      figure as `circle left unspecified` (`star left unspecified`, `star left
+      - wrist grip - unspecified`). Its places field shows the default without
+      writing it back, so the sentinel survives until the user edits that
+      field there. Its `validateFigure` rejects the sentinel, so there a
+      synced compound whose template holds an unstated circle or star reports
+      an invalid template, and a compound argument of `unspecified` does not
+      expand.
+- v40 (`cast` and the `hand_cast` alias, issue #770): the largest family
+  of Caller's Box lines the taxonomy could not hold. Of the 2,066 lines
+  mentioning a cast in the 1,563 public dances whose figures mention one
+  (fetched 2026-11-19; `docs/research/callersbox.md`), 2,060 were `custom`;
+  443 still are with all of v40 (469 with the cast move alone, before the
+  `threes`/`fours` and role-number dancers below).
+  - **`cast`** (`who`, `direction`, `places`, `whom`, `destination`, `beats`
+    4). Every param but `beats` defaults to `unspecified`, because the source
+    writes casts with every part optional. The maintainer's rulings
+    (2026-11-19), each recorded where it applies:
+    - `direction` is `left`/`right` (the shoulder turned over), `up`/`down`,
+      or unstated. "Clockwise" is the right shoulder and "counterclockwise"
+      the left.
+    - The display reads an unstated direction as "cast back", a shoulder as
+      "cast back left/right", and up/down bare. The canonical (search and
+      dedupe) line keeps the stored token: `role2s cast right`.
+    - "Cast off" is `down` with `places` 1 unless the line states a number:
+      the glossary's "ones peel down the outside into second place" is a cast
+      down one place. Whether the cast is assisted is not a param; the
+      glossary says it "depends on your community".
+    - A role's cast with no shoulder stated is over the right shoulder for
+      role2s and the left for role1s ("as we do for chains"), and the
+      maintainer limited that assumption to The Caller's Box adapter
+      (`CallersBoxAdapter`, `_assumeCastShoulders`, which recurses into
+      `||` sides). Typed text, a re-check of stored lines and other sources
+      leave an unstated shoulder unstated, so a re-check of an older import
+      differs from a fresh one on those lines (68 in the 1,563 dances, all
+      "Women/Men cast back …"). The editor assumes nothing either.
+    - The display always shows a shoulder, even the role's usual one
+      ("role2s cast back right"): the maintainer's ruling, unlike a chain's
+      role-implied hand, which goes unsaid.
+    - `destination` holds ECD's destination tokens plus `top` and `bottom`.
+      The maintainer decided this shape and ECD's `ecd_cast` be one, so
+      ADR-006 F5 maps one to the other. ECD's taxonomy v1 took it before
+      release (ADR-006 §9.4); `cast_test.dart` pins that the two agree on
+      param names and on `direction` and `destination` choices, and that
+      contra's destinations hold every ECD one.
+  - **`hand_cast`**, an alias of `gate` pinning nothing: the maintainer's
+    ruling, on The Caller's Box glossary calling each "very similar" to the
+    other. It is listed as a move (`listedAsMove`), for the reasons
+    `long_lines` is: it is stored under its own id, so search's "Has figure"
+    must be able to name it, and a dialect's name or wording for `gate` must
+    not rename it. It displays through `gate`'s renderer under its own name
+    ("neighbor hand cast ½ to face up"). From The Caller's Box only a bare
+    "Hand cast" reads as one; "Ones hand cast" stays custom, because the
+    source does not say which of a gate's dancer slots "ones" fills. Typed
+    or pasted, a hand cast's display line reads back wherever a gate's does
+    (the display's own gate grammar, through `_handCastDisplay` in the
+    ContraDB front end), which `cast_test.dart` checks value by value, since
+    the round-trip sweep covers moves and not aliases. It keeps the gate's 8-beat
+    default; imports carry the line's own beats (4 on 113 of 140).
+  - The Caller's Box front end (`callersbox_figure_dialect.dart`,
+    `_tcbCast`) reads a cast's `(cw)`/`(ccw)` annotation as its shoulder (1
+    line, `Men cast back (cw) || Women go forward`, which the assumption above
+    would otherwise have read as the left), and `(past twos; threes)`: the
+    count fills `places` and the text is kept as a note. Only a list of dancers counts (`twos`, `N2`,
+    `W1`, `N2 twos`, `shadow S1`); `(past ones and threes)`, `(past twos,
+    threes)`, `(past S; to partner)`, `(past top couple)`, a second `(past …)`
+    in the clause, or a count the line contradicts keep the line custom.
+    `[with N1]` is a note, as on other moves.
+  - **Not modelled, so still custom:** multi-step `;` lines whose other
+    clauses do not parse (207 lines, mostly `lead through …; separate; cast
+    …`, which keeps the maintainer's "lead through; separate; cast back to
+    place" group custom), "others follow"/"inverting lines" riders (95),
+    casts by dancers no move reads (`Ends`, `Inside ends`, two named
+    dancers at once, which keeps "Ends cast back to P2" custom; 23), inside a
+    double figure eight
+    (26), `around the major set` (25), endpoints outside the destination
+    list ("to ends of line of four"; 22), `behind <dancer>` (13), and the 6
+    `(past …)` lists above.
+  - `cast.direction` takes no opposite in `ParamOpposites`: like
+    `circle.direction` it is a free-form choice slot, and its values are two
+    pairs on different axes.
+  - **`threes` and `fours`** join the dancer sets, after `twos`: the third and
+    fourth couples as groups, for triplets, triple minors and four-couple sets
+    (the maintainer's ruling, 2026-11-19). They are the tokens ECD's selectors
+    already use. Like their single dancers (`threesRole1` …, v39) they are
+    offered in every dance, not only one whose formation has a third couple,
+    and they have no opposite (`pairInverse` names none). Like the ones they
+    pass in the center of a hey they start, and a hey can run until they meet
+    (both the author's calls, as v24's and v38's meet targets were); a hey's
+    ricochet by the pair on the ends reads "others ricochet". The Caller's
+    Box's `Threes`/`Fours` read as them, including before a wave balance.
+  - **A role and a couple number name that couple's dancer**: The Caller's
+    Box's "Woman one" and "Man three", which reach the reader as `role2 one`
+    and `role1 three`, are `onesRole2` and `threesRole1`, shown as "first
+    robin" and "third lark" (the maintainer's ruling). "One" after a group
+    ("Women cast down one place") still counts places.
+  - **Older devices (v39)** render `threes`/`fours` as the bare word, and
+    keep it while the figure is only viewed or synced. Opening that figure's
+    editor there corrects the out-of-domain value to the param's default (the
+    dance editor's dropdown writes back any value it cannot offer), and the
+    edit syncs. Every dancer token added before (v38's corners, v39's single
+    dancers) has the same exposure. The maintainer accepted this for the beta
+    (2026-11-19), so no guard is added.
+  - Migration: none, and no rebuild: a new move and alias, nothing renamed or
+    removed, so no stored figure changes and every canonical text stays as it
+    was. **Older devices (v39)** show a synced `cast` as the bare word "cast"
+    and a `hand_cast` as "hand_cast", flag both as unknown moves, and keep
+    their params intact (the #358 raw-id fallback).
+
+### ECD taxonomy versions
+
+`ecdTaxonomyVersion` (`ecd_taxonomy.dart`) is the same kind of documentary
+marker for the English Country Dance taxonomy, logged here.
+
+**Every bump appends an entry here, in the same PR.**
+`tools/ci/check_version_history.py` fails a PR that moves the constant without
+a `- vN` entry under this heading; a contra entry above it does not count. A
+change added to a version that has not shipped yet amends that version's entry
+instead, which the gate cannot see.
+
+- v1: ADR-006 §7's registry: 52 movements under `ecd_` IDs, the
+    `ecd_swat_the_flea` and `ecd_hand_cast` aliases, `ParamKind.dancerList`
+    for `who`, and the §6.3 template notation. Migration: no stored figure changes. A dance
+    that already held `ecd_` IDs (from a newer peer or an archive) was
+    indexed while they were unknown, so a one-time canonical/FTS rebuild runs,
+    guarded by `ecdTaxonomyCanonicalRebuildDoneKey` and listed in
+    `oneTimeRepairMarkers`. **Older devices.** A build without this taxonomy
+    shows an `ecd_` figure as an unknown move and keeps it as it is
+    (ADR-006 §5.1).
+    **Snippet keys.** `figureSnippetSignature` keys an ECD template's
+    `{?flag}` like a `{param}`, and a `dancerList` as its tokens sorted and
+    joined by `+`. No contra key changes, so the signature version stays 2,
+    and `migrateFigureSnippetSignature` leaves `ecd_` keys as they are.
+    **Amended before release (2026-11-19): cast.** By the maintainer's
+    decision, `ecd_cast` takes the parameter shape of contra's `cast` (v40,
+    #770; ADR-006 §9.4): `where` (off/up/down/around) is gone; `direction` is
+    `left`/`right`/`up`/`down`/`unspecified`, where `left` and `right` are
+    the shoulder turned over, not a side of the set; `places` is new
+    (`unspecified` by default, "cast off" is `down` with 1); `whom` holds
+    "cast around"; `destination` adds `top` and `bottom` for cast alone. An
+    unstated direction reads "cast back", and a stated shoulder is always
+    shown; no shoulder is assumed from a role. `ecd_hand_cast` is a new alias
+    of `ecd_gate` that pins nothing, with `listedAsMove`, as contra's
+    `hand_cast` is. v1 had not shipped in a release tag, so it was amended in
+    place rather than bumped (CONTRIBUTING.md "Versioned formats").
 
 ## Open questions (to resolve during implementation, with user input)
 

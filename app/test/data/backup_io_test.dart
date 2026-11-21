@@ -6,7 +6,21 @@ import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter_test/flutter_test.dart';
 
+/// Basenames of everything currently in [dir]. Because the atomic writer now
+/// names its temp file unpredictably (symlink hardening), "no temp litter" can
+/// no longer be checked against a fixed `<path>.tmp`; a whole-directory scan
+/// asserts nothing at all was left behind.
+List<String> _entryNames(Directory dir) => dir
+    .listSync()
+    .map((e) => e.path.split(Platform.pathSeparator).last)
+    .toList();
+
 void main() {
+  // The production free-space seam, captured before any test replaces it. A
+  // local, not a top-level final: those initialise on first read, which would
+  // be after a test had already replaced the seam.
+  final realAvailableBytes = backupVolumeAvailableBytes;
+
   group('readBackupFile size cap', () {
     test('reads a file that is within the size cap', () async {
       const contents = '{"backupVersion":1,"core":{}}';
@@ -44,17 +58,20 @@ void main() {
       expect(await readBackupFile(file), '');
     });
 
-    test('the friendly message names both sizes and reassures the user', () {
-      const e = BackupFileTooLargeException(
-        sizeBytes: 60 * 1024 * 1024,
-        maxBytes: 50 * 1024 * 1024,
-      );
+    test(
+      'the log text names both sizes; the UI text is translated elsewhere',
+      () {
+        const e = BackupFileTooLargeException(
+          sizeBytes: 60 * 1024 * 1024,
+          maxBytes: 50 * 1024 * 1024,
+        );
 
-      expect(e.message, contains('too large'));
-      expect(e.message, contains('60.0 MB'));
-      expect(e.message, contains('50.0 MB'));
-      expect(e.message, contains('unchanged'));
-    });
+        expect(e.toString(), contains('60.0 MB'));
+        expect(e.toString(), contains('50.0 MB'));
+        expect(backupMegabytes(e.sizeBytes), '60.0');
+        expect(backupMegabytes(e.maxBytes), '50.0');
+      },
+    );
 
     test('rejects a file that reports a small/stale length but STREAMS more '
         'than the cap (TOCTOU: the stat is not trusted as the bound)', () async {
@@ -106,7 +123,7 @@ void main() {
     });
 
     test('an interrupted write leaves the previous good backup intact and '
-        'leaves no .tmp litter', () async {
+        'leaves no temp litter', () async {
       final target = File('${dir.path}/backup.json');
       await target.writeAsString('GOOD');
 
@@ -123,10 +140,10 @@ void main() {
         throwsA(isA<FileSystemException>()),
       );
 
-      // The prior good backup is untouched...
+      // The prior good backup is untouched, and the failed write cleaned up its
+      // temp file — the directory holds only the original backup.
       expect(await target.readAsString(), 'GOOD');
-      // ...and no `.tmp` sibling was left behind.
-      expect(await File('${target.path}.tmp').exists(), isFalse);
+      expect(_entryNames(dir), unorderedEquals(['backup.json']));
     });
 
     test(
@@ -138,7 +155,7 @@ void main() {
         await writeStringAtomically(target.path, 'NEW');
 
         expect(await target.readAsString(), 'NEW');
-        expect(await File('${target.path}.tmp').exists(), isFalse);
+        expect(_entryNames(dir), unorderedEquals(['backup.json']));
       },
     );
 
@@ -149,8 +166,37 @@ void main() {
       await writeStringAtomically(target.path, 'HELLO');
 
       expect(await target.readAsString(), 'HELLO');
-      expect(await File('${target.path}.tmp').exists(), isFalse);
+      expect(_entryNames(dir), unorderedEquals(['fresh-backup.json']));
     });
+
+    test(
+      'does not follow a symlink pre-planted at the legacy <path>.tmp name '
+      '(CWE-59 regression)',
+      () async {
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('GOOD');
+
+        // A local attacker pre-plants a symlink at the OLD, predictable temp
+        // path, pointing at a file they want the write to clobber.
+        final canary = File('${dir.path}/canary.txt');
+        await canary.writeAsString('DO-NOT-TOUCH');
+        await Link('${target.path}.tmp').create(canary.path);
+
+        await writeStringAtomically(target.path, 'NEW');
+
+        // The write went to an unpredictable sibling and renamed over the
+        // target, never through the planted link — so the canary is untouched.
+        // (A regression to the fixed `<path>.tmp` name would overwrite the
+        // canary with 'NEW'.)
+        expect(await target.readAsString(), 'NEW');
+        expect(await canary.readAsString(), 'DO-NOT-TOUCH');
+      },
+      // `Link.create` needs symlink privilege on Windows; the POSIX CI runner
+      // exercises this guard.
+      skip: Platform.isWindows
+          ? 'symlink creation requires privilege on Windows'
+          : false,
+    );
 
     test('round-trips: a file written atomically reads back via '
         'readBackupFile', () async {
@@ -160,6 +206,182 @@ void main() {
       await writeStringAtomically(target.path, contents);
 
       expect(await readBackupFile(XFile(target.path)), contents);
+    });
+  });
+
+  group('writeDesktopBackup (platform routing)', () {
+    late Directory dir;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('backup_io_desktop_test');
+    });
+
+    tearDown(() async {
+      // Restore the seams so routing never leaks between tests.
+      isMacOsPlatform = () => Platform.isMacOS;
+      backupVolumeAvailableBytes = realAvailableBytes;
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+
+    test(
+      'non-macOS routes through the atomic writer: an interrupted write leaves '
+      'the previous good backup intact and no .tmp litter',
+      () async {
+        isMacOsPlatform = () => false;
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('GOOD');
+
+        // The failure fires after the temp file is written but before the
+        // rename — exactly where a naive in-place overwrite would already have
+        // clobbered the previous good backup.
+        await expectLater(
+          writeDesktopBackup(
+            target.path,
+            'NEW-BUT-DOOMED',
+            debugSimulateFailure: () async =>
+                throw const FileSystemException('simulated write failure'),
+          ),
+          throwsA(isA<FileSystemException>()),
+        );
+
+        // Proves Windows/Linux went through writeStringAtomically: the prior
+        // backup survives and no temp file is left behind. A regression that
+        // routed non-macOS to the direct write would complete without throwing
+        // and leave 'NEW-BUT-DOOMED' here.
+        expect(await target.readAsString(), 'GOOD');
+        expect(_entryNames(dir), unorderedEquals(['backup.json']));
+      },
+    );
+
+    test(
+      'non-macOS replaces the file and leaves no temp litter on success',
+      () async {
+        isMacOsPlatform = () => false;
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('OLD');
+
+        await writeDesktopBackup(target.path, 'NEW');
+
+        expect(await target.readAsString(), 'NEW');
+        expect(_entryNames(dir), unorderedEquals(['backup.json']));
+      },
+    );
+
+    test(
+      'macOS routes to the in-place write, bypassing the atomic seam',
+      () async {
+        isMacOsPlatform = () => true;
+        backupVolumeAvailableBytes = (_) async => null;
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('GOOD');
+
+        // The in-place macOS path ignores debugSimulateFailure, so the write
+        // completes and overwrites the target. A regression that routed macOS
+        // through the atomic writer would honor the seam and throw here (and
+        // preserve 'GOOD'), failing this test.
+        await writeDesktopBackup(
+          target.path,
+          'NEW',
+          debugSimulateFailure: () async =>
+              throw const FileSystemException('must not fire on macOS'),
+        );
+
+        expect(await target.readAsString(), 'NEW');
+      },
+    );
+  });
+
+  // FAIL-16: the sandbox forces macOS to write in place, so on a full disk
+  // the write would truncate the backup it replaces. The free-space query is
+  // native; these drive it through its seam. What it answers on a real Mac is
+  // covered by the RunnerTests XCTest suite, not here.
+  group('writeDesktopBackup on macOS checks free space first', () {
+    late Directory dir;
+    late List<String> queried;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('backup_io_disk_full_test');
+      isMacOsPlatform = () => true;
+      queried = [];
+    });
+
+    tearDown(() async {
+      isMacOsPlatform = () => Platform.isMacOS;
+      backupVolumeAvailableBytes = realAvailableBytes;
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+
+    void reportFree(int? bytes) {
+      backupVolumeAvailableBytes = (path) async {
+        queried.add(path);
+        return bytes;
+      };
+    }
+
+    test('refuses before touching an existing backup it has no room to '
+        'replace', () async {
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      const contents = 'NEW-BACKUP-é';
+      final needed = utf8.encode(contents).length + kInPlaceBackupHeadroomBytes;
+      reportFree(needed - 1);
+
+      await expectLater(
+        writeDesktopBackup(target.path, contents),
+        throwsA(
+          isA<BackupDiskFullException>()
+              .having((e) => e.requiredBytes, 'requiredBytes', needed)
+              .having((e) => e.availableBytes, 'availableBytes', needed - 1),
+        ),
+      );
+      expect(await target.readAsString(), 'GOOD');
+      expect(queried, [target.path]);
+    });
+
+    test('writes when the volume has exactly the room it needs', () async {
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      reportFree(utf8.encode('NEW').length + kInPlaceBackupHeadroomBytes);
+
+      await writeDesktopBackup(target.path, 'NEW');
+
+      expect(await target.readAsString(), 'NEW');
+    });
+
+    test('an unknown answer lets the write go ahead, as before', () async {
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      reportFree(null);
+
+      await writeDesktopBackup(target.path, 'NEW');
+
+      expect(await target.readAsString(), 'NEW');
+      expect(queried, [target.path]);
+    });
+
+    test(
+      'a new file is written without asking: there is no backup to lose',
+      () async {
+        final target = File('${dir.path}/backup.json');
+        reportFree(0);
+
+        await writeDesktopBackup(target.path, 'NEW');
+
+        expect(await target.readAsString(), 'NEW');
+        expect(queried, isEmpty);
+      },
+    );
+
+    test('Windows and Linux never ask: their write is atomic', () async {
+      isMacOsPlatform = () => false;
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      reportFree(0);
+
+      await writeDesktopBackup(target.path, 'NEW');
+
+      expect(await target.readAsString(), 'NEW');
+      expect(queried, isEmpty);
     });
   });
 
@@ -197,16 +419,27 @@ void main() {
         final chmod = await Process.run('chmod', ['0500', dir.path]);
         expect(chmod.exitCode, 0, reason: '${chmod.stderr}');
 
-        // Prove the directory is no longer writable for new siblings (what this
-        // regression guard relies on).
-        final sibling = File('${target.path}.tmp');
-        await expectLater(
-          sibling.writeAsString('SHOULD-NOT-WRITE'),
-          throwsA(isA<FileSystemException>()),
-        );
-        expect(await sibling.exists(), isFalse);
-
         try {
+          // Prove the directory is no longer writable for new siblings (what
+          // this regression guard relies on). Inside the try so the chmod
+          // restore below runs on every path.
+          final sibling = File('${target.path}.tmp');
+          var denied = false;
+          try {
+            await sibling.writeAsString('SHOULD-NOT-WRITE');
+          } on FileSystemException {
+            denied = true;
+          }
+          if (!denied) {
+            // `markTestSkipped` does not abort the body: return explicitly.
+            await sibling.delete();
+            markTestSkipped(
+              'directory permissions not enforced (running as root?)',
+            );
+            return;
+          }
+          expect(await sibling.exists(), isFalse);
+
           await writeStringToUserSelectedPath(target.path, 'BACKUP');
         } finally {
           final restore = await Process.run('chmod', ['0700', dir.path]);

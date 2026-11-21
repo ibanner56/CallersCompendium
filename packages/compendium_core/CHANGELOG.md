@@ -21,7 +21,603 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
-_Nothing yet._
+## [0.11.0] - 2026-11-16
+
+### Added
+
+- Add the `amount` param to `figure_8` and `poussette` (taxonomy v39): a `ParamKind.rotation` opting into the `unspecified` sentinel, read only while `fraction` is `other`. Add `fractionAmountParam`, `fractionParamsForAmount`, `fractionTokenForAmount`, `isFractionAmount`, `statedFractionAmount`, `hidesFractionAmount`, `offersFractionChoice` and `kFractionOtherSeedAmount`.
+- Add `ParamBeats.beatsPerAmount` and `ParamBeats.derive`: `figure_8` derives 16 beats per full amount for an `other` fraction, and validation no longer flags a derived count as atypical.
+- Add `taxonomyV39CanonicalRebuildDoneKey`, a one-time canonical/FTS rebuild listed in `oneTimeRepairMarkers`.
+- FigureRenderer.dancerTerms: the forms the renderer prints for every dancer and role token under a dialect, for display that sets dancers apart in a rendered line.
+- Classify the calling_card_print setting (whether calling cards are offered, their size and layout) as a shareable app-user preference.
+- DanceCardContent.formation and DanceCardContent.level: the formation and level labels on their own, gated by their DanceShareField like the rest of the card.
+- Add an optional container title: `params['title']` (`containerTitleKey`) on a meanwhile, modifier or sequence, read through `Figure.containerTitle`, set by the container factories' `title` argument (or `extraParams['title']`), and normalized by `normalizeContainerTitle` (whitespace collapsed, trimmed, clamped to `kMaxContainerTitleLength`, 80) in the factories and the figure codec; a blank or non-string title is not stored.
+- Every `FigureRenderer` render of a titled container, `renderCanonical` included, opens with `<title> - `, the title shown through the free-text role substitution.
+- Add `ParamKind.number`, a whole number 0–99 rendered as its digits alone.
+- Add the `double` flag to `figure_8` (taxonomy v39, display wording only: canonical text and beats are unchanged; stored only while true, so no other figure 8 gains a key), with a `{double}` and a `{cast}` display slot, and read the double wording back in the ContraDB display dialect.
+- Add the `forward_and_back` move (taxonomy v39): `formation` (a `ParamKind.choice` of `forwardAndBackFormations`, default `longLines`), `goBack` and `beats`, with long lines' `goBack`-driven beats. Add `forwardAndBackFormations`.
+- Add `MoveAlias.listedAsMove`: such an alias is offered where moves are and aliases are not, and a dialect's name and wording for it apply to it while its target's never do. Set for `long_lines` only.
+- Add `Taxonomy.withoutListedAliasPins`: the params a figure stores without the value an alias listed as a move pins. The dance repository's write-time routing, the free-text read-back and `switchUserFigureUsesIn` (which also routes a use switched to long lines to `long_lines`) apply it, so a `long_lines` never stores `formation`.
+- Add `savedMatrixConstraint`: a matrix column or compound step on `forward_and_back` stating `formation: longLines` is saved on `long_lines` without it.
+- Add the `hey_for_three` move (taxonomy v39): the `dolphin_hey` params, template, beats (default 16, `goodBeats` `[16]`) and display wording, except that `who` takes only `ParamVocab.singleDancers`, as `whom` does, defaulting to `twosRole2`. Canonical text is `<who> hey for three <shoulder>`, with a glossary definition.
+- Add `readDisplayedHeyForThree`, which free-text entry alone calls to read a hey for three's display line back, under its name or `hey for 3`; free-text entry also reads a bare `hey for 3` as the move. No import grammar reads either.
+- Add `FormationShape.progressedImproper`; Callers Box imports of "Duple Minor - Progressed improper" now keep it as a first-class shape instead of reading it as Improper.
+- Add `includeTitle`, `includeCallerBand` and `includeDateVenue` (default true) to `programToPlainText`, and `includeCallerBand` and `includeDateVenue` to `programHeaderLines`. With no header lines left, `programToPlainText` no longer starts with a blank line.
+- Add the `starburst` move (taxonomy v39): `direction` (`spinDirection`, default `counterclockwise`), `travel` (`ParamKind.number`, default 1), `who` (`dancerSet`, default `role1s`), `whom` (`dancerPair`, default `partners`) and `beats` (default 8), with search keyword `dolphin loop` and a glossary definition. Canonical text is `starburst <direction> around <travel>, <who> lead <whom> out of the set`.
+- Add `readDisplayedStarburst`, which free-text entry alone calls to read a starburst's display line back; no import grammar reads it.
+- Add `threesRole1`, `threesRole2`, `foursRole1` and `foursRole2` to `ParamVocab.singleDancers` (taxonomy v39), at the end of `ParamVocab.dancerSets`. They display as `third`/`fourth` and the role's singular term, and free-text entry reads them back. `figure_8.lead` and `dolphin_hey.whom` take all eight single dancers, and The Caller's Box codes `M3`/`W3`/`M4`/`W4` map to the new four (`dancerWords`); ContraDB never names them, and the ContraDB advanced filter does not send them.
+- Add the `trade_the_wave` move (taxonomy v39): `sides`, `center`, `centerHand`, `axis`, `balance` (stored default false, entry default true) and `beats` (4, or 8 with the balance, by `paramBeats`). Canonical text is the move name alone; the display line names the dancers who trade as the opposite of `sides` (`ParamOpposites`) and the side hand as the other hand.
+- Free-text entry reads a displayed trade the wave back as that figure; the import grammar still keeps a bare `Trade the wave` as custom text, and the ContraDB advanced filter refuses a `trade_the_wave` leaf.
+
+### Changed
+
+- Render an `other` fraction as its amount (`1½`, `two`, `one and a half` verbose), or as `an unstated amount of` (`unstated amount` in canonical text) when it states none. The poussette's verbose rendering now uses the spelled-out fraction words.
+- The ContraDB adapter keeps a quarter-step `half_or_full` amount up to 2.5 as `other` with `amount`; the figure parser reads a mixed amount (`1 1/2`) for a figure 8 or poussette; the display read-back reads the new wording.
+- `applyParamChange` seeds the amount when the fraction becomes `other` (unless `seedFractionAmount` is false, as compound expansion passes), drops it for a named fraction, stores an amount a named fraction states as that fraction, and refuses a non-numeric amount; the rule is also public as `applyFractionAmountChange`. `Taxonomy.entryParams` no longer seeds the `amount` default, and `skipsMoveDefault` keeps a saved `other` or amount per-move default from being applied.
+- `figureSnippetSignature` and `figureCanonicalKey` include the amount only while it is stated, so every key a pre-v39 figure had is unchanged; the v1 snippet-signature migration renames a legacy `amount` only for `orbit`.
+- The calling_card_print setting's classification note mentions that it also records whether cards print several to a page.
+- The Caller's Box adapter groups an unknown compound parent whose children all structure (#295) into one sequence titled with the scrubbed parent name, after the cross-line merge and only when every figure the block emitted came through it untouched, the block has two to four figures that a sequence may hold and fits the dance's longest phrase, and the name fits a title unchanged. Otherwise it keeps the flat reading, the name a note on the first child.
+- `figuresCanonicallyIdentical` and `diffFigures` compare a top-level sequence as its steps, so a dance whose figures differ only in grouping (or a group's title) is identical, and a changed step inside a sequence is reported as that step. `figureCanonicalKey` is unchanged.
+- `long_lines` is now an alias of `forward_and_back` pinning `formation: longLines`, with `inversePairId: forward_and_back`, so `resolvedMoveId` routes between the two on `formation`. Its canonical text (`long lines`) and display lines are unchanged; its effective params gain `formation: longLines`. Free-text entry's typed names and the figure editor's move pick start a figure under the id it is stored with, so a bare `forward_and_back` starts as `long_lines`.
+- Render a `forward_and_back` as `<formation> forward & back` (verbose `forward and back`), or `<formation> forward` without `goBack`; canonical text is `<formation> forward and back`. The renderer's camelCase humanizer, and the app's `humanizeToken`, break before a capital that starts a word after a one-letter word (`inARing` → `in a ring`).
+- Free-text entry reads a displayed forward and back back as that figure; the import grammar is unchanged.
+- Program matrix parameterized and compound columns whose base move is an alias match its target with the alias's pinned params added, and a column for an alias listed as a move is labelled by the dialect's name for that alias.
+- `figureSnippetSignature` of an alias listed as a move is its own id without its pinned params, so every `long_lines` keeps the signature `long_lines`.
+- `FilterCompiler` never maps an alias's id through a dialect's move names, as it already did not a move's.
+- The ContraDB advanced filter refuses a `hey_for_three` leaf: ContraDB has no such figure.
+- `programSlotLine` no longer appends the `[performed]` marker for a slot with `performedAt` set; remove the now-unused `ProgramExportLabels.performed` field.
+- The ContraDB advanced filter refuses a `starburst` leaf: ContraDB has no such figure.
+- `circle.places` and `star.places` admit `ParamVocab.unspecified` (taxonomy v39), and `ParamKind.places` now accepts the sentinel wherever a spec lists it in `choices`, as `ParamKind.rotation` does. It renders as nothing, and a star's grip clause drops its closing dash when no count follows.
+- A compound places param bound to `circle.places` or `star.places` admits the sentinel (from the slot's `paramDomain`), and one bound to no slot admits it too, as an unbound rotation does.
+- `describeFigureSignature` reads an `unspecified` token back for a numeric param that admits it, instead of falling back to the raw signature.
+- `validateUserFigure` adds the parameter's `index` to the data of each per-parameter issue, so an editor can mark the row at fault; of a key taken twice, the later parameter is the one reported.
+- `userFigureSwitchTargets` offers a `ParamKind.number` target for a `ParamKind.places` parameter, as well as one of its own kind; the value is kept as it is. A number parameter still never maps onto places.
+
+### Removed
+
+- Retire on-disk schema versions v35–v38: `kMinSupportedSchemaVersion` is now 39, the schema `v0.7.0-beta` shipped. Their upgrade steps, schema dumps, generated schema classes and the v35 and v38 release fixtures are deleted; the floor fixture is now `v39.sqlite`, captured from `v0.7.0-beta`.
+
+## [0.10.2] - 2026-11-12
+
+### Added
+
+- Add `CompendiumRepositories.oneTimeRepairMarkers` and `owedOneTimeRepairs`, which report the one-time repairs a database still owes so a caller can snapshot it first.
+
+### Fixed
+
+- The Caller's Box `Circulate: <X> cross, <inverse X> loop [left|right]` reader accepts one trailing `[with <dancer>]` or `[around <dancer>]` bracket, keeping its canonical text as the figure note; other brackets, unresolvable dancers and malformed definitions still read as custom.
+- ArchiveRestorer.restore takes backupCreatedAt and stamps the records it writes there, clamped to now, instead of at restore time; SettingsRepository.setFromRestore/removeFromRestore and the glossary and figure-note restore writes stamp the same way, with a non-causal existence stamp (sync-spec §6.11, amended 2026-11-11).
+
+## [0.10.1] - 2026-11-10
+
+### Added
+
+- anyFigure, a figure query that matches every figure, and its translation to ContraDB's any-figure wildcard.
+- Add customNumberText, the one formatter for a custom number field's value: a whole number without its trailing ".0", at any size, shared by the search index, the dance screens and the editor.
+- translateDanceFilterToContraDb translates a figure leaf's parameters onto ContraDB's positional filters and reports the ones it left out in ContraDbAdvancedExpression.ignoredParams.
+- Add translateDanceFilterToContraDb and buildContraDbFilterBody to build ContraDB filter expressions from an Advanced search tree.
+- parseContraDbNumberMatching reads the whole match count from a ContraDB search response.
+- Add SettingsRepository.keysWithPrefixNewestFirst, listing keys by their last write.
+- Add CallingHistoryTracking and the matching SQL and Dart date helpers, so the Called filter's recency window and the history order can each be gated on dated and performed slots.
+
+### Changed
+
+- ContraDbAdvancedUnsupported.figureDetail now means a phrase section only; figure parameters no longer refuse a figure.
+- ThenFilter now matches a figure that immediately follows another, wrapping from the last figure to the first, instead of any later figure.
+- ThenFilter pairs the only figure of a one-figure dance with itself, matching ContraDB, while two different concurrent sides of one container still never pair.
+- CalledFilter.since now dates a slot through CallingHistoryTracking: by default only programs with an event date have a recency date. DanceCallingRecord.recencyDate is now a method taking the same flags.
+
+### Fixed
+
+- The shared figure grammar reads `<who> balance & box the gnat` (and swat the flea) with the balance set, and free-text entry gives such a box 8 beats when it is the line's only figure and the line states no count (a count in bars, or one too long to be beats, leaves it at 4) (`withBalancedBoxBeats`). The ContraDB figure reader reads `<who> balance & Rory O'More <side>` with the balance set, so free-text entry and the combined reader read it too, but the Caller's Box reader does not.
+- The shared figure grammar reads the display's dancer names as subjects: the neighbour, partner and shadow series (`prev neighbor`, `next partners`, `second shadow`, from `seriesDancerWords` in `dance_vocabulary.dart`), `same roles`, `centers`, and `first`/`second` before a role word. The ContraDB figure reader reads the series names too. A plain `centers trade`, with no side, is still not read as a pass by in the shared grammar.
+- The ContraDB figure reader reads the app's display wording for a gate (`_gateDisplay`, which also reads the display's one-word `counterclockwise`) and for a courtesy turn's `to face` clause. A gate line that states only a subject, or a Caller's Box shape without both direction and turn, is left to the existing readers, so imports read those as before. Free-text entry alone reads a courtesy turn's displayed `whom` (`readDisplayedCourtesyTurnWithWhom`), so imports still leave `whom` out unless a source states it, and its dancer-before-a-name lookup takes every subject the display writes. The display's facing phrases moved to `displayFacingPhrases` in `dance_vocabulary.dart`, shared by the renderer and the readers.
+- The ContraDB figure reader's hey reads a displayed direction after `hey`, the partial-length `until` clause (with its named `meetTarget`), and the display's subjects; its dolphin hey reads the display's subjects. The shared grammar reads a circular hey with no extent as four changes, which reverses its earlier rule that such a line stays text, and reads the display's direction phrases after the shoulder.
+- Free-text entry (`parseFreeTextFigureEntry`) retries a line with the dialect's role words, and then with the built-in role terms read by their meaning, not only when the line as typed reads no move, but also when it reads one only by leaving a note or an unread part. In that second case a retry is taken only if it reads the whole line, so a line read as typed keeps that reading unless the role words account for all of it. A meanwhile whose parts are all unread now counts as reading no move. A Leads/Follows line such as `half poussette - leads pull neighbor back then left` read as a bare poussette with the rest as a note, because `leads` is not one of the built-in role words the import scrub knows; `leads dance out while follows dance in …` split into two unread halves. Both now read back, which leaves only the deliberate exceptions in the Leads/Follows round-trip list. Imports are unchanged: they do not go through free-text entry.
+- The ContraDB figure reader reads the app's display wording for a poussette, zig-zag and figure 8 (`_poussetteDisplay`, `_zigZagDisplay`, `_figure8Display`) and the display's subjects and `others` in a box circulate's cross-while-loop clause. It also reads a swing's displayed ending facing (`_swingEndFacingDisplay`, a whole line only), a promenade's displayed direction (in both the ContraDB and shared readers), a `single file circle`, a counterclockwise facing star, the display's subjects in a revolving door, give and take, facing star and the halls, and a hall's "forward then backward". ContraDB's own poussette reader now maps "back then left" to clockwise, as libfigure writes it (the poussette's turn is its `spin` parameter, whose clock wording writes `true` as "clockwise", and `poussetteWords` writes `true` as "back then left"); it read the sides reversed, and the ContraDB search translation's poussette mapping, inverted to match it, is un-inverted. Not read on purpose: a hall's "bend the line" ender, which ContraDB's own tests keep as a note; a figure 8 with no direction (`where: none`) and a box circulate without its balance, whose ContraDB and beat-implied readings this would override. The display's singular subjects in a take are read only on a whole line, and a figure 8 display line only with its own between pair and a single-dancer lead, so an import's custom lines are not newly force-matched. A trailing display direction is now read only where it ends the clause, so `facing up the hall` after a pass through, chain, pull by or right left through stays a note.
+- The ContraDB figure reader reads a displayed direction after pass through, right left through, chain and pull by; the display's singular subject for pass by when its shoulder is stated; cross trails' display subjects, directions and `passing … shoulders` clauses, declining a second pass by the same shoulder; and slice's `one dancer` and return clauses. A bare `slice left` is still read at the default return, since whether ContraDB means `none` by it is not established.
+- The ContraDB figure reader reads the app's display wording for a square through (`_squareThroughDisplay`, the whole pull sequence, declining a second pull by the same hand), a mad robin (`_madRobinDisplay`, reading a line without the in-front clause as `who: unspecified`) and a butterfly whirl's spin. A bare `mad robin` is left to the name lookup, which gives the move's defaults. Two import-side effects: a ContraDB square-through line in this wording is now read whole, so it no longer keeps what followed the first pull's hand (`pull by left`, or `pull by left, then repeat` for four places) as a note; and a mad robin line without an in-front clause (`mad robin clockwise`, `mad robin 1½ around`, `… around neighbor`), which stayed custom, is now structured with `who: unspecified`.
+- The ContraDB figure reader also reads the app's display wording for `pass_the_ocean`, `form_short_waves`, `form_long_waves` (with `facing`, the pair held and the balance) and an in-place `form_a_long_wave`, and its `dance in to a long wave` subject takes `third corners`, `opposites` and the singulars `neighbor`, `partner` and `shadow`. The display readers read only a whole line. `<who> form a long wave in the center` is now `in: false, out: false` with its stated balance, where the taxonomy defaults used to make it a balanced dance-in. The display's direction phrases moved to `displayDirectionPhrases` in `dance_vocabulary.dart`, which the renderer and the readers share.
+- ProgramRepository.danceCountLosingHistory no longer counts a permanently deleted dance.
+- FilterCompiler binds a built-in move id as given instead of mapping it through the dialect's move names.
+- The Caller's Companion program importer reads an ISO date as written and refuses an impossible one.
+- The figure fan-out no longer treats "with balance", or a "balance first" that ends its clause, in a box circulate's note as a balance after it, and gives a box circulate whose note says "no balance" balance: false.
+- translateDanceFilterToContraDb now translates the Collection's move ids (such as do_si_do) to ContraDB's moves through an exact-mapping table, and refuses moves with no exact ContraDB equivalent.
+- Display `pull_by` as hand then direction and `slide_along_set` as "slide <side> along set"; word set directions as "on <side> diagonal" and "facing <direction>" on every built-in move's display line, after the hey or ocean wave they belong to; place Rory O'More's balance after its subject; say "passing" before cross trails' shoulders; and keep a subject plural where a plural verb agrees with it. Canonical text is unchanged, so the search index needs no rebuild.
+- Index whole-number custom values as "3" rather than "3.0"; a one-time `ensureMigrated` pass behind `customNumberIndexRepairDoneKey` reindexes the dances holding a value for a number field.
+- Reindex the trashed dances whose custom-field values are deleted when a recreated field adopts a tombstoned definition's key.
+- A Caller's Companion re-import resolves the program's venue afresh when the prior `venueId` names no row at all, live or tombstoned (`VenueRepository.rowExists`).
+- `resolveConfidentOnlineDanceId` returns the existing dance's id for a confident match with identical figures.
+- `CompendiumSyncStorage.refreshConflictReviews` drops §6.6 step-1 rename-collision rows whose collision has ended, judged from local state only.
+- `CustomFieldDefRepository.writeFromSync` drops the values trashed dances hold that no longer fit the field's new type or choices, without restamping them.
+- Blanking a dance or program deletes its `review_queue` rows, including a dance ambiguity row naming it as either side.
+- `CrashLogRecord.messageSafeErrorTypes` no longer lists `SyncFailure`, which is never thrown, so the entry matched nothing.
+
+## [0.10.0] - 2026-11-02
+
+### Added
+
+- CcDanceRecord carries the .USR formation columns separately (subType, formationFamily, contraForm, direction, formationOther) and fromUsrColumns, set by ccDanceRecordFromColumns.
+- splitCallersCompanionCommaLine splits a Caller's Companion body line at its top-level commas when it did not read whole, or read with a note holding its last piece (noteSwallowsPieces); the Caller's Companion mapper calls it. balanceFoldMoves exposes the Caller's Box Fold 1 move set, splitTopLevel the Caller's Box top-level splitter, and whileModifierMoves the moves that modify the figure before them.
+- `peelUnnamedOthers` takes an "and others" / "& others" / "et al." credit off a dance's raw author fields.
+- `CcUsrArchive.danceRecordIds` lists the file's `zk_Dance_ID`s, or is `null` when the file is cut short or damaged, has no `Dance` table, or has a `Dance` row without a `zk_Dance_ID`.
+- `buildCcPrograms` takes `danceTitleByCcRowId` and `failedCcRowIds`, and raises `cc_program_deleted_dance` for a slot naming a dance not in the file; a deleted dance's first alternate takes its place.
+- `CallersCompanionUsrImporter.commit` takes `danceTitleByCcRowId` for planned rows left out of the batch it commits.
+- `frontTrailingArticle` moves a trailing `, The`/`A`/`An`/`La`/`Le`/`Les`/`L'` to the front of a title, keeping up to four bracketed annotations at the end.
+- `Program.danceSlotCount` and `Program.danceSlotCountsOf` count the slots holding a dance, alternates included, as the one definition behind the Add to program marker and the program builder's "in program" count.
+- `ProgramSlot.isPlannedDance`, `Program.plannedDanceCountOf`, `Program.danceNumbersForSlots`, `Program.removeSlotPromotingAlternate`, `Program.moveSlotPromotingAlternate`, `Program.alternatePromotedByRemoving` and `setListPrimaryLine`.
+- `ProgramRepository.replaceIfUnchangedAndReadBack` compares and replaces like `replaceIfUnchanged`, and returns the program as stored.
+- `CompendiumArchiveImporter.commit` takes `defaultTagIds`, added to each dance the commit creates.
+- `SettingsRepository.keysWithPrefix` lists the live keys under a prefix without reading their values.
+- `DanceCallCounts` carries `dated` and `performedDated` tallies, and `countFor` takes `requireEventDate`.
+- `callingHistoryForDance`, `watchCallingHistoryForDance`, `halfCallingStatsForDance`, `lastCalledByDance`, `DanceRepository.search` and `CalledFilter` take `requireEventDate`, applied through the shared `callingHistoryEventDateClause`.
+- Settings key `require_event_date_for_history`.
+- DanceCardContent.hasBody tells whether a dance has figures, or selected calling notes or a walkthrough, worth a card beneath its title.
+- DanceExportLabels, ProgramExportLabels and ProgramMatrixExportLabels gain pageOf, the localizable "Page x of y" footer.
+- `DanceShareField.hook` and `DanceShareField.sources`, with `DanceCardContent.hook` / `sourceLines`, `danceCardSourceLines` and the `sourceLines` parameter of `danceToPlainText`. Both fields are excluded from `DanceShareField.allExceptTunes`.
+- `DanceExportLabels.hook` and `DanceExportLabels.sources`.
+- `ProgramRepository.linkTypedVenues` and `countTypedVenuePrograms` link live programs that carry a venue only as typed text to a venue record, matching by `VenueKey` and stamping each linked program for Device Sync.
+- DanceRepository.softDeleteMany and restoreMany delete and restore many dances in one transaction each, through the single-dance soft delete and restore. restoreMany shares restore's own body and rebuilds the search index once for the whole batch.
+- DanceRepository.setStatusForMany sets a status on many dances in one transaction, stamping only those that change.
+- CallersCompanionUsrImporter.commitDances commits .USR dances alone, creating their user-field definitions first; commit takes earlierDanceIds so its programs and related-dance links can name those dances, and records the links it adds to them in CcUsrImportResult.linksAddedToEarlierDances.
+- `ProgramRepository.renameDialect` renames a dialect on every program that names it and bumps their `updatedAt` so the change syncs.
+- Add title-matching helpers (foldForTitleMatch, rankTitleMatch) and optional decimals and canonicalDiscouragedTerms display options on diffFigures.
+- Add venue, recency (since a calendar date) and current-program scopes to CalledFilter, with VenueKey, the cc_venue_key SQL function registered by applyCompendiumSqliteSetup, DanceCallingRecord.recencyDate, VenueCallCount.key and ProgramRepository.calledVenues / watchCalledVenues.
+- `CustomFieldDefRepository.onIndexedValuesChanged`, wired by `CompendiumRepositories`, reindexes the dances holding a value when a non-sync write changes whether a definition's values are indexed; `DanceRepository.reindexDancesHoldingCustomFields` does the reindex.
+- A one-shot `ensureMigrated` pass behind `customFieldIndexRepairDoneKey` reindexes the dances an index written before this rule still carries such values for.
+- FilterCompiler maps the active and saved dialects' move names to the taxonomy display name in full-text search.
+- `ProgramRepository.clearPerformedAtIfMatches` takes an optional `restoreStatus`: in the same transaction, the program's status goes back to it while it is still Performed.
+- `DedupeVerdict.reimport` takes `alsoTitleAndCredit`, and `withReimportedChoreography` an `alsoTitleAndCredit` flag: a re-import with it set also takes the incoming title and resolved authors (an empty incoming credit keeps the dance's).
+- `CompendiumArchiveImporter.commit` commits a share's tags, custom fields and sources only for the rows that will write a dance (`ShareMetadataImporter.commit`'s new `only`, worked out with `resolveCommitAction`, now public), and `ShareMetadataImporter.dropUnused` takes back what a row that then failed needed.
+- `CallersCompanionUsrImporter.commit` takes `earlierReimportedCcIds`, and `buildCcRelatedDanceLinks` takes `skippedSourceDanceIds`.
+- Add `DanceRepository.permanentlyDelete` and `ProgramRepository.permanentlyDelete`, which erase an unpublished record or blank a published one down to its deletion record, and `removePermanentlyDeleted` on both, which finishes every record marked as permanently deleted (`isPermanentlyDeleted`).
+- `ReferenceEditRepository` (`CompendiumRepositories.references`): rename, merge and delete for tags, authors and published sources, with an in-memory Undo. A merge keeps the smaller UUID, frees each loser's name with a suffix, tombstones it and records an `id_aliases` row through `remapIdentity`; a tag delete takes the tag off every dance, trashed ones included.
+- `CompendiumSyncStorage.heldAliasLosers`, and `SyncAliasMap.heldLosers` in the app: alias losing ids this device still holds a row for.
+- `ReferenceEditRepository.watchLiveDanceCounts`: every tag's, author's or published source's count of live citing dances as one grouped, watched query.
+- `ReferenceEditRepository.deleteUnused` deletes an author or source no live dance cites, with Undo, and bumps any dance in Recently deleted that still cites it.
+- `authorMergeConflicts` and `sourceMergeConflicts` list the values a merge will drop.
+- `ChoreographerRepository.watchAll` and `PublishedSourceRepository.watchAll` stream the live rows.
+- `ProgramRepository.danceCountLosingHistory` counts the distinct dances whose calling history lists a program, under the same performed-only, event-date and caller settings as `callingHistoryForDance`.
+- Add the `sequence` structural container: 2–4 ordered children, rendered as an English list, nestable one level with meanwhile and modifier, with a `sequence_exceeds_phrase` warning and per-step `group_idx` for a top-level sequence.
+- Add an optional onlyIds filter to DanceRepository.purgeDeleted and ProgramRepository.purgeDeleted that restricts the purge to the given ids.
+
+### Changed
+
+- `CompendiumSyncStorage` checks whether a live dance still cites a choreographer, tag, published source or custom field with one `EXISTS` query instead of one dances lookup per citing row.
+- Schema v41 adds `dance_authors_choreographer_id`, `dance_tags_tag_id`, `dance_sources_source_id` and `custom_field_values_field_id` (`citedIdLookupIndexSql`).
+- Reorder the down the hall and up the hall params so the ender precedes moving.
+- The free-text fan-out ranks note-bearing readings by the letters and digits left in their notes, with front-end precedence breaking a tie, and rejects a reading whose note opens with an amount it did not take.
+- mapCallersCompanionDance maps a .USR record's formation columns together and sets mixer for CC's Circle Mixer and Scatter Mixer types and mixer SubTypes; a text-export record keeps its single formation string. A .USR SetItem whose AlternateDance is "ALT" is an alternate.
+- The Caller's Companion mapper reads a multi-line Level into a combined name (ccLevelScale order) with a cc_new_level issue carrying the name; ImportPipeline reuses a configured level of that name (ccLevelNameKey), and CallersCompanionUsrImporter reuses, restores or creates the rest, places the ones it kept by ccLevelScaleKey once the import has otherwise succeeded, and records them on CcUsrImportResult for undo.
+- DifficultyLevelRepository.setPositions moves only the named levels, leaving every other level row untouched.
+- CallersCompanionUsrImporter now requires difficultyLevels:.
+- A cc_unmapped_level message no longer contains a line break.
+- CallersCompanionUsrImporter takes a required publishedSources repository; it resolves CC Reference citations to published sources at commit and reverts them with the import (CcUsrImportResult.insertedPublishedSourceIds / restoredPublishedSourceIds).
+- mapCallersCompanionDance reads CallingNotes, NotesOther, From, ProgressionOther, SourceURL, VideoURL…VideoURL5, CallersBox_id, Reference and PageNumber; CcSetItem gains breakAfter and CcSet hideAlternates, which buildCcPrograms applies.
+- The shared recognizer spells a bare l/r as left/right straight after circle, pull by, pass, slide, slice or allemande; reads "alle" as allemande; and reads "R&L" (also "R & L" and "R&L thru") as right and left through. The ContraDB dialect's zig-zag reader takes a bare L/R as the side.
+- The shared balance recognizer reads a hand before "balance": "R-hand", "Right hand", "RH-balance".
+- The shared hey recognizer reads "<length> hey, <who> start <side> shoulder(s)", with 1/4 and 3/4 as the partial lengths, a leading left/right diagonal as where, and a trailing role ricochet on a half hey as rico1/rico2.
+- The shared figure recognizer reads "new neighbor(s)" as nextNeighbors and a singular "corner" as firstCorners, with first/1st and second/2nd corner(s) naming either corner, for every source. A number after a corner word is not read as an amount.
+- The shared figure recognizer reads "ring balance" as balance_the_ring, and a ring balance followed by a spin to the right as petronella with balance: true.
+- In free-text entry and the re-parse upgrade, a note that only names the figure's own move ("(petronella)" on a petronella) no longer demotes the reading.
+- The shared figure recognizer, and the ContraDB dialect for a line with one dancer set, read a relationship that is the line's only dancer set as roll_away's whom, leaving who to the default with assumedSubject; the recognizer also reads "rollaway" and "w/ half sashay".
+- withBeatImpliedBalance sets box_circulate's balance from a whole line's beats (8: true, 4: false) when the line has no top-level `;`, in the Caller's Companion mapper, the Caller's Box per-line parse, reparseImportGapFigures and parseFreeTextFigureEntry.
+- The CallersBox per-role roll-away annotation fills who on the whom reading for any roll-away relationship and clears assumedSubject; it also reads a role-named note ("role2s roll R, role1s step L"). A leading bracket that fills who clears assumedSubject, and does not overrule an annotation's roller.
+- Taxonomy v38: form_short_waves' beats default becomes 0, with paramBeats balance true 4 / false 0 and goodBeats [0, 4, 8].
+- The shared recognizer reads "balance (long) wave (of 4) and slide <side>" as a balanced rory_o_more and "make short wave(s)" / "make (a) wave of 4" as form_short_waves; the CallersBox front end reads "wave balance, (box) circulate" as a balanced box_circulate, taking who and hand from a "(<who> cross, <who> loop <side>)" bracket.
+- splitCallersCompanionCommaLine gives a figure whose default is 0 beats none, and the last figure that takes beats the rest.
+- withBeatImpliedBalance also sets square_through's balance from a whole line's beats (true when beats >= 2 x places + 4), unless the figure states a balance or the line says "without hands"; for the Caller's Box it runs on a standalone line only, after the cross-line merge, so a preceding balance line still folds in.
+- The CallersBox front end reads "<who> <side>-hand balance, square through <n>" as one square_through with balance: true, and reads a comma pass list on a square through with hands, including spaced and spelled cells, and leaves its balance to the beats; a comma list of pass codes that does not decode becomes the note, and any other comma bracket goes on to the per-role and prose readers.
+- Taxonomy v38 adds the pairDancerSets tokens thirdCorners and opposites, and moves firstCorners and secondCorners after fourthNeighbors; the hey meeting target (and mad robin and butterfly whirl pairs) accept both new tokens.
+- tcbPassPeople maps c1, c2 and c3 to firstCorners, opposites and thirdCorners; the shared recognizer reads "Corner 1/2/3", "third corner" and "opposite(s)" (not before role, side, direction, way or hand).
+- The CallersBox side-run decoder does not write a dancer the slot it would fill rejects (form_long_waves with an opposites code): the side still reads and the run is kept as the note.
+- `mapCallersCompanionDance` credits only the named authors of an "and others" credit and records it as a `Choreography:` line in the calling notes.
+- `buildCcPrograms` titles a program `YYYY/MM/DD - Location` (Location alone without a parsed date, the date alone without a Location), and keeps `ProgramSlot.guestCaller` only when a set's built slots name more than one caller or one other than the set's `Caller`, or the set's `Caller` names several people.
+- `mapCallersCompanionDance` and both Caller's Companion adapters' discovery labels front a trailing article.
+- `DedupeIndex` and `ImportPipeline.autoResolveAmbiguous` match titles on the new `dedupeTitleKeys`: the title as written and with any trailing article fronted. `normalizeTitle`, the sync title key, is unchanged.
+- The `cc_missing_title` diagnostic no longer says the dance was pasted, since a `.USR` row reaches it too.
+- titleSortKey folds accents like foldForTitleMatch, and the title and author sorts compare folded keys instead of relying on SQL COLLATE NOCASE.
+- `ProgramMatrix.isCollision` skips a neighbouring row in a different numbered section, so dances either side of a break are never adjacent. Rows without a section, and slots in the same section, are compared as before.
+- `CrashLogRecord.scrubbed` keeps the message of an error type listed in `CrashLogRecord.messageSafeErrorTypes` (still path-scrubbed) instead of withholding it.
+- `programToPlainText` numbers planned dances only: the break is unnumbered and a leading alternate keeps its `ALT:` prefix without a number.
+- `Program.duplicate` clears `eventDate`.
+- `buildArchivePrograms` imports each program as `ProgramStatus.draft` with slot `performedAt` and `eventDate` cleared, and `CompendiumArchiveImporter.commit` always inserts a new program instead of updating one matched by provenance.
+- `DanceCallingRecord.effectiveDate`, the calling-history order, `ProgramRepository.lastCalledByDance` and `DanceRepository`'s Last-called sort prefer the program's `eventDate` to the slot's `performedAt`: `COALESCE(event_date, performed_at, updated_at)`.
+- `ImportPipeline.commit` keeps the linked-over dance's rating on `CommitAction.link` when the incoming record carries none (`_rebuildWithIdentity` takes `keepFrom` in place of `keepCustomFieldsFrom`).
+- Change the taxonomy defaults for `circle.places` (4 to 3), `allemande.travel` (1 to 1.5), `star.hand` (right to left), `poussette.who` (`ones` to `role1s`), `square_through` places/beats (4/16 to 2/8), `roll_away.who` (`neighbors` to `role1s`), `orbit.who` (`ones` to `role1s`), `arch_and_dive.who` (`ones` to `twos`), `box_the_gnat.who` (`partners` to `neighbors`) and `figure_8.where` (`none` to `above`) (taxonomy v38). A one-time canonical/FTS rebuild (`taxonomyV38CanonicalRebuildDoneKey`) re-derives stored figures' canonical text; source JSON is unchanged.
+- Add `ParamSpec.entryDefault` and `Taxonomy.entryParams`: the value the figure editor seeds on picking a move when it differs from the default a stored figure that omits the param means. `balance` (and its beats) use it on `box_the_gnat`, `box_circulate`, `pass_the_ocean` and `form_long_waves`. `box_the_gnat` and `box_circulate` now accept 4 or 8 beats.
+- `Dance.duplicate` keeps each link's `transitive` flag, so a copy of a grouped dance stays in its group.
+- `Dance.duplicate` and `DanceRepository.duplicate` accept `newTitle`, applied in the same write that creates the copy.
+- Calling-history queries, the Called filter and half-calling stats count an alternate slot only once it is marked performed; Program.stampDanceSlotsPerformed skips alternates. Add ProgramSlot.countsTowardCallingHistory and ProgramSlot.isBulkMarkPerformedTarget.
+- DanceRepository.search takes callerFilter and performedOnly, which scope the last-called sort; the sort orders by COALESCE(event_date, performed_at, updated_at).
+- FilterCompiler splits a FullTextFilter query into words and ANDs one canonical-or-raw predicate per word; multi-word role, move and dialect move terms stay one word, and role terms are decided on the whole query (new analyzeRoleTerms).
+- `ShareMetadataImporter` matches a custom field on its canonical key, type and, for a choice field, the set of choices. A field that differs goes to `<receiver key>_2`, `_3`, … (a compatible row already there is reused, two fields of one file never share a row, and every field tries its own key first, so a field that can keep its key is never moved to make room for one that clashes) and is noted as an `archive_custom_field_key_conflict` `ImportIssue` on the new `ShareMetadataImportResult.issues`, instead of throwing a `StateError`. Its `data` carries the receiver's own `label` and the new `key`, or nothing when the key is held by another field of the same file or by a deleted field.
+- `ShareMetadataImporter.preview` and `CompendiumArchiveImporter.planMetadataIssues` return those notes at plan time without writing.
+- `ImportPipeline.commit` writes a `CommitAction.reimport` with the new `withReimportedChoreography`: only figures, formation and progression come from the draft, plus a fresh provenance; an unreadable or empty incoming figure list keeps the dance's own. It resolves no author names and holds back none of the draft's links for a re-import. `CommitAction.link` is unchanged.
+- `replaceDanceChoreography` and `DanceReimportResult` moved from the app into `compendium_core`, beside `withReimportedChoreography`.
+- `DanceRepository.purgeDeleted` and `ProgramRepository.purgeDeleted` now blank an expired published record instead of leaving it whole, without changing its existence stamp, and still return only how many records they erased. In a merge, a tie between tombstones now takes the copy marked as permanently deleted.
+- `removePermanentlyDeleted` no longer rewrites the records citing a dance unless asked (`rewriteCitations`, which only `permanentlyDelete` passes); a dance still cited keeps its title.
+- `CompendiumSyncStorage._rewriteLocalReferences` moved, unchanged, to the storage helper `rewriteLocalReferences`, which returns the affected dance ids.
+- Sync publishes and applies a user merge's loser tombstone under its own id rather than the survivor's (sync-spec §6.6, amended 2026-10-30).
+- At §6.6 step 1, for tags and choreographers, a colliding update waits, unqueued, while the row holding the name is leaving it (in the same batch, or as a held tombstone that gave the name up with the suffix); and a tag or choreographer tombstone gives up the name with the suffix derivation.
+- A source merge gives the citation a dance keeps the page and number of its citation of the source merged into, each filled from the dropped citation when empty, and its Undo puts them back.
+- `DanceRepository`'s orphaned-reference garbage collection (`purgeDeleted`, `permanentlyDelete` and `hardDelete` with `gcOrphanedRefs`) erases only bare tag, choreographer and published-source rows; a row holding a detail survives unused.
+- `app_locale`, `reduce_motion`, `auto_size_perform_cards` and `perform_stage_mode` are classified `deviceLocal` instead of `shareable`. A peer on an older build still publishes them; `SyncCoordinator` leaves them out of the peer manifests a pass reads and `SyncApplyEngine` discards any that reach it, so they are not applied, kept, shared back or reported (`syncWithdrawnSettingKeys`, sync-spec §6.7 as amended).
+- `DanceRepository.restore` revives, in its transaction, the tombstoned difficulty level and custom-field definitions the dance names, and `ProgramRepository.restore` revives the tombstoned venue the program links to. Neither restores, or revives anything for, a permanently deleted record. A new `reviveReferences` parameter (default `true`) turns this off; the archive merge passes `false`, since it overwrites the row straight away, and so does the Caller's Companion import, whose undo would not re-tombstone a revived venue. `ProgramRepository.duplicate` no longer copies a `venueId` that names no live venue (LIFE-4).
+- `DifficultyLevelRepository.isInUse`, `referenceCount` and `delete`, and `CustomFieldDefRepository.isInUse` and `listUsedChoiceValues`, count live dances only. Device Sync holds an inbound difficulty-level tombstone pending only while a live dance cites the level (sync-spec §6.8, amended). `DifficultyLevelRepository.hardDelete` refuses a level a live dance uses and tombstones one only a trashed dance names. Any local (non-sync) custom-field write, including a merge restore, drops the values trashed dances hold that no longer fit its new type or options, and restamps those dances when the field published them. `ArchiveExporter.export` clears `difficultyLevelId` on a tombstoned dance whose level is not live, so the backup stays restorable.
+
+### Fixed
+
+- The CallersBox front end reads "(box) circulate (<who> cross[, <who> loop <side>])" as a box_circulate with who and hand, leaving no note (nor after "wave balance,"). The fan-out has no reading for a box_circulate whose note holds a balance after it.
+- The free-text leftover rule (demoteNoteTails) also demotes a note holding a spelled-out turn amount: "two times" and up, and a spelled count before a fraction word ("three quarters", "a half") at the end of a clause or before a turn word ("turn", "around", "times"), so "a half step" stays plain words.
+- The free-text leftover rule (demoteNoteTails) also demotes a note that holds a turn amount or starts a clause with another move's name; free-text entry peels a count in bars into the figure's note; the display renders show the notes of meanwhile sides and modifier parts.
+- diffFigures describes lines with the summary renderer, so a balance-only change no longer produces an identical removed/added pair.
+- Full-text search across all fields no longer matches fragments of the internal role tokens in figure text.
+- `dance_fts.custom_values` and `dance_substring_fts.custom_values` carry only the values of live definitions with `searchable` on and a type other than `boolean` (`customFieldIndexesValueText`).
+- CallersCompanionUsrImporter.commit and CompendiumArchiveImporter.commit take existingDanceIdByExternalId, so program slots link to dances resolved outside the commit (a skipped re-import row's target, or a row committed on its own) instead of becoming unresolved-dance placeholders. ImportPipeline.withLiveExistingDances merges such a map with the committed one, dropping dances deleted since planning.
+- `PublishedSourceRepository.upsert` refreshes the search index's `sources` text of the citing dances when a source's title or author changes.
+- ImportPipeline.commit gives every imported link a fresh id and adds related-dance links after the batch is written, resolving each target by external id through the batch's writes and then a dedupe index read after them, under the record's source, then a live dance with that id; GenericJsonAdapter and the published-collection adapter name a related target by its record key when the file carries it. An unresolved link is dropped with an archive_related_dance_unresolved issue on the new ImportSession.issues.
+- `refreshConflictReviews` drops queued conflict choices for settings in `syncWithdrawnSettingKeys`, even when the pass did not evaluate the record, and never queues one (sync-spec §6.7 as amended).
+
+### Removed
+
+- `CompendiumArchiveImportResult.updatedProgramPriorStates`, `restoredProgramIds`, `programRestoreAt` and `updatedProgramCount`: a shared-file import no longer updates or restores an existing program.
+
+## [0.9.1] - 2026-10-26
+
+### Added
+
+- `DedupeVerdict.possibleMatchIds`, filled by `DedupeIndex.possibleTitleMatches` on `isNew` and `ambiguous` verdicts: existing dances with the same `dedupeCoreTitleKey` (trailing `{…}`/`(…)`/`[…]` annotations dropped unless the rest is a placeholder title such as `New Dance` or the bracket holds only a part number such as `{#2}`; `A-1` read as `a1`) and a shared author, but a different `normalizeTitle`. It never changes a verdict's kind or candidates and is never confident. `normalizeTitle` is unchanged.
+- `DanceRepository.getByIds` and `ProgramRepository.getByIds` read a set of records in batched queries, hydrated as `listAll` hydrates them.
+- `CompendiumRepositories.readTransaction` runs a read-only action as one SQLite read transaction, without taking the write lock.
+- `syncArchiveBodyForEntity`, `syncBodyForArchiveBody` and `syncRecordBlobForArchiveBody` split `syncBodyForEntity` and `syncRecordBlobForEntity` into the archive-shaped body and the projection from it. The existing functions return what they did.
+- `SettingsRepository.takeWriteSummary` reports whether the settings writes since the last call were all to keys that never sync.
+- `SyncBaselineEntry.hasSameHashesAs(other)` says whether two baseline entries carry the same wire hash, body hash and body-hash version.
+- ParamOpposites treats partners and the neighbor series as opposites for dancer sets.
+- `CompendiumSyncStorage.existingRecords` reports which of a set of sync records still have a row, live or tombstoned, reading ids alone.
+- `SyncLocalRepository.publishedAmong` reports which of a set of sync records carry a publication marker, read by key.
+- Conditional wording templates (`wording_conditions.dart`): `checkWording` reads a template's display form against a `WordingVocabulary` and returns its stored form or `WordingIssue`s; `wordingForEditing` shows a stored template in words; `FigureRenderer.moveWordingVocabulary` and `userFigureWordingVocabulary` build the vocabularies; conditions render through the existing template assembly.
+
+### Changed
+
+- The shared figure parser's `star` recognizer reads a `left-hand`/`right-hand` token or a `left hand`/`right hand` pair as the star's hand.
+- `mapCallersCompanionDance` retries a body line the fan-out missed when it carries exactly one `left-hand`/`right-hand`, reading it with the bare side, and keeps the result only when it is a single noteless figure whose `hand` is that side. A token followed by a dancer word or `diagonal` is not retried.
+- `SyncApplyConcurrencyStorage.snapshotCandidates()` is replaced by `currentCandidates(addresses)`, which reads only the records an inbound batch touches instead of the whole library.
+- `CompendiumSyncStorage.snapshot()` scans the library in a read transaction. Its writes, revalidating pending deletions and sweeping orphaned kept fields, run in short write transactions before and after the scan, and the sweep re-checks each record before it deletes. The returned snapshot is unchanged.
+- `SyncApplyStorage.rebuildDerivedIndexes()` is replaced by `reindexDerivedAfterApply(Set<SyncRecordAddress> applied)`. `CompendiumSyncStorage` implements it by reindexing only the dances whose derived rows the applied records can change, and a pending tombstone the snapshot releases now reindexes the dances that read it; `CompendiumSyncStorage.rebuildDerivedIndexes()` remains for the dedupe and review-resolution paths.
+- `DanceRepository.reindexDerived(danceIds)` rebuilds the derived rows of a given set of dances, as `rebuildAllDerived` would write them; `DanceRepository.danceIdsDerivingFrom(...)` finds the dances, in the Trash or not, whose derived rows read given choreographers, published sources, custom-field definitions or figures of your own.
+- `CompendiumSyncStorage(memoizeSnapshots: true)` makes a later `snapshot()` reuse each entity record's blob and wire hash from the same instance's previous one when every input that built them is unchanged. It is off by default; the sync worker turns it on for its per-pass storage only. The returned snapshot is unchanged.
+- `SyncLocalRepository.advanceBaseline` and `replaceBaseline` write their entries in one batch rather than one statement per entry. The rows they leave are unchanged.
+- A user glossary entry's description may be empty, in the repository, archive import and sync body.
+- A stored wording template may hold `{?if …}` condition markers; `FigureRenderer.isValidMoveWordingTemplate` reads them, and the 512 cap applies to the stored form.
+- `wordingReservedWords` joins the reserved parameter keys of a figure of your own, and a definition whose conditions don't fit it is invalid (`UserFigureIssueCodes.badCondition`).
+
+## [0.9.0] - 2026-10-17
+
+### Added
+
+- The Caller's Companion `.USR` reader reads the file's `Term` table as `CcUsrArchive.terms` (#1023): each `CcTerm`'s name, definition, source and notes, sanitized, bounded by `FmpReadLimits.maxTermRows`, a row with no name or over the glossary's bounds skipped (`CcUsrWarningCodes.termsSkipped`). A term's payload may carry a free-text `source` citation (`glossaryTermPayload(source:)`, `glossaryTermSource`).
+- `mapUserFigureTemplateText`, `newUserFigureChoiceId` and `userFigurePayloadExtra` for editing a figure of your own (#1023).
+- `glossaryTermPayload` writes a term's payload, keeping any keys a newer build stored (#1023).
+- Add the `glossary.v2` sync capability (`SyncCapabilities.glossaryV2`) and `SyncCapabilityPolicy.gatedGlossaryEntryKinds`: a `glossaryEntry` record whose entry kind is `term` or `customFigure` waits for `glossary.v2`, read from the record's body (tombstones included) through the new `body` argument of `capabilityFor`. Every other entry kind stays on `glossary.v1` (#1023).
+- `userFigureSeedFromMove` derives a new figure of the user's own from a shipped move: its parameters its wording uses (choices given choice ids of the user's own shape, "not stated" and a default "none" left out; an alias's pinned values as defaults), its default beats, and its wording, always valid (#1023).
+- Add figures of your own (#1023): `UserFigureDefinition`, the `customFigure` glossary payload (dance form, a #822 wording template, default beats, declared parameters with stable choice ids), with `decodeUserFigureDefinition` and `validateUserFigure`; `glossaryEntryForm` reads any entry's form.
+- Add the soft reference a dance holds to one (`userFigure`, `userFigureArgs` and `userFigureCheck` inside a `custom` figure's params), read by `userFigureUseOf`, built by `userFigureUseFigure`, frozen by `detachUserFigureUse`; `mapFigureLeaves` and `userFigureIdsUsedBy` walk containers.
+- `FigureRenderer` takes an optional `UserFigureCatalog` and renders an attached use live from its definition on every path, canonical included, falling back to the stored line; `renderUserFigureCanonical` gives the line a use's text is refreshed to.
+- `freezeUserFigureUsesIn` makes a list's uses of a figure of your own plain text, as a delete freezes a dance, and `DanceRepository.countTrashedDancesUsingUserFigure` counts the Trash's uses (#1023).
+- `dialectUserFigureName`, `dialectUserFigureWording` and `dialectWithoutUserFigure` read and drop a dialect's `userFigure:<id>` entries; `FigureRenderer` uses them outside the canonical render, and `matrixColumnLabel` uses the name (#1023).
+- `MatrixColumnConfig.withoutColumn` and `glossaryNameCollisions(exceptUserFigureId:)` (#1023).
+- The dance index renders a use of a figure of your own from its live definition (#1023): `dance_figures.canonical_text` and `dance_fts` follow the definition, and the use's reference stays in `params_json` only while the use is attached and its figure is live. Writing such a definition locally rebuilds the derived rows of the dances using it (`DanceRepository.reindexDancesUsingUserFigure`) without rewriting them; a sync apply batch's full rebuild reads the live figures too.
+- `CompendiumRepositories.deleteUserFigure` freezes each use in a live dance as plain text, the line it renders to now, and deletes the figure, in one transaction; `DanceRepository.countDancesUsingUserFigure` gives the count to ask about first. `UserGlossaryRepository.modelFromRow` exposes the row-to-model conversion.
+- `buildProgramMatrix` and `columnKeyForFigure` take a `UserFigureCatalog`: a use that renders live is keyed `userFigure:<id>` in a `MatrixColumnKind.userFigure` column, and `userFigureColumnCatalog` lists one per figure (#1023).
+- `userFigureRefPrefix`, `userFigureKeyFor` and `isUserFigureKey` name a figure of your own in a dialect key or a matrix column id (#1023).
+- `CompendiumArchive.userFigures` and the share-mode `userFigures` section (`archiveUserFigureToJson`, `decodeArchiveUserFigures`, bounded by `kMaxArchiveUserFigures`), written without a schema version bump (#1023).
+- `planUserFigureImport` sorts a shared archive's figures by what adding each would do, and `DanceRepository.remapUserFigureUses` points given dances' uses of a figure at a copy's new id (#1023).
+- `UserFigureShorthands`, stored under the `user_figure_shorthands` settings key: shareable, a whole collection in sync, and held back with the user's new figures until every device advertises `glossary.v2` (#1023).
+- Switching a figure of your own to the shipped figure of its name (#1023, maintainer decision 5): `shippedFigureNamed` finds the shipped move or alias a name belongs to; `UserFigureSwitch` maps each of the figure's parameters onto one of the target's (`userFigureSwitchTargets`: a choice onto any parameter taking words, another kind onto one of its kind taking all its values, never beats or an alias's pins) and each choice value onto one of its words (`userFigureSwitchValues`), checked complete by `userFigureSwitchProblems`; `switchUserFigureUsesIn` rewrites each attached use as the target, its beats always stated, freezing what it can't map as plain text; `CompendiumRepositories.switchUserFigureToBuiltIn` switches the live dances and retires the figure in one transaction.
+- `shorthandTokenShadowsFigure` reports whether a shorthand token already reads as a figure when typed (#1827).
+- `countUnreadableInsertCalls` counts the call buttons that `buildInsertCallShorthandCandidates` leaves out because their text does not read as figures (#1830).
+- `splitShorthandCount` splits a leading or trailing beat count off a line, for callers that match shorthands of their own kind (#1861).
+- `splitShorthandClauses` splits a line into its `;` parts the way a plain shorthand does, for callers that match shorthands of their own kind per part (#1866).
+- `mapCallersCompanionDance` maps `CcDanceRecord.userFields` to text `CustomFieldValue`s under a placeholder field id; `CallersCompanionUsrImporter` (which now takes a `CustomFieldDefRepository`) matches or creates the definitions before the dances commit and reverts them on failure and on `undo` (#1890). Keys come from `ccUserFieldKeyForLabel`/`planCcUserFields`; new definitions are text and shareable.
+- Taxonomy v37: `circular_hey.who2`, the group passed second by the other shoulder (default `unspecified`, display-only, not in canonical text). The free-text recognizer reads it back.
+- Add `figureGlossaryEntries`, `FigureGlossaryEntry`, `FigureDefinition` and `contraFigureDefinitions`: the shipped, read-only glossary of the taxonomy's figures, with a definition and description for every figure.
+- Add user compound figure definitions (`CompoundDefinition`, `decodeCompoundDefinition`, `validateCompound`, `allowedValues`, `expandCompound`): a named sequence of taxonomy figures with declared parameters bound to their slots, expanded through `applyParamChange`.
+- Add `ParamOpposites`, which classifies every parameter kind's opposites (right and left, clockwise and counterclockwise, up and down, paired dancers through `invertPairDancerSet`), and `paramDomain`.
+- Add `canonicalizeGlossaryText` for user-glossary text: discouraged terms are stored canonically, and under Leads/Follows a plural homograph directly after a singular subject is read as the verb. `canonicalizeText` is unchanged.
+- Add `glossaryNameCollisions` and `normalizeGlossaryName`.
+- The renderer's discouraged-term display and `canonicalizeGlossaryText` read one internal table of what each built-in discouraged term stands for.
+- Add `CompoundShorthands` and the `compound_shorthands` setting: whole-collection, compared token by token, and held back by the sync capability gate until every device can read the glossary.
+- `jsonNestedDeeperThan`: whether a JSON value nests lists and maps deeper than a limit, checked without recursion. `userGlossaryPayloadDeeperThan` now uses it.
+- Add the `glossaryEntry` and `figureNote` sync record kinds, with `StoredUserGlossaryEntry`, `UserGlossaryRepository.writeFromSync` and `FigureNoteRepository.writeFromSync`. A glossary entry's kind and payload travel as stored text, so sync keeps and republishes byte for byte an entry a build cannot read; its `createdAt` travels unchanged.
+- `SyncCapabilityPolicy.build` gates both kinds on `glossary.v1` and advertises it.
+- Add `applyParamChange`, `seedChainHand` and `canonicalBeatsFor`: the rules the dance editor applies when a figure's param changes (hey and promenade resets, a balance flag's ±4 beats, chain's role-implied hand, inverse-pair rerouting and beats reconciliation), now in core so compound expansion can apply them too.
+- Add the sync capability gate: `SyncCapabilityPolicy`, `closedSyncCapabilities`, the `sync_capabilities:<deviceId>` record (`syncCapabilityKeyPrefix`, `syncCapabilityRecordValue`, `decodeSyncCapabilityRecord`), and `SyncReportCode.withheldAwaitingDevices`. A device holds back data gated on a capability until every attached device advertises it. This build gates the `glossaryEntry` and `figureNote` record kinds and the `show_custom_figures` and `compound_shorthands` settings on `glossary.v1`, and advertises it.
+- `decodeSyncManifest` and `SyncManifest.fromJson` take an opt-in `skipUnknownKinds` flag for reading a peer's manifest. Skipped kinds are listed in `SyncManifest.unknownKinds`. Strict decoding stays the default, which keeps the server strict.
+- Add `SyncReportCode.newerRecordKind`, raised for a peer whose manifest lists a record kind this build does not know.
+- Schema v40 adds the user_glossary_entries and figure_notes tables, with UserGlossaryRepository and FigureNoteRepository. Both tables are classified shareable.
+- A backup carries the user's glossary entries and figure notes in an app.glossary section, and is stamped backupVersion 2 only when that section has something in it.
+
+### Changed
+
+- `user_glossary_entries.payload_json` is classified as personal data about a third party (as `published_sources.notes`): a term's source citation can name the author of the work it cites.
+- `validateUserFigure` reports an over-length template or text default as `UserFigureIssueCodes.tooLong` (an over-length template was `badTemplate`), and refuses repeated choice labels, compared trimmed and ignoring case, so such a definition now reads as needing repair (#1023).
+- `SyncCapabilityPolicy.build` now advertises `glossary.v2` alongside `glossary.v1`, so the user's own terms and figures (`glossaryEntry` records of kind `term` or `customFigure`) and the `user_figure_shorthands` setting publish once every attached device advertises it (#1023).
+- Sync spec §6.15 permits a soft reference from ungated to gated data: one that carries its own fallback, so a device without the referent shows the fallback and never refuses, drops or rewrites the referring data (#1023).
+- `validateFigure` accepts the three reference params on `custom`, checked together by shape; `figureCanonicalKey` keys an attached use by its figure and arguments; the archive decoder scrubs a use's arguments; #417's re-parse skips uses; figure shorthands refuse them.
+- `CompoundDefinition` gains a dance `form` (written only when not contra) and carries payload keys it does not know through an edit.
+- Search's move reverse maps skip a dialect key naming a figure of your own, and a `userFigure` id in a figure query binds as given rather than being canonicalized (#1023).
+- `parseFreeTextFigureEntry` reads a bracketed `(N)` or `[N]` count at either end as the beats, keeps a count it cannot use in a custom figure instead of dropping it, and keeps a custom figure's typed text, count included. Re-parsing a saved custom figure no longer drops such a count.
+- `parseFreeTextFigureEntry` adds a typed-by-a-caller layer (`typed_figure_names.dart`): spoken turn amounts are rewritten before the parse, the built-in discouraged role terms are retried by their meaning, and a line no parse reads is looked up whole as a taxonomy, alias, caller-phrasing or dialect move name. A count may carry a `beats` unit. Imports are unchanged; the custom-figure re-parse reads counts as before, except that a saved custom that free-text entry would keep custom for a second count stays custom instead of upgrading with both counts.
+- `parseFreeTextFigureEntry`'s typed-name lookup (`typed_figure_names.dart`) ignores punctuation at the end of the line and reads one of `ones`, `twos`, `partner(s)`, `neighbor(s)`, `everyone`, `role1s` or `role2s` followed by a move name as that move with `who` set, when the move has a `who` param the taxonomy accepts; discouraged role words in the dancer's place are read by their meaning through the existing retries (`figureFromTypedDancerName`). Imports and the custom-figure re-parse are unchanged. Two corpus golden rows move, both free-text only: `Partner gate` and `Men give-and-take` now read as `gate` and `give_and_take`.
+- Free-text entry reads `hey for four` and `hey for 4` as a full hey, or a half hey when the line's count is a half hey's beats.
+- The Caller's Box figure dialect decodes `Square through <n> without hands (<pass list>)` as `circular_hey`, with `who2` from the pass list's even cells.
+- Taxonomy v37: `courtesy_turn.direction` defaults to `counterclockwise` (was `clockwise`); display silences the default. A figure that stores no `direction` (parser imports, JSON, archive or sync data) now means counterclockwise; editor-authored figures stored an explicit `clockwise` and keep it, so their text now says so. A one-time canonical/FTS rebuild (`taxonomyV37CanonicalRebuildDoneKey`) re-derives stored courtesy turns' canonical text; source JSON is unchanged.
+- UserGlossaryRepository.upsert and FigureNoteRepository.set refuse a write that would take the glossary past maxUserGlossaryBytes (4 MiB of stored text plus a fixed overhead per row) and grow its row: UserGlossaryEntryInvalid.overBudget() (field 'budget') and FigureNoteInvalid(overBudget: true). A write that does not grow its row is always accepted. writeFromSync, upsertFromRestore and setFromRestore are not budgeted.
+
+### Fixed
+
+- `parseFreeTextFigureEntry` matches a shorthand after peeling a leading or trailing beat count, and clause by clause on a `;` line (all-or-nothing, at most 64 clauses), instead of only against the whole line (#1827).
+- Free-text entry reads a line whose count is too long to be beats (five or more digits, such as `circle left 10000 beats`, `(10000) circle left` or `circle left; turn alone (10000)`) as the figure it names, with the beats the figure has when picked from the list, instead of keeping it as a custom figure with no beats (#1863). The number is kept in the figure's note on the figure it was typed with, so it is not dropped. A line the parser does not read in full is still kept whole as a custom figure, as typed.
+- Free-text entry keeps a beat count on the `;` clause it was typed with (#1870): `circle left (8); turn alone` gives the circle 8 beats instead of dropping the count, and a count on a later clause (`turn alone; circle left (8)`) goes on that clause's figure instead of the first one. When the clauses and figures do not line up one for one (a clause that became a note), the line is kept whole as a custom figure with its text as typed, rather than guess which figure a later count belongs to.
+- Free-text entry no longer gives a one-figure shorthand a count outside the taxonomy's 0..64 beats range: the line is kept as a custom, as for a line with no shorthand. A count too long to be beats is read as a note on the figure (`splitShorthandCount(...).unread`) (#1879).
+- `ImportPipeline.commit` keeps a re-imported or linked dance's existing custom-field values for fields the draft does not carry, instead of deleting them through `DanceRepository.update`.
+- The renderer's discouraged-term display keeps a dialect's claimed role words as written, as glossary canonicalization already does.
+- `difficulty_levels.id` has its own privacy classification note: a shipped level id or a UUID, not an opaque key.
+- Fix a missing word in the shipped `contraFigureDefinitions` text for petronella, and reword arch_and_dive, dolphin_hey, facing_star and star_promenade; no run of 7 or more words now matches The Caller's Box glossary.
+- A merge restore keeps the retained_sync_fields rows of the records it writes, as an archive import does, so a restored record still carries the details a newer version of the app added. Before, it cleared them while stamping the record newer than the peer's copy, and Device Sync then shared the body without the details.
+- A replace restore keeps the retained_sync_fields rows, as a merge restore and an archive import do, instead of clearing the whole table. A row of a record the backup does not hold is dropped by the next snapshot. SyncLocalRepository.clearForRestore no longer deletes any retained_sync_fields row.
+- syncUserVisibleBody, and so syncUserVisibleContentHash, the review resolver and the conflict details, compare only the part of a record this build syncs, leaving out the parts it keeps for a newer version, as the merge already did.
+- An archive import clears no retained_sync_fields row, as a local edit does, instead of clearing the whole table.
+- A private custom-field definition projects to an empty body whatever was kept for it for a newer version (spec section 6.7). The kept parts were merged into that empty body, which made the snapshot throw "body.id must be a non-empty string" on every pass; they are now swept with the record.
+- A database stamped schema v39 by a pre-release build before the v39 step was complete is repaired on open: the missing peer_manifests table and published-manifest columns are created, instead of every sync pass failing.
+- CompendiumSyncStorage.promoteRetainedSyncFields no longer throws StateError (which failed CompendiumRepositories.ensureMigrated on every open) when a kept part this build now syncs does not decode: it drops that part, keeps the parts the build still does not sync, and leaves the record as it was.
+
+## [0.8.0] - 2026-10-14
+
+### Added
+
+- The shared figure recognizer reads `two-hand turn` (hyphenated, subject before or after, spin words and a trailing `and face …` kept as the note) as `two_hand_turn`, and `<ones|twos> arch, <twos|ones> dive` as `arch_and_dive` with the arching pair as `who`.
+- Contra taxonomy v36 adds the `circular_hey` move (`who`, `changes` 1-10, `shoulder`, `where`), with 2, 4, 8 and 12 beats for one to four changes and 16 for five or more, and the shared free-text recognizer reads its display sentence (except the full circuit, which omits the extent and must be written with `full`) and the "square hey" alias.
+- Classify the `update_retirement_notice` setting as device-scoped installation state, so it never syncs and is never backed up.
+- `blob_batch_frames.dart`: the frame format of a `POST /v1/blobs/batch` response, with `encodeSyncBlobBatchFrameHead` for the server and the incremental `SyncBlobBatchFrameReader` for the client, and the route's caps (`syncBlobBatchMaxHashes`, `syncBlobBatchMaxBlobBytes`, `syncBlobBatchMaxResponseBytes`).
+- `blob_batch_frames.dart`: `SyncBlobBatchFrameReader.upload` reads the body of a `PUT /v1/blobs/batch` (blob frames only, no hash twice, at most `syncBlobBatchMaxUploadBlobs`), and `SyncBlobBatchFormatException.exceedsCap` marks a body that broke a cap rather than the format.
+- Schema v39 also adds the `peer_manifests` table, with `SyncLocalRepository.peerManifest`, `putPeerManifest`, `removePeerManifest` and `retainPeerManifests` (`SyncStoredPeerManifest`). `clearBaseline` clears it.
+- A record blob whose body carries a part a newer build added that this build cannot keep in place throws SyncNewerFieldException (a FormatException) and is reported as SyncReportCode.newerRecordFields or SyncReportCode.newerFigures; unknown or known-but-private parts that can be retained are kept and reported as SyncReportCode.keptNewerFields. SyncApplyEngine.applyJson reports an unretainable part by those codes, and a newer envelope by its own code.
+- `SyncReport.httpStatus` carries the HTTP status of the response that raised a report, when one did.
+- `syncApplyKindOrder` exposes the apply engine's kind order, in which every other kind a record can cite comes before it (cross-kind only: a dance can still cite another dance).
+- partitionInboundRecordBody and mergeRetainedFields split an inbound body into the part this build syncs and the parts it keeps for a newer version, and put them back; the retained_sync_fields table (schema v39) stores them, and every local body builder re-emits them.
+- SyncReportCode.newerFigures and SyncReportCode.keptNewerFields; figureJsonKeys and unsupportedFigurePath.
+- CompendiumSyncStorage.promoteRetainedSyncFields, run by ensureMigrated, moves kept parts this build now syncs into their records; pruneSyncedRetainedFields drops them wherever kept parts are put back.
+- Schema v39 also adds nullable `baseline_state.published_manifest_hash` and `baseline_state.published_verified_at`, with `SyncLocalRepository.publishedManifest` and `setPublishedManifest` (`SyncPublishedManifest`).
+- Add foldTitlePunctuation, titleMatchKey and contraDbTitleQueryVariants for matching online-source titles regardless of apostrophe, quote and dash style.
+
+### Changed
+
+- The figure parser reads "same-role neighbor" and "same-sex neighbor" as the `sameRoles` dancer set, and the TCB codes `S1`/`S-1` and `S2` as `shadows` and `secondShadows`.
+- Round non-quarter rotation and places amounts to the nearest quarter (ties half up) in the shared figure decoders, recording the source amount in the figure note; add roundFractionToQuarters. Exact 2 1/4 turns now structure as 2.25.
+- An equal-updatedAt tie is raised for the user only when the versions' user-visible fields (syncUserVisibleFields / syncUserVisibleBody) differ, with merged-away ids resolved; otherwise the version with the lowest content hash is kept on every device. SyncMergeEngine.plan takes the alias map. Every synced field must be in syncUserVisibleFields or syncUserHiddenFields (with a reason); a test enforces it.
+- SyncRecordBlob accepts a body carrying fields this build does not classify shareable, refusing (SyncNewerFieldException) only a part it cannot put back exactly. The apply overlay writes only the synced part. A tie on updatedAt that differs only in kept parts is reported, not settled.
+
+### Fixed
+
+- The Caller's Box trailing balance-wave fold declines when the balance line's annotation does not decode, instead of dropping the annotation.
+- The Caller's Box figure dialect keeps `around the major set` and any annotation on a promenade line as the note wherever the phrase appears, and fills `promenade.destination` from a `to <dancer>` tail or `(to <dancer>)` annotation.
+- The Caller's Box front-end declines a line with a per-role turn-amount annotation `(M <amount>, W <amount>)` to custom.
+- resolveConflicts accepts an offered version filed under the id it was merged into.
+- CallersBoxAdapter's cross-line balance fold only merges a balance line into a following move when it balances the same dancers in the same formation: a stated subject must match the move's, a ring balance folds only into petronella, a balance-wave line only into a wave move, and a bare Balance never into a subject move.
+- canonicalContraDbFigureQuery accepts typographic apostrophes, so "Rory O’More" resolves to the ContraDB figure.
+
+### Removed
+
+- Raise `kMinSupportedSchemaVersion` from v20 to v35, the schema shipped by v0.4.0-beta. The `onUpgrade` steps for v21–v35, their fixtures, generators, schema dumps and generated schema classes are deleted; a database stamped below v35 is refused.
+
+## [0.7.0] - 2026-10-06
+
+### Added
+
+- Add optional `Program.payMinorUnits` and `Program.payCurrency` (schema v38, nullable `programs.pay_minor_units` and `programs.pay_currency`): the caller's pay as integer minor units plus an ISO 4217 code, set together or not at all, carried through the repository, Device Sync, archives and imports, with `parsePayMinorUnits` and `formatPayMinorUnits` helpers.
+- Add typed `DifficultyLevelLabelEmpty`, `DifficultyLevelLabelDuplicate` and `DifficultyLevelInUse` errors and `DifficultyLevelRepository.referenceCount`.
+- Add an optional `Program.dialectName` (schema v37, nullable `programs.dialect_name`): the name of the dialect Perform should use for that program, carried through the repository, Device Sync, archives, backups and imports. Nothing reads it yet; a name that no longer resolves is meant to fall back to the application dialect, so rename and delete never write to programs.
+- Add `syncBookkeepingTables`, the set of Device Sync bookkeeping tables derived from the privacy field registry.
+- `ArchiveRestorer.restore` takes an optional `onProgress(done, total)` callback that reports `(0, total)` first and then one call per restored entity, ending at `(total, total)`.
+- DanceCardContent, the pre-gated, dialect-rendered content of a dance card that danceToPlainText and the PDF builders share; programHeaderLines, programSlotLine and isoDate are now public program_text helpers.
+- Move wording templates accept `{!name}` slots, which force the slot to display even when it would otherwise be hidden (implied chain hand, alias-pinned params).
+- The shared figure parser recognises `N`, `neighbour` and `neighbours` as neighbors, a hey with a starting pair and shoulder (`half hey, ladies start by the right`), and `allemande ... with <dancer>`.
+- `parseFigureLineFanOut` and `parseFigureLinesFanOut` take an opt-in `demoteNoteTails` flag: a note-bearing parse whose notes are only another move name, `and back` or a bare number falls to the import-gap custom. Free-text entry and the custom-figure reparse upgrade turn it on; imports keep the default (off).
+- `ImportPipeline.commit`, `CallersCompanionUsrImporter.commit` and `PublishedCollectionImporter.commit` take an optional `onProgress(done, total)`, called once per record and once more with `(total, total)` when the commit loop ends.
+- Add `ProgramRepository.updateAndReadBack` and `ProgramRepository.replaceIfUnchanged`, an atomic compare-and-replace that writes only while the stored program still equals an expected stored form.
+- Add `RoleCanonicalizer`, `RoleSpanDecision`, `RoleSpanKind`, `MoveWordLexicon`, `legacyRoleSynonyms` and `subjectBearingMovePhrases`.
+- combineSyncCollection and syncCollectionLimit; SyncConflictDecision.combineTakingOther; CompendiumSyncStorage.reconsiderConflicts with SyncConflictReconsideration / SyncConflictRechoice; syncConflictGroupFor; SyncReviewFailureCode.combineUnavailable and combineOverLimit.
+- syncCollectionEntries, compareSyncCollection and syncDifferingFields compare two versions of a conflicted record; SyncConflictGroup carries this device's copy projected to shareable fields and its last-changed time (CompendiumSyncStorage.recordUpdatedAt).
+
+### Changed
+
+- DanceRepository's batch edits (level, rating, tunes, custom field) read the selected dances in chunks instead of one at a time, and the level, rating and tunes batches no longer rewrite the search index.
+- A sync record blob now encodes its canonical bytes once at construction and reuses them for every wire hash, and the sync snapshot reads dance and program timestamps with a four-column query instead of re-reading whole rows. Wire bytes and hashes are unchanged.
+- Sync now holds a difficulty-level deletion pending while a dance in Recently Deleted still uses the level, matching the local Delete level guard, and counts those dances with one query instead of one lookup per dance.
+- Add an opt-in includeDeletedAuthors flag to DanceRepository.getById that keeps soft-deleted choreographers in a dance's authorIds. The default read is unchanged.
+- `DedupeIndex.fuzzyMatches` looks up exact normalized titles through a map and skips pairs whose title lengths make the threshold unreachable, with identical results; `ImportPipeline.plan` now yields to the event loop between records while deduping, as it already did while parsing.
+- `parseFreeTextFigureEntry` accepts an optional `dialect`; when the line as typed parses to custom figures only, it retries with the line canonicalised against that dialect.
+- CustomFieldDefRepository.delete throws CustomFieldInUseException (carrying the live dance count) instead of StateError; the choreographer, tag, published-source and custom-field delete guards count citations with a scalar COUNT instead of fetching every joined dance row.
+- `canonicalize`, `canonicalizeText` and `roleSpans` no longer rewrite role terms that are move words to role tokens: the move name "mad robin" is written in lowercase and the verbs "lead"/"follow" are kept as typed.
+- `Substitutor.apply` takes an optional `where` predicate.
+- `scrubFigureText` no longer rewrites "madrobin" inside another word ("madrobins.com").
+- CompendiumSyncStorage.resolveConflicts and SyncReviewQueueResolver.resolveConflicts now return a SyncConflictResolution (kinds written plus how to reconsider each choice) instead of a set of kinds.
+
+### Fixed
+
+- Chunk the id lists in DanceRepository's article-ignoring title sort and hardDelete so they stay under SQLite's bound-variable limit.
+- Omni full-text search (and the relevance query) now also matches the query as typed over title, authors, sources, custom values, hook and notes, so a role word such as 'Robin' or 'ladies' in a name or prose is found verbatim; `figures_text` stays canonical-only.
+- The ContraDB HTML figure dialect and the JSON adapter share one dancer-set vocabulary table; "first/second corners", "same roles", "centers" and "first/second gentlespoon/ladle" subjects structure from rendered HTML.
+- Figure parser reads every spin direction through one reader, accepting hyphenated and spaced counter-clockwise forms; circles map spin words to left/right and leave contradictory lines custom.
+- A whole-collection setting conflict choice now records the versions it chose against in review_queue, and the merge stops counting them as changes, so the deciding device no longer re-raises the conflict while a peer or a leftover manifest still publishes one of them.
+
+## [0.6.3] - 2026-10-02
+
+### Added
+
+- `ImportPipeline.commit`, `CallersCompanionUsrImporter.commit` and `PublishedCollectionImporter.commit` accept `defaultTagIds`, added to the dances the commit creates.
+- ImportBatchResult.warnings carries file-level ImportIssues, raised by adapters implementing BatchWarningSource: CallersCompanionUsrAdapter (from the new CcUsrArchive.warningCodes and FmpDatabase.truncated) and GenericJsonAdapter (archive_newer_schema).
+- CompendiumSyncStorage.refreshConflictReviews and resolveConflicts queue and apply the user's conflict choices; SyncConflictDecision, syncConflictChoiceReason, syncWholeCollectionSettingKeys and SyncReviewFailureCode.clockOutOfRange.
+- Add SyncNewerWireVersionException and SyncReportCode.newerWireVersion; the record-blob and manifest decoders check the envelope version before the key set.
+
+### Changed
+
+- Import errors now carry a typed ImportErrorCode, and ImportPipeline.plan returns an adapter's own ImportError unchanged instead of wrapping it in a 'Discovery failed' message.
+- SyncMergeEngine returns a review decision (SyncMergeAction.review) for differing live bodies at an equal updatedAt and for a changed/changed conflict on a whole-collection setting, instead of an equalUpdatedAt report.
+- SyncReviewQueueResolver.list() no longer returns conflict-choice rows; listConflicts() and resolveConflicts() handle them.
+
+## [0.6.2] - 2026-10-01
+
+### Changed
+
+- Speed up the shared figure parser (~10x on Caller's Box-style input, more with repeated lines): share one tokenization of a line across the ContraDB recognizers, hoist per-call `RegExp` construction, memoize the last `scrubFigureText`, and cache the canonical-dialect `Substitutor`s. Output is unchanged.
+- `mapCallersCompanionDance` accepts an optional bounded `CcFigureLineCache`; `CallersCompanionUsrAdapter` keeps one so a body line repeated across dances parses once.
+- `CrashLogRecord.scrubbed` replaces a non-empty `errorMessage` with `CrashLogRecord.withheldMessage` instead of term-redacting it; the stack is still scrubbed.
+- Raise the FileMaker reader's ceilings to admit a ~20,000-dance Caller's Companion library: `kMaxFmpSectors` from 16,384 to 65,536 (exactly the app's 256 MiB `.USR` cap in 4 KiB sectors), `kMaxFmpRecords` from 200,000 to 500,000, and `kMaxCcPhraseRows` from 20,000 to 150,000.
+- `readFmp12` gains optional `tables` and `columnFilter` arguments, and discards the sectors that hold indexes, media and layouts instead of caching them; `readCcUsrArchive` uses them to read only the tables, and on `Dance`/`Phrase` only the columns, the importer needs. `CcDanceEntry.rawColumns` now holds only those columns.
+- `CallersCompanionUsrAdapter` takes an injectable `CcUsrArchiveReader`, exposes `discoveredArchive`, and `CallersCompanionUsrImporter.import` decodes the file once.
+- `ImportPipeline.plan` yields to the event loop while parsing and accepts an `onProgress` callback.
+- `DanceRepository` no longer runs its per-dance FTS delete-by-scan when creating a new dance, which made a bulk import quadratic.
+
+### Fixed
+
+- Fix a `RangeError` in the Caller's Box `;`-clause note fallback when a note followed a walk-forward fold and a later figure, and a note between figures hanging on the figure after it: the host figure is now recorded when the clause is declined instead of reconstructed from clause counts.
+- `ImportPipeline.commit` checks a reimport/link target before resolving authors, takes back the choreographer rows a failed record created or revived, and erases a variation's new dance when the reciprocal link write on its target fails, so a record that fails leaves no dance or author writes.
+- `PhraseStructure.parse` now rejects components above 1,000, more than 64 components, more than 1,000 phrases, or more than 1,000,000 beats with a `FormatException`; this also closes a `totalBeats` overflow that could divide by zero.
+- `PhraseStructure.labelAtBeat` computes the label from the phrase index instead of building every label.
+- Dances whose stored phrase structure is out of bounds still load, as the standard structure (`PhraseStructure.parseOrStandard`).
+- `CustomFieldDefRepository` now advances `updated_at` on every dance holding a value for a field, live or tombstoned, when the definition's wire eligibility changes (a `shareable` flip, or delete/restore of a shareable definition), in the same transaction (sync-spec §6.5 I1). Previously peers reported `equalUpdatedAt` for those dances indefinitely. Inbound definition writes still stamp nothing.
+- Add the `sync-invariant-exclusion: join-hydrated-body` marker to `tools/ci/check_sync_invariants.py`; it excuses only the raw-SQL I2 check, for a dance stamp whose body change comes from a join.
+- `DanceRepository` writes no longer delete a dance's `dance_tags` rows for tombstoned tags, so an unrelated edit (or a sync-applied body) does not destroy the association a tag tombstone retains.
+- Full backups carry tombstoned tags and their retained dance joins in a new `deletedTags` archive array (schema v7, backup mode only, stamped only when one exists), and replace/merge restore re-applies them.
+- Importing a large number of dances in one batch no longer slows down as the batch grows.
+
+### Removed
+
+- Remove the unused `DanceRepository.searchDances`, which hydrated each search result with separate child-relation queries; use `search` for ids and the batched loaders (`listAll`) for full objects.
+
+## [0.6.1] - 2026-09-29
+
+### Added
+
+- Add `Program.plannedDanceCount`, the number of slots excluding alternates and the break.
+- Add `TunesFilter`, a search leaf that matches a dance whose tune list contains a value (case-insensitive substring). A dance whose stored tunes cannot be decoded never matches, and no longer risks failing the whole query.
+- Add `UntaggedFilter`, a search filter leaf matching dances with no live (non-deleted) tag.
+- Add DanceShareField and field-gated rendering (author, formation, level, mixer, status, phrase, calling notes, walkthrough, tunes) to danceToPlainText and programToPlainText, behind new optional parameters no existing caller passes yet.
+
+### Changed
+
+- Check a `normalisation_skips` row's table name against the pass's own scope before interpolating it into SQL, and take the lookup key from the table's declared primary key; a row naming a table this build does not record for is discharged.
+- Classify the nine one-time migration markers declared in `database.dart` as installation state; the settings classification ratchet now matches any `const String …Key` declaration, not only `k`-prefixed ones.
+- `VenueRepository.listAll` and `ChoreographerRepository.listAll` accept `includeDeleted`.
+- `CrashRedactor` collapses a path that ends at a home directory to the bare `<path>` placeholder.
+- Raise the FileMaker reader's sector ceiling (`kMaxFmpSectors`) from 8,192 to 16,384 so it admits files up to the app's 64 MiB `.USR` cap.
+
+### Fixed
+
+- Add `Program.alternateGroupsForSlots` and an `alternateGroups` argument to `buildProgramMatrix`; `ProgramMatrix.isCollision` compares each row with every row of the alternate groups before and after its own instead of the flat previous/next row, and never with its own group.
+- Read the `(R;L …)` / `(L;R …)` bracket on a Caller's Box `Weave the line` line into `zig_zag.slide` (`_weaveSlideAnnotation`); a non-mirrored pair keeps the default.
+- Fold a `long_lines`/`slice` core `while` a `roll_away`/`give_and_take` into a `modifier` container in both the Caller's Box (`modifierFromWhile`) and Contra DB (`parseContraDbFigureLine`) front-ends through one shared `whileModifierContainer`; other `while` lines keep their previous reading.
+- Rank a container with a custom child below a fully structured reading in the free-text/reparse fan-out, so a later front-end's clean parse is no longer shadowed.
+- `FigureRenderer` silences `pull_by.where == 'along'` on the display path (the value the v35 migration synthesised for `pull_by_direction`), and no longer blanks the alias-pinned slots of an un-normalised `pull_by_dancers`/`pull_by_direction`, so un-normalised and normalised legacy pull-by figures render identically. Canonical text is unchanged.
+- `FigureRenderer` builds the modifier-gerundive move-name needle from the effective params, so a `pass_by` child at its default shoulder is inflected ("passing by").
+- Remove the bare `take` search keyword from `give_and_take`; `canonicalizeMoveSearchText` no longer rewrites prose containing the word.
+- `Substitutor.apply` leaves a case-folded match whose lowercase is not a key (U+017F long s) as written instead of throwing; `parseFigureLine` also degrades a throwing scrub to a custom figure.
+- `reparseImportGapFigures` carries `walkthroughOverride` onto an upgraded leaf figure.
+- `parseFigureLine` reads "2 1/2", "2 & 1/2" and "2½" as a 2.5 rotation; "2 1/4" and "2 3/4" still decline to custom.
+- `Dialect.validate()` also checks role plurals for collisions (skipping an invariant plural equal to its singular).
+- `FilterCompiler` adds the `title COLLATE NOCASE` tiebreak to `recentlyAdded` and `recentlyEdited` in both directions; `SearchSort` docs now state the two-scalar, omni-scope limit on `relevance`.
+- GenericJsonAdapter keys a received dance on `<upstream source>:<externalId>` (`externalIdFor`), and DedupeIndex.verdictFor tries RawRecord.priorExternalIds (the legacy bare id) before falling through to fuzzy matching; ImportPipeline.plan only honors that legacy fallback when exactly one current key in the batch claims it, so two dances from different sources that only share the alias no longer both reimport the same dance.
+- DedupeIndex.fuzzyMatches skips an empty normalized title before scoring, so two such titles never match at any threshold (not just the default), and autoResolveAmbiguous resolves an empty normalized title to duplicate instead of linking.
+- ImportPipeline.plan drops a repeated (source, externalId) within one batch and attaches a `duplicate_external_id_in_batch` warning to the kept record.
+- ImportPipeline.commit captures an updated dance's prior state once per batch, so undo restores the true pre-import state.
+- ArchiveRestorer clears `collection_import_events` on a replace-mode restore.
+- Run every `onUpgrade` step inside one transaction, so an exception or process death mid-upgrade leaves the file at its pre-upgrade version instead of half-migrated under the old `user_version` stamp.
+- Key each piece of the v34 difficulty-level step on its own precondition, so a file that already has `difficulty_levels` still gets its `dances.level` column rewritten to `level_id`.
+- Run `beforeOpen`'s FTS-table repair on the open that migrates, not only on an open already at head.
+
+## [0.6.0] - 2026-09-24
+
+### Added
+
+- A dance withheld from sync publication because its figures_json or tunes_json cannot be decoded now raises a withheldUnreadableRecord report, carried out of the fresh-attach snapshot, the dedupe plan and the merge-candidate build. Reports name the record and carry no peer id, and coalesce so one record raises one notice however many paths withheld it.
+- Classify the Device Sync consent, WiFi-only, import-exclusion and last-success settings as device-scoped so they never sync.
+- Implement the sync_exclude_imports publish-set filter: an imported dance no published record cites, directly or transitively, is withheld from this device's manifest, while a cited one stays published; a tombstone is never withheld.
+- Add the persisted sync review queue resolver and transactional tombstone decision operations with stale-state and record-key validation.
+- Classify the `sync_endpoint` setting as device-scoped, so it never syncs or travels in a backup.
+- Add the shared SQLite connection setup (write-ahead logging and a busy timeout) that every connection to the collection database must apply.
+
+### Changed
+
+- Normalize inbound dance and program synchronization metadata at the storage boundary and in pending tombstone publication.
+- A dance's transcription is now held as a FigureSource sum type rather than a bare figure list, so a future case for an undecodable transcription cannot be read as an empty list by accident. No behaviour change.
+- Derive the Device Sync allow-list so a wire path backed by several columns is admitted only when every one of them is shareable, instead of when any one is. No path changes classification today.
+- Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including conditional custom-field egress validation, tombstone-safe relation validation, fixed-point dependent pruning after parent-write failures, per-owner and duplicate dependent-row collision guards, malformed-body isolation, and optimistic protection against overwriting concurrent local edits.
+- Implement pending tombstone publication, natural-key collision reconciliation, ID aliases, and safe reference rewrites for Device Sync.
+- Add transactional fresh-attach dance deduplication with shipped title normalization, deterministic survivor selection, last-writer-wins scalar merging, additive collection union, alias and reference rewrites, derived-index cleanup, and canonical immutable review-queue insertion and resolution for choreography ambiguities.
+- Add timestamp-window quarantine, peer-only repair, dependency-closure withholding, fallback availability negotiation, and publication planning for Device Sync.
+- Archive restore and shared archive import now clear stale sync conclusions and normalization bookkeeping before revalidation.
+- Correct the documentation of hard deletes: every hard-delete path is subject to §3.1's publication forfeiture, so a published record is tombstoned rather than erased, published tombstones are exempt from the retention purge, and VenueRepository.hardDelete retains a venue any surviving program still names. storage.md no longer states that Device Sync is unimplemented or that nothing reads existence_at for a merge decision.
+- Give every syncable kind a writeFromSync entry point and route the inbound apply through it, per §6.7's rule that an apply never travels the interactive upsert path. The sync writer does not adopt a tombstoned row's identity, does not substitute the local natural key, and does not seed existence_at — it refuses the record and lets the engine report it.
+- Add the sync-interactive-upsert ratchet so an inbound write cannot drift back onto the editor's path.
+
+### Fixed
+
+- Reject noncanonical inbound bodies before reconciliation and keep accepted timestamp projections aligned across persisted records, pending tombstones, and published wire hashes.
+- The shareable-text normalisation pass clears a `normalisation_skips` entry once its row holds its target, and re-attempts outstanding entries by reading only the recorded rows rather than re-scanning every in-scope column and settings row.
+- The pass's completion marker fingerprints the shareable subset of `settingsClassifications` and `settingsPrefixClassifications` alongside its columns, so reclassifying a settings key to `shareable` re-runs the pass over its stored values.
+- The pass requests a derived-index rebuild after any rewrite rather than only after a `dances` rewrite, so repairs to `choreographers.name`, `published_sources.title`/`.author` and `custom_field_values.value_text` refresh `dance_fts` and `dance_substring_fts`. A one-shot sweep repairs indexes left stale by the previous condition, and where none is owed it retires immediately rather than leaving the obligation ambiguous.
+- The shareable-text normalisation pass records a skip and continues when a stored JSON value cannot be canonicalised — malformed text, keys that normalise to the same string, or a value that decodes but cannot be re-encoded — instead of letting the exception abort the pass. Applies to the figures, tunes and custom-field-choice columns and to shareable settings values.
+- Skip a dance whose stored figures cannot be decoded when scanning for import-gap figures to re-parse, instead of raising out of the scan.
+- A dance whose figures_json cannot be decoded now loads as an UnreadableFigures transcription carrying the stored text verbatim, instead of raising out of the load path and aborting ensureMigrated(). Writes re-emit the stored text unchanged, and archives carry it in a new figuresRaw field at envelope version 5, stamped only when such a dance is present.
+- A dance whose tunes_json cannot be decoded now loads as an UnreadableTunes list carrying the stored text verbatim, instead of raising out of the load path and aborting ensureMigrated(). Writes re-emit the stored text unchanged, batch tune edits skip such a row, and archives carry it in a new tunesRaw field at envelope version 6, stamped only when such a dance is present.
+- The natural-key write paths now split sync-spec §4.1's normalisation carve-out from a genuine duplicate. TagRepository, ChoreographerRepository and CustomFieldDefRepository stored the row's OLD value on a colliding edit and recorded a normalisation skip, raising nothing; they now store the user's value un-normalised (sanitised, not composed) when the value is unchanged and its normalised target is merely occupied, and throw DuplicateNaturalKeyError with no skip recorded when the edit is a rename onto a value another row holds. DifficultyLevelRepository.upsert gained the carve-out it never had, so an archive merge re-importing a recorded level no longer throws. SettingsRepository.set catches ShareableJsonKeyCollision, stores the value whole and un-composed (still sanitised via sanitizeShareableJson, since sync-spec 4.6 binds the sanitiser to every write path with no carve-out) and records ('settings', 'value_json', key), mirroring the one-time pass. A pair of keys colliding under the sanitiser alone still raises, because no sanitised form of the object keeps both entries.
+- The (table, column) spellings written to normalisation_skips now come from one shared source (NormalisationSkipColumn and the naturalKeyNormalisationColumns list), which §4.1 requires because the pass's retry correlates the two writers' entries by grouping on that pair.
+- Tags, choreographers and custom fields refuse a creation onto a live natural key with DuplicateNaturalKeyError rather than letting a raw UNIQUE constraint violation escape. Re-creating an entity under a deleted name still adopts the tombstone, and inbound sync records are still reported to reconciliation unchanged.
+- CompendiumSyncStorage._reconcileInbound now applies the sync-spec §6.6 step-1 rule to candidates reconciled within one inbound batch, not only against stored rows. The natural-key index is built from stored rows alone, so two locally-known records renamed onto one previously-unused natural key by two peers in the same batch both missed the step-1 guard and reached the in-batch merge, which adopted the lexicographically smaller UUID and hard-deleted the losing local row through _deleteIdentityRow — the path that does not coalesce deviceLocal fields. Such a pair is now routed to review_queue with both local rows left intact; the silent step-2 merge is kept when at most one side is a pre-existing local row, and candidates that resolve to the same identity (difficulty canonicalization onto a shipped ID) still collapse.
+- CompendiumSyncStorage.resolveReviewQueue now resolves sync-spec §6.6 step-1 natural-key rename collisions, for both the ordinary and the shipped-difficulty variant. Keep both renames the row holding the colliding key -- counterpart_id, not record_id, because a step-1 row stores the candidate under record_id and the other local row under counterpart_id, the reverse of every other queued reason -- and then applies the candidate; Merge adopts onto the lexicographically smaller UUID (or the canonical shipped difficulty ID) without coalescing deviceLocal fields, as §6.6 requires for two pre-existing local rows. _enqueueCollisionReview now records local_hash for these reasons so both actions can refuse a decision taken against a record edited since it was queued, and SyncReviewQueueItem.isActionable branches on the reason rather than sharing one identity precondition that silently rejected every step-1 row.
+- _reconcileInbound now renames the private local custom-field definition when a shareable inbound definition of a different UUID collides on key, instead of renaming the inbound one and restamping it with this device's clock -- which republished it under last-writer-wins and renamed the shared field on every peer. The suffix derives from the private definition's own UUID. A private definition is projected to an empty body and never reaches the wire, so every device that can observe the collision resolves it identically, satisfying ADR-004's rule that which record survives is never a function of local versus incoming. _renameInboundCustomField is removed with its last caller.
+- A deliberate local edit cancels a held sync tombstone (sync-spec 6.8), stamping existence strictly above the held tombstone rather than only above the row's own value. Explicit restores use the same floor.
+- Import undo removes its inserted venues through VenueRepository.hardDelete rather than delete(permanent: true), whose guard counts live programs only, so a venue a tombstoned program names is retained instead of erased.
+- VenueRepository.hardDelete retains a still-referenced venue entirely, skipping the published-row tombstone as well as the erase. A tombstoned venue is invisible to every venue read and cannot be linked, so tombstoning one orphans the referencing program exactly as erasing it would.
+- The permanent delete branches on choreographers, tags, published sources and custom field definitions tombstone rather than erase when any cascading join row still names the parent, which after the live-owner guard means a tombstoned dance holds it. The join row survives, so the association is recoverable — but the relation loaders inner-join on the parent's deleted_at IS NULL, so it reappears only once the parent is restored as well as the dance.
+- TagRepository.delete(permanent: true) and hardDelete carry a referential guard for the first time, inside the delete's own transaction. It previously ran no check at all and was held closed only by one caller's check-then-act isInUse read.
+- FilterCompiler._customField now joins custom_field_defs and filters deleted_at IS NULL, so CustomFieldFilter matches nothing for a tombstoned definition, as the author, source, tag and level leaves already did (sync-spec §3.1); no app screen reaches that path today, because collection_query builds custom-field facets only from live definitions, so this half is an API-level fix. DanceRepository.restore now rebuilds the restored dance's dance_figures and FTS rows from its hydrated model, and the single-write path resolves author names, source texts and custom-field values live-only as rebuildAllDerived always has. Since #1328 a parent may be deleted while only a soft-deleted dance cites it, so the index written at the dance's last save could outlive its parents; of the three kinds only the custom-field case is reachable from the app, authors and sources requiring import undo or an inbound sync tombstone.
+- Referential delete guards for choreographers, published sources, custom fields and venues now count only live owners, matching the sync-side citation check and the schema contract that a purge refuses an entity referenced by a live record. Difficulty levels keep counting tombstoned dances, as `isInUse` documents.
+- VenueRepository.hardDelete retains venues still named by any surviving program row, since programs.venue_id is not a foreign key and the program writer rejects a dangling reference.
+- Keep publication lifecycle markers transactional at the manifest-attempt boundary while allowing record protection to be recorded before blob publication.
+- Batch inbound sync relationship validation queries to stay within SQLite bind-variable limits.
+- Persist the queue-time local wire hash and reject stale sync review resolutions before they can overwrite a newer local record.
+- SyncLocalRepository.upsertAlias ignores a self-alias, which would otherwise make alias-chain resolution revisit the same id.
+- Add SyncApplyRestorableStorage and use it to roll a record's parent write back when its join write fails, so the two-phase apply is atomic per record rather than only per batch.
+- Treat an unnamed write failure as a per-record skip and report, matching §6.7's one-record-skipped contract, instead of letting it escape the apply engine and strand the batch.
+- Re-settle each group against the parents that were actually written before writing join rows, so a failed parent prunes its same-kind dependents.
+- Include the pending tombstone as the local candidate in merge planning, so §6.4's existence comparison runs for a record whose deletion is deferred by a live citation instead of the peer's live copy winning by default.
+- SyncStorage.writeWithReport/_prepareEntity no longer null a program's venueId when the named venue is not live locally; the peer's body, including a dangling venueId, is now persisted verbatim and reported as an unresolved reference, so the receiver's rebuilt wire hash matches the peer's. Nulling it changed serialised content without advancing updatedAt, which is not I1's content-derived exception (sync-spec.md §6.5) and produced a permanent equal-updatedAt conflict.
+- ProgramRepository's live-venue guard no longer runs on the inbound sync write paths (writeFromSync, writeFromSyncParent, writeFromSyncRelations), since programs.venue_id carries no database foreign key. The interactive create/update guard now also tolerates a save that leaves an already-dangling venueId unchanged, refusing only a newly chosen non-existent venue.
+- Fire §6.6's baseline-absence tombstone guard only when step 2 would actually resolve the survivor to non-existence, so a live local row with the newer existence stamp reconciles silently instead of queueing a review that resolution is bound to refuse.
+- Compare the inbound concurrency guard against the pending-live candidates as well as the local ones, matching how the coordinator builds its expected wire hashes.
+- Retire id_aliases only when at least one peer manifest was observed; an empty peer set retained nothing and deleted every alias.
+- Pass the known local identity when adopting a same-batch natural-key collision, so the losing row is migrated rather than leaving join rows pointing at an id with no row.
+- Resolve the review-resolution survivor through the persisted alias chain before adopting and rewriting the candidate, roll an inbound batch back when a tombstone other records were reconciled against cannot be written, and report quarantined records under their own code.
+- Re-queue persisted sync review rows whose candidate, reason, or queue-time local wire hash has changed, instead of ignoring the re-observation and pinning the first one.
+- Discard a deferred deletion when an inbound revival wins §6.4's existence comparison against it, so the deletion cannot land after the revival that outranked it.
+- Name inbound tombstones to the storage adapter only after every dependency group has settled, resolve canonical difficulty identities through the alias chain before adoption, and keep the choreography fingerprint free of collections it never compares.
+- Align the inbound dance writer's difficulty-level guard with inbound reference validation: a record that is itself a tombstone may cite a tombstoned level, so a per-record failure can no longer escalate into a repeating whole-batch rollback.
+- CompendiumSyncStorage.snapshot() and markSyncUsed() memoise the sync-identity verifier match per storage instance (one worker pass) instead of deriving it on every call; markSyncUsed short-circuits from the memo once a match is known, and the memo is updated, not invalidated, when a new verifier is written.
+
+## [0.5.1] - 2026-09-19
+
+### Added
+
+- Support and validate the fixed ContraDB figure-search filter in the search request builder.
+
+### Fixed
+
+- Normalize archive-content validation failures into structured read and restore results while preserving unrelated programming errors.
+- Plan shared-metadata tag and custom-field adoption on the repository's canonical natural key, resolving canonically-equivalent rows deterministically instead of colliding on the normalized unique key.
 
 ## [0.5.0] - 2026-09-11
 

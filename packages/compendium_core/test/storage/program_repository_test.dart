@@ -8,6 +8,7 @@ Program sampleProgram({
   String title = 'Spring Dance 2026',
   List<ProgramSlot> slots = const [],
   String? caller,
+  DateTime? eventDate,
   DateTime? createdAt,
   DateTime? updatedAt,
   DateTime? deletedAt,
@@ -16,7 +17,7 @@ Program sampleProgram({
   return Program(
     id: id,
     title: title,
-    eventDate: DateTime.utc(2026, 3, 15),
+    eventDate: eventDate ?? DateTime.utc(2026, 3, 15),
     venue: 'Grange Hall',
     caller: caller,
     slots: slots,
@@ -38,6 +39,54 @@ void main() {
   });
 
   tearDown(() => db.close());
+
+  group('formsByProgram (ADR-006)', () {
+    Dance dance(String id, DanceForm form) => Dance(
+      id: id,
+      title: id,
+      form: form,
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+
+    test('lists the forms of each program\'s live dances', () async {
+      await dances.create(dance('c1', DanceForm.contra));
+      await dances.create(dance('c2', DanceForm.contra));
+      await dances.create(dance('e1', DanceForm.ecd));
+      await dances.create(dance('gone', DanceForm.ecd));
+      await repo.create(
+        sampleProgram(
+          id: 'mixed',
+          slots: [
+            ProgramSlot(id: 'm1', position: 0, danceId: 'c1'),
+            ProgramSlot(id: 'm2', position: 1, danceId: 'e1', isAlt: true),
+            ProgramSlot(id: 'm3', position: 2, text: 'Waltz'),
+          ],
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'contra',
+          slots: [
+            ProgramSlot(id: 'c1s', position: 0, danceId: 'c1'),
+            ProgramSlot(id: 'c2s', position: 1, danceId: 'c2'),
+            ProgramSlot(id: 'gs', position: 2, danceId: 'gone'),
+          ],
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'breaks',
+          slots: [ProgramSlot(id: 'b1', position: 0, text: 'Break')],
+        ),
+      );
+      await dances.softDelete('gone', at: DateTime.utc(2026, 2));
+      expect(await repo.formsByProgram(), {
+        'mixed': {DanceForm.contra, DanceForm.ecd},
+        'contra': {DanceForm.contra},
+      });
+    });
+  });
 
   group('create / getById', () {
     test('bulk validation rejects a tombstoned venue', () async {
@@ -284,6 +333,65 @@ void main() {
       expect(loaded, program);
     });
 
+    test('round-trips dialectName, and clears it', () async {
+      const name = 'Leads/Follows';
+      final program = sampleProgram().copyWith(dialectName: name);
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.dialectName, name);
+      expect(loaded, program);
+
+      await repo.update(loaded.copyWith(clearDialectName: true));
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('round-trips pay, and clears it (issue #1418)', () async {
+      final program = sampleProgram().copyWith(
+        payMinorUnits: 25050,
+        payCurrency: 'USD',
+      );
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.payMinorUnits, 25050);
+      expect(loaded.payCurrency, 'USD');
+      expect(loaded, program);
+
+      await repo.update(loaded.copyWith(payMinorUnits: 0, payCurrency: 'JPY'));
+      final zero = (await repo.getById(program.id))!;
+      expect(zero.payMinorUnits, 0);
+      expect(zero.payCurrency, 'JPY');
+
+      await repo.update(zero.copyWith(clearPay: true));
+      final cleared = (await repo.getById(program.id))!;
+      expect(cleared.payMinorUnits, isNull);
+      expect(cleared.payCurrency, isNull);
+    });
+
+    test('pay defaults to null when unset', () async {
+      await repo.create(sampleProgram());
+      final loaded = (await repo.getById('p1'))!;
+      expect(loaded.payMinorUnits, isNull);
+      expect(loaded.payCurrency, isNull);
+    });
+
+    test('dialectName defaults to null when unset', () async {
+      final program = sampleProgram();
+      await repo.create(program);
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('duplicate keeps dialectName', () async {
+      final program = sampleProgram().copyWith(dialectName: 'Leads/Follows');
+      await repo.create(program);
+      final copy = await repo.duplicate(
+        id: program.id,
+        newId: 'dup',
+        newSlotId: () => 'dup-slot',
+        now: DateTime.utc(2026, 2, 1),
+      );
+      expect(copy.dialectName, 'Leads/Follows');
+    });
+
     test('hideAlternates defaults to false when unset', () async {
       final program = sampleProgram();
       await repo.create(program);
@@ -478,6 +586,259 @@ void main() {
       expect(loaded!.deletedAt, beforeRollback!.deletedAt);
       expect(loaded.updatedAt, beforeRollback.updatedAt);
       expect(loaded.slots.single.performedAt, actionAt);
+    });
+
+    group('restoreStatus (GIG-12)', () {
+      final actionAt = DateTime.utc(2026, 1, 1, 20);
+      final undoneAt = DateTime.utc(2026, 1, 1, 21);
+
+      Future<Program> markedAll({required ProgramStatus status}) async {
+        final program = sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              text: 'Marked by the action',
+              performedAt: actionAt,
+            ),
+          ],
+        ).copyWith(status: status);
+        await repo.create(program);
+        return program;
+      }
+
+      test('puts the status back with the marks', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: ['s1'],
+            performedAt: actionAt,
+            updatedAt: undoneAt,
+            restoreStatus: ProgramStatus.finalized,
+          ),
+          1,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.status, ProgramStatus.finalized);
+        expect(loaded.slots.single.performedAt, isNull);
+        expect(loaded.updatedAt, undoneAt);
+      });
+
+      test('puts the status back when there was nothing to clear', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: const [],
+            performedAt: actionAt,
+            updatedAt: undoneAt,
+            restoreStatus: ProgramStatus.draft,
+          ),
+          0,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.status, ProgramStatus.draft);
+        expect(loaded.slots.single.performedAt, actionAt);
+        expect(loaded.updatedAt, undoneAt);
+      });
+
+      test('keeps a status changed since the action', () async {
+        final program = await markedAll(status: ProgramStatus.finalized);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: ['s1'],
+            performedAt: actionAt,
+            updatedAt: undoneAt,
+            restoreStatus: ProgramStatus.draft,
+          ),
+          1,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.status, ProgramStatus.finalized);
+        expect(loaded.slots.single.performedAt, isNull);
+      });
+
+      test('leaves the status alone without restoreStatus', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: ['s1'],
+          performedAt: actionAt,
+          updatedAt: undoneAt,
+        );
+
+        expect(
+          (await repo.getById(program.id))!.status,
+          ProgramStatus.performed,
+        );
+      });
+
+      test('does not touch a soft-deleted program', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+        await repo.softDelete(program.id, at: DateTime.utc(2026, 1, 1, 20, 30));
+
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: const [],
+          performedAt: actionAt,
+          updatedAt: undoneAt,
+          restoreStatus: ProgramStatus.draft,
+        );
+
+        final loaded = await repo.getById(program.id, includeDeleted: true);
+        expect(loaded!.status, ProgramStatus.performed);
+      });
+    });
+  });
+
+  group('updateAndReadBack / replaceIfUnchanged (flows-1)', () {
+    final adjustedAt = DateTime.utc(2026, 2, 1, 12, 0, 0, 100);
+
+    Future<(Program previous, Program stored)> adjust() async {
+      final previous = sampleProgram(
+        slots: [ProgramSlot(id: 's1', position: 0, text: 'Break')],
+      );
+      await repo.create(previous);
+      final stored = await repo.updateAndReadBack(
+        previous.copyWith(title: 'Adjusted', updatedAt: adjustedAt),
+      );
+      return (previous, stored);
+    }
+
+    test('updateAndReadBack returns the program as stored', () async {
+      final (_, stored) = await adjust();
+      expect(stored, await repo.getById('p1'));
+      expect(stored.updatedAt, DateTime.utc(2026, 2, 1, 12));
+    });
+
+    test('restores when nothing changed, with an advanced stamp', () async {
+      final (previous, stored) = await adjust();
+      final now = DateTime.utc(2026, 2, 1, 12, 5);
+      final restored = await repo.replaceIfUnchanged(
+        expected: stored,
+        replacement: previous,
+        updatedAt: now,
+      );
+      expect(restored, isTrue);
+      final live = (await repo.getById('p1'))!;
+      expect(live.title, previous.title);
+      expect(live.updatedAt, now);
+    });
+
+    test('a restore stamp never goes back past the stored one', () async {
+      final (previous, stored) = await adjust();
+      final restored = await repo.replaceIfUnchanged(
+        expected: stored,
+        replacement: previous,
+        updatedAt: DateTime.utc(2020),
+      );
+      expect(restored, isTrue);
+      final live = (await repo.getById('p1'))!;
+      expect(live.updatedAt.isAfter(stored.updatedAt), isTrue);
+    });
+
+    test(
+      'refuses an edit within the same stored second, and keeps it',
+      () async {
+        final (previous, stored) = await adjust();
+        await repo.update(
+          stored.copyWith(
+            title: 'Renamed',
+            updatedAt: DateTime.utc(2026, 2, 1, 12, 0, 0, 900),
+          ),
+        );
+        expect((await repo.getById('p1'))!.updatedAt, stored.updatedAt);
+
+        final restored = await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        );
+        expect(restored, isFalse);
+        expect((await repo.getById('p1'))!.title, 'Renamed');
+      },
+    );
+
+    test('refuses a slot-only change', () async {
+      final (previous, stored) = await adjust();
+      await repo.update(
+        stored.copyWith(
+          slots: [ProgramSlot(id: 's1', position: 0, text: 'Long break')],
+        ),
+      );
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isFalse,
+      );
+      expect((await repo.getById('p1'))!.slots.single.text, 'Long break');
+    });
+
+    test('replaceIfUnchangedAndReadBack returns the program as stored, '
+        'a token the next compare accepts', () async {
+      final (previous, stored) = await adjust();
+      final written = await repo.replaceIfUnchangedAndReadBack(
+        expected: stored,
+        replacement: previous.copyWith(title: 'Again'),
+        updatedAt: DateTime.utc(2026, 2, 1, 12, 5, 0, 300),
+      );
+      expect(written, await repo.getById('p1'));
+      expect(written!.title, 'Again');
+      expect(written.updatedAt, DateTime.utc(2026, 2, 1, 12, 5));
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: written,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 6),
+        ),
+        isTrue,
+      );
+    });
+
+    test('replaceIfUnchangedAndReadBack writes nothing and returns null '
+        'when the program changed', () async {
+      final (previous, stored) = await adjust();
+      await repo.update(
+        stored.copyWith(
+          title: 'Renamed',
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 1),
+        ),
+      );
+      expect(
+        await repo.replaceIfUnchangedAndReadBack(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isNull,
+      );
+      expect((await repo.getById('p1'))!.title, 'Renamed');
+    });
+
+    test('refuses a soft-deleted program', () async {
+      final (previous, stored) = await adjust();
+      await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1, 12, 1));
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isFalse,
+      );
+      expect(await repo.getById('p1'), isNull);
     });
   });
 
@@ -737,11 +1098,15 @@ void main() {
       expect(await repo.lastCalledByDance(), isEmpty);
     });
 
-    test('returns the most recent performedAt across programs', () async {
+    test('returns the most recent call date across programs', () async {
       await makeDance('d1');
+      // Each program is dated the day its slot was marked, so the event date
+      // and the stamp agree (calling_history_call_date_test.dart pins which
+      // one wins when they differ; GIG-2).
       await repo.create(
         sampleProgram(
           id: 'p1',
+          eventDate: DateTime.utc(2026, 1, 1),
           slots: [
             ProgramSlot(
               id: 's1',
@@ -755,6 +1120,7 @@ void main() {
       await repo.create(
         sampleProgram(
           id: 'p2',
+          eventDate: DateTime.utc(2026, 3, 1),
           slots: [
             ProgramSlot(
               id: 's2',
@@ -1160,6 +1526,7 @@ void main() {
         await repo.create(
           sampleProgram(
             id: 'p$i',
+            eventDate: date,
             slots: [
               ProgramSlot(
                 id: 's$i',
@@ -1728,6 +2095,91 @@ void main() {
       await repo.update(stored!.copyWith(clearVenueId: true));
       expect((await repo.getById('p1'))!.venueId, isNull);
     });
+
+    // Device Sync's inbound apply must persist a peer's dangling `venueId`
+    // verbatim (I1, sync-spec.md §6.5/§6.7) rather than null it — nulling
+    // would republish a different body under the peer's unchanged
+    // `updatedAt`, producing a permanent equal-`updatedAt` conflict. See
+    // `SyncStorage.writeWithReport`/`_prepareEntity`, which no longer clear
+    // the reference.
+    test(
+      'writeFromSync stores a dangling venueId without the live-venue guard',
+      () async {
+        final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+
+        await repo.writeFromSync(program);
+
+        expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
+      },
+    );
+
+    test('writeFromSyncParent stores a dangling venueId without the '
+        'live-venue guard', () async {
+      final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+
+      await repo.writeFromSyncParent(program);
+      await repo.writeFromSyncRelations(program);
+
+      expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
+    });
+
+    // The combined writeFromSyncParent + writeFromSyncRelations test above
+    // cannot, by itself, prove writeFromSyncRelations's own guard is
+    // disabled: the parent call already stores the dangling `ghost-venue`
+    // id, so the interactive-update tolerance (a stored venueId unchanged by
+    // this write) would let the relations call pass even if its
+    // `enforceVenueExists` were re-enabled. Here the parent row is written
+    // separately with venueId left null (via [ProgramRepository.create]), so
+    // a guard re-enabled on this path would see `storedVenueId` (null) !=
+    // `venueId` ('ghost-venue') and throw.
+    test('writeFromSyncRelations skips the live-venue guard even against a '
+        'parent whose stored venueId is null', () async {
+      await repo.create(sampleProgram());
+      final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+
+      await repo.writeFromSyncRelations(program);
+
+      // writeFromSyncRelations writes only dependent rows, so the parent's
+      // stored venueId is untouched by this call — it stays null. The
+      // assertion that matters is that the call above did not throw.
+      expect((await repo.getById('p1'))!.venueId, isNull);
+    });
+
+    // An inbound sync apply can leave a program pointing at a venue this
+    // device does not have. The user must still be able to interactively
+    // save that program — an unrelated edit, or simply re-saving it — without
+    // first being forced to unlink the venue; only a *newly chosen*
+    // non-existent venue is refused.
+    test('tolerates an interactive update that leaves a pre-existing dangling '
+        'venueId unchanged', () async {
+      await repo.writeFromSync(
+        sampleProgram().copyWith(venueId: 'ghost-venue'),
+      );
+
+      final stored = await repo.getById('p1');
+      await repo.update(stored!.copyWith(title: 'Renamed Dance'));
+
+      final after = await repo.getById('p1');
+      expect(after!.venueId, 'ghost-venue');
+      expect(after.title, 'Renamed Dance');
+    });
+
+    test(
+      'still rejects an interactive update that repoints an already-dangling '
+      'venueId at a different missing venue',
+      () async {
+        await repo.writeFromSync(
+          sampleProgram().copyWith(venueId: 'ghost-venue'),
+        );
+
+        final stored = await repo.getById('p1');
+        await expectLater(
+          repo.update(stored!.copyWith(venueId: 'another-ghost')),
+          throwsA(isA<StateError>()),
+        );
+        expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
+      },
+    );
   });
 
   group('callerFilter (host-caller scoping, #583)', () {
@@ -1750,6 +2202,7 @@ void main() {
         sampleProgram(
           id: 'p-alice',
           caller: 'Alice',
+          eventDate: DateTime.utc(2026, 3, 1),
           slots: [
             ProgramSlot(
               id: 's-a',
@@ -1774,6 +2227,7 @@ void main() {
         sampleProgram(
           id: 'p-bob',
           caller: 'Bob',
+          eventDate: DateTime.utc(2026, 4, 1),
           slots: [
             ProgramSlot(
               id: 's-b',
@@ -1790,6 +2244,7 @@ void main() {
       await repo.create(
         sampleProgram(
           id: 'p-null',
+          eventDate: DateTime.utc(2026, 5, 1),
           slots: [
             ProgramSlot(
               id: 's-n',
@@ -1872,8 +2327,8 @@ void main() {
         performedOnly: true,
         callerFilter: 'Alice',
       );
-      // Sort is COALESCE(performed_at, ...) DESC: p-null (2026-05-01) before
-      // p-alice (2026-03-01).
+      // Sort is COALESCE(event_date, performed_at, ...) DESC: p-null
+      // (2026-05-01) before p-alice (2026-03-01).
       expect(history.map((r) => r.programId), ['p-null', 'p-alice']);
       expect(
         (await repo.countByDance(callerFilter: 'Alice'))['d1']!.countFor(true),
@@ -1920,6 +2375,7 @@ void main() {
           sampleProgram(
             id: 'p-blank',
             caller: '',
+            eventDate: DateTime.utc(2026, 6, 1),
             slots: [
               ProgramSlot(
                 id: 's-bl',
@@ -2061,5 +2517,308 @@ void main() {
         );
       },
     );
+  });
+
+  group('purgeDeleted', () {
+    test('onlyIds erases just those past-cutoff programs, leaving other '
+        'expired ones (LIFE-1)', () async {
+      for (final id in ['a', 'b', 'c']) {
+        await repo.create(sampleProgram(id: id));
+        await repo.softDelete(id, at: DateTime.utc(2026, 1, 1));
+      }
+      await repo.create(sampleProgram(id: 'recent'));
+      await repo.softDelete('recent', at: DateTime.utc(2026, 3, 30));
+
+      final purged = await repo.purgeDeleted(
+        now: DateTime.utc(2026, 4, 1),
+        onlyIds: ['a', 'recent', 'missing'],
+      );
+
+      expect(purged, 1);
+      expect(await repo.getById('a', includeDeleted: true), isNull);
+      expect(await repo.getById('b', includeDeleted: true), isNotNull);
+      expect(await repo.getById('c', includeDeleted: true), isNotNull);
+      expect(await repo.getById('recent', includeDeleted: true), isNotNull);
+    });
+  });
+
+  group('archive / unarchive', () {
+    final at = DateTime.utc(2026, 5, 1, 12);
+
+    test('archive stamps archived_at and advances updated_at', () async {
+      await repo.create(sampleProgram());
+      expect(await repo.archive('p1', at: at), isTrue);
+      final stored = await repo.getById('p1');
+      expect(stored!.archivedAt, at);
+      expect(stored.isArchived, isTrue);
+      expect(stored.updatedAt, at);
+      expect(stored.title, 'Spring Dance 2026', reason: 'content untouched');
+    });
+
+    test('a stamp at or before updated_at still advances it', () async {
+      await repo.create(sampleProgram(updatedAt: DateTime.utc(2026, 6)));
+      await repo.archive('p1', at: DateTime.utc(2026, 1, 1));
+      final stored = await repo.getById('p1');
+      expect(stored!.updatedAt.isAfter(DateTime.utc(2026, 6)), isTrue);
+    });
+
+    test(
+      'archiving twice keeps the first stamp and reports no write',
+      () async {
+        await repo.create(sampleProgram());
+        await repo.archive('p1', at: at);
+        final first = await repo.getById('p1');
+        expect(
+          await repo.archive('p1', at: at.add(const Duration(days: 1))),
+          isFalse,
+        );
+        expect(await repo.getById('p1'), first);
+      },
+    );
+
+    test('unarchive clears archived_at and advances updated_at', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      final archived = await repo.getById('p1');
+      final later = at.add(const Duration(hours: 1));
+      expect(await repo.unarchive('p1', at: later), isTrue);
+      final stored = await repo.getById('p1');
+      expect(stored!.archivedAt, isNull);
+      expect(stored.updatedAt.isAfter(archived!.updatedAt), isTrue);
+      expect(await repo.unarchive('p1', at: later), isFalse);
+    });
+
+    test('does not archive a missing or trashed program', () async {
+      expect(await repo.archive('missing', at: at), isFalse);
+      await repo.create(sampleProgram());
+      await repo.softDelete('p1', at: at);
+      expect(await repo.archive('p1', at: at), isFalse);
+      final stored = await repo.getById('p1', includeDeleted: true);
+      expect(stored!.archivedAt, isNull);
+    });
+
+    test('update and listAll round-trip archivedAt', () async {
+      await repo.create(sampleProgram().copyWith(archivedAt: at));
+      expect((await repo.getById('p1'))!.archivedAt, at);
+      expect((await repo.listAll()).single.archivedAt, at);
+      await repo.update(
+        (await repo.getById('p1'))!.copyWith(clearArchivedAt: true),
+      );
+      expect((await repo.getById('p1'))!.archivedAt, isNull);
+    });
+
+    test('an archived program still counts toward calling history', () async {
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Dance d1',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          eventDate: DateTime.utc(2026, 2, 1),
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 2, 1),
+            ),
+          ],
+        ),
+      );
+      final before = await repo.lastCalledByDance();
+      final countsBefore = await repo.countByDance();
+      await repo.archive('p1', at: at);
+      expect(await repo.lastCalledByDance(), before);
+      expect(before, isNotEmpty);
+      expect(await repo.countByDance(), countsBefore);
+      expect(await repo.callingHistoryForDance('d1'), hasLength(1));
+    });
+
+    test('updateAndReadBack(keepStoredArchivedAt) keeps an archive or '
+        'unarchive that landed after the caller read the program', () async {
+      await repo.create(sampleProgram());
+      final staleUnarchived = (await repo.getById('p1'))!;
+      // Archived after the caller's read, before its write.
+      await repo.archive('p1', at: at);
+      final archivedAt = (await repo.getById('p1'))!.archivedAt;
+      final saved = await repo.updateAndReadBack(
+        staleUnarchived.copyWith(
+          title: 'Edited',
+          updatedAt: at.add(const Duration(hours: 1)),
+        ),
+        keepStoredArchivedAt: true,
+      );
+      expect(saved.title, 'Edited');
+      expect(saved.archivedAt, archivedAt);
+
+      // And the other way round: unarchived after a read of the archived copy.
+      final staleArchived = saved;
+      await repo.unarchive('p1', at: at.add(const Duration(hours: 2)));
+      final resaved = await repo.updateAndReadBack(
+        staleArchived.copyWith(
+          title: 'Edited again',
+          updatedAt: at.add(const Duration(hours: 3)),
+        ),
+        keepStoredArchivedAt: true,
+      );
+      expect(resaved.title, 'Edited again');
+      expect(resaved.archivedAt, isNull);
+    });
+
+    test(
+      'updateAndReadBack without the flag writes the caller\'s value',
+      () async {
+        await repo.create(sampleProgram());
+        await repo.archive('p1', at: at);
+        final saved = await repo.updateAndReadBack(
+          (await repo.getById('p1'))!.copyWith(
+            clearArchivedAt: true,
+            updatedAt: at.add(const Duration(hours: 1)),
+          ),
+        );
+        expect(saved.archivedAt, isNull);
+      },
+    );
+
+    test('restore keeps an archived program archived unless asked to '
+        'unarchive it', () async {
+      await repo.create(sampleProgram(id: 'p1'));
+      await repo.create(sampleProgram(id: 'p2'));
+      for (final id in ['p1', 'p2']) {
+        await repo.archive(id, at: at);
+        await repo.softDelete(id, at: at.add(const Duration(hours: 1)));
+      }
+      final restoreAt = at.add(const Duration(hours: 2));
+
+      // An Undo right after a delete puts back exactly what was deleted.
+      await repo.restore('p1', at: restoreAt);
+      final kept = (await repo.getById('p1'))!;
+      expect(kept.isArchived, isTrue);
+
+      // Recently deleted restores it unarchived, stamped so the change syncs.
+      await repo.restore('p2', at: restoreAt, unarchive: true);
+      final restored = (await repo.getById('p2'))!;
+      expect(restored.isDeleted, isFalse);
+      expect(restored.isArchived, isFalse);
+      expect(restored.updatedAt.isAfter(kept.updatedAt), isTrue);
+    });
+
+    test('restore(unarchive) leaves a live archived program archived: a '
+        'stale Recently deleted row must not unarchive it', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      await repo.restore(
+        'p1',
+        at: at.add(const Duration(hours: 1)),
+        unarchive: true,
+      );
+      expect((await repo.getById('p1'))!.isArchived, isTrue);
+    });
+
+    test('duplicating an archived program gives an unarchived copy', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      var n = 0;
+      final copy = await repo.duplicate(
+        id: 'p1',
+        newId: 'p2',
+        newSlotId: () => 'slot-${n++}',
+        now: at,
+      );
+      expect(copy.archivedAt, isNull);
+      expect((await repo.getById('p2'))!.archivedAt, isNull);
+    });
+  });
+
+  group('renameDialect', () {
+    final stamp = DateTime.utc(2026, 6, 1);
+
+    test('renames live and trashed programs, bumps updatedAt', () async {
+      await repo.create(sampleProgram(id: 'live').copyWith(dialectName: 'Old'));
+      await repo.create(
+        sampleProgram(
+          id: 'trashed',
+          deletedAt: DateTime.utc(2026, 2, 1),
+        ).copyWith(dialectName: 'Old'),
+      );
+      final n = await repo.renameDialect(
+        oldName: 'Old',
+        newName: 'New',
+        updatedAt: stamp,
+      );
+      expect(n, 2);
+      for (final id in ['live', 'trashed']) {
+        final p = (await repo.getById(id, includeDeleted: true))!;
+        expect(p.dialectName, 'New');
+        expect(p.updatedAt, stamp);
+      }
+      expect(
+        (await repo.getById('trashed', includeDeleted: true))!.deletedAt,
+        isNotNull,
+      );
+    });
+
+    test('leaves other dialects and unset programs alone', () async {
+      await repo.create(sampleProgram(id: 'other').copyWith(dialectName: 'X'));
+      await repo.create(sampleProgram(id: 'none'));
+      final n = await repo.renameDialect(
+        oldName: 'Old',
+        newName: 'New',
+        updatedAt: stamp,
+      );
+      expect(n, 0);
+      final other = (await repo.getById('other'))!;
+      expect(other.dialectName, 'X');
+      expect(other.updatedAt, DateTime.utc(2026, 1, 1));
+      expect((await repo.getById('none'))!.dialectName, isNull);
+    });
+
+    test('matches canonically-equal spellings, stores NFC', () async {
+      // "é" as e + combining acute, stored by a writer that skipped NFC.
+      await db.customStatement(
+        "INSERT INTO programs (id, title, status, created_at, updated_at, "
+        "dialect_name) VALUES ('nfd', 'T', 'draft', 0, 0, 'Caf\u0065\u0301')",
+      );
+      final n = await repo.renameDialect(
+        oldName: 'Caf\u00e9',
+        newName: 'Cafe\u0301 2',
+        updatedAt: stamp,
+      );
+      expect(n, 1);
+      expect(
+        (await repo.getById('nfd'))!.dialectName,
+        normalizeShareableText('Cafe\u0301 2'),
+      );
+    });
+
+    test('a newer stored stamp still advances', () async {
+      final future = DateTime.utc(2027, 1, 1);
+      await repo.create(
+        sampleProgram(updatedAt: future).copyWith(dialectName: 'Old'),
+      );
+      await repo.renameDialect(
+        oldName: 'Old',
+        newName: 'New',
+        updatedAt: stamp,
+      );
+      expect((await repo.getById('p1'))!.updatedAt.isAfter(future), isTrue);
+    });
+
+    test('same name is a no-op', () async {
+      await repo.create(sampleProgram().copyWith(dialectName: 'Old'));
+      expect(
+        await repo.renameDialect(
+          oldName: 'Old',
+          newName: 'Old',
+          updatedAt: stamp,
+        ),
+        0,
+      );
+      expect((await repo.getById('p1'))!.updatedAt, DateTime.utc(2026, 1, 1));
+    });
   });
 }

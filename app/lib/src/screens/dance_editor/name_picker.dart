@@ -1,3 +1,4 @@
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -27,7 +28,12 @@ class NamePicker extends StatelessWidget {
   final List<NameOption> options;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
-  final Future<String> Function(String name) onCreate;
+
+  /// Returns the id the entity actually occupies, or `null` when the
+  /// create did not happen and the caller has already told the user why
+  /// (see `dance_editor_screen._createChoreographer`). `null` skips
+  /// [onAdd] and leaves the typed text in place.
+  final Future<String?> Function(String name) onCreate;
 
   /// When non-null, each selected chip becomes tappable (an [InputChip]) and
   /// tapping its body invokes [onEdit] with the id — used by the Authors picker
@@ -97,7 +103,12 @@ class _AddAutocomplete extends StatefulWidget {
   final List<String> selectedIds;
   final List<NameOption> options;
   final ValueChanged<String> onAdd;
-  final Future<String> Function(String name) onCreate;
+
+  /// Returns the id the entity actually occupies, or `null` when the
+  /// create did not happen and the caller has already told the user why
+  /// (see `dance_editor_screen._createChoreographer`). `null` skips
+  /// [onAdd] and leaves the typed text in place.
+  final Future<String?> Function(String name) onCreate;
   final String? sheetSemanticLabel;
 
   @override
@@ -131,16 +142,32 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
       optionsBuilder: (value) {
         final q = value.text.trim();
         if (q.isEmpty) return const Iterable<_PickerChoice>.empty();
-        final lower = q.toLowerCase();
+        // `naturalKeyMatchKey`, not `toLowerCase()` — and for the substring
+        // filter as well as the exact test. The repositories look an incumbent
+        // up by `normalizeShareableText`, so comparing case-folded *raw* text
+        // asked a narrower question than the one that decides whether the
+        // create will be accepted: with a live "café", typing the decomposed
+        // form matched nothing here, offered "create", and threw
+        // `DuplicateNaturalKeyError` out of `onSelected` — an async callback
+        // nothing awaits, so the author was silently not created (found in
+        // review on #1410).
+        //
+        // Both comparisons move together on purpose. Fixing only the exact test
+        // would suppress "create" for the decomposed form while the filter
+        // still failed to show the row it collides with, leaving the user an
+        // empty list and no way forward.
+        final wanted = naturalKeyMatchKey(q);
         final matches = widget.options
             .where(
               (o) =>
                   !widget.selectedIds.contains(o.id) &&
-                  o.name.toLowerCase().contains(lower),
+                  naturalKeyMatchKey(o.name).contains(wanted),
             )
             .map((o) => _PickerChoice.existing(o.id, o.name))
             .toList();
-        final exact = widget.options.any((o) => o.name.toLowerCase() == lower);
+        final exact = widget.options.any(
+          (o) => naturalKeyMatchKey(o.name) == wanted,
+        );
         if (!exact) matches.add(_PickerChoice.create(q));
         return matches;
       },
@@ -152,6 +179,12 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
           // Guard against the widget being disposed during the await (e.g. the
           // editor route closed while the tag was being created).
           if (!mounted) return;
+          // `null` is "the create did not happen, and the user has been told".
+          // Nothing is added and the field keeps the typed text, so the next
+          // action is to pick the row it collided with. Returning early rather
+          // than falling through is what keeps the field from being cleared —
+          // clearing it would discard the name the snackbar is talking about.
+          if (id == null) return;
           widget.onAdd(id);
         } else {
           widget.onAdd(choice.id!);

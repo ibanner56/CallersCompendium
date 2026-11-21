@@ -1,7 +1,8 @@
 /// App-only setting for the soft-delete purge retention window (ROADMAP G.4).
 ///
-/// The startup purge sweep ([DanceRepository.purgeDeleted]) hard-deletes
-/// soft-deleted dances once they are older than a retention window. This file
+/// The startup purge sweep ([DanceRepository.purgeDeleted] and
+/// `ProgramRepository.purgeDeleted`) hard-deletes soft-deleted dances and
+/// programs once they are older than a retention window. This file
 /// exposes that window as a user-configurable preference persisted via
 /// `SettingsRepository`.
 ///

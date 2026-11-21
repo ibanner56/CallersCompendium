@@ -1,0 +1,9 @@
+{
+  "id": "2161-published-collection-key-rotation",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "If the published-collection catalog's signature doesn't match a key the app trusts, the message now says it could not be verified and suggests updating the app if it keeps happening, instead of calling it temporarily unavailable."
+    ]
+  }
+}

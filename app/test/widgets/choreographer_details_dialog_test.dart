@@ -58,6 +58,71 @@ void main() {
     return read();
   }
 
+  group('a stray dismissal', () {
+    final c = Choreographer(id: 'c1', name: 'Gene Hubert');
+
+    testWidgets('a tap outside keeps the dialog once a field is edited', (
+      tester,
+    ) async {
+      await _pumpDialog(tester, c);
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('choreographer-email-field')),
+        'gene@example.com',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('gene@example.com'), findsOneWidget);
+    });
+
+    testWidgets('Back keeps it open once the deceased switch is flipped', (
+      tester,
+    ) async {
+      await _pumpDialog(tester, c);
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('choreographer-deceased-toggle')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+    });
+
+    testWidgets('a tap outside closes an untouched dialog', (tester) async {
+      final read = await _pumpDialog(tester, c);
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(4, 4));
+
+      expect(await read(), isNull);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('Cancel closes it with edits', (tester) async {
+      final read = await _pumpDialog(tester, c);
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('choreographer-email-field')),
+        'gene@example.com',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('choreographer-cancel')));
+
+      expect(await read(), isNull);
+    });
+  });
+
   testWidgets('prefills existing values', (tester) async {
     final c = Choreographer(
       id: 'c1',
@@ -88,8 +153,8 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choreographer details'), findsOneWidget);
-    expect(find.text('Name *'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
+    expect(find.text('Name'), findsOneWidget);
     expect(find.text('Email (private)'), findsOneWidget);
     expect(find.text('Location (private)'), findsOneWidget);
     expect(find.text('Deceased'), findsOneWidget);
@@ -183,7 +248,7 @@ void main() {
 
     expect(find.text('Name is required'), findsOneWidget);
     // Dialog stays open (still findable), so no result yet.
-    expect(find.text('Choreographer details'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
   });
 
   testWidgets('cancel returns null', (tester) async {

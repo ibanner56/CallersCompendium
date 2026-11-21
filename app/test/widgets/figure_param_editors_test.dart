@@ -63,6 +63,64 @@ void main() {
     expect(find.text('partners'), findsOneWidget);
   });
 
+  group('dancer list (ECD who, ADR-006 §5.2)', () {
+    final spec = ecdTaxonomy.moves['ecd_circle']!.params['who']!;
+
+    testWidgets('adds a selector after those already picked', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['twos'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-threes')));
+      await tester.tap(find.byKey(const ValueKey('p-who-threes')));
+      expect(read(), ['twos', 'threes']);
+    });
+
+    testWidgets('everyone stands alone', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['twos', 'threes'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-everyone')));
+      await tester.tap(find.byKey(const ValueKey('p-who-everyone')));
+      expect(read(), ['everyone']);
+    });
+
+    testWidgets('picking another selector clears everyone', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['everyone'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-ones')));
+      await tester.tap(find.byKey(const ValueKey('p-who-ones')));
+      expect(read(), ['ones']);
+    });
+
+    testWidgets('clearing the last selector leaves it unstated', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['ones'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-ones')));
+      await tester.tap(find.byKey(const ValueKey('p-who-ones')));
+      expect(read(), [ParamVocab.unspecified]);
+      expect(
+        find.byKey(const ValueKey('p-who-${ParamVocab.unspecified}')),
+        findsNothing,
+      );
+    });
+  });
+
   testWidgets('text field syncs when the parent reseeds the value', (
     tester,
   ) async {
@@ -741,15 +799,177 @@ void main() {
     expect(read(), 16);
   });
 
-  testWidgets('beats field ignores out-of-range input', (tester) async {
+  testWidgets(
+    'beats field shows an adjacent error on out-of-range or non-numeric '
+    'input and leaves the draft unchanged',
+    (tester) async {
+      // Two halves: the draft must never receive a bad value (the original
+      // pinned behaviour), and the user must be *told* rather than the field
+      // silently diverging from what will be saved.
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'beats',
+        spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
+        value: 8,
+      );
+      const error = 'Enter a whole number from 0 to 64';
+      final field = find.byKey(const ValueKey('p-beats'));
+
+      await tester.enterText(field, '99');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+
+      await tester.enterText(field, '16');
+      await tester.pump();
+      expect(read(), 16);
+      expect(find.text(error), findsNothing);
+
+      // Clearing the field (the likelier slip) is flagged too, and the last
+      // committed value stands.
+      await tester.enterText(field, '');
+      await tester.pump();
+      expect(read(), 16);
+      expect(find.text(error), findsOneWidget);
+
+      await tester.enterText(field, 'abc');
+      await tester.pump();
+      expect(read(), 16);
+      expect(find.text(error), findsOneWidget);
+    },
+  );
+
+  testWidgets('places field error names its own range', (tester) async {
     final read = await _pumpEditor(
       tester,
-      paramKey: 'beats',
-      spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
-      value: 8,
+      paramKey: 'places',
+      spec: const ParamSpec(ParamKind.places, defaultValue: 1),
+      value: 1,
     );
-    await tester.enterText(find.byKey(const ValueKey('p-beats')), '99');
+    await tester.enterText(find.byKey(const ValueKey('p-places')), '11');
+    await tester.pump();
     expect(read(), isNull);
+    expect(find.text('Enter a whole number from 1 to 10'), findsOneWidget);
+  });
+
+  group('a places field that admits "not stated" (v39: circle, star)', () {
+    const error = 'Enter a whole number from 1 to 10';
+
+    // The hint stays in the tree at opacity 0 while the field holds text
+    // (`InputDecoration.maintainHintSize`), so finding its text proves
+    // nothing: read whether it is actually shown.
+    bool hintShown(WidgetTester tester) =>
+        tester
+            .widget<AnimatedOpacity>(
+              find
+                  .ancestor(
+                    of: find.text('not stated'),
+                    matching: find.byType(AnimatedOpacity),
+                  )
+                  .first,
+            )
+            .opacity ==
+        1.0;
+
+    for (final move in ['circle', 'star']) {
+      testWidgets('$move: emptying the field stores the sentinel, no error', (
+        tester,
+      ) async {
+        final read = await _pumpEditor(
+          tester,
+          paramKey: 'places',
+          spec: contraTaxonomy.resolve(move)!.params['places']!,
+          value: 3,
+        );
+        final field = find.byKey(const ValueKey('p-places'));
+        expect(hintShown(tester), isFalse, reason: 'it holds 3');
+        await tester.enterText(field, '');
+        await tester.pumpAndSettle();
+        expect(read(), ParamVocab.unspecified);
+        expect(find.text(error), findsNothing);
+        expect(hintShown(tester), isTrue);
+
+        await tester.enterText(field, '2');
+        await tester.pumpAndSettle();
+        expect(read(), 2);
+        expect(hintShown(tester), isFalse);
+      });
+    }
+
+    testWidgets('opens empty on the sentinel and writes nothing back', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: contraTaxonomy.resolve('circle')!.params['places']!,
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('p-places')),
+      );
+      expect(field.controller!.text, isEmpty);
+      expect(hintShown(tester), isTrue);
+      expect(read(), isNull);
+    });
+
+    testWidgets('follows the value between a count and the sentinel', (
+      tester,
+    ) async {
+      final spec = contraTaxonomy.resolve('circle')!.params['places']!;
+      String text() => tester
+          .widget<TextField>(find.byKey(const ValueKey('p-places')))
+          .controller!
+          .text;
+      await _pumpEditor(tester, paramKey: 'places', spec: spec, value: 3);
+      expect(text(), '3');
+      await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: spec,
+        value: ParamVocab.unspecified,
+      );
+      expect(text(), isEmpty);
+      await _pumpEditor(tester, paramKey: 'places', spec: spec, value: 5);
+      expect(text(), '5');
+    });
+
+    testWidgets('still flags a number out of range or not a number', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: contraTaxonomy.resolve('star')!.params['places']!,
+        value: 4,
+      );
+      final field = find.byKey(const ValueKey('p-places'));
+      await tester.enterText(field, '11');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+      await tester.enterText(field, 'abc');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+    });
+
+    testWidgets('a places field without the sentinel still requires a number', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: contraTaxonomy.resolve('facing_star')!.params['places']!,
+        value: 3,
+      );
+      await tester.enterText(find.byKey(const ValueKey('p-places')), '');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+      expect(find.text('not stated'), findsNothing);
+    });
   });
 
   testWidgets('text field round-trips a value', (tester) async {
@@ -844,6 +1064,10 @@ void main() {
     expect(humanizeToken('rightDiagonal'), 'right diagonal');
     expect(humanizeToken('threeQuarter'), 'three quarter');
     expect(humanizeToken('who'), 'who');
+    // A one-letter word ends where the next capitalised word starts
+    // (taxonomy v39's `forward_and_back.formation`).
+    expect(humanizeToken('inARing'), 'in a ring');
+    expect(humanizeToken('inLinesAtHeads'), 'in lines at heads');
   });
 
   // --- Sentinel write-back protection (issue #726) --------------------------
@@ -944,7 +1168,7 @@ void main() {
       // `ParamKind.spinDirection` renders from a HARDCODED `ParamVocab.spins`,
       // ignoring `spec.choices` entirely — so a sentinel there could not be
       // made safe by declaring choices. The move avoids the problem by having a
-      // real default (a courtesy turn wheels clockwise by construction).
+      // real default (counterclockwise since taxonomy v37, the ordinary turn).
       final spec = contraTaxonomy
           .resolve('courtesy_turn')!
           .params['direction']!;
@@ -955,7 +1179,7 @@ void main() {
         tester,
         paramKey: 'direction',
         spec: spec,
-        value: 'clockwise',
+        value: spec.defaultValue,
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);
@@ -1046,10 +1270,10 @@ void main() {
     });
 
     testWidgets('Clear also updates what the field DISPLAYS', (tester) async {
-      // Raised in review on PR #764: the concern was that
-      // `DropdownButtonFormField` ignores a later `initialValue` and leaves the
-      // field stuck on the cleared selection, since Clear updates the model
-      // from OUTSIDE the dropdown and the field's key is stable.
+      // Raised in review on PR #764: the concern was that the dropdown ignores
+      // a later value and leaves the field stuck on the cleared selection,
+      // since Clear updates the model from OUTSIDE the dropdown and the
+      // field's key is stable.
       //
       // The test above cannot answer that — `_pumpEditor` records `onChanged`
       // without feeding the new value back, so the editor is never rebuilt and
@@ -1057,11 +1281,11 @@ void main() {
       // the diagnosis, so this drives a host that re-seeds from the model the
       // way `figure_list_editor` does.
       //
-      // Measured result: the display DOES follow, because
-      // `_DropdownButtonFormFieldState.didUpdateWidget` calls `setValue` when
-      // `initialValue` changes (Flutter 3.44.6, `material/dropdown.dart`). It is
-      // plain `FormField` that does not — it syncs only `forceErrorText` — which
-      // is the likely source of the confusion. No value-based key is needed.
+      // Measured result: the display DOES follow, because the field's
+      // `didUpdateWidget` calls `setValue` when its value changes
+      // (`AppDropdownField`). It is plain `FormField` that does not — it syncs
+      // only `forceErrorText` — which is the likely source of the confusion.
+      // No value-based key is needed.
       Object? current = 'role1s';
       await tester.pumpWidget(
         StatefulBuilder(
@@ -1136,6 +1360,57 @@ void main() {
       expect(read(), ParamVocab.unspecified);
       expect(find.text('not stated'), findsOneWidget);
       expect(find.text('everyone'), findsNothing);
+    });
+  });
+
+  group('controls are full-size touch targets on touch platforms', () {
+    Future<void> pumpAt(WidgetTester tester, VisualDensity density) async {
+      final spec = contraTaxonomy.resolve('hey')!.params['meetTarget']!;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(visualDensity: density),
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: Center(
+              child: FigureParamEditor(
+                keyPrefix: 'p',
+                paramKey: 'meetTarget',
+                spec: spec,
+                // A set value, so the Clear button is offered.
+                value: spec.choices!.first,
+                dialect: Dialect.larksRobins,
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('standard density (touch): Clear and the dropdown are 48dp', (
+      tester,
+    ) async {
+      await pumpAt(tester, VisualDensity.standard);
+      final clear = tester.getSize(
+        find.byKey(const ValueKey('p-meetTarget-clear')),
+      );
+      expect(clear.shortestSide, greaterThanOrEqualTo(48));
+      expect(
+        tester.getSize(find.byKey(const ValueKey('p-meetTarget'))).height,
+        greaterThanOrEqualTo(48),
+      );
+    });
+
+    testWidgets('compact density (desktop pointer) keeps the dense form', (
+      tester,
+    ) async {
+      await pumpAt(tester, VisualDensity.compact);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('p-meetTarget'))).height,
+        lessThan(48),
+      );
     });
   });
 }

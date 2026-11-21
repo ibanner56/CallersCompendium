@@ -1,6 +1,7 @@
 import 'package:compendium_app/src/data/contradb_program_import.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/online_search.dart';
+import 'package:compendium_app/src/data/program_import_rollback.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +20,17 @@ class _FakeService implements OnlineSearchService {
     this.failLoadIds = const {},
     this.rowsByTitle = const {},
     this.confidentTitles = const {},
+    this.planFigures = const [],
+    this.extraConfidentIds = const [],
+    this.loadErrors = const {},
+    this.searchError,
   });
+
+  /// ContraDB dance ids whose [loadPreview] throws the given (typed) failure.
+  final Map<String, Exception> loadErrors;
+
+  /// Thrown by every [search] when set.
+  final Exception? searchError;
 
   @override
   final OnlineSource source;
@@ -34,13 +45,25 @@ class _FakeService implements OnlineSearchService {
   /// verdict is a confident local duplicate (issue #685).
   final Set<String> confidentTitles;
 
+  /// The figures every previewed plan carries.
+  final List<Figure> planFigures;
+
+  /// Further confident candidates, after 'local-existing', in a confident
+  /// plan's verdict.
+  final List<String> extraConfidentIds;
+
   final loadedIds = <String>[];
   final searchedTitles = <String>[];
   final importedTitles = <String>[];
 
+  /// The `ambiguousResolution` each [import] call was given, in order.
+  final importedResolutions = <DedupeResolution?>[];
+
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     searchedTitles.add(query.title);
+    final error = searchError;
+    if (error != null) throw error;
     return rowsByTitle[query.title.trim().toLowerCase()] ?? const [];
   }
 
@@ -52,6 +75,8 @@ class _FakeService implements OnlineSearchService {
     DedupeIndex? index,
   }) async {
     loadedIds.add(result.id);
+    final error = loadErrors[result.id];
+    if (error != null) throw error;
     if (failLoadIds.contains(result.id)) {
       throw Exception('This dance is not published.');
     }
@@ -71,9 +96,11 @@ class _FakeService implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     final title = plan.draft.dance.title;
     importedTitles.add(title);
+    importedResolutions.add(ambiguousResolution);
     // Simulate the real service's confident-match detection (#797): when
     // ambiguousResolution is null and the verdict has a confident candidate,
     // return needsConfirmation. This lets program-import tests verify the
@@ -106,7 +133,7 @@ class _FakeService implements OnlineSearchService {
             form: DanceForm.contra,
             formation: const Formation(FormationShape.dupleImproper),
             status: DanceStatus.active,
-            figures: const [],
+            figures: planFigures,
             customFields: const [],
             hook: '',
             createdAt: DateTime.utc(2026, 1, 1),
@@ -125,6 +152,8 @@ class _FakeService implements OnlineSearchService {
                   score: 0.8,
                   confident: true,
                 ),
+                for (final id in extraConfidentIds)
+                  DedupeCandidate(danceId: id, score: 0.8, confident: true),
               ])
             : DedupeVerdict.isNew(),
       );
@@ -241,6 +270,50 @@ void main() {
       expect(resolved.single.danceId, 'tcb-hidden gem');
     },
   );
+
+  test('Caller\'s Box fallback onto an IDENTICAL local dance links it and '
+      'imports nothing (INTAKE-3 (a))', () async {
+    final repos = openTestRepositories();
+    final shared = [customFigure('neighbors balance and swing')];
+    await repos.dances.create(
+      Dance(
+        id: 'local-existing',
+        title: 'Hidden Gem',
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: shared,
+        hook: '',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    final contraDb = _FakeService(OnlineSource.contraDb, failLoadIds: {'9'});
+    final callersBox = _FakeService(
+      OnlineSource.callersBox,
+      rowsByTitle: {
+        'hidden gem': [_tcbRow('Hidden Gem', id: '500')],
+      },
+      confidentTitles: {'hidden gem'},
+      planFigures: shared,
+    );
+
+    final resolved = await resolveContraDbProgram(
+      _program([
+        ContraDbProgramActivity.dance(danceId: '9', title: 'Hidden Gem'),
+      ]),
+      contraDb: contraDb,
+      callersBox: callersBox,
+      repos: repos,
+    );
+
+    expect(resolved.single.danceId, 'local-existing');
+    expect(
+      resolved.single.resolution,
+      ContraDbActivityResolution.linkedCallersBox,
+    );
+    expect(callersBox.importedTitles, isEmpty);
+  });
 
   test('Caller\'s Box fallback confident local duplicate (issue #685) is never '
       'imported — falls to the verbatim note floor and service.import is '
@@ -404,9 +477,10 @@ void main() {
   // result.danceId != null branches to linked(danceId: 'local-existing'),
   // attaching the slot to a dance it didn't actually import. RED: the slot's
   // danceId is 'local-existing' (wrong). GREEN: the fix passes
-  // ambiguousResolution: duplicate() → fake bypasses confirmation → returns
+  // a resolution (since Q-3, variation('local-existing'); duplicate() when
+  // there is no confident match) → fake bypasses confirmation → returns
   // created with danceId: 'cdb-tangled yarns' (a newly imported dance).
-  test('#797 program import: confident-match dance is imported as duplicate, '
+  test('#797 program import: confident-match dance is imported, '
       'not silently linked to the pre-existing candidate (red-run)', () async {
     final repos = openTestRepositories();
     // confidentTitles causes loadPreview to return a plan with a confident
@@ -440,5 +514,206 @@ void main() {
       resolved.single.resolution,
       ContraDbActivityResolution.linkedContraDb,
     );
+  });
+
+  // ── 2026-10 behaviour audit, INTAKE-3 ─────────────────────────────────────
+  // A dance the user already has, with the same figures, is reused rather than
+  // imported a second time (#685); one whose figures differ is imported as a
+  // variation of it, with no per-dance prompt (#797, Q-3). The fake plan names
+  // 'local-existing' as its confident candidate, so a real dance under that id
+  // decides which case applies.
+  group('INTAKE-3: an identical dance already in the collection', () {
+    Future<void> seedExisting(
+      CompendiumRepositories repos, {
+      required List<Figure> figures,
+      String id = 'local-existing',
+    }) => repos.dances.create(
+      Dance(
+        id: id,
+        title: 'Tangled Yarns',
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: figures,
+        hook: '',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+        // No provenance: typed in by hand, the case the plan names.
+      ),
+    );
+
+    final program = _program([
+      ContraDbProgramActivity.dance(
+        danceId: '42',
+        title: 'Tangled Yarns',
+        note: 'slow walk-through',
+      ),
+    ]);
+
+    final swing = [customFigure('neighbors balance and swing')];
+
+    test('is linked to the slot, and nothing is imported', () async {
+      final repos = openTestRepositories();
+      await seedExisting(repos, figures: swing);
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        confidentTitles: {'tangled yarns'},
+        planFigures: swing,
+      );
+      final rollback = ProgramImportRollback(repos);
+
+      final resolved = await resolveContraDbProgram(
+        program,
+        contraDb: contraDb,
+        callersBox: _FakeService(OnlineSource.callersBox),
+        repos: repos,
+        rollback: rollback,
+      );
+
+      expect(resolved.single.danceId, 'local-existing');
+      expect(
+        resolved.single.resolution,
+        ContraDbActivityResolution.linkedContraDb,
+      );
+      expect(resolved.single.text, 'slow walk-through');
+      expect(contraDb.importedTitles, isEmpty, reason: 'no second copy');
+      expect(rollback.isEmpty, isTrue, reason: 'nothing written to undo');
+    });
+
+    // Two confident matches tie on score and keep collection order, so the
+    // identical dance can come second, behind a variation that kept the title.
+    test('is found behind a confident match with other figures', () async {
+      final repos = openTestRepositories();
+      await seedExisting(
+        repos,
+        figures: [customFigure('partners balance and swing')],
+      );
+      await seedExisting(repos, figures: swing, id: 'typed-in');
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        confidentTitles: {'tangled yarns'},
+        planFigures: swing,
+        extraConfidentIds: ['typed-in'],
+      );
+
+      final resolved = await resolveContraDbProgram(
+        program,
+        contraDb: contraDb,
+        callersBox: _FakeService(OnlineSource.callersBox),
+        repos: repos,
+      );
+
+      expect(resolved.single.danceId, 'typed-in');
+      expect(contraDb.importedTitles, isEmpty, reason: 'no third copy');
+    });
+
+    // Q-3 (maintainer, 2026-11-05): a confident match with other figures is
+    // imported as a variation of the match, as the Caller's Box path does.
+    test(
+      'with different figures is imported as a variation of the match',
+      () async {
+        final repos = openTestRepositories();
+        await seedExisting(repos, figures: swing);
+        final contraDb = _FakeService(
+          OnlineSource.contraDb,
+          confidentTitles: {'tangled yarns'},
+          planFigures: [customFigure('partners balance and swing')],
+        );
+
+        final resolved = await resolveContraDbProgram(
+          program,
+          contraDb: contraDb,
+          callersBox: _FakeService(OnlineSource.callersBox),
+          repos: repos,
+        );
+
+        expect(resolved.single.danceId, 'cdb-tangled yarns');
+        expect(contraDb.importedTitles, ['Tangled Yarns']);
+        final resolution = contraDb.importedResolutions.single;
+        expect(resolution?.kind, DedupeResolutionKind.variation);
+        expect(resolution?.targetDanceId, 'local-existing');
+      },
+    );
+  });
+
+  // ── 2026-10 audit, batch F12 (FAIL-2) ────────────────────────────────────
+  group('stopping', () {
+    final twoDances = _program([
+      ContraDbProgramActivity.dance(danceId: '185', title: 'Courageous Soul'),
+      ContraDbProgramActivity.note('Waltz'),
+      ContraDbProgramActivity.dance(danceId: '173', title: 'Boys From Urbana'),
+    ]);
+
+    test('the import stops at the first unreachable dance and never asks the '
+        'fallback', () async {
+      final repos = openTestRepositories();
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        loadErrors: {
+          '185': const UrlFetchException(
+            UrlFetchFailureReason.contraDbUnreachable,
+          ),
+        },
+      );
+      final callersBox = _FakeService(OnlineSource.callersBox);
+
+      await expectLater(
+        resolveContraDbProgram(
+          twoDances,
+          contraDb: contraDb,
+          callersBox: callersBox,
+          repos: repos,
+        ),
+        throwsA(isA<ProgramImportConnectionFailed>()),
+      );
+      expect(contraDb.loadedIds, ['185']);
+      expect(callersBox.searchedTitles, isEmpty);
+    });
+
+    test("The Caller's Box fallback being unreachable stops it too", () async {
+      final repos = openTestRepositories();
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        failLoadIds: {'185'},
+      );
+      final callersBox = _FakeService(
+        OnlineSource.callersBox,
+        searchError: const UrlFetchException(
+          UrlFetchFailureReason.callersBoxUnreachable,
+        ),
+      );
+
+      await expectLater(
+        resolveContraDbProgram(
+          twoDances,
+          contraDb: contraDb,
+          callersBox: callersBox,
+          repos: repos,
+        ),
+        throwsA(isA<ProgramImportConnectionFailed>()),
+      );
+      expect(contraDb.loadedIds, ['185']);
+    });
+
+    test('reports progress over the dances and stops when cancelled', () async {
+      final repos = openTestRepositories();
+      final contraDb = _FakeService(OnlineSource.contraDb);
+      final callersBox = _FakeService(OnlineSource.callersBox);
+      final progress = <(int, int)>[];
+
+      await expectLater(
+        resolveContraDbProgram(
+          twoDances,
+          contraDb: contraDb,
+          callersBox: callersBox,
+          repos: repos,
+          onProgress: (done, total) => progress.add((done, total)),
+          isCancelled: () => contraDb.loadedIds.isNotEmpty,
+        ),
+        throwsA(isA<ProgramImportCancelled>()),
+      );
+      expect(progress, [(0, 2), (1, 2)]);
+      expect(contraDb.loadedIds, ['185']);
+    });
   });
 }

@@ -1,6 +1,6 @@
 /// The programming matrix (figures × dances) — CC's Elements matrix, but
-/// **derived for free** from the structured [Dance.figures] we already store
-/// rather than a manually ticked checklist (CC's failure mode).
+/// **derived for free** from the structured [Dance.figuresSource] we already
+/// store rather than a manually ticked checklist (CC's failure mode).
 ///
 /// Pure, Flutter-free, and unit-tested: the UI (`ProgramMatrixTable` in the
 /// app) is a thin renderer over this model. Columns are the moves actually
@@ -18,12 +18,16 @@
 ///    its first appearance too.
 ///  * **Same-figure collision** (per cell): the move repeats in a
 ///    *strictly-adjacent* dance (the row immediately above or below in program
-///    order) — the repeat a caller wants to reconsider
+///    order — or, where a slot has alternates, any dance that could be called
+///    directly before or after it, see [MatrixRow.alternateGroup]), and never
+///    across a break: rows in different numbered [MatrixRow.section]s are not
+///    neighbours — the repeat a caller wants to reconsider
 ///    ([ProgramMatrix.isCollision]). Positions are derived from cumulative
 ///    **effective** beats ([Taxonomy.effectiveParams], so figures with no
 ///    explicitly-stored count still land correctly) and threaded through
 ///    [MatrixRow.phraseLabelsByMove] / [MatrixRow.beatSpansByMove]; the
-///    un-comparable custom column never collides. [ProgramMatrix.collisionMode]
+///    un-comparable custom column never collides, while a figure of your own's
+///    column (#1023) collides like a built-in move's. [ProgramMatrix.collisionMode]
 ///    (issue #962) selects which of two comparisons decides a collision:
 ///     * [MatrixCollisionMode.exactBeats] (the default): the move's beat
 ///       *span* actually overlaps between the two dances — guards against,
@@ -41,10 +45,12 @@ import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
-import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart';
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/user_figure_use.dart';
 import 'matrix_column_config.dart';
 
 /// What kind of move a [MatrixColumn] represents, so the UI can label and
@@ -57,9 +63,10 @@ enum MatrixColumnKind {
   /// nothing is silently dropped (mirrors the renderer's unknown-move fallback).
   unknown,
 
-  /// The single collapsed column for all custom (free-text) figures. Custom
-  /// moves are un-taxonomised and can't be reliably compared, so they share one
-  /// column. First-figure highlighting still works when a dance opens custom.
+  /// The single collapsed column for custom (free-text) figures. Custom moves
+  /// are un-taxonomised and can't be reliably compared, so they share one
+  /// column; only a use of a figure of your own that renders live gets a
+  /// [userFigure] column instead (#1023). First-figure highlighting still works when a dance opens custom.
   custom,
 
   /// A sub-column of a move that is split by one of its params so callers can
@@ -84,6 +91,13 @@ enum MatrixColumnKind {
   /// opaque `compound:<uuid>` id, labelled from
   /// [MatrixColumnConfig.renames]. Defined in Phase 2; matching is Phase 5.
   compound,
+
+  /// One figure of your own (#1023): its uses, each of which renders live
+  /// from the figure's definition, get a column of their own rather than the
+  /// collapsed [custom] one. Its [MatrixColumn.moveId] is
+  /// `userFigure:<id>` ([userFigureKeyFor]) and its [MatrixColumn.label] is
+  /// the figure's name when the matrix was built.
+  userFigure,
 }
 
 /// The parent move id for [swingColumnKey]-style split columns.
@@ -163,6 +177,7 @@ String _roleVariant(Object? who) {
       return 'twos';
     case 'firstCorners':
     case 'secondCorners':
+    case 'thirdCorners':
       return 'corners';
     case 'sameRoles':
       return 'same';
@@ -237,6 +252,7 @@ class MatrixColumn {
     required this.kind,
     this.baseMoveId,
     this.variant,
+    this.label,
   }) : assert(
          (kind == MatrixColumnKind.split) == (baseMoveId != null),
          'split columns require baseMoveId; non-split columns must omit it',
@@ -244,6 +260,10 @@ class MatrixColumn {
        assert(
          (baseMoveId != null) == (variant != null),
          'baseMoveId and variant are set together or not at all',
+       ),
+       assert(
+         (kind == MatrixColumnKind.userFigure) == (label != null),
+         'a figure of your own\'s column carries its name; no other does',
        );
 
   /// Canonical move id, an unknown raw id, [customMove] for the custom bucket,
@@ -260,6 +280,11 @@ class MatrixColumn {
   /// `full`); `null` for every other kind.
   final String? variant;
 
+  /// For a [MatrixColumnKind.userFigure] column, the figure's name, read
+  /// from the catalog the matrix was built with, so a header needs no
+  /// catalog of its own; `null` for every other kind.
+  final String? label;
+
   bool get isCustom => kind == MatrixColumnKind.custom;
   bool get isSplit => kind == MatrixColumnKind.split;
 
@@ -269,10 +294,11 @@ class MatrixColumn {
       other.moveId == moveId &&
       other.kind == kind &&
       other.baseMoveId == baseMoveId &&
-      other.variant == variant;
+      other.variant == variant &&
+      other.label == label;
 
   @override
-  int get hashCode => Object.hash(moveId, kind, baseMoveId, variant);
+  int get hashCode => Object.hash(moveId, kind, baseMoveId, variant, label);
 
   @override
   String toString() => 'MatrixColumn($moveId, ${kind.name})';
@@ -357,6 +383,7 @@ class MatrixRow {
     Map<String, Set<String>> phraseLabelsByMove = const {},
     Map<String, List<BeatSpan>> beatSpansByMove = const {},
     this.section,
+    this.alternateGroup,
     this.formation = const Formation(FormationShape.dupleImproper),
   }) : presentMoveIds = Set.unmodifiable(presentMoveIds),
        phraseLabelsByMove = Map.unmodifiable({
@@ -374,8 +401,22 @@ class MatrixRow {
   /// The numbered program section this dance's slot falls in
   /// (see [Program.sectionAtIndex]), or `null` when the program has no break
   /// or the slot itself is a break. Drives the ordinal badge on the matrix row
-  /// header.
+  /// header, and decides adjacency for [ProgramMatrix.isCollision]: dances in
+  /// different sections are separated by a break and never neighbours.
   final int? section;
+
+  /// The alternate group this row's slot belongs to (see
+  /// [Program.alternateGroupsForSlots]), or `null` when the matrix was built
+  /// without group information (`buildProgramMatrix`'s `alternateGroups` was
+  /// omitted). `null` is not "a slot with no alternates": a slot alone in its
+  /// group still carries an integer id. A `null` row is treated as a group of
+  /// one, so it is compared with the row above and below.
+  /// Rows sharing a group are mutually exclusive choices for one program
+  /// position — a primary and its alternates — so they are never danced in
+  /// sequence. [ProgramMatrix.isCollision] never compares rows of one group and
+  /// instead compares every row of a group with every row of the groups
+  /// immediately before and after it.
+  final int? alternateGroup;
 
   /// Column key of the dance's FIRST figure (the first-figure highlight), or
   /// `null` when the dance has no figures. Custom first figures use
@@ -425,6 +466,7 @@ class MatrixRow {
       other.title == title &&
       other.firstMoveId == firstMoveId &&
       other.section == section &&
+      other.alternateGroup == alternateGroup &&
       other.formation == formation &&
       _setEq.equals(other.presentMoveIds, presentMoveIds) &&
       _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove) &&
@@ -436,6 +478,7 @@ class MatrixRow {
     title,
     firstMoveId,
     section,
+    alternateGroup,
     formation,
     _setEq.hash(presentMoveIds),
     _phraseMapEq.hash(phraseLabelsByMove),
@@ -493,8 +536,11 @@ class ProgramMatrix {
 
   /// Whether the move at [rows]`[rowIndex]` × [columns]`[colIndex]` is a
   /// **same-figure collision** with a strictly-adjacent dance: the same move
-  /// appears in the dance immediately above OR below this one in program
-  /// order, under whichever comparison [collisionMode] selects:
+  /// appears in a dance that can be called immediately before OR after this one
+  /// in program order — the row above or below, except that a primary and its
+  /// alternates ([MatrixRow.alternateGroup]) are one choice for a single
+  /// position, and a row in a different numbered [MatrixRow.section] (a break
+  /// lies between them) is never a neighbour — under whichever comparison [collisionMode] selects:
   ///
   ///  * [MatrixCollisionMode.exactBeats] (the default, issue #962): the move's
   ///    beat span actually overlaps ([BeatSpan.overlaps]) with an occurrence in
@@ -504,8 +550,14 @@ class ProgramMatrix {
   ///    move merely *starts* in the same phrase (A1/A2/B1/B2…) as an
   ///    occurrence in the neighbouring dance.
   ///
-  /// Adjacency is strictly the previous/next row in both modes (issue #582's
-  /// locked design — not a configurable window). The collapsed [customMove] and
+  /// Adjacency is strictly the previous/next program position in both modes
+  /// (issue #582's locked design — not a configurable window). Rows sharing a
+  /// [MatrixRow.alternateGroup] are alternatives for one position: they are
+  /// never compared with each other (at most one is danced), and each is
+  /// compared with every row of the group before and the group after (issue
+  /// #1413), because any of them may be the one actually called. Without
+  /// groups, every row is its own position, i.e. the previous/next row unless a
+  /// break separates them. The collapsed [customMove] and
   /// compound columns never collide in either mode (custom figures aren't
   /// reliably comparable, and compounds are per-dance booleans), because
   /// neither [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove]
@@ -522,11 +574,59 @@ class ProgramMatrix {
     };
   }
 
+  /// The rows [rowIndex] can be danced directly next to: every row of the
+  /// alternate group immediately before its own and every row of the group
+  /// immediately after it (see [MatrixRow.alternateGroup]). Rows of its own
+  /// group are alternatives to it and are never neighbours. A row with no group
+  /// is a group of one, so without groups this is just the row above and below.
+  ///
+  /// A break separates two dances: a neighbour whose [MatrixRow.section] differs from this row's is dropped when
+  /// both are known. A waltz or note between two dances does not separate them;
+  /// it shares its neighbours' section, and a `null` section (a program with no
+  /// break, or a matrix built without sections) never separates anything.
+  Iterable<int> _neighborRowIndices(int rowIndex) sync* {
+    final section = rows[rowIndex].section;
+    for (final r in _adjacentRowIndices(rowIndex)) {
+      final other = rows[r].section;
+      if (section != null && other != null && section != other) continue;
+      yield r;
+    }
+  }
+
+  Iterable<int> _adjacentRowIndices(int rowIndex) sync* {
+    final group = rows[rowIndex].alternateGroup;
+    bool inGroup(int r, int? g) => g != null && rows[r].alternateGroup == g;
+
+    var start = rowIndex;
+    while (start > 0 && inGroup(start - 1, group)) {
+      start--;
+    }
+    var end = rowIndex;
+    while (end < rows.length - 1 && inGroup(end + 1, group)) {
+      end++;
+    }
+    if (start > 0) {
+      final previous = rows[start - 1].alternateGroup;
+      var r = start - 1;
+      yield r;
+      while (r > 0 && inGroup(r - 1, previous)) {
+        yield --r;
+      }
+    }
+    if (end < rows.length - 1) {
+      final next = rows[end + 1].alternateGroup;
+      var r = end + 1;
+      yield r;
+      while (r < rows.length - 1 && inGroup(r + 1, next)) {
+        yield ++r;
+      }
+    }
+  }
+
   bool _isExactBeatCollision(int rowIndex, String moveId) {
     final here = rows[rowIndex].beatSpansByMove[moveId];
     if (here == null || here.isEmpty) return false;
-    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
-      if (neighbor < 0 || neighbor >= rows.length) continue;
+    for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].beatSpansByMove[moveId];
       if (there == null) continue;
       for (final h in here) {
@@ -539,8 +639,7 @@ class ProgramMatrix {
   bool _isPhraseCollision(int rowIndex, String moveId) {
     final here = rows[rowIndex].phraseLabelsByMove[moveId];
     if (here == null || here.isEmpty) return false;
-    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
-      if (neighbor < 0 || neighbor >= rows.length) continue;
+    for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].phraseLabelsByMove[moveId];
       if (there != null && here.any(there.contains)) return true;
     }
@@ -549,8 +648,10 @@ class ProgramMatrix {
 }
 
 /// Column key for a [figure] under [taxonomy] and optional [config]: a matching
-/// parameterized column captures the figure before the built-in route. Custom
-/// figures all map to
+/// parameterized column captures the figure before the built-in route. A use
+/// of a figure of your own in [userFigures] that renders live maps to its
+/// figure's `userFigure:<id>` key ([userFigureColumnKeyOf], #1023); every other
+/// custom figure maps to
 /// [customMove]; `swing` maps to a compound `swing:<role>` key (widened to
 /// `swing:<role>:<prefix>` for a `balance`/`meltdown` prefix); `allemande` and
 /// `chain` map to `allemande:<role>` / `chain:<role>`; `hey` maps to
@@ -567,22 +668,32 @@ String columnKeyForFigure(
   Figure figure,
   Taxonomy taxonomy, [
   MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
 ]) {
-  if (figure.isCustom) return customMove;
+  if (figure.isCustom) {
+    return userFigureColumnKeyOf(figure, taxonomy, userFigures) ?? customMove;
+  }
   final canonicalId = taxonomy.resolve(figure.move)?.id;
   if (canonicalId != null && config.parameterized.isNotEmpty) {
     final effective = taxonomy.effectiveParams(figure);
     ParameterizedColumn? best;
     var bestSpecificity = -1;
     for (final column in config.parameterized) {
-      if (column.baseMove != canonicalId) continue;
-      final matches = column.params.entries.every(
+      final constraint = _resolvedConstraint(
+        column.baseMove,
+        column.params,
+        taxonomy,
+      );
+      if (constraint.move != canonicalId) continue;
+      final matches = constraint.params.entries.every(
         (entry) =>
             effective.containsKey(entry.key) &&
             effective[entry.key] == entry.value,
       );
       if (!matches) continue;
-      final specificity = column.params.length;
+      // Counted on the resolved constraint, so a column saved on an alias
+      // ranks as the same column saved on its target with the pin.
+      final specificity = constraint.params.length;
       if (specificity > bestSpecificity) {
         best = column;
         bestSpecificity = specificity;
@@ -605,11 +716,78 @@ String columnKeyForFigure(
   }
 }
 
+/// The `userFigure:<id>` column key of [figure] when it is a use of a figure
+/// of your own in [userFigures] that renders live, else null (#1023).
+///
+/// "Renders live" is the test the dance index applies before it keeps a
+/// use's reference ([FigureRenderer.renderUserFigureCanonical]), so a use
+/// the "has figure" search would not find is not counted in its figure's
+/// column either: a detached use, one whose figure was deleted, or one with
+/// an argument the figure no longer takes stays in the custom column.
+String? userFigureColumnKeyOf(
+  Figure figure,
+  Taxonomy taxonomy,
+  UserFigureCatalog userFigures,
+) {
+  if (userFigures.isEmpty) return null;
+  final use = userFigureUseOf(figure);
+  if (use == null) return null;
+  final renderer = FigureRenderer(taxonomy, userFigures: userFigures);
+  if (renderer.renderUserFigureCanonical(figure) == null) return null;
+  return userFigureKeyFor(use.id);
+}
+
+/// A column's base [move] and [params] as a constraint on the move it
+/// resolves to. A move is its own constraint. An alias constrains its target
+/// with its pinned params as well as [params], so a column saved on
+/// `long_lines` while it was a move (before taxonomy v39) still matches long
+/// lines, now an alias of `forward_and_back`, and not other formations.
+({String move, Map<String, Object?> params}) _resolvedConstraint(
+  String move,
+  Map<String, Object?> params,
+  Taxonomy taxonomy,
+) {
+  final alias = taxonomy.aliases[move];
+  if (alias == null) return (move: move, params: params);
+  return (move: alias.targetMove, params: {...alias.pinnedParams, ...params});
+}
+
+/// A column constraint ([ParameterizedColumn.baseMove] and params, or a
+/// [StepMatcher]'s) as it is saved: one on [move] that states the value an
+/// alias of it listed as a move pins ([MoveAlias.listedAsMove]) is saved on
+/// that alias without the pin, the inverse of [_resolvedConstraint]. So a
+/// column on forward and back in long lines is saved on `long_lines`, which a
+/// build before taxonomy v39 reads, where `forward_and_back` and `formation`
+/// would match nothing. A constraint that leaves the param unstated is kept:
+/// it is not a long lines column.
+({String move, Map<String, Object?> params}) savedMatrixConstraint(
+  String move,
+  Map<String, Object?> params,
+  Taxonomy taxonomy,
+) {
+  for (final alias in taxonomy.aliases.values) {
+    if (!alias.listedAsMove || alias.targetMove != move) continue;
+    final pins = alias.pinnedParams.entries;
+    if (pins.isEmpty ||
+        !pins.every(
+          (pin) => params.containsKey(pin.key) && params[pin.key] == pin.value,
+        )) {
+      continue;
+    }
+    return (
+      move: alias.id,
+      params: taxonomy.withoutListedAliasPins(alias.id, params),
+    );
+  }
+  return (move: move, params: params);
+}
+
 bool _stepMatchesFigure(Figure figure, StepMatcher step, Taxonomy taxonomy) {
   final canonicalId = taxonomy.resolve(figure.move)?.id;
-  if (canonicalId != step.move) return false;
+  final constraint = _resolvedConstraint(step.move, step.params, taxonomy);
+  if (canonicalId != constraint.move) return false;
   final effective = taxonomy.effectiveParams(figure);
-  return step.params.entries.every(
+  return constraint.params.entries.every(
     (entry) =>
         effective.containsKey(entry.key) && effective[entry.key] == entry.value,
   );
@@ -658,15 +836,18 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 );
 
 /// Builds the [ProgramMatrix] for [dances] (rows, in the given order) using
-/// [taxonomy] (defaults to [contraTaxonomy]) to order and classify columns.
+/// [taxonomy] (defaults to [TaxonomyRegistry.anyForm], since a program can mix
+/// forms) to order and classify columns.
 ///
 /// Column order: taxonomy canonical order (the [Taxonomy.moves] definition
 /// order) for known moves that appear, then any alias-only ids in taxonomy
 /// alias-declaration order (e.g. `see_saw`, `swat_the_flea` — an alias whose
 /// target move is itself split, like `meltdown_swing`, never reaches this
 /// bucket; see [columnKeyForFigure]), then any truly unknown move ids (sorted,
-/// for determinism), then a single trailing custom column when any custom
-/// figure is present. This is stable — it doesn't reshuffle as the program
+/// for determinism), then a column per figure of your own in [userFigures]
+/// that some dance uses ([MatrixColumnKind.userFigure], by name then id —
+/// the name as stored, role words as tokens), then a single trailing custom
+/// column when any other custom figure is present. This is stable — it doesn't reshuffle as the program
 /// changes — and groups related moves the way the taxonomy authors intended.
 ///
 /// `swing`, `allemande`, `chain`, and `hey` are split into sub-columns at
@@ -701,6 +882,14 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// throws [ArgumentError] (enforced at runtime, in release builds too). Omit
 /// it to leave every row's [MatrixRow.section] `null`.
 ///
+/// [alternateGroups], when provided, is likewise a parallel list aligned to
+/// [dances] (see [Program.alternateGroupsForSlots]): rows with the same id are a
+/// primary and its alternates — mutually exclusive choices for one program
+/// position — and each group's rows must be consecutive. A length mismatch or a
+/// non-contiguous group throws [ArgumentError]. Omit it to treat every row as
+/// its own group, i.e. plain row-by-row adjacency. It only affects
+/// [ProgramMatrix.isCollision].
+///
 /// [collisionMode] sets [ProgramMatrix.collisionMode] (issue #962), defaulting
 /// to [MatrixCollisionMode.exactBeats] — the callers deriving the on-screen
 /// matrix and its PDF export both read this from the "flag exact beat overlap
@@ -710,7 +899,7 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// parameterized columns replace built-in membership; matching compound
 /// sequences add present-only boolean columns; and hidden/reordered ids are
 /// transformed at display time. Compound matching scans each dance's original
-/// [Dance.figures] for a strictly-adjacent run and never changes the routed
+/// [Dance.figuresSource] for a strictly-adjacent run and never changes the routed
 /// first figure. Presence, program-debut, collision, and first-figure analysis
 /// are computed over every routed/custom column and are independent of display
 /// hiding/reordering. [MatrixColumnConfig.renames] is a label-only override
@@ -721,16 +910,42 @@ ProgramMatrix buildProgramMatrix(
   List<Dance> dances, {
   Taxonomy? taxonomy,
   List<int?>? sections,
+  List<int>? alternateGroups,
   MatrixCollisionMode collisionMode = MatrixCollisionMode.exactBeats,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
 }) {
-  final tax = taxonomy ?? contraTaxonomy;
+  final tax = taxonomy ?? shippedTaxonomies.anyForm;
   if (sections != null && sections.length != dances.length) {
     throw ArgumentError.value(
       sections.length,
       'sections',
       'must be aligned to dances (same length: ${dances.length})',
     );
+  }
+  if (alternateGroups != null) {
+    if (alternateGroups.length != dances.length) {
+      throw ArgumentError.value(
+        alternateGroups.length,
+        'alternateGroups',
+        'must be aligned to dances (same length: ${dances.length})',
+      );
+    }
+    // A group is one program position's primary and its alternates, so its
+    // rows are consecutive; a group id that reappears after another group has
+    // no meaning and would make the neighbour lookup silently wrong.
+    final seen = <int>{};
+    for (var i = 0; i < alternateGroups.length; i++) {
+      final group = alternateGroups[i];
+      if (i > 0 && alternateGroups[i - 1] == group) continue;
+      if (!seen.add(group)) {
+        throw ArgumentError.value(
+          alternateGroups,
+          'alternateGroups',
+          'group $group is not contiguous (reappears at row $i)',
+        );
+      }
+    }
   }
 
   final rows = <MatrixRow>[];
@@ -752,9 +967,14 @@ ProgramMatrix buildProgramMatrix(
     // by the phrase it *starts* in; every figure (custom included) advances the
     // beat cursor so later figures land in the right phrase/position.
     final structure = dance.phraseStructure;
+    final danceFigures = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+      // Nothing to read: an undecodable transcription contributes no figures.
+      UnreadableFigures() => const <Figure>[],
+    };
     var beat = 0;
-    for (final figure in dance.figures) {
-      final key = columnKeyForFigure(figure, tax, config);
+    for (final figure in danceFigures) {
+      final key = columnKeyForFigure(figure, tax, config, userFigures);
       final canonicalId = tax.resolve(figure.move)?.id;
       if (canonicalId == swingMoveId) {
         final effective = tax.effectiveParams(figure);
@@ -790,7 +1010,7 @@ ProgramMatrix buildProgramMatrix(
       beat += effBeats;
     }
     for (final compound in config.compound) {
-      if (_containsCompoundRun(dance.figures, compound, tax)) {
+      if (_containsCompoundRun(danceFigures, compound, tax)) {
         rowMoves.add(compound.id);
         present.add(compound.id);
       }
@@ -799,13 +1019,14 @@ ProgramMatrix buildProgramMatrix(
       MatrixRow(
         danceId: dance.id,
         title: dance.title,
-        firstMoveId: dance.figures.isEmpty
+        firstMoveId: danceFigures.isEmpty
             ? null
-            : columnKeyForFigure(dance.figures.first, tax, config),
+            : columnKeyForFigure(danceFigures.first, tax, config, userFigures),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
         section: sections == null ? null : sections[i],
+        alternateGroup: alternateGroups == null ? null : alternateGroups[i],
         formation: dance.formation,
       ),
     );
@@ -864,9 +1085,17 @@ ProgramMatrix buildProgramMatrix(
     } else if (present.remove(id)) {
       columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
     }
+    // An alias listed as a move follows its target, where it stood as a move
+    // (`forward_and_back` took `long_lines`' place at taxonomy v39).
+    for (final alias in _listedAliasesOf(id, tax)) {
+      if (present.remove(alias)) {
+        columns.add(MatrixColumn(moveId: alias, kind: MatrixColumnKind.known));
+      }
+    }
   }
 
-  // Aliases whose TARGET move is not itself split (e.g. `see_saw` ->
+  // Aliases (other than those listed as moves, placed above) whose TARGET
+  // move is not itself split (e.g. `see_saw` ->
   // `do_si_do`, `swat_the_flea` -> `box_the_gnat`) keep their own column,
   // distinct from their target's ([columnKeyForFigure] never resolves them) —
   // but they ARE taxonomy entities, not unrecognized ids, so they're
@@ -882,6 +1111,18 @@ ProgramMatrix buildProgramMatrix(
     }
   }
 
+  // A column per figure of your own that some dance uses (#1023), ordered by
+  // name, then id. Taken out of `present` here so none reads as an unknown
+  // move below.
+  final userFigureColumns = <MatrixColumn>[];
+  for (final view in userFigures.figures) {
+    final key = userFigureKeyFor(view.id);
+    if (present.remove(key)) {
+      userFigureColumns.add(_userFigureColumn(key, view.name));
+    }
+  }
+  userFigureColumns.sort(_compareUserFigureColumns);
+
   // Anything left in `present` other than declared parameterized ids is an
   // unknown move id (not in the taxonomy), sorted for deterministic output.
   final customIds = config.customColumnIds;
@@ -890,6 +1131,8 @@ ProgramMatrix buildProgramMatrix(
   for (final id in unknown) {
     columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.unknown));
   }
+
+  columns.addAll(userFigureColumns);
 
   // Single trailing custom column.
   if (hasCustom) {
@@ -992,12 +1235,16 @@ List<MatrixColumn> _applyColumnConfig(
 ///   display name, never its target's — resolving through to the target
 ///   would make two visually distinct figures share one header (issue #933).
 ///   The dialect-substitution lookup keys off the CANONICAL move id either
-///   way (matching [FigureRenderer.displayMoveName]'s rule, since
-///   `dialect.moves` is keyed by canonical id, not alias id). Side-dependent
+///   way, except for an alias listed as a move ([MoveAlias.listedAsMove],
+///   `long_lines`), keyed off its own id (both matching
+///   [FigureRenderer.displayMoveName]'s rule). Side-dependent
 ///   substitutions (those using `%S`, which need a specific figure's
 ///   shoulder/hand) can't be resolved at the column level, so they fall back
 ///   to the display name;
 /// - unknown → the raw move id (nothing silently dropped);
+/// - userFigure → [dialect]'s name for the figure ([dialectUserFigureName]),
+///   else the figure's own ([MatrixColumn.label]), as free text, so its role
+///   words read in the dialect (#1023);
 /// - parameterized / compound → the user-defined header from
 ///   [MatrixColumnConfig.renames] (Phase 4/5 columns have no built-in label),
 ///   falling back to the raw id if none is set.
@@ -1021,6 +1268,13 @@ String matrixColumnLabel(
       // Fall back to the raw id so nothing renders blank before Phase 3's UI
       // guarantees a label.
       return column.moveId;
+    case MatrixColumnKind.userFigure:
+      // The dialect's own name for the figure, when it gives one (#1023).
+      final id = column.moveId.substring(userFigureRefPrefix.length);
+      return FigureRenderer(taxonomy).renderFreeText(
+        dialectUserFigureName(dialect, id) ?? column.label ?? column.moveId,
+        dialect,
+      );
     case MatrixColumnKind.custom:
     case MatrixColumnKind.split:
     case MatrixColumnKind.known:
@@ -1033,7 +1287,9 @@ String matrixColumnLabel(
   if (def == null) return column.moveId;
   final alias = taxonomy.aliases[column.moveId];
   final displayName = alias?.displayName ?? def.displayName;
-  final substitution = dialect.moves[def.id];
+  // An alias listed as a move (`long_lines`) is named by its own id only.
+  final substitution =
+      dialect.moves[alias?.listedAsMove ?? false ? alias!.id : def.id];
   if (substitution != null && !substitution.contains('%S')) {
     return substitution;
   }
@@ -1131,6 +1387,26 @@ String _splitColumnLabel(
   return _roleColumnLabel(role, moveWord, dialect);
 }
 
+MatrixColumn _userFigureColumn(String key, String name) =>
+    MatrixColumn(moveId: key, kind: MatrixColumnKind.userFigure, label: name);
+
+int _compareUserFigureColumns(MatrixColumn a, MatrixColumn b) {
+  final byName = a.label!.toLowerCase().compareTo(b.label!.toLowerCase());
+  return byName != 0 ? byName : a.moveId.compareTo(b.moveId);
+}
+
+/// A column for every figure of your own in [userFigures] (#1023), ordered as
+/// [buildProgramMatrix] orders the ones a program uses: by name, then id.
+/// The column editor lists these beside [builtInColumnCatalog], so each can
+/// be hidden, moved or renamed before any program uses it.
+/// A figure that no longer decodes is left out: none of its uses can render
+/// live, so it never has a column.
+List<MatrixColumn> userFigureColumnCatalog(UserFigureCatalog userFigures) => [
+  for (final view in userFigures.figures)
+    if (view.definition != null)
+      _userFigureColumn(userFigureKeyFor(view.id), view.name),
+]..sort(_compareUserFigureColumns);
+
 /// The parent move ids that [buildProgramMatrix] expands into split columns.
 const Set<String> _splitParentMoveIds = {
   swingMoveId,
@@ -1149,10 +1425,11 @@ const Set<String> _splitParentMoveIds = {
 /// Emits, in order: for each move in [Taxonomy.moves] definition order, either
 /// its split sub-columns (swing: every role, each as a bare column plus its
 /// `balance`/`meltdown` sub-columns; hey: `half`/`full`; allemande/chain: every
-/// role) or a single [MatrixColumnKind.known] column; then each alias whose
-/// target move is **not** itself split (a split-target alias folds into the
-/// target's split column and never gets its own — see [columnKeyForFigure]);
-/// then the single trailing [customMove] bucket. The emitted [MatrixColumn.moveId]
+/// role) or a single [MatrixColumnKind.known] column, followed by any alias of
+/// it listed as a move ([MoveAlias.listedAsMove]: `long_lines`); then each
+/// other alias whose target move is **not** itself split (a split-target alias
+/// folds into the target's split column and never gets its own — see
+/// [columnKeyForFigure]); then the single trailing [customMove] bucket. The emitted [MatrixColumn.moveId]
 /// strings are exactly the ids used as column keys elsewhere (`swing:partner`,
 /// `swing:partner:balance`, `hey:full`, `do_si_do`, `customMove`, …), so a
 /// config keyed by them lines up with a built matrix's columns.
@@ -1181,9 +1458,13 @@ List<MatrixColumn> builtInColumnCatalog(Taxonomy taxonomy) {
     } else {
       columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
     }
+    for (final alias in _listedAliasesOf(id, taxonomy)) {
+      columns.add(MatrixColumn(moveId: alias, kind: MatrixColumnKind.known));
+    }
   }
 
   for (final alias in taxonomy.aliases.values) {
+    if (alias.listedAsMove) continue; // placed after its target above
     final targetId = taxonomy.resolve(alias.id)?.id;
     if (targetId != null && _splitParentMoveIds.contains(targetId)) continue;
     columns.add(MatrixColumn(moveId: alias.id, kind: MatrixColumnKind.known));
@@ -1194,3 +1475,12 @@ List<MatrixColumn> builtInColumnCatalog(Taxonomy taxonomy) {
   );
   return columns;
 }
+
+/// The ids of [taxonomy]'s aliases of [moveId] listed as moves
+/// ([MoveAlias.listedAsMove]), in declaration order: the built-in catalog and
+/// a built matrix place each right after its target, where `long_lines` stood
+/// while it was a move.
+Iterable<String> _listedAliasesOf(String moveId, Taxonomy taxonomy) => [
+  for (final alias in taxonomy.aliases.values)
+    if (alias.listedAsMove && alias.targetMove == moveId) alias.id,
+];

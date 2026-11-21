@@ -19,6 +19,42 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Sizes the window icon is offered at. The bundled PNG is 512 px, and GTK 3
+// given an icon that large sets only the legacy WM_HINTS pixmap and no
+// _NET_WM_ICON, which is what task switchers and docks read (observed with
+// GTK 3.24.41; 256 px and below were set). So it is scaled to these instead.
+static const int kIconSizes[] = {256, 128, 64, 48, 32, 16};
+
+// Sets the window icon from data/compendium_app.png beside the executable, the
+// file app/linux/CMakeLists.txt installs into the bundle. Shells that match the
+// window to its launcher by application id show the launcher's icon instead.
+// A missing or unreadable file leaves the default icon and logs a warning.
+static void set_window_icon(GtkWindow* window) {
+  g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
+  if (executable == nullptr) {
+    return;
+  }
+  g_autofree gchar* directory = g_path_get_dirname(executable);
+  g_autofree gchar* path =
+      g_build_filename(directory, "data", "compendium_app.png", nullptr);
+  g_autoptr(GError) error = nullptr;
+  g_autoptr(GdkPixbuf) source = gdk_pixbuf_new_from_file(path, &error);
+  if (source == nullptr) {
+    g_warning("Failed to load the window icon %s: %s", path, error->message);
+    return;
+  }
+  GList* icons = nullptr;
+  for (int size : kIconSizes) {
+    GdkPixbuf* scaled =
+        gdk_pixbuf_scale_simple(source, size, size, GDK_INTERP_BILINEAR);
+    if (scaled != nullptr) {
+      icons = g_list_append(icons, scaled);
+    }
+  }
+  gtk_window_set_icon_list(window, icons);
+  g_list_free_full(icons, g_object_unref);
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -53,6 +89,7 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+  set_window_icon(window);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

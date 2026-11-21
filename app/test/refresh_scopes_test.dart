@@ -17,6 +17,7 @@ import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
 
+import 'support/dance_detail_actions.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
@@ -261,7 +262,9 @@ void main() {
       // and the naive response is to re-search on each one.
       final counter = _SearchCounter();
       final db = openWidgetTestDatabase(
-        executor: NativeDatabase.memory().interceptWith(counter),
+        executor: NativeDatabase.memory(
+          setup: applyCompendiumSqliteSetup,
+        ).interceptWith(counter),
       );
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
@@ -301,7 +304,9 @@ void main() {
   ) async {
     final counter = _SearchCounter();
     final db = openWidgetTestDatabase(
-      executor: NativeDatabase.memory().interceptWith(counter),
+      executor: NativeDatabase.memory(
+        setup: applyCompendiumSqliteSetup,
+      ).interceptWith(counter),
     );
     final repos = CompendiumRepositories(db, contraTaxonomy);
     // ignore: unused_result
@@ -405,7 +410,9 @@ void main() {
       // widen: a number that only ever goes up stops testing anything.
       final counter = _SnapshotLoadCounter();
       final db = openWidgetTestDatabase(
-        executor: NativeDatabase.memory().interceptWith(counter),
+        executor: NativeDatabase.memory(
+          setup: applyCompendiumSqliteSetup,
+        ).interceptWith(counter),
       );
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
@@ -552,7 +559,7 @@ void main() {
     final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
     expect((snackBar.content as Text).data, contains('undo'));
     expect(
-      find.text('Could not undo marking; performed marks remain saved.'),
+      find.text('Couldn\'t undo that. The performed marks are still saved.'),
       findsOneWidget,
     );
     expect(find.byType(SnackBarAction), findsNothing);
@@ -793,8 +800,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('link-row-l1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('delete-dance')).last);
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       expect(find.byKey(const ValueKey('link-row-l1')), findsNothing);
       expect(find.text('(missing dance)'), findsNothing);
@@ -904,8 +910,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('open-detail')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('delete-dance')).last);
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Fixture check: the delete really did reach the list, so the assertion
       // below is a restore rather than a row that never left.

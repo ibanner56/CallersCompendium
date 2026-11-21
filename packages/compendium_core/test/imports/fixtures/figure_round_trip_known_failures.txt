@@ -1,0 +1,25 @@
+# Figures that do not yet read back from their own displayed text (#2121).
+# Checked by test/imports/figure_round_trip_test.dart, which says how a figure
+# is swept and what counts as reading back. The list may only shrink: run the
+# test with UPDATE_ROUND_TRIP=1 to drop lines that now pass.
+#
+# One figure per line, tab-separated: dialect, move, the params set on it (JSON),
+# and the text it displays as.
+Canonical	box_circulate	{"balance":false}	box circulate - role2s cross while role1s loop right
+Canonical	mad_robin	{"who":"unspecified"}	mad robin
+Canonical	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
+Canonical	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
+Canonical	slice	{"return":"none"}	slice left
+Canonical	figure_8	{"where":"none"}	ones half figure 8
+Larks/Robins	box_circulate	{"balance":false}	box circulate - robins cross while larks loop right
+Larks/Robins	mad_robin	{"who":"unspecified"}	mad robin
+Larks/Robins	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
+Larks/Robins	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
+Larks/Robins	slice	{"return":"none"}	slice left
+Larks/Robins	figure_8	{"where":"none"}	ones half figure 8
+Leads/Follows	box_circulate	{"balance":false}	box circulate - follows cross while leads loop right
+Leads/Follows	mad_robin	{"who":"unspecified"}	mad robin
+Leads/Follows	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
+Leads/Follows	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
+Leads/Follows	slice	{"return":"none"}	slice left
+Leads/Follows	figure_8	{"where":"none"}	ones half figure 8

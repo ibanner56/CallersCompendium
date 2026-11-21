@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/contradb_program_search.dart';
@@ -49,6 +51,7 @@ Future<void> _pump(
   required ContraDbOnline contraDb,
   CallersBoxOnline? callersBox,
   ContraDbProgramSearch? programSearch,
+  String? initialUrl,
 }) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -69,6 +72,7 @@ Future<void> _pump(
                     contraDbOnline: contraDb,
                     callersBoxOnline: callersBox,
                     programSearch: programSearch,
+                    initialUrl: initialUrl,
                   ),
                 ),
               ),
@@ -208,7 +212,12 @@ void main() {
         findsOneWidget,
       );
       // The clean, generic message is shown…
-      expect(find.text('Couldn\'t fetch that program.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t fetch that program. Try again.'),
+        findsOneWidget,
+      );
+      // …with a way forward, not a dead end.
+      expect(find.byKey(const ValueKey('load-error-retry')), findsOneWidget);
       // …and none of the raw caught-exception text leaks into the UI.
       expect(find.textContaining('offline'), findsNothing);
       expect(find.textContaining('/Users/secret'), findsNothing);
@@ -428,10 +437,7 @@ void main() {
       find.byKey(const ValueKey('contradb-program-search-error')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('contradb-program-search-retry')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('load-error-retry')), findsOneWidget);
   });
 
   group('caller precedence (#350/#351)', () {
@@ -777,6 +783,412 @@ void main() {
       );
     },
   );
+
+  // ── 2026-10 audit, batch F12 (INTAKE-4, FAIL-2) ──────────────────────────
+
+  /// A Caller's Box fallback that counts its searches and finds nothing, so a
+  /// test can show the fallback was (or was not) asked.
+  CallersBoxOnline countingCallersBox(List<String> searched) =>
+      CallersBoxOnline(
+        searchFetcher: (url) async {
+          searched.add(url);
+          return '<html><body><p>your query matches 0.</p><table></table>'
+              '</body></html>';
+        },
+        jsonFetcher: (_) async => throw StateError('should not fetch json'),
+      );
+
+  Future<void> fetchProgram(WidgetTester tester) async {
+    await tester.enterText(
+      find.byKey(const ValueKey('contradb-program-url')),
+      'https://contradb.com/programs/33',
+    );
+    await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('offline, Import stops at the first dance, says so, and creates '
+      'nothing', (tester) async {
+    final repos = openTestRepositories();
+    final danceFetches = <String>[];
+    final tcbSearches = <String>[];
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        danceFetches.add(url);
+        throw const UrlFetchException(
+          UrlFetchFailureReason.contraDbUnreachable,
+        );
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+      callersBox: countingCallersBox(tcbSearches),
+    );
+    await fetchProgram(tester);
+
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pumpAndSettle();
+
+    expect(danceFetches, hasLength(1));
+    expect(tcbSearches, isEmpty);
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(
+      find.byKey(const ValueKey('contradb-program-offline-snackbar')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        "Couldn't reach the online archives, so nothing was imported. Try "
+        "again once you're online.",
+      ),
+      findsOneWidget,
+    );
+    // Still on the screen, ready to retry.
+    expect(find.byKey(const ValueKey('contradb-program-commit')), findsOne);
+  });
+
+  testWidgets('a dance page that answers 404 still falls back to The '
+      "Caller's Box", (tester) async {
+    final repos = openTestRepositories();
+    final tcbSearches = <String>[];
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (_) async => throw const UrlFetchException(
+        UrlFetchFailureReason.httpStatus,
+        statusCode: 404,
+      ),
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+      callersBox: countingCallersBox(tcbSearches),
+    );
+    await fetchProgram(tester);
+
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pumpAndSettle();
+
+    // Both dances were tried on the fallback, and kept as notes.
+    expect(tcbSearches, hasLength(2));
+    final program = (await repos.programs.listAll()).single;
+    expect(program.slots.map((s) => s.danceId), everyElement(isNull));
+  });
+
+  testWidgets('Undo removes the program and the dances imported for it', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+    );
+    await fetchProgram(tester);
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pumpAndSettle();
+    expect(await repos.dances.listAll(), hasLength(2));
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  testWidgets('an Undo whose rollback fails says so', (tester) async {
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+    );
+    await fetchProgram(tester);
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pumpAndSettle();
+    // Taking the imported dances back fails (a full disk, a locked database).
+    for (final event in const ['UPDATE', 'DELETE']) {
+      await repos.db.customStatement(
+        'CREATE TRIGGER fail_dance_$event BEFORE $event ON dances '
+        "BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END",
+      );
+    }
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text("Couldn't undo that. Check the result, then try again."),
+      findsOneWidget,
+    );
+    expect(await repos.dances.listAll(), hasLength(2));
+  });
+
+  testWidgets('Undo of a re-import leaves the dances the first import added', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+    Future<void> importOnce() async {
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: contraDb,
+      );
+      await fetchProgram(tester);
+      await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+      await tester.pumpAndSettle();
+    }
+
+    await importOnce();
+    final first = (await repos.dances.listAll()).map((d) => d.id).toSet();
+    expect(first, hasLength(2));
+    // Let the first snackbar go, so the Undo below is the second import's.
+    ScaffoldMessenger.of(
+      tester.element(find.text('open')),
+    ).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+
+    await importOnce();
+    expect(await repos.programs.listAll(), hasLength(2));
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(await repos.programs.listAll(), hasLength(1));
+    expect((await repos.dances.listAll()).map((d) => d.id).toSet(), first);
+  });
+
+  testWidgets('a failed program write takes back the dances imported for it', (
+    tester,
+  ) async {
+    final (:repos, :programs) = openTestRepositoriesWithFailingPrograms();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+    );
+    await fetchProgram(tester);
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pumpAndSettle();
+
+    expect(programs.attempts, 1);
+    expect(
+      find.byKey(const ValueKey('contradb-program-error-snackbar')),
+      findsOneWidget,
+    );
+    expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  testWidgets('Import shows progress, and Cancel stops it and keeps nothing', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final fetched = <String>[];
+    final gate = Completer<String>();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) {
+        fetched.add(url);
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return fetched.length == 1 ? gate.future : Future.value(_danceHtml(id));
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+    );
+    await fetchProgram(tester);
+
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pump();
+    expect(find.text('Importing dance 0 of 2…'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('contradb-program-cancel')));
+    await tester.pump();
+    gate.complete(_danceHtml('185'));
+    await tester.pumpAndSettle();
+
+    expect(fetched, hasLength(1));
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(find.text('Import canceled — nothing was added.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('contradb-program-cancel')), findsNothing);
+  });
+
+  testWidgets('leaving mid-import stops it, creates no program, and keeps no '
+      'dance', (tester) async {
+    final repos = openTestRepositories();
+    final fetched = <String>[];
+    final gate = Completer<String>();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) {
+        fetched.add(url);
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return fetched.length == 1 ? gate.future : Future.value(_danceHtml(id));
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+    );
+    await fetchProgram(tester);
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pump();
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('open'), findsOneWidget);
+
+    gate.complete(_danceHtml('185'));
+    await tester.pumpAndSettle();
+
+    expect(fetched, hasLength(1));
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  testWidgets('leaving while the last dance imports never writes the program', (
+    tester,
+  ) async {
+    // Counts create attempts, so "created, then deleted again" cannot pass.
+    final (:repos, :programs) = openTestRepositoriesWithFailingPrograms();
+    programs.failWrites = false;
+    final fetched = <String>[];
+    final gate = Completer<String>();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) {
+        fetched.add(url);
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return fetched.length == 2 ? gate.future : Future.value(_danceHtml(id));
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+    );
+    await fetchProgram(tester);
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pump();
+    await tester.pump();
+    expect(fetched, hasLength(2));
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    gate.complete(_danceHtml('173'));
+    await tester.pumpAndSettle();
+
+    expect(programs.attempts, 0);
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  group('leaving with input', () {
+    Future<void> back(WidgetTester tester) async {
+      await tester
+          .state<NavigatorState>(find.byType(Navigator).first)
+          .maybePop();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('back with a typed URL asks first; empty leaves freely', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.pumpAndSettle();
+
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('contradb-program-url')), findsOne);
+
+      // Fetching a program is input worth keeping too.
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        '',
+      );
+      await tester.pumpAndSettle();
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('contradb-program-url')), findsNothing);
+    });
+
+    testWidgets('back from a shared link asks first', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+        initialUrl: 'https://contradb.com/programs/33',
+      );
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+    });
+
+    testWidgets('back with nothing entered leaves without asking', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+      );
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsNothing);
+      expect(find.byKey(const ValueKey('contradb-program-url')), findsNothing);
+    });
+  });
 }
 
 /// Builds a minimal ContraDB program page with a configurable [title] and an

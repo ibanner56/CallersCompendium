@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// The archive/.ccshare import path treats `meanwhile` sub-figures as untrusted
 /// recursive structure (#590): the decode-time sanitizer must recurse into every
@@ -45,7 +46,7 @@ void main() {
     final result = decodeArchive(jsonEncode(archive));
     expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-    final container = result.archive.dances.single.figures.single;
+    final container = figuresOf(result.archive.dances.single).single;
     expect(container.isMeanwhile, isTrue);
     final sides = container.subFigures;
     // Control/bidi/format-spoofing characters are stripped at depth, exactly
@@ -79,7 +80,7 @@ void main() {
     final result = decodeArchive(jsonEncode(archive));
     expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-    final container = result.archive.dances.single.figures.single;
+    final container = figuresOf(result.archive.dances.single).single;
     expect(container.isModifier, isTrue);
     expect(container.subFigures[0].note, 'corenote');
     expect(container.subFigures[1].params['text'], 'turn and swing');
@@ -111,9 +112,9 @@ void main() {
     expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
     expect(result.archive.dances, hasLength(1));
     expect(
-      result.archive.dances.single.figures.single.subFigures.map(
-        (figure) => figure.move,
-      ),
+      figuresOf(
+        result.archive.dances.single,
+      ).single.subFigures.map((figure) => figure.move),
       ['swing', customMove],
     );
   });
@@ -136,7 +137,7 @@ void main() {
     );
     expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
     expect(
-      result.archive.dances.single.figures.single.subFigures,
+      figuresOf(result.archive.dances.single).single.subFigures,
       hasLength(kMaxMeanwhileSides),
     );
   });
@@ -158,7 +159,7 @@ void main() {
     final result = decodeArchive(jsonEncode(archive));
     expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-    final figure = result.archive.dances.single.figures.single;
+    final figure = figuresOf(result.archive.dances.single).single;
     expect(figure.isMeanwhile, isFalse);
     final preserved = figure.params['figures'];
     expect(preserved, isA<List<Object?>>());
@@ -187,7 +188,7 @@ void main() {
     final result = decodeArchive(jsonEncode(archiveWith(nest(200))));
     // The import survives (clamped/flattened at the caps) rather than throwing.
     expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
-    final container = result.archive.dances.single.figures.single;
+    final container = figuresOf(result.archive.dances.single).single;
     expect(container.isMeanwhile, isTrue);
     // No meanwhile survives nested inside the decoded container (flat only).
     expect(container.subFigures.every((f) => !f.isMeanwhile), isTrue);

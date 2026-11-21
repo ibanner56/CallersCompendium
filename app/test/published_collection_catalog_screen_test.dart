@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/published_collections/published_collection_config.dart';
+import 'package:compendium_app/src/published_collections/published_collection_manifest.dart';
 import 'package:compendium_app/src/published_collections/published_collection_service.dart';
 import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
 
@@ -39,7 +43,7 @@ void main() {
           'requiredCapabilities': <String>[],
         },
         {
-          'id': 'foda-1-1',
+          'id': 'foda-2',
           'version': '2.0.0',
           'title': 'FODA updated',
           'archiveUrl':
@@ -96,7 +100,7 @@ void main() {
     expect(statusLoads, 2);
     expect(
       statusRequests,
-      containsAll(<String>['foda-1-1/1.0.0', 'foda-1-1/2.0.0']),
+      containsAll(<String>['foda-1-1/1.0.0', 'foda-2/2.0.0']),
     );
     expect(find.textContaining('License: CC0-1.0'), findsNWidgets(2));
     expect(
@@ -107,7 +111,8 @@ void main() {
 
     await tester.tap(find.text('Import collection').first);
     await tester.pumpAndSettle();
-    expect(statusLoads, 4);
+    // Only the imported id's status is refreshed.
+    expect(statusLoads, 3);
   });
 
   testWidgets('disables every import while an archive is loading', (
@@ -121,7 +126,7 @@ void main() {
       'collections': [
         for (final version in ['1.0.0', '2.0.0'])
           {
-            'id': 'foda-1-1',
+            'id': 'foda-$version',
             'version': version,
             'title': 'FODA $version',
             'archiveUrl':
@@ -179,4 +184,389 @@ void main() {
     archiveFetch.complete(archiveBytes);
     await tester.pumpAndSettle();
   });
+
+  group('only the newest version of a collection is importable (SUPPLY-2)', () {
+    final archiveBytes = utf8.encode('{}');
+    final digest = sha256.convert(archiveBytes).toString();
+    final manifest = jsonEncode({
+      'manifestSchema': {'major': 1, 'minor': 0},
+      'minReaderVersion': '0.0.1',
+      'collections': [
+        for (final version in ['2.0.0', '1.0.0', '10.0.0-rc.1', '1.9.0'])
+          {
+            'id': 'foda-1-1',
+            'version': version,
+            'title': 'FODA $version',
+            'archiveUrl':
+                'https://analect.callerscompendium.com/collections/$version.json',
+            'archiveBytes': archiveBytes.length,
+            'sha256': digest,
+            'danceCount': 0,
+            'license': 'CC0-1.0',
+            'permission': {
+              'grantor': 'Grantor',
+              'holder': 'Holder',
+              'basis': 'Basis',
+              'license': 'CC0-1.0',
+              'fields': <String>[],
+            },
+            'requiredCapabilities': <String>[],
+          },
+      ],
+    });
+    PublishedCollectionService service() => PublishedCollectionService(
+      bytesFetcher: (uri, _) async {
+        if (uri.toString() == kPublishedCollectionManifestUrl) {
+          return utf8.encode(manifest);
+        }
+        if (uri.toString() == kPublishedCollectionSignatureUrl) {
+          return utf8.encode('signature');
+        }
+        return archiveBytes;
+      },
+      signatureVerifier: (_, _) async => true,
+    );
+
+    Future<void> pump(
+      WidgetTester tester, {
+      String? importedVersion,
+      required List<String> imported,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: PublishedCollectionCatalogScreen(
+            service: service(),
+            statusLoader: (_, _) async => PublishedCollectionStatus(
+              heldCount: 0,
+              importedVersion: importedVersion,
+            ),
+            onImport: (entry, _) async => imported.add(entry.version),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a catalog listing several versions offers only the newest', (
+      tester,
+    ) async {
+      final imported = <String>[];
+      await pump(tester, imported: imported);
+
+      expect(find.text('FODA 10.0.0-rc.1'), findsOneWidget);
+      expect(find.text('FODA 2.0.0'), findsNothing);
+      expect(find.text('FODA 1.0.0'), findsNothing);
+      expect(find.text('FODA 1.9.0'), findsNothing);
+      expect(find.text('Import collection'), findsOneWidget);
+      await tester.tap(find.text('Import collection'));
+      await tester.pumpAndSettle();
+      expect(imported, ['10.0.0-rc.1']);
+    });
+
+    testWidgets('an entry older than the imported version cannot be imported', (
+      tester,
+    ) async {
+      final imported = <String>[];
+      await pump(tester, importedVersion: '11.0.0', imported: imported);
+
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Import collection'),
+      );
+      expect(button.onPressed, isNull);
+      expect(imported, isEmpty);
+    });
+  });
+
+  test('latestPublishedCollectionEntries keeps the highest version per id', () {
+    PublishedCollectionEntry entry(String id, String version) =>
+        PublishedCollectionEntry(
+          id: id,
+          version: version,
+          title: 't',
+          archiveUrl: Uri.parse('https://example.com/a.json'),
+          archiveBytes: 1,
+          sha256: 'a' * 64,
+          danceCount: 0,
+          license: 'l',
+          permission: const PublishedCollectionPermission(
+            grantor: 'g',
+            holder: 'h',
+            basis: 'b',
+            license: 'l',
+            fields: [],
+          ),
+          requiredCapabilities: const [],
+        );
+    final latest = latestPublishedCollectionEntries([
+      entry('a', '1.0.0'),
+      entry('b', '1.0.0'),
+      entry('a', '2.0.0'),
+      entry('a', '1.5.0'),
+    ]);
+    expect(latest.map((e) => '${e.id}@${e.version}'), ['a@2.0.0', 'b@1.0.0']);
+    expect(isOlderThanImportedPublishedVersion('1.0.0', '2.0.0'), isTrue);
+    expect(isOlderThanImportedPublishedVersion('2.0.0', '2.0.0'), isFalse);
+    expect(isOlderThanImportedPublishedVersion('2.0.0', null), isFalse);
+  });
+
+  group('catalog and archive failures', () {
+    final archiveBytes = utf8.encode('{}');
+    final digest = sha256.convert(archiveBytes).toString();
+    String manifest({int major = 1}) => jsonEncode({
+      'manifestSchema': {'major': major, 'minor': 0},
+      'minReaderVersion': '0.0.1',
+      'collections': [
+        {
+          'id': 'foda-1-1',
+          'version': '1.0.0',
+          'title': 'FODA',
+          'archiveUrl':
+              'https://analect.callerscompendium.com/collections/foda.json',
+          'archiveBytes': archiveBytes.length,
+          'sha256': digest,
+          'danceCount': 0,
+          'license': 'CC0-1.0',
+          'permission': {
+            'grantor': 'Grantor',
+            'holder': 'Holder',
+            'basis': 'Basis',
+            'license': 'CC0-1.0',
+            'fields': <String>[],
+          },
+          'requiredCapabilities': <String>[],
+        },
+      ],
+    });
+
+    late _RecordingSink sink;
+    setUp(() {
+      sink = _RecordingSink();
+      installCaughtErrorLog(sink);
+    });
+    tearDown(resetCaughtErrorLogForTesting);
+
+    Future<void> pump(
+      WidgetTester tester,
+      PublishedCollectionService service,
+    ) => tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: PublishedCollectionCatalogScreen(
+          service: service,
+          onImport: (_, _) async {},
+        ),
+      ),
+    );
+
+    testWidgets('offline reads as offline, offers Retry, and is logged once', (
+      tester,
+    ) async {
+      var online = false;
+      final service = PublishedCollectionService(
+        bytesFetcher: (uri, _) async {
+          if (!online) throw const SocketException('no route');
+          return uri.toString() == kPublishedCollectionManifestUrl
+              ? utf8.encode(manifest())
+              : utf8.encode('signature');
+        },
+        signatureVerifier: (_, _) async => true,
+      );
+      await pump(tester, service);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("Couldn't reach"), findsOneWidget);
+      expect(find.textContaining('temporarily unavailable'), findsNothing);
+      expect(sink.sources, [
+        'published_collection_catalog_screen._loadCatalog',
+      ]);
+      expect(sink.errors.single, contains('unavailable'));
+
+      // A rebuild does not log again; Retry fetches again and recovers.
+      online = true;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(find.text('FODA'), findsOneWidget);
+      expect(find.text('Try again'), findsNothing);
+      expect(sink.sources, hasLength(1));
+    });
+
+    testWidgets('a newer catalog format says the app needs updating', (
+      tester,
+    ) async {
+      final service = PublishedCollectionService(
+        bytesFetcher: (uri, _) async =>
+            uri.toString() == kPublishedCollectionManifestUrl
+            ? utf8.encode(manifest(major: 2))
+            : utf8.encode('signature'),
+        signatureVerifier: (_, _) async => true,
+      );
+      await pump(tester, service);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('need a newer app version'), findsOneWidget);
+      expect(find.text('Try again'), findsNothing);
+      expect(sink.errors.single, contains('unsupported'));
+    });
+
+    testWidgets('an unrecognized catalog signature suggests updating the app '
+        '(#2161)', (tester) async {
+      // After a signing-key rotation, an install that predates the new key
+      // can only recover by updating, so "temporarily unavailable" would
+      // promise a Retry that never succeeds.
+      final service = PublishedCollectionService(
+        bytesFetcher: (uri, _) async =>
+            uri.toString() == kPublishedCollectionManifestUrl
+            ? utf8.encode(manifest())
+            : utf8.encode('signature'),
+        signatureVerifier: (_, _) async => false,
+      );
+      await pump(tester, service);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("Couldn't verify"), findsOneWidget);
+      expect(find.textContaining('update the app'), findsOneWidget);
+      expect(find.textContaining('temporarily unavailable'), findsNothing);
+      // It may also be a transient bad response, so Retry stays available.
+      expect(find.text('Try again'), findsOneWidget);
+      expect(sink.errors.single, contains('invalidSignature'));
+    });
+
+    testWidgets('a missing signature stays "temporarily unavailable"', (
+      tester,
+    ) async {
+      final service = PublishedCollectionService(
+        bytesFetcher: (uri, _) async =>
+            uri.toString() == kPublishedCollectionManifestUrl
+            ? utf8.encode(manifest())
+            : utf8.encode('   '),
+        signatureVerifier: (_, _) async => true,
+      );
+      await pump(tester, service);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('temporarily unavailable'), findsOneWidget);
+      expect(find.textContaining("Couldn't verify"), findsNothing);
+      expect(sink.errors.single, contains('missingSignature'));
+    });
+
+    // Every failure code, on both the catalog and the archive path, maps to
+    // exactly one of the four messages. Written out by hand so that moving a
+    // code between arms of the mapping fails here (#2161 review).
+    const reached = "Couldn't reach";
+    const newer = 'newer app version';
+    const unverified = "Couldn't verify";
+    const unavailable = 'temporarily unavailable';
+    const expected = <PublishedCollectionFetchFailure, String>{
+      PublishedCollectionFetchFailure.unavailable: reached,
+      PublishedCollectionFetchFailure.unsupported: newer,
+      PublishedCollectionFetchFailure.invalidSignature: unverified,
+      PublishedCollectionFetchFailure.redirectRefused: unavailable,
+      PublishedCollectionFetchFailure.responseTooLarge: unavailable,
+      PublishedCollectionFetchFailure.malformed: unavailable,
+      PublishedCollectionFetchFailure.missingSignature: unavailable,
+      PublishedCollectionFetchFailure.digestMismatch: unavailable,
+      PublishedCollectionFetchFailure.byteCountMismatch: unavailable,
+    };
+    test('the message table covers every failure code', () {
+      expect(
+        expected.keys.toSet(),
+        PublishedCollectionFetchFailure.values.toSet(),
+      );
+    });
+    for (final archive in [false, true]) {
+      for (final MapEntry(key: code, value: message) in expected.entries) {
+        testWidgets(
+          '${archive ? 'archive' : 'catalog'} ${code.name} reads as "$message"',
+          (tester) async {
+            final service = PublishedCollectionService(
+              bytesFetcher: (uri, _) async {
+                final url = uri.toString();
+                if (!archive && url == kPublishedCollectionManifestUrl) {
+                  throw PublishedCollectionFetchException(code);
+                }
+                if (url == kPublishedCollectionManifestUrl) {
+                  return utf8.encode(manifest());
+                }
+                if (url == kPublishedCollectionSignatureUrl) {
+                  return utf8.encode('signature');
+                }
+                throw PublishedCollectionFetchException(code);
+              },
+              signatureVerifier: (_, _) async => true,
+            );
+            await pump(tester, service);
+            await tester.pumpAndSettle();
+            if (archive) {
+              await tester.tap(find.text('Import collection'));
+              await tester.pumpAndSettle();
+            }
+
+            for (final phrase in {reached, newer, unverified, unavailable}) {
+              expect(
+                find.textContaining(phrase),
+                phrase == message ? findsOneWidget : findsNothing,
+                reason: phrase,
+              );
+            }
+            expect(sink.errors.single, contains(code.name));
+          },
+        );
+      }
+    }
+
+    testWidgets('a failed archive download is classified, logged, and can be '
+        'retried', (tester) async {
+      var archiveOnline = false;
+      final service = PublishedCollectionService(
+        bytesFetcher: (uri, _) async {
+          if (uri.toString() == kPublishedCollectionManifestUrl) {
+            return utf8.encode(manifest());
+          }
+          if (uri.toString() == kPublishedCollectionSignatureUrl) {
+            return utf8.encode('signature');
+          }
+          if (!archiveOnline) throw const SocketException('no route');
+          return archiveBytes;
+        },
+        signatureVerifier: (_, _) async => true,
+      );
+      var imports = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: PublishedCollectionCatalogScreen(
+            service: service,
+            onImport: (_, _) async => imports++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Import collection'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining("Couldn't reach"), findsOneWidget);
+      expect(sink.sources, ['published_collection_catalog_screen._import']);
+
+      archiveOnline = true;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(imports, 1);
+      expect(find.textContaining("Couldn't reach"), findsNothing);
+    });
+  });
+}
+
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+  final List<String> errors = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+    errors.add(error.toString());
+  }
 }

@@ -1,12 +1,24 @@
+import 'support/announcements.dart';
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor.dart';
 import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
+import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/test_repositories.dart';
 
 /// A small taxonomy (three plain "known" moves) so the editor renders a handful
 /// of rows that all fit on screen — the full contra taxonomy has ~100 columns,
@@ -34,6 +46,17 @@ final _parameterizedTaxonomy = Taxonomy(
   ],
 );
 
+/// Forward and back with its `long_lines` alias (taxonomy v39), plus swing.
+final _longLinesTaxonomy = Taxonomy(
+  version: contraTaxonomy.version,
+  form: contraTaxonomy.form,
+  moves: [
+    contraTaxonomy.moves['swing']!,
+    contraTaxonomy.moves['forward_and_back']!,
+  ],
+  aliases: [contraTaxonomy.aliases['long_lines']!],
+);
+
 /// A stateful harness that renders [MatrixColumnEditor], keeps the edited
 /// config in state (so the editor re-reads it after each change, exactly as the
 /// real settings pane does), and exposes the latest config to assertions.
@@ -42,11 +65,13 @@ class _Harness extends StatefulWidget {
     required this.initial,
     required this.onChanged,
     required this.taxonomy,
+    this.userFigures = UserFigureCatalog.empty,
   });
 
   final MatrixColumnConfig initial;
   final ValueChanged<MatrixColumnConfig> onChanged;
   final Taxonomy taxonomy;
+  final UserFigureCatalog userFigures;
 
   @override
   State<_Harness> createState() => _HarnessState();
@@ -60,6 +85,7 @@ class _HarnessState extends State<_Harness> {
     config: _config,
     dialect: Dialect.larksRobins,
     taxonomy: widget.taxonomy,
+    userFigures: widget.userFigures,
     onConfigChanged: (config) {
       setState(() => _config = config);
       widget.onChanged(config);
@@ -71,6 +97,7 @@ Future<MatrixColumnConfig Function()> _pumpEditor(
   WidgetTester tester, {
   MatrixColumnConfig initial = MatrixColumnConfig.empty,
   Taxonomy? taxonomy,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
 }) async {
   final activeTaxonomy = taxonomy ?? _smallTaxonomy;
   await tester.binding.setSurfaceSize(const Size(1200, 1400));
@@ -84,6 +111,7 @@ Future<MatrixColumnConfig Function()> _pumpEditor(
         body: _Harness(
           initial: initial,
           taxonomy: activeTaxonomy,
+          userFigures: userFigures,
           onChanged: (config) => latest = config,
         ),
       ),
@@ -124,6 +152,88 @@ void main() {
       );
       final matrix = buildProgramMatrix([dance], taxonomy: tax, config: config);
       expect(matrix.columns.map((c) => c.moveId), isNot(contains('do_si_do')));
+    });
+
+    testWidgets('a tap outside keeps the rename dialog once text is typed', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-do_si_do')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        'Dosido',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        findsOneWidget,
+      );
+      expect(find.text('Dosido'), findsOneWidget);
+      expect(read().renames, isEmpty);
+    });
+
+    testWidgets('a tap outside still closes an untouched rename dialog', (
+      tester,
+    ) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-do_si_do')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a tap outside keeps the parameterized column dialog once a '
+        'label is typed', (tester) async {
+      await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-parameterized')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Partner swing',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-parameterized-save')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a tap outside still closes an untouched parameterized column '
+        'dialog', (tester) async {
+      await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-parameterized')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-parameterized-save')),
+        findsNothing,
+      );
     });
 
     testWidgets('renaming a column writes renames[id] and changes the header '
@@ -174,6 +284,49 @@ void main() {
       final moved = expected.removeAt(0);
       expected.insert(2, moved);
       expect(order, expected);
+    });
+
+    testWidgets('move buttons reorder a column without dragging', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(tester);
+
+      IconButton button(String id, String dir) => tester.widget<IconButton>(
+        find.byKey(ValueKey('matrix-column-$id-move-$dir')),
+      );
+      expect(button(catalogIds.first, 'up').onPressed, isNull);
+      expect(button(catalogIds.last, 'down').onPressed, isNull);
+
+      final announced = recordAnnouncements();
+      await tester.tap(
+        find.byKey(ValueKey('matrix-column-${catalogIds.first}-move-down')),
+      );
+      await tester.pumpAndSettle();
+      expect(announced, hasLength(1));
+      expect(
+        announced.single,
+        endsWith('moved to position 2 of ${catalogIds.length}'),
+      );
+
+      final expected = [...catalogIds];
+      expected.insert(1, expected.removeAt(0));
+      expect(read().order, expected);
+    });
+
+    testWidgets('rows hold every action at a phone width and 2x text', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _pumpEditor(tester);
+      await tester.binding.setSurfaceSize(const Size(390, 1400));
+
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final size = tester.getSize(
+        find.byKey(ValueKey('matrix-column-${catalogIds.first}-move-down')),
+      );
+      expect(size.shortestSide, greaterThanOrEqualTo(44));
     });
 
     testWidgets('restore removed defaults clears hidden, keeps renames, and '
@@ -279,7 +432,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+      final moveSelector = tester.widget<AppDropdownField<String>>(
         find.byKey(const ValueKey('matrix-parameterized-move')),
       );
       moveSelector.onChanged!('facing_star');
@@ -321,9 +474,8 @@ void main() {
       expect(saveButton().onPressed, isNotNull);
     });
 
-    testWidgets('deleting a parameterized column removes all references', (
-      tester,
-    ) async {
+    testWidgets('deleting a parameterized column removes all references, '
+        'and Undo restores them', (tester) async {
       const id = 'param:partner-swing';
       final initial = MatrixColumnConfig(
         order: const [id],
@@ -342,18 +494,81 @@ void main() {
         find.byKey(const ValueKey('matrix-column-delete-param:partner-swing')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('matrix-column-delete-confirm-param:partner-swing'),
-        ),
-      );
-      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
 
       final config = read();
       expect(config.parameterized, isEmpty);
       expect(config.order, isEmpty);
       expect(config.hidden, isEmpty);
       expect(config.renames, isEmpty);
+
+      // Undo puts every piece back.
+      await tester.tap(
+        find.byKey(
+          const ValueKey('matrix-column-delete-undo-param:partner-swing'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final restored = read();
+      expect(restored.parameterized, initial.parameterized);
+      expect(restored.order, initial.order);
+      expect(restored.hidden, initial.hidden);
+      expect(restored.renames, initial.renames);
+    });
+
+    testWidgets('a tap outside keeps the compound column dialog once a label '
+        'is typed', (tester) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-compound-label')),
+        'Dosido then balance',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-compound-save')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a tap outside keeps the compound column dialog once a step '
+        'is changed', (tester) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('matrix-compound-add-step')));
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-compound-save')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a tap outside still closes an untouched compound column '
+        'dialog', (tester) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('matrix-compound-save')), findsNothing);
     });
 
     testWidgets('adds and edits an ordered compound column sequence', (
@@ -365,7 +580,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+      final moveSelector = tester.widget<AppDropdownField<String>>(
         find.byKey(const ValueKey('matrix-compound-step-move-1')),
       );
       moveSelector.onChanged!('balance');
@@ -410,7 +625,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+      final moveSelector = tester.widget<AppDropdownField<String>>(
         find.byKey(const ValueKey('matrix-compound-step-move-0')),
       );
       moveSelector.onChanged!('facing_star');
@@ -449,9 +664,8 @@ void main() {
       expect(saveButton().onPressed, isNull);
     });
 
-    testWidgets('deleting a compound column removes all references', (
-      tester,
-    ) async {
+    testWidgets('deleting a compound column removes all references, '
+        'and Undo restores them', (tester) async {
       const id = 'compound:test-sequence';
       final initial = MatrixColumnConfig(
         order: const [id],
@@ -474,18 +688,26 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('matrix-column-delete-confirm-compound:test-sequence'),
-        ),
-      );
-      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
 
       final config = read();
       expect(config.compound, isEmpty);
       expect(config.order, isEmpty);
       expect(config.hidden, isEmpty);
       expect(config.renames, isEmpty);
+
+      // Undo puts every piece back.
+      await tester.tap(
+        find.byKey(
+          const ValueKey('matrix-column-delete-undo-compound:test-sequence'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final restored = read();
+      expect(restored.compound, initial.compound);
+      expect(restored.order, initial.order);
+      expect(restored.hidden, initial.hidden);
+      expect(restored.renames, initial.renames);
     });
 
     testWidgets('repairs stale compound steps when editing', (tester) async {
@@ -512,7 +734,7 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButtonFormField<String>>(
+            .widget<AppDropdownField<String>>(
               find.byKey(const ValueKey('matrix-compound-step-move-0')),
             )
             .initialValue,
@@ -580,6 +802,103 @@ void main() {
 
       expect(read().parameterized.single.baseMove, 'swing');
       expect(read().parameterized.single.params, isEmpty);
+    });
+
+    testWidgets('a column saved on long lines opens as forward and back in '
+        'long lines', (tester) async {
+      // Long lines was a move until taxonomy v39; a column saved on it then
+      // must keep matching long lines once edited, not reset to another move.
+      const id = 'param:forward-only';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        parameterized: const [
+          ParameterizedColumn(
+            id: id,
+            baseMove: 'long_lines',
+            params: {'goBack': false},
+          ),
+        ],
+      );
+      final read = await _pumpEditor(
+        tester,
+        initial: initial,
+        taxonomy: _longLinesTaxonomy,
+      );
+      final editFinder = find.byKey(
+        const ValueKey('matrix-column-edit-details-param:forward-only'),
+      );
+      await tester.scrollUntilVisible(editFinder, 400);
+      await tester.tap(editFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<AppDropdownField<String>>(
+              find.byKey(const ValueKey('matrix-parameterized-move')),
+            )
+            .initialValue,
+        'forward_and_back',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Forward only',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('matrix-parameterized-save')));
+      await tester.pumpAndSettle();
+
+      // Saved back as a long lines column, which a build before v39 reads.
+      expect(read().parameterized.single.baseMove, 'long_lines');
+      expect(read().parameterized.single.params, {'goBack': false});
+    });
+
+    testWidgets('a compound step saved on long lines keeps its formation', (
+      tester,
+    ) async {
+      const id = 'compound:lines-swing';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        compound: const [
+          CompoundColumn(
+            id: id,
+            steps: [
+              StepMatcher(move: 'long_lines'),
+              StepMatcher(move: 'swing'),
+            ],
+          ),
+        ],
+      );
+      final read = await _pumpEditor(
+        tester,
+        initial: initial,
+        taxonomy: _longLinesTaxonomy,
+      );
+      final editFinder = find.byKey(
+        const ValueKey('matrix-column-edit-details-compound:lines-swing'),
+      );
+      await tester.scrollUntilVisible(editFinder, 400);
+      await tester.tap(editFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<AppDropdownField<String>>(
+              find.byKey(const ValueKey('matrix-compound-step-move-0')),
+            )
+            .initialValue,
+        'forward_and_back',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-compound-label')),
+        'Lines then swing',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('matrix-compound-save')));
+      await tester.pumpAndSettle();
+
+      final step = read().compound.single.steps.first;
+      expect(step.move, 'long_lines');
+      expect(step.params, isEmpty);
     });
 
     testWidgets('reorders parameterized and built-in columns together', (
@@ -695,5 +1014,296 @@ void main() {
       expect(catalogSize, greaterThan(50));
       handle.dispose();
     });
+  });
+
+  group('figures of your own (#1023)', () {
+    UserGlossaryEntry figure(String id, String name) => UserGlossaryEntry(
+      id: id,
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: name,
+      definition: 'A figure.',
+      description: 'Of your own.',
+      payload: const {
+        'template': '{move}',
+        'defaultBeats': 8,
+        'params': <Object?>[],
+      },
+      createdAt: DateTime.utc(2026, 10, 16),
+    );
+    final catalog = UserFigureCatalog.fromEntries([
+      figure('a-id', 'zoom'),
+      figure('larks-id', 'role1s whirl'),
+    ]);
+
+    testWidgets('each is a column, by name in the dialect, before the custom '
+        'column, and can be hidden and renamed', (tester) async {
+      final read = await _pumpEditor(tester, userFigures: catalog);
+      final order = [
+        for (final element
+            in find
+                .byWidgetPredicate(
+                  (w) =>
+                      w.key is ValueKey<String> &&
+                      (w.key! as ValueKey<String>).value.startsWith(
+                        'matrix-column-remove-',
+                      ),
+                )
+                .evaluate())
+          (element.widget.key! as ValueKey<String>).value.substring(
+            'matrix-column-remove-'.length,
+          ),
+      ];
+      expect(order.sublist(order.length - 3), [
+        'userFigure:larks-id',
+        'userFigure:a-id',
+        customMove,
+      ]);
+      expect(find.text('larks whirl'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-remove-userFigure:a-id')),
+      );
+      await tester.pumpAndSettle();
+      expect(read().hidden, contains('userFigure:a-id'));
+
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-userFigure:larks-id')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        'Mine',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(read().renames['userFigure:larks-id'], 'Mine');
+    });
+
+    testWidgets('none is listed without the catalog', (tester) async {
+      await _pumpEditor(tester);
+      expect(
+        find.byKey(const ValueKey('matrix-column-remove-userFigure:a-id')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('restore removed defaults brings back a removed figure, in '
+        'catalog order before the custom column', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        userFigures: catalog,
+        initial: const MatrixColumnConfig(
+          order: ['do_si_do'],
+          hidden: {'userFigure:a-id'},
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-reset-removed')),
+      );
+      await tester.pumpAndSettle();
+      final config = read();
+      expect(config.hidden, isEmpty);
+      expect(config.order, [
+        ...catalogIds.where((id) => id != customMove),
+        'userFigure:larks-id',
+        'userFigure:a-id',
+        customMove,
+      ]);
+    });
+
+    Future<List<String>> reorderFirstToThird(
+      WidgetTester tester,
+      List<String> initial,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        initial: MatrixColumnConfig(order: initial),
+      );
+      tester
+          .widget<ReorderableListView>(find.byType(ReorderableListView))
+          .onReorderItem!(0, 2);
+      await tester.pumpAndSettle();
+      return read().order;
+    }
+
+    List<String> movedFirstToThird() {
+      final moved = [...catalogIds];
+      moved.insert(2, moved.removeAt(0));
+      return moved;
+    }
+
+    testWidgets('reordering while your figures are not listed keeps one '
+        'placed first, first', (tester) async {
+      expect(
+        await reorderFirstToThird(tester, ['userFigure:a-id', ...catalogIds]),
+        ['userFigure:a-id', ...movedFirstToThird()],
+      );
+    });
+
+    testWidgets('reordering while your figures are not listed keeps them '
+        'after the column they followed, in their own order', (tester) async {
+      // do_si_do moves to third; the two figures stay right after it.
+      final moved = movedFirstToThird();
+      expect(moved[2], catalogIds.first);
+      expect(
+        await reorderFirstToThird(tester, [
+          catalogIds.first,
+          'userFigure:a-id',
+          'userFigure:b-id',
+          ...catalogIds.skip(1),
+        ]),
+        [
+          ...moved.take(3),
+          'userFigure:a-id',
+          'userFigure:b-id',
+          ...moved.skip(3),
+        ],
+      );
+    });
+
+    testWidgets('the Matrix columns screen lists your figures only while '
+        'Custom Figures is on', (tester) async {
+      final repos = openTestRepositories();
+      await tester.runAsync(
+        () => repos.userGlossary.upsert(figure('a-id', 'zoom')),
+      );
+      final userFigures = UserFiguresController(repos.userGlossary);
+      addTearDown(userFigures.dispose);
+      unawaited(userFigures.start());
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      final config = ValueNotifier(MatrixColumnConfig.empty);
+      final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+      final glossary = ValueNotifier(true);
+      final custom = ValueNotifier(false);
+      for (final n in <ChangeNotifier>[config, dialect, glossary, custom]) {
+        addTearDown(n.dispose);
+      }
+      await tester.binding.setSurfaceSize(const Size(1200, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ProgramMatrixColumnConfigScope(
+              notifier: config,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: ShowGlossaryScope(
+                  notifier: glossary,
+                  child: ShowCustomFiguresScope(
+                    notifier: custom,
+                    child: UserFiguresScope(
+                      controller: userFigures,
+                      child: const MatrixColumnEditorScreen(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // The full catalog is ~100 rows, so read what the screen hands the
+      // editor rather than scrolling to the last rows.
+      List<String> listed() => [
+        for (final c in userFigureColumnCatalog(
+          tester
+              .widget<MatrixColumnEditor>(find.byType(MatrixColumnEditor))
+              .userFigures,
+        ))
+          c.moveId,
+      ];
+      expect(listed(), isEmpty);
+
+      custom.value = true;
+      await tester.pumpAndSettle();
+      expect(listed(), ['userFigure:a-id']);
+    });
+  });
+
+  testWidgets('Undo of a column delete still saves after the editor closes', (
+    tester,
+  ) async {
+    const id = 'compound:test-sequence';
+    const before = MatrixColumnConfig(
+      order: [id],
+      renames: {id: 'Sequence'},
+      compound: [
+        CompoundColumn(
+          id: id,
+          steps: [
+            StepMatcher(move: 'do_si_do'),
+            StepMatcher(move: 'balance'),
+          ],
+        ),
+      ],
+    );
+    final repos = openTestRepositories();
+    final config = ValueNotifier(before);
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(config.dispose);
+    addTearDown(dialect.dispose);
+    await tester.binding.setSurfaceSize(const Size(1200, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    // The scopes above the navigator, as the app mounts them.
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ProgramMatrixColumnConfigScope(
+            notifier: config,
+            child: ActiveDialectScope(notifier: dialect, child: child!),
+          ),
+        ),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const MatrixColumnEditorScreen(),
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final delete = find.byKey(const ValueKey('matrix-column-delete-$id'));
+    await tester.ensureVisible(delete);
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    expect(config.value.compound, isEmpty);
+
+    // Leave the editor; the Undo prompt stays on the app's messenger.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(MatrixColumnEditorScreen), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('matrix-column-delete-undo-$id')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(config.value.compound, before.compound);
+    expect(config.value.renames, before.renames);
+    final stored = await tester.runAsync(
+      () => repos.settings.get(kProgramMatrixColumnsKey),
+    );
+    expect(
+      MatrixColumnConfig.decode(stored! as Map<String, Object?>).compound,
+      before.compound,
+    );
+    expect(tester.takeException(), isNull);
   });
 }

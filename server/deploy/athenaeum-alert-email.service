@@ -1,0 +1,16 @@
+# Forwards the container's alert lines to athenaeum-alert-email. Set the
+# recipient below. While the container is stopped, `docker logs --follow`
+# returns at once and this unit restarts every RestartSec; that is expected.
+[Unit]
+Description=Forward Athenaeum operational alerts by email
+After=docker.service
+Requires=docker.service
+
+[Service]
+Environment=ATHENAEUM_ALERT_TO=alerts@example.invalid
+ExecStart=/bin/sh -c '/usr/bin/docker logs --follow --tail 0 athenaeum 2>&1 | /usr/local/sbin/athenaeum-alert-email'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

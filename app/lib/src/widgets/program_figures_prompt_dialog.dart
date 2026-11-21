@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 /// A pre-export prompt that asks whether to include full figure cards in a
 /// program text or PDF export (issue #853, asks 2 and 3).
@@ -12,9 +13,10 @@ import '../../l10n/app_localizations.dart';
 /// * `false` — the user chose "Set list only". Export titles + metadata only.
 /// * `true` — the user chose "Set list and figures". Append full dance cards.
 ///
-/// The dialog is shown only when at least one referenced dance has figures.
-/// When no figures are available the caller skips this dialog entirely and
-/// proceeds as "set list only" — there is nothing to offer.
+/// The dialog is shown only when at least one referenced dance has a card to
+/// append: figures, or a selected calling notes, walkthrough, hook
+/// or sources field (`DanceCardContent.hasBody`). Otherwise the caller skips this dialog
+/// entirely and proceeds as "set list only" — there is nothing to offer.
 class ProgramFiguresPromptDialog extends StatefulWidget {
   const ProgramFiguresPromptDialog({super.key});
 
@@ -24,6 +26,7 @@ class ProgramFiguresPromptDialog extends StatefulWidget {
     return showDialog<bool>(
       context: context,
       builder: (_) => const ProgramFiguresPromptDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 

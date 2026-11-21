@@ -16,7 +16,8 @@
     }
   ],
   "dependsOn": [
-    "ADR-004/W4"
+    "ADR-004/W4",
+    "ADR-004/W7"
   ],
   "completionDependsOn": [],
   "checkpoints": [
@@ -24,19 +25,26 @@
   ],
   "produces": [
     "Persistent cross-record-kind review queue",
-    "Keep-both and merge decisions",
+    "Keep-both and merge decisions for baseline-absence tombstone conflicts",
     "Rename prompt for natural-key keep-both collisions"
   ],
-  "pullRequests": [],
+  "pullRequests": [1279],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Queued decisions survive restart.",
       "Keep both leaves both records present.",
       "Natural-key keep-both resolution cannot complete without a distinct name."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "PR #1279 is merged and delivers the persisted, kind-agnostic review surface with transactional resolution, restart durability, Keep-both handling, and distinct-name validation.",
+    "evidence": [
+      "PR #1279 (merge commit c29ef6cf4eda6cce423f7e80f276507c8eb70403) adds the persisted review queue surface, transactional Merge and Keep-both decisions, strict candidate validation, natural-key rename handling, and the localized review UI.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers Keep-both resolution for every supported natural-key kind, consumes resolved queue rows, survives a file-backed close and reopen before resolution, and verifies rollback when the production write seam fails.",
+      "app/test/sync_review_screen_test.dart covers Keep-both validation requiring a name and rejecting an occupied natural key, actionable live-dance ambiguity actions, and retained unsupported rows without unsafe actions.",
+      "The W14 rollback guard was mutation-proven: removing the outer resolution transaction made the renamed local key persist after an injected write failure; restoring the transaction made the test pass.",
+      "PR #1279 reports fvm dart/flutter focused suites passing and python3 tools/preflight.py passing all 30 available gates with zero skips.",
+      "No schema migration or new persisted field was introduced; W14 reuses W4's persisted review_queue and W7's production reconciliation machinery."
+    ]
   }
 }

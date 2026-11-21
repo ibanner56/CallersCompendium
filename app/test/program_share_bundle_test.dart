@@ -45,11 +45,13 @@ Program _program({
   required List<ProgramSlot> slots,
   String title = 'Friday Contra',
   String? venueId,
+  bool hideAlternates = false,
 }) => Program(
   id: 'p1',
   title: title,
   slots: slots,
   venueId: venueId,
+  hideAlternates: hideAlternates,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -93,6 +95,57 @@ void main() {
     Dance? danceFor(String id) => catalog[id];
     Choreographer? choreographerFor(String id) => null;
 
+    group('difficultyLevelFor (dance-keyed)', () {
+      final custom = DifficultyLevel(
+        id: 'custom-x',
+        label: 'Spicy',
+        position: 9,
+      );
+      final catalogWithLevel = {
+        'd1': _dance('d1', 'Rory O\'More'),
+        'd2': _dance('d2', 'Alt Only').copyWith(difficultyLevelId: 'custom-x'),
+      };
+      final program = _program(
+        hideAlternates: true,
+        slots: [
+          _slot(0, danceId: 'd1'),
+          _slot(1, danceId: 'd2', isAlt: true),
+        ],
+      );
+
+      String build(DifficultyLevel? Function(Dance)? resolver) =>
+          buildProgramShareBundle(
+            program,
+            blankedDanceSlotText: 'Deleted dance',
+            danceFor: (id) => catalogWithLevel[id],
+            choreographerFor: (_) => null,
+            venueFor: (_) => null,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
+            difficultyLevelFor: resolver,
+            now: _now,
+          );
+
+      test('resolves a custom level used only by an alternate', () {
+        final seen = <String>[];
+        final archive = decodeArchive(
+          build((dance) {
+            seen.add(dance.id);
+            return dance.id == 'd2' ? custom : null;
+          }),
+        ).archive;
+
+        expect(seen, ['d2']);
+        expect(archive.difficultyLevels.map((l) => l.id), ['custom-x']);
+      });
+
+      test('an unresolved custom level id still throws StateError', () {
+        expect(() => build((_) => null), throwsStateError);
+        expect(() => build(null), throwsStateError);
+      });
+    });
+
     test('embeds every referenced dance, deduped, and preserves the program', () {
       final program = _program(
         slots: [
@@ -105,8 +158,12 @@ void main() {
 
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: danceFor,
         choreographerFor: choreographerFor,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (_) => null,
         now: _now,
       );
@@ -140,13 +197,97 @@ void main() {
       final archive = decodeArchive(
         buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
         ),
       ).archive;
 
       expect(archive.dances.map((d) => d.id), ['d1']);
+    });
+
+    test('embeds a dance in Recently deleted, as a live dance (GIG-11)', () {
+      final trashed = _dance('d1', 'Gone Dance').copyWith(deletedAt: _now);
+      final archive = decodeArchive(
+        buildProgramShareBundle(
+          _program(slots: [_slot(0, danceId: 'd1')]),
+          blankedDanceSlotText: 'Deleted dance',
+          danceFor: (id) => id == 'd1' ? trashed : null,
+          choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
+          venueFor: (_) => null,
+        ),
+      ).archive;
+
+      // The evening still includes the dance, but what the owner deleted is
+      // not shared.
+      expect(archive.dances.single.title, 'Gone Dance');
+      expect(archive.dances.single.deletedAt, isNull);
+    });
+
+    // The maintainer's trash-policy decision (2026-10-29, option b) lets a
+    // level be removed under a dance in Recently deleted, so its level id may
+    // resolve to nothing. That dance travels without a level; a live dance's
+    // unresolved level is still a missing lookup.
+    test('a dance in Recently deleted whose level was removed travels '
+        'without it', () {
+      final trashed = _dance(
+        'd1',
+        'Gone Dance',
+      ).copyWith(deletedAt: _now, difficultyLevelId: 'removed-level');
+      final archive = decodeArchive(
+        buildProgramShareBundle(
+          _program(slots: [_slot(0, danceId: 'd1')]),
+          blankedDanceSlotText: 'Deleted dance',
+          danceFor: (id) => id == 'd1' ? trashed : null,
+          choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
+          venueFor: (_) => null,
+          difficultyLevelFor: (_) => null,
+        ),
+      ).archive;
+
+      expect(archive.dances.single.difficultyLevelId, isNull);
+      expect(archive.difficultyLevels, isEmpty);
+    });
+
+    test('a live dance\'s unresolved level still throws, even beside a '
+        'trashed dance with the same level', () {
+      final trashed = _dance(
+        'd1',
+        'Gone Dance',
+      ).copyWith(deletedAt: _now, difficultyLevelId: 'removed-level');
+      final live = _dance(
+        'd2',
+        'Here Dance',
+      ).copyWith(difficultyLevelId: 'removed-level');
+      expect(
+        () => buildProgramShareBundle(
+          _program(
+            slots: [
+              _slot(0, danceId: 'd1'),
+              _slot(1, danceId: 'd2'),
+            ],
+          ),
+          blankedDanceSlotText: 'Deleted dance',
+          danceFor: (id) => {'d1': trashed, 'd2': live}[id],
+          choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
+          venueFor: (_) => null,
+          difficultyLevelFor: (_) => null,
+        ),
+        throwsStateError,
+      );
     });
 
     test('a note-only program embeds no dances', () {
@@ -160,8 +301,12 @@ void main() {
       final archive = decodeArchive(
         buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
         ),
       ).archive;
@@ -184,8 +329,12 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -232,14 +381,43 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
         ).archive;
 
         expect(archive.choreographers.map((c) => c.id).toSet(), {'c1', 'c2'});
+      });
+
+      test('includes a person a bundled dance credits only as interpreter', () {
+        final interpreted = {
+          ...authored,
+          'd5': _dance(
+            'd5',
+            'Hole in the Wall',
+          ).copyWith(interpreterIds: const ['c2']),
+        };
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            _program(slots: [_slot(0, danceId: 'd5')]),
+            blankedDanceSlotText: 'Deleted dance',
+            danceFor: (id) => interpreted[id],
+            choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
+            venueFor: (_) => null,
+            now: _now,
+          ),
+        ).archive;
+
+        expect(archive.choreographers.map((c) => c.id), ['c2']);
       });
 
       test('a choreographer shared by several dances appears exactly once', () {
@@ -255,8 +433,12 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -276,8 +458,12 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -299,8 +485,12 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -319,8 +509,12 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: authoredDanceFor,
           choreographerFor: choreographerCatalogFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -349,8 +543,12 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (id) =>
               id == 'v1' ? _venue('v1', withContacts: true) : null,
           now: _now,
@@ -384,8 +582,12 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => _venue('v1', withContacts: true),
           includeVenueContact: {VenueContactField.contact1Email},
           now: _now,
@@ -414,8 +616,12 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: danceFor,
             choreographerFor: choreographerFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -433,8 +639,12 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: danceFor,
             choreographerFor: choreographerFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) {
               called = true;
               return null;
@@ -459,8 +669,12 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => _venue('v1', withContacts: true),
           now: _now,
         );
@@ -479,9 +693,50 @@ void main() {
     test('sanitizes illegal characters to underscores and keeps .ccshare', () {
       expect(
         programShareBundleFileName('Friday Contra: 3/9 <Town Hall>'),
-        'Friday_Contra__3_9__Town_Hall_.ccshare',
+        'Friday_Contra__3_9__Town_Hall.ccshare',
       );
     });
+
+    test(
+      'strips a trailing underscore left by trailing punctuation (OUT-8)',
+      () {
+        expect(
+          programShareBundleFileName("Ain't She Sweet?"),
+          'Ain_t_She_Sweet.ccshare',
+        );
+      },
+    );
+
+    test('keeps Unicode letters in the title (OUT-8)', () {
+      expect(
+        programShareBundleFileName('Contredanse à la française'),
+        'Contredanse_à_la_française.ccshare',
+      );
+      expect(programShareBundleFileName('春のコントラ'), '春のコントラ.ccshare');
+    });
+
+    test(
+      'appends the event date so weekly programs do not collide (OUT-8)',
+      () {
+        final saturday = DateTime(2026, 10, 31);
+        expect(
+          programShareBundleFileName('Saturday Contra', eventDate: saturday),
+          'Saturday_Contra_2026-10-31.ccshare',
+        );
+        expect(
+          programShareBundleFileName(
+            'Saturday Contra',
+            extension: programShareJsonExtension,
+            eventDate: saturday,
+          ),
+          'Saturday_Contra_2026-10-31.json',
+        );
+        expect(
+          programShareBundleFileName('///', eventDate: saturday),
+          'program_2026-10-31.ccshare',
+        );
+      },
+    );
 
     test('preserves safe characters', () {
       expect(
@@ -498,12 +753,8 @@ void main() {
     test('does not allow path traversal through the title', () {
       final name = programShareBundleFileName('../../etc/passwd');
       expect(name.contains('/'), isFalse);
-      expect(
-        name.contains('..'),
-        isTrue,
-        reason: 'dots are safe; separators are not',
-      );
-      expect(name, endsWith('.ccshare'));
+      expect(name, 'etc_passwd.ccshare');
+      expect(name.startsWith('.'), isFalse, reason: 'never a hidden file');
     });
   });
 
@@ -526,6 +777,7 @@ void main() {
         ImportPipeline(repos.dances, repos.choreographers),
         repos.programs,
         repos.venues,
+        repositories: repos,
       );
       return importer.import(json, archive, now: DateTime.utc(2026, 7, 20));
     }
@@ -554,6 +806,7 @@ void main() {
       final program = _program(slots: [_slot(0, danceId: 'd1')]);
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: (id) =>
             id == 'd1' ? _dance('d1', 'Rory O\'More', authorIds: ['c1']) : null,
         choreographerFor: (id) => id == 'c1'
@@ -564,6 +817,9 @@ void main() {
                 location: 'Lexington, KY',
               )
             : null,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (_) => null,
         now: _now,
       );
@@ -605,11 +861,15 @@ void main() {
       final program = _program(slots: [_slot(0, danceId: 'd1')]);
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: (id) => id == 'd1'
             ? _dance('d1', 'Rory O\'More', authorIds: ['sender-cary'])
             : null,
         choreographerFor: (id) =>
             id == 'sender-cary' ? _choreographer(id, 'Cary Ravitz') : null,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (_) => null,
         now: _now,
       );
@@ -634,8 +894,12 @@ void main() {
         final program = _program(slots: [_slot(0, danceId: 'd1')]);
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: (id) => id == 'd1' ? _dance('d1', 'Anonymous Reel') : null,
           choreographerFor: (_) => null,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -658,8 +922,12 @@ void main() {
       );
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
         choreographerFor: (_) => null,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (id) => id == 'v1' ? _venue('v1', withContacts: true) : null,
         now: _now,
       );
@@ -704,8 +972,12 @@ void main() {
         );
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
           choreographerFor: (_) => null,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -722,5 +994,138 @@ void main() {
         expect(await repos.venues.listAll(), isEmpty);
       },
     );
+  });
+
+  // #01 (supplemental audit): the archive codec drops a non-shareable custom
+  // field's definition AND values only for definitions the archive carries, so
+  // a program bundle that supplied none leaked every private value.
+  group('custom fields, tags and sources in a program bundle', () {
+    final publicField = CustomFieldDef(
+      id: 'f-public',
+      key: 'teach',
+      label: 'Needs teaching',
+      type: CustomFieldType.text,
+    );
+    final privateField = CustomFieldDef(
+      id: 'f-private',
+      key: 'secret',
+      label: 'Secret',
+      type: CustomFieldType.text,
+      shareable: false,
+    );
+    final tag = Tag(id: 't1', name: 'chestnut');
+    final source = PublishedSource(id: 's1', title: 'A book');
+
+    Dance richDance(String id) => Dance(
+      id: id,
+      title: 'Rich $id',
+      figures: [
+        Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+      ],
+      sourceCitations: [SourceCitation(sourceId: 's1')],
+      tagIds: const ['t1'],
+      customFields: [
+        CustomFieldValue(fieldId: 'f-public', value: 'yes'),
+        CustomFieldValue(fieldId: 'f-private', value: 'PRIVATE-VALUE'),
+      ],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+    String build({
+      CustomFieldDef? Function(String)? customFieldFor,
+      Tag? Function(String)? tagFor,
+      PublishedSource? Function(String)? publishedSourceFor,
+    }) => buildProgramShareBundle(
+      _program(
+        slots: [
+          _slot(0, danceId: 'a'),
+          _slot(1, danceId: 'b'),
+        ],
+      ),
+      blankedDanceSlotText: 'Deleted dance',
+      danceFor: (id) => richDance(id),
+      choreographerFor: (_) => null,
+      venueFor: (_) => null,
+      tagFor: tagFor ?? (id) => id == 't1' ? tag : null,
+      publishedSourceFor:
+          publishedSourceFor ?? (id) => id == 's1' ? source : null,
+      customFieldFor:
+          customFieldFor ??
+          (id) => switch (id) {
+            'f-public' => publicField,
+            'f-private' => privateField,
+            _ => null,
+          },
+      now: _now,
+    );
+
+    test('a non-shareable field is absent, value and definition', () {
+      final json = build();
+
+      expect(json, isNot(contains('PRIVATE-VALUE')));
+      expect(json, isNot(contains('f-private')));
+      final archive = decodeArchive(json).archive;
+      expect(archive.customFields.map((f) => f.id), ['f-public']);
+      for (final dance in archive.dances) {
+        expect(dance.customFields.map((v) => v.fieldId), ['f-public']);
+        expect(dance.customFields.single.value, 'yes');
+      }
+    });
+
+    test('tag and source definitions are included once each', () {
+      final archive = decodeArchive(build()).archive;
+
+      expect(archive.dances.length, 2);
+      expect(archive.tags.map((t) => t.id), ['t1']);
+      expect(archive.publishedSources.map((s) => s.id), ['s1']);
+    });
+
+    test('an unresolvable custom field fails closed', () {
+      expect(
+        () => build(
+          customFieldFor: (id) => id == 'f-public' ? publicField : null,
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('an unresolvable tag fails', () {
+      expect(() => build(tagFor: (_) => null), throwsA(isA<StateError>()));
+    });
+
+    test('an unresolvable published source fails', () {
+      expect(
+        () => build(publishedSourceFor: (_) => null),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('the bundle imports completely on the receiver', () async {
+      final repos = openTestRepositories();
+      final json = build();
+      final archive = decodeArchive(json).archive;
+      await CompendiumArchiveImporter(
+        ImportPipeline(repos.dances, repos.choreographers),
+        repos.programs,
+        repos.venues,
+        repositories: repos,
+        tags: repos.tags,
+        sources: repos.publishedSources,
+        customFields: repos.customFieldDefs,
+      ).import(json, archive, now: DateTime.utc(2026, 7, 20));
+
+      expect((await repos.tags.listAll()).map((t) => t.name), ['chestnut']);
+      expect((await repos.publishedSources.listAll()).map((s) => s.title), [
+        'A book',
+      ]);
+      expect((await repos.customFieldDefs.listAll()).map((f) => f.key), [
+        'teach',
+      ]);
+      final dance = (await repos.dances.listAll()).first;
+      expect(dance.tagIds, hasLength(1));
+      expect(dance.sourceCitations, hasLength(1));
+      expect(dance.customFields.single.value, 'yes');
+    });
   });
 }

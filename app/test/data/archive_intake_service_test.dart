@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/archive_intake_service.dart';
+import 'package:compendium_app/src/data/backup_document.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -170,6 +172,24 @@ void main() {
       );
     });
 
+    // PLAT-2: a backup opened with the app was called empty.
+    test('a backup is rejected as a backup, not as an empty file', () async {
+      // A library of one dance, as Settings › Export a backup writes it.
+      final backup = encodeBackup(
+        BackupDocument(
+          createdAt: DateTime.utc(2026, 7, 15),
+          core: CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            dances: [_dance('d1', 'My Whole Library')],
+          ),
+        ),
+      );
+      expectRejected(
+        await service().validateBytes(_bytes(backup)),
+        reason: ArchiveIntakeRejectionReason.backup,
+      );
+    });
+
     test('oversized bytes are rejected', () async {
       // maxBytes tiny; the valid bundle exceeds it.
       expectRejected(
@@ -194,11 +214,14 @@ void main() {
       expectRejected(result, reason: ArchiveIntakeRejectionReason.tooLarge);
     });
 
-    test('a newer-schema archive is refused with a clear reason', () async {
+    test('a newer-schema archive is let through to the review, which reads '
+        'what this build knows and says so', () async {
       final json = _validBundleJson(schemaVersion: archiveSchemaVersion + 1);
       final result = await service().validateBytes(_bytes(json));
 
-      expectRejected(result, reason: ArchiveIntakeRejectionReason.newerVersion);
+      expect(result.isValidated, isTrue);
+      expect(result.archive!.schemaVersion, archiveSchemaVersion + 1);
+      expect(result.archive!.dances, isNotEmpty);
     });
 
     test('an unreadable file path is rejected gracefully', () async {
@@ -210,4 +233,49 @@ void main() {
       );
     });
   });
+
+  // A desktop open is checked by path and read later, so the file can change
+  // in between (PLAT-3): swapped for a link to /dev/zero, or served by FUSE
+  // with a reported length of 0. The read itself must stop at the cap rather
+  // than trust the reported length.
+  test(
+    'the file read stops at the cap even when the reported length is 0',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('intake_bounded_read_');
+      addTearDown(() => dir.delete(recursive: true));
+      final fifo = '${dir.path}/stream.ccshare';
+      final made = await Process.run('mkfifo', [fifo]);
+      expect(made.exitCode, 0, reason: '${made.stderr}');
+      // Writes past the cap, then holds the pipe open: no EOF ever arrives.
+      final writer = await Process.start('sh', [
+        '-c',
+        'exec 3>"\$1"; head -c 4096 /dev/zero >&3; sleep 30',
+        'sh',
+        fifo,
+      ]);
+      addTearDown(writer.kill);
+
+      final validation = await ArchiveIntakeService(
+        maxBytes: 1024,
+      ).validateFromPath(fifo).timeout(const Duration(seconds: 10));
+
+      expect(validation.reason, ArchiveIntakeRejectionReason.tooLarge);
+    },
+    skip: Platform.isWindows ? 'no mkfifo on Windows' : null,
+  );
+
+  test(
+    'a read that never finishes is rejected as unreadable at the deadline',
+    () async {
+      final validation =
+          await ArchiveIntakeService(
+                readBytes: (_) => Completer<Uint8List>().future,
+                readTimeout: const Duration(milliseconds: 100),
+              )
+              .validateFromPath('/anywhere/hung.ccshare')
+              .timeout(const Duration(seconds: 5));
+
+      expect(validation.reason, ArchiveIntakeRejectionReason.unreadable);
+    },
+  );
 }

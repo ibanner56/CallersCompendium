@@ -1,0 +1,174 @@
+import 'package:compendium_core/compendium_core.dart';
+import 'package:test/test.dart';
+
+/// Issue #1434: these tests exercise the shared field-gating logic directly,
+/// as plain data, rather than through a rendered PDF — the existing PDF
+/// tests (`buildProgramPdf`/`buildDancePdf`) only assert non-empty bytes and
+/// the `%PDF` magic header, which cannot catch a missing or wrong field.
+/// Testing this pure layer is what makes the PDF field-gating genuinely
+/// falsifiable.
+void main() {
+  final now = DateTime.utc(2026, 7, 10);
+
+  Dance dance({
+    String phraseStructure = '',
+    bool mixer = false,
+    DanceStatus status = DanceStatus.active,
+    List<String> tunes = const [],
+  }) => Dance(
+    id: 'd1',
+    title: 'Rory O\'More',
+    phraseStructure: phraseStructure,
+    mixer: mixer,
+    status: status,
+    tunes: tunes,
+    createdAt: now,
+    updatedAt: now,
+  );
+
+  group('danceCardMetaLines', () {
+    test('includes every line when every field is selected', () {
+      final lines = danceCardMetaLines(
+        dance(
+          phraseStructure: '6*8*2',
+          mixer: true,
+          status: DanceStatus.broken,
+        ),
+        formationLabel: 'Becket',
+        levelLabel: 'Intermediate',
+        statusLabel: 'Broken',
+        labels: const DanceExportLabels(),
+        fields: DanceShareField.all,
+      );
+      expect(lines, [
+        'Formation: Becket',
+        'Level: Intermediate',
+        'Mixer',
+        'Status: Broken',
+        'Phrase: 6*8*2',
+      ]);
+    });
+
+    test('named phrases print in playing order with their bars', () {
+      String phrase(String stored) => danceCardMetaLines(
+        dance(phraseStructure: stored),
+        formationLabel: '',
+        statusLabel: '',
+        labels: const DanceExportLabels(),
+        fields: {DanceShareField.phraseStructure},
+      ).single;
+      expect(phrase('A:2*4*2 + B:1*8*2'), 'Phrase: AAB (A 4 bars, B 8 bars)');
+      expect(phrase('A:2*8*3 + B:2*8*3'), 'Phrase: AABB (A 8 bars, B 8 bars)');
+      expect(
+        phrase('A:1*4*2 + B:1*4*2 + C:1*8*2'),
+        'Phrase: ABC (A 4 bars, B 4 bars, C 8 bars)',
+      );
+      expect(phrase('A:1*1*4'), 'Phrase: A (A 1 bar)');
+      // Not named: printed as stored (issue #2304 tracks contra's).
+      expect(phrase(' 2*8*2 + 2*10*2 '), 'Phrase: 2*8*2 + 2*10*2');
+    });
+
+    test('named phrases use the injected bars label', () {
+      final line = danceCardMetaLines(
+        dance(phraseStructure: 'A:2*4*2 + B:1*8*2'),
+        formationLabel: '',
+        statusLabel: '',
+        labels: DanceExportLabels(
+          bars: (bars, halfBars) => '$bars T($halfBars)',
+        ),
+        fields: {DanceShareField.phraseStructure},
+      ).single;
+      expect(line, 'Phrase: AAB (A 4 T(8), B 8 T(16))');
+    });
+
+    test('omits each line individually when its field is deselected', () {
+      for (final field in const [
+        DanceShareField.formation,
+        DanceShareField.level,
+        DanceShareField.mixer,
+        DanceShareField.status,
+        DanceShareField.phraseStructure,
+      ]) {
+        final lines = danceCardMetaLines(
+          dance(
+            phraseStructure: '6*8*2',
+            mixer: true,
+            status: DanceStatus.broken,
+          ),
+          formationLabel: 'Becket',
+          levelLabel: 'Intermediate',
+          statusLabel: 'Broken',
+          labels: const DanceExportLabels(),
+          fields: {...DanceShareField.all}..remove(field),
+        );
+        expect(lines, hasLength(4), reason: field.name);
+      }
+    });
+
+    test('an active dance never shows Status, regardless of fields', () {
+      final lines = danceCardMetaLines(
+        dance(),
+        formationLabel: '',
+        statusLabel: 'Active',
+        labels: const DanceExportLabels(),
+        fields: DanceShareField.all,
+      );
+      expect(lines.any((l) => l.contains('Status')), isFalse);
+    });
+  });
+
+  group('danceCardAuthorNames', () {
+    test('returns trimmed, non-blank names when authors is selected', () {
+      expect(
+        danceCardAuthorNames(const [
+          'Carol Ormand',
+          '  ',
+          'Cary Ravitz',
+        ], DanceShareField.all),
+        ['Carol Ormand', 'Cary Ravitz'],
+      );
+    });
+
+    test('returns empty when authors is not selected', () {
+      expect(
+        danceCardAuthorNames(const [
+          'Carol Ormand',
+        ], {...DanceShareField.all}..remove(DanceShareField.authors)),
+        isEmpty,
+      );
+    });
+  });
+
+  group('danceCardTuneNames', () {
+    test('returns empty when tunes is not selected (the default)', () {
+      expect(
+        danceCardTuneNames(
+          dance(tunes: const ['Rakes of Kildare']),
+          DanceShareField.allExceptTunes,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('returns trimmed, non-blank tune names when tunes is selected', () {
+      expect(
+        danceCardTuneNames(
+          dance(tunes: const ['Rakes of Kildare', '  ', 'Kesh Jig']),
+          DanceShareField.all,
+        ),
+        ['Rakes of Kildare', 'Kesh Jig'],
+      );
+    });
+
+    test('an unreadable tune list renders as absent, not an error', () {
+      final unreadable = Dance(
+        id: 'd2',
+        title: 'Stub',
+        tunesSource: const UnreadableTunes('not json'),
+        createdAt: now,
+        updatedAt: now,
+      );
+      expect(danceCardTuneNames(unreadable, DanceShareField.all), isEmpty);
+    });
+  });
+}

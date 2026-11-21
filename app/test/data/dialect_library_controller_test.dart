@@ -1,5 +1,7 @@
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
+import 'package:compendium_app/src/data/program_dialect.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -43,6 +45,44 @@ void main() {
       );
       expect(c.customDialects, hasLength(1));
       expect(c.customByName('Mine')!.roles['role1']!.singular, 'Cat');
+    });
+
+    group('updateTerms', () {
+      test('replaces the dialect that has the name', () async {
+        final (c, _) = await _controller();
+        await c.upsert(_custom('Mine'));
+
+        final saved = await c.updateTerms(
+          Dialect(name: 'Mine', roles: const {'role1': RoleTerm('Cat')}),
+        );
+
+        expect(saved, isTrue);
+        expect(c.customDialects, hasLength(1));
+        expect(c.customByName('Mine')!.roles['role1']!.singular, 'Cat');
+      });
+
+      test('writes nothing for a name that was renamed away', () async {
+        final (c, _) = await _controller();
+        await c.upsert(_custom('Mine'));
+        await c.rename('Mine', 'Yours');
+
+        final saved = await c.updateTerms(_custom('Mine'));
+
+        expect(saved, isFalse);
+        expect(c.customDialects.map((d) => d.name), ['Yours']);
+      });
+
+      test('does not revive a deleted dialect', () async {
+        final (c, settings) = await _controller();
+        await c.upsert(_custom('Mine'));
+        await c.delete('Mine');
+
+        final saved = await c.updateTerms(_custom('Mine'));
+
+        expect(saved, isFalse);
+        expect(c.customDialects, isEmpty);
+        expect(await settings.get(kCustomDialectsKey), isEmpty);
+      });
     });
 
     test('upsert rejects a shipped preset name', () async {
@@ -154,5 +194,322 @@ void main() {
       expect(c.customDialects, isEmpty);
       expect(c.active, Dialect.leadsFollows);
     });
+
+    group('rename carries to programs', () {
+      final t0 = DateTime.utc(2026, 1, 1);
+      final t1 = DateTime.utc(2026, 6, 1);
+
+      Program program(String id, String? dialect, {DateTime? deletedAt}) =>
+          Program(
+            id: id,
+            title: id,
+            createdAt: t0,
+            updatedAt: t0,
+            deletedAt: deletedAt,
+            dialectName: dialect,
+          );
+
+      test('live and trashed programs follow, others do not', () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        final c = DialectLibraryController(
+          repos.settings,
+          programs: repos.programs,
+          clock: () => t1,
+        );
+        await c.load();
+        await c.upsert(_custom('Mine'));
+        await repos.programs.create(program('live', 'Mine'));
+        await repos.programs.create(program('trashed', 'Mine', deletedAt: t0));
+        await repos.programs.create(program('other', 'Else'));
+
+        final name = await c.rename('Mine', 'Yours');
+
+        expect(name, 'Yours');
+        expect((await repos.programs.getById('live'))!.dialectName, 'Yours');
+        expect(
+          (await repos.programs.getById(
+            'trashed',
+            includeDeleted: true,
+          ))!.dialectName,
+          'Yours',
+        );
+        expect((await repos.programs.getById('other'))!.dialectName, 'Else');
+        expect((await repos.programs.getById('live'))!.updatedAt, t1);
+      });
+
+      test('carries the uniquified name, not the requested one', () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        final c = DialectLibraryController(
+          repos.settings,
+          programs: repos.programs,
+          clock: () => t1,
+        );
+        await c.load();
+        await c.upsert(_custom('Mine'));
+        await c.upsert(_custom('Taken'));
+        await repos.programs.create(program('p', 'Mine'));
+
+        final name = await c.rename('Mine', 'Taken');
+
+        expect(name, 'Taken 2');
+        expect((await repos.programs.getById('p'))!.dialectName, 'Taken 2');
+      });
+
+      test('delete still leaves programs on the old name', () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        final c = DialectLibraryController(
+          repos.settings,
+          programs: repos.programs,
+        );
+        await c.load();
+        await c.upsert(_custom('Mine'));
+        await repos.programs.create(program('p', 'Mine'));
+        await c.delete('Mine');
+        expect((await repos.programs.getById('p'))!.dialectName, 'Mine');
+        expect(resolveProgramDialect('Mine', c), isNull);
+      });
+
+      // Dialects sync as the `custom_dialects` setting; programs sync as
+      // records. Device B receives them independently and in either order; both
+      // must end resolving the new name.
+      for (final settingsFirst in [true, false]) {
+        test('converges on a second device '
+            '(${settingsFirst ? 'setting' : 'program'} first)', () async {
+          driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+          final a = openTestRepositories();
+          final b = openTestRepositories();
+          await a.ensureMigrated();
+          await b.ensureMigrated();
+          final ca = DialectLibraryController(
+            a.settings,
+            programs: a.programs,
+            clock: () => t1,
+          );
+          await ca.load();
+          await ca.upsert(_custom('Mine'));
+          await a.programs.create(program('p', 'Mine'));
+          // B starts in sync with A's pre-rename state.
+          await b.settings.set(
+            kCustomDialectsKey,
+            await a.settings.get(kCustomDialectsKey),
+          );
+          await b.programs.writeFromSync((await a.programs.getById('p'))!);
+
+          await ca.rename('Mine', 'Yours');
+
+          Future<void> deliverSetting() async => b.settings.set(
+            kCustomDialectsKey,
+            await a.settings.get(kCustomDialectsKey),
+          );
+          Future<void> deliverProgram() async =>
+              b.programs.writeFromSync((await a.programs.getById('p'))!);
+          if (settingsFirst) {
+            await deliverSetting();
+            await deliverProgram();
+          } else {
+            await deliverProgram();
+            await deliverSetting();
+          }
+
+          final cb = DialectLibraryController(b.settings);
+          await cb.load();
+          final onB = await b.programs.getById('p');
+          expect(onB!.dialectName, 'Yours');
+          expect(resolveProgramDialect(onB.dialectName, cb)?.name, 'Yours');
+        });
+      }
+    });
+  });
+
+  group('one library per dance form', () {
+    test('each form reads and writes its own keys', () async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final libraries = DialectLibraries(repos.settings);
+      await libraries.load();
+
+      await libraries.forForm(DanceForm.ecd).upsert(_custom('English'));
+      await libraries.forForm(DanceForm.ecd).setActive('English');
+      await libraries.forForm(DanceForm.square).setActive('Leads/Follows');
+
+      expect(libraries.contra.customDialects, isEmpty);
+      expect(libraries.contra.active, Dialect.larksRobins);
+      expect(await repos.settings.get(kCustomDialectsKey), isEmpty);
+      expect(
+        (await repos.settings.get(kCustomDialectsEcdKey))! as List,
+        hasLength(1),
+      );
+      expect(await repos.settings.get(kActiveDialectRefEcdKey), 'English');
+      expect(
+        await repos.settings.get(kActiveDialectRefSquareKey),
+        'Leads/Follows',
+      );
+      expect(await repos.settings.get(kActiveDialectRefKey), isNull);
+
+      final reloaded = DialectLibraries(repos.settings);
+      await reloaded.load();
+      expect(reloaded.active.forForm(DanceForm.contra), Dialect.larksRobins);
+      expect(reloaded.active.forForm(DanceForm.ecd).name, 'English');
+      expect(reloaded.active.forForm(DanceForm.square), Dialect.leadsFollows);
+      expect(reloaded.allCustomDialects.map((d) => d.name), ['English']);
+      libraries.dispose();
+      reloaded.dispose();
+    });
+
+    test('only contra migrates the legacy active-dialect blob', () async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      await repos.settings.set(kActiveDialectKey, _custom('Old').toJson());
+
+      final libraries = DialectLibraries(repos.settings);
+      await libraries.load();
+
+      expect(libraries.contra.active.name, 'Old');
+      expect(libraries.forForm(DanceForm.ecd).customDialects, isEmpty);
+      expect(libraries.forForm(DanceForm.ecd).active, Dialect.larksRobins);
+      libraries.dispose();
+    });
+
+    test(
+      'renames a dialect whose name is gendered, and its programs follow',
+      () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        final t0 = DateTime.utc(2026, 1, 1);
+        await repos.settings.set(kCustomDialectsEcdKey, [
+          _custom('Gents and Ladies').toJson(),
+          _custom('Custom').toJson(),
+        ]);
+        await repos.settings.set(kActiveDialectRefEcdKey, 'Gents and Ladies');
+        await repos.programs.create(
+          Program(
+            id: 'p',
+            title: 'p',
+            createdAt: t0,
+            updatedAt: t0,
+            dialectName: 'Gents and Ladies',
+          ),
+        );
+        final c = DialectLibraryController(
+          repos.settings,
+          programs: repos.programs,
+          form: DanceForm.ecd,
+        );
+
+        await c.load();
+
+        expect(c.customDialects.map((d) => d.name), ['Custom 2', 'Custom']);
+        expect(c.activeName, 'Custom 2');
+        expect(await repos.settings.get(kActiveDialectRefEcdKey), 'Custom 2');
+        expect((await repos.programs.getById('p'))!.dialectName, 'Custom 2');
+        c.dispose();
+      },
+    );
+
+    test(
+      'a rename leaves programs alone while another form has the old name',
+      () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        final t0 = DateTime.utc(2026, 1, 1);
+        final libraries = DialectLibraries(
+          repos.settings,
+          programs: repos.programs,
+        );
+        addTearDown(libraries.dispose);
+        await libraries.load();
+        await libraries.contra.upsert(_custom('Foo'));
+        await libraries.forForm(DanceForm.ecd).upsert(_custom('Foo'));
+        await repos.programs.create(
+          Program(
+            id: 'p',
+            title: 'p',
+            createdAt: t0,
+            updatedAt: t0,
+            dialectName: 'Foo',
+          ),
+        );
+
+        await libraries.forForm(DanceForm.ecd).rename('Foo', 'Bar');
+        expect((await repos.programs.getById('p'))!.dialectName, 'Foo');
+
+        await libraries.contra.rename('Foo', 'Baz');
+        expect((await repos.programs.getById('p'))!.dialectName, 'Baz');
+      },
+    );
+
+    test('no listener sees a gendered name while the group loads', () async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      await repos.settings.set(kCustomDialectsKey, [
+        _custom('Gents Night').toJson(),
+      ]);
+      final libraries = DialectLibraries(
+        repos.settings,
+        programs: repos.programs,
+      );
+      addTearDown(libraries.dispose);
+      final seen = <String>[];
+      libraries.addListener(
+        () => seen.addAll(libraries.allCustomDialects.map((d) => d.name)),
+      );
+
+      await libraries.load();
+
+      expect(seen, isNotEmpty);
+      expect(seen, isNot(contains('Gents Night')));
+    });
+
+    test('a gendered name is renamed to a name no form uses', () async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      await repos.settings.set(kCustomDialectsKey, [
+        _custom('Gents Night').toJson(),
+      ]);
+      await repos.settings.set(kCustomDialectsEcdKey, [
+        _custom('Custom').toJson(),
+      ]);
+      final libraries = DialectLibraries(
+        repos.settings,
+        programs: repos.programs,
+      );
+      addTearDown(libraries.dispose);
+
+      await libraries.load();
+
+      expect(libraries.contra.customDialects.map((d) => d.name), ['Custom 2']);
+      expect(
+        libraries.forForm(DanceForm.ecd).customDialects.map((d) => d.name),
+        ['Custom'],
+      );
+    });
+
+    test(
+      'a gendered role term read from storage shows the default term',
+      () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        await repos.settings.set(kCustomDialectsKey, [
+          {
+            'name': 'Mine',
+            'roles': {
+              'role1': {'singular': 'Gent'},
+              'role2': {'singular': 'Wren'},
+            },
+          },
+        ]);
+        final c = DialectLibraryController(repos.settings);
+
+        await c.load();
+
+        final roles = c.customByName('Mine')!.roles;
+        expect(roles['role1'], Dialect.larksRobins.roles['role1']);
+        expect(roles['role2']!.singular, 'Wren');
+        c.dispose();
+      },
+    );
   });
 }

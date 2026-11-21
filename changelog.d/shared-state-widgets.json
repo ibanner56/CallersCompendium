@@ -1,0 +1,11 @@
+{
+  "id": "shared-state-widgets",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Empty screens now look and read the same, and say how to add the first item or where entries come from: Custom fields, Shorthands, Saved snippets, Tags, Authors, Sources, Other devices, the program matrix and the Upgrade figures screen. Screen readers announce the heading.",
+      "When a screen can't load, it now shows the same message with a Retry button everywhere, including the Collection, Programs, Venues, Custom fields, Recently deleted, Sync review, the import screens and the online preview. A dance or program that no longer exists offers Back where there is somewhere to go back to, instead of leaving you on a bare message.",
+      "The \"Select a program\" pane now carries the small Caller's Compendium mark, as the \"Select a dance\" pane already did."
+    ]
+  }
+}

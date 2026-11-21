@@ -1,26 +1,48 @@
 import 'package:compendium_core/compendium_core.dart';
+import '../theme/app_spacing.dart';
+import 'dashed_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/aggressive_beats_update_scope.dart';
 import '../data/reduce_motion_scope.dart';
+import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
+import '../editor/free_text_composer_controller.dart';
+import '../editor/pending_move_text_controller.dart';
+import '../editor/user_figure_draft.dart';
+import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
+import 'bar_timing.dart';
+import 'compound_argument_editor.dart';
+import 'container_title_length_limit.dart';
 import 'figure_param_editors.dart';
 import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
+import 'user_figure_use_editor.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
 
-/// Move id of the placeholder "stand still" figure that seeds new dances (see
-/// `defaultNewDanceFigureTemplate`). Activating such a figure opens its editor
-/// with the Move field cleared so the caller can type over the placeholder
-/// immediately, without first deleting the "stand still" text. Only the
-/// editing field is blanked — the stored draft keeps its move/params until a
-/// real move is chosen, so nothing is lost if the editor is collapsed as-is.
+/// Move id of the placeholder "stand still" figure that seeds new dances while
+/// Free-text entry is off (see `defaultNewDanceFigureTemplate`). Activating
+/// such a figure opens its editor with the Move field cleared so the caller
+/// can type over the placeholder immediately, without first deleting the
+/// "stand still" text. Only the editing field is blanked — the stored draft
+/// keeps its move/params until a real move is chosen, so nothing is lost if
+/// the editor is collapsed as-is.
 const String _standStillMove = 'stand_still';
+
+/// Replaces each run of line breaks, with the spaces around it, by one space.
+final TextInputFormatter _lineBreaksToSpaces = FilteringTextInputFormatter(
+  RegExp(r'[ \t]*[\r\n]+[ \t]*'),
+  allow: false,
+  replacementString: ' ',
+);
 
 /// Editable, keyboard-first figure list for the dance editor (`docs/design/
 /// ux.md` §3, roadmap 3.3b + 3.3c). Adopts a collapse-to-sentence accordion:
@@ -49,9 +71,17 @@ class FigureListEditor extends StatefulWidget {
     this.onDuplicate,
     this.dialect,
     this.mixer = false,
+    this.formationShape,
+    this.meterOf,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
+    this.freeTextComposerController,
+    this.pendingMoveTextController,
+    this.onReplaceWithFreeText,
+    this.onSubmitCompoundShorthand,
+    this.onReplaceWithShorthand,
+    this.isOwnShorthandToken,
     this.shorthandMappings,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
@@ -59,23 +89,41 @@ class FigureListEditor extends StatefulWidget {
     this.canonicalizeDiscouragedTerms = false,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
+    this.onGroupWithNextAsSequence,
     this.onCollapseMeanwhileGroup,
     this.onConvertToMeanwhile,
     this.onConvertToModifier,
+    this.onConvertToSequence,
     this.onUngroupContainer,
     this.onAddMeanwhile,
     this.onAddModifier,
+    this.onAddSequence,
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.showPhraseStructure = true,
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
+    this.allowCustom = true,
+    this.compoundOptions,
+    this.resolveCompound,
+    this.userFigureOptions,
     this.keyPrefix = 'figure',
   });
 
   final List<FigureDraft> drafts;
   final Taxonomy taxonomy;
   final PhraseStructure phraseStructure;
+
+  /// The dance's formation shape, which free-text entry reads a ring's size
+  /// from (an English "circle half way" is two places in a duple minor,
+  /// three in a triple minor; ADR-006 §7.3). Null where there is no dance.
+  final FormationShape? formationShape;
+
+  /// The dance's tune meter as it stands now ("3/2"), which free-text entry
+  /// counts an English line's bar range by (`1-4 partners set` is 8 beats in
+  /// 2/2, 12 in 3/2). Read when a line is entered, so an edit to the meter
+  /// field counts at once. Null where there is no dance.
+  final String Function()? meterOf;
 
   /// Dialect used for lingo-line styling (discouraged + role terms).
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
@@ -129,8 +177,11 @@ class FigureListEditor extends StatefulWidget {
   /// typed line is routed through the shared core parser
   /// ([parseFreeTextFigureEntry]) and its result is inserted as editable row(s)
   /// via [onAddFreeText]. The callback returns the number of figures accepted
-  /// so filtered or capped input is not reported as inserted. Editing an
-  /// EXISTING figure always uses the structured editor regardless of this flag.
+  /// so filtered or capped input is not reported as inserted. An EXISTING
+  /// figure still opens in the structured editor, but when
+  /// [onReplaceWithFreeText] is also provided, Enter on text in its Move box
+  /// that matches no move runs the same parser and replaces the row (#1177,
+  /// decision D2) instead of making a stated custom figure.
   /// Takes effect only when [onAddFreeText] is also provided; otherwise the Add
   /// flow falls back to the structured [onAdd].
   final bool freeTextEntry;
@@ -140,10 +191,56 @@ class FigureListEditor extends StatefulWidget {
   /// more than one figure when it is a `;`-compound.
   final int Function(List<Figure> figures)? onAddFreeText;
 
-  /// User-defined shorthand → figure(s) mappings (issue #420) consulted FIRST
-  /// during free-text entry: a typed line matching a shorthand token (whole
-  /// line, case-insensitive) expands to the mapped figures instead of being
-  /// parsed. `null` (the default) disables shorthand expansion, preserving the
+  /// Told whether the free-text composer holds a line not yet added, and able
+  /// to add it, so the screen can count that line as unsaved and add it on
+  /// Save. Null (the default) leaves the composer to itself.
+  final FreeTextComposerController? freeTextComposerController;
+
+  /// Told whether a row's Move box holds text that leaving it would apply,
+  /// and able to settle it (AUTH-1), so the screen can count that text as
+  /// unsaved and apply it on Save. Null (the default) gives the list one of
+  /// its own, which still settles the box when another row opens or this one
+  /// closes.
+  final PendingMoveTextController? pendingMoveTextController;
+
+  /// Replaces the row [draft] with the figure(s) parsed from a line typed into
+  /// its Move box (#1177), in its place. Only used when free-text entry is
+  /// active (see [freeTextEntry]). Returns the number of figures accepted; 0
+  /// leaves the row as it was, and the line becomes a stated custom figure as
+  /// it does with free-text entry off. Null keeps that behaviour always.
+  final int Function(FigureDraft draft, List<Figure> figures)?
+  onReplaceWithFreeText;
+
+  /// Offered each free-text line before it is parsed (#709): inserts a row for
+  /// one of the user's own figures, a compound or (#1023) a new figure, when
+  /// the line is a shorthand for one that can be used (with or without a
+  /// leading or trailing beat count, #1861), or a `;` list with one as a
+  /// clause (#1866), and returns how many rows it inserted. A line it declines
+  /// (0) is parsed as usual. Null (the default) offers none.
+  final int Function(String line)? onSubmitCompoundShorthand;
+
+  /// [onSubmitCompoundShorthand] for a line typed into the Move box of the
+  /// existing row [draft] (#1847): on a match it puts that shorthand's row in
+  /// the row's place, so the old row is replaced as a parsed line replaces it,
+  /// and returns how many rows replaced it. A line it declines (0) is parsed and replaces the
+  /// row as before (#1177). Only used when free-text entry is
+  /// active; null offers none.
+  final int Function(FigureDraft draft, String line)? onReplaceWithShorthand;
+
+  /// Whether [token] is a shorthand for one of the user's own figures, a
+  /// compound or a new figure, that the Move box should take as a shorthand
+  /// on Enter even though it is part of a move's name (see
+  /// [MoveAutocomplete.submitsAsText]); [shorthandMappings] answers for the
+  /// plain ones. Null: none.
+  final bool Function(String token)? isOwnShorthandToken;
+
+  /// User-defined shorthand → figure(s) mappings (issue #420) consulted
+  /// during free-text entry before the parser (after
+  /// [onSubmitCompoundShorthand], whose caller lets a figure shorthand with
+  /// the same token win): a typed line matching a shorthand token (whole
+  /// line, or one `;` clause, case-insensitive, with an optional leading or
+  /// trailing beat count split off; see [parseFreeTextFigureEntry]) expands to
+  /// the mapped figures instead of being parsed. `null` (the default) disables shorthand expansion, preserving the
   /// pure #419 parse behavior. Only relevant when [freeTextEntry] is enabled.
   final ShorthandMappings? shorthandMappings;
 
@@ -179,6 +276,11 @@ class FigureListEditor extends StatefulWidget {
   /// Groups [draft] with the following row as a modifier container.
   final ValueChanged<FigureDraft>? onGroupWithNextAsModifier;
 
+  /// Groups [draft] with the following row as a sequence container. Offered
+  /// only while the two rows' counts together fit in one phrase of
+  /// [phraseStructure].
+  final ValueChanged<FigureDraft>? onGroupWithNextAsSequence;
+
   /// Collapses a meanwhile group back to a plain figure (#593): called when a
   /// 2-side group has one of its sides removed, leaving [remainingSide]. The
   /// caller replaces [groupDraft]'s top-level list slot with [remainingSide].
@@ -189,6 +291,7 @@ class FigureListEditor extends StatefulWidget {
   onCollapseMeanwhileGroup;
   final ValueChanged<FigureDraft>? onConvertToMeanwhile;
   final ValueChanged<FigureDraft>? onConvertToModifier;
+  final ValueChanged<FigureDraft>? onConvertToSequence;
   final ValueChanged<FigureDraft>? onUngroupContainer;
 
   /// Adds a new meanwhile container draft through the list-level Add menu and
@@ -199,6 +302,9 @@ class FigureListEditor extends StatefulWidget {
   /// Adds a new modifier container through the list-level Add menu.
   final Future<String?> Function()? onAddModifier;
 
+  /// Adds a new sequence container through the list-level Add menu.
+  final Future<String?> Function()? onAddSequence;
+
   /// Whether list-level insertion affordances are available.
   final bool allowAdding;
 
@@ -208,14 +314,38 @@ class FigureListEditor extends StatefulWidget {
   /// Whether phrase labels and the beat summary are shown.
   final bool showPhraseStructure;
 
-  /// Whether ordinary figure editors offer the structural `modifier` option.
-  /// Settings lists whose persistence accepts ordinary figures only disable
-  /// this affordance.
+  /// Whether ordinary figure editors offer the structural `modifier` and
+  /// `sequence` options. Settings lists whose persistence accepts ordinary
+  /// figures only disable this affordance.
   final bool allowModifierSelection;
 
-  /// Whether ordinary children may be converted into the one legal opposite
-  /// container kind. Nested editors at the maximum depth disable this so the
-  /// selector cannot create a third structural level.
+  /// Whether text that names no move becomes a custom figure. The compound
+  /// editor (#709) turns it off: a compound's parts must be taxonomy figures,
+  /// whose slots it can fill.
+  final bool allowCustom;
+
+  /// The user's own compound figures a top-level row's move picker offers
+  /// (#709); picking one turns the row into a [FigureDraft.compound]
+  /// placeholder. Null or empty offers none. Only the dance editor sets it, and
+  /// only while Custom Figures is on: the nested container editors never
+  /// receive it, so no placeholder can become a meanwhile side or a modifier
+  /// child.
+  final List<UserGlossaryEntry>? compoundOptions;
+
+  /// Looks a placeholder row's compound up as it is now, to edit its
+  /// arguments and show what it expands to. Null in every editor that cannot
+  /// hold a placeholder.
+  final CompoundResolver? resolveCompound;
+
+  /// The user's own new figures (#1023) a row's move picker offers, in a
+  /// meanwhile side or modifier child too (maintainer decision 11): picking
+  /// one makes the row a use of it. Null or empty offers none; only the dance
+  /// editor sets it, and only while Custom Figures is on.
+  final List<UserGlossaryEntry>? userFigureOptions;
+
+  /// Whether ordinary children may be converted into a container of another
+  /// kind than their parent. Nested editors at the maximum depth disable this
+  /// so the selector cannot create a third structural level.
   final bool allowNestedContainerSelection;
 
   /// Prefix for widget keys when multiple editors share one screen.
@@ -225,7 +355,8 @@ class FigureListEditor extends StatefulWidget {
   State<FigureListEditor> createState() => _FigureListEditorState();
 }
 
-class _FigureListEditorState extends State<FigureListEditor> {
+class _FigureListEditorState extends State<FigureListEditor>
+    with AutomaticKeepAliveClientMixin<FigureListEditor> {
   /// The id of the draft currently "cut" (awaiting a paste destination), or
   /// `null` when no cut is in progress.
   String? _cutDraftId;
@@ -240,6 +371,19 @@ class _FigureListEditorState extends State<FigureListEditor> {
   bool _openLastAfterAdd = false;
   final Set<String> _pendingMeanwhileDraftIds = {};
 
+  /// Serves the Move boxes when the screen passes no
+  /// [FigureListEditor.pendingMoveTextController] and no list encloses this
+  /// one.
+  PendingMoveTextController? _ownPendingMoveText;
+
+  /// The screen's controller; else, for the list a group draws for a group
+  /// inside it, the enclosing list's, so Save and Back reach its Move boxes
+  /// too; else this list's own.
+  PendingMoveTextController get _pendingMoveText =>
+      widget.pendingMoveTextController ??
+      PendingMoveTextScope.maybeOf(context) ??
+      (_ownPendingMoveText ??= PendingMoveTextController());
+
   /// Per-row focus nodes (keyed by draft id) so the collapsed summary is
   /// keyboard-focusable, can receive Enter/Space/Alt+Arrow, and can be
   /// re-focused after collapse/delete/reorder.
@@ -248,11 +392,25 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Focus target of last resort after deleting the final figure.
   final FocusNode _addButtonFocusNode = FocusNode(debugLabel: 'figure-add');
 
+  /// First item of the Add menu. Opening the menu does not move focus
+  /// into the menu, so without this a keyboard user's Down/Tab/Enter land on
+  /// the page behind it (#1821).
+  final FocusNode _addMenuFirstItemFocusNode = FocusNode(
+    debugLabel: 'figure-add-menu-first',
+  );
+
   /// Whether the opt-in free-text entry composer is currently open (issue
-  /// #419). Only ever set when [_freeTextEnabled]; the Add flow opens it and a
-  /// blank submit / Escape / Done closes it.
+  /// #419). Only ever set when [_freeTextEnabled]; the Add flow opens it, and
+  /// a blank submit, Escape or Finish adding closes it.
   bool _freeTextComposing = false;
   final TextEditingController _freeTextController = TextEditingController();
+
+  /// The visible "Added N figures" line under the composer (#1825); null until
+  /// a line is accepted, and cleared again by the next keystroke or when the
+  /// composer closes. Screen readers hear the announcement from [_announce]
+  /// instead (it names the Escape key, which touch users lack), so the visible
+  /// copy is excluded from semantics.
+  String? _freeTextConfirmation;
   final FocusNode _freeTextFocusNode = FocusNode(
     debugLabel: 'figure-free-text',
   );
@@ -274,8 +432,22 @@ class _FigureListEditorState extends State<FigureListEditor> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    _freeTextController.addListener(_reportPendingLine);
+    widget.freeTextComposerController?.attach(_submitPendingLine);
+    // A fresh editor has no line; this clears a flag left by one it replaced.
+    _reportPendingLine();
+  }
+
+  @override
   void didUpdateWidget(FigureListEditor old) {
     super.didUpdateWidget(old);
+    if (old.freeTextComposerController != widget.freeTextComposerController) {
+      old.freeTextComposerController?.detach(_submitPendingLine);
+      widget.freeTextComposerController?.attach(_submitPendingLine);
+      _reportPendingLine();
+    }
     final ids = widget.drafts.map((d) => d.id).toSet();
 
     // Auto-open + focus the figure the Add flow just appended.
@@ -308,7 +480,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       _dismissFreeText(focusAddButton: widget.allowAdding);
     }
 
-    _openPendingMeanwhileDraft(rebuild: false, modifier: false);
+    _openPendingContainerDraft(rebuild: false);
   }
 
   @override
@@ -317,6 +489,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
       node.dispose();
     }
     _addButtonFocusNode.dispose();
+    _addMenuFirstItemFocusNode.dispose();
+    widget.freeTextComposerController?.detach(_submitPendingLine);
+    _ownPendingMoveText?.dispose();
     _freeTextController.dispose();
     _freeTextFocusNode.dispose();
     super.dispose();
@@ -339,9 +514,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       if (ctx != null && ctx.mounted) {
         Scrollable.ensureVisible(
           ctx,
-          duration: reduceMotion
-              ? Duration.zero
-              : const Duration(milliseconds: 200),
+          duration: reduceMotion ? Duration.zero : AppMotion.short,
           alignment: 0.1,
         );
       }
@@ -397,6 +570,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   // --- Accordion ------------------------------------------------------------
   void _openDraft(String id) {
+    // Opening a row closes the open one, and its Move box with it: settle the
+    // box first, as leaving it does, since a tap does not always take focus.
+    _pendingMoveText.settle();
     setState(() => _openDraftId = id);
     // Focus lands on the Move field via MoveAutocomplete.autofocus when the
     // editor mounts, but only for a blank or `stand_still` draft (genuine new
@@ -407,12 +583,19 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // its freshly-appended figure into view via _ensureVisibleSoon.)
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (i != -1) {
-      final name = _figureDisplayName(widget.drafts[i], widget.taxonomy, _l10n);
+      final name = _figureDisplayName(
+        widget.drafts[i],
+        widget.taxonomy,
+        _l10n,
+        _dialect,
+        UserFiguresScope.catalogOf(context),
+      );
       _announce(_l10n.danceEditorEditingFigureAnnouncement(i + 1, name));
     }
   }
 
   void _closeDraft(String id) {
+    _pendingMoveText.settle();
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (_openDraftId == id) setState(() => _openDraftId = null);
     WidgetsBinding.instance.addPostFrameCallback(
@@ -431,8 +614,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void _commitAndOpenNext(String id) {
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (i == -1) return;
-    if (i < widget.drafts.length - 1) {
-      _openDraft(widget.drafts[i + 1].id);
+    // The next row is the one after this row as it stands: settling the Move
+    // box can apply a shorthand that replaces this row with several.
+    final nextId = i < widget.drafts.length - 1
+        ? widget.drafts[i + 1].id
+        : null;
+    _pendingMoveText.settle();
+    if (nextId != null) {
+      _openDraft(nextId);
     } else {
       _addFigure();
     }
@@ -440,6 +629,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   void _addFigure() {
     if (!widget.allowAdding) return;
+    // The new row opens in place of the open one.
+    _pendingMoveText.settle();
     if (_freeTextEnabled) {
       // Free-text entry (opt-in): open a single free-text field instead of
       // appending a blank structured draft. The typed line is parsed and
@@ -455,28 +646,17 @@ class _FigureListEditorState extends State<FigureListEditor> {
     widget.onAdd();
   }
 
-  Future<void> _addMeanwhile() async {
-    final onAddMeanwhile = widget.onAddMeanwhile;
-    if (!widget.allowAdding || onAddMeanwhile == null) return;
-    final draftId = await onAddMeanwhile();
+  Future<void> _addContainer(Future<String?> Function()? onAdd) async {
+    if (!widget.allowAdding || onAdd == null) return;
+    final draftId = await onAdd();
     if (!mounted || draftId == null) return;
     _pendingMeanwhileDraftIds.add(draftId);
-    _openPendingMeanwhileDraft(rebuild: true, modifier: false);
+    _openPendingContainerDraft(rebuild: true);
   }
 
-  Future<void> _addModifier() async {
-    final onAddModifier = widget.onAddModifier;
-    if (!widget.allowAdding || onAddModifier == null) return;
-    final draftId = await onAddModifier();
-    if (!mounted || draftId == null) return;
-    _pendingMeanwhileDraftIds.add(draftId);
-    _openPendingMeanwhileDraft(rebuild: true, modifier: true);
-  }
-
-  void _openPendingMeanwhileDraft({
-    required bool rebuild,
-    required bool modifier,
-  }) {
+  /// Opens the container draft an Add-menu entry just inserted, once it is in
+  /// [FigureListEditor.drafts], and announces it by its kind.
+  void _openPendingContainerDraft({required bool rebuild}) {
     final ready = _pendingMeanwhileDraftIds
         .where((id) => widget.drafts.any((draft) => draft.id == id))
         .toList();
@@ -491,11 +671,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
       openDraft();
     }
     _ensureVisibleSoon(draftId);
-    _announce(
-      modifier
-          ? _l10n.danceEditorAddedModifierAnnouncement
-          : _l10n.danceEditorAddedMeanwhileAnnouncement,
-    );
+    final kind = widget.drafts
+        .firstWhere((draft) => draft.id == draftId)
+        .containerKind;
+    _announce(switch (kind) {
+      modifierMove => _l10n.danceEditorAddedModifierAnnouncement,
+      sequenceMove => _l10n.danceEditorAddedSequenceAnnouncement,
+      _ => _l10n.danceEditorAddedMeanwhileAnnouncement,
+    });
   }
 
   Widget _buildAddAffordance(BuildContext context, {required bool empty}) {
@@ -503,6 +686,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     final l10n = AppLocalizations.of(context);
     final onAddMeanwhile = widget.onAddMeanwhile;
     final onAddModifier = widget.onAddModifier;
+    final onAddSequence = widget.onAddSequence;
     final addButton = empty
         ? FilledButton.icon(
             focusNode: _addButtonFocusNode,
@@ -516,12 +700,17 @@ class _FigureListEditorState extends State<FigureListEditor> {
             icon: const Icon(Icons.add),
             label: Text(l10n.danceEditorAddFigure),
           );
-    if (onAddMeanwhile == null && onAddModifier == null) {
+    if (onAddMeanwhile == null &&
+        onAddModifier == null &&
+        onAddSequence == null) {
       return KeyedSubtree(key: _key('add'), child: addButton);
     }
 
     return MenuAnchor(
       key: _key('add'),
+      onOpen: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addMenuFirstItemFocusNode.requestFocus();
+      }),
       builder: (context, controller, child) => empty
           ? FilledButton.icon(
               focusNode: _addButtonFocusNode,
@@ -540,20 +729,27 @@ class _FigureListEditorState extends State<FigureListEditor> {
       menuChildren: [
         MenuItemButton(
           key: _key('add-figure'),
+          focusNode: _addMenuFirstItemFocusNode,
           onPressed: _addFigure,
           child: Text(l10n.danceEditorAddFigure),
         ),
         if (onAddMeanwhile != null)
           MenuItemButton(
             key: _key('add-meanwhile'),
-            onPressed: _addMeanwhile,
+            onPressed: () => _addContainer(onAddMeanwhile),
             child: Text(l10n.danceEditorAddMeanwhile),
           ),
         if (onAddModifier != null)
           MenuItemButton(
             key: _key('add-modifier'),
-            onPressed: _addModifier,
+            onPressed: () => _addContainer(onAddModifier),
             child: Text(l10n.danceEditorAddModifier),
+          ),
+        if (onAddSequence != null)
+          MenuItemButton(
+            key: _key('add-sequence'),
+            onPressed: () => _addContainer(onAddSequence),
+            child: Text(l10n.danceEditorAddSequence),
           ),
       ],
     );
@@ -562,32 +758,162 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Parses the free-text field's current line through the shared core parser
   /// and inserts the resulting row(s). Keeps the composer open (cleared and
   /// refocused) for rapid entry of the next figure; a blank submit closes it.
+  /// This is the keyboard's Enter, the Add button, and a Save with a line
+  /// still in the box ([_submitPendingLine]).
   void _submitFreeText() {
-    final onAddFreeText = widget.onAddFreeText;
-    if (onAddFreeText == null) return;
-    final figures = parseFreeTextFigureEntry(
-      _freeTextController.text,
-      taxonomy: widget.taxonomy,
-      shorthands: widget.shorthandMappings,
-    );
-    if (figures.isEmpty) {
+    final acceptedCount = _insertFreeTextLine();
+    if (acceptedCount == null) return;
+    if (acceptedCount == 0) {
       // Nothing to insert (blank, or scrubbed to empty) — close the composer.
       _dismissFreeText();
       return;
     }
+    _freeTextAccepted(acceptedCount);
+  }
+
+  /// Finish adding: adds a line still in the box, as Enter would, then closes
+  /// the composer. It never discards typed text; a line that could not be
+  /// added stays in the box.
+  void _finishFreeText() {
+    final acceptedCount = _insertFreeTextLine();
+    if (acceptedCount == null) return;
+    _dismissFreeText();
+    if (acceptedCount > 0) {
+      _announce(_l10n.danceEditorFreeTextFinishedAnnouncement(acceptedCount));
+    }
+  }
+
+  /// Inserts the row(s) for the composer's line and returns how many were
+  /// inserted: 0 when the line yields nothing to insert (blank, or scrubbed to
+  /// empty), null when the host declined the rows, leaving the line as it is.
+  int? _insertFreeTextLine() {
+    final onAddFreeText = widget.onAddFreeText;
+    if (onAddFreeText == null) return null;
+    // A compound shorthand inserts a placeholder row, which is not a [Figure]
+    // the parser could return, so it is offered the line first.
+    final shorthandRows =
+        widget.onSubmitCompoundShorthand?.call(_freeTextController.text) ?? 0;
+    if (shorthandRows > 0) return shorthandRows;
+    final figures = parseFreeTextFigureEntry(
+      _freeTextController.text,
+      taxonomy: widget.taxonomy,
+      shorthands: widget.shorthandMappings,
+      dialect: _dialect,
+      formationShape: widget.formationShape,
+      meter: widget.meterOf?.call(),
+    );
+    if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
-    if (acceptedCount <= 0) return;
+    return acceptedCount > 0 ? acceptedCount : null;
+  }
+
+  /// [FreeTextComposerController.submitPendingLine]: Enter on the composer's
+  /// line, for a Save made with the line still in the box. Returns whether no
+  /// line is left pending.
+  bool _submitPendingLine() {
+    if (!_freeTextComposing) return true;
+    _submitFreeText();
+    return _freeTextController.text.trim().isEmpty;
+  }
+
+  bool get _hasPendingLine =>
+      _freeTextComposing && _freeTextController.text.trim().isNotEmpty;
+
+  /// A lazy list around the editor (the dance editor's form) would otherwise
+  /// dispose it, and the line with it, once it scrolls out of view while the
+  /// box is not focused.
+  @override
+  bool get wantKeepAlive => _hasPendingLine;
+
+  /// Tells [FigureListEditor.freeTextComposerController] whether a line is
+  /// waiting in the composer, and keeps the editor alive while one is.
+  void _reportPendingLine() {
+    widget.freeTextComposerController?.updatePendingLine(_hasPendingLine);
+    updateKeepAlive();
+  }
+
+  /// Clears the composer after [acceptedCount] rows were inserted, announces
+  /// and shows the count ([_freeTextConfirmation]), and keeps the composer
+  /// focused for the next line.
+  void _freeTextAccepted(int acceptedCount) {
     _freeTextController.clear();
-    _announce(_l10n.danceEditorFreeTextFiguresAddedAnnouncement(acceptedCount));
+    final message = _l10n.danceEditorFreeTextFiguresAddedAnnouncement(
+      acceptedCount,
+    );
+    setState(
+      () => _freeTextConfirmation = _l10n
+          .danceEditorFreeTextFiguresAddedConfirmation(acceptedCount),
+    );
+    _announce(message);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _freeTextFocusNode.requestFocus();
     });
   }
 
+  /// Replaces [draft] with the figure(s) parsed from [line], typed into its
+  /// Move box and matching no move (#1177). Returns false when nothing was
+  /// replaced, so the caller makes the line a stated custom figure instead.
+  bool _replaceWithFreeText(FigureDraft draft, String line) {
+    final onReplace = widget.onReplaceWithFreeText;
+    if (!_freeTextEnabled || onReplace == null) return false;
+    final index = widget.drafts.indexOf(draft);
+    if (index == -1) return false;
+    // A shorthand for a compound or one of the user's figures is offered the
+    // line first, as in the composer, since it is not a [Figure] the parser
+    // returns.
+    final shorthandRows = widget.onReplaceWithShorthand?.call(draft, line) ?? 0;
+    if (shorthandRows > 0) {
+      _afterRowReplaced(draft, index, shorthandRows);
+      return true;
+    }
+    final figures = parseFreeTextFigureEntry(
+      line,
+      taxonomy: widget.taxonomy,
+      shorthands: widget.shorthandMappings,
+      dialect: _dialect,
+      formationShape: widget.formationShape,
+      meter: widget.meterOf?.call(),
+    );
+    if (figures.isEmpty) return false;
+    final acceptedCount = onReplace(draft, figures);
+    if (acceptedCount <= 0) return false;
+    _afterRowReplaced(draft, index, acceptedCount);
+    return true;
+  }
+
+  /// Whether a Move box's [text] is one of the user's shorthands, of any
+  /// kind, which Enter takes as typed rather than as the first move whose
+  /// name contains it (AUTH-8).
+  bool _isShorthandToken(String text) =>
+      widget.shorthandMappings?.resolve(text) != null ||
+      (widget.isOwnShorthandToken?.call(text) ?? false);
+
+  /// Settles the editor after [draft], at [index], was replaced by
+  /// [acceptedCount] rows.
+  void _afterRowReplaced(FigureDraft draft, int index, int acceptedCount) {
+    // The replaced row is gone; its replacements arrive collapsed, as rows
+    // from the composer do, with focus on the first of them.
+    if (_openDraftId == draft.id) setState(() => _openDraftId = null);
+    _announce(_l10n.danceEditorFreeTextRowReplacedAnnouncement(acceptedCount));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || index >= widget.drafts.length) return;
+      // A row replaced because its Move box lost focus (AUTH-1) leaves focus
+      // where the caller moved it. Focus that fell back to a scope went with
+      // the replaced row, and comes to its replacement.
+      final focused = FocusManager.instance.primaryFocus;
+      if (focused != null && focused is! FocusScopeNode) return;
+      _rowFocusNode(widget.drafts[index].id).requestFocus();
+    });
+  }
+
   /// Closes the free-text composer and returns focus to Add or the last row.
   void _dismissFreeText({bool focusAddButton = true}) {
+    setState(() {
+      _freeTextComposing = false;
+      _freeTextConfirmation = null;
+    });
+    // After the flag is down, so the listener reports no pending line.
     _freeTextController.clear();
-    setState(() => _freeTextComposing = false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (focusAddButton) {
@@ -632,6 +958,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin
+    return PendingMoveTextScope(
+      controller: _pendingMoveText,
+      child: Builder(builder: _buildList),
+    );
+  }
+
+  Widget _buildList(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final drafts = widget.drafts;
@@ -650,7 +984,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Text(
               l10n.danceFiguresEmpty,
               style: theme.textTheme.bodyMedium,
@@ -682,7 +1016,11 @@ class _FigureListEditorState extends State<FigureListEditor> {
     String? lastLabel;
     if (widget.showPhraseStructure) {
       for (final draft in drafts) {
-        if (draft.move == null && !draft.isContainerDraft) {
+        // Only rows Save writes count: a row with no move and no note, a group
+        // short of two sides, or a modifier group with a blank core builds no
+        // figure, and counting its beats would put a figure the saved dance
+        // lacks into the Total.
+        if (draft.toFigure() == null && !draft.keepsNoteWithoutMove) {
           labels[draft.id] = null;
           sectionStart[draft.id] = false;
           continue;
@@ -706,7 +1044,40 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ),
             widget.taxonomy,
             l10n,
+            dialect,
+            UserFiguresScope.catalogOf(context),
           );
+
+    final sequenceBeatLimit = widget.phraseStructure.longestPhraseBeats;
+    // Resolves a "group with next as [kind]" action for row [i]: null (menu
+    // item hidden) when there is no next row or the two cannot form [kind].
+    VoidCallback? groupWithNext(
+      ValueChanged<FigureDraft>? action,
+      String kind,
+      int i,
+    ) =>
+        action == null ||
+            i == drafts.length - 1 ||
+            !FigureDraft.canGroup(
+              kind,
+              drafts[i],
+              drafts[i + 1],
+              sequenceBeatLimit: sequenceBeatLimit,
+            )
+        ? null
+        : () => action(drafts[i]);
+    VoidCallback? convertTo(
+      ValueChanged<FigureDraft>? action,
+      String kind,
+      FigureDraft draft,
+    ) =>
+        action == null ||
+            !draft.canConvertContainerTo(
+              kind,
+              sequenceBeatLimit: sequenceBeatLimit,
+            )
+        ? null
+        : () => action(draft);
 
     _FigureDraftCard buildCard(int i, {required bool draggable}) {
       final draft = drafts[i];
@@ -726,9 +1097,22 @@ class _FigureListEditorState extends State<FigureListEditor> {
         isCut: isCutCard,
         draggable: draggable,
         isOpen: _openDraftId == draft.id,
+        phraseStructure: widget.phraseStructure,
         rowFocusNode: _rowFocusNode(draft.id),
         allowModifierSelection: widget.allowModifierSelection,
         allowNestedContainerSelection: widget.allowNestedContainerSelection,
+        allowCustom: widget.allowCustom,
+        compoundOptions: widget.compoundOptions,
+        resolveCompound: widget.resolveCompound,
+        userFigureOptions: widget.userFigureOptions,
+        onSubmitUnmatchedText:
+            _freeTextEnabled && widget.onReplaceWithFreeText != null
+            ? (line) => _replaceWithFreeText(draft, line)
+            : null,
+        isShorthandToken:
+            _freeTextEnabled && widget.onReplaceWithFreeText != null
+            ? _isShorthandToken
+            : null,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
         onClose: () => _closeDraft(draft.id),
@@ -749,35 +1133,37 @@ class _FigureListEditorState extends State<FigureListEditor> {
         snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
         onSnippetCommitted: widget.onSnippetCommitted,
         showWordingOverride: widget.showWordingOverride,
-        onGroupWithNext:
-            (widget.onGroupWithNext == null ||
-                i == drafts.length - 1 ||
-                !draft.canNestInContainer(modifierParent: false) ||
-                !drafts[i + 1].canNestInContainer(modifierParent: false))
-            ? null
-            : () => widget.onGroupWithNext!(draft),
-        onGroupWithNextAsModifier:
-            (widget.onGroupWithNextAsModifier == null ||
-                i == drafts.length - 1 ||
-                !draft.canNestInContainer(modifierParent: true) ||
-                !drafts[i + 1].canNestInContainer(modifierParent: true))
-            ? null
-            : () => widget.onGroupWithNextAsModifier!(draft),
+        onGroupWithNext: groupWithNext(
+          widget.onGroupWithNext,
+          meanwhileMove,
+          i,
+        ),
+        onGroupWithNextAsModifier: groupWithNext(
+          widget.onGroupWithNextAsModifier,
+          modifierMove,
+          i,
+        ),
+        onGroupWithNextAsSequence: groupWithNext(
+          widget.onGroupWithNextAsSequence,
+          sequenceMove,
+          i,
+        ),
         onCollapseMeanwhileGroup: widget.onCollapseMeanwhileGroup,
-        onConvertToMeanwhile:
-            widget.onConvertToMeanwhile == null ||
-                !draft.isModifierGroup ||
-                draft.modifierFigures == null ||
-                draft.modifierFigures!.any((child) => child.isContainerDraft)
-            ? null
-            : () => widget.onConvertToMeanwhile!(draft),
-        onConvertToModifier:
-            widget.onConvertToModifier == null ||
-                !draft.isMeanwhileGroup ||
-                draft.meanwhileSides == null ||
-                draft.meanwhileSides!.any((child) => child.isContainerDraft)
-            ? null
-            : () => widget.onConvertToModifier!(draft),
+        onConvertToMeanwhile: convertTo(
+          widget.onConvertToMeanwhile,
+          meanwhileMove,
+          draft,
+        ),
+        onConvertToModifier: convertTo(
+          widget.onConvertToModifier,
+          modifierMove,
+          draft,
+        ),
+        onConvertToSequence: convertTo(
+          widget.onConvertToSequence,
+          sequenceMove,
+          draft,
+        ),
         onUngroupContainer:
             widget.onUngroupContainer == null || !draft.isContainerDraft
             ? null
@@ -792,7 +1178,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         // Cut-in-progress banner.
         if (_cutDraftId != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Row(
               children: [
                 Icon(
@@ -860,7 +1246,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
                   _PasteButton(
                     key: ValueKey('paste-after-${drafts[i].id}'),
                     semanticsLabel: l10n.danceEditorPasteAfterFigure(
-                      _figureDisplayName(drafts[i], widget.taxonomy, l10n),
+                      _figureDisplayName(
+                        drafts[i],
+                        widget.taxonomy,
+                        l10n,
+                        dialect,
+                        UserFiguresScope.catalogOf(context),
+                      ),
                     ),
                     onPaste: () => _paste(i + 1),
                   ),
@@ -884,7 +1276,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
               _buildAddAffordance(context, empty: false),
               if (_cutDraftId != null)
                 Padding(
-                  padding: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.only(left: AppSpacing.xs),
                   child: _PasteButton(
                     key: const ValueKey('paste-end'),
                     semanticsLabel: l10n.danceEditorPasteAtEndOfFigureList,
@@ -905,37 +1297,59 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   // --- Free-text composer (issue #419) --------------------------------------
   /// The single-line free-text entry field shown in place of the Add button
-  /// while composing. Enter submits (parse + insert), Escape cancels; a Done
-  /// button offers the same dismissal for pointer/AT users. Kept deliberately
-  /// simple: one line at a time, matching the ruling (no multi-line paste).
+  /// while composing. Enter submits (parse + insert), Escape cancels; Finish
+  /// adding adds any line still in the box and then closes it, so the button
+  /// never discards typed text. Kept deliberately simple: one line at a time,
+  /// matching the ruling (no multi-line paste).
   Widget _buildFreeTextComposer(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Focus(
-        // A key-handler wrapper only (Escape to cancel); it must not become a
-        // tab stop of its own around the field.
-        canRequestFocus: false,
-        skipTraversal: true,
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.escape) {
-            _dismissFreeText();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextField(
+    final confirmation = _freeTextConfirmation;
+    // The box is its own semantics boundary: without it the surrounding section
+    // help, empty-state text and beat total/warnings merge into the field's
+    // label (#1825).
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+        child: Focus(
+          // A key-handler wrapper only (Escape to cancel); it must not become a
+          // tab stop of its own around the field.
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              _dismissFreeText();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
                 key: _key('free-text-field'),
                 controller: _freeTextController,
                 focusNode: _freeTextFocusNode,
                 textInputAction: TextInputAction.done,
+                onChanged: (_) {
+                  if (_freeTextConfirmation != null) {
+                    setState(() => _freeTextConfirmation = null);
+                  }
+                },
                 onSubmitted: (_) => _submitFreeText(),
+                // One figure line, but not a `maxLines: 1` field: Flutter puts
+                // its single-line formatter ahead of ours and that deletes a
+                // pasted line break, gluing `swing⏎partner` into `swingpartner`.
+                // A few lines with a text keyboard still submits on the action
+                // key; [_lineBreaksToSpaces] turns any line break into a space,
+                // keeping a paste one line (#419 rules out splitting it).
+                keyboardType: TextInputType.text,
+                minLines: 1,
+                maxLines: 4,
+                inputFormatters: [_lineBreaksToSpaces],
                 maxLength: maxFreeTextEntryLength,
                 maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 // A figure line is short; the cap is a defensive bound, not a
@@ -951,33 +1365,68 @@ class _FigureListEditorState extends State<FigureListEditor> {
                   isDense: true,
                   border: const OutlineInputBorder(),
                   labelText: l10n.danceEditorTypeFigureLabel,
-                  helperText: l10n.danceEditorTypeFigureHelper,
-                  helperMaxLines: 3,
+                  // A widget, not `helperText`: that one is a single ellipsised
+                  // line unless capped, and any cap cuts a long translation.
+                  helper: Text(
+                    l10n.danceEditorTypeFigureHelper,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: FilledButton(
-                key: _key('free-text-submit'),
-                onPressed: _submitFreeText,
-                child: Text(l10n.commonAdd),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: TextButton(
-                key: _key('free-text-done'),
-                onPressed: _dismissFreeText,
-                child: Text(
-                  l10n.commonDone,
-                  style: TextStyle(color: theme.colorScheme.primary),
+              // Add and Finish adding sit beneath the field, not beside it:
+              // beside it they left the field too narrow for its help at phone
+              // width, where the help was cut off mid-word (#1830).
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xxs),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    FilledButton(
+                      key: _key('free-text-submit'),
+                      onPressed: _submitFreeText,
+                      child: Text(l10n.commonAdd),
+                    ),
+                    const SizedBox(width: 4),
+                    TextButton(
+                      key: _key('free-text-done'),
+                      onPressed: _finishFreeText,
+                      child: Text(
+                        l10n.danceEditorFreeTextFinish,
+                        style: TextStyle(color: theme.colorScheme.primary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              if (confirmation != null)
+                Padding(
+                  key: _key('free-text-confirmation'),
+                  padding: const EdgeInsets.only(top: AppSpacing.xxs),
+                  // Spoken by [_announce]; a second, live-region copy would be
+                  // read twice.
+                  child: ExcludeSemantics(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            confirmation,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -990,20 +1439,35 @@ String _figureDisplayName(
   FigureDraft draft,
   Taxonomy taxonomy,
   AppLocalizations l10n,
+  Dialect dialect,
+  UserFigureCatalog userFigures,
 ) {
+  if (draft.compound case final compound?) {
+    return FigureRenderer(taxonomy).renderFreeText(compound.name, dialect);
+  }
   final sides = draft.meanwhileSides;
   if (sides != null) return l10n.danceEditorMeanwhileGroupLabel(sides.length);
   final modifiers = draft.modifierFigures;
   if (modifiers != null) {
     return l10n.danceEditorModifierGroupLabel(modifiers.length);
   }
+  final steps = draft.sequenceFigures;
+  if (steps != null) return l10n.danceEditorSequenceGroupLabel(steps.length);
   final move = draft.move;
   if (move == null) return l10n.danceEditorEmptyFigureName;
   if (move == customMove) {
     final text = draft.params['text'] as String?;
-    return text != null && text.isNotEmpty
+    if (text == null || text.isEmpty) return l10n.danceEditorCustomFigureName;
+    // A use of one of the user's own figures (#1023) reads as the row's
+    // summary does, from the figure as it is now; its stored line is the
+    // fallback when the figure can't render it.
+    final figure = isUserFigureDraft(draft) ? draft.toFigure() : null;
+    return figure == null
         ? text
-        : l10n.danceEditorCustomFigureName;
+        : FigureRenderer(
+            taxonomy,
+            userFigures: userFigures,
+          ).render(figure, dialect);
   }
   final alias = taxonomy.aliases[move];
   final def = taxonomy.resolve(move);
@@ -1065,6 +1529,8 @@ class _FigureDraftCard extends StatefulWidget {
     required this.draggable,
     required this.isOpen,
     required this.rowFocusNode,
+    this.onSubmitUnmatchedText,
+    this.isShorthandToken,
     required this.onChanged,
     required this.onActivate,
     required this.onClose,
@@ -1080,12 +1546,19 @@ class _FigureDraftCard extends StatefulWidget {
     this.canonicalizeDiscouragedTerms = false,
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
+    this.allowCustom = true,
+    this.compoundOptions,
+    this.resolveCompound,
+    this.userFigureOptions,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
+    this.onGroupWithNextAsSequence,
     this.onCollapseMeanwhileGroup,
     this.onConvertToMeanwhile,
     this.onConvertToModifier,
+    this.onConvertToSequence,
     this.onUngroupContainer,
+    this.phraseStructure = PhraseStructure.standard,
     this.keyPrefix = 'figure',
   });
 
@@ -1124,6 +1597,16 @@ class _FigureDraftCard extends StatefulWidget {
   /// Focus node for the collapsed summary row (keyboard focus + focus ring).
   final FocusNode rowFocusNode;
 
+  /// Offered text entered in the Move box that matches no move, before it
+  /// becomes a stated custom figure; true means it replaced this row (#1177).
+  /// See [FigureListEditor.onReplaceWithFreeText].
+  final bool Function(String line)? onSubmitUnmatchedText;
+
+  /// Whether Move-box text is a shorthand, sent to [onSubmitUnmatchedText]
+  /// on Enter unless a move is named by it exactly. Null while free-text
+  /// entry is off: shorthands only work with it on.
+  final bool Function(String text)? isShorthandToken;
+
   final VoidCallback onChanged;
 
   /// Toggles the accordion open/closed for this figure.
@@ -1161,12 +1644,25 @@ class _FigureDraftCard extends StatefulWidget {
   final bool allowModifierSelection;
   final bool allowNestedContainerSelection;
 
+  /// See [FigureListEditor.allowCustom].
+  final bool allowCustom;
+
+  /// See [FigureListEditor.compoundOptions].
+  final List<UserGlossaryEntry>? compoundOptions;
+
+  /// See [FigureListEditor.userFigureOptions].
+  final List<UserGlossaryEntry>? userFigureOptions;
+
+  /// See [FigureListEditor.resolveCompound].
+  final CompoundResolver? resolveCompound;
+
   /// Resolved "group with next" action for THIS row (#590/#593), already
   /// accounting for adjacency/flat-only conditions (see
   /// [FigureListEditor.onGroupWithNext]). `null` hides the menu item.
   final VoidCallback? onGroupWithNext;
 
   final VoidCallback? onGroupWithNextAsModifier;
+  final VoidCallback? onGroupWithNextAsSequence;
 
   /// Collapses [draft] (when it `isMeanwhileGroup`) back to a plain figure.
   /// See [FigureListEditor.onCollapseMeanwhileGroup].
@@ -1174,34 +1670,27 @@ class _FigureDraftCard extends StatefulWidget {
   onCollapseMeanwhileGroup;
   final VoidCallback? onConvertToMeanwhile;
   final VoidCallback? onConvertToModifier;
+  final VoidCallback? onConvertToSequence;
   final VoidCallback? onUngroupContainer;
+
+  /// The enclosing dance's phrase structure: a sequence's steps must fit in
+  /// one of its phrases ([PhraseStructure.longestPhraseBeats]).
+  final PhraseStructure phraseStructure;
   final String keyPrefix;
 
   @override
   State<_FigureDraftCard> createState() => _FigureDraftCardState();
 }
 
-/// v28 (#976): seeds `chain`'s implicit hand from its role (`who`), mirroring
-/// ContraDB's own `chainChange` (`figure.js:256-263`) so a chain created or
-/// edited in the editor stores the SAME explicit hand as one parsed from
-/// import text (`contradb_figure_dialect.dart` / `figure_parser.dart`),
-/// rather than diverging on `unspecified` until a user happens to touch
-/// `who` (#976 §6.1 — the divergence a first draft of this fix missed). A
-/// no-op for any other move or an unrecognized `who`.
-void _seedChainHand(String moveId, Map<String, Object?> params) {
-  if (moveId != 'chain') return;
-  final who = params['who'];
-  if (who is! String) return;
-  final hand = chainHandForWho(who);
-  if (hand != null) params['hand'] = hand;
-}
-
-/// Replaces an ordinary draft with a minimally valid modifier draft while
-/// preserving the selected figure as the core. The editor keeps the same
-/// parent object so callers only need the usual [onChanged] rebuild.
-void _initializeModifierContainer(FigureDraft draft) {
+/// Replaces an ordinary draft with a minimally valid container draft of
+/// [kind] (a modifier or sequence) while preserving the selected figure as its
+/// first child: a modifier's core, a sequence's first step. The editor keeps
+/// the same parent object so callers only need the usual [onChanged] rebuild.
+void _initializeContainer(FigureDraft draft, String kind) {
   if (draft.isContainerDraft) return;
-  final core = draft.clone();
+  // A compound placeholder cannot be a container's child (#709): the
+  // container starts with an empty one instead.
+  final core = draft.clone()..compound = null;
   final beats = draft.beats;
   final beatsTouched = draft.beatsTouched;
   draft.move = null;
@@ -1216,13 +1705,20 @@ void _initializeModifierContainer(FigureDraft draft) {
     ..customOrigin = CustomOrigin.userEntered
     ..walkthroughOverride = null
     ..wordingOverride = null
-    ..meanwhileSides = null
-    ..modifierFigures = [core, FigureDraft()];
+    ..compound = null
+    ..setContainer(kind, [core, FigureDraft()]);
 }
 
 class _FigureDraftCardState extends State<_FigureDraftCard> {
   ValueKey<String> _key(String suffix) =>
       ValueKey('${widget.keyPrefix}-${widget.index}-$suffix');
+
+  /// First enabled item of the ⋮ menu. Opening the menu does not move focus
+  /// into it, so without this a keyboard user's Down/Enter land on the page
+  /// behind it (#1831). The first items are disabled at the ends of the list.
+  final FocusNode _menuFirstItemFocusNode = FocusNode(
+    debugLabel: 'figure-row-menu-first',
+  );
 
   /// Whether the on-demand note field is revealed. Existing notes are always
   /// shown (never hide existing content); an empty note starts hidden behind
@@ -1248,6 +1744,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   bool _showWordingOverride = false;
 
   @override
+  void dispose() {
+    _menuFirstItemFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _showNote = widget.draft.note.trim().isNotEmpty;
@@ -1267,6 +1769,23 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         widget.draft.params['beats'] = beatsSpec.defaultValue;
       }
     }
+    _seedSequenceStepBeats();
+  }
+
+  /// A free-text step of a sequence saved before #795 carries no count, which
+  /// the step would show as the default but save as nothing, undercounting the
+  /// sequence. Seed it here, before the first build, so the total already
+  /// agrees; seeding is not an edit, so it reports nothing to the host.
+  void _seedSequenceStepBeats() {
+    // A sequence with a span of its own lets its steps go untimed.
+    if (widget.draft.sequenceSpanStated) return;
+    final beatsSpec = widget.taxonomy.resolve(customMove)?.params['beats'];
+    if (beatsSpec == null) return;
+    for (final step in widget.draft.sequenceFigures ?? const <FigureDraft>[]) {
+      if (step.move == customMove && !step.params.containsKey('beats')) {
+        step.params['beats'] = beatsSpec.defaultValue;
+      }
+    }
   }
 
   /// The snippet text currently shown for this figure: the per-dance override
@@ -1279,12 +1798,18 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   // --- Move mutations (live) ------------------------------------------------
-  void _selectMove(String moveId) {
+  void _selectMove(String picked) {
+    final moveId = _storedMoveIdForPick(
+      widget.taxonomy,
+      picked,
+      widget.moveParamDefaults?[picked],
+    );
     if (widget.draft.move == moveId) return;
     widget.draft.move = moveId;
+    widget.draft.compound = null;
     widget.draft.params
       ..clear()
-      ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+      ..addAll(widget.taxonomy.entryParams(moveId));
     // Picking a move is an explicit authorship action: any inherited
     // parser-assumed-subject marker (#460) no longer applies.
     widget.draft.assumedSubject = false;
@@ -1303,18 +1828,101 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // for a role the default just replaced. Seed the role-implied hand
     // afterward, from the now-final `who` — unless the saved default itself
     // named an explicit `hand`, which must win.
+    // A pick stored under another id (forward and back, as long lines) takes
+    // the defaults saved for what was picked, then those of where it is
+    // stored, which win.
+    if (moveId != picked) _applyMoveParamDefaults(picked);
     _applyMoveParamDefaults(moveId);
     final chainOverrides = widget.moveParamDefaults?[moveId];
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
-      _seedChainHand(moveId, widget.draft.params);
+      seedChainHand(moveId, widget.draft.params);
     }
     _showMoreOptions = false;
     widget.onChanged();
   }
 
-  void _selectModifier() {
-    _initializeModifierContainer(widget.draft);
+  void _selectContainer(String kind) {
+    _initializeContainer(widget.draft, kind);
     widget.onChanged();
+  }
+
+  /// Turns this row into a placeholder for the user's compound [entryId]
+  /// (#709), its arguments seeded with the values its author wrote. Whatever
+  /// the row held before is replaced, as picking a move replaces it.
+  void _selectCompound(String entryId) {
+    final entry = widget.compoundOptions
+        ?.where((e) => e.id == entryId)
+        .firstOrNull;
+    final definition = widget.resolveCompound?.call(entryId);
+    if (entry == null || definition == null) return;
+    final draft = widget.draft;
+    draft
+      ..move = null
+      ..beatsTouched = false
+      ..assumedSubject = false
+      ..customOrigin = CustomOrigin.userEntered
+      ..walkthroughOverride = null
+      ..wordingOverride = null
+      ..compound = CompoundPlaceholder(
+        id: entryId,
+        name: entry.name,
+        args: previewArguments(definition, widget.taxonomy) ?? {},
+      );
+    draft.params.clear();
+    _refreshCompoundBeats();
+    _showMoreOptions = false;
+    widget.onChanged();
+  }
+
+  /// Updates the placeholder's beat count from its expansion, when it has one.
+  void _refreshCompoundBeats() {
+    final compound = widget.draft.compound;
+    final resolve = widget.resolveCompound;
+    if (compound == null || resolve == null) return;
+    if (expandPlaceholder(compound, resolve) case final expanded?) {
+      compound.beats = CompoundDefinition.beatsOf(expanded, widget.taxonomy);
+    }
+  }
+
+  /// The user's compounds and new figures as move-picker options, named in
+  /// the dialect.
+  List<MoveOption> _compoundPickerOptions() => [
+    ..._userEntryPickerOptions(
+      widget.compoundOptions,
+      MoveOptionKind.compound,
+      widget.dialect,
+    ),
+    ..._userEntryPickerOptions(
+      widget.userFigureOptions,
+      MoveOptionKind.userFigure,
+      widget.dialect,
+    ),
+  ];
+
+  void _onMoveOptionSelected(MoveOption option) => switch (option.kind) {
+    MoveOptionKind.modifier => _selectContainer(modifierMove),
+    MoveOptionKind.sequence => _selectContainer(sequenceMove),
+    MoveOptionKind.compound => _selectCompound(option.id),
+    MoveOptionKind.userFigure => _selectUserFigure(option.id),
+    MoveOptionKind.move => _selectMove(option.id),
+  };
+
+  /// Makes this row a use of the user's figure [entryId] (#1023), with its
+  /// defaults and its default beats. Whatever the row held before is
+  /// replaced, as picking a move replaces it.
+  void _selectUserFigure(String entryId) {
+    if (selectUserFigure(widget.draft, entryId, widget.userFigureOptions)) {
+      _showMoreOptions = false;
+      widget.onChanged();
+    }
+  }
+
+  /// Enter on Move-box text that matches no move: with free-text entry on, the
+  /// line is parsed and replaces this row (#1177); otherwise, or when the
+  /// replacement is declined, it becomes a stated custom figure.
+  void _submitUnmatched(String text) {
+    if (widget.onSubmitUnmatchedText?.call(text) ?? false) return;
+    _createCustom(text);
   }
 
   void _createCustom(String text) {
@@ -1323,6 +1931,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // custom figure.
     if (trimmed.isEmpty) return;
     widget.draft.move = customMove;
+    widget.draft.compound = null;
     widget.draft.params
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)));
@@ -1330,6 +1939,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // A user-authored custom figure carries no assumed subject (#460).
     widget.draft.assumedSubject = false;
     // Authoring a custom by hand is a stated choice, not a parser gap (#419).
+    // With free-text entry on, the line reaches here only when the list
+    // declined to replace the row with the parsed figures (#1177).
     widget.draft.customOrigin = CustomOrigin.userEntered;
     widget.draft.wordingOverride = null;
     _applyMoveParamDefaults(customMove);
@@ -1349,7 +1960,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final schema = widget.taxonomy.resolve(moveId)?.params;
     if (schema == null) return;
     for (final entry in overrides.entries) {
-      if (schema.containsKey(entry.key)) {
+      if (schema.containsKey(entry.key) &&
+          !skipsMoveDefault(entry.key, entry.value)) {
         widget.draft.params[entry.key] = entry.value;
         // A saved per-move beats default is a user-configured value; treat it
         // as owned so a later non-beats edit's resync won't revert it to the
@@ -1362,8 +1974,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   void _clearMove() {
-    if (widget.draft.move == null) return;
+    if (widget.draft.move == null && !widget.draft.isCompoundPlaceholder) {
+      return;
+    }
     widget.draft.move = null;
+    widget.draft.compound = null;
     widget.draft.params.clear();
     widget.draft.beatsTouched = false;
     widget.draft.wordingOverride = null;
@@ -1371,101 +1986,40 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.onChanged();
   }
 
-  /// Applies a non-`beats` param change and reconciles `beats` with the move's
-  /// canonical default (issue #262). Capturing the default before *and* after
-  /// the mutation means:
-  ///
-  /// - a driver change that shifts the default (e.g. adding a `balance` prefix
-  ///   to a swing, 8→16) snaps beats to the new default; but
-  /// - a change that leaves the default put (e.g. a circle's `turn`/`places`,
-  ///   which carry no `paramBeats`) never disturbs an existing count — so a
-  ///   user-entered value isn't snapped back when nothing about the duration
-  ///   changed.
-  ///
-  /// A `beats` that is missing or non-int (older/partial data loaded without an
-  /// explicit count) is still seeded to the canonical default, so an unowned
-  /// figure never gets stuck at 0. A manual override
-  /// ([FigureDraft.beatsTouched]) is never overwritten — UNLESS the opt-in
-  /// "Aggressively recompute figure beats" setting (issue #689) is on, in
-  /// which case the override is intentionally ignored and `beats` is
-  /// re-derived from the move's canonical default on every beats-affecting
-  /// param change. That setting defaults to off, so this method is
-  /// byte-identical to its pre-#689 behavior unless the user has opted in.
+  /// Applies a non-`beats` param change with every rule it carries — the
+  /// hey and promenade resets, the `balance` flag's ±4 beats, chain's
+  /// role-implied hand, inverse-pair rerouting, and reconciling `beats` with
+  /// the move's canonical default (#262), which keeps a manual override
+  /// ([FigureDraft.beatsTouched]) unless the opt-in "Aggressively recompute
+  /// figure beats" setting (#689) is on. The rules are core's
+  /// [applyParamChange], which documents each one.
   void _applyNonBeatsParamChange(String key, Object? value) {
     final draft = widget.draft;
     // Explicitly editing the subject makes it a stated choice, so it is no
     // longer a parser-assumed default (#460): drop the non-authoritative marker.
     if (key == 'who') draft.assumedSubject = false;
-    // issue #576: hey's `meetTarget` only applies to the partial lengths. If the
-    // user moves `length` back to `half`/`full`, drop any stale `meetTarget` so
-    // a now-irrelevant target can't linger in the stored figure (it would be
-    // hidden in the editor and ignored by the renderer, but keeping it out
-    // avoids surprising re-surfacing and keeps the figure minimal).
-    if (draft.move == 'hey' && key == 'length') {
-      final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
-      if (!partial) draft.params.remove('meetTarget');
-    }
-    // v30 (#989): a promenade's `direction` (rotation sense) is meaningless
-    // once `where` points `in`/`out`/`up`/`down` — there is no "across" plane left to
-    // rotate through, and the field is hidden alongside `destination` for the
-    // same reason (see `_buildParams`). Reset it to the `unspecified` sentinel
-    // so a stale rotation doesn't silently persist, hidden, behind the field.
-    //
-    // Unlike `hey.meetTarget` above, this WRITES the sentinel rather than
-    // removing the key: `direction`'s spec default is the CONCRETE
-    // `'counterclockwise'` (v30 owner decision — the taxonomy's first
-    // concrete-default-plus-sentinel param), so `draft.params.remove('direction')`
-    // would fall through `effectiveParams` to that concrete default and
-    // render it — the opposite of "not stated" this reset is meant to
-    // achieve. Only an explicit sentinel write gets there.
-    if (draft.move == 'promenade' && key == 'where') {
-      const rotationless = {'in', 'out', 'up', 'down'};
-      if (rotationless.contains(value)) {
-        draft.params['direction'] = ParamVocab.unspecified;
-      }
-    }
-    // #976: a `who` edit on a chain rewrites its role-implied hand, mirroring
-    // ContraDB's `chainChange` (figure.js:256-263) — an explicit hand set for
-    // the OLD role must not silently survive onto the new one.
-    final oldDefault = _canonicalBeats(draft.params);
-    draft.params[key] = value;
-    if (draft.move == 'chain' && key == 'who') {
-      _seedChainHand('chain', draft.params);
-    }
-    _rerouteInversePair(draft, widget.taxonomy);
-    final newDefault = _canonicalBeats(draft.params);
-    if (newDefault == null) return;
-    if (draft.beatsTouched) {
-      // #689: aggressive mode deliberately overrides a manual override (the
-      // owner-locked decision) — but only when this param change actually
-      // shifts the canonical default. A param that doesn't affect beats
-      // (e.g. circle's turn direction) must leave a manually-set value
-      // alone, matching the "a param that affects timing" UI copy.
-      if (AggressiveBeatsUpdateScope.of(context) && newDefault != oldDefault) {
-        draft.params['beats'] = newDefault;
-      }
+    final move = draft.move;
+    if (move == null) {
+      draft.params[key] = value;
       return;
     }
-    final currentBeats = draft.params['beats'];
-    if (currentBeats is! int || newDefault != oldDefault) {
-      draft.params['beats'] = newDefault;
-    }
-  }
-
-  /// The move's canonical `beats` default for [params], ignoring any explicit
-  /// `beats` so the taxonomy re-derives the value from the driver params.
-  /// Returns null when there is no move, no beats spec, or a non-int result.
-  /// Delegates to the Flutter-free core resolver.
-  int? _canonicalBeats(Map<String, Object?> params) {
-    final move = widget.draft.move;
-    if (move == null) return null;
-    final def = widget.taxonomy.resolve(move);
-    if (def == null || !def.params.containsKey('beats')) return null;
-    final probeParams = Map<String, Object?>.of(params)..remove('beats');
-    final beats = widget.taxonomy.effectiveParams(
-      Figure(move: move, params: probeParams),
-    )['beats'];
-    return beats is int ? beats : null;
+    // The rules themselves are in core, shared with compound expansion (#709).
+    // The aggressive-beats setting only matters for a manual override, so it is
+    // read only then.
+    final keepUntimed = draft.untimed && draft.beatsTouched;
+    draft.move = applyParamChange(
+      widget.taxonomy,
+      move: move,
+      params: draft.params,
+      key: key,
+      value: value,
+      beatsTouched: draft.beatsTouched,
+      aggressiveBeats:
+          draft.beatsTouched && AggressiveBeatsUpdateScope.of(context),
+    );
+    // A step left untimed under a span stays so (ADR-006 §5.5): no rule
+    // gives it a count the caller didn't.
+    if (keepUntimed) draft.params.remove('beats');
   }
 
   void _toggleProgression() {
@@ -1490,7 +2044,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       cb();
       return KeyEventResult.handled;
     }
+    // Enter/Space activate the row only when the row itself is focused. Key
+    // events also bubble up from the ⋮ button and its open menu, which sit under
+    // this Focus; claiming them here would stop the menu from opening and its
+    // items from activating by keyboard (#1831).
     if (!isAlt &&
+        node.hasPrimaryFocus &&
         (key == LogicalKeyboardKey.enter ||
             key == LogicalKeyboardKey.numpadEnter ||
             key == LogicalKeyboardKey.space)) {
@@ -1521,13 +2080,19 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      // Dim the card while it is in the "cut" state.
-      opacity: widget.isCut ? 0.45 : 1.0,
+    return DashedBorder(
+      // The "cut" state is shown by a dashed outline plus the Cut badge on the
+      // row, never by fading: dimming dropped the row's text below the
+      // contrast the rest of the app guarantees.
+      dashed: widget.isCut,
+      color: Theme.of(context).colorScheme.onSurface,
       child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 4),
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.xxs,
+            horizontal: AppSpacing.xs,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1547,7 +2112,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final draft = widget.draft;
     final figure = draft.toFigure();
     final hasMove = figure != null;
-    final renderer = FigureRenderer(widget.taxonomy);
+    final renderer = FigureRenderer(
+      widget.taxonomy,
+      userFigures: UserFiguresScope.catalogOf(context),
+    );
     String displaySummary({required bool verbose}) {
       return widget.canonicalizeDiscouragedTerms
           ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
@@ -1564,10 +2132,32 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             );
     }
 
-    final sentence = hasMove
-        ? displaySummary(verbose: false)
+    // A group not complete enough to save, said on its row as the Warnings
+    // card says it (AUTH-2), so the row is not mistaken for part of the dance.
+    final incomplete = draft.isIncomplete;
+    final compound = draft.compound;
+    final resolve = widget.resolveCompound;
+    // A placeholder that cannot expand is saved as its name alone (#709).
+    final compoundUnavailable =
+        compound != null &&
+        (resolve == null || expandPlaceholder(compound, resolve) == null);
+    final sentence = compound != null
+        ? capitalizeFirstLetter(
+            _compoundSummary(l10n, compound),
+            capitalize: CapitalizeFiguresScope.of(context),
+          )
+        : hasMove
+        ? capitalizeFirstLetter(
+            displaySummary(verbose: false),
+            capitalize: CapitalizeFiguresScope.of(context),
+          )
         : l10n.danceEditorEmptyFigureSummary;
-    final spoken = hasMove
+    final spoken = compound != null
+        ? l10n.danceEditorCompoundSemantic(
+            _compoundSummary(l10n, compound),
+            compoundUnavailable ? 'yes' : 'no',
+          )
+        : hasMove
         ? displaySummary(verbose: true)
         : l10n.danceEditorEmptyFigureSemantic;
     final note = draft.note.trim();
@@ -1582,7 +2172,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         : '';
     final noteDiscouraged =
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
-    final beatsLabel = l10n.danceFigureBeats(draft.beats);
+    // In bars for an English dance (ADR-006 §5.5).
+    final beatsLabel = timingLabel(context, draft.beats);
     // Parser-gap custom (#398/#419): a *custom* figure the parser could not
     // map, whether from import or a locally-typed free-text line. Guarded on
     // the custom move (like figure_table.dart / perform_card.dart) so a
@@ -1599,7 +2190,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // Screen-reader composite: "A1, neighbors balance and swing, progression,
     // 16 beats, note: smooth swing. Figure 3 of 12."
     final main = labelText.isEmpty ? spoken : '$labelText, $spoken';
-    final composite = l10n.danceEditorFigureSummarySemantic(
+    final summarySemantic = l10n.danceEditorFigureSummarySemantic(
       main,
       isImportGap ? 'yes' : 'no',
       l10n.importGapMessage,
@@ -1611,6 +2202,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.index + 1,
       widget.totalCount,
     );
+    final withIncomplete = incomplete
+        ? '$summarySemantic ${l10n.danceEditorIncompleteFigure}'
+        : summarySemantic;
+    final composite = widget.isCut
+        ? '$withIncomplete ${l10n.danceEditorFigureCutState}'
+        : withIncomplete;
 
     final summaryContent = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1625,9 +2222,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               key: _key('summary'),
               canRequestFocus: false,
               onTap: widget.onActivate,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppShapes.borderRadiusSmall,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.xs,
+                  horizontal: AppSpacing.xxs,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1669,24 +2269,82 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            sentence,
-                            style: hasMove
-                                ? theme.textTheme.bodyLarge
-                                : theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontStyle: FontStyle.italic,
+                          if (compound != null)
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.only(
+                                    end: AppSpacing.xxs,
                                   ),
-                          ),
+                                  child: Icon(
+                                    Icons.person_outline,
+                                    size: 16,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    sentence,
+                                    style: theme.textTheme.bodyLarge,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              sentence,
+                              style: hasMove
+                                  ? theme.textTheme.bodyLarge
+                                  : theme.textTheme.bodyLarge?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                            ),
+                          if (widget.isCut)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.xxxs,
+                              ),
+                              child: Row(
+                                key: _key('cut-badge'),
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.content_cut, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    l10n.danceEditorFigureCutState,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (compoundUnavailable)
+                            Text(
+                              l10n.danceEditorCompoundUnavailable,
+                              key: _key('compound-unavailable'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          if (incomplete)
+                            Text(
+                              l10n.danceEditorIncompleteFigure,
+                              key: _key('incomplete'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
                           if (hasNote)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.xxxs,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (noteDiscouraged) ...[
                                     Icon(
-                                      Icons.warning_amber,
+                                      Icons.warning_amber_outlined,
                                       size: 13,
                                       color: theme.colorScheme.error,
                                     ),
@@ -1715,14 +2373,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     if (isImportGap) ...[
                       const SizedBox(width: 8),
                       const Padding(
-                        padding: EdgeInsets.only(top: 2),
+                        padding: EdgeInsets.only(top: AppSpacing.xxxs),
                         child: ImportGapBadge(),
                       ),
                     ],
                     if (hasMove) ...[
                       const SizedBox(width: 8),
                       Padding(
-                        padding: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.only(top: AppSpacing.xxxs),
                         child: Text(
                           beatsLabel,
                           textAlign: TextAlign.end,
@@ -1760,13 +2418,30 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 color: focused ? theme.colorScheme.primary : Colors.transparent,
                 width: 2,
               ),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppShapes.borderRadiusSmall,
             ),
             child: child,
           );
         },
       ),
     );
+  }
+
+  /// A placeholder's one-line summary: the compound's name in the dialect and
+  /// the value it gives each parameter, in the order they are declared.
+  String _compoundSummary(AppLocalizations l10n, CompoundPlaceholder compound) {
+    final name = FigureRenderer(
+      widget.taxonomy,
+    ).renderFreeText(compound.name, widget.dialect);
+    final definition = widget.resolveCompound?.call(compound.id);
+    if (definition == null || definition.params.isEmpty) return name;
+    final values = compoundArgumentsText(
+      l10n,
+      definition,
+      compound.args,
+      widget.dialect,
+    );
+    return l10n.danceEditorCompoundSummary(name, values);
   }
 
   Widget _buildDragHandle(BuildContext context) {
@@ -1776,7 +2451,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       // reorderable and cut/paste modes.
       return const Icon(Icons.drag_handle, size: 20, color: Colors.transparent);
     }
-    final figureName = _figureDisplayName(widget.draft, widget.taxonomy, l10n);
+    final figureName = _figureDisplayName(
+      widget.draft,
+      widget.taxonomy,
+      l10n,
+      widget.dialect,
+      UserFiguresScope.catalogOf(context),
+    );
     return ReorderableDragStartListener(
       index: widget.index,
       child: Semantics(
@@ -1790,8 +2471,26 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    final figureName = _figureDisplayName(draft, widget.taxonomy, l10n);
+    final figureName = _figureDisplayName(
+      draft,
+      widget.taxonomy,
+      l10n,
+      widget.dialect,
+      UserFiguresScope.catalogOf(context),
+    );
+    // The first enabled item takes focus when the menu opens; later items get
+    // none.
+    var firstItemClaimed = false;
+    FocusNode? firstEnabled(VoidCallback? onPressed) {
+      if (onPressed == null || firstItemClaimed) return null;
+      firstItemClaimed = true;
+      return _menuFirstItemFocusNode;
+    }
+
     return MenuAnchor(
+      onOpen: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _menuFirstItemFocusNode.requestFocus();
+      }),
       builder: (context, controller, child) => IconButton(
         key: _key('menu'),
         icon: const Icon(Icons.more_vert),
@@ -1802,18 +2501,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       menuChildren: [
         MenuItemButton(
           key: _key('move-up'),
+          focusNode: firstEnabled(widget.onMoveUp),
           onPressed: widget.onMoveUp,
           leadingIcon: const Icon(Icons.arrow_upward, size: 18),
           child: Text(l10n.danceEditorMoveUp),
         ),
         MenuItemButton(
           key: _key('move-down'),
+          focusNode: firstEnabled(widget.onMoveDown),
           onPressed: widget.onMoveDown,
           leadingIcon: const Icon(Icons.arrow_downward, size: 18),
           child: Text(l10n.danceEditorMoveDown),
         ),
         MenuItemButton(
           key: _key('cut'),
+          focusNode: firstEnabled(widget.onCut),
           onPressed: widget.onCut,
           leadingIcon: const Icon(Icons.content_cut, size: 18),
           child: Text(l10n.danceEditorCut),
@@ -1821,13 +2523,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onDuplicate != null)
           MenuItemButton(
             key: _key('duplicate'),
+            focusNode: firstEnabled(widget.onDuplicate),
             onPressed: widget.onDuplicate,
-            leadingIcon: const Icon(Icons.copy, size: 18),
+            leadingIcon: const Icon(Icons.copy_outlined, size: 18),
             child: Text(l10n.commonDuplicate),
           ),
         if (widget.onGroupWithNext != null)
           MenuItemButton(
             key: _key('group-with-next'),
+            focusNode: firstEnabled(widget.onGroupWithNext),
             onPressed: widget.onGroupWithNext,
             leadingIcon: const Icon(Icons.call_split, size: 18),
             child: Text(l10n.danceEditorGroupWithNext),
@@ -1835,13 +2539,23 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onGroupWithNextAsModifier != null)
           MenuItemButton(
             key: _key('group-with-next-modifier'),
+            focusNode: firstEnabled(widget.onGroupWithNextAsModifier),
             onPressed: widget.onGroupWithNextAsModifier,
             leadingIcon: const Icon(Icons.tune, size: 18),
             child: Text(l10n.danceEditorGroupWithNextAsModifier),
           ),
+        if (widget.onGroupWithNextAsSequence != null)
+          MenuItemButton(
+            key: _key('group-with-next-sequence'),
+            focusNode: firstEnabled(widget.onGroupWithNextAsSequence),
+            onPressed: widget.onGroupWithNextAsSequence,
+            leadingIcon: const Icon(Icons.format_list_numbered, size: 18),
+            child: Text(l10n.danceEditorGroupWithNextAsSequence),
+          ),
         if (widget.onConvertToMeanwhile != null)
           MenuItemButton(
             key: _key('convert-to-meanwhile'),
+            focusNode: firstEnabled(widget.onConvertToMeanwhile),
             onPressed: widget.onConvertToMeanwhile,
             leadingIcon: const Icon(Icons.sync_alt, size: 18),
             child: Text(l10n.danceEditorConvertToMeanwhile),
@@ -1849,23 +2563,34 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onConvertToModifier != null)
           MenuItemButton(
             key: _key('convert-to-modifier'),
+            focusNode: firstEnabled(widget.onConvertToModifier),
             onPressed: widget.onConvertToModifier,
             leadingIcon: const Icon(Icons.tune, size: 18),
             child: Text(l10n.danceEditorConvertToModifier),
           ),
+        if (widget.onConvertToSequence != null)
+          MenuItemButton(
+            key: _key('convert-to-sequence'),
+            focusNode: firstEnabled(widget.onConvertToSequence),
+            onPressed: widget.onConvertToSequence,
+            leadingIcon: const Icon(Icons.format_list_numbered, size: 18),
+            child: Text(l10n.danceEditorConvertToSequence),
+          ),
         if (widget.onUngroupContainer != null)
           MenuItemButton(
             key: _key('ungroup-container'),
+            focusNode: firstEnabled(widget.onUngroupContainer),
             onPressed: widget.onUngroupContainer,
             leadingIcon: const Icon(Icons.call_merge, size: 18),
-            child: Text(
-              draft.isModifierGroup
-                  ? l10n.danceEditorUngroupModifier
-                  : l10n.danceEditorUngroupMeanwhile,
-            ),
+            child: Text(switch (draft.containerKind) {
+              modifierMove => l10n.danceEditorUngroupModifier,
+              sequenceMove => l10n.danceEditorUngroupSequence,
+              _ => l10n.danceEditorUngroupMeanwhile,
+            }),
           ),
         MenuItemButton(
           key: _key('toggle-progression'),
+          focusNode: firstEnabled(_toggleProgression),
           onPressed: _toggleProgression,
           leadingIcon: Icon(
             draft.progression ? Icons.flag : Icons.outlined_flag,
@@ -1879,6 +2604,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
         MenuItemButton(
           key: _key('delete'),
+          focusNode: firstEnabled(widget.onDelete),
           onPressed: widget.onDelete,
           leadingIcon: Icon(
             Icons.delete_outline,
@@ -1899,7 +2625,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final theme = Theme.of(context);
     final draft = widget.draft;
     if (draft.isContainerDraft) {
-      return _buildContainerEditor(context);
+      return _withoutUntimed(context, _buildContainerEditor(context));
+    }
+    if (draft.isCompoundPlaceholder) {
+      return _buildCompoundEditor(context);
+    }
+    if (isUserFigureDraft(draft)) {
+      return _buildUserFigureEditor(context);
     }
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
@@ -1933,14 +2665,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1958,11 +2693,22 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 initialText: moveText,
                 autofocus: move == null || move == _standStillMove,
                 includeModifier: widget.allowModifierSelection,
-                onSelected: (option) => option.kind == MoveOptionKind.modifier
-                    ? _selectModifier()
-                    : _selectMove(option.id),
-                onCustomSubmitted: _createCustom,
+                includeSequence: widget.allowModifierSelection,
+                sequenceOptionLabel: AppLocalizations.of(
+                  context,
+                ).danceEditorSequenceOptionLabel,
+                includeCustomMove: widget.allowCustom,
+                compoundOptions: _compoundPickerOptions(),
+                compoundMarkerLabel: AppLocalizations.of(
+                  context,
+                ).glossaryCustomMarker,
+                onSelected: _onMoveOptionSelected,
+                onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
+                submitsAsText: widget.allowCustom
+                    ? widget.isShorthandToken
+                    : null,
                 onCleared: _clearMove,
+                commitOnBlur: true,
               ),
               if (def != null) ...[
                 const SizedBox(height: 12),
@@ -1981,6 +2727,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       // while a missing one is seeded. A manual override is
                       // still respected.
                       _applyNonBeatsParamChange('text', v);
+                      // Rewriting the text is authoring it: the line is no
+                      // longer one the parser could not read, so it loses the
+                      // "couldn't parse" badge and Re-check leaves it alone.
+                      draft.customOrigin = CustomOrigin.userEntered;
                       widget.onChanged();
                     },
                   ),
@@ -2018,270 +2768,652 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  // --- Structural container editor (#590/#593/#1198) ------------------------
+  // --- Compound placeholder editor (#709) -----------------------------------
 
-  /// Expanded editor for a structural container draft: one shared Beats field
-  /// (the container's single count — never per-child) followed by each
-  /// ordered child editor, an add-child control (capped at
-  /// [kMaxMeanwhileSides]), and per-child move/remove controls. Ordinary
-  /// children use [_MeanwhileSideEditor]; a legal opposite-kind nested
-  /// container is delegated to a nested [FigureListEditor].
-  Widget _buildContainerEditor(BuildContext context) {
+  /// Expanded editor for a compound placeholder: the move picker (to replace
+  /// it), one editor per parameter the compound declares, offering only the
+  /// values [allowedValues] admits, what it expands to, and the progression
+  /// mark and note. A placeholder has no walkthrough or wording override.
+  Widget _buildCompoundEditor(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    final sides = draft.meanwhileSides ?? draft.modifierFigures!;
-    final isModifier = draft.isModifierGroup;
-    final keyPrefix = '${widget.keyPrefix}-${widget.index}';
+    final compound = draft.compound!;
+    final resolve = widget.resolveCompound;
+    final definition = resolve?.call(compound.id);
+    final expanded = resolve == null
+        ? null
+        : expandPlaceholder(compound, resolve);
+    final name = FigureRenderer(
+      widget.taxonomy,
+    ).renderFreeText(compound.name, widget.dialect);
     return Focus(
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MoveAutocomplete(
+                key: _key('move'),
+                fieldKey: 'figure-${widget.index}-move',
+                taxonomy: widget.taxonomy,
+                dialect: widget.dialect,
+                initialText: name,
+                // A placeholder is never a container's child, so the
+                // options would only discard it.
+                includeModifier: false,
+                includeCustomMove: widget.allowCustom,
+                compoundOptions: _compoundPickerOptions(),
+                compoundMarkerLabel: l10n.glossaryCustomMarker,
+                onSelected: _onMoveOptionSelected,
+                onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
+                submitsAsText: widget.allowCustom
+                    ? widget.isShorthandToken
+                    : null,
+                onCleared: _clearMove,
+                commitOnBlur: true,
+              ),
+              if (definition != null)
+                for (final param in definition.params) ...[
+                  const SizedBox(height: 8),
+                  _buildCompoundArgument(definition, param),
+                ],
+              const SizedBox(height: 8),
+              Text(
+                expanded == null
+                    ? l10n.danceEditorCompoundUnavailable
+                    : l10n.danceEditorCompoundExpandsTo(
+                        expanded.length,
+                        CompoundDefinition.beatsOf(expanded, widget.taxonomy),
+                      ),
+                key: _key('compound-status'),
+                style: expanded == null
+                    ? theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      )
+                    : theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              _buildProgressionToggle(context),
+              const SizedBox(height: 8),
+              _buildNote(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The editor for one of a placeholder's arguments.
+  Widget _buildCompoundArgument(
+    CompoundDefinition definition,
+    CompoundParam param,
+  ) {
+    final compound = widget.draft.compound!;
+    return CompoundArgumentEditor(
+      keyPrefix: 'figure-${widget.index}-compound',
+      definition: definition,
+      param: param,
+      value: compound.args[param.key],
+      dialect: widget.dialect,
+      mixer: widget.mixer,
+      taxonomy: widget.taxonomy,
+      onChanged: (value) {
+        compound.args[param.key] = value;
+        _refreshCompoundBeats();
+        widget.onChanged();
+      },
+    );
+  }
+
+  // --- Use of one of the user's own figures (#1023) -------------------------
+
+  /// Expanded editor for a use of one of the user's own figures: the move
+  /// picker (to replace it), one editor per parameter the figure declares,
+  /// its beats, and the progression mark and note. Its line is the figure's
+  /// wording, so it has no line of its own to edit, and no walkthrough or
+  /// wording override.
+  Widget _buildUserFigureEditor(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final view = UserFiguresScope.catalogOf(context)[userFigureIdOf(draft)!];
+    final name = _userEntryRenderer.renderFreeText(
+      view?.name ?? (draft.params['text'] as String?) ?? '',
+      widget.dialect,
+    );
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: _handleEditorKey,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: AppShapes.borderRadiusSmall,
+            color: theme.colorScheme.surfaceContainerLow,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MoveAutocomplete(
+                key: _key('move'),
+                fieldKey: 'figure-${widget.index}-move',
+                taxonomy: widget.taxonomy,
+                dialect: widget.dialect,
+                initialText: name,
+                includeModifier: widget.allowModifierSelection,
+                includeSequence: widget.allowModifierSelection,
+                sequenceOptionLabel: AppLocalizations.of(
+                  context,
+                ).danceEditorSequenceOptionLabel,
+                includeCustomMove: widget.allowCustom,
+                compoundOptions: _compoundPickerOptions(),
+                compoundMarkerLabel: l10n.glossaryCustomMarker,
+                onSelected: _onMoveOptionSelected,
+                onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
+                submitsAsText: widget.allowCustom
+                    ? widget.isShorthandToken
+                    : null,
+                onCleared: _clearMove,
+                commitOnBlur: true,
+              ),
+              const SizedBox(height: 12),
+              UserFigureUseEditor(
+                key: _key('user-figure-${draft.id}'),
+                keyPrefix: 'figure-${widget.index}-userFigure',
+                params: draft.params,
+                dialect: widget.dialect,
+                mixer: widget.mixer,
+                onChanged: (next) {
+                  if (next['beats'] != draft.params['beats']) {
+                    draft.beatsTouched = true;
+                  }
+                  draft.params
+                    ..clear()
+                    ..addAll(next);
+                  widget.onChanged();
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildProgressionToggle(context),
+              const SizedBox(height: 8),
+              _buildNote(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Timing in bars (ADR-006 §5.5) -----------------------------------------
+
+  /// [child], a step of this sequence when [isSequence], with its count
+  /// optional where the sequence states a span of its own
+  /// ([FigureDraft.sequenceSpanStated]). Unchanged outside bar timing.
+  Widget _withStepTiming(BuildContext context, bool isSequence, Widget child) {
+    final scope = BarTimingScope.maybeOf(context);
+    if (!isSequence || scope == null) return child;
+    return scope.withUntimed(widget.draft.sequenceSpanStated, child: child);
+  }
+
+  /// [child], a group's editor, where a count may not be left empty even
+  /// when the group is a step of a sequence with a span: the group's own
+  /// count is its timing, and only its own sequence steps
+  /// ([_withStepTiming]) may go untimed.
+  Widget _withoutUntimed(BuildContext context, Widget child) {
+    final scope = BarTimingScope.maybeOf(context);
+    if (scope == null || !scope.allowsUntimed) return child;
+    return scope.withUntimed(false, child: child);
+  }
+
+  /// An English dance's sequence ([BarTimingScope]): the bars it spans, which
+  /// may be left empty to count its steps, as a contra sequence does. With a
+  /// span, its steps may go untimed, and the steps that do carry timing are
+  /// checked against it (`ecdSequenceSpanIssue`).
+  Widget _buildSequenceSpan(
+    BuildContext context,
+    String keyPrefix,
+    int beatLimit,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scope = BarTimingScope.maybeOf(context)!;
+    final draft = widget.draft;
+    final steps = draft.sequenceFigures ?? const <FigureDraft>[];
+    final timed = steps.where((step) => !step.untimed).toList();
+    final stepsTotal = timed.fold(0, (sum, step) => sum + step.beats);
+    final spanStated = draft.sequenceSpanStated;
+    final allTimed = timed.length == steps.length;
+    final mismatch =
+        spanStated &&
+        timed.isNotEmpty &&
+        !(allTimed ? stepsTotal == draft.beats : stepsTotal < draft.beats);
+    final errorStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.error,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        BarsField(
+          fieldKey: '$keyPrefix-sequence-span',
+          label: l10n.danceEditorSequenceSpanLabel,
+          beats: spanStated ? draft.beats : null,
+          beatsPerBar: scope.beatsPerBar,
+          allowsUntimed: true,
+          emptyHint: timingLabel(context, draft.beats),
+          onChanged: (beats) {
+            draft.setSequenceSpan(beats);
+            widget.onChanged();
+          },
+        ),
+        const SizedBox(height: 4),
+        Text(
+          spanStated
+              ? l10n.danceEditorSequenceSpanHelp
+              : l10n.danceEditorSequenceSpanEmptyHelp,
+          style: theme.textTheme.bodySmall,
+        ),
+        if (mismatch)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Text(
+              allTimed
+                  ? l10n.danceEditorSequenceSpanMismatch(
+                      timingLabel(context, stepsTotal),
+                      timingLabel(context, draft.beats),
+                    )
+                  : l10n.danceEditorSequenceSpanNoRoom(
+                      timingLabel(context, stepsTotal),
+                      timingLabel(context, draft.beats),
+                    ),
+              key: ValueKey('$keyPrefix-sequence-span-mismatch'),
+              style: errorStyle,
+            ),
+          ),
+        if (draft.beats > beatLimit)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Text(
+              l10n.danceEditorSequenceOverPhraseTimed(
+                timingLabel(context, draft.beats),
+                timingLabel(context, beatLimit),
+              ),
+              key: ValueKey('$keyPrefix-sequence-over-phrase'),
+              style: errorStyle,
+            ),
+          ),
+      ],
+    );
+  }
+
+  // --- Structural container editor (#590/#593/#1198) ------------------------
+
+  /// Expanded editor for a structural container draft. A meanwhile or
+  /// modifier shows one shared Beats field (the container's single count —
+  /// never per-child); a sequence instead shows its total, the sum of its
+  /// steps' own Beats fields, and a warning once that total is longer than a
+  /// phrase of [_FigureDraftCard.phraseStructure]. An English sequence timed
+  /// in bars ([BarTimingScope]) shows its own span field instead
+  /// ([_buildSequenceSpan]). Then come each ordered child
+  /// editor, an add-child control (capped at the kind's
+  /// [maxContainerChildren], and for a sequence hidden once a phrase is full),
+  /// and per-child move/remove controls. Ordinary children use
+  /// [_MeanwhileSideEditor]; a legal other-kind nested container is delegated
+  /// to a nested [FigureListEditor].
+  Widget _buildContainerEditor(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final kind = draft.containerKind!;
+    final sides = draft.containerChildren!;
+    final isModifier = kind == modifierMove;
+    final isSequence = kind == sequenceMove;
+    final keyPrefix = '${widget.keyPrefix}-${widget.index}';
+    final cap = maxContainerChildren(kind);
+    final beatLimit = widget.phraseStructure.longestPhraseBeats;
+    // With a span of its own, a sequence may take another untimed step
+    // however much of the phrase the span fills: only its timed steps count.
+    final phraseFull =
+        isSequence &&
+        (draft.sequenceSpanStated
+                ? sides.fold(0, (sum, step) => sum + step.beats)
+                : draft.beats) >=
+            beatLimit;
+    String childLabel(int i) => isModifier
+        ? i == 0
+              ? l10n.danceEditorModifierCoreLabel
+              : l10n.danceEditorModifierChildLabel
+        : isSequence
+        ? l10n.danceEditorSequenceStepLabel(i + 1)
+        : l10n.danceEditorMeanwhileSideLabel(i + 1);
+    String childSemantic(int i) => isModifier
+        ? i == 0
+              ? l10n.danceEditorModifierCoreSemantic
+              : l10n.danceEditorModifierChildSemantic(i + 1, sides.length)
+        : isSequence
+        ? l10n.danceEditorSequenceStepSemantic(i + 1, sides.length)
+        : l10n.danceEditorMeanwhileSideSemantic(i + 1, sides.length);
+    String removeTooltip(int i) => isModifier
+        ? i == 0
+              ? l10n.danceEditorRemoveModifierCore
+              : l10n.danceEditorRemoveModifierChild
+        : isSequence
+        ? l10n.danceEditorRemoveSequenceStep
+        : l10n.danceEditorRemoveMeanwhileSide;
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: _handleEditorKey,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: AppShapes.borderRadiusSmall,
+            color: theme.colorScheme.surfaceContainerLow,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Semantics(
             container: true,
-            label: isModifier
-                ? l10n.danceEditorModifierGroupSemantic(
-                    draft.beats,
-                    sides.length,
-                  )
-                : l10n.danceEditorMeanwhileGroupSemantic(
-                    sides.length,
-                    draft.beats,
-                  ),
+            label: switch (kind) {
+              modifierMove => l10n.danceEditorModifierGroupSemantic(
+                draft.beats,
+                sides.length,
+              ),
+              sequenceMove => l10n.danceEditorSequenceGroupSemantic(
+                sides.length,
+                draft.beats,
+              ),
+              _ => l10n.danceEditorMeanwhileGroupSemantic(
+                sides.length,
+                draft.beats,
+              ),
+            },
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Icon(
-                      Icons.call_split,
+                      isSequence
+                          ? Icons.format_list_numbered
+                          : Icons.call_split,
                       size: 18,
                       color: theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        isModifier
-                            ? l10n.danceEditorModifierGroupLabel(sides.length)
-                            : l10n.danceEditorMeanwhileGroupLabel(sides.length),
-                        style: theme.textTheme.titleSmall,
-                      ),
+                      child: Text(switch (kind) {
+                        modifierMove => l10n.danceEditorModifierGroupLabel(
+                          sides.length,
+                        ),
+                        sequenceMove => l10n.danceEditorSequenceGroupLabel(
+                          sides.length,
+                        ),
+                        _ => l10n.danceEditorMeanwhileGroupLabel(sides.length),
+                      }, style: theme.textTheme.titleSmall),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                // The SINGLE shared beats field — this is the container's own
-                // `params['beats']`, not any side's. Sides never show their
-                // own beats field (see [_MeanwhileSideEditor]), so there is
-                // only ever one beats control visible for the whole group.
-                FigureParamEditor(
-                  keyPrefix:
-                      '$keyPrefix-${isModifier ? 'modifier' : 'meanwhile'}',
-                  paramKey: 'beats',
-                  spec: const ParamSpec(ParamKind.beats, defaultValue: 0),
-                  dialect: widget.dialect,
-                  mixer: widget.mixer,
-                  value: draft.beats,
-                  onChanged: (v) {
-                    draft.params['beats'] = v;
-                    draft.beatsTouched = true;
+                // The group's optional name, shown before its figures
+                // ("flutterwheel - …"). Offered for every kind and at every
+                // level, since a nested group is built here too.
+                _ContainerTitleField(
+                  fieldKey: '$keyPrefix-container-title',
+                  value: draft.containerTitle,
+                  // Measured as Save stores it: role words canonicalized in
+                  // this dialect, as the dance editor's Save does.
+                  measure: (text) =>
+                      canonicalizeText(text.trim(), widget.dialect).length,
+                  onChanged: (text) {
+                    draft.containerTitle = text;
                     widget.onChanged();
                   },
                 ),
+                const SizedBox(height: 8),
+                if (isSequence && BarTimingScope.maybeOf(context) != null)
+                  _buildSequenceSpan(context, keyPrefix, beatLimit)
+                else if (isSequence) ...[
+                  // A sequence's count is its steps' counts added up: each
+                  // step edits its own, so there is no field here to edit.
+                  Text(
+                    l10n.danceEditorSequenceTotalBeats(draft.beats),
+                    key: ValueKey('$keyPrefix-sequence-beats'),
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  if (draft.beats > beatLimit)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.xxs),
+                      child: Text(
+                        l10n.danceEditorSequenceOverPhrase(
+                          draft.beats,
+                          beatLimit,
+                        ),
+                        key: ValueKey('$keyPrefix-sequence-over-phrase'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ),
+                ] else
+                  // The SINGLE shared beats field — this is the container's
+                  // own `params['beats']`, not any side's. Sides never show
+                  // their own beats field (see [_MeanwhileSideEditor]), so
+                  // there is only ever one beats control visible for the whole
+                  // group.
+                  FigureParamEditor(
+                    keyPrefix: '$keyPrefix-$kind',
+                    paramKey: 'beats',
+                    spec: const ParamSpec(ParamKind.beats, defaultValue: 0),
+                    dialect: widget.dialect,
+                    mixer: widget.mixer,
+                    value: draft.beats,
+                    onChanged: (v) {
+                      draft.params['beats'] = v;
+                      draft.beatsTouched = true;
+                      widget.onChanged();
+                    },
+                  ),
                 const SizedBox(height: 12),
                 if (widget.showWordingOverride) _buildWordingOverride(context),
                 for (var i = 0; i < sides.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: sides[i].isContainerDraft
-                        ? Semantics(
-                            container: true,
-                            label: isModifier && i == 0
-                                ? l10n.danceEditorModifierCoreSemantic
-                                : isModifier
-                                ? l10n.danceEditorModifierChildSemantic(
-                                    i + 1,
-                                    sides.length,
-                                  )
-                                : l10n.danceEditorMeanwhileSideSemantic(
-                                    i + 1,
-                                    sides.length,
+                  _withStepTiming(
+                    context,
+                    isSequence,
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                      child: sides[i].isContainerDraft
+                          ? Semantics(
+                              container: true,
+                              label: childSemantic(i),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          childLabel(i),
+                                          style: theme.textTheme.labelLarge,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        key: ValueKey(
+                                          '$keyPrefix-nested-$i-move-up',
+                                        ),
+                                        tooltip: l10n.danceEditorMoveUp,
+                                        icon: const Icon(
+                                          Icons.arrow_upward,
+                                          size: 18,
+                                        ),
+                                        onPressed: i == 0
+                                            ? null
+                                            : () => _reorderSide(i, i - 1),
+                                      ),
+                                      IconButton(
+                                        key: ValueKey(
+                                          '$keyPrefix-nested-$i-move-down',
+                                        ),
+                                        tooltip: l10n.danceEditorMoveDown,
+                                        icon: const Icon(
+                                          Icons.arrow_downward,
+                                          size: 18,
+                                        ),
+                                        onPressed: i == sides.length - 1
+                                            ? null
+                                            : () => _reorderSide(i, i + 1),
+                                      ),
+                                      IconButton(
+                                        key: ValueKey(
+                                          '$keyPrefix-nested-$i-remove',
+                                        ),
+                                        tooltip: removeTooltip(i),
+                                        icon: Icon(
+                                          Icons.remove_circle_outline,
+                                          size: 18,
+                                          color: theme.colorScheme.error,
+                                        ),
+                                        onPressed: () => _removeSide(i),
+                                      ),
+                                    ],
                                   ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        isModifier && i == 0
-                                            ? l10n.danceEditorModifierCoreLabel
-                                            : isModifier
-                                            ? l10n.danceEditorModifierChildLabel
-                                            : l10n.danceEditorMeanwhileSideLabel(
-                                                i + 1,
-                                              ),
-                                        style: theme.textTheme.labelLarge,
-                                      ),
+                                  FigureListEditor(
+                                    key: ValueKey(
+                                      'nested-container-${sides[i].id}',
                                     ),
-                                    IconButton(
-                                      key: ValueKey(
-                                        '$keyPrefix-nested-$i-move-up',
-                                      ),
-                                      tooltip: l10n.danceEditorMoveUp,
-                                      icon: const Icon(
-                                        Icons.arrow_upward,
-                                        size: 18,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: i == 0
-                                          ? null
-                                          : () => _reorderSide(i, i - 1),
-                                    ),
-                                    IconButton(
-                                      key: ValueKey(
-                                        '$keyPrefix-nested-$i-move-down',
-                                      ),
-                                      tooltip: l10n.danceEditorMoveDown,
-                                      icon: const Icon(
-                                        Icons.arrow_downward,
-                                        size: 18,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: i == sides.length - 1
-                                          ? null
-                                          : () => _reorderSide(i, i + 1),
-                                    ),
-                                    IconButton(
-                                      key: ValueKey(
-                                        '$keyPrefix-nested-$i-remove',
-                                      ),
-                                      tooltip: isModifier
-                                          ? i == 0
-                                                ? l10n.danceEditorRemoveModifierCore
-                                                : l10n.danceEditorRemoveModifierChild
-                                          : l10n.danceEditorRemoveMeanwhileSide,
-                                      icon: Icon(
-                                        Icons.remove_circle_outline,
-                                        size: 18,
-                                        color: theme.colorScheme.error,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: () => _removeSide(i),
-                                    ),
-                                  ],
-                                ),
-                                FigureListEditor(
-                                  key: ValueKey(
-                                    'nested-container-${sides[i].id}',
-                                  ),
-                                  drafts: [sides[i]],
-                                  taxonomy: widget.taxonomy,
-                                  phraseStructure: PhraseStructure.standard,
-                                  dialect: widget.dialect,
-                                  mixer: widget.mixer,
-                                  moveParamDefaults: widget.moveParamDefaults,
-                                  showWordingOverride:
-                                      widget.showWordingOverride,
-                                  onChanged: widget.onChanged,
-                                  onAdd: () {},
-                                  onDelete: (_) => _removeSide(i),
-                                  onCollapseMeanwhileGroup:
-                                      (groupDraft, remainingSide) =>
-                                          _collapseNestedContainer(
+                                    drafts: [sides[i]],
+                                    taxonomy: widget.taxonomy,
+                                    // Labels and totals are hidden below, but a
+                                    // nested sequence still fits one phrase of
+                                    // this dance.
+                                    phraseStructure: widget.phraseStructure,
+                                    dialect: widget.dialect,
+                                    mixer: widget.mixer,
+                                    moveParamDefaults: widget.moveParamDefaults,
+                                    showWordingOverride:
+                                        widget.showWordingOverride,
+                                    onChanged: _onSideChanged,
+                                    onAdd: () {},
+                                    onDelete: (_) => _removeSide(i),
+                                    onCollapseMeanwhileGroup:
+                                        (groupDraft, remainingSide) =>
+                                            _collapseNestedContainer(
+                                              sides,
+                                              i,
+                                              groupDraft,
+                                              remainingSide,
+                                            ),
+                                    // A nested container must remain another
+                                    // kind than its parent; converting it could
+                                    // create invalid same-kind nesting. Ungroup
+                                    // is the legal structural escape hatch for
+                                    // this menu.
+                                    onUngroupContainer:
+                                        _canUngroupNestedContainer(sides, i)
+                                        ? (nested) => _ungroupNestedContainer(
                                             sides,
                                             i,
-                                            groupDraft,
-                                            remainingSide,
-                                          ),
-                                  // A nested container must remain the
-                                  // opposite kind from its parent; converting
-                                  // it would create invalid same-kind nesting.
-                                  // Ungroup is the legal structural escape
-                                  // hatch for this menu.
-                                  onUngroupContainer:
-                                      _canUngroupNestedContainer(sides, i)
-                                      ? (nested) => _ungroupNestedContainer(
-                                          sides,
-                                          i,
-                                          nested,
-                                        )
-                                      : null,
-                                  allowNestedContainerSelection: false,
-                                  allowAdding: false,
-                                  allowDuplicating: false,
-                                  showPhraseStructure: false,
-                                  keyPrefix: '$keyPrefix-nested-$i',
-                                ),
-                              ],
+                                            nested,
+                                          )
+                                        : null,
+                                    allowNestedContainerSelection: false,
+                                    allowAdding: false,
+                                    allowDuplicating: false,
+                                    showPhraseStructure: false,
+                                    userFigureOptions: widget.userFigureOptions,
+                                    keyPrefix: '$keyPrefix-nested-$i',
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _MeanwhileSideEditor(
+                              key: ValueKey('meanwhile-side-${sides[i].id}'),
+                              keyPrefix: '$keyPrefix-side-$i',
+                              sideNumber: i + 1,
+                              totalSides: sides.length,
+                              role: isModifier
+                                  ? i == 0
+                                        ? _ChildRole.core
+                                        : _ChildRole.modifier
+                                  : isSequence
+                                  ? _ChildRole.step
+                                  : null,
+                              draft: sides[i],
+                              taxonomy: widget.taxonomy,
+                              dialect: widget.dialect,
+                              mixer: widget.mixer,
+                              moveParamDefaults: widget.moveParamDefaults,
+                              showWordingOverride: widget.showWordingOverride,
+                              userFigureOptions: widget.userFigureOptions,
+                              onChanged: _onSideChanged,
+                              includeModifier:
+                                  widget.allowModifierSelection &&
+                                  kind != modifierMove &&
+                                  widget.allowNestedContainerSelection,
+                              includeSequence:
+                                  widget.allowModifierSelection &&
+                                  kind != sequenceMove &&
+                                  widget.allowNestedContainerSelection,
+                              onMoveUp: i == 0
+                                  ? null
+                                  : () => _reorderSide(i, i - 1),
+                              onMoveDown: i == sides.length - 1
+                                  ? null
+                                  : () => _reorderSide(i, i + 1),
+                              onRemove: () => _removeSide(i),
                             ),
-                          )
-                        : _MeanwhileSideEditor(
-                            key: ValueKey('meanwhile-side-${sides[i].id}'),
-                            keyPrefix: '$keyPrefix-side-$i',
-                            sideNumber: i + 1,
-                            totalSides: sides.length,
-                            modifierRole: isModifier
-                                ? i == 0
-                                      ? _ModifierRole.core
-                                      : _ModifierRole.modifier
-                                : null,
-                            draft: sides[i],
-                            taxonomy: widget.taxonomy,
-                            dialect: widget.dialect,
-                            mixer: widget.mixer,
-                            moveParamDefaults: widget.moveParamDefaults,
-                            showWordingOverride: widget.showWordingOverride,
-                            onChanged: widget.onChanged,
-                            includeModifier:
-                                widget.allowModifierSelection &&
-                                !isModifier &&
-                                widget.allowNestedContainerSelection,
-                            onMoveUp: i == 0
-                                ? null
-                                : () => _reorderSide(i, i - 1),
-                            onMoveDown: i == sides.length - 1
-                                ? null
-                                : () => _reorderSide(i, i + 1),
-                            onRemove: () => _removeSide(i),
-                          ),
+                    ),
                   ),
-                if (sides.length < kMaxMeanwhileSides)
+                if (sides.length < cap && !phraseFull)
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       key: ValueKey('$keyPrefix-add-side'),
                       onPressed: _addSide,
                       icon: const Icon(Icons.add),
-                      label: Text(
-                        isModifier
-                            ? l10n.danceEditorAddModifierChild
-                            : l10n.danceEditorAddMeanwhileSide,
-                      ),
+                      label: Text(switch (kind) {
+                        modifierMove => l10n.danceEditorAddModifierChild,
+                        sequenceMove => l10n.danceEditorAddSequenceStep,
+                        _ => l10n.danceEditorAddMeanwhileSide,
+                      }),
                     ),
                   )
                 else
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text(
-                      isModifier
-                          ? l10n.danceEditorModifierChildrenCapReached(
-                              kMaxMeanwhileSides,
-                            )
-                          : l10n.danceEditorMeanwhileSidesCapReached(
-                              kMaxMeanwhileSides,
-                            ),
-                      key: ValueKey(
-                        '$keyPrefix-${isModifier ? 'modifier' : 'meanwhile'}-cap',
-                      ),
+                      sides.length < cap
+                          ? l10n.danceEditorSequencePhraseFull(beatLimit)
+                          : switch (kind) {
+                              modifierMove =>
+                                l10n.danceEditorModifierChildrenCapReached(cap),
+                              sequenceMove =>
+                                l10n.danceEditorSequenceStepsCapReached(cap),
+                              _ => l10n.danceEditorMeanwhileSidesCapReached(
+                                cap,
+                              ),
+                            },
+                      key: ValueKey('$keyPrefix-$kind-cap'),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.error,
                       ),
@@ -2295,11 +3427,24 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  /// Appends a fresh blank side, capped at [kMaxMeanwhileSides] — the add-side
-  /// button is already hidden at the cap, so this is a defensive no-op guard.
+  /// A side of this group changed: the group's shared count follows its
+  /// sides until the caller types one (AUTH-11, [FigureDraft.syncContainerBeats]).
+  void _onSideChanged() {
+    widget.draft.syncContainerBeats();
+    widget.onChanged();
+  }
+
+  /// Appends a fresh blank child, capped at the kind's [maxContainerChildren]
+  /// and, for a sequence, refused once its steps fill a phrase — the add
+  /// button is already hidden then, so this is a defensive no-op guard.
   void _addSide() {
-    final sides = widget.draft.meanwhileSides ?? widget.draft.modifierFigures!;
-    if (sides.length >= kMaxMeanwhileSides) return;
+    final draft = widget.draft;
+    final sides = draft.containerChildren!;
+    if (sides.length >= maxContainerChildren(draft.containerKind!)) return;
+    if (draft.isSequenceGroup &&
+        draft.beats >= widget.phraseStructure.longestPhraseBeats) {
+      return;
+    }
     sides.add(FigureDraft());
     widget.onChanged();
   }
@@ -2319,10 +3464,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// silently no-op on those hosts (#679 review).
   void _removeSide(int index) {
     final draft = widget.draft;
-    final sides = draft.meanwhileSides ?? draft.modifierFigures!;
+    final sides = draft.containerChildren!;
     if (index < 0 || index >= sides.length) return;
     if (sides.length <= 2) {
       final remaining = sides[index == 0 ? 1 : 0];
+      // A step that leaves a span takes its default count (ADR-006 §5.5).
+      remaining.timeIfUntimed();
       final onCollapse = widget.onCollapseMeanwhileGroup;
       if (onCollapse != null) {
         onCollapse(draft, remaining);
@@ -2337,8 +3484,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ..customOrigin = remaining.customOrigin
         ..walkthroughOverride = remaining.walkthroughOverride
         ..wordingOverride = remaining.wordingOverride
-        ..meanwhileSides = null
-        ..modifierFigures = null;
+        ..setContainer(null, null);
       draft.params
         ..clear()
         ..addAll(remaining.params);
@@ -2346,27 +3492,40 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       return;
     }
     sides.removeAt(index);
-    widget.onChanged();
+    _onSideChanged();
   }
 
   /// Reorders a side within the group (up/down buttons only — sides don't get
   /// their own drag handle to avoid nesting a second reorderable region inside
   /// the outer [ReorderableListView]).
   void _reorderSide(int oldIndex, int newIndex) {
-    final sides = widget.draft.meanwhileSides ?? widget.draft.modifierFigures!;
+    final sides = widget.draft.containerChildren!;
     final side = sides.removeAt(oldIndex);
     sides.insert(newIndex, side);
-    widget.onChanged();
+    _onSideChanged();
   }
 
+  /// Whether the nested container at [index] can be replaced by its own
+  /// children: they must fit this container's child cap and, when this is a
+  /// sequence, a phrase — a nested meanwhile's children count their own
+  /// beats once they become steps.
   bool _canUngroupNestedContainer(List<FigureDraft> sides, int index) {
     if (index < 0 || index >= sides.length) return false;
     final nested = sides[index];
     if (!nested.isContainerDraft) return false;
-    final children = nested.meanwhileSides ?? nested.modifierFigures;
-    return children != null &&
-        children.length >= 2 &&
-        sides.length - 1 + children.length <= kMaxMeanwhileSides;
+    final children = nested.containerChildren;
+    if (children == null ||
+        children.length < 2 ||
+        sides.length - 1 + children.length >
+            maxContainerChildren(widget.draft.containerKind!)) {
+      return false;
+    }
+    if (!widget.draft.isSequenceGroup) return true;
+    final beats =
+        widget.draft.beats -
+        nested.beats +
+        children.fold(0, (sum, child) => sum + child.beats);
+    return beats <= widget.phraseStructure.longestPhraseBeats;
   }
 
   void _ungroupNestedContainer(
@@ -2380,13 +3539,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         !_canUngroupNestedContainer(sides, index)) {
       return;
     }
-    final children = List<FigureDraft>.of(
-      nested.meanwhileSides ?? nested.modifierFigures!,
-    );
+    final children = List<FigureDraft>.of(nested.containerChildren!);
     sides
       ..removeAt(index)
       ..insertAll(index, children);
-    widget.onChanged();
+    _onSideChanged();
   }
 
   void _collapseNestedContainer(
@@ -2400,13 +3557,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         !identical(sides[index], groupDraft)) {
       return;
     }
-    if (!remainingSide.canNestInContainer(
-      modifierParent: widget.draft.isModifierGroup,
-    )) {
+    if (!remainingSide.canNestInContainer(widget.draft.containerKind!)) {
       return;
     }
     sides[index] = remainingSide;
-    widget.onChanged();
+    _onSideChanged();
   }
 
   /// Read-only editor panel for a figure whose move is unknown to the active
@@ -2427,14 +3582,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2481,7 +3639,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildParams(BuildContext context, MoveDef def) {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    var entries = def.params.entries.toList();
+    // A fraction's `amount` (#2120) is read only while the fraction is
+    // `other`, so it is offered only then; core's `applyParamChange` seeds it
+    // when `other` is picked and drops it when a named fraction is.
+    var entries = def.params.entries
+        .where((e) => !hidesFractionAmount(e.key, draft.params))
+        .toList();
     // issue #576: hey's `meetTarget` is meaningful only for the two partial
     // lengths — surface it in the editor ONLY when `length ∈ {lessThanHalf,
     // betweenHalfAndFull}`, so the field never appears for half/full heys (and
@@ -2502,7 +3665,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // v30 (#989): a promenade's `where` gates two other params' relevance:
     // - `direction` (rotation sense) is meaningless once `where` leaves the
     //   across/along plane (`in`/`out`/`up`/`down`) — hidden here, and reset
-    //   to the sentinel by `_applyNonBeatsParamChange` the moment `where`
+    //   to the sentinel by core's `applyParamChange` the moment `where`
     //   changes to one of those, so the field can never go stale-but-hidden.
     // - `destination` renders nowhere once `where == 'across'` (the renderer's
     //   `where != 'across'` gate, matching Ask 2) — hidden here too, so the
@@ -2529,10 +3692,22 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     }
     // Progressive disclosure: >3 params → first 3 inline, rest behind a
     // collapsed "More options" disclosure. ≤3 params → all inline, no toggle.
-    final hasMore = entries.length > 3;
-    final inline = hasMore ? entries.take(3).toList() : entries;
+    // A fraction's amount (#2120) stays in the same section as its fraction,
+    // so picking "other amount…" from an inline fraction (a poussette's)
+    // shows the stepper it reveals rather than hiding it behind the toggle.
+    var inlineCount = 3;
+    final fractionAt = entries.indexWhere((e) => e.key == 'fraction');
+    if (fractionAt >= 0 &&
+        fractionAt < inlineCount &&
+        fractionAt + 1 < entries.length &&
+        entries[fractionAt + 1].key == fractionAmountParam &&
+        fractionAt + 1 >= inlineCount) {
+      inlineCount = fractionAt + 2;
+    }
+    final hasMore = entries.length > inlineCount;
+    final inline = hasMore ? entries.take(inlineCount).toList() : entries;
     final extra = hasMore
-        ? entries.sublist(3)
+        ? entries.sublist(inlineCount)
         : const <MapEntry<String, ParamSpec>>[];
 
     Widget paramWrap(List<MapEntry<String, ParamSpec>> items) => Wrap(
@@ -2548,6 +3723,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             dialect: widget.dialect,
             mixer: widget.mixer,
             moveId: draft.move,
+            fractionAmountFollows: true,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'beats') {
@@ -2594,7 +3770,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
         if (_showMoreOptions)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: paramWrap(extra),
           ),
       ],
@@ -2769,6 +3945,27 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 }
 
+/// The id a figure of the move [picked] is stored under as it is entered:
+/// [picked] itself, unless its entry params, with the user's saved
+/// [defaults] for it, route it to the other half of an inverse pair
+/// ([Taxonomy.resolvedMoveId]). Forward and back does unless a default names
+/// another formation, since its default formation is long lines, so picking
+/// it starts a long lines (taxonomy v39).
+String _storedMoveIdForPick(
+  Taxonomy taxonomy,
+  String picked,
+  Map<String, Object?>? defaults,
+) => taxonomy.resolvedMoveId(
+  Figure(
+    move: picked,
+    params: {
+      ...taxonomy.entryParams(picked),
+      for (final MapEntry(:key, :value) in (defaults ?? const {}).entries)
+        if (!skipsMoveDefault(key, value)) key: value,
+    },
+  ),
+);
+
 void _rerouteInversePair(FigureDraft draft, Taxonomy taxonomy) {
   final move = draft.move;
   if (move == null) return;
@@ -2821,22 +4018,27 @@ void wrapSelectionWith(TextEditingController controller, String delimiter) {
 // _MeanwhileSideEditor (#590/#593)
 // ---------------------------------------------------------------------------
 
-enum _ModifierRole { core, modifier }
+/// A child's place in its container, for its label and semantics: a
+/// modifier's core or one of its modifiers, or a sequence's step. Null for a
+/// meanwhile side.
+enum _ChildRole { core, modifier, step }
 
 /// Editor for ONE ordinary child of a structural container: a move-picker +
 /// param editors + note, reusing the same widgets [_FigureDraftCard] uses for
 /// a top-level figure, but with its own key namespace (so a container's
-/// children never collide with the outer row's keys). It has NO "group"/beats
+/// children never collide with the outer row's keys). It has NO "group"
 /// affordances of its own — nested containers are rendered by a nested
-/// [FigureListEditor], and an ordinary child's `beats` is display-only because
-/// the parent container's shared beats field is authoritative.
+/// [FigureListEditor]. A meanwhile side's or modifier child's `beats` is
+/// display-only, because the parent container's shared beats field is
+/// authoritative, so it is not shown; a sequence step's is its share of the
+/// sequence's total, so it is ([_ChildRole.step]).
 class _MeanwhileSideEditor extends StatefulWidget {
   const _MeanwhileSideEditor({
     super.key,
     required this.keyPrefix,
     required this.sideNumber,
     required this.totalSides,
-    this.modifierRole,
+    this.role,
     required this.draft,
     required this.taxonomy,
     required this.dialect,
@@ -2844,6 +4046,8 @@ class _MeanwhileSideEditor extends StatefulWidget {
     this.moveParamDefaults,
     this.showWordingOverride = false,
     this.includeModifier = false,
+    this.includeSequence = false,
+    this.userFigureOptions,
     required this.onChanged,
     this.onMoveUp,
     this.onMoveDown,
@@ -2856,7 +4060,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
   /// 1-based position among the group's sides (for labels/semantics).
   final int sideNumber;
   final int totalSides;
-  final _ModifierRole? modifierRole;
+  final _ChildRole? role;
   final FigureDraft draft;
   final Taxonomy taxonomy;
   final Dialect dialect;
@@ -2867,6 +4071,11 @@ class _MeanwhileSideEditor extends StatefulWidget {
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool showWordingOverride;
   final bool includeModifier;
+  final bool includeSequence;
+
+  /// See [FigureListEditor.userFigureOptions].
+  final List<UserGlossaryEntry>? userFigureOptions;
+
   final VoidCallback onChanged;
 
   /// Null when this side is already first/last within the group.
@@ -2890,13 +4099,18 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         widget.draft.wordingOverride?.trim().isNotEmpty ?? false;
   }
 
-  void _selectMove(String moveId) {
+  void _selectMove(String picked) {
+    final moveId = _storedMoveIdForPick(
+      widget.taxonomy,
+      picked,
+      widget.moveParamDefaults?[picked],
+    );
     final draft = widget.draft;
     if (draft.move == moveId) return;
     draft.move = moveId;
     draft.params
       ..clear()
-      ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+      ..addAll(widget.taxonomy.entryParams(moveId));
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
     draft.wordingOverride = null;
@@ -2907,17 +4121,24 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     // for a role the default just replaced. Seed the role-implied hand
     // afterward, from the now-final `who` — unless the saved default itself
     // named an explicit `hand`, which must win.
+    if (moveId != picked) _applyMoveParamDefaults(picked);
     _applyMoveParamDefaults(moveId);
     final chainOverrides = widget.moveParamDefaults?[moveId];
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
-      _seedChainHand(moveId, draft.params);
+      seedChainHand(moveId, draft.params);
     }
     widget.onChanged();
   }
 
-  void _selectModifier() {
-    _initializeModifierContainer(widget.draft);
+  void _selectContainer(String kind) {
+    _initializeContainer(widget.draft, kind);
     widget.onChanged();
+  }
+
+  void _selectUserFigure(String entryId) {
+    if (selectUserFigure(widget.draft, entryId, widget.userFigureOptions)) {
+      widget.onChanged();
+    }
   }
 
   void _createCustom(String text) {
@@ -2931,6 +4152,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.beatsTouched = false;
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
+    draft.wordingOverride = null;
     _applyMoveParamDefaults(customMove);
     draft.params['text'] = trimmed;
     widget.onChanged();
@@ -2943,7 +4165,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     if (schema == null) return;
     final draft = widget.draft;
     for (final entry in overrides.entries) {
-      if (schema.containsKey(entry.key)) {
+      if (schema.containsKey(entry.key) &&
+          !skipsMoveDefault(entry.key, entry.value)) {
         draft.params[entry.key] = entry.value;
         if (entry.key == 'beats') draft.beatsTouched = true;
       }
@@ -3014,17 +4237,30 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final draft = widget.draft;
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
+    final userFigureId = userFigureIdOf(draft);
+    final userFigure = userFigureId == null
+        ? null
+        : UserFiguresScope.catalogOf(context)[userFigureId];
     final moveText = move == null
         ? ''
+        : userFigureId != null
+        ? _userEntryRenderer.renderFreeText(
+            userFigure?.name ?? (draft.params['text'] as String?) ?? '',
+            widget.dialect,
+          )
         : FigureRenderer(
             widget.taxonomy,
           ).displayMoveName(move, widget.dialect, params: draft.params);
 
     return Semantics(
       container: true,
-      label: switch (widget.modifierRole) {
-        _ModifierRole.core => l10n.danceEditorModifierCoreSemantic,
-        _ModifierRole.modifier => l10n.danceEditorModifierChildSemantic(
+      label: switch (widget.role) {
+        _ChildRole.core => l10n.danceEditorModifierCoreSemantic,
+        _ChildRole.modifier => l10n.danceEditorModifierChildSemantic(
+          widget.sideNumber,
+          widget.totalSides,
+        ),
+        _ChildRole.step => l10n.danceEditorSequenceStepSemantic(
           widget.sideNumber,
           widget.totalSides,
         ),
@@ -3034,10 +4270,10 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         ),
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.xs),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppShapes.borderRadiusSmall,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3045,10 +4281,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             Row(
               children: [
                 Expanded(
-                  child: Text(switch (widget.modifierRole) {
-                    _ModifierRole.core => l10n.danceEditorModifierCoreLabel,
-                    _ModifierRole.modifier =>
-                      l10n.danceEditorModifierChildLabel,
+                  child: Text(switch (widget.role) {
+                    _ChildRole.core => l10n.danceEditorModifierCoreLabel,
+                    _ChildRole.modifier => l10n.danceEditorModifierChildLabel,
+                    _ChildRole.step => l10n.danceEditorSequenceStepLabel(
+                      widget.sideNumber,
+                    ),
                     null => l10n.danceEditorMeanwhileSideLabel(
                       widget.sideNumber,
                     ),
@@ -3058,22 +4296,20 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                   key: ValueKey('${widget.keyPrefix}-move-up'),
                   tooltip: l10n.danceEditorMoveUp,
                   icon: const Icon(Icons.arrow_upward, size: 18),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onMoveUp,
                 ),
                 IconButton(
                   key: ValueKey('${widget.keyPrefix}-move-down'),
                   tooltip: l10n.danceEditorMoveDown,
                   icon: const Icon(Icons.arrow_downward, size: 18),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onMoveDown,
                 ),
                 IconButton(
                   key: ValueKey('${widget.keyPrefix}-remove'),
-                  tooltip: switch (widget.modifierRole) {
-                    _ModifierRole.core => l10n.danceEditorRemoveModifierCore,
-                    _ModifierRole.modifier =>
-                      l10n.danceEditorRemoveModifierChild,
+                  tooltip: switch (widget.role) {
+                    _ChildRole.core => l10n.danceEditorRemoveModifierCore,
+                    _ChildRole.modifier => l10n.danceEditorRemoveModifierChild,
+                    _ChildRole.step => l10n.danceEditorRemoveSequenceStep,
                     null => l10n.danceEditorRemoveMeanwhileSide,
                   },
                   icon: Icon(
@@ -3081,7 +4317,6 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                     size: 18,
                     color: theme.colorScheme.error,
                   ),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onRemove,
                 ),
               ],
@@ -3094,15 +4329,44 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               initialText: moveText,
               autofocus: false,
               includeModifier: widget.includeModifier,
-              onSelected: (option) => option.kind == MoveOptionKind.modifier
-                  ? _selectModifier()
-                  : _selectMove(option.id),
+              includeSequence: widget.includeSequence,
+              sequenceOptionLabel: l10n.danceEditorSequenceOptionLabel,
+              compoundOptions: _userEntryPickerOptions(
+                widget.userFigureOptions,
+                MoveOptionKind.userFigure,
+                widget.dialect,
+              ),
+              compoundMarkerLabel: l10n.glossaryCustomMarker,
+              onSelected: (option) => switch (option.kind) {
+                MoveOptionKind.modifier => _selectContainer(modifierMove),
+                MoveOptionKind.sequence => _selectContainer(sequenceMove),
+                MoveOptionKind.userFigure => _selectUserFigure(option.id),
+                _ => _selectMove(option.id),
+              },
               onCustomSubmitted: _createCustom,
               onCleared: _clearMove,
+              commitOnBlur: true,
             ),
             if (def != null) ...[
               const SizedBox(height: 8),
-              if (draft.move == customMove)
+              if (userFigureId != null)
+                // A meanwhile or modifier owns the beats, as for any side; a
+                // sequence's step keeps its own.
+                UserFigureUseEditor(
+                  key: ValueKey('${widget.keyPrefix}-user-figure-${draft.id}'),
+                  keyPrefix: '${widget.keyPrefix}-userFigure',
+                  params: draft.params,
+                  dialect: widget.dialect,
+                  mixer: widget.mixer,
+                  showBeats: widget.role == _ChildRole.step,
+                  onChanged: (next) {
+                    draft.params
+                      ..clear()
+                      ..addAll(next);
+                    widget.onChanged();
+                  },
+                )
+              else if (draft.move == customMove)
                 _LingoCustomTextField(
                   key: ValueKey('${widget.keyPrefix}-text-${draft.id}'),
                   fieldKey: '${widget.keyPrefix}-text',
@@ -3111,11 +4375,35 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                   value: (draft.params['text'] as String?) ?? '',
                   onChanged: (v) {
                     draft.params['text'] = v;
+                    // Authored, as for a row's own text: see above.
+                    draft.customOrigin = CustomOrigin.userEntered;
                     widget.onChanged();
                   },
                 )
               else if (def.params.isNotEmpty)
                 _buildSideParams(context, def),
+              // A free-text step of a sequence owns its count, as a
+              // top-level custom row does (#795): its beats add into the
+              // sequence's total, so they are shown. A meanwhile side or
+              // modifier child stays hidden — the group's count rules.
+              if (draft.move == customMove &&
+                  userFigureId == null &&
+                  widget.role == _ChildRole.step)
+                if (def.params['beats'] case final beatsSpec?) ...[
+                  const SizedBox(height: 8),
+                  FigureParamEditor(
+                    keyPrefix: widget.keyPrefix,
+                    paramKey: 'beats',
+                    spec: beatsSpec,
+                    dialect: widget.dialect,
+                    mixer: widget.mixer,
+                    value: _shownStepBeats(context, beatsSpec),
+                    onChanged: (v) {
+                      _setStepBeats(v);
+                      widget.onChanged();
+                    },
+                  ),
+                ],
               const SizedBox(height: 8),
               _buildSideNote(context),
               if (widget.showWordingOverride)
@@ -3127,14 +4415,45 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     );
   }
 
-  /// Same param editors as a top-level figure, EXCEPT `beats` — a side's own
-  /// beats is display-only (the group's shared count is authoritative), so
-  /// showing an editable-but-ignored field here would be a confusing dead
-  /// control. Hidden rather than disabled.
+  /// The count a sequence step's field shows: none for a step with no timing
+  /// of its own, where its sequence states a span ([BarTimingScope]), else
+  /// its own or [spec]'s default.
+  Object? _shownStepBeats(BuildContext context, ParamSpec spec) {
+    final draft = widget.draft;
+    if (draft.untimed &&
+        (BarTimingScope.maybeOf(context)?.allowsUntimed ?? false)) {
+      return null;
+    }
+    return draft.params['beats'] ?? spec.defaultValue;
+  }
+
+  /// Sets a sequence step's count to [value], a number of beats, or with
+  /// null leaves it with no timing of its own. Either is the caller's own,
+  /// so nothing fills it in afterwards.
+  void _setStepBeats(Object? value) {
+    final draft = widget.draft;
+    if (value is int) {
+      draft.params['beats'] = value;
+    } else {
+      draft.params.remove('beats');
+    }
+    draft.beatsTouched = true;
+  }
+
+  /// Same param editors as a top-level figure, EXCEPT `beats` for a meanwhile
+  /// side or modifier child — its own beats is display-only (the group's
+  /// shared count is authoritative), so showing an editable-but-ignored field
+  /// here would be a confusing dead control. Hidden rather than disabled. A
+  /// sequence step shows `beats`, which counts toward the sequence's total,
+  /// and its other edits reconcile beats as a top-level figure's do.
   Widget _buildSideParams(BuildContext context, MoveDef def) {
     final draft = widget.draft;
+    final isStep = widget.role == _ChildRole.step;
     final entries = def.params.entries
-        .where((e) => e.key != 'beats')
+        .where((e) => isStep || e.key != 'beats')
+        // As for a top-level figure: the amount only while `other`, and the
+        // fraction rule below keeps `other` with one (#2120).
+        .where((e) => !hidesFractionAmount(e.key, draft.params))
         .toList(growable: false);
     if (entries.isEmpty) return const SizedBox.shrink();
     return Wrap(
@@ -3150,16 +4469,53 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             dialect: widget.dialect,
             mixer: widget.mixer,
             moveId: draft.move,
-            value: draft.params[entry.key] ?? entry.value.defaultValue,
+            fractionAmountFollows: true,
+            value: isStep && entry.key == 'beats'
+                ? _shownStepBeats(context, entry.value)
+                : draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
-              draft.params[entry.key] = v;
+              if (isStep) {
+                if (entry.key == 'beats') {
+                  _setStepBeats(v);
+                } else {
+                  final keepUntimed = draft.untimed && draft.beatsTouched;
+                  draft.move = applyParamChange(
+                    widget.taxonomy,
+                    move: draft.move!,
+                    params: draft.params,
+                    key: entry.key,
+                    value: v,
+                    beatsTouched: draft.beatsTouched,
+                    aggressiveBeats:
+                        draft.beatsTouched &&
+                        AggressiveBeatsUpdateScope.of(context),
+                  );
+                  // As in [_applyNonBeatsParamChange]: an untimed step
+                  // stays untimed.
+                  if (keepUntimed) draft.params.remove('beats');
+                }
+                widget.onChanged();
+                return;
+              }
+              // A fraction and its amount follow the same rule as a
+              // top-level figure's (#2120): `other` is never stored without
+              // an amount. Beats are left alone, as the container's count.
+              if (!applyFractionAmountChange(
+                widget.taxonomy,
+                move: draft.move!,
+                params: draft.params,
+                key: entry.key,
+                value: v,
+              )) {
+                draft.params[entry.key] = v;
+              }
               // #976: a `who` edit on a chain rewrites its role-implied
               // hand, mirroring ContraDB's `chainChange` (figure.js:256-263)
               // — an explicit hand set for the OLD role must not silently
               // survive onto the new one.
               if (draft.move == 'chain' && entry.key == 'who') {
-                _seedChainHand('chain', draft.params);
+                seedChainHand('chain', draft.params);
               }
               _rerouteInversePair(draft, widget.taxonomy);
               widget.onChanged();
@@ -3227,8 +4583,6 @@ class _EmphasisToolbar extends StatelessWidget {
           onPressed: () => _apply('*'),
           icon: const Icon(Icons.format_bold, size: 18),
           tooltip: l10n.danceEditorBoldTooltip,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
         ),
         IconButton(
@@ -3236,8 +4590,6 @@ class _EmphasisToolbar extends StatelessWidget {
           onPressed: () => _apply('_'),
           icon: const Icon(Icons.format_underlined, size: 18),
           tooltip: l10n.danceEditorUnderlineTooltip,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
         ),
       ],
@@ -3343,11 +4695,11 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
         // WCAG requirement not to rely on visual styling alone.
         if (hint != null)
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: AppSpacing.xxxs),
             child: Row(
               children: [
                 Icon(
-                  Icons.warning_outlined,
+                  Icons.warning_amber_outlined,
                   size: 13,
                   color: Theme.of(context).colorScheme.error,
                 ),
@@ -3568,6 +4920,72 @@ class _SnippetFieldState extends State<_SnippetField> {
   }
 }
 
+/// The optional title of a meanwhile, modifier or sequence group: one line,
+/// held by [ContainerTitleLengthLimit] to what the model stores
+/// ([kMaxContainerTitleLength] UTF-16 code units after Save's role-word
+/// canonicalization, which [measure] computes), so Save never cuts what the
+/// field shows. Blank means no title.
+class _ContainerTitleField extends StatefulWidget {
+  const _ContainerTitleField({
+    required this.fieldKey,
+    required this.value,
+    required this.measure,
+    required this.onChanged,
+  });
+
+  final String fieldKey;
+  final String value;
+  final int Function(String text) measure;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_ContainerTitleField> createState() => _ContainerTitleFieldState();
+}
+
+class _ContainerTitleFieldState extends State<_ContainerTitleField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(_ContainerTitleField old) {
+    super.didUpdateWidget(old);
+    if (widget.value != old.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return TextField(
+      key: ValueKey(widget.fieldKey),
+      controller: _controller,
+      maxLines: 1,
+      inputFormatters: [ContainerTitleLengthLimit(measure: widget.measure)],
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        labelText: l10n.danceEditorGroupTitleLabel,
+        helperText: l10n.danceEditorGroupTitleHelper,
+        helperMaxLines: 3,
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: widget.onChanged,
+    );
+  }
+}
+
 /// A display-only wording override for one figure occurrence. Text is stored
 /// live for autosave/undo, while [onCommit] normalizes it when focus leaves.
 class _WordingOverrideField extends StatefulWidget {
@@ -3656,7 +5074,7 @@ class _WordingOverrideFieldState extends State<_WordingOverrideField> {
         ),
         if (widget.preview.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               l10n.danceEditorWordingOverridePreview(widget.preview),
               key: ValueKey('${widget.fieldKey}-preview'),
@@ -3689,7 +5107,7 @@ class _BeatSummary extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final mismatch = totalBeats != expectedBeats;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -3697,17 +5115,17 @@ class _BeatSummary extends StatelessWidget {
             l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
             key: _key('beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           if (mismatch)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Row(
                 key: _key('beats-warning'),
                 children: [
                   Icon(
-                    Icons.warning_amber,
+                    Icons.warning_amber_outlined,
                     size: 16,
                     color: theme.colorScheme.tertiary,
                   ),
@@ -3732,3 +5150,26 @@ class _BeatSummary extends StatelessWidget {
     );
   }
 }
+
+final FigureRenderer _userEntryRenderer = FigureRenderer(
+  shippedTaxonomies.anyForm,
+);
+
+/// The user's [entries] (compounds or new figures, by [kind]) as move-picker
+/// options, named and found by their keywords in [dialect].
+List<MoveOption> _userEntryPickerOptions(
+  List<UserGlossaryEntry>? entries,
+  MoveOptionKind kind,
+  Dialect dialect,
+) => [
+  for (final entry in entries ?? const <UserGlossaryEntry>[])
+    MoveOption(
+      id: entry.id,
+      displayName: _userEntryRenderer.renderFreeText(entry.name, dialect),
+      kind: kind,
+      searchTerms: [
+        for (final k in entry.keywords)
+          _userEntryRenderer.renderFreeText(k, dialect),
+      ],
+    ),
+];

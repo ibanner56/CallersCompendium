@@ -3,8 +3,8 @@
 *Roadmap item 1.2 · surveyed 2026-07-10 from github.com/contradb/contra @ `13f38a5`.*
 
 ContraDB (Rails, by David Morse, 2015–2022, now unmaintained) is the strongest
-prior art for structured figures + dialect. **License: AGPL-3.0 — identical to
-ours**, so we may reuse code and design with attribution; the figure taxonomy
+prior art for structured figures + dialect. **License: AGPL-3.0 — the same
+licence family as ours (AGPL-3.0-only)**, so we may reuse code and design with attribution; the figure taxonomy
 itself is factual domain vocabulary and freely adoptable.
 
 ## Figure model
@@ -98,6 +98,17 @@ itself is factual domain vocabulary and freely adoptable.
 - **Execution is a full in-memory scan in Ruby** — no SQL/index support; the
   known scalability ceiling. The expression model is worth keeping; the
   evaluator should run against an indexed store.
+- **Title/choreographer leaves are case-insensitive substring matches with
+  exact punctuation** (verified live 2026-10-08): `Eleanor's` does not find
+  `Eleanor’s Reel`, and `%`, `_` and `.` are literal. The stored titles are
+  mixed: of 2,411 readable titles, 286 apostrophes are ASCII `'` and 17 are
+  `’` (U+2019; no `‘`); 5 double quotes are ASCII and one title is wrapped in
+  `“…”`; there are no en/em dashes and ellipses are `...`. So the app searches
+  text containing a quote in both spellings (`contraDbTitleQueryVariants`) and
+  merges the rows. Non-ASCII query text is accepted as raw UTF-8 or as `\u`
+  escapes alike. Four rows (offsets 383, 1297, 1298 and 1591 of an unfiltered
+  `titleA` listing) make the endpoint answer HTTP 500 for any page that
+  includes them.
 
 ## Pitfalls to avoid (their design debt)
 

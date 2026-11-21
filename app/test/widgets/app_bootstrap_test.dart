@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/migration_guard.dart';
+import 'package:compendium_app/src/update/retirement_banner.dart'
+    show kReleasesPageUrl;
 import 'package:compendium_app/src/widgets/app_bootstrap.dart';
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 
+import '../support/fake_url_launcher.dart';
 import '../support/l10n_harness.dart';
 
 /// No-op reset callbacks for tests that don't exercise the below-floor screen.
@@ -33,6 +39,7 @@ void main() {
 
     // Migration still running: loading, content gated.
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(BrandMark), findsOneWidget);
     expect(find.text('Collection ready'), findsNothing);
 
     completer.complete();
@@ -65,13 +72,68 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('Could not prepare the collection'),
+      find.textContaining("Couldn't prepare your library"),
       findsOneWidget,
     );
     expect(find.text('Collection ready'), findsNothing);
+    // The brand mark replaces the generic Material error glyph.
+    expect(find.byType(BrandMark), findsOneWidget);
+    expect(find.byIcon(Icons.error_outline), findsNothing);
 
-    await tester.tap(find.text('Retry'));
+    await tester.tap(find.text('Try again'));
     expect(retried, isTrue);
+  });
+
+  testWidgets('Copy details scrubs the stack the way CrashFallback does', (
+    tester,
+  ) async {
+    String? clipboardText;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          clipboardText = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    final completer = Completer<void>();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: AppBootstrap(
+          future: completer.future,
+          onRetry: () {},
+          onBackUpAndReset: _noopReset,
+          onResetOnly: _noopReset,
+          builder: (_) => const Text('Collection ready'),
+        ),
+      ),
+    );
+
+    completer.completeError(
+      StateError('boom'),
+      StackTrace.fromString(
+        '#0      Db.open (file:///home/jane.doe/src/app/lib/db.dart:12:3)\n'
+        '#1      main (package:compendium_app/main.dart:4:1)\n',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bootstrap-copy-details')));
+    await tester.pumpAndSettle();
+
+    expect(clipboardText, isNotNull);
+    expect(clipboardText, contains('StateError'));
+    expect(clipboardText, contains('Db.open'));
+    expect(clipboardText, contains('package:compendium_app/main.dart'));
+    expect(clipboardText, isNot(contains('jane.doe')));
   });
 
   testWidgets('a downgrade error shows update guidance and no Retry', (
@@ -98,12 +160,20 @@ void main() {
 
     expect(
       find.text(
-        'This data was created by a newer version of Caller\u2019s Compendium '
-        '\u2014 please update the app.',
+        'This data was created by a newer version of Caller\'s Compendium. '
+        'Update the app, then reopen it.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Retry'), findsNothing);
+    // Both versions are shown, so the caller can see how far behind the app is.
+    expect(
+      find.text(
+        'Your data uses storage format 12. This version of the app reads up '
+        'to format 9.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Try again'), findsNothing);
     expect(find.text('Collection ready'), findsNothing);
   });
 
@@ -141,17 +211,45 @@ void main() {
         findsOneWidget,
       );
       // Body mentions the bridge tag.
-      expect(find.textContaining('v0.1.0-beta.6'), findsOneWidget);
+      expect(find.textContaining('Install v0.1.0-beta.6'), findsOneWidget);
+      // Recovering the data is the primary action: a filled button naming
+      // the bridge build.
+      final getBridge = find.byKey(const ValueKey('bootstrap-get-bridge'));
+      expect(getBridge, findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.text('Get v0.1.0-beta.6'),
+          matching: find.bySubtype<FilledButton>(),
+        ),
+        findsOneWidget,
+      );
+      // The two resets abandon the data, so they are outlined buttons under
+      // their own 'Start fresh instead' label, below the primary action.
+      final startFresh = find.text('Start fresh instead');
+      expect(startFresh, findsOneWidget);
+      for (final label in ['Back up + reset', 'Reset only']) {
+        final button = find.widgetWithText(OutlinedButton, label);
+        expect(button, findsOneWidget, reason: label);
+        expect(
+          tester.getTopLeft(button).dy,
+          greaterThan(tester.getBottomLeft(startFresh).dy),
+          reason: '$label sits under Start fresh instead',
+        );
+      }
+      expect(
+        tester.getTopLeft(startFresh).dy,
+        greaterThan(tester.getBottomLeft(getBridge).dy),
+      );
       // The content is gated.
       expect(find.text('Collection ready'), findsNothing);
       // No Retry: retrying cannot apply retired migration steps.
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
       // Both reset buttons are present.
-      expect(find.text('Back Up + Reset'), findsOneWidget);
-      expect(find.text('Reset Only'), findsOneWidget);
+      expect(find.text('Back up + reset'), findsOneWidget);
+      expect(find.text('Reset only'), findsOneWidget);
 
-      // Tapping Back Up + Reset fires the callback.
-      await tester.tap(find.text('Back Up + Reset'));
+      // Tapping Back up + reset fires the callback.
+      await tester.tap(find.text('Back up + reset'));
       expect(backUpAndResetCalled, isTrue);
       expect(resetOnlyCalled, isFalse);
     },
@@ -193,17 +291,20 @@ void main() {
       await tester.pumpAndSettle();
 
       // Both buttons start enabled.
-      final backUpButton = find.widgetWithText(FilledButton, 'Back Up + Reset');
-      final resetButton = find.widgetWithText(OutlinedButton, 'Reset Only');
+      final backUpButton = find.widgetWithText(
+        OutlinedButton,
+        'Back up + reset',
+      );
+      final resetButton = find.widgetWithText(OutlinedButton, 'Reset only');
       expect(
-        tester.widget<FilledButton>(backUpButton).onPressed,
+        tester.widget<OutlinedButton>(backUpButton).onPressed,
         isNotNull,
-        reason: 'Back Up + Reset should be enabled before any tap',
+        reason: 'Back up + reset should be enabled before any tap',
       );
       expect(
         tester.widget<OutlinedButton>(resetButton).onPressed,
         isNotNull,
-        reason: 'Reset Only should be enabled before any tap',
+        reason: 'Reset only should be enabled before any tap',
       );
 
       // Tap — action is now in-flight (actionCompleter not yet resolved).
@@ -213,14 +314,14 @@ void main() {
 
       // While in-flight both buttons must be disabled (onPressed == null).
       expect(
-        tester.widget<FilledButton>(backUpButton).onPressed,
+        tester.widget<OutlinedButton>(backUpButton).onPressed,
         isNull,
-        reason: 'Back Up + Reset should be disabled while in-flight',
+        reason: 'Back up + reset should be disabled while in-flight',
       );
       expect(
         tester.widget<OutlinedButton>(resetButton).onPressed,
         isNull,
-        reason: 'Reset Only should be disabled while in-flight',
+        reason: 'Reset only should be disabled while in-flight',
       );
 
       // A second tap while disabled must not fire the callback again.
@@ -232,9 +333,9 @@ void main() {
       actionCompleter.complete();
       await tester.pumpAndSettle();
       expect(
-        tester.widget<FilledButton>(backUpButton).onPressed,
+        tester.widget<OutlinedButton>(backUpButton).onPressed,
         isNotNull,
-        reason: 'Back Up + Reset should be re-enabled after action completes',
+        reason: 'Back up + reset should be re-enabled after action completes',
       );
     },
   );
@@ -269,6 +370,9 @@ void main() {
     // Rebuild reports 1 of 4 dances done.
     progress.value = const DerivedRebuildProgress(completed: 1, total: 4);
     await tester.pump();
+
+    // The determinate branch keeps the brand mark too.
+    expect(find.byType(BrandMark), findsOneWidget);
 
     indicator = tester.widget<CircularProgressIndicator>(
       find.byType(CircularProgressIndicator),
@@ -310,5 +414,228 @@ void main() {
     );
     expect(indicator.value, isNull);
     expect(find.textContaining('Rebuilding search index'), findsNothing);
+  });
+
+  group('every terminal startup screen offers a way to report and get help', () {
+    final stack = StackTrace.fromString(
+      '#0      Db.open (file:///home/jane.doe/src/app/lib/db.dart:12:3)\n',
+    );
+    final cases = <String, ({Object error, List<String> detailLines})>{
+      'downgrade': (
+        error: const DatabaseDowngradeError(fileVersion: 12, appVersion: 9),
+        detailLines: [
+          'DatabaseDowngradeError',
+          'fileVersion: 12',
+          'appVersion: 9',
+        ],
+      ),
+      'below floor': (
+        error: const DatabaseBelowFloorError(
+          fileVersion: 5,
+          minSupportedVersion: 11,
+          bridgeTag: 'v0.1.0-beta.6',
+        ),
+        detailLines: [
+          'DatabaseBelowFloorError',
+          'fileVersion: 5',
+          'minSupportedVersion: 11',
+          'bridgeTag: v0.1.0-beta.6',
+        ],
+      ),
+      'snapshot aborted': (
+        error: MigrationSnapshotAborted(
+          SnapshotFailure(
+            fromVersion: 9,
+            toVersion: 12,
+            cause: SnapshotFailureCause.diskFull,
+            error: const FileSystemException(
+              'No space left on device',
+              '/home/jane.doe/backups',
+            ),
+          ),
+        ),
+        detailLines: [
+          'MigrationSnapshotAborted',
+          'cause: diskFull',
+          'fromVersion: 9',
+          'toVersion: 12',
+        ],
+      ),
+      'snapshot aborted, database in use': (
+        error: MigrationSnapshotAborted(
+          SnapshotFailure(
+            fromVersion: 12,
+            toVersion: 12,
+            cause: SnapshotFailureCause.databaseInUse,
+            error: const SnapshotDatabaseInUse('/home/jane.doe/compendium'),
+          ),
+        ),
+        detailLines: [
+          'MigrationSnapshotAborted',
+          'cause: databaseInUse',
+          'fromVersion: 12',
+          'toVersion: 12',
+        ],
+      ),
+      'relocation blocked': (
+        error: DatabaseRelocationBlocked(
+          DatabaseRelocationFailure.bothExist,
+          error: const FileSystemException('x', '/home/jane.doe/Documents'),
+          copies: [
+            DatabaseCopy(
+              location: DatabaseCopyLocation.documents,
+              bytes: 4096,
+              modified: DateTime(2026, 10, 6, 15, 14),
+            ),
+          ],
+        ),
+        detailLines: [
+          'DatabaseRelocationBlocked',
+          'reason: bothExist',
+          'copy: documents, 4096 bytes',
+        ],
+      ),
+    };
+
+    for (final entry in cases.entries) {
+      testWidgets('${entry.key}: Copy details, Releases link, no retry', (
+        tester,
+      ) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        final launcher = installFakeUrlLauncher();
+        final completer = Completer<void>();
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: AppBootstrap(
+              future: completer.future,
+              onRetry: () {},
+              onBackUpAndReset: _noopReset,
+              onResetOnly: _noopReset,
+              builder: (_) => const Text('Collection ready'),
+            ),
+          ),
+        );
+        completer.completeError(entry.value.error, stack);
+        await tester.pumpAndSettle();
+
+        // R2-check-again: terminal means terminal, whatever could clear.
+        expect(find.text('Try again'), findsNothing);
+        expect(find.textContaining('Check again'), findsNothing);
+        expect(find.text('Collection ready'), findsNothing);
+
+        await tester.tap(find.byKey(const ValueKey('bootstrap-copy-details')));
+        await tester.pumpAndSettle();
+        expect(clipboardText, isNotNull);
+        for (final line in entry.value.detailLines) {
+          expect(clipboardText, contains(line));
+        }
+        expect(clipboardText, contains('Db.open'));
+        // Neither the stack's home directory nor the error's own message (which
+        // can carry a path) reaches the clipboard.
+        expect(clipboardText, isNot(contains('jane.doe')));
+        expect(clipboardText, isNot(contains('No space left')));
+
+        if (entry.key == 'below floor') {
+          // Its way to help is the primary Get button, which opens the bridge
+          // build's release; the generic Releases link is not shown here.
+          expect(
+            find.byKey(const ValueKey('bootstrap-releases-link')),
+            findsNothing,
+          );
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('bootstrap-get-bridge')),
+          );
+          await tester.tap(find.byKey(const ValueKey('bootstrap-get-bridge')));
+          await tester.pumpAndSettle();
+          expect(launcher.launchedUrls, [
+            '$kReleasesPageUrl/tag/v0.1.0-beta.6',
+          ]);
+        } else {
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('bootstrap-releases-link')),
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('bootstrap-releases-link')),
+          );
+          await tester.pumpAndSettle();
+          expect(launcher.launchedUrls, [kReleasesPageUrl]);
+        }
+      });
+    }
+
+    testWidgets('below floor keeps both reset actions beside the new ones', (
+      tester,
+    ) async {
+      final completer = Completer<void>();
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: AppBootstrap(
+            future: completer.future,
+            onRetry: () {},
+            onBackUpAndReset: _noopReset,
+            onResetOnly: _noopReset,
+            builder: (_) => const Text('Collection ready'),
+          ),
+        ),
+      );
+      completer.completeError(cases['below floor']!.error);
+      await tester.pumpAndSettle();
+      expect(find.text('Back up + reset'), findsOneWidget);
+      expect(find.text('Reset only'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('bootstrap-copy-details')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the screens say a restart is needed after the fix', (
+      tester,
+    ) async {
+      // R2-check-again: with no Check again, the copy is what tells the caller
+      // the app has to be reopened.
+      for (final name in [
+        'downgrade',
+        'snapshot aborted',
+        'relocation blocked',
+      ]) {
+        final completer = Completer<void>();
+        await tester.pumpWidget(
+          MaterialApp(
+            key: UniqueKey(),
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: AppBootstrap(
+              future: completer.future,
+              onRetry: () {},
+              onBackUpAndReset: _noopReset,
+              onResetOnly: _noopReset,
+              builder: (_) => const Text('Collection ready'),
+            ),
+          ),
+        );
+        completer.completeError(cases[name]!.error);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('reopen'), findsWidgets, reason: name);
+      }
+    });
   });
 }

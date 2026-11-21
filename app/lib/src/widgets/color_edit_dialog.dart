@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_shapes.dart';
+import 'dirty_dialog_guard.dart';
 
 /// A lightweight, dependency-free color editor: a live swatch, a hex field, and
 /// R/G/B sliders. Returns the chosen [Color] (fully opaque) via
@@ -28,6 +30,7 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
   late int _g;
   late int _b;
   late final TextEditingController _hexController;
+  bool _hexInvalid = false;
 
   @override
   void initState() {
@@ -45,115 +48,173 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
     super.dispose();
   }
 
+  /// Whether the colour or the hex field differs from what the dialog opened
+  /// with. The hex field counts on its own: text typed but not yet submitted
+  /// differs from the colour's own hex.
+  bool _isDirty() {
+    final argb = widget.initial.toARGB32();
+    final initialRgb = argb & 0xFFFFFF;
+    final currentRgb = (_r << 16) | (_g << 8) | _b;
+    return currentRgb != initialRgb ||
+        _hexController.text.toUpperCase() != _hex;
+  }
+
   Color get _color => Color.fromARGB(0xFF, _r, _g, _b);
 
   String get _hex =>
       '#${((_r << 16) | (_g << 8) | _b).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
   void _syncHexField() {
+    _hexInvalid = false;
     _hexController.value = TextEditingValue(
       text: _hex,
       selection: TextSelection.collapsed(offset: _hex.length),
     );
   }
 
-  void _onHexSubmitted(String value) {
+  /// The RGB value of six hex digits (a leading `#` is allowed), or `null`
+  /// when [value] is not exactly that.
+  static int? _parseHex(String value) {
     final cleaned = value.replaceAll('#', '').trim();
-    if (cleaned.length == 6) {
-      final parsed = int.tryParse(cleaned, radix: 16);
-      if (parsed != null) {
-        setState(() {
-          _r = (parsed >> 16) & 0xFF;
-          _g = (parsed >> 8) & 0xFF;
-          _b = parsed & 0xFF;
-        });
-        _syncHexField();
-        return;
-      }
+    if (cleaned.length != 6) return null;
+    return int.tryParse(cleaned, radix: 16);
+  }
+
+  void _onHexSubmitted(String value) {
+    final parsed = _parseHex(value);
+    if (parsed != null) {
+      setState(() {
+        _r = (parsed >> 16) & 0xFF;
+        _g = (parsed >> 8) & 0xFF;
+        _b = parsed & 0xFF;
+        _hexInvalid = false;
+      });
     }
     // Reject invalid input by restoring the current color's hex.
     _syncHexField();
   }
 
+  /// Apply takes the colour the field shows, not only what was last submitted
+  /// with Enter: typing a hex value and pressing Apply used to apply the
+  /// previous colour. Text that is not a colour keeps the dialog open and says
+  /// why, rather than silently applying something else.
+  void _apply() {
+    final parsed = _parseHex(_hexController.text);
+    if (parsed == null) {
+      setState(() => _hexInvalid = true);
+      return;
+    }
+    Navigator.of(context).pop(Color(0xFF000000 | parsed));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 56,
-              decoration: BoxDecoration(
-                color: _color,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+    return DirtyDialogGuard(
+      listenable: _hexController,
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(widget.title),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: _color,
+                  borderRadius: AppShapes.borderRadiusMedium,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _hexController,
-              decoration: InputDecoration(
-                labelText: l10n.colorEditHexLabel,
-                prefixText: '',
-                border: const OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _hexController,
+                decoration: InputDecoration(
+                  labelText: l10n.colorEditHexLabel,
+                  prefixText: '',
+                  border: const OutlineInputBorder(),
+                  errorText: _hexInvalid ? l10n.colorEditHexInvalid : null,
+                ),
+                onChanged: (_) {
+                  if (_hexInvalid) setState(() => _hexInvalid = false);
+                },
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(7),
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F#]')),
+                ],
+                onSubmitted: _onHexSubmitted,
               ),
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(7),
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F#]')),
-              ],
-              onSubmitted: _onHexSubmitted,
-            ),
-            const SizedBox(height: 8),
-            _channel('R', _r, (v) {
-              setState(() => _r = v);
-              _syncHexField();
-            }),
-            _channel('G', _g, (v) {
-              setState(() => _g = v);
-              _syncHexField();
-            }),
-            _channel('B', _b, (v) {
-              setState(() => _b = v);
-              _syncHexField();
-            }),
-          ],
+              const SizedBox(height: 8),
+              _channel('R', l10n.colorEditChannelRed, _r, (v) {
+                setState(() => _r = v);
+                _syncHexField();
+              }),
+              _channel('G', l10n.colorEditChannelGreen, _g, (v) {
+                setState(() => _g = v);
+                _syncHexField();
+              }),
+              _channel('B', l10n.colorEditChannelBlue, _b, (v) {
+                setState(() => _b = v);
+                _syncHexField();
+              }),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(onPressed: _apply, child: Text(l10n.commonApply)),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_color),
-          child: Text(l10n.commonApply),
-        ),
-      ],
     );
   }
 
-  Widget _channel(String label, int value, ValueChanged<int> onChanged) {
-    return Row(
-      children: [
-        SizedBox(width: 18, child: Text(label)),
-        Expanded(
-          child: Slider(
-            value: value.toDouble(),
-            min: 0,
-            max: 255,
-            divisions: 255,
-            label: '$value',
-            onChanged: (v) => onChanged(v.round()),
+  /// One channel row: the one-letter visual [label], the [Slider], and the
+  /// numeric readout. Merged into a single semantics node so a screen reader
+  /// hears the full [channelName] on the slider itself ("Red, 128, 50%,
+  /// slider") rather than a detached "R" followed by an unnamed slider. The
+  /// readout is excluded because the slider already carries its value.
+  Widget _channel(
+    String label,
+    String channelName,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
+    return MergeSemantics(
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            child: Semantics(
+              label: channelName,
+              excludeSemantics: true,
+              child: Text(label),
+            ),
           ),
-        ),
-        SizedBox(width: 32, child: Text('$value', textAlign: TextAlign.end)),
-      ],
+          Expanded(
+            child: Slider(
+              value: value.toDouble(),
+              min: 0,
+              max: 255,
+              divisions: 255,
+              label: '$value',
+              onChanged: (v) => onChanged(v.round()),
+            ),
+          ),
+          ExcludeSemantics(
+            child: SizedBox(
+              width: 32,
+              child: Text('$value', textAlign: TextAlign.end),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

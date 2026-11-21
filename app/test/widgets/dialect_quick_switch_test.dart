@@ -16,8 +16,9 @@ class _ActiveDialectLabel extends StatelessWidget {
   const _ActiveDialectLabel();
 
   @override
-  Widget build(BuildContext context) =>
-      Text('active: ${ActiveDialectScope.of(context).name}');
+  Widget build(BuildContext context) => Text(
+    'active: ${ActiveDialectScope.of(context).forForm(DanceForm.contra).name}',
+  );
 }
 
 void main() {
@@ -49,12 +50,15 @@ void main() {
           supportedLocales: testSupportedLocales,
 
           home: DialectLibraryScope(
-            controller: controller,
+            libraries: DialectLibraries.withContra(controller),
             child: ActiveDialectScope(
               notifier: notifier,
               child: const Scaffold(
                 body: Column(
-                  children: [DialectQuickSwitch(), _ActiveDialectLabel()],
+                  children: [
+                    DialectQuickSwitch(form: DanceForm.contra),
+                    _ActiveDialectLabel(),
+                  ],
                 ),
               ),
             ),
@@ -124,10 +128,12 @@ void main() {
           supportedLocales: testSupportedLocales,
 
           home: DialectLibraryScope(
-            controller: controller,
+            libraries: DialectLibraries.withContra(controller),
             child: ActiveDialectScope(
               notifier: notifier,
-              child: const Scaffold(body: DialectQuickSwitch()),
+              child: const Scaffold(
+                body: DialectQuickSwitch(form: DanceForm.contra),
+              ),
             ),
           ),
         ),
@@ -141,4 +147,51 @@ void main() {
       expect(find.byIcon(Icons.translate), findsNothing);
     },
   );
+
+  testWidgets('session-local mode reports the choice and leaves the active '
+      'dialect alone (issue #1554)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.ensureMigrated();
+    final controller = DialectLibraryController(repos.settings);
+    await controller.load();
+    await controller.setActive(Dialect.larksRobins.name);
+    addTearDown(controller.dispose);
+
+    String? picked;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectLibraryScope(
+          libraries: DialectLibraries.withContra(controller),
+          child: Scaffold(
+            body: DialectQuickSwitch(
+              form: DanceForm.contra,
+              selectedName: Dialect.leadsFollows.name,
+              onSelected: (name) => picked = name,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+    await tester.pumpAndSettle();
+    // The check follows selectedName, not the app's active dialect.
+    expect(
+      tester
+          .widget<CheckedPopupMenuItem<String>>(
+            find.byKey(const ValueKey('dialect-quick-switch-Leads/Follows')),
+          )
+          .checked,
+      isTrue,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('dialect-quick-switch-Canonical')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(picked, Dialect.canonical.name);
+    expect(controller.activeName, Dialect.larksRobins.name);
+  });
 }

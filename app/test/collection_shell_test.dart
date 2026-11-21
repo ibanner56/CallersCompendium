@@ -3,10 +3,13 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
@@ -20,6 +23,7 @@ import 'package:compendium_app/src/search/collection_query.dart'
     show CollectionSort;
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
+import 'support/dance_detail_actions.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
@@ -110,6 +114,7 @@ Future<void> _pumpShell(
   UrlFetcher? urlFetcher,
   List<ImportSource>? importSources,
   PublishedCollectionService? publishedCollectionService,
+  CallersBoxOnline? callersBoxOnline,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -132,6 +137,7 @@ Future<void> _pumpShell(
         urlFetcher: urlFetcher,
         importSources: importSources,
         publishedCollectionService: publishedCollectionService,
+        callersBoxOnline: callersBoxOnline,
       ),
     ),
   );
@@ -174,6 +180,8 @@ void main() {
 
       // DanceDetailScreen pushed — list is no longer visible
       expect(find.byType(DanceDetailScreen), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
       expect(find.text('Push Me'), findsWidgets);
     });
@@ -191,8 +199,7 @@ void main() {
       await tester.tap(find.text('Delete Narrow'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Popped back to list; deleted dance gone
       expect(find.byType(DanceListScreen), findsOneWidget);
@@ -208,6 +215,8 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(600, 900));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceListScreen), findsNothing);
@@ -215,16 +224,82 @@ void main() {
 
       await tester.pageBack();
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceListScreen), findsNothing);
-      expect(find.text('Recently Deleted'), findsOneWidget);
+      expect(find.text('Recently deleted'), findsOneWidget);
     });
   });
 
   // ── wide layout ─────────────────────────────────────────────────────────────
 
   group('wide layout (≥ 900 px)', () {
+    // The split pane catches re-import failures itself, separately from the
+    // routed coordinator (#1907), so each typed failure is checked here too.
+    Future<void> reimportByLinkInSplitPane(
+      WidgetTester tester,
+      UrlFetcher jsonFetcher,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'A1 Reel'));
+      await _pumpShell(
+        tester,
+        repos,
+        size: const Size(1400, 900),
+        callersBoxOnline: CallersBoxOnline(jsonFetcher: jsonFetcher),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('A1 Reel'));
+      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'reimport-dance');
+      await tester.tap(find.byKey(const ValueKey('reimport-source-link')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('reimport-link-field')),
+        '1605',
+      );
+      await tester.tap(find.byKey(const ValueKey('reimport-link-fetch')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('re-import by id: a missing Caller\'s Box id reads as that', (
+      tester,
+    ) async {
+      await reimportByLinkInSplitPane(
+        tester,
+        (_) async => throw const UrlFetchException(
+          UrlFetchFailureReason.httpStatus,
+          statusCode: 404,
+        ),
+      );
+      expect(
+        find.text(AppLocalizationsEn().importErrorCallersBoxHttpNotFound),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('re-import by id: a dance without its figures is refused', (
+      tester,
+    ) async {
+      await reimportByLinkInSplitPane(
+        tester,
+        (_) async => jsonEncode({
+          'ID': '1605',
+          'Name': 'A-1 Reel',
+          'Authors': ['Chris Weiler'],
+          'Permission': 'search',
+          'phrases': <Object>[],
+        }),
+      );
+      expect(
+        find.text(AppLocalizationsEn().danceReimportFiguresUnavailable),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('import-dance')), findsNothing);
+    });
+
     testWidgets('400px list pane title does not overflow', (tester) async {
       final repos = openTestRepositories();
 
@@ -263,7 +338,7 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(1400, 900));
       await tester.pumpAndSettle();
 
-      const bodyText = 'Choose a dance from the list to view its details.';
+      final bodyText = AppLocalizationsEn().collectionSplitEmptySubtitle;
       final finder = find.text(bodyText);
       expect(finder, findsOneWidget);
 
@@ -341,6 +416,8 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(1400, 900));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceListScreen), findsOneWidget);
@@ -350,6 +427,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Select a dance'), findsOneWidget);
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceListScreen), findsOneWidget);
@@ -367,6 +446,8 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(1400, 900));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
       final customFieldsClose = tester.element(
@@ -386,6 +467,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('custom-fields-close')));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
       final recentlyDeletedClose = tester.element(
@@ -411,6 +494,8 @@ void main() {
       await repos.dances.create(_dance(id: 'd1', title: 'Dismiss Detail Mode'));
 
       await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
@@ -439,8 +524,7 @@ void main() {
         expect(find.byType(DanceDetailScreen), findsOneWidget);
 
         // Delete from detail pane
-        await tester.tap(find.byKey(const ValueKey('delete-dance')));
-        await tester.pumpAndSettle();
+        await tapDanceOverflowAction(tester, 'delete-dance');
 
         // Detail clears back to empty-state placeholder
         expect(find.text('Select a dance'), findsOneWidget);
@@ -468,8 +552,7 @@ void main() {
       await tester.tap(find.text('Undo Wide'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Dance is gone from list, placeholder shown
       expect(find.text('Undo Wide'), findsNothing);
@@ -516,8 +599,11 @@ void main() {
       expect(find.text('Select a dance'), findsOneWidget);
       expect(find.byType(DanceDetailScreen), findsNothing);
 
-      // Tap the new-dance FAB — DanceEditorScreen is pushed.
-      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      // The Collection is empty, so New dance is the empty state's button
+      // (the floating one waits for a list) — DanceEditorScreen is pushed.
+      await tester.tap(
+        find.byKey(const ValueKey('collection-empty-new-dance')),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(DanceEditorScreen), findsOneWidget);
 
@@ -602,40 +688,38 @@ void main() {
         tester
             .widget<Icon>(
               find.descendant(
-                of: find.byKey(const ValueKey('manage-custom-fields')),
+                of: find.byKey(const ValueKey('collection-more-actions')),
                 matching: find.byType(Icon),
               ),
             )
             .icon,
-        Icons.note_add_outlined,
+        Icons.more_vert,
       );
     });
 
-    testWidgets('compacts tagged Collection actions without truncating title', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      expect(
-        await repos.tags.upsert(Tag(id: 'category', name: 'Category')),
-        'category',
-      );
-      await repos.dances.create(
-        _dance(id: 'tagged', title: 'Tagged Dance', tagIds: ['category']),
-      );
+    testWidgets(
+      'keeps its toolbar glyphs when tags exist, without truncating title',
+      (tester) async {
+        final repos = openTestRepositories();
+        expect(
+          await repos.tags.upsert(Tag(id: 'category', name: 'Category')),
+          'category',
+        );
+        await repos.dances.create(
+          _dance(id: 'tagged', title: 'Tagged Dance', tagIds: ['category']),
+        );
 
-      await _pumpShell(tester, repos, size: const Size(1400, 900));
-      await tester.pumpAndSettle();
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('collection-more-actions')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const ValueKey('import-dances')), findsNothing);
-      final title = tester.renderObject<RenderParagraph>(
-        find.text('Collection'),
-      );
-      expect(title.didExceedMaxLines, isFalse);
-    });
+        // Tags no longer collapse the bar into the ⋮ menu: Import stays an icon.
+        expect(find.byKey(const ValueKey('import-dances')), findsOneWidget);
+        final title = tester.renderObject<RenderParagraph>(
+          find.text('Collection'),
+        );
+        expect(title.didExceedMaxLines, isFalse);
+      },
+    );
 
     testWidgets('published source selection shows the inline catalog and hands '
         'a verified collection to review', (tester) async {
@@ -702,25 +786,29 @@ void main() {
       expect(events.single.collectionId, 'sample-1');
     });
 
-    testWidgets('button renders in the app bar, left of batch-select', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'A Dance'));
+    testWidgets(
+      'button renders in the app bar, left of the more-actions menu',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'A Dance'));
 
-      await _pumpShell(tester, repos, size: const Size(1400, 900));
-      await tester.pumpAndSettle();
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
 
-      final importFinder = find.byKey(const ValueKey('import-dances'));
-      final batchFinder = find.byKey(const ValueKey('batch-select'));
-      expect(importFinder, findsOneWidget);
-      expect(batchFinder, findsOneWidget);
-      // Import sits to the LEFT of Select dances in the same app bar row.
-      expect(
-        tester.getTopLeft(importFinder).dx,
-        lessThan(tester.getTopLeft(batchFinder).dx),
-      );
-    });
+        final importFinder = find.byKey(const ValueKey('import-dances'));
+        final moreFinder = find.byKey(
+          const ValueKey('collection-more-actions'),
+        );
+        expect(importFinder, findsOneWidget);
+        expect(moreFinder, findsOneWidget);
+        // Import sits to the LEFT of the ⋮ menu (which now holds Select dances)
+        // in the same app bar row.
+        expect(
+          tester.getTopLeft(importFinder).dx,
+          lessThan(tester.getTopLeft(moreFinder).dx),
+        );
+      },
+    );
 
     testWidgets('button is available with an empty collection', (tester) async {
       final repos = openTestRepositories();
@@ -911,6 +999,65 @@ void main() {
         containsAll(<String>['Imported Reel', 'Imported Jig']),
       );
     });
+  });
+
+  // 2026-10 behaviour audit, INTAKE-5: the split view's import snackbar offers
+  // Undo, which also clears the detail pane it landed the dance in.
+  testWidgets('wide: Undo on the online import snackbar removes the dance and '
+      'clears the pane', (tester) async {
+    final repos = openTestRepositories();
+    final callers = CallersBoxOnline(
+      searchFetcher: (_) async => '''
+        <html><body>
+        <p>Of 1 dances in the database, your query matches 1.</p>
+        <table><tr>
+          <td>&#x24bb;</td><td></td><td></td>
+          <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+          <td>Traditional</td><td>Triple Minor - Proper</td>
+        </tr></table>
+        </body></html>
+      ''',
+      jsonFetcher: (_) async => '''
+        {
+          "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
+          "InterpretedBy":[],"Permission":"full",
+          "FormationBase":"Triple Minor - Proper","FormationDetail":"",
+          "Progression":"Single","PhraseStructure":"","CallingNotes":[],
+          "OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],
+          "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
+        }
+      ''',
+    );
+    await _pumpShell(
+      tester,
+      repos,
+      size: const Size(1400, 900),
+      callersBoxOnline: callers,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Money Musk');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    final row = find.byKey(const ValueKey('online-result-10600'));
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-dance')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), hasLength(1));
+    expect(find.byType(DanceDetailScreen), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('online-import-undo')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(find.byType(DanceDetailScreen), findsNothing);
   });
 
   group('rotation across the split-pane breakpoint (issue #895)', () {

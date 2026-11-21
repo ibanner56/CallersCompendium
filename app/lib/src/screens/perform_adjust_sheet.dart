@@ -1,10 +1,14 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../search/collection_data.dart';
+import '../theme/app_motion.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../theme/app_spacing.dart';
+import '../utils/slot_dance_title.dart';
 import '../widgets/collection_picker.dart';
 
 /// The non-destructive in-event "adjust" sheet for Performance mode
@@ -15,9 +19,12 @@ import '../widgets/collection_picker.dart';
 ///
 /// Edits a private working copy of the [Program] and returns it via
 /// [Navigator.pop] when the caller taps **Done** (or `null` when nothing
-/// changed / the sheet is dismissed). [PerformProgramScreen] then applies the
-/// result live with a single SnackBar undo and persists it — so the reading
-/// view underneath is never disturbed while adjusting.
+/// changed). Every edit is also reported through [onEdited] as it happens, so
+/// a sheet closed any other way — swipe down, barrier tap, system back — still
+/// hands its edits to the caller instead of silently discarding them.
+/// [PerformProgramScreen] then applies the result live with a
+/// single SnackBar undo and persists it — so the reading view underneath is
+/// never disturbed while adjusting.
 class PerformAdjustSheet extends StatefulWidget {
   const PerformAdjustSheet({
     super.key,
@@ -29,9 +36,17 @@ class PerformAdjustSheet extends StatefulWidget {
     required this.enrichment,
     this.danceOverrides = const {},
     this.authorNameOverrides = const {},
+    this.onEdited,
   });
 
   final Program program;
+
+  /// Called after every edit with the working copy, or with `null` once the
+  /// edits have cancelled out (a mark cleared again, a slot moved back). The
+  /// opener keeps the latest value and applies it when the sheet closes
+  /// without a result (swipe-down, barrier tap, back), so **Done** is not the
+  /// only way to keep the edits.
+  final ValueChanged<Program?>? onEdited;
 
   /// The group the reading view is on. The current group and everything after
   /// it are reorderable; already-passed groups stay fixed.
@@ -78,6 +93,15 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   );
 
   final _noteController = TextEditingController();
+
+  /// Records whether [_working] now differs from the program the sheet opened
+  /// with, and reports it to [PerformAdjustSheet.onEdited]. Called inside each
+  /// edit's `setState`, after [_working] is assigned. Edits that cancel out
+  /// leave nothing to apply, so closing the sheet after them changes nothing.
+  void _markChanged() {
+    _changed = !listEquals(_working.slots, widget.program.slots);
+    widget.onEdited?.call(_changed ? _working : null);
+  }
 
   @override
   void dispose() {
@@ -132,7 +156,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       final dance =
           widget.danceOverrides[slot.danceId] ??
           widget.data.dancesById[slot.danceId];
-      if (dance != null) return dance.title;
+      if (dance != null) return slotDanceTitle(l10n, dance);
     }
     final rawText = slot.text?.trim();
     final text =
@@ -141,7 +165,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             !CanonicalDiscouragedTermsScope.of(context)
         ? rawText
         : FigureRenderer(
-            contraTaxonomy,
+            shippedTaxonomies.anyForm,
           ).renderFreeTextWithCanonicalDiscouragedTerms(
             rawText,
             widget.dialect,
@@ -178,7 +202,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     ];
     setState(() {
       _working = _working.copyWith(slots: slots, updatedAt: now);
-      _changed = true;
+      _markChanged();
     });
     final nowPerformed = edited?.performedAt != null;
     final l10n = AppLocalizations.of(context);
@@ -200,7 +224,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       _working = _withSlots(
         _flatten([...groups.sublist(0, start), ...movable]),
       );
-      _changed = true;
+      _markChanged();
     });
     final l10n = AppLocalizations.of(context);
     _announce(
@@ -220,7 +244,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     flat.insert(at, ProgramSlot(id: uuidV4(), position: at, danceId: danceId));
     setState(() {
       _working = _withSlots(flat);
-      _changed = true;
+      _markChanged();
     });
     final title =
         (widget.danceOverrides[danceId] ?? widget.data.dancesById[danceId])
@@ -238,7 +262,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     flat.insert(at, ProgramSlot(id: uuidV4(), position: at, text: text));
     setState(() {
       _working = _withSlots(flat);
-      _changed = true;
+      _markChanged();
       _noteController.clear();
     });
     _announce(l10n.performAddedNoteAnnounce);
@@ -260,7 +284,12 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.xs,
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -288,6 +317,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -310,7 +340,12 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
               _buildHeader(theme),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -333,17 +368,30 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   Widget _buildHeader(ThemeData theme) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xxs,
+        AppSpacing.xs,
+        AppSpacing.xs,
+      ),
       child: Row(
         children: [
-          Semantics(
-            header: true,
-            child: Text(
-              l10n.performAdjustProgram,
-              style: theme.textTheme.titleLarge,
+          // Expanded (not Flexible, which would leave Done next to the title):
+          // the title takes the free width, so Done stays at the trailing edge,
+          // and at large text it wraps instead of pushing Done off-screen.
+          // Done is not the only way to keep the edits — any dismissal keeps
+          // them (see [PerformAdjustSheet.onEdited]) — but it is the explicit
+          // one, so it must stay reachable.
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(
+                l10n.performAdjustProgram,
+                style: theme.textTheme.titleLarge,
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           FilledButton(
             key: const ValueKey('adjust-done'),
             onPressed: () =>
@@ -358,7 +406,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   Widget _buildSectionTitle(ThemeData theme, String text) => Semantics(
     header: true,
     child: Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Text(
         text,
         style: theme.textTheme.titleMedium?.copyWith(
@@ -528,7 +576,7 @@ class _ReorderRow extends StatelessWidget {
         ? l10n.performAlternatesCount(alternates)
         : null;
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
       leading: CircleAvatar(child: Text('${absolutePosition + 1}')),
       title: Text(label),
       subtitle: subtitle == null ? null : Text(subtitle),

@@ -30,6 +30,10 @@ class CrashLogRecord {
   /// future format change can be migrated or skipped rather than mis-parsed.
   static const int schemaVersion = 1;
 
+  /// Written in place of a non-empty [errorMessage] by [scrubbed].
+  static const String withheldMessage =
+      '[message withheld from scrubbed export]';
+
   /// When the error was captured, always in UTC.
   final DateTime timestampUtc;
 
@@ -50,7 +54,7 @@ class CrashLogRecord {
   final String errorType;
 
   /// The error's message (`error.toString()`); may contain user content, so it
-  /// is scrubbed for the default export (see [scrubbed]).
+  /// is withheld from the default export (see [scrubbed]).
   final String errorMessage;
 
   /// The captured stack trace text; may contain absolute paths, so it is
@@ -127,16 +131,46 @@ class CrashLogRecord {
     return firstLine.isEmpty ? errorType : '$errorType: $firstLine';
   }
 
-  /// Returns a copy with the free-text fields ([errorMessage], [stack]) scrubbed
-  /// by [redactor]. The timestamp, version, platform, source, and error *type*
-  /// are structural diagnostics with no user content, so they are preserved.
+  /// Error types whose `toString()` is typed, path-free and prose-free by
+  /// construction, so their message may survive the scrubbed export (FAIL-10).
+  ///
+  /// Each is named here as a string because the classes live in the app
+  /// package; a test in the app pins every name to the real class so a rename
+  /// cannot silently withhold (or, worse, mis-allow) a message. Adding a type
+  /// means its message can never carry a URL, path, server text or user data.
+  ///
+  /// Device Sync is deliberately absent. A failed pass is thrown as the app's
+  /// `SyncWorkerFailure`, whose message is the worker isolate's `'$error'` text
+  /// for whatever went wrong, so it can carry a server's URL or response. The
+  /// typed `SyncFailure` it was listed under is returned, never thrown, so the
+  /// entry matched nothing.
+  static const Set<String> messageSafeErrorTypes = {
+    'UrlFetchException',
+    'PublishedCollectionFetchException',
+    '_UpdateDownloadError',
+  };
+
+  /// Returns a copy safe for the default (scrubbed) export: [errorMessage] is
+  /// replaced by [withheldMessage] and [stack] is scrubbed by [redactor].
+  ///
+  /// The message is withheld rather than term-redacted because a redactor only
+  /// knows the values in the database at export time; a value that was never
+  /// saved, or was later purged, would survive. The one exception is an
+  /// [errorType] in [messageSafeErrorTypes], whose message is kept (still
+  /// passed through [redactor] for paths, as a second line of defence). The
+  /// timestamp, version, platform, source, and error *type* are structural
+  /// diagnostics with no user content, so they are preserved.
   CrashLogRecord scrubbed(CrashRedactor redactor) => CrashLogRecord(
     timestampUtc: timestampUtc,
     appVersion: appVersion,
     platform: platform,
     source: source,
     errorType: errorType,
-    errorMessage: redactor.scrub(errorMessage),
+    errorMessage: errorMessage.isEmpty
+        ? ''
+        : messageSafeErrorTypes.contains(errorType)
+        ? redactor.scrub(errorMessage)
+        : withheldMessage,
     stack: redactor.scrub(stack),
   );
 

@@ -1,10 +1,13 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
@@ -12,6 +15,8 @@ import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/reference_manager_screen.dart';
+import 'package:compendium_app/src/screens/tag_manager_screen.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -47,6 +52,15 @@ Future<void> _pumpGeneral(
   final decimalTurns = ValueNotifier<bool>(
     await repos.settings.get(kDecimalTurnsKey) == true,
   );
+  final capitalizeFigures = ValueNotifier<bool>(
+    await repos.settings.get(kCapitalizeFiguresKey) == true,
+  );
+  final undoSeconds = ValueNotifier<int>(
+    undoPromptSecondsFromStored(
+      await repos.settings.get(kUndoPromptSecondsKey),
+    ),
+  );
+  addTearDown(undoSeconds.dispose);
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
@@ -54,28 +68,35 @@ Future<void> _pumpGeneral(
   addTearDown(verboseFigures.dispose);
   addTearDown(confirmDelete.dispose);
   addTearDown(decimalTurns.dispose);
+  addTearDown(capitalizeFigures.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: ReduceMotionScope(
-                notifier: reduceMotion,
-                child: VerboseFigureRenderingScope(
-                  notifier: verboseFigures,
-                  child: DecimalTurnsScope(
-                    notifier: decimalTurns,
-                    child: ConfirmBeforeDeleteScope(
-                      notifier: confirmDelete,
-                      child: const SettingsScreen(),
+    RepositoriesScope(
+      repositories: repos,
+      child: UndoPromptDurationScope(
+        notifier: undoSeconds,
+        child: MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: ReduceMotionScope(
+                  notifier: reduceMotion,
+                  child: VerboseFigureRenderingScope(
+                    notifier: verboseFigures,
+                    child: DecimalTurnsScope(
+                      notifier: decimalTurns,
+                      child: CapitalizeFiguresScope(
+                        notifier: capitalizeFigures,
+                        child: ConfirmBeforeDeleteScope(
+                          notifier: confirmDelete,
+                          child: const SettingsScreen(),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -102,8 +123,44 @@ void main() {
     'general-reduce-motion': kReduceMotionKey,
     'general-verbose-figures': kVerboseFigureRenderingKey,
     'general-decimal-turns': kDecimalTurnsKey,
+    'general-capitalize-figures': kCapitalizeFiguresKey,
     'general-confirm-before-delete': kConfirmBeforeDeleteKey,
   };
+
+  testWidgets('Library › Tags opens the Tags manager (D-N2-3)', (tester) async {
+    await _pumpGeneral(tester, openTestRepositories());
+
+    final entry = find.byKey(const ValueKey('general-library-tags'));
+    await tester.ensureVisible(entry);
+    await tester.pumpAndSettle();
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TagManagerScreen), findsOneWidget);
+  });
+
+  for (final (key, title) in [
+    ('general-library-authors', 'Authors'),
+    ('general-library-sources', 'Sources'),
+  ]) {
+    testWidgets('Library › $title opens the $title manager (D-N2-3)', (
+      tester,
+    ) async {
+      await _pumpGeneral(tester, openTestRepositories());
+
+      final entry = find.byKey(ValueKey(key));
+      await tester.ensureVisible(entry);
+      await tester.pumpAndSettle();
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReferenceManagerScreen), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text(title)),
+        findsOneWidget,
+      );
+    });
+  }
 
   testWidgets('all accessibility switches render and default off', (
     tester,
@@ -152,5 +209,52 @@ void main() {
       await tester.pumpAndSettle();
       expect(_switchValue(tester, widgetKey), isTrue);
     });
+  });
+
+  testWidgets('the Undo prompt setting shows its default and saves a choice', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(tester, repos);
+
+    final dropdown = find.byKey(const ValueKey('general-undo-prompt-seconds'));
+    await tester.ensureVisible(dropdown);
+    expect(
+      tester.widget<AppDropdownField<int>>(dropdown).initialValue,
+      kUndoPromptDefaultSeconds,
+    );
+
+    // Exactly kUndoPromptSecondOptions' choices and "until closed", in
+    // order, spelled out so a change to the list is a visible test change.
+    expect(
+      tester
+          .widget<AppDropdownField<int>>(dropdown)
+          .entries
+          .map((item) => item.value)
+          .toList(),
+      [2, 5, 10, 15, kUndoPromptUntilDismissed],
+    );
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    for (final label in [
+      '2 seconds',
+      '5 seconds',
+      '10 seconds',
+      '15 seconds',
+      'Until I close it',
+    ]) {
+      expect(find.text(label), findsWidgets, reason: label);
+    }
+    await tester.tap(find.text('Until I close it').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<AppDropdownField<int>>(dropdown).initialValue,
+      kUndoPromptUntilDismissed,
+    );
+    expect(
+      await repos.settings.get(kUndoPromptSecondsKey),
+      kUndoPromptUntilDismissed,
+    );
   });
 }

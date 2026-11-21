@@ -7,6 +7,8 @@ import 'dance_link.dart';
 import 'difficulty_level.dart';
 import 'enums.dart';
 import 'figure.dart';
+import 'figure_source.dart';
+import 'tunes_source.dart';
 import 'formation.dart';
 import 'partial_date.dart';
 import 'phrase_structure.dart';
@@ -28,6 +30,12 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// tolerance, so an oversized field can never fail an otherwise-valid import.
 const int kMaxWalkthroughLength = 20000;
 
+/// Upper bound on the length of [Dance.meter] and [Dance.musicalKey], in
+/// UTF-16 code units. Each is a short label ("3/2", "G minor"), so the bound
+/// is small; it is enforced softly, as [kMaxWalkthroughLength] is: the archive
+/// decoder clamps a longer value rather than rejecting the dance.
+const int kMaxMusicLabelLength = 100;
+
 /// A dance transcription — the central entity of the collection.
 ///
 /// Hard invariants (thrown at construction): non-empty title, parseable
@@ -40,13 +48,16 @@ class Dance {
     required this.title,
     List<String> authorIds = const [],
     this.form = DanceForm.contra,
-    this.formation = const Formation(FormationShape.dupleImproper),
+    Formation formation = const Formation(FormationShape.dupleImproper),
     this.progression = Progression.single,
     String phraseStructure = '',
     List<Figure> figures = const [],
+    FigureSource? figuresSource,
     this.hook = '',
     this.callingNotes = '',
     this.walkthrough = '',
+    this.meter = '',
+    this.musicalKey = '',
     this.status = DanceStatus.active,
     String? difficultyLevelId,
     DifficultyLevel? level,
@@ -54,22 +65,47 @@ class Dance {
     this.mixer = false,
     this.rating,
     List<String> tunes = const [],
+    TunesSource? tunesSource,
     List<CustomFieldValue> customFields = const [],
     List<String> tagIds = const [],
     List<DanceLink> links = const [],
     List<SourceCitation> sourceCitations = const [],
     this.provenance,
     this.composedOn,
+    List<String> interpreterIds = const [],
+    this.interpretedOn,
     this.revisedOn,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
   }) : difficultyLevelId = difficultyLevelId ?? level?.id,
+       // The improper flag means something only in a form that has it
+       // ([formHasImproperFlag]); elsewhere it is cleared, so a contra dance
+       // never stores, sends or shows it, whatever it was built from.
+       formation = formation.improper && !formHasImproperFlag(form)
+           ? formation.copyWith(improper: false)
+           : formation,
        authorIds = List.unmodifiable(authorIds),
+       interpreterIds = List.unmodifiable(interpreterIds),
        // Parse eagerly so an invalid structure fails at construction.
        phraseStructure = PhraseStructure.parse(phraseStructure),
-       figures = List.unmodifiable(figures),
-       tunes = List.unmodifiable(tunes),
+       // [figuresSource] wins when given: it is how the storage layer carries a
+       // transcription it could not decode. Callers pass one or the other, never
+       // both — asserted rather than silently preferring one, because a caller
+       // that passes both has a bug in its own reasoning about which is real.
+       assert(
+         figuresSource == null || figures.isEmpty,
+         'pass figures or figuresSource, not both',
+       ),
+       figuresSource = figuresSource ?? DecodedFigures(figures),
+       // Same contract as [figuresSource]: the storage layer passes a
+       // [TunesSource] when it holds text it could not decode; ordinary callers
+       // pass a list. Never both.
+       assert(
+         tunesSource == null || tunes.isEmpty,
+         'pass tunes or tunesSource, not both',
+       ),
+       tunesSource = tunesSource ?? DecodedTunes(tunes),
        customFields = List.unmodifiable(customFields),
        tagIds = List.unmodifiable(tagIds),
        links = List.unmodifiable(links),
@@ -96,12 +132,19 @@ class Dance {
   /// Ordered Choreographer ids ("Traditional"/"Unknown" are real rows).
   final List<String> authorIds;
   final DanceForm form;
+
+  /// The dance's formation. Its [Formation.improper] is always `false` for a
+  /// form without the flag ([formHasImproperFlag]): the constructor clears
+  /// it, so moving a dance from ECD to contra drops the mark.
   final Formation formation;
   final Progression progression;
   final PhraseStructure phraseStructure;
 
-  /// The transcription: an ordered figure list (may be empty for stubs).
-  final List<Figure> figures;
+  /// The transcription. A [FigureSource] rather than a `List<Figure>` so that
+  /// the case where the stored value cannot be decoded has a representation no
+  /// reader can silently ignore — see [FigureSource] for why a plain list (or a
+  /// list-returning shortcut on this class) would be unsafe.
+  final FigureSource figuresSource;
 
   /// One-line "why call this" description.
   final String hook;
@@ -117,6 +160,15 @@ class Dance {
   /// existing/imported dances stay valid. Plain multi-line text in v1; richer
   /// structure / auto-generation is tracked separately (issue #411).
   final String walkthrough;
+
+  /// The tune's written meter, as free text ("3/2", "6/8"), or `''` when not
+  /// given (ADR-006 §12, F3). Shown and searched, never computed with: the
+  /// beats per bar that timing uses live in [phraseStructure].
+  final String meter;
+
+  /// The tune's key, as free text ("G minor", "D"), or `''` when not given
+  /// (ADR-006 §12, F3).
+  final String musicalKey;
   final DanceStatus status;
 
   /// ID of the selected [DifficultyLevel], or `null` when unspecified.
@@ -166,7 +218,9 @@ class Dance {
   /// mirrors the CC-parity `Rating`. Higher is better.
   final int? rating;
 
-  final List<String> tunes;
+  /// Suggested tune names, or the stored text when it could not be decoded.
+  /// See [TunesSource] for why this is not a plain list.
+  final TunesSource tunesSource;
   final List<CustomFieldValue> customFields;
   final List<String> tagIds;
   final List<DanceLink> links;
@@ -182,6 +236,16 @@ class Dance {
   /// unknown.
   final PartialDate? composedOn;
 
+  /// Ordered Choreographer ids of the people who *interpreted* the dance:
+  /// reconstructed it from its original publication, as ECD dances often
+  /// are (ADR-006). Drawn from the same people list as [authorIds]; empty
+  /// when nobody is credited. Stored for every form.
+  final List<String> interpreterIds;
+
+  /// When the dance was interpreted, at whatever precision is known, like
+  /// [composedOn]; `null` when unknown.
+  final PartialDate? interpretedOn;
+
   /// When the dance was last *revised* by its author, at whatever precision is
   /// known. Distinct from the record stamp [updatedAt]; `null` when unknown.
   final PartialDate? revisedOn;
@@ -196,14 +260,28 @@ class Dance {
   bool get isDeleted => deletedAt != null;
 
   /// Figures annotated with derived phrase labels (A1, B2, …).
-  List<SectionedFigure> get sectionedFigures =>
-      deriveSections(figures, phraseStructure);
+  /// An undecodable transcription has no figures to label, so this is empty
+  /// rather than throwing. Surfacing that state to the user is deliberately not
+  /// done here — see [FigureSource].
+  List<SectionedFigure> get sectionedFigures => switch (figuresSource) {
+    DecodedFigures(:final figures) => deriveSections(figures, phraseStructure),
+    UnreadableFigures() => const [],
+  };
 
   /// Runs warning-level validation (e.g. phrase overflow). Structural
   /// invariants are enforced at construction and never appear here.
   List<ValidationIssue> validate() {
     final issues = <ValidationIssue>[];
-    deriveSections(figures, phraseStructure, issues: issues);
+    switch (figuresSource) {
+      case DecodedFigures(:final figures):
+        deriveSections(figures, phraseStructure, issues: issues);
+      // Nothing to derive, and deliberately no issue raised: `validate` reports
+      // warnings about content the user can act on in the editor, and an
+      // undecodable transcription is not that. Telling the user about it is its
+      // own piece of work.
+      case UnreadableFigures():
+        break;
+    }
     final composed = composedOn;
     final revised = revisedOn;
     // Warn only when the *latest* the revision could have happened is still
@@ -234,7 +312,8 @@ class Dance {
   /// **wins** over any value passed for the same field, so
   /// `copyWith(difficultyLevelId: 'difficulty-advanced',
   /// clearDifficultyLevel: true)` clears it. The
-  /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating` /
+  /// same holds for `clearComposedOn` / `clearInterpretedOn` /
+  /// `clearRevisedOn` / `clearRating` /
   /// `clearProvenance`.
   Dance copyWith({
     String? title,
@@ -247,6 +326,8 @@ class Dance {
     String? hook,
     String? callingNotes,
     String? walkthrough,
+    String? meter,
+    String? musicalKey,
     DanceStatus? status,
     String? difficultyLevelId,
     @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
@@ -264,6 +345,9 @@ class Dance {
     bool clearProvenance = false,
     PartialDate? composedOn,
     bool clearComposedOn = false,
+    List<String>? interpreterIds,
+    PartialDate? interpretedOn,
+    bool clearInterpretedOn = false,
     PartialDate? revisedOn,
     bool clearRevisedOn = false,
     DateTime? updatedAt,
@@ -277,10 +361,18 @@ class Dance {
     formation: formation ?? this.formation,
     progression: progression ?? this.progression,
     phraseStructure: phraseStructure ?? this.phraseStructure.raw,
-    figures: figures ?? this.figures,
+    // An explicit `figures:` replaces the transcription outright. With none,
+    // the existing source is carried through **whole** — including an
+    // undecodable one, whose stored bytes must survive an edit to any other
+    // field. Re-encoding it here would be the silent data loss this type
+    // exists to prevent.
+    figures: figures ?? const [],
+    figuresSource: figures == null ? figuresSource : null,
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
+    meter: meter ?? this.meter,
+    musicalKey: musicalKey ?? this.musicalKey,
     status: status ?? this.status,
     difficultyLevelId: clearDifficultyLevel
         ? null
@@ -288,13 +380,21 @@ class Dance {
     mixedLevel: mixedLevel ?? this.mixedLevel,
     mixer: mixer ?? this.mixer,
     rating: clearRating ? null : (rating ?? this.rating),
-    tunes: tunes ?? this.tunes,
+    // An explicit `tunes:` replaces the list outright; with none, the existing
+    // source is carried through whole, including an undecodable one whose
+    // stored bytes must survive an edit to any other field.
+    tunes: tunes ?? const [],
+    tunesSource: tunes == null ? tunesSource : null,
     customFields: customFields ?? this.customFields,
     tagIds: tagIds ?? this.tagIds,
     links: links ?? this.links,
     sourceCitations: sourceCitations ?? this.sourceCitations,
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
     composedOn: clearComposedOn ? null : (composedOn ?? this.composedOn),
+    interpreterIds: interpreterIds ?? this.interpreterIds,
+    interpretedOn: clearInterpretedOn
+        ? null
+        : (interpretedOn ?? this.interpretedOn),
     revisedOn: clearRevisedOn ? null : (revisedOn ?? this.revisedOn),
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -312,31 +412,44 @@ class Dance {
   /// which defaults to [uuidV4]): link ids are globally unique primary keys,
   /// so reusing the source's ids would collide when the copy is persisted.
   /// A link's `targetDanceId` (for `relatedDance` links) is preserved — the
-  /// copy legitimately references the same related dance as the original.
+  /// copy legitimately references the same related dance as the original —
+  /// and so is its [DanceLink.transitive] flag, so a copy of a grouped dance
+  /// is a member of the same group rather than holding plain one-way links.
+  ///
+  /// [newTitle] replaces the title (for the "(copy)" wording); omitted, the
+  /// copy keeps the original's, and a caller that wants a different one passes
+  /// it here rather than updating the copy afterwards, which would be a second
+  /// write that can fail between the two.
   Dance duplicate({
     required String newId,
     required DateTime now,
+    String? newTitle,
     String Function()? newLinkId,
   }) {
     final genLinkId = newLinkId ?? uuidV4;
     return Dance(
       id: newId,
-      title: title,
+      title: newTitle ?? title,
       authorIds: authorIds,
       form: form,
       formation: formation,
       progression: progression,
       phraseStructure: phraseStructure.raw,
-      figures: figures,
+      // Carried through whole: a copy of a dance whose transcription cannot be
+      // read still holds that transcription.
+      figuresSource: figuresSource,
       hook: hook,
       callingNotes: callingNotes,
       walkthrough: walkthrough,
+      meter: meter,
+      musicalKey: musicalKey,
       status: status,
       difficultyLevelId: difficultyLevelId,
       mixedLevel: mixedLevel,
       mixer: mixer,
       rating: rating,
-      tunes: tunes,
+      // Carried through whole: a copy keeps a tune list that cannot be read.
+      tunesSource: tunesSource,
       customFields: customFields,
       tagIds: tagIds,
       links: [
@@ -347,10 +460,13 @@ class Dance {
             url: link.url,
             targetDanceId: link.targetDanceId,
             label: link.label,
+            transitive: link.transitive,
           ),
       ],
       sourceCitations: sourceCitations,
       composedOn: composedOn,
+      interpreterIds: interpreterIds,
+      interpretedOn: interpretedOn,
       revisedOn: revisedOn,
       createdAt: now,
       updatedAt: now,
@@ -367,21 +483,25 @@ class Dance {
       other.formation == formation &&
       other.progression == progression &&
       other.phraseStructure == phraseStructure &&
-      _listEq.equals(other.figures, figures) &&
+      other.figuresSource == figuresSource &&
       other.hook == hook &&
       other.callingNotes == callingNotes &&
       other.walkthrough == walkthrough &&
+      other.meter == meter &&
+      other.musicalKey == musicalKey &&
       other.status == status &&
       other.difficultyLevelId == difficultyLevelId &&
       other.mixedLevel == mixedLevel &&
       other.mixer == mixer &&
       other.rating == rating &&
-      _listEq.equals(other.tunes, tunes) &&
+      other.tunesSource == tunesSource &&
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tagIds, tagIds) &&
       _listEq.equals(other.links, links) &&
       _listEq.equals(other.sourceCitations, sourceCitations) &&
       other.composedOn == composedOn &&
+      _listEq.equals(other.interpreterIds, interpreterIds) &&
+      other.interpretedOn == interpretedOn &&
       other.revisedOn == revisedOn &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&

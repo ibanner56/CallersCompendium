@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../data/collection_facets_scope.dart';
+
 /// Sort options surfaced in the Collection UI (`docs/design/ux.md` §1). Maps
 /// onto the core [SearchSort] allow-list. [relevance] is only offered when the
 /// query is a bare full-text search (`docs/design/search.md` decision 6);
@@ -40,10 +42,31 @@ CollectionSort? collectionSortFromName(Object? stored) {
   return null;
 }
 
+/// The sorts a Collection-style list offers for the current query, in menu
+/// order. [CollectionSort.relevance] is offered only while [bareFullText] —
+/// see [isBareFullText] — so the Collection and the program picker offer the
+/// same set (FIND-7).
+List<CollectionSort> availableCollectionSorts({required bool bareFullText}) => [
+  if (bareFullText) CollectionSort.relevance,
+  CollectionSort.title,
+  CollectionSort.author,
+  CollectionSort.recentlyAdded,
+  CollectionSort.lastCalled,
+];
+
+/// The **Search in** choice an online search uses. The online sources search
+/// by title, author or figure, so **All fields** falls back to
+/// [FullTextScope.title]; the other three pass through.
+FullTextScope onlineFullTextScope(FullTextScope scope) => switch (scope) {
+  FullTextScope.omni => FullTextScope.title,
+  FullTextScope.title || FullTextScope.author || FullTextScope.figure => scope,
+};
+
 /// The user's one-tap facet selections. Every facet is multi-select: within a
-/// single facet the selected leaves are OR-ed ("has any of these tags"), and
-/// distinct facets are AND-ed ("this form AND one of these tags") — the
-/// confirmed decision 7 semantics, applied uniformly.
+/// single facet the selected leaves are OR-ed ("is one of these formations"),
+/// and distinct facets are AND-ed ("this form AND one of these formations"),
+/// with two exceptions: [tunes] is always AND-within-facet ("has every one of
+/// these tunes"), and [tagIds] follows the user's [tagsMatchAll] choice.
 class FacetSelections {
   final Set<DanceForm> forms = {};
   final Set<FormationShape> formations = {};
@@ -67,13 +90,130 @@ class FacetSelections {
   /// Selections are OR-ed within this facet, so selecting both is unrestricted.
   final Set<bool> callStatuses = {};
 
+  /// The venue scope of the Calling history section (N1-H2): only calls at
+  /// this venue count. Null = any venue. See [scopesApply].
+  VenueKey? historyVenue;
+
+  /// What the venue chip says, kept beside [historyVenue] so the chip still
+  /// reads right if the venue stops being offered (its last counted call was
+  /// removed). Set and cleared with [historyVenue] by [setHistoryVenue].
+  String? historyVenueLabel;
+
+  /// The recency scope, as a preset: only calls in the last this-many calendar
+  /// months count (1, 3 or 6). Null with [historySince] also null = no window.
+  /// Never set together with [historySince]; use [setHistoryMonths] and
+  /// [setHistorySince].
+  int? historyMonths;
+
+  /// The recency scope, as a chosen date: only calls on or after it count. A
+  /// calendar date, `DateTime.utc(y, m, d)`.
+  DateTime? historySince;
+
+  /// Whether the scopes ([historyVenue], [historyMonths], [historySince]) act:
+  /// only while exactly one of Called / Not called is chosen. With neither or
+  /// both, no `CalledFilter` is built, so a scope would do nothing; it stays
+  /// set, shown inert, and comes back when a polarity is chosen again
+  /// (`docs/design/history-filters.md`, "Composition rules").
+  bool get scopesApply => callStatuses.length == 1;
+
+  /// Whether any scope is set, applying or not.
+  bool get hasHistoryScope =>
+      historyVenue != null || historyMonths != null || historySince != null;
+
+  /// Sets the venue scope, or clears it when [key] is null.
+  void setHistoryVenue(VenueKey? key, {String? label}) {
+    historyVenue = key;
+    historyVenueLabel = key == null ? null : label;
+  }
+
+  /// Sets the recency scope to the last [months] calendar months, or clears it
+  /// when null.
+  void setHistoryMonths(int? months) {
+    historyMonths = months;
+    historySince = null;
+  }
+
+  /// Sets the recency scope to calls on or after [date] (its calendar day), or
+  /// clears it when null.
+  void setHistorySince(DateTime? date) {
+    historySince = date == null
+        ? null
+        : DateTime.utc(date.year, date.month, date.day);
+    historyMonths = null;
+  }
+
+  /// The recency cutoff as of [today], or null when there is no window.
+  /// [today] is taken as a calendar day, in whatever zone the caller means.
+  DateTime? historyCutoff(DateTime today) {
+    if (historySince case final since?) return since;
+    if (historyMonths case final months?) {
+      return calendarMonthsBefore(today, months);
+    }
+    return null;
+  }
+
+  /// How many scopes are set and applying, for the badges: the Calling
+  /// history section's and the Filters button's.
+  int get activeScopeCount => !scopesApply
+      ? 0
+      : (historyVenue != null ? 1 : 0) +
+            (historyMonths != null || historySince != null ? 1 : 0);
+
   /// Minimum-rating facet: `null` = unselected, otherwise a floor on the closed
   /// `1..5` scale that emits a [RatingFilter] (`rating >= minRating`; unrated
   /// dances are excluded). Single-valued (a floor, not a multi-select set).
   int? minRating;
 
   final Set<String> authorIds = {};
+
+  /// Selected tags. Change it through [setTag], which applies the
+  /// [tagsMatchAll] default; reading it directly is fine.
   final Set<String> tagIds = {};
+
+  /// Whether a dance must carry **every** selected tag (`true`, AND) or **any**
+  /// of them (`false`, OR). Only meaningful, and only offered in the Filters
+  /// panel, while two or more tags are selected (FIND-14).
+  ///
+  /// It resets to `true` whenever a second tag is added, so AND is the default
+  /// each time the choice first matters; a third or later tag keeps whatever
+  /// the user chose. It is not saved: like every other facet selection it
+  /// lasts as long as the search it belongs to.
+  bool tagsMatchAll = true;
+
+  /// Selects or deselects the tag [id]. Returns whether anything changed.
+  ///
+  /// Selecting the second tag sets [tagsMatchAll] to `true`; see there.
+  bool setTag(String id, {required bool selected}) {
+    if (!selected) return tagIds.remove(id);
+    if (!tagIds.add(id)) return false;
+    if (tagIds.length == 2) tagsMatchAll = true;
+    return true;
+  }
+
+  /// Drops every selected tag not in [listed], the tags the Tags facet offers
+  /// (those a live dance carries). Returns whether anything was dropped.
+  ///
+  /// A selected tag whose last dance loses it has no chip left to deselect,
+  /// and under [tagsMatchAll] it would hide every dance, so the host calls
+  /// this whenever its collection data changes.
+  bool retainTags(Iterable<String> listed) {
+    final keep = listed.toSet();
+    final before = tagIds.length;
+    tagIds.removeWhere((id) => !keep.contains(id));
+    return tagIds.length != before;
+  }
+
+  /// The Tags facet's "Untagged" chip: dances with no live tag. It never
+  /// clears, or is cleared by, a tag chip, and it is always an OR alternative
+  /// to the selected tags, in either [tagsMatchAll] mode: "untagged, or has
+  /// every selected tag" (see [buildCollectionFilter]). AND-ing it would make
+  /// any selection that includes a tag match nothing.
+  ///
+  /// A separate flag rather than a sentinel id in [tagIds]: a sentinel could
+  /// collide with a real tag id and would leak into
+  /// every consumer that treats [tagIds] as real tags (the external tag filter,
+  /// tag-name lookups).
+  bool untagged = false;
 
   /// Selected source facet: ids of cited [PublishedSource]s the user picked,
   /// each emitted as an identity-based [SourceIdFilter]. Multi-select, OR-ed
@@ -81,6 +221,37 @@ class FacetSelections {
   /// (which is likewise id-based via [AuthorFilter]). Kept by id (not title)
   /// so duplicate/prefix titles or title-vs-author collisions never over-match.
   final Set<String> sourceIds = {};
+
+  /// Tunes facet: free-text values the user entered, in entry order. Each is a
+  /// case-insensitive substring tested against the dance's tune list, and a
+  /// dance must match **every** one ([TunesFilter]). This is the one facet that
+  /// is AND-within-facet rather than OR: a caller asking for "Dmaj" and "6/8"
+  /// wants the dances that have both, not either.
+  ///
+  /// A list, not a set, so chips keep the order they were entered in; callers
+  /// go through [addTune], which trims and refuses blanks and duplicates.
+  final List<String> tunes = [];
+
+  /// Adds [value] to [tunes] as entered (trimmed). Returns whether anything
+  /// changed: a blank value, or one already present ignoring case, is refused,
+  /// since a second chip for the same text could not change the result.
+  bool addTune(String value) {
+    final tune = value.trim();
+    if (tune.isEmpty) return false;
+    final key = tune.toLowerCase();
+    if (tunes.any((t) => t.toLowerCase() == key)) return false;
+    tunes.add(tune);
+    return true;
+  }
+
+  /// Meter facet: the meters picked, as the Meter section offers them
+  /// ([CollectionData.meters]). OR-ed within the facet; each is a whole-value
+  /// match that ignores case and accents ([MeterFilter]).
+  final Set<String> meters = {};
+
+  /// Key facet: the keys picked, as the Key section offers them, matched as
+  /// [meters] are ([MusicalKeyFilter]).
+  final Set<String> musicalKeys = {};
 
   /// Selected `choice` custom-field values, keyed by field id → chosen values
   /// (OR-within a field).
@@ -109,14 +280,53 @@ class FacetSelections {
       mixedLevel == null &&
       mixer == null &&
       callStatuses.isEmpty &&
+      activeScopeCount == 0 &&
       minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
+      !untagged &&
       sourceIds.isEmpty &&
+      tunes.isEmpty &&
+      meters.isEmpty &&
+      musicalKeys.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
       booleanValues.isEmpty &&
       textValues.values.every((s) => !s.isEffective) &&
       numberValues.values.every((s) => !s.isEffective);
+
+  /// How many selections are active: the number shown on the Filters button
+  /// of the Collection screen and the dance picker.
+  ///
+  /// One per selected chip ([untagged] is a chip), one per single-valued facet
+  /// ([mixedLevel], [mixer], [minRating]) and one per *effective* custom-field
+  /// text/number filter — the same set [isEmpty] tests, so `activeCount == 0` exactly when
+  /// [isEmpty]. [mixedLevel] and [mixer] count when non-null, not only when
+  /// `true`, because [buildCollectionFilter] filters on `false` too.
+  ///
+  /// When adding a facet, add it to [isEmpty], [clear], [hasSelectionFor],
+  /// [clearFacets] and here.
+  int get activeCount =>
+      forms.length +
+      formations.length +
+      progressions.length +
+      statuses.length +
+      levels.length +
+      (mixedLevel != null ? 1 : 0) +
+      (mixer != null ? 1 : 0) +
+      callStatuses.length +
+      activeScopeCount +
+      (minRating != null ? 1 : 0) +
+      authorIds.length +
+      tagIds.length +
+      (untagged ? 1 : 0) +
+      sourceIds.length +
+      tunes.length +
+      meters.length +
+      musicalKeys.length +
+      choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
+      booleanValues.length +
+      textValues.values.where((s) => s.isEffective).length +
+      numberValues.values.where((s) => s.isEffective).length;
 
   void clear() {
     forms.clear();
@@ -127,15 +337,137 @@ class FacetSelections {
     mixedLevel = null;
     mixer = null;
     callStatuses.clear();
+    _clearHistoryScopes();
     minRating = null;
     authorIds.clear();
     tagIds.clear();
+    tagsMatchAll = true;
+    untagged = false;
     sourceIds.clear();
+    tunes.clear();
+    meters.clear();
+    musicalKeys.clear();
     choiceValues.clear();
     booleanValues.clear();
     textValues.clear();
     numberValues.clear();
   }
+
+  void _clearHistoryScopes() {
+    setHistoryVenue(null);
+    setHistoryMonths(null);
+  }
+
+  /// Whether the filter section [id] (a `CollectionFacetIds` value or a
+  /// `customFieldFacetId`) currently holds a selection. An unknown id holds
+  /// none.
+  bool hasSelectionFor(String id) {
+    switch (id) {
+      case CollectionFacetIds.form:
+        return forms.isNotEmpty;
+      case CollectionFacetIds.formation:
+        return formations.isNotEmpty;
+      case CollectionFacetIds.progression:
+        return progressions.isNotEmpty;
+      case CollectionFacetIds.status:
+        return statuses.isNotEmpty;
+      case CollectionFacetIds.level:
+        return levels.isNotEmpty;
+      case CollectionFacetIds.mixedLevel:
+        return mixedLevel != null;
+      case CollectionFacetIds.mixer:
+        return mixer != null;
+      case CollectionFacetIds.minRating:
+        return minRating != null;
+      case CollectionFacetIds.callStatus:
+        return callStatuses.isNotEmpty || hasHistoryScope;
+      case CollectionFacetIds.author:
+        return authorIds.isNotEmpty;
+      case CollectionFacetIds.tunes:
+        return tunes.isNotEmpty;
+      case CollectionFacetIds.meter:
+        return meters.isNotEmpty;
+      case CollectionFacetIds.musicalKey:
+        return musicalKeys.isNotEmpty;
+      case CollectionFacetIds.tags:
+        return tagIds.isNotEmpty;
+      case CollectionFacetIds.source:
+        return sourceIds.isNotEmpty;
+    }
+    final defId = customFieldIdOfFacetId(id);
+    if (defId == null) return false;
+    return (choiceValues[defId]?.isNotEmpty ?? false) ||
+        booleanValues.containsKey(defId) ||
+        (textValues[defId]?.isEffective ?? false) ||
+        (numberValues[defId]?.isEffective ?? false);
+  }
+
+  /// Clears the selection of every filter section named in [ids] and returns
+  /// whether anything was selected, so the caller knows the results may have
+  /// changed. Ids that name no section are ignored.
+  bool clearFacets(Set<String> ids) {
+    var changed = false;
+    for (final id in ids) {
+      if (!hasSelectionFor(id)) continue;
+      changed = true;
+      switch (id) {
+        case CollectionFacetIds.form:
+          forms.clear();
+        case CollectionFacetIds.formation:
+          formations.clear();
+        case CollectionFacetIds.progression:
+          progressions.clear();
+        case CollectionFacetIds.status:
+          statuses.clear();
+        case CollectionFacetIds.level:
+          levels.clear();
+        case CollectionFacetIds.mixedLevel:
+          mixedLevel = null;
+        case CollectionFacetIds.mixer:
+          mixer = null;
+        case CollectionFacetIds.minRating:
+          minRating = null;
+        case CollectionFacetIds.callStatus:
+          callStatuses.clear();
+          _clearHistoryScopes();
+        case CollectionFacetIds.author:
+          authorIds.clear();
+        case CollectionFacetIds.tunes:
+          tunes.clear();
+        case CollectionFacetIds.meter:
+          meters.clear();
+        case CollectionFacetIds.musicalKey:
+          musicalKeys.clear();
+        case CollectionFacetIds.tags:
+          tagIds.clear();
+          tagsMatchAll = true;
+        case CollectionFacetIds.source:
+          sourceIds.clear();
+        default:
+          final defId = customFieldIdOfFacetId(id);
+          if (defId != null) {
+            choiceValues.remove(defId);
+            booleanValues.remove(defId);
+            textValues.remove(defId);
+            numberValues.remove(defId);
+          }
+      }
+    }
+    return changed;
+  }
+}
+
+/// The calendar day [months] calendar months before [today]'s day, as the
+/// `DateTime.utc(y, m, d)` a stored event date and `CalledFilter.since` use.
+///
+/// A day the earlier month lacks clamps to that month's last day, so one month
+/// before 31 March is 28 (or 29) February, never 3 March.
+DateTime calendarMonthsBefore(DateTime today, int months) {
+  final index = today.year * 12 + (today.month - 1) - months;
+  final year = index ~/ 12;
+  final month = index % 12 + 1;
+  final lastDay = DateTime.utc(year, month + 1, 0).day;
+  return DateTime.utc(year, month, today.day > lastDay ? lastDay : today.day);
 }
 
 /// The user's "By phrase" selections — a Caller's Box-style per-phrase figure
@@ -227,6 +559,9 @@ DanceFilter buildCollectionFilter({
   BuilderGroup? advancedRoot,
   String? callerFilter,
   bool performedOnly = false,
+  bool requireEventDate = false,
+  CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+  DateTime? today,
 }) {
   final branches = <DanceFilter>[];
 
@@ -251,12 +586,16 @@ DanceFilter buildCollectionFilter({
   if (facets.mixer != null) {
     branches.add(MixerFilter(facets.mixer!));
   }
-  if (facets.callStatuses.length == 1) {
+  if (facets.scopesApply) {
     addOr([
       CalledFilter(
         called: facets.callStatuses.single,
         callerFilter: callerFilter,
         performedOnly: performedOnly,
+        requireEventDate: requireEventDate,
+        tracking: tracking,
+        venue: facets.historyVenue,
+        since: facets.historyCutoff(today ?? DateTime.now()),
       ),
     ]);
   }
@@ -264,8 +603,26 @@ DanceFilter buildCollectionFilter({
     branches.add(RatingFilter(facets.minRating!));
   }
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
-  addOr([for (final id in facets.tagIds) TagFilter(id)]);
+  final tagLeaves = [for (final id in facets.tagIds) TagFilter(id)];
+  final allTags = facets.tagsMatchAll && tagLeaves.length > 1;
+  if (allTags && !facets.untagged) {
+    // Each tag is already a top-level AND operand, as for Tunes below.
+    branches.addAll(tagLeaves);
+  } else {
+    addOr([
+      if (allTags) AndFilter(tagLeaves) else ...tagLeaves,
+      if (facets.untagged) const UntaggedFilter(),
+    ]);
+  }
   addOr([for (final id in facets.sourceIds) SourceIdFilter(id)]);
+  // AND within the facet, like Tags under All tags above: one branch per
+  // entered value, each already a top-level AND operand, so no OR/AND group is
+  // built.
+  for (final tune in facets.tunes) {
+    branches.add(TunesFilter(tune));
+  }
+  addOr([for (final m in facets.meters) MeterFilter(m)]);
+  addOr([for (final k in facets.musicalKeys) MusicalKeyFilter(k)]);
 
   final defsById = {for (final d in defs) d.id: d};
   facets.choiceValues.forEach((fieldId, values) {
@@ -371,7 +728,8 @@ extension GroupKindX on GroupKind {
   };
 }
 
-/// A node in the Advanced builder tree.
+/// A node in the Advanced builder tree: a group, a "has figure" row, a "has
+/// tag" row, or a "then" sequence row.
 sealed class BuilderNode {
   BuilderNode({String? id}) : id = id ?? _nextId();
 
@@ -423,14 +781,87 @@ class BuilderGroup extends BuilderNode {
   }
 }
 
-/// A "has figure" row: a move (required), an optional section, and optional
-/// named params. Folds to a [FigureFilter] leaf, or a [FigureLeaf] when used as
-/// a [ThenFilter] operand (via [BuilderFigureNode]).
+/// The "has tag" rows taken out of an Advanced query while a source that has no
+/// tags (ContraDB) is searched, kept so they can be put back.
+///
+/// A tag row left in the query would keep that search from being sent, so
+/// [take] removes every one, at any depth. [restoreInto] returns them, with
+/// the tag each had picked, to the group each came from and the position it
+/// had, once a source that can carry tags is searched again. A group the user
+/// has since deleted sends its rows to the top level instead.
+class RemovedTagRows {
+  final List<_RemovedTag> _rows = [];
+
+  /// How many rows are being kept.
+  int get length => _rows.length;
+  bool get isEmpty => _rows.isEmpty;
+
+  /// Removes every "has tag" row from [root], at any depth, and remembers
+  /// where each was.
+  void take(BuilderGroup root) => _take(root);
+
+  void _take(BuilderGroup group) {
+    final kept = <BuilderNode>[];
+    for (var i = 0; i < group.children.length; i++) {
+      final child = group.children[i];
+      if (child is BuilderTag) {
+        _rows.add(_RemovedTag(group.id, i, child));
+        continue;
+      }
+      if (child is BuilderGroup) _take(child);
+      kept.add(child);
+    }
+    group.children
+      ..clear()
+      ..addAll(kept);
+  }
+
+  /// Puts every kept row back into [root] and forgets them; returns how many.
+  int restoreInto(BuilderGroup root) {
+    final count = _rows.length;
+    for (final row in _rows) {
+      final group = _findGroup(root, row.groupId) ?? root;
+      final at = row.index < group.children.length
+          ? row.index
+          : group.children.length;
+      group.children.insert(at, row.node);
+    }
+    _rows.clear();
+    return count;
+  }
+
+  /// Forgets the kept rows without restoring them (the query was cleared).
+  void clear() => _rows.clear();
+
+  static BuilderGroup? _findGroup(BuilderGroup group, String id) {
+    if (group.id == id) return group;
+    for (final child in group.children) {
+      if (child is BuilderGroup) {
+        final found = _findGroup(child, id);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+}
+
+class _RemovedTag {
+  const _RemovedTag(this.groupId, this.index, this.node);
+  final String groupId;
+  final int index;
+  final BuilderTag node;
+}
+
+/// A "has figure" row: a move, an optional section and optional named params,
+/// or, with [isAnyFigure], any figure at all. Folds to a [FigureFilter] over a
+/// [FigureLeaf] (or [anyFigure]), and to that query alone when used as a
+/// [ThenFilter] operand (via [BuilderFigureNode]).
 class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   BuilderFigure({
     this.move,
     this.section,
     Map<String, Object?>? params,
+    this.isAnyFigure = false,
     super.id,
   }) : params = params ?? {};
 
@@ -438,7 +869,12 @@ class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   String? section;
   final Map<String, Object?> params;
 
-  bool get isComplete => (move ?? '').trim().isNotEmpty;
+  /// Whether this row asks for any figure at all ([anyFigure]) instead of a
+  /// move, so "swing, then anything" can be written. Such a row has no move,
+  /// section or parameters.
+  bool isAnyFigure;
+
+  bool get isComplete => isAnyFigure || (move ?? '').trim().isNotEmpty;
 
   Map<String, Object?> get _cleanParams => {
     for (final e in params.entries)
@@ -446,18 +882,38 @@ class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   };
 
   @override
-  FigureLeaf? toFigureQuery() => isComplete
-      ? FigureLeaf(move!.trim(), params: _cleanParams, section: section)
-      : null;
+  FigureQuery? toFigureQuery() {
+    if (isAnyFigure) return anyFigure;
+    return (move ?? '').trim().isNotEmpty
+        ? FigureLeaf(move!.trim(), params: _cleanParams, section: section)
+        : null;
+  }
 
   @override
   DanceFilter? toFilter() {
-    final leaf = toFigureQuery();
-    return leaf == null ? null : FigureFilter(leaf);
+    final query = toFigureQuery();
+    return query == null ? null : FigureFilter(query);
   }
 }
 
-/// A "then" sequence row: figure [before] occurs earlier than figure [after].
+/// A "has tag" row: the dance carries the tag [tagId]. Folds to the same
+/// [TagFilter] leaf the Tag facet emits, so an all-of group of tag rows gives
+/// "has tag A AND tag B", and tag rows can mix with figure rows in any group.
+/// A row with no tag picked folds to `null` and is skipped.
+class BuilderTag extends BuilderNode {
+  BuilderTag({this.tagId, super.id});
+
+  String? tagId;
+
+  @override
+  DanceFilter? toFilter() {
+    final id = tagId;
+    return (id == null || id.isEmpty) ? null : TagFilter(id);
+  }
+}
+
+/// A "then" sequence row: figure [after] immediately follows figure [before]
+/// (the dance is a loop, so the first figure follows the last).
 /// Folds to a [ThenFilter]; needs both sides complete.
 ///
 /// Each side is a [BuilderFigureNode] — either a single [BuilderFigure] (the

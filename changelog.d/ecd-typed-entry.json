@@ -1,0 +1,24 @@
+{
+  "id": "ecd-typed-entry",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Typing a figure line into an English country dance now reads it as English figures, such as \"1st corners set and turn single\" or \"Right hands across and back by the left\", instead of as contra moves. A line it can't read exactly is kept as you typed it.",
+      "A Caller's Companion dance whose Type is English now imports as an English country dance figure by figure, and a Duple Proper or Duple Improper formation becomes a duple minor, proper or improper.",
+      "Re-check unrecognized figures reads an English country dance's unrecognized lines as English figures.",
+      "\"Gentleman\" and \"gentlemen\" in an imported or typed figure are now read as the first role, like \"gents\", and shown in your dialect's words."
+    ]
+  },
+  "core": {
+    "added": [
+      "`parseEcdFigureLine` and `recognizeEcdLine` read one line of an English Country Dance into ECD taxonomy figures (ADR-006), and `ecdRingDancers` gives the ring size a formation shape implies.",
+      "`ecdFormationFromContra` maps a contra shape an English dance was given to its ECD shape.",
+      "`parseFreeTextFigureEntry` takes an optional `formationShape`."
+    ],
+    "changed": [
+      "`parseFreeTextFigureEntry` reads a line with the ECD grammar when its taxonomy is ECD's, `mapCallersCompanionDance` does so for an English dance, and `reparseImportGapFigures` does so when given ECD's taxonomy.",
+      "`CcFigureLineCache` keeps an English dance's lines apart, per ring size (`lookup(line, ecd: true, ringDancers: n)`, `remember(..., ecd: true, ringDancers: n)`).",
+      "`legacyRoleSynonyms` reads `gentleman` and `gentlemen` as `role1` and `role1s`."
+    ]
+  }
+}

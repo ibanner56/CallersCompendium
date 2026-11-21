@@ -1,6 +1,38 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
+/// The three `LIKE` binds an All fields word adds for the meter, the key
+/// and the interpreters' names (`_musicAndInterpreterMatch`), folded as the
+/// values are (`cc_fold`: lowercased, accents removed).
+List<String> _music(String word, {bool prefix = false}) {
+  final folded = foldForSearch(word);
+  final p = prefix ? '% $folded%' : '%$folded%';
+  return [p, p, p];
+}
+
+/// The SQL an All fields word of three or more characters adds for the
+/// meter, the key and the interpreters' names.
+/// [column] folded as the compiler folds a meter, key or name for a `LIKE`:
+/// left as stored when it is ASCII, `cc_fold` for anything else.
+String _f(String column) =>
+    '(CASE WHEN length($column) = length(CAST($column AS BLOB)) '
+    'THEN $column ELSE cc_fold($column) END)';
+
+/// [column] folded for a whole-value `=` match.
+String _eq(String column) =>
+    '(CASE WHEN length($column) = length(CAST($column AS BLOB)) '
+    'THEN lower(trim($column, char(9, 10, 11, 12, 13, 32))) '
+    'ELSE cc_fold($column) END)';
+
+final _musicSql =
+    "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '') "
+    "AND (${_f('meter')} LIKE ? ESCAPE '\\' "
+    "OR ${_f('musical_key')} LIKE ? ESCAPE '\\')) "
+    'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
+    'JOIN choreographers c ON c.id = di.choreographer_id '
+    'WHERE c.deleted_at IS NULL '
+    "AND ${_f('c.name')} LIKE ? ESCAPE '\\'))";
+
 void main() {
   final compiler = FilterCompiler();
 
@@ -11,6 +43,26 @@ void main() {
     final end = sql.lastIndexOf(') ORDER BY');
     return sql.substring(start, end);
   }
+
+  group('Meter and Key leaves (ADR-006 F3)', () {
+    test('compile to a folded whole-value match', () {
+      final meter = compiler.compile(const MeterFilter(' Ré 6/8 '));
+      expect(meter.sql, contains("(meter <> '' AND ${_eq('meter')} = ?)"));
+      expect(meter.binds, ['re 6/8']);
+      final key = compiler.compile(const MusicalKeyFilter('D minor'));
+      expect(
+        key.sql,
+        contains("(musical_key <> '' AND ${_eq('musical_key')} = ?)"),
+      );
+      expect(key.binds, ['d minor']);
+    });
+
+    test('a blank value matches nothing', () {
+      final c = compiler.compile(const MeterFilter('  '));
+      expect(c.sql, contains('AND (0)'));
+      expect(c.binds, isEmpty);
+    });
+  });
 
   group('outer shape', () {
     test('wraps predicate with deleted_at guard and default title sort', () {
@@ -23,20 +75,20 @@ void main() {
       expect(c.binds, ['contra']);
     });
 
-    test('recentlyEdited sorts by updated_at DESC', () {
+    test('recentlyEdited sorts by updated_at DESC with a title tiebreak', () {
       final c = compiler.compile(
         const FormFilter(DanceForm.contra),
         sort: SearchSort.recentlyEdited,
       );
-      expect(c.sql, endsWith('ORDER BY updated_at DESC'));
+      expect(c.sql, endsWith('ORDER BY updated_at DESC, title COLLATE NOCASE'));
     });
 
-    test('recentlyAdded sorts by created_at DESC', () {
+    test('recentlyAdded sorts by created_at DESC with a title tiebreak', () {
       final c = compiler.compile(
         const FormFilter(DanceForm.contra),
         sort: SearchSort.recentlyAdded,
       );
-      expect(c.sql, endsWith('ORDER BY created_at DESC'));
+      expect(c.sql, endsWith('ORDER BY created_at DESC, title COLLATE NOCASE'));
     });
 
     test('author and lastCalled use the stable title base order', () {
@@ -70,6 +122,7 @@ void main() {
         'EXISTS (SELECT 1 FROM program_slots ps '
         'JOIN programs p ON p.id = ps.program_id '
         'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL '
+        'AND (NOT ps.is_alt OR ps.performed_at IS NOT NULL) '
         'AND ps.performed_at IS NOT NULL '
         'AND (p.caller IS NULL OR TRIM(p.caller) = \'\' '
         'OR LOWER(TRIM(p.caller)) = LOWER(TRIM(?))))',
@@ -83,7 +136,8 @@ void main() {
         pred(filter),
         'NOT (EXISTS (SELECT 1 FROM program_slots ps '
         'JOIN programs p ON p.id = ps.program_id '
-        'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL))',
+        'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL '
+        'AND (NOT ps.is_alt OR ps.performed_at IS NOT NULL)))',
       );
       expect(compiler.compile(filter).binds, isEmpty);
     });
@@ -104,9 +158,15 @@ void main() {
         '(id IN (SELECT dance_id FROM dance_substring_fts '
         'WHERE dance_substring_fts MATCH ?) '
         'OR id IN (SELECT dance_id FROM dance_substring_fts '
-        'WHERE title MATCH ?))',
+        'WHERE dance_substring_fts MATCH ?) OR $_musicSql)',
       );
-      expect(c.binds, ['"swing"', '"swing"']);
+      // Canonical bind first, then the raw bind restricted to the verbatim
+      // columns (never figures_text).
+      expect(c.binds, [
+        '"swing"',
+        '{title authors sources custom_values hook notes} : ("swing")',
+        ..._music('swing'),
+      ]);
     });
 
     test('Author', () {
@@ -170,6 +230,35 @@ void main() {
       expect(compiler.compile(const SourceIdFilter('s1')).binds, ['s1']);
     });
 
+    test('Tunes', () {
+      // The guard chain is a `CASE`, not an `AND`: SQLite does not promise
+      // `AND` operand order, and `json_each` over malformed text raises.
+      expect(
+        pred(const TunesFilter('Dmaj')),
+        'CASE WHEN NOT json_valid(dances.tunes_json) THEN 0 '
+        "WHEN json_type(dances.tunes_json) <> 'array' THEN 0 "
+        'WHEN EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
+        "WHERE j.type <> 'text') THEN 0 "
+        'ELSE EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
+        "WHERE j.value LIKE '%' || ? || '%' ESCAPE '\\') END",
+      );
+      expect(compiler.compile(const TunesFilter('Dmaj')).binds, ['Dmaj']);
+    });
+
+    test('Tunes escapes LIKE metacharacters in the bound value', () {
+      expect(compiler.compile(const TunesFilter('100%')).binds, [r'100\%']);
+      expect(compiler.compile(const TunesFilter('a_b')).binds, [r'a\_b']);
+      expect(compiler.compile(const TunesFilter(r'a\b')).binds, [r'a\\b']);
+    });
+
+    test('Tunes leaves under And bind once each, in order', () {
+      final c = compiler.compile(
+        const AndFilter([TunesFilter('Dmaj'), TunesFilter('6/8')]),
+      );
+      expect(c.binds, ['Dmaj', '6/8']);
+      expect('?'.allMatches(c.sql).length, 2);
+    });
+
     test('Tag', () {
       expect(
         pred(const TagFilter('t1')),
@@ -177,6 +266,23 @@ void main() {
         'JOIN tags t ON t.id = dt.tag_id '
         'WHERE dt.tag_id = ? AND t.deleted_at IS NULL)',
       );
+    });
+
+    test('Untagged excludes dances with a live tag and binds nothing', () {
+      expect(
+        pred(const UntaggedFilter()),
+        'id NOT IN (SELECT dt.dance_id FROM dance_tags dt '
+        'JOIN tags t ON t.id = dt.tag_id '
+        'WHERE t.deleted_at IS NULL)',
+      );
+      expect(compiler.compile(const UntaggedFilter()).binds, isEmpty);
+    });
+
+    test('Untagged OR Tag keeps bind order', () {
+      final c = compiler.compile(
+        const OrFilter([UntaggedFilter(), TagFilter('t1')]),
+      );
+      expect(c.binds, ['t1']);
     });
 
     test('Form / Formation / Progression / Status bind enum names', () {
@@ -341,10 +447,56 @@ void main() {
       expect(
         pred(f),
         "EXISTS (SELECT 1 FROM custom_field_values v "
+        "JOIN custom_field_defs d ON d.id = v.field_id "
         "WHERE v.dance_id = dances.id AND v.field_id = ? "
+        "AND d.deleted_at IS NULL "
         "AND v.value_text LIKE '%' || ? || '%' ESCAPE '\\')",
       );
+      // The definition join binds nothing, so the bind order is unchanged:
+      // `field_id` first, then the operator's own values (#1358).
       expect(compiler.compile(f).binds, ['fid', 'jig']);
+    });
+
+    test('every custom-field operator filters the tombstoned definition', () {
+      // The snapshot above pins one operator's SQL. This pins the *property*
+      // for all of them: the parent predicate is emitted by `_customField`,
+      // not by any per-operator branch, so no operator can be added that
+      // silently omits it (#1358).
+      final cases = <CustomFieldFilter>[
+        CustomFieldFilter(
+          def(CustomFieldType.text),
+          CustomFieldOp.contains,
+          'j',
+        ),
+        CustomFieldFilter(def(CustomFieldType.text), CustomFieldOp.equals, 'j'),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.eq, 1),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.lt, 1),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.gt, 1),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.between, [
+          1,
+          2,
+        ]),
+        CustomFieldFilter(
+          def(CustomFieldType.boolean),
+          CustomFieldOp.is_,
+          true,
+        ),
+        CustomFieldFilter(
+          def(CustomFieldType.choice, choices: const ['a', 'b']),
+          CustomFieldOp.in_,
+          const ['a'],
+        ),
+      ];
+      for (final f in cases) {
+        expect(
+          pred(f),
+          allOf(
+            contains('JOIN custom_field_defs d ON d.id = v.field_id'),
+            contains('d.deleted_at IS NULL'),
+          ),
+          reason: 'operator ${f.op.name} must filter the tombstoned definition',
+        );
+      }
     });
 
     test('contains escapes LIKE metacharacters in the bound value', () {
@@ -490,7 +642,8 @@ void main() {
   });
 
   group('sequence: ThenFilter', () {
-    test('self-join on group_idx with before/after clauses and bind order', () {
+    test('self-join on the next group_idx with before/after clauses and bind '
+        'order', () {
       final f = ThenFilter(
         FigureLeaf('petronella', section: 'B1'),
         FigureLeaf('swing'),
@@ -499,7 +652,12 @@ void main() {
         pred(f),
         'id IN (SELECT a.dance_id FROM dance_figures a '
         'JOIN dance_figures b ON a.dance_id = b.dance_id '
-        'AND a.group_idx < b.group_idx '
+        'AND (a.group_idx <> b.group_idx OR a.idx = b.idx) '
+        'AND b.group_idx = COALESCE('
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx), '
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id)) '
         'WHERE ((a.move = ? AND a.section = ?)) AND (b.move = ?))',
       );
       expect(compiler.compile(f).binds, ['petronella', 'B1', 'swing']);
@@ -529,12 +687,19 @@ void main() {
       );
       expect(
         c.sql,
-        'SELECT dance_fts.dance_id FROM dance_fts '
-        'JOIN dances ON dances.id = dance_fts.dance_id '
-        'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
-        'ORDER BY bm25(dance_fts)',
+        startsWith(
+          'SELECT dance_id FROM (SELECT dance_fts.dance_id AS dance_id, '
+          'bm25(dance_fts) AS score FROM dance_fts '
+          'JOIN dances ON dances.id = dance_fts.dance_id '
+          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
+          'UNION ALL SELECT id, 0 FROM dances WHERE deleted_at IS NULL AND ',
+        ),
       );
-      expect(c.binds, ['("re"* OR title : "re"*)']);
+      expect(c.sql, endsWith('GROUP BY dance_id ORDER BY MIN(score)'));
+      expect(c.binds, [
+        '("re"* OR {title authors sources custom_values hook notes} : ("re"*))',
+        ..._music('re', prefix: true),
+      ]);
     });
 
     test(
@@ -594,7 +759,7 @@ void main() {
       // Descending-default keys keep their DESC.
       expect(
         compiler.compile(f, sort: SearchSort.recentlyAdded).sql,
-        endsWith('ORDER BY created_at DESC'),
+        endsWith('ORDER BY created_at DESC, title COLLATE NOCASE'),
       );
       expect(
         compiler.compile(f, sort: SearchSort.rating).sql,
@@ -634,7 +799,7 @@ void main() {
               direction: SortDirection.ascending,
             )
             .sql,
-        endsWith('ORDER BY created_at'),
+        endsWith('ORDER BY created_at, title COLLATE NOCASE'),
       );
       expect(
         compiler
@@ -644,7 +809,7 @@ void main() {
               direction: SortDirection.ascending,
             )
             .sql,
-        endsWith('ORDER BY updated_at'),
+        endsWith('ORDER BY updated_at, title COLLATE NOCASE'),
       );
     });
 
@@ -696,8 +861,217 @@ void main() {
               direction: SortDirection.descending,
             )
             .sql,
-        endsWith('ORDER BY bm25(dance_fts) DESC'),
+        endsWith('ORDER BY MIN(score) DESC'),
       );
+    });
+  });
+
+  group('free text is split into words and ANDed (FIND-5)', () {
+    const raw = '{title authors sources custom_values hook notes}';
+
+    test('each word is its own canonical-or-raw match, ANDed', () {
+      final c = compiler.compile(const FullTextFilter('Kaynor petronella'));
+      final word =
+          '(id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE dance_substring_fts MATCH ?) '
+          'OR id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE dance_substring_fts MATCH ?) OR $_musicSql)';
+      expect(c.sql, contains('($word AND $word)'));
+      expect(c.binds, [
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
+        '"petronella"',
+        '$raw : ("petronella")',
+        ..._music('petronella'),
+      ]);
+    });
+
+    test('a word of one or two characters uses the prefix index', () {
+      final c = compiler.compile(const FullTextFilter('of Kaynor'));
+      expect(
+        c.sql,
+        contains(
+          '((id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
+          'OR id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
+          'OR (id IN (SELECT id FROM dances',
+        ),
+      );
+      expect(c.binds, [
+        '"of"*',
+        '$raw : ("of"*)',
+        ..._music('of', prefix: true),
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
+      ]);
+    });
+
+    test('a move name of several words stays one word', () {
+      final c = FilterCompiler(
+        null,
+        null,
+        contraTaxonomy,
+      ).compile(const FullTextFilter('do si do Kaynor'));
+      expect(c.binds, [
+        '"dosido"',
+        '$raw : ("do si do")',
+        ..._music('do si do'),
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
+      ]);
+    });
+
+    test('a role of several words stays one word', () {
+      final dialect = Dialect(
+        name: 'Birds',
+        roles: const {
+          'role1': RoleTerm('lady bird', plural: 'lady birds'),
+          'role2': RoleTerm('gent bird', plural: 'gent birds'),
+        },
+      );
+      final c = FilterCompiler(
+        dialect,
+      ).compile(const FullTextFilter('Lady Birds chain'));
+      expect(c.binds, [
+        '"role1s"',
+        '$raw : ("Lady Birds")',
+        ..._music('Lady Birds'),
+        '"chain"',
+        '$raw : ("chain")',
+        ..._music('chain'),
+      ]);
+    });
+
+    test('the role-token guard applies to each word on its own', () {
+      final c = compiler.compile(const FullTextFilter('Kaynor ro'));
+      // "Kaynor" has the plain shape; "ro" alone gets the figure re-check.
+      expect(c.binds, [
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+        ..._music('Kaynor'),
+        '$raw : ("ro"*)',
+        '$raw : ("ro"*)',
+        '"ro"*',
+        '% ro%',
+        ..._music('ro', prefix: true),
+      ]);
+    });
+
+    test('a role word is decided in the context of the whole query', () {
+      // "lead" before "down" is the verb under Leads/Follows, so it is not
+      // rewritten to role1 although the words are matched one by one.
+      final c = FilterCompiler(
+        Dialect.leadsFollows,
+      ).compile(const FullTextFilter('lead down', scope: FullTextScope.figure));
+      expect(c.binds, ['"lead"', '"down"']);
+    });
+
+    test('scoped searches AND their words too', () {
+      final c = compiler.compile(
+        const FullTextFilter('nice combination', scope: FullTextScope.title),
+      );
+      expect(
+        c.sql,
+        contains(
+          '(id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE title MATCH ?) AND id IN (SELECT dance_id FROM '
+          'dance_substring_fts WHERE title MATCH ?))',
+        ),
+      );
+      expect(c.binds, ['"nice"', '"combination"']);
+    });
+
+    test('the Author scope also reads the interpreters, folded', () {
+      final c = compiler.compile(
+        const FullTextFilter('Émile Du', scope: FullTextScope.author),
+      );
+      const interpreters =
+          'id IN (SELECT di.dance_id FROM dance_interpreters di '
+          'JOIN choreographers c ON c.id = di.choreographer_id '
+          'WHERE c.deleted_at IS NULL ';
+      expect(
+        c.sql,
+        contains(
+          '((id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE authors MATCH ?) OR $interpreters'
+          "AND ${_f('c.name')} LIKE ? ESCAPE '\\')) AND "
+          '(id IN (SELECT dance_id FROM dance_fts WHERE authors MATCH ?) OR '
+          "${interpreters}AND (' ' || replace(replace(replace("
+          "${_f('c.name')}, '/', ' '), '-', ' '), '(', ' ')) "
+          "LIKE ? ESCAPE '\\')))",
+        ),
+      );
+      // Only the interpreters: a meter or a key is not an author.
+      expect(c.sql, isNot(contains('meter')));
+      expect(c.binds, ['"Émile"', '%emile%', '"Du"*', '% du%']);
+    });
+  });
+
+  group("the search bar reads the dialect's move names (FIND-4)", () {
+    const raw = '{title authors sources custom_values hook notes}';
+    final buzz = Dialect(
+      name: 'Buzz',
+      moves: const {'swing': 'buzz', 'mad_robin': 'dizzy robin'},
+    );
+
+    test('a dialect move name is searched as the stored move name', () {
+      final c = FilterCompiler(
+        buzz,
+        null,
+        contraTaxonomy,
+      ).compile(const FullTextFilter('buzz'));
+      // Canonical side: the taxonomy name the figure text holds; raw side:
+      // the word as typed. Then the same word without the dialect's meaning,
+      // ORed, so "buzz" still finds what it found before (FIND-4 adds).
+      expect(c.binds, [
+        '"swing"',
+        '$raw : ("buzz")',
+        ..._music('buzz'),
+        '"buzz"',
+        '$raw : ("buzz")',
+        ..._music('buzz'),
+      ]);
+      expect(c.sql, contains(') OR ('));
+    });
+
+    test('a dialect move name of several words is one word; a role word '
+        'inside it is a role only in the as-typed form', () {
+      final c = FilterCompiler(buzz, null, contraTaxonomy).compile(
+        const FullTextFilter('dizzy robin Kaynor', scope: FullTextScope.figure),
+      );
+      expect(c.binds, ['"mad robin"', '"dizzy role2"', '"Kaynor"']);
+    });
+
+    test('the Figure scope maps it too', () {
+      final c = FilterCompiler(
+        buzz,
+        null,
+        contraTaxonomy,
+      ).compile(const FullTextFilter('buzz', scope: FullTextScope.figure));
+      expect(c.binds, ['"swing"', '"buzz"']);
+    });
+
+    test("a saved dialect's move name (enrichment) is read too", () {
+      final c =
+          FilterCompiler(
+            null,
+            SearchEnrichment(
+              moveSynonyms: const {'gypsy dance': 'shoulder_round'},
+            ),
+            contraTaxonomy,
+          ).compile(
+            const FullTextFilter('gypsy dance', scope: FullTextScope.figure),
+          );
+      expect(c.binds, ['"shoulder round"', '"shoulder round dance"']);
+    });
+
+    test('without a taxonomy the word is searched as typed', () {
+      final c = FilterCompiler(
+        buzz,
+      ).compile(const FullTextFilter('buzz', scope: FullTextScope.figure));
+      expect(c.binds, ['"buzz"']);
     });
   });
 
@@ -706,9 +1080,16 @@ void main() {
       final c = FilterCompiler(
         Dialect.larksRobins,
       ).compile(const FullTextFilter('robins allemande'));
-      // Canonicalized to role tokens while keeping the long query as one
-      // literal substring phrase.
-      expect(c.binds.first, '"role2s allemande"');
+      // Each word is canonicalized on its own (FIND-5): the role word becomes
+      // its token on the canonical side and stays as typed on the raw side.
+      expect(c.binds, [
+        '"role2s"',
+        '{title authors sources custom_values hook notes} : ("robins")',
+        ..._music('robins'),
+        '"allemande"',
+        '{title authors sources custom_values hook notes} : ("allemande")',
+        ..._music('allemande'),
+      ]);
     });
 
     test('role-valued figure params are canonicalized', () {
@@ -723,6 +1104,63 @@ void main() {
         Dialect.larksRobins,
       ).compile(FigureFilter.leaf('swing', params: const {'who': 'partners'}));
       expect(c.binds, ['swing', 'partners']);
+    });
+
+    test('a figure of your own is matched by its id as given (#1023)', () {
+      // An id is not text: one that happens to read as a role word is not
+      // canonicalized to a role token.
+      final c = FilterCompiler(Dialect.larksRobins).compile(
+        FigureFilter.leaf(
+          customMove,
+          params: const {userFigureRefKey: 'larks'},
+        ),
+      );
+      expect(c.binds, [customMove, 'larks']);
+      expect(
+        c.sql,
+        contains("json_extract(f.params_json, '\$.userFigure') = ?"),
+      );
+    });
+
+    test('a dialect key naming a figure of your own is not a move (#1023)', () {
+      // Its wording must not map a query's move to `userFigure:<id>`, which
+      // no index row has.
+      final dialect = Dialect(
+        name: 'Mine',
+        moves: {userFigureKeyFor('fig-1'): 'swing'},
+      );
+      final c = FilterCompiler(dialect).compile(FigureFilter.leaf('swing'));
+      expect(c.binds, ['swing']);
+    });
+  });
+  group('a dialect name equal to a built-in move id (FIND-4)', () {
+    final clash = Dialect(name: 'Clash', moves: const {'swing': 'chain'});
+
+    test('the built-in id searches its own move', () {
+      for (final compiler in [
+        FilterCompiler(clash, null, contraTaxonomy),
+        // A saved, inactive dialect feeds the same reverse map.
+        FilterCompiler(
+          null,
+          SearchEnrichment.fromDialects([clash]),
+          contraTaxonomy,
+        ),
+      ]) {
+        expect(compiler.compile(FigureFilter.leaf('chain')).binds, ['chain']);
+        expect(compiler.compile(FigureFilter.leaf('swing')).binds, ['swing']);
+      }
+    });
+
+    test('a dialect-only name still maps to its move', () {
+      final buzz = Dialect(name: 'Buzz', moves: const {'swing': 'buzz'});
+      expect(
+        FilterCompiler(
+          buzz,
+          null,
+          contraTaxonomy,
+        ).compile(FigureFilter.leaf('Buzz')).binds,
+        ['swing'],
+      );
     });
   });
 }

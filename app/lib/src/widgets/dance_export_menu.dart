@@ -1,46 +1,45 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/calling_card_settings_scope.dart';
+import '../data/user_figures_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
-import '../diagnostics/error_log.dart';
-import '../export/dance_pdf.dart';
-import '../export/export_labels_l10n.dart';
-import '../utils/safe_name.dart';
-import '../export/dance_share_bundle.dart';
 import '../export/json_export.dart';
 import '../export/share_file.dart';
+import 'dance_export_actions.dart';
+
+export 'dance_export_actions.dart' show PdfLayouter, ShareInvoker;
 
 /// Actions offered by the [DanceExportMenu].
-enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
-
-/// Hands the shareable card to the OS share sheet. Defaults to
-/// [SharePlus.instance.share]; overridable so tests can force a failure.
-typedef ShareInvoker = Future<void> Function(ShareParams params);
-
-/// Hands a generated PDF to the OS print/save dialog. Defaults to
-/// [Printing.layoutPdf]; overridable so tests can force a failure.
-typedef PdfLayouter =
-    Future<void> Function({
-      required String name,
-      required LayoutCallback onLayout,
-    });
+enum _ExportAction {
+  shareText,
+  shareBundle,
+  copyText,
+  shareJson,
+  pdf,
+  callingCard,
+}
 
 /// A labeled, keyboard-reachable print/share control for a single [Dance]
 /// (`docs/design/ux.md` §2 dance-detail actions).
 ///
 /// Mirrors the program-level [ProgramExportMenu]: a [PopupMenuButton] (icon +
-/// tooltip "Export") with five actions:
+/// tooltip "Export") with five actions (six with calling cards on), all
+/// implemented by
+/// [DanceExportActions]:
 /// - **Share dance (text)** — the shareable plain-text card, via the OS share
 ///   sheet (`share_plus`).
+/// - **Share / save dance file** — the `.ccshare` bundle, via the share sheet
+///   (or Save As where the platform's share sheet cannot carry files).
 /// - **Copy dance** — copies the same text to the clipboard (an
 ///   always-available fallback); shows a confirming SnackBar.
+/// - **Share dance JSON** — the plain JSON export, with a Save / Copy / Share
+///   choice.
 /// - **Export / print PDF** — hands a generated PDF to the OS print/save dialog
 ///   (`printing`).
+/// - **Print calling card** — only while Settings › Experimental › Calling
+///   cards is on: the dance as one small card at the card's own size.
 ///
 /// The card is rendered **dialect-aware** and privacy-safe: the caller resolves
 /// author [authorNames] and the facet label strings, so no choreographer
@@ -64,6 +63,7 @@ class DanceExportMenu extends StatelessWidget {
     this.bundleFileWriter,
     this.pdfLayouter,
     this.jsonExportDelivery,
+    this.fields = DanceShareField.allExceptTunes,
   });
 
   final Dance dance;
@@ -73,6 +73,12 @@ class DanceExportMenu extends StatelessWidget {
   final String statusLabel;
   final String? levelLabel;
   final FigureRenderer? renderer;
+
+  /// Which non-figures fields appear on the exported card (issue #1434).
+  /// Defaults to every field this widget rendered unconditionally before the
+  /// picker existed, minus the opt-in tunes, hook and sources — see
+  /// [DanceShareField.allExceptTunes].
+  final Set<DanceShareField> fields;
   final Map<String, Choreographer> choreographersById;
   final Map<String, Tag> tagsById;
   final Map<String, PublishedSource> sourcesById;
@@ -80,6 +86,8 @@ class DanceExportMenu extends StatelessWidget {
   final DifficultyLevel? Function(String id)? difficultyLevelFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
+  /// Not used on platforms where [isBundleShareUnsupported] (Linux) routes the
+  /// file actions to Save As.
   final ShareInvoker? shareInvoker;
 
   /// Test seam for staging a share file.
@@ -90,176 +98,41 @@ class DanceExportMenu extends StatelessWidget {
 
   /// Shared JSON delivery seam. When absent, the legacy share/file seams above
   /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
+  /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
-  String _plainText(
-    AppLocalizations l10n, {
+  DanceExportActions _actions({
     required bool canonicalizeDiscouragedTerms,
-  }) => danceToPlainText(
-    dance,
+    required UserGlossaryEntry? Function(String id) userFigureFor,
+  }) => DanceExportActions(
+    dance: dance,
     dialect: dialect,
     authorNames: authorNames,
     formationLabel: formationLabel,
-    levelLabel: levelLabel,
     statusLabel: statusLabel,
+    levelLabel: levelLabel,
     renderer: renderer,
-    labels: danceExportLabels(l10n),
+    fields: fields,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    choreographersById: choreographersById,
+    tagsById: tagsById,
+    sourcesById: sourcesById,
+    customFieldsById: customFieldsById,
+    difficultyLevelFor: difficultyLevelFor,
+    userFigureFor: userFigureFor,
+    shareInvoker: shareInvoker,
+    bundleFileWriter: bundleFileWriter,
+    pdfLayouter: pdfLayouter,
+    jsonExportDelivery: jsonExportDelivery,
   );
-
-  Future<void> _shareText(
-    AppLocalizations l10n,
-    Rect? origin, {
-    required bool canonicalizeDiscouragedTerms,
-  }) async {
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        text: _plainText(
-          l10n,
-          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-        ),
-        subject: dance.title,
-        sharePositionOrigin: origin,
-      ),
-    );
-  }
-
-  Future<void> _copyText(
-    BuildContext context, {
-    required bool canonicalizeDiscouragedTerms,
-  }) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(
-      ClipboardData(
-        text: _plainText(
-          l10n,
-          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-        ),
-      ),
-    );
-    messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
-  }
-
-  Future<void> _shareBundle(
-    Rect? origin, {
-    String extension = danceShareBundleExtension,
-  }) async {
-    final bundle = _buildBundle(extension: extension);
-    final writeFile = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writeFile(bundle.json, bundle.fileName);
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [bundle.fileName],
-        subject: dance.title,
-        sharePositionOrigin: origin,
-      ),
-    );
-  }
-
-  ({String json, String fileName}) _buildBundle({required String extension}) {
-    final json = buildDanceShareBundle(
-      dance,
-      choreographerFor: (id) => choreographersById[id],
-      tagFor: (id) => tagsById[id],
-      publishedSourceFor: (id) => sourcesById[id],
-      customFieldFor: (id) => customFieldsById[id],
-      difficultyLevelFor: difficultyLevelFor,
-    );
-    final fileName = danceShareBundleFileName(
-      dance.title,
-      extension: extension,
-    );
-    return (json: json, fileName: fileName);
-  }
-
-  JsonExportDelivery get _jsonDelivery {
-    final delivery = jsonExportDelivery;
-    if (delivery == null) {
-      return JsonExportDelivery(
-        shareInvoker: shareInvoker,
-        bundleFileWriter: bundleFileWriter,
-      );
-    }
-    return JsonExportDelivery(
-      choicePicker: delivery.choicePicker,
-      saveInvoker: delivery.saveInvoker,
-      clipboardWriter: delivery.clipboardWriter,
-      shareInvoker: delivery.shareInvoker ?? shareInvoker,
-      bundleFileWriter: delivery.bundleFileWriter ?? bundleFileWriter,
-    );
-  }
-
-  Future<void> _exportJson(BuildContext context, Rect? origin) async {
-    final bundle = _buildBundle(extension: danceShareJsonExtension);
-    final delivery = _jsonDelivery;
-    final choice = await delivery.choose(context);
-    if (choice == null || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-
-    switch (choice) {
-      case JsonExportChoice.save:
-        await _guard(messenger, l10n.exportJsonSaveError, () async {
-          final result = await delivery.save(bundle.json, bundle.fileName);
-          if (result == null || !context.mounted) return;
-          final message = result.fileName == null
-              ? l10n.exportJsonSavedGeneric
-              : result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName!)
-              : l10n.exportJsonSavedTo(result.fileName!, result.path);
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        });
-      case JsonExportChoice.copy:
-        await _guard(messenger, l10n.exportJsonCopyError, () async {
-          await delivery.copy(bundle.json);
-          if (context.mounted) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.exportJsonCopied)),
-            );
-          }
-        });
-      case JsonExportChoice.share:
-        await _guard(messenger, l10n.exportJsonShareError, () {
-          return delivery.share(
-            json: bundle.json,
-            fileName: bundle.fileName,
-            subject: dance.title,
-            sharePositionOrigin: origin,
-          );
-        });
-    }
-  }
-
-  Future<void> _exportPdf(
-    AppLocalizations l10n, {
-    required bool canonicalizeDiscouragedTerms,
-  }) async {
-    final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
-    await layoutPdf(
-      name: sanitizeExportName(dance.title, fallback: 'dance'),
-      onLayout: (format) => buildDancePdf(
-        dance,
-        dialect: dialect,
-        authorNames: authorNames,
-        formationLabel: formationLabel,
-        levelLabel: levelLabel,
-        statusLabel: statusLabel,
-        renderer: renderer,
-        labels: danceExportLabels(l10n),
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-      ),
-    );
-  }
 
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
-      context,
+    final actions = _actions(
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      userFigureFor: UserFiguresScope.entryLookupOf(context),
     );
     // Capture the button's screen position before any await: on desktop
     // `share_plus` needs a `sharePositionOrigin` to anchor the native share
@@ -272,67 +145,28 @@ class DanceExportMenu extends StatelessWidget {
         : null;
     switch (action) {
       case _ExportAction.shareText:
-        await _guard(
-          messenger,
-          l10n.exportShareDanceError,
-          () => _shareText(
-            l10n,
-            origin,
-            canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-          ),
-        );
+        await actions.shareText(messenger, l10n, origin: origin);
       case _ExportAction.shareBundle:
-        await _guard(
-          messenger,
-          l10n.exportShareDanceError,
-          () => _shareBundle(origin),
-        );
+        await actions.shareBundle(messenger, l10n, origin: origin);
       case _ExportAction.copyText:
-        await _copyText(
-          context,
-          canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-        );
+        await actions.copyText(messenger, l10n);
       case _ExportAction.shareJson:
-        await _guard(
-          messenger,
-          l10n.exportJsonShareError,
-          () => _exportJson(context, origin),
-        );
+        await actions.exportJson(context, messenger, l10n, origin: origin);
       case _ExportAction.pdf:
-        await _guard(
+        await actions.exportPdf(messenger, l10n);
+      case _ExportAction.callingCard:
+        await actions.printCallingCard(
           messenger,
-          l10n.exportDanceError,
-          () => _exportPdf(
-            l10n,
-            canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-          ),
+          l10n,
+          CallingCardSettingsScope.of(context),
         );
-    }
-  }
-
-  /// Runs [action], surfacing [failureMessage] as a [SnackBar] if it throws.
-  ///
-  /// A user who simply cancels a share/print sheet surfaces as a normal
-  /// (non-throwing) result, so only genuine failures are reported.
-  Future<void> _guard(
-    ScaffoldMessengerState messenger,
-    String failureMessage,
-    Future<void> Function() action,
-  ) async {
-    try {
-      await action();
-    } on Object catch (e, st) {
-      logCaughtError(e, st, source: 'dance_export_menu._guard');
-      if (kDebugMode) {
-        debugPrint('$failureMessage: $e\n$st');
-      }
-      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final callingCards = CallingCardSettingsScope.of(context).enabled;
     return PopupMenuButton<_ExportAction>(
       key: const ValueKey('dance-export-menu'),
       tooltip: l10n.exportTooltip,
@@ -350,8 +184,16 @@ class DanceExportMenu extends StatelessWidget {
         PopupMenuItem<_ExportAction>(
           value: _ExportAction.shareBundle,
           child: ListTile(
-            leading: const Icon(Icons.share_outlined),
-            title: Text(l10n.exportShareDanceBundle),
+            leading: Icon(
+              isBundleShareUnsupported()
+                  ? Icons.save_alt_outlined
+                  : Icons.share_outlined,
+            ),
+            title: Text(
+              isBundleShareUnsupported()
+                  ? l10n.exportSaveDanceBundle
+                  : l10n.exportShareDanceBundle,
+            ),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -379,6 +221,16 @@ class DanceExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        if (callingCards)
+          PopupMenuItem<_ExportAction>(
+            key: const ValueKey('dance-export-calling-card'),
+            value: _ExportAction.callingCard,
+            child: ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: Text(l10n.exportPrintCallingCard),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
       ],
     );
   }

@@ -116,6 +116,27 @@ void main() {
       expect(copy.createdAt, later);
     });
 
+    test('clears the event date but keeps the venue (LIFE-7)', () {
+      // Duplicating last month's program for next month must not give every
+      // dance a second calling-history entry on last month's date.
+      final original = Program(
+        id: 'p1',
+        title: 'Friday night',
+        eventDate: now,
+        venue: 'Grange Hall',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(
+        newId: 'p2',
+        newSlotId: () => 'new',
+        now: now,
+      );
+      expect(copy.eventDate, isNull);
+      expect(copy.venue, 'Grange Hall');
+    });
+
     test('can retitle the copy', () {
       final p = Program(id: 'p1', title: 'Old', createdAt: now, updatedAt: now);
       expect(
@@ -298,6 +319,104 @@ void main() {
       );
     });
 
+    test('Program.copyWith sets and clears dialectName via its flag', () {
+      final p = Program(
+        id: 'p1',
+        title: 'T',
+        dialectName: 'Leads/Follows',
+        createdAt: now,
+        updatedAt: now,
+      );
+      expect(p.copyWith(title: 'U').dialectName, 'Leads/Follows');
+      expect(
+        p.copyWith(dialectName: 'Larks/Robins').dialectName,
+        'Larks/Robins',
+      );
+      expect(p.copyWith(clearDialectName: true).dialectName, isNull);
+      // A set clear flag wins over a passed value.
+      expect(
+        p.copyWith(dialectName: 'X', clearDialectName: true).dialectName,
+        isNull,
+      );
+      // `==` distinguishes programs that differ only by dialectName.
+      expect(p == p.copyWith(clearDialectName: true), isFalse);
+      expect(p == p.copyWith(), isTrue);
+    });
+
+    group('pay (issue #1418)', () {
+      Program make({int? minor, String? currency}) => Program(
+        id: 'p1',
+        title: 'T',
+        payMinorUnits: minor,
+        payCurrency: currency,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      test('defaults to no pay', () {
+        final p = make();
+        expect(p.payMinorUnits, isNull);
+        expect(p.payCurrency, isNull);
+      });
+
+      test('amount and currency must be set together', () {
+        expect(() => make(minor: 100), throwsArgumentError);
+        expect(() => make(currency: 'USD'), throwsArgumentError);
+        expect(make(minor: 0, currency: 'USD').payMinorUnits, 0);
+      });
+
+      test('rejects a negative amount and a malformed currency', () {
+        expect(() => make(minor: -1, currency: 'USD'), throwsArgumentError);
+        for (final bad in ['usd', 'US', 'USDX', 'U\$D', '']) {
+          expect(() => make(minor: 1, currency: bad), throwsArgumentError);
+        }
+      });
+
+      test('copyWith sets, keeps and clears via clearPay', () {
+        final p = make(minor: 25000, currency: 'USD');
+        expect(p.copyWith(title: 'U').payMinorUnits, 25000);
+        final changed = p.copyWith(payMinorUnits: 30000, payCurrency: 'EUR');
+        expect(changed.payMinorUnits, 30000);
+        expect(changed.payCurrency, 'EUR');
+        final cleared = p.copyWith(clearPay: true);
+        expect(cleared.payMinorUnits, isNull);
+        expect(cleared.payCurrency, isNull);
+        expect(
+          p.copyWith(payMinorUnits: 1, payCurrency: 'EUR', clearPay: true),
+          cleared,
+        );
+        expect(p == p.copyWith(clearPay: true), isFalse);
+        expect(p == p.copyWith(payCurrency: 'EUR'), isFalse);
+        expect(p == p.copyWith(), isTrue);
+        expect(p.hashCode, p.copyWith().hashCode);
+      });
+
+      test('duplicate does not carry pay', () {
+        final copy = make(
+          minor: 25000,
+          currency: 'USD',
+        ).duplicate(newId: 'p2', newSlotId: () => 'ns1', now: now);
+        expect(copy.payMinorUnits, isNull);
+        expect(copy.payCurrency, isNull);
+      });
+    });
+
+    test('duplicate carries dialectName through', () {
+      final original = Program(
+        id: 'p1',
+        title: 'Night',
+        dialectName: 'Leads/Follows',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(
+        newId: 'p2',
+        newSlotId: () => 'ns1',
+        now: now,
+      );
+      expect(copy.dialectName, 'Leads/Follows');
+    });
+
     test('duplicate carries the new fields through', () {
       final original = Program(
         id: 'p1',
@@ -336,6 +455,206 @@ void main() {
       expect(copy.slots.single.danceMinutes, 9);
       // performedAt still resets per existing behavior.
       expect(copy.slots.single.performedAt, isNull);
+    });
+  });
+
+  group('Program.danceNumbersForSlots (GIG-10)', () {
+    test('numbers planned dances only; the last number is the count', () {
+      final slots = [
+        ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 'b', position: 1, danceId: 'd2', isAlt: true),
+        ProgramSlot(id: 'c', position: 2, text: Program.breakSlotText),
+        ProgramSlot(id: 'd', position: 3, text: 'Waltz'),
+        ProgramSlot(id: 'e', position: 4, danceId: 'd3'),
+      ];
+      expect(Program.danceNumbersForSlots(slots), [1, null, null, 2, 3]);
+      expect(Program.plannedDanceCountOf(slots), 3);
+    });
+
+    test('leaves a leading alternate unnumbered', () {
+      expect(
+        Program.danceNumbersForSlots([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1', isAlt: true),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2'),
+        ]),
+        [null, 1],
+      );
+    });
+  });
+
+  group('Program.removeSlotPromotingAlternate (LIFE-10)', () {
+    final slots = [
+      ProgramSlot(id: 'brk', position: 0, text: Program.breakSlotText),
+      ProgramSlot(id: 'b', position: 1, danceId: 'd1'),
+      ProgramSlot(id: 'b-alt1', position: 2, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'b-alt2', position: 3, danceId: 'd3', isAlt: true),
+      ProgramSlot(id: 'c', position: 4, danceId: 'd4'),
+    ];
+
+    test('promotes the first alternate of a removed primary', () {
+      final next = Program.removeSlotPromotingAlternate(slots, 1);
+      expect(next.map((s) => s.id), ['brk', 'b-alt1', 'b-alt2', 'c']);
+      expect(next.map((s) => s.isAlt), [false, false, true, false]);
+      // The remaining alternate now belongs to the promoted slot, not to the
+      // break above.
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 1, 2]);
+      expect(Program.alternatePromotedByRemoving(slots, 1), 2);
+    });
+
+    test('a moved primary leaves its alternate group whole', () {
+      // Down one: the drop lands inside the promoted group, so it moves past
+      // the group instead of taking b-alt2 with it.
+      final down = Program.moveSlotPromotingAlternate(slots, 1, 2);
+      expect(down.map((s) => s.id), ['brk', 'b-alt1', 'b-alt2', 'b', 'c']);
+      expect(Program.alternateGroupsForSlots(down), [0, 1, 1, 2, 3]);
+
+      // Up one: the group stays where it was.
+      final up = Program.moveSlotPromotingAlternate(slots, 1, 0);
+      expect(up.map((s) => s.id), ['b', 'brk', 'b-alt1', 'b-alt2', 'c']);
+      expect(Program.alternateGroupsForSlots(up), [0, 1, 2, 2, 3]);
+
+      // An alternate moves as itself.
+      final alt = Program.moveSlotPromotingAlternate(slots, 3, 4);
+      expect(alt.map((s) => s.id), ['brk', 'b', 'b-alt1', 'c', 'b-alt2']);
+    });
+
+    test('promotes nothing when an alternate or a lone primary is removed', () {
+      final withoutAlt = Program.removeSlotPromotingAlternate(slots, 2);
+      expect(withoutAlt.map((s) => s.id), ['brk', 'b', 'b-alt2', 'c']);
+      expect(withoutAlt.map((s) => s.isAlt), [false, false, true, false]);
+      expect(Program.alternatePromotedByRemoving(slots, 2), isNull);
+
+      final withoutLast = Program.removeSlotPromotingAlternate(slots, 4);
+      expect(withoutLast.map((s) => s.isAlt), [false, false, true, true]);
+      expect(Program.alternatePromotedByRemoving(slots, 4), isNull);
+      expect(Program.alternatePromotedByRemoving(slots, 0), isNull);
+    });
+  });
+
+  group('Program.danceSlotCount', () {
+    Program program(List<ProgramSlot> slots) => Program(
+      id: 'p1',
+      title: 'T',
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('counts primaries and alternates, and skips text and breaks', () {
+      final p = program([
+        ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 'b', position: 1, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 'c', position: 2, danceId: 'd2', isAlt: true),
+        ProgramSlot(id: 'd', position: 3, text: 'd1'),
+        ProgramSlot(id: 'e', position: 4, text: Program.breakSlotText),
+      ]);
+      expect(p.danceSlotCount('d1'), 2);
+      expect(p.danceSlotCount('d2'), 1, reason: 'an alternate-only match');
+      expect(p.danceSlotCount('absent'), 0);
+    });
+
+    test('the static form agrees with the getter for every dance', () {
+      final slots = [
+        ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 'b', position: 1, danceId: 'd2', isAlt: true),
+        ProgramSlot(id: 'c', position: 2, danceId: 'd1'),
+      ];
+      final counts = Program.danceSlotCountsOf(slots);
+      expect(counts, {'d1': 2, 'd2': 1});
+      for (final id in ['d1', 'd2', 'd3']) {
+        expect(program(slots).danceSlotCount(id), counts[id] ?? 0);
+      }
+    });
+  });
+
+  group('Program.plannedDanceCount', () {
+    Program program(List<ProgramSlot> slots) => Program(
+      id: 'p1',
+      title: 'T',
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('counts every slot when there are no alternates or break', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2'),
+        ]).plannedDanceCount,
+        2,
+      );
+    });
+
+    test('excludes alternates', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2', isAlt: true),
+          ProgramSlot(id: 'c', position: 2, text: 'alt stub', isAlt: true),
+          ProgramSlot(id: 'd', position: 3, danceId: 'd3'),
+        ]).plannedDanceCount,
+        2,
+      );
+    });
+
+    test('excludes the break, including a hand-typed one', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, text: Program.breakSlotText),
+          ProgramSlot(id: 'c', position: 2, danceId: 'd2'),
+        ]).plannedDanceCount,
+        2,
+      );
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, text: '  bReAk '),
+        ]).plannedDanceCount,
+        1,
+      );
+    });
+
+    test(
+      'counts text stubs, purge captions, and dance slots noted "Break"',
+      () {
+        expect(
+          program([
+            ProgramSlot(id: 'a', position: 0, text: 'bouncy'),
+            ProgramSlot(id: 'b', position: 1, text: 'set ender'),
+            ProgramSlot(
+              id: 'c',
+              position: 2,
+              text: 'Purged Reel',
+              isPurgedDance: true,
+            ),
+            ProgramSlot(id: 'd', position: 3, text: 'Breakdown'),
+            ProgramSlot(id: 'e', position: 4, danceId: 'd1', text: 'Break'),
+          ]).plannedDanceCount,
+          5,
+        );
+      },
+    );
+
+    test('does not count an orphaned leading alternate', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1', isAlt: true),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2'),
+        ]).plannedDanceCount,
+        1,
+      );
+    });
+
+    test('is zero for an empty program or one with only a break', () {
+      expect(program(const []).plannedDanceCount, 0);
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, text: Program.breakSlotText),
+        ]).plannedDanceCount,
+        0,
+      );
     });
   });
 
@@ -535,6 +854,66 @@ void main() {
       expect(p.sectionAtIndex(3), isNull);
     });
 
+    group('Program.alternateGroupsForSlots', () {
+      ProgramSlot alt(String id, int pos) =>
+          ProgramSlot(id: id, position: pos, danceId: 'd$pos', isAlt: true);
+      ProgramSlot text(String id, int pos) =>
+          ProgramSlot(id: id, position: pos, text: 'Waltz');
+
+      test('a primary and its trailing alternates share a group', () {
+        final slots = [
+          dance('a', 0),
+          dance('b', 1),
+          alt('b2', 2),
+          alt('b3', 3),
+          dance('c', 4),
+        ];
+        expect(Program.alternateGroupsForSlots(slots), [0, 1, 1, 1, 2]);
+      });
+
+      test('a leading orphaned alternate starts its own group', () {
+        final slots = [alt('o', 0), alt('o2', 1), dance('a', 2)];
+        expect(Program.alternateGroupsForSlots(slots), [0, 0, 1]);
+      });
+
+      test('a text-only primary owns the alternates that follow it', () {
+        final slots = [dance('a', 0), text('w', 1), alt('x', 2), dance('c', 3)];
+        expect(Program.alternateGroupsForSlots(slots), [0, 1, 1, 2]);
+      });
+
+      test('empty slot list yields no groups', () {
+        expect(Program.alternateGroupsForSlots(const []), isEmpty);
+      });
+
+      test('agrees with Program.grouped about who alternates for whom', () {
+        final slots = [
+          alt('o', 0),
+          dance('a', 1),
+          alt('a2', 2),
+          text('w', 3),
+          alt('w2', 4),
+          alt('w3', 5),
+          dance('c', 6),
+        ];
+        final program = Program(
+          id: 'p',
+          title: 'P',
+          slots: slots,
+          createdAt: now,
+          updatedAt: now,
+        );
+        final ids = Program.alternateGroupsForSlots(slots);
+        final byGroup = <int, List<String>>{};
+        for (var i = 0; i < slots.length; i++) {
+          byGroup.putIfAbsent(ids[i], () => []).add(slots[i].id);
+        }
+        expect(byGroup.values.toList(), [
+          for (final g in program.grouped)
+            [g.primary.id, for (final a in g.alternates) a.id],
+        ]);
+      });
+    });
+
     group('Program.sectionsForSlots', () {
       test('aligns to the slot list and matches sectionAtIndex', () {
         final slots = [
@@ -686,6 +1065,94 @@ void main() {
         ],
       );
       expect(identical(p.stampDanceSlotsPerformed(fallback: now), p), isTrue);
+    });
+
+    // F5: an unused alternate stamped by the status transition would count as
+    // called. Skipping alternates here is inferred from the maintainer's
+    // ruling that Mark all performed skips them; this is the same bulk stamp.
+    test('stamps primaries only, leaving alternates for a hand mark', () {
+      final eventDate = DateTime.utc(2026, 3, 15);
+      final handMarked = DateTime.utc(2026, 3, 16);
+      final p = program(
+        eventDate: eventDate,
+        slots: [
+          ProgramSlot(id: 'chorus', position: 0, danceId: 'chorus-jig'),
+          ProgramSlot(
+            id: 'hulls',
+            position: 1,
+            danceId: 'hulls-victory',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'marked-alt',
+            position: 2,
+            danceId: 'd3',
+            isAlt: true,
+            performedAt: handMarked,
+          ),
+        ],
+      );
+      final stamped = p.stampDanceSlotsPerformed(fallback: now);
+      expect(stamped.slots.map((s) => s.performedAt), [
+        eventDate,
+        null,
+        handMarked,
+      ]);
+    });
+
+    test('returns the same instance when only alternates are unmarked', () {
+      final p = program(
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            performedAt: DateTime.utc(2025, 1, 1),
+          ),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+        ],
+      );
+      expect(identical(p.stampDanceSlotsPerformed(fallback: now), p), isTrue);
+    });
+  });
+
+  group('ProgramSlot calling-history predicates', () {
+    final stamp = DateTime.utc(2026, 3, 15);
+    ProgramSlot slot({
+      String? danceId = 'd1',
+      bool isAlt = false,
+      DateTime? performedAt,
+    }) => ProgramSlot(
+      id: 's1',
+      position: 0,
+      danceId: danceId,
+      text: danceId == null ? 'Waltz' : null,
+      isAlt: isAlt,
+      performedAt: performedAt,
+    );
+
+    test('a primary counts whether or not it is marked', () {
+      expect(slot().countsTowardCallingHistory, isTrue);
+      expect(slot(performedAt: stamp).countsTowardCallingHistory, isTrue);
+    });
+
+    test('an alternate counts only once it is marked performed', () {
+      expect(slot(isAlt: true).countsTowardCallingHistory, isFalse);
+      expect(
+        slot(isAlt: true, performedAt: stamp).countsTowardCallingHistory,
+        isTrue,
+      );
+    });
+
+    test('a text slot never counts', () {
+      expect(slot(danceId: null).countsTowardCallingHistory, isFalse);
+    });
+
+    test('a bulk mark targets unmarked primary dance slots only', () {
+      expect(slot().isBulkMarkPerformedTarget, isTrue);
+      expect(slot(performedAt: stamp).isBulkMarkPerformedTarget, isFalse);
+      expect(slot(isAlt: true).isBulkMarkPerformedTarget, isFalse);
+      expect(slot(danceId: null).isBulkMarkPerformedTarget, isFalse);
     });
   });
 }

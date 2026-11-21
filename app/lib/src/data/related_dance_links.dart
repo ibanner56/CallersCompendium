@@ -254,12 +254,19 @@ Future<void> saveDanceWithRelatedLinks(
 
     // Ensure a changed source is always written, while avoiding writes for
     // unaffected members and preserving the repository's update transaction.
+    //
+    // Only the first branch is the user's own edit, and `localUserEdit` says so
+    // (sync-spec §6.8). The second branch writes *other* dances, whose reverse
+    // links this function back-populated without anyone opening them — so a
+    // cancellation there would silently reverse a peer's deletion of a record
+    // the user never touched, which is the outcome ADR-004 ranks worst. The two
+    // branches share a method and must not share the flag.
     for (final entry in next.entries) {
       if (entry.key == dance.id) {
         if (original == null) {
           await repos.dances.create(entry.value);
         } else {
-          await repos.dances.update(entry.value);
+          await repos.dances.update(entry.value, localUserEdit: true);
         }
       } else {
         final current = await load(entry.key);
@@ -271,6 +278,75 @@ Future<void> saveDanceWithRelatedLinks(
     }
   });
 }
+
+/// Duplicates the dance [id] as [newId] in a single write, titled
+/// `copyTitle(source.title)`, and returns the copy.
+///
+/// The copy goes through [saveDanceWithRelatedLinks], so a dance it relates to
+/// gets its reverse link, and a copy of a dance in a transitive group joins
+/// that group, rather than holding links nothing points back at (audit
+/// LIFE-12). Persisting it with the title already applied also means no
+/// failure can leave an exact-title twin behind the way create-then-rename did.
+///
+/// A copy of a member of a group too large to reconcile (past
+/// [kMaxTransitiveDanceGroupSize]) is made with ordinary links instead.
+///
+/// A related-dance link whose target is gone (missing, or in Recently deleted)
+/// is left off the copy: it could not be given a reverse link, and saving it
+/// would refuse the whole duplicate over a dance the user cannot see.
+Future<Dance> duplicateDanceWithRelatedLinks(
+  CompendiumRepositories repos, {
+  required String id,
+  required String newId,
+  required DateTime now,
+  required String Function(String sourceTitle) copyTitle,
+}) => repos.db.transaction(() async {
+  final source = await repos.dances.getById(id, includeDeleted: true);
+  if (source == null) {
+    throw ArgumentError.value(id, 'id', 'no such dance');
+  }
+  final draft = source.duplicate(
+    newId: newId,
+    now: now,
+    newTitle: copyTitle(source.title),
+  );
+  final links = <DanceLink>[];
+  for (final link in draft.links) {
+    final targetId = link.targetDanceId;
+    if (link.kind == LinkKind.relatedDance && targetId != null) {
+      final target = await repos.dances.getById(targetId, includeDeleted: true);
+      if (target == null || target.isDeleted) continue;
+    }
+    links.add(link);
+  }
+  var copy = draft.copyWith(links: links);
+  try {
+    await saveDanceWithRelatedLinks(repos, dance: copy);
+  } on RelatedDanceLinkSaveException catch (error) {
+    // diagnostics: silent — the oversized-group case has a working fallback
+    // below, and other save failures are rethrown to the caller.
+    // A group past the inspection bound cannot be reconciled, but duplicating
+    // a member of one worked before and must keep working: the copy is made
+    // with ordinary links, outside the group, as it was.
+    if (error.maxSize == null) rethrow;
+    copy = copy.copyWith(
+      links: [
+        for (final link in copy.links)
+          if (!link.transitive)
+            link
+          else
+            DanceLink(
+              id: link.id,
+              kind: link.kind,
+              targetDanceId: link.targetDanceId,
+              label: link.label,
+            ),
+      ],
+    );
+    await saveDanceWithRelatedLinks(repos, dance: copy);
+  }
+  return copy;
+});
 
 Map<String, List<DanceLink>> _relatedLinksByTarget(List<DanceLink>? links) {
   final result = <String, List<DanceLink>>{};

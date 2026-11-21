@@ -398,18 +398,64 @@ class GalleryPalettes {
   }) {
     final dark = brightness == Brightness.dark;
 
-    final onSurf = _tuneFg(onSurface, surface, _text);
-    // Variant foreground: a touch lower in emphasis but still AA text.
-    final onSurfVar = _tuneFg(_mix(onSurf, surface, 0.30), surface, _text);
-    // Borders only need 3:1 (non-text).
-    final outline = _tuneFg(_mix(onSurf, surface, 0.55), surface, _nonText);
-    final outlineVariant = _mix(onSurf, surface, 0.75);
-    final surfaceHighest = _mix(surface, onSurf, dark ? 0.14 : 0.10);
+    // The ink the tiers are mixed toward; [onSurf] below is this, tuned again
+    // against the tier furthest toward it.
+    final ink = _tuneFg(onSurface, surface, _text);
 
-    final p = _accent(_ensureAgainst(primary, surface, _nonText), _text);
-    final s = _accent(secondary, _text);
-    final t = _accent(tertiary, _text);
-    final e = _accent(error, _text);
+    // Surface-container tiers: every tier is the
+    // surface mixed toward the foreground by a fraction of the Highest step,
+    // so cards (Low), menus and nav bars (default), dialogs (High) and filled
+    // inputs (Highest) each sit on a distinct tone instead of all falling
+    // back to `surface`. Lowest steps the other way, toward the pole away
+    // from the foreground (white on a light theme, black on a dark one).
+    final highestStep = dark ? 0.14 : 0.10;
+    Color tier(double fraction) => _mix(surface, ink, highestStep * fraction);
+    final surfaceHighest = tier(1);
+    final surfaceHigh = tier(0.75);
+    final surfaceContainer = tier(0.50);
+    final surfaceLow = tier(0.25);
+    final surfaceLowest = _mix(
+      surface,
+      dark ? const Color(0xFF000000) : const Color(0xFFFFFFFF),
+      dark ? 0.30 : 0.60,
+    );
+    // As in Material 3: Dim is darker than the canvas on a light theme and
+    // equals it on a dark one; Bright is the reverse.
+    final surfaceDim = dark ? surface : tier(1.25);
+    final surfaceBright = dark ? tier(1.25) : surface;
+
+    // Every foreground below sits on the canvas and on the container tiers
+    // above it: cards on Low, menus on the default tier, dialogs on High,
+    // filled inputs on Highest. The tiers step from the canvas toward the
+    // ink, so a colour that clears its bar on both the canvas and Highest
+    // clears it on every tier between. Dim (light) and Bright (dark) step
+    // further, but neither the app nor Flutter's Material widgets draw on
+    // them, and tuning against them would shift the palettes' accents more
+    // than any drawn surface needs. The second pass only moves further from
+    // the side the first moved away from, so it cannot undo it.
+    final inkward = surfaceHighest;
+    Color onTiers(Color fg, double target) =>
+        _tuneFg(_tuneFg(fg, surface, target), inkward, target);
+    Color accentOnTiers(Color c) =>
+        _ensureAgainst(_ensureAgainst(c, surface, _text), inkward, _text);
+
+    final onSurf = onTiers(ink, _text);
+    // Variant foreground: a touch lower in emphasis but still AA text.
+    final onSurfVar = onTiers(_mix(onSurf, surface, 0.30), _text);
+    // Borders (input and chip outlines) only need 3:1 (non-text), but on
+    // every tier a bordered control can sit on.
+    final outline = onTiers(_mix(onSurf, surface, 0.55), _nonText);
+    final outlineVariant = _mix(onSurf, surface, 0.75);
+
+    // Every accent is rendered as body-sized text or an icon somewhere
+    // (section headers, text buttons, error messages, input labels, the
+    // Performed status, dialect badges), on the canvas or a card or dialog,
+    // so each needs AA text (4.5:1) on every tier, not just the 3:1
+    // non-text bar.
+    final p = _accent(accentOnTiers(primary), _text);
+    final s = _accent(accentOnTiers(secondary), _text);
+    final t = _accent(accentOnTiers(tertiary), _text);
+    final e = _accent(accentOnTiers(error), _text);
 
     final pc = _container(primary, brightness, _text);
     final sc = _container(secondary, brightness, _text);
@@ -437,14 +483,23 @@ class GalleryPalettes {
       surface: surface,
       onSurface: onSurf,
       onSurfaceVariant: onSurfVar,
+      surfaceContainerLowest: surfaceLowest,
+      surfaceContainerLow: surfaceLow,
+      surfaceContainer: surfaceContainer,
+      surfaceContainerHigh: surfaceHigh,
       surfaceContainerHighest: surfaceHighest,
+      surfaceDim: surfaceDim,
+      surfaceBright: surfaceBright,
       outline: outline,
       outlineVariant: outlineVariant,
       shadow: const Color(0xFF000000),
       scrim: const Color(0xFF000000),
       inverseSurface: onSurf,
       onInverseSurface: surface,
-      inversePrimary: p.color,
+      // The SnackBar action (Undo) is drawn in inversePrimary on
+      // inverseSurface, so it must read as text there; the raw
+      // accent was as low as 1:1 on some palettes.
+      inversePrimary: _ensureAgainst(primary, onSurf, _text),
     );
   }
 
@@ -521,14 +576,19 @@ class GalleryPalettes {
     return _Pair(hsl.withLightness(lightnessAt(hi)).toColor(), on);
   }
 
-  /// Shifts [base]'s lightness (hue preserved) toward the pole opposite [bg]
-  /// until it clears [target] against [bg]. Used to keep the primary — which
-  /// doubles as the focus ring — visible as a non-text UI element on the
-  /// surface, even for accents that are otherwise fine as button fills.
+  /// Shifts [base]'s lightness (hue preserved) toward whichever pole
+  /// contrasts more with [bg] until it clears [target] against [bg]. Used to
+  /// keep the four accents — which render as text (headers, text buttons,
+  /// error messages, badges) and, for primary, as the focus ring — readable
+  /// on the canvas and container tiers, and `inversePrimary` readable on the
+  /// inverse surface, even when they are otherwise fine as button fills.
   static Color _ensureAgainst(Color base, Color bg, double target) {
     if (_contrast(base, bg) >= target) return base;
     final hsl = HSLColor.fromColor(base);
-    final darken = bg.computeLuminance() >= 0.5; // light bg -> darken accent
+    // Move toward whichever pole contrasts more with [bg]. Luminance >= 0.5 is
+    // not that test: a mid-grey inverse surface (luminance ~0.4) is "dark" by
+    // it, yet only darkening the accent can clear 4.5:1 on it.
+    final darken = _pole(bg).computeLuminance() < 0.5;
     double lightnessAt(double f) {
       final l = darken
           ? hsl.lightness * (1 - f)

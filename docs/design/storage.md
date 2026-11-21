@@ -5,8 +5,65 @@ lives in the core package; all access through repositories.*
 
 ## Approach
 
-- One SQLite database file per profile, in the platform app-data directory;
-  user-triggered backup/restore = timestamped JSON export/import (6.6), not
+- One SQLite database file per profile (`compendium.sqlite`), in a per-app
+  data directory that is never a user-visible, cloud-synced folder
+  (`resolveDatabaseFile`): `%LOCALAPPDATA%\org.callerscompendium\Caller's
+  Compendium` on Windows (Local, not Roaming: roaming profiles copy Roaming, a
+  poor home for a live WAL database; `path_provider` exposes LocalAppData only
+  as the application *cache* directory, which is what the resolver asks for),
+  the application support directory (`$XDG_DATA_HOME/<app id>`) on Linux, and the
+  app's own documents directory on Android, iOS and macOS (sandboxed or
+  app-private). On Windows the `<CompanyName>` folder comes from the
+  `Runner.rc` version resource, pinned to `org.callerscompendium` by
+  `tools/ci/check_windows_company_name.py`: changing it moves every Windows data
+  folder. Earlier builds used `Documents` on Windows and Linux, which
+  OneDrive's folder backup syncs and which on Linux is `$HOME` itself when
+  `XDG_DOCUMENTS_DIR` is unset. The first launch after updating moves the
+  database, its `-wal`/`-shm` sidecars and the pre-migration snapshots out of
+  Documents (and out of the Roaming fallback directory an earlier build could
+  use on Windows) inside the migration preflight, before anything opens the file
+  (`relocateLegacyDatabase`): copy, fsync, verify size, rename into place, then
+  delete the source; it never overwrites a destination, and if a database exists
+  at both the old and new location, or the move fails, nothing is deleted and
+  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`) that
+  lists each conflicting copy's location, size and last change (never a path).
+  The whole move runs under an exclusive advisory lock on `.relocation.lock` in the
+  database directory (the single-instance guard's `AdvisoryFileLock`, plus an
+  in-process queue), and its preconditions are checked only once that lock is
+  held, so a second process that waited finds nothing left to move. It refuses
+  to move a database another connection has open, and keeps every other
+  connection out until the old file is deleted: the checking connection stays
+  open from the check to the delete with `locking_mode = EXCLUSIVE` and
+  `BEGIN EXCLUSIVE`, after taking a WAL database out of WAL mode (which SQLite
+  refuses while any other connection, even an idle one, has the file). The
+  main file is copied through a handle kept open until after that connection
+  closes, because closing any other descriptor would release POSIX record
+  locks. Limits: a pre-WAL rollback-journal file gives no signal for an idle
+  connection; on Windows the lock is released just before the delete (an open
+  file cannot be deleted there, so an opener in that gap makes the delete fail
+  and the move roll back), and a database over 1 GiB cannot be copied while
+  locked (the move fails, nothing deleted). The Windows behaviour is reasoned
+  from SQLite's and Dart's sources; CI does not run tests on Windows.
+  A rollback never removes the new copy unless the old database file is still
+  there. While no database exists at the new location, a Documents path that does not
+  exist (a redirected folder on a disconnected share or drive letter), or a
+  Documents folder Windows cannot resolve, also stops startup
+  (`legacyUnreachable`) instead of reading as "no library". Only a missing path
+  is detected: an unmounted volume that leaves an empty mount-point folder
+  behind reads as an empty Documents. After a move, a breadcrumb *folder*
+  named `compendium.sqlite` (holding a `README.txt` that names the new
+  location) is at the old path: it is made inside the delete step, right after
+  the main file is deleted (on Windows, after the lock was released for that
+  delete), so a move
+  that cannot make it rolls back (only a crash in the instant between the
+  delete and the breadcrumb leaves the path free, unrepaired), and it is added
+  best-effort at each other old path whose folder exists. Every
+  earlier build (v0.1.0 to v0.5.4, all on drift_flutter 0.3.1) skips its
+  preflight because `File.exists()` is false for a folder, then fails to open
+  the path (SQLite cannot open a folder) and shows its startup error screen
+  instead of creating an empty library; the relocation ignores it for the same
+  reason. Pre-migration snapshots go in `db_backups/` beside
+  the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):
   1. `dances.figures_json` — authoritative ordered figure list (named params,
@@ -15,13 +72,42 @@ lives in the core package; all access through repositories.*
      figure for indexed structural search.
   3. `dance_fts` — FTS5 virtual table over canonical text for full-text search.
   Derived tables are rebuildable from `figures_json` at any time (integrity
-  check + repair on migration).
+  check + repair on migration). One more input since #1023: a use of a figure
+  of your own is indexed as it renders, from its live definition in
+  `user_glossary_entries`, and its reference stays in `params_json` only while
+  the use is attached and its figure is live. A local write of such a
+  definition rebuilds the derived rows of the live dances using it (found by
+  their `figures_json`) without rewriting the dances themselves; a dance in
+  the Trash is rebuilt when restored, and a sync apply batch that applies a
+  glossary entry rebuilds the rows of every dance using it, in the Trash too,
+  from the live figures (#1920). Deleting a figure freezes each use
+  in a live dance as plain text; a dance in the Trash keeps the line its use
+  last stored. After the delete, the app also freezes the uses in the default
+  figure lists in the settings, rendering them as the dances are
+  (`freezeUserFigureUsesIn`), and drops the figure's dialect entries and
+  matrix column (plan C9). These are settings values, not dances, so the
+  delete's caller writes them, outside the delete's transaction and best
+  effort: a failure is logged, and the figure stays deleted.
+  Switching a figure to the shipped figure of its name (maintainer decision 5,
+  for a name a later version ships) is the delete's twin:
+  `switchUserFigureToBuiltIn` rewrites each attached use in a live dance as a
+  figure of the shipped move or alias, through a mapping of every parameter
+  and choice value (`switchUserFigureUsesIn`), and retires the figure, in one
+  transaction. Each switched use states its beats, so a dance's sections
+  don't move. A use it can't map (detached, or holding a value no longer the
+  figure's) is frozen as plain text instead, and the Trash is left as it is.
+  As for a delete, the uses in the settings, the dialect entries and the
+  matrix column are its caller's to rewrite or drop, outside the transaction.
 
 ## Tables (abridged)
 
+A sketch, not the schema: the authoritative column list is `tables.dart`, and
+the FTS and index DDL is `database.dart`.
+
 ```sql
-dances(id PK, title, form, formation_base, formation_detail, progression,
-       phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
+dances(id PK, title, form, formation_shape, formation_detail,
+       formation_improper, progression, phrase_structure, figures_json, hook,
+       calling_notes, meter, musical_key, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -31,13 +117,29 @@ choreographers(id PK, name UNIQUE, website, notes,
 dance_authors(dance_id, choreographer_id, position,
              PK(dance_id, choreographer_id),
              UNIQUE(dance_id, position))       -- no ambiguous ordering
+dance_interpreters(dance_id, choreographer_id, position,
+                   PK(dance_id, choreographer_id),
+                   UNIQUE(dance_id, position)) -- same shape, ADR-006 §9.2
 
 dance_figures(dance_id, idx, move, beats, progression, params_json,
               PK(dance_id, idx))              -- derived
 CREATE INDEX dance_figures_move ON dance_figures(move);
 
 CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
-  title, authors, hook, notes, figures_text, custom_values, content='');
+  dance_id UNINDEXED, title, authors, hook, notes, figures_text,
+  custom_values, sources,
+  tokenize = 'unicode61 remove_diacritics 1', prefix = '1 2');
+-- `dance_id` is UNINDEXED, so deleting a dance's row is a scan of the whole table.
+-- Writing an *existing* dance therefore replaces its rows (delete, then insert);
+-- writing a *new* one only inserts — a dance with no `dances` row has none to
+-- delete, since a hard delete removes its derived rows with it — and a bulk
+-- rebuild clears the table once instead of deleting per dance. Deleting per new
+-- dance made an N-dance import O(N²) (1,000 → 8,000 dances: 0.57 → 1.66 ms per
+-- dance).
+-- The one exception is the batch edits of level, status, rating and tunes
+-- (`DanceRepository._updateMany`, `rebuildDerived: false`): none of them is an
+-- input to a derived row, so they leave the rows as they are. A custom-field
+-- batch edit changes `custom_values` and does rebuild.
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
          created_at, updated_at, deleted_at,
@@ -89,14 +191,22 @@ formation/…, see future search design in Phase 3) compile to SQL:
 - structural leaves → `EXISTS (SELECT 1 FROM dance_figures WHERE move=? AND
   params_json ->> '$.who' = ?)` (JSON1 on derived rows),
 - text leaves → `dance_fts MATCH ?`,
-- `then` (sequence) → self-join on `dance_figures.idx` ordering.
+- `then` (sequence) → self-join within a dance, correlated on
+  `dance_figures.group_idx` (not `idx`; #748).
 No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 20k dances (TCB-scale) on tablet hardware — benchmarked in CI.
 
 ## Migrations
 
 - drift schema versions with stepwise migrations; every migration ships with
-  a test that opens a fixture DB from the previous version.
+  a test that instantiates the previous version from its generated schema
+  snapshot (`GeneratedHelper`) and seeds the rows it asserts on.
+- The **floor version also keeps a real binary fixture**:
+  `test/storage/fixtures/v39.sqlite`, written by the `v0.7.0-beta` release with
+  representative rows. A schema snapshot carries structure only, so it cannot
+  show that `onUpgrade` preserved data; `real_release_fixture_test.dart`
+  opens the fixture, migrates it to head and reads the rows, FTS content,
+  links, provenance, program and settings back. See "Floor fixtures" below.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
@@ -104,6 +214,16 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
   partially migrated. See "Retiring a schema version" below.
 - `figures_json.schemaVersion` migrates lazily on read + bulk on upgrade.
 - Derived tables rebuilt after any migration touching figures.
+- A change to how a derived index is *written*, with no schema change, is
+  repaired by a one-time `ensureMigrated` pass keyed by a device-scoped
+  `__*_done` settings marker instead of a schema bump, written after the pass
+  succeeds so an interrupted one retries. The pass reindexes only the dances the
+  rule changes. Two exist for `dance_fts.custom_values`:
+  `__custom_field_index_repair_done__` (Searchable off and yes/no fields left
+  out of the index, 2026-10-29) and `__custom_number_index_repair_done__`
+  (2026-11-05: a whole-number custom value indexes as "3", not "3.0"; the pass
+  reindexes the dances holding a value for an indexed number field). Neither
+  travels in a backup or syncs: each says a pass ran over *this* database.
 
 ## Retiring a schema version
 
@@ -118,9 +238,27 @@ Retiring versions below a new floor means deleting, together:
 - the `if (from < N)` steps that can no longer fire (note the off-by-one:
   retiring versions up to and including vX kills steps through `if (from < X+1)`,
   because that step only ever applies to a vX-or-below database),
-- the fixtures and generators under `test/storage/fixtures/`,
+- the fixtures and generators under `test/storage/fixtures/` for the retired
+  versions (the **new floor keeps its own**: see the next list),
 - the dumps under `drift_schemas/generated/` and their generated classes, and
 - the corresponding `migration_test.dart` groups.
+
+And adding, together, a fixture for the new floor:
+
+- **capture `test/storage/fixtures/v<new floor>.sqlite` from the new floor
+  release's tag** with `tool/fixture_generators/generate_release_fixture.dart`
+  (the recipe, including making the package resolve standalone at the tag, is in
+  its header), and record its sha256 under "Floor fixtures" below. The
+  existence test in `real_release_fixture_test.dart` derives the file name from
+  `kMinSupportedSchemaVersion`, so a floor raise without the new fixture is a
+  red test, not a silent loss of coverage.
+
+And noting that the release which carries the raise must decide whether to
+announce the end of life for versions below the new floor: an entry in
+`tools/release/retirements.json`, committed before the tag
+([releasing.md](../dev/releasing.md), "Announcing an end of life for older
+builds"). No CI check ties a floor raise to an entry, so the release checklist
+asks.
 
 **The floor check is not bookkeeping.** Deleting those steps without it would
 let a below-floor database open, run only the surviving steps and be stamped at
@@ -135,17 +273,60 @@ needs an app entry in a `changelog.d/` fragment, naming the release whose schema
 version is being adopted. `tools/ci/check_schema_migration.py` fails any
 PR that reintroduces a per-version artefact below the floor.
 
-## Schema version history
+### Floor fixtures
 
-- v35 (issues #1104 and #1233): replaces nullable
-  `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
-  `dance_minutes`, copying every legacy value, including explicit zero, to
-  `dance_minutes`; existing walkthrough values are NULL. It also rewrites
-  persisted figure parameter keys and consolidates the legacy
-  `pull_by_dancers`/`pull_by_direction` move IDs. The recursive taxonomy
-  normalization covers nested `meanwhile` figures and rebuilds the derived
-  figure and search indexes; program-slot timing is structured metadata and
-  does not feed those indexes.
+A drift schema snapshot has the tables but no rows, so the tests built on
+`GeneratedHelper` seed only what they assert on and cannot detect a migration
+that destroys, truncates or reinterprets existing data (an
+`UPDATE dances SET figures_json = '[]'` at the top of `onUpgrade` leaves every
+one of them green). The fixtures below are databases written by the real
+release code, holding four dances (a fully populated one with figures including
+a `meanwhile`, tags, an author, tunes, links, a source citation, a custom field
+and provenance; a plain one; a soft-deleted one; a diacritic-titled one), a
+program with three slots, a venue, choreographers, and the settings markers that
+release's startup wrote. They are not shipped user databases: they are what that
+release produces for this seed, which is the same code path a real collection
+went through.
+
+`real_release_fixture_test.dart` copies each one to a temporary directory, opens
+it with the current `CompendiumDatabase`, runs `ensureMigrated`, and asserts
+`user_version` reached head, `foreign_key_check` and `integrity_check` are
+clean, and that every value the generator seeds to something other than a
+default reads back unchanged in the tables a user sees content from: the dances
+(titles, hooks, calling notes, walkthrough, rating, tunes, timestamps, figures
+with their moves and params, tags, authors, custom-field values, links with
+kind, url, label and target, citations, provenance), the tags and their colours,
+authors, the venue, the published source, the custom-field definition, the
+program (date, venue, level, caller, band, notes, timestamps, and slots with
+ids, positions, minutes and guest caller), the `ui.*` settings and the default
+difficulty levels. Columns left at their defaults are not read, nor are the
+bookkeeping timestamps of the tag, author, venue, source, custom-field,
+difficulty-level and settings rows. FTS search is only checked to *work*
+(including diacritic folding). Values the open legitimately rebuilds are not
+compared: the FTS tables, `dance_figures` (including `canonical_text`) and the
+`__*_done` repair markers, which a migration that deleted them would be
+indistinguishable from, because startup re-creates them.
+
+| Fixture | Written by | Schema | sha256 |
+| --- | --- | --- | --- |
+| `v39.sqlite` (the floor) | `v0.7.0-beta` (`1cf5af66`) | 39 | `fb3a9119d160cda6a6a63f0438a12a8ca31aed0964e13a6c4a765e029b27f1bd` |
+
+The floor fixture's name is derived from the constant, so raising the floor
+without a new fixture fails the existence test, and a test fails if any
+`v*.sqlite` below the floor is left in the fixtures directory. (Until the floor
+reached v39 a second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the
+release the below-floor bridge then sent v20–v34 collections through. It was
+retired with the versions below v39; the bridge for v35–v38, `v0.9.2-beta`,
+writes head, so a fixture from it would exercise no migration.) Neither guard stops someone deleting the test itself
+or editing both the constant and the expectations in the same PR: review still
+has to notice that.
+
+Regenerate by running `tool/fixture_generators/generate_release_fixture.dart`
+from a checkout of the release tag (recipe in its header); the output is
+byte-reproducible on the same sqlite3 build, so the digest above can be
+re-derived.
+
+## Schema version history
 
 `CompendiumDatabase.schemaVersion` (in
 [`database.dart`](../../packages/compendium_core/lib/src/storage/database.dart))
@@ -158,15 +339,18 @@ rides a PATCH release — stays there, next to the constant it governs.
 
 **Every bump appends an entry here, in the same PR.**
 `tools/ci/check_version_history.py` fails a PR that moves the constant without
-adding the matching entry.
+adding the matching entry. A change added to a version that has not shipped yet
+(see CONTRIBUTING.md, "Adding to an unreleased version") amends that version's
+entry instead. The gate cannot see that case, because the constant does not
+move.
 
-### Retired (v1–v19): history only
+### Retired (v1–v38): history only
 
-**v1–v19 are RETIRED** (#837, floor raised past v19 once every tester was
-confirmed on `v0.1.0-beta.6`): they predate `v0.1.0-beta.6`, the oldest
-supported release, so their migration steps, fixtures and schema dumps have
-been deleted and [kMinSupportedSchemaVersion] refuses a database stamped
-below v20. Their entries are kept below as history — they explain why later
+**v1–v38 are RETIRED** (#837, then floor raises since, the latest to v39 once
+every release before `v0.7.0-beta` was retired, maintainer, 2026-11-12): they
+predate `v0.7.0-beta`, the oldest supported release, so their migration steps,
+fixtures and schema dumps have been deleted and [kMinSupportedSchemaVersion]
+refuses a database stamped below v39. Their entries are kept below as history — they explain why later
 columns exist and are still referenced by the steps that survive — but there
 is no longer any code path that migrates from them.
 
@@ -338,11 +522,6 @@ is no longer any code path that migrates from them.
   long-hop upgrade from ≤ v11 therefore lands on `form_a_short_wave` at v12
   and is renamed here at v19.
 
-### Supported (v20 and later)
-
-These are the versions a database can still be stamped at, and the steps that
-can still fire.
-
 - v20 (gate merge): duplicate-move retirement + figure rewrite. `gate` and
   `rotation_gate` — which both rendered the display name "gate" and showed
   as two identical picker rows — are MERGED into one `gate` move (taxonomy
@@ -381,7 +560,8 @@ can still fire.
   `Then(X, Y)`/`Then(Y, X)` both matched an `X while Y` container. The signal
   was absent from the index, so this needs a column, not just a query change.
   `group_idx` is shared by every row flattened from one top-level figure and
-  monotonic across them; `Then` now correlates on `a.group_idx < b.group_idx`.
+  monotonic across them; `Then` correlates `a` with the next group after it
+  (wrapping), so concurrent sides, which share a group, are never adjacent.
   Like the v2 `section` add, existing rows get the column DEFAULT (0) — wrong
   for correlation — so it schedules a derived rebuild (marker) that
   repopulates `group_idx` from `figures_json`.
@@ -480,6 +660,13 @@ can still fire.
   discarded. The foreign key and repository write guard reject dangling IDs;
   repository deletion is transactional and refuses a level used by any dance,
   including a tombstoned dance that could be restored later.
+  *Amended 2026-10-30:* deletion now refuses only a level a **live** dance
+  uses. By the maintainer's trash-policy decision (2026-10-29, option b), a
+  dance in Recently Deleted no longer protects its level, as it already did not
+  protect its tags, authors, sources, custom fields or venue. Such a dance keeps
+  its `level_id`, naming the tombstoned row. Because the foreign key has no
+  `ON DELETE` action, `DifficultyLevelRepository.hardDelete` (an import's
+  rollback) tombstones rather than erases a level only such a dance names.
 - v35 (issues #1104 and #1233): rewrites persisted figure parameter keys and
   consolidates the legacy `pull_by_dancers`/`pull_by_direction` move IDs to
   the v35 taxonomy representation, and replaces nullable
@@ -487,13 +674,218 @@ can still fire.
   `dance_minutes`. The migration recursively normalizes nested `meanwhile`
   figures, copies legacy slot timing to `dance_minutes`, and rebuilds the
   derived figure and search indexes.
+- v36: adds nullable `review_queue.local_hash`, the queue-time wire hash of
+  the affected local record. Actionable review resolution rejects a row whose
+  local record changed after enqueue; v35 rows retain NULL and fail closed.
+- v37 (issue #1554): adds nullable `programs.dialect_name`, the name of the
+  dialect Perform uses for that program; NULL (every existing row) means Perform
+  follows the application dialect. A soft reference by name, deliberately not
+  validated at write time and not cascaded on dialect delete (amended 2026-10-29:
+  a dialect rename is now carried to the programs that name it, trashed ones
+  included, by `ProgramRepository.renameDialect`; see `dialect.md`): a name
+  that does not resolve falls back to the application dialect when Perform
+  resolves it. Written NFC-normalised like every shareable string: the dialect
+  library's own names are NFC-normalised on their way to storage
+  (`custom_dialects` is a shareable setting), and Device Sync rejects a program
+  body that is not already canonical. Not length-limited, because the library
+  imposes no name cap. Additive `addColumn`; no back-fill and no derived
+  rebuild.
+- v38 (issue #1418): adds nullable `programs.pay_minor_units` (integer) and
+  `programs.pay_currency` (ISO 4217 code): what the caller is paid for the
+  program, as integer minor units so no floating point is stored. The two are
+  set together or not at all and the amount is never negative (enforced by
+  `Program` and by archive decode); NULL in both (every existing row) means no
+  pay recorded. Shareable, so it syncs and is exported in archives and
+  backups, but share files (program share file and Export JSON) omit it
+  (`sanitizeProgramForShare`, maintainer decision R2-out2-export,
+  2026-10-30), and it is not part of the shared program text or PDF and
+  `Program.duplicate` does not copy it. A backup holding pay or a v37 dialect name is written under backup
+  envelope v2 (`backupSchemaVersionProgramPay`), so 0.5.2 to 0.5.4 refuse it
+  instead of restoring it without them; the core archive version is unchanged,
+  so share files are not affected (#1885). Additive `addColumn`s; no back-fill
+  and no derived rebuild.
+### Supported (v39 and later)
+
+These are the versions a database can still be stamped at. v39 is the floor:
+its own migration step is retired along with the older ones, because a floor
+database already carries it. (`beforeOpen` still ensures v39's pieces on every
+open, because a development build stamped v39 before all of them existed.) The
+steps that can still fire are v40 onward.
+
+- v39 (sync-spec §6.7): adds the `retained_sync_fields` table — `kind`,
+  `record_id`, `whole_record` (bool) and `payload` (canonical JSON text), keyed
+  by `(kind, record_id)`. It holds what this device keeps of a synced record
+  for a newer version of the app: the parts of a peer's body this build does
+  not sync, put back verbatim whenever it shares the record again, or, for a
+  setting whose key this build does not sync, the peer's whole blob. `payload`
+  is `shareable` (unclassifiedPersonal / thirdParty, the tombstone payload's
+  classification); the other columns are Device Sync bookkeeping. Sync state,
+  not library content: never backed up or exported. Additive `createTable`; no
+  back-fill and no derived rebuild.
+  The same step adds nullable `baseline_state.published_manifest_hash`
+  (SHA-256 of the manifest this device last published, encoded with its
+  `writtenAt` fixed) and `baseline_state.published_verified_at` (when the store
+  last confirmed every blob that manifest names, epoch milliseconds UTC;
+  sync-spec §6.3 step 8). A pass whose manifest hashes the same, within the
+  refresh interval, skips the blob check and the manifest `PUT`. Device Sync
+  bookkeeping: never backed up, exported or synchronized. They live on the
+  epoch row so that anything that resets the epoch or the baseline forgets them
+  too. Additive `addColumn`s; no back-fill (null means "publish as before").
+  Added to v39 before it was released, rather than as v40.
+  The same step adds the `peer_manifests` table: `peer_id` (primary key), `epoch`,
+  `etag` and `body`. Each row is the last verified manifest of another device and
+  the `ETag` the server sent with it, so the first pass after a restart asks with
+  `If-None-Match` instead of downloading every peer's manifest again
+  (sync-spec §5.2). It is a cache: any row can be dropped and the next pass
+  fetches that manifest in full. `peer_id` and `etag` are `protocolIdentifier`s
+  (both are sent back to the store); `epoch` and `body` are Device Sync
+  bookkeeping. It is cleared with the baseline, and so on
+  an epoch change, detach and restore. Never backed up, exported or
+  synchronized. Additive `createTable`; no back-fill.
+- v40 (issue #709): adds two tables for the user's own glossary.
+  `user_glossary_entries` holds every kind of user entry in one table, keyed
+  by a UUID `id`: `kind` (`compound`, #709; `customFigure` and `term`,
+  #1023), the required `name` and `definition`, and `description` (shown to the user as
+  "More Details"; required text until it became optional, so it may be empty),
+  `keywords_json` (a JSON array of strings, default `[]`), nullable `notes`,
+  nullable `payload_json` (the kind's payload: a compound's definition, a
+  figure of your own's definition, or a term's dance form and source citation), and
+  `created_at`, which an edit never moves, so of two entries sharing a name the
+  later-created one is the one flagged for rename. Names are not unique: a
+  duplicate that arrives by restore or by sync is kept, not refused.
+  `figure_notes` holds the user's note on a shipped figure, keyed by the
+  shipped move or alias id (`figure_id`); a note on an id the taxonomy no
+  longer has is kept and not shown. Both carry the `updated_at` /
+  `deleted_at` / `existence_at` triple and are `shareable`. They travel in a
+  backup's `app.glossary` section, not in the core archive, and never in a
+  `.ccshare` export. Device Sync carries them as the `glossaryEntry` and
+  `figureNote` record kinds, behind the capability gate (sync-spec §4.3,
+  §6.15); those kinds came later in #709 and needed no schema change. An entry
+  of a kind this build does not know, or whose payload no longer decodes as a
+  definition, is kept as it is. Additive `createTable`s; no back-fill and no
+  derived rebuild.
+
+  **The glossary's size budget.** Each field has its own bound
+  (`maxUserGlossaryNameLength`, `maxUserGlossaryTextLength`,
+  `maxUserGlossaryPayloadLength`), but the two tables together are also held to
+  `maxUserGlossaryBytes` (4 MiB) when the user writes a row, because a backup is
+  one file capped at 50 MiB (`kMaxBackupFileBytes`) that export refuses to write
+  past: without a total, a large glossary left the user unable to back up at
+  all. A row counts for the UTF-8 bytes of its stored text columns (an entry's
+  `id`, `kind`, `name`, `definition`, `description`, `keywords_json`, `notes`
+  and `payload_json`; a note's `figure_id` and `notes`) plus
+  `kGlossaryRowOverheadBytes` (512, for the keys and timestamp the backup writes
+  around it); tombstones count for nothing, as a backup does not carry them.
+  `UserGlossaryRepository.upsert` and `FigureNoteRepository.set` measure the
+  tables after the write, inside the transaction, and roll back with
+  `UserGlossaryEntryInvalid.overBudget()` (`field` is `budget`) or
+  `FigureNoteInvalid(overBudget: true)` when the total is past the budget **and**
+  the row grew. A write that does not grow its row always succeeds, so a
+  glossary already over the budget still loads, exports, and can be edited down
+  and deleted from; it cannot grow. The budget is 4 MiB because the
+  double-encoded backup container writes a stored `"` or `\` as four bytes (a
+  newline as three), so the glossary adds at most four times its counted size to
+  the file: 16 MiB, under a third of the cap, leaving 34 MiB for the rest (about
+  30 MiB for a lean 20,000-dance library, per `kMaxBackupFileBytes`).
+  `app/test/data/backup_glossary_budget_test.dart` measures that factor, and the
+  per-row overhead, on a real export. A collection that is near the cap by
+  itself can still reach it; the budget bounds only what the glossary adds.
+
+  **Two paths are exempt, on purpose** (the decision of the session that wrote
+  this change, not the maintainer's; both bring in data the user already had).
+  *Device Sync* (`writeFromSync`, a separate path from `upsert` and `set` per
+  sync-spec §6.7): refusing a peer's row would leave the two devices unable to
+  converge, so a synced glossary can exceed the budget (devices with different
+  entries add up). Held-back alternative: refuse at apply and quarantine the
+  row, which needs a sync-spec change. *Restore* (`upsertFromRestore` and
+  `setFromRestore`, called only by `BackupService._applyGlossary`): the backup
+  already fit the file cap and was exportable, and a restore that stopped at the
+  budget would delete live rows the backup lacks (replace mode) and then skip
+  the newest entries and notes, which the user would see only as a generic
+  "problems skipped" count: silent loss on the operation meant to bring data
+  back. Every per-field bound still applies to a restored item. Rejected:
+  keeping the refusal and naming it in the restore outcome. Either way a
+  glossary left over the budget exports while the file is under the cap, and can
+  be edited down and deleted from, but not grown; the user-initiated writes stay
+  budgeted.
+
+- v41 (issue #1935): performance-only indexes. Adds
+  `dance_authors_choreographer_id`, `dance_tags_tag_id`,
+  `dance_sources_source_id` and `custom_field_values_field_id`, one plain
+  lookup index on the cited-id column of each dance join table (see
+  [citedIdLookupIndexSql]). Each table's primary key leads with `dance_id`, so
+  "who cites this record" scanned the whole table. Two queries ask it:
+  `CompendiumSyncStorage._hasCitation` (a choreographer, tag, published source
+  or custom field; run per pending deletion on every `snapshot()` and per
+  inbound tombstone) and `DanceRepository.danceIdsDerivingFrom` (all but
+  tags). `_hasCitation` also became one `EXISTS` over the join and `dances`,
+  not a `dances` select per citing row. The other lookups it makes were
+  already indexed (`dance_links_target_transitive`, `program_slots_dance_id`,
+  `programs_venue_id`, `dances_level_id`). Run in `onCreate` and in the
+  `from < 41` step, guarded by `IF NOT EXISTS`. Pure DDL: no columns or tables
+  added, no data rewritten, no derived rebuild.
+
+- v42 (ADR-006 §12, F2 and F3): adds three columns to `dances` for English
+  country dance. `formation_improper` is ECD's proper/improper checkbox
+  (`Formation.improper`), stored apart from the shape because ECD's shapes
+  name only the set; contra's shapes already say proper or improper, so a
+  contra dance keeps it `0`. `meter` and `musical_key` are the tune's written
+  meter and key as free text (`Dance.meter`, `Dance.musicalKey`), `''` when
+  not given; the column is not named `key`, which SQL reserves. Phrase
+  structure still holds the beats per bar that timing uses. Each column has a
+  default (`0`, `''`, `''`), so every existing row reads as proper with no
+  meter or key, as before. The ECD formation shapes are new values of the
+  existing `formation_shape` text, which needs no DDL. Run in the `from < 42`
+  step, each column added only if absent. No data rewritten; no derived
+  index reads the columns, so no rebuild. All fields search reads meter and
+  key from these rows with `LIKE`, not from the text index
+  ([search.md](search.md), "Meter, key and interpreters").
+
+  Also in v42, before it shipped (ADR-006 §9.2): the interpreter credits.
+  `dances.interpreted_on` is the partial date the dance was interpreted
+  (`Dance.interpretedOn`), stored like `composed_on`, `NULL` when unknown.
+  `dance_interpreters` is the ordered join to the people who interpreted it
+  (`Dance.interpreterIds`), shaped exactly like `dance_authors` and drawing on
+  the same `choreographers`, with the lookup index
+  `dance_interpreters_choreographer_id`. Everything that treats an author
+  credit as a citation of a person treats an interpreter credit the same way:
+  the delete guards, the live-dance counts, merge and its Undo, natural-key
+  adoption, and the purge's collection of people nobody credits. The step
+  creates the table only if absent; it starts empty. All fields search
+  matches the live interpreters' names through this join with `LIKE`, not
+  through the text index ([search.md](search.md), "Meter, key and
+  interpreters").
+
+  Also in v42, before it shipped: program archiving (#2218). Adds the
+  nullable `programs.archived_at` column
+  (`Program.archivedAt`); NULL, which every existing row gets, means not
+  archived. Archiving hides a program from the Programs list (unless "Show
+  archived" is on) and from the Add to program sheet; calling history, Last
+  called and the venue counts still count it, and search still finds it. It is
+  an ordinary content edit: `ProgramRepository.archive` and `unarchive` advance
+  `updated_at` and leave `existence_at` alone. Device Sync and backups carry
+  it; program share files drop it (`sanitizeProgramForShare`). The archive
+  key is written only when set, so an unarchived program keeps its sync wire
+  hash, and a backup holding an archived program is written under backup
+  envelope v3 (`backupSchemaVersionArchivedPrograms`), so 0.5.2 to 0.10.0
+  refuse to replace-restore it instead of restoring its archived programs
+  unarchived (builds before 0.5.2 do not check, and a merge restore on an older
+  build stays best-effort and drops the field, as for pay); archiving raises
+  no core archive version. A Caller's Companion re-import keeps a
+  program's archived state, as it keeps its venue link. A restore from
+  Recently deleted clears it (`restore(unarchive: true)`, which stamps like
+  `unarchive`); a delete's Undo does not. Added by the same `from < 42`
+  step with `Migrator.addColumn`, guarded on `pragma_table_info`. No data
+  rewritten, no derived rebuild.
 
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
-sources, custom field definitions, difficulty levels, venues and settings keys —
+sources, custom field definitions, difficulty levels, venues, settings keys,
+and the user's glossary entries and figure notes —
 carries three timestamps. Most kinds gained this shape in schema v25 (issue
-#898); difficulty levels gained the same triple in v34. They answer three
+#898); difficulty levels gained the same triple in v34, and the glossary's two
+tables were created with it in v40. They answer three
 different questions and are deliberately not collapsed into fewer columns:
 
 | Column | Question it answers |
@@ -513,11 +905,12 @@ favour of the tombstone. One tick is one **second**, because drift stores
 `DateTime` as unix seconds; a smaller increment would round away and the stamp
 would tie. See `lib/src/storage/existence.dart`.
 
-Nothing reads `existence_at` *for a merge decision* yet. The causal advance
-described just above does read it, so the flat claim "nothing reads it" is
-false against the file this paragraph points at. It exists for Device Sync
-(ADR-004), which is not implemented; the migration that adds it is deliberately
-behaviour-preserving.
+`existence_at` is the discriminator Device Sync (ADR-004) merges on:
+`SyncMergeEngine` resolves existence from it before it looks at content, and
+never from `updated_at`. The causal advance described just above reads it too.
+Until the sync engine landed this paragraph said nothing read it for a merge
+decision and that Device Sync was not implemented; both are now false, and the
+migration that added the column remains behaviour-preserving on its own.
 
 **Deletion is a tombstone, with two named exceptions.** Deleting an entity
 writes `deleted_at` and leaves the row on disk, so the deletion is something a
@@ -527,9 +920,19 @@ rather than deletions:
 - The `hardDelete` / `permanent: true` paths, used only to roll back a
   just-committed import. A rollback treats the import as never having happened,
   so a tombstone would advertise the removal of a record no other device saw.
+  **Unless the record was already published**: once Device Sync has named a
+  record in a final manifest snapshot it forfeits the right to erase it
+  (`sync-spec.md` §3.1), because a peer may hold it live and the next pass
+  would download it back. Those rows are tombstoned instead, so an undo of an
+  already-synced import is a partial rollback by construction.
 - `DanceRepository`'s orphaned-reference GC (#462), which runs inside the
   retention purge and collects reusable rows the purge left unreferenced.
-  Nobody deleted those; they went away as a side effect.
+  Nobody deleted those; they went away as a side effect. Only *bare* rows go
+  (N2-6 (b)): a tag with a colour, an author with a website, notes, email,
+  location or deceased mark, or a source with an author, year, URL or notes
+  survives, unused. The user removes it in the Library managers (N2-T2 and
+  N2-T3), which have not shipped yet; until then only a tag's Undo path deletes
+  a reference row in the app.
 
 **Two consequences follow from soft delete, and both are load-bearing:**
 
@@ -538,12 +941,28 @@ rather than deletions:
   `dance_tags`, `custom_field_values`, `dance_sources` and `dance_authors` rows
   a hard delete used to clear now outlive the delete. They are kept
   deliberately — clearing them would mean a revived tag came back with no
-  dances — so the reads filter instead. `tags` is the case that bites: it is the
-  only converted kind with no referential guard, so a tombstone with live join
-  rows is reachable by ordinary use rather than only defensively.
+  dances — so the reads filter instead. `tags` is the case that bites: its
+  ordinary tombstoning delete is the one converted kind's delete with no
+  referential guard, so a tombstone with live join rows is reachable by ordinary
+  use rather than only defensively. (That is safe precisely because it strands
+  nothing. The tag's *erasing* branch is a different matter, and has carried a
+  guard since issue #1357 — see below.) A user's delete of a tag is not that
+  delete: `ReferenceEditRepository.deleteTag` takes the tag off every dance,
+  trashed ones included, before tombstoning it (see below).
 - **The referential guards stay.** Soft delete does not make it safe to remove
   an entity a live record still references, and a tombstone for a still-cited
   entity could not be applied by a peer anyway.
+- **An erasure must not cascade off a tombstoned owner either.** The four join
+  tables above are `ON DELETE CASCADE`, so a `permanent: true` erase of a
+  choreographer, tag, published source or custom field definition destroys the
+  join rows a *tombstoned* dance is still holding — and the dance comes back
+  without its author, tag, citation or value when the user restores it. Those
+  hatches therefore downgrade to a tombstone whenever any join row survives,
+  which keeps the association and still takes the parent out of every live view.
+  Venues are the one soft-reference case (`programs.venue_id` is not a foreign
+  key, so nothing cascades) and are kept **live** instead, because the
+  referencing program has no other way to show its venue. Issue #1357; the
+  ruling is stated in `sync-spec.md` §3.1.
 
 **A tombstone still occupies its UNIQUE natural key.** `choreographers.name`,
 `tags.name` and `custom_field_defs.key` are UNIQUE, and drift's upsert targets
@@ -564,53 +983,244 @@ hundred dances and then re-creating it silently re-tagged all two hundred.
 Reusing the old row's id is an implementation detail forced by the foreign keys
 and does not leak into what the user sees.
 
+**A user's rename, merge and delete of a tag, author or source** (added
+2026-10-30; `ReferenceEditRepository`, `docs/design/tags-and-people.md`) work
+around both rules above rather than through them:
+
+- **A name a tombstone holds is freed, not adopted.** A rename onto it, and the
+  name a merge leaves, first rename every tombstone holding the name (as the
+  app matches names, folding case) to `<name>_<first 8 hex digits of its id>`,
+  or all 32 digits if that is taken. It is a name-only write: it bumps
+  `updated_at` and leaves `deleted_at` and `existence_at` alone. It cannot go
+  through the upsert, which would revive the tombstone.
+- **A merge keeps the smaller id** (`sync-spec.md` §6.6), writes the fields of
+  the entry the user merged into under it, and for every other entry frees its
+  name the same way, moves its join rows to the survivor with
+  `rewriteLocalReferences` (shared with sync's reconciliation), tombstones it,
+  and records an `id_aliases` row through `remapIdentity`. Dances in Recently
+  deleted are re-pointed too. Undo restores the before-image, including the
+  alias rows the remap collapsed, and is kept in memory only. It is refused,
+  writing nothing, if a live row has taken an old name since.
+- **A tag delete strips its join rows** from live and trashed dances and bumps
+  them, then tombstones the tag (D-N2-7). So, unlike the repository's own
+  delete above, bringing the tag back does not re-tag old dances. Author and
+  source deletes keep their guard.
+
 ## Durability
 
-- WAL mode; foreign keys ON; nightly-on-launch `PRAGMA quick_check`.
+- WAL mode; foreign keys ON; `PRAGMA quick_check` once per launch, after the first frame (advisory banner on failure).
+- WAL and the busy timeout are set by `applyCompendiumSqliteSetup`, which
+  **every** connection to the database file must run. Device Sync opens a
+  second connection from its worker isolate, so both it and `openAppDatabase`
+  pass it as their `DatabaseSetup`. Neither is a default: sqlite ships the
+  rollback journal (under which a sync write blocks every app read) and a zero
+  busy timeout (under which an app write landing during an inbound apply fails
+  with "database is locked" rather than waiting). The same setup registers
+  `cc_venue_key(text)`, the venue fold a typed-venue calling-history search
+  compiles to (see [search.md](search.md)); the shared test-database helpers
+  and the core benchmarks pass it too, so that search runs there.
 - All writes in transactions via repository layer; dance/program soft deletes
-  purge after a configurable retention (default 30 days) via startup sweep. The
+  purge after a configurable retention (default 30 days) via startup sweep,
+  except for rows Device Sync has published: those are retained as tombstones
+  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1), and
+  once expired are **blanked** as Permanently delete blanks them (next bullet),
+  except that `existence_at` is left alone (a tie between tombstones takes the
+  mark, `sync-spec.md` §6.4), and the records citing a dance are not rewritten
+  (a cited dance keeps its title until nothing cites it); `sync-spec.md` §3.2
+  gives the reasons. The
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.
+- **Permanently delete** (Recently deleted) marks a dance or program with
+  `deleted_at` = the unix epoch, then erases it, or, if it is published,
+  **blanks** it: every content column is reset, its join rows, derived rows,
+  `retained_sync_fields` row and `review_queue` rows are deleted, and
+  `updated_at` is stamped after the
+  content it replaces, so the blank body wins on peers too. Only the deletion
+  record remains, and Recently deleted hides any row with the epoch mark
+  (LIFE-2; maintainer decision 2026-10-29, round 2: hide and blank, no
+  retirement). Program slots and related-dance links that cited a blanked dance
+  get what a purge would leave them, and their owners are restamped. A startup
+  sweep finishes every marked row whatever the retention setting, which also
+  blanks rows marked by builds that predate blanking; being automatic and
+  pre-sync, it leaves citers alone and a cited dance keeps its title. See
+  `lib/src/storage/permanent_deletion.dart`.
+
+  *Amended 2026-11-05:* the `review_queue` rows were added to what a blank
+  deletes: every row about the record, and for a dance either side of a
+  fresh-attach ambiguity pair. A conflict choice holds another device's whole
+  version, so until then the content stayed on the device until a pass
+  happened to drop the row, and for good once Device Sync was off. A program
+  slot that another device added before its blank arrived still cites the
+  blanked dance, because only the deleting device rewrites citers; the app
+  shows that slot as "Deleted dance" rather than the placeholder title
+  (maintainer decision Q-6, 2026-10-31, recorded in
+  `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`). A program share
+  sends such a slot as a purged-dance text slot reading "Deleted dance" and
+  leaves the blank out, and the PDF's figure pages skip it (the maintainer's
+  option (a) for follow-up row 49, 2026-11-05); the slot shape is archive
+  v4's, so no archive key or version changes. A dance a
+  retention sweep kept the title of, because a slot still cites it, is shown
+  as any dance in Recently deleted.
 
 ### Migration safety (app-layer preflight)
 
 Before the app opens the drift database it runs a preflight
-(`app/lib/src/data/migration_guard.dart`) that reads the file's persisted
+(`app/lib/src/data/migration_guard.dart`). It first moves a database an earlier
+build left in a legacy location into the database directory
+(`relocateLegacyDatabase`, see Approach). It then reads the file's persisted
 `PRAGMA user_version` — via a short-lived, WAL-aware `sqlite3` connection, not
 by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
 
 - **Downgrade protection.** If the file's version is *higher* than the running
   schema (it was written by a newer build), the preflight refuses to open it and
   routes to the `AppBootstrap` error screen ("created by a newer version …
-  please update the app"). drift is forward-only with no `onDowngrade`, so
+  Update the app, then reopen it"). drift is forward-only with no `onDowngrade`, so
   migrating such a file would silently stamp the version down and risk
   corruption; a belt-and-suspenders guard in `MigrationStrategy.onUpgrade`
   (`from > to` throws) backstops any open path that bypasses the preflight.
+- **Schema floor.** If the file's version is *below* `kMinSupportedSchemaVersion`
+  (its upgrade steps were retired), the preflight throws
+  `DatabaseBelowFloorError`, which names the bridge release that can still
+  migrate the file, and `AppBootstrap` renders a recovery screen with
+  Back-Up-and-Reset / Reset and no Retry (issue #841). The same
+  belt-and-suspenders guard in `onUpgrade` (`from < kMinSupportedSchemaVersion`
+  throws) backstops any open path that bypasses the preflight; without it a
+  below-floor file would run only the surviving steps and end up structurally
+  wrong with no error at all.
+- **Atomic upgrade.** drift runs `onUpgrade` with no transaction of its own and
+  stamps `user_version` only after it returns, so `onUpgrade` runs every step
+  inside a single `transaction()` (after the two refusal guards, which throw
+  before any DDL). A failure anywhere in the body — an exception from a later
+  step, a process death — rolls back to the pre-upgrade file, which the next
+  launch migrates again from the start, instead of leaving earlier steps' DDL
+  committed under the old stamp where the next open re-enters them and fails.
 - **Backup-before-migrate.** If an upgrade is pending (file version < running),
   the preflight first checkpoints the WAL and copies the whole SQLite file to
-  `<app-documents>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,
+  `<database directory>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,
   retaining the newest 5. This is a raw byte snapshot, distinct from the
   user-triggered JSON backup/restore (6.6/G.5): the JSON path is a *logical*
   export through the current-schema repositories and cannot run against a file
   that hasn't been migrated to that schema yet, whereas a byte copy is
   schema-agnostic and the highest-fidelity rollback for a botched migration.
 
+  **A one-time repair still owed also snapshots** (UPGRADE-1). The marker-gated
+  sweeps in `CompendiumRepositories.ensureMigrated` run after the preflight on
+  every open, and several rewrite `figures_json` or shareable text in place
+  without moving `user_version` — repairs ship as settings markers rather than
+  schema bumps, because a PATCH release may not bump the schema. So the
+  preflight also reads each sweep's completion marker
+  (`CompendiumRepositories.oneTimeRepairMarkers`, raw `package:sqlite3`, before
+  drift opens) and snapshots a file at the running version when any is absent,
+  tombstoned or stale — including the shareable-text scope marker, so a
+  privacy-registry change that widens the normalisation pass is covered. Such a
+  snapshot is named `pre-v<running>` because no schema change is pending. A
+  fully repaired file reads every marker as done and does not snapshot, so an
+  ordinary launch costs one short raw read, plus two listings of `db_backups`
+  for a pin to release (below). Markers that cannot be read at all
+  are treated as owed, so the failure mode is an extra snapshot rather than a
+  repair with none. Not covered: retries of recorded `normalisation_skips`
+  entries, which are ordinary-use state that would snapshot on every launch,
+  and `promoteRetainedSyncFields`, whose debt cannot be told from its rows
+  without decoding them.
+
+  **The first copy of a repair debt is pinned.** A repair that keeps failing
+  meets the same debt on every launch and Retry, and snapshots each time.
+  Sweeps commit separately (the derived rebuild in chunks), so with plain
+  retention the copy from before the first attempt would be pruned after five
+  more failed attempts, leaving only copies taken after some sweeps had
+  committed. So the first snapshot taken while any repair is owed — on a
+  repair-only launch or a schema bump — is written as
+  `compendium.pre-v<from>-<UTC-timestamp>.pinned.sqlite.bak`, which pruning
+  skips: at most one pinned copy beside the newest 5 ordinary ones. A later
+  attempt never pins another while one exists, and a `db_backups` that exists
+  but cannot be listed counts as holding one, so it never gathers a pin per
+  launch. The pin is released as soon as the debt clears: by the app, in the
+  same session, once `ensureMigrated` succeeds, and as a backstop by any
+  preflight at the running version that owes no repair. The same-session
+  release is what lets a later build that owes a *new* repair pin its own
+  first copy rather than find the old pin still there; if that release fails
+  (a file lock, say) and the next launch owes a new repair, the stale pin is
+  kept and nothing new is pinned. Release renames the pinned copy into the
+  ordinary rotation and stamps it with the current time, so it is the newest
+  there and survives at least the next 4 snapshots instead of being pruned the
+  moment its repair first completes, when a botched repair would first show.
+  On a schema bump that owes no repair the preflight neither pins nor releases, so
+  its retention is unchanged. A build at the same schema version that does not
+  know a newer build's repair (an older PATCH, sideloaded) reads it as not
+  owed and releases that build's pin. The pin lives only in the file name: no
+  setting or column records it, so there is nothing to classify or to keep out
+  of backups. Relocation moves a pinned copy with the other snapshots.
+
+  Every snapshot is copied under a `.partial` name, flushed to disk, and
+  renamed into place (retrying briefly, for a scanner holding the new file on
+  Windows), so a copy cut short by a crash, force-quit or power loss never
+  counts as a snapshot, least of all as a pin that nothing would replace; the
+  next snapshot deletes such leftovers.
+
+  **The copy is refused rather than taken incomplete.** The checkpoint pragma
+  does not throw when another connection is in the way: a reader whose read
+  transaction began before the newest commits stops it short of them, and it
+  says so only in its result row (`busy` = 1). A byte copy of the main file
+  would then silently lack those commits. So the preflight reads that row,
+  retries for about 0.4 s, and treats a WAL still busy as a snapshot failure
+  (below), never copying. A `busy` result whose WAL frames were all checkpointed
+  (`log == checkpointed`) is accepted: TRUNCATE reports busy whenever it cannot
+  reset the WAL, including for a reader that already sees every commit, and the
+  main file is complete then. The checkpoint throws `SnapshotDatabaseInUse`,
+  classified as `SnapshotFailureCause.databaseInUse` (the maintainer chose on
+  2026-11-11 to add it in this change rather than a follow-up; the PR
+  description records it), so the consent dialog and the terminal screen use
+  their own copy, telling the user to close any other app that has the library
+  open, instead of the generic advice to free up space or fix the backups
+  folder; the below-floor reset flow appends the matching cause sentence. Only a
+  checkpoint that stays incomplete is classified this way: another app holding a
+  write or exclusive lock makes the pragma itself fail (`SQLITE_BUSY`), and a
+  Windows sharing violation on the copy is an OS error with no in-use code, so
+  both still reach the dialog as an unknown cause. Copying the `-wal` beside the
+  main file instead was rejected: the two files are not copied atomically, the
+  restore steps would have to carry both, and a writer could append between the
+  two reads. No holder inside the app has been found: on launch the preflight
+  runs before the app's drift connection opens and before sync starts; Retry
+  closes the app's connection and disposes the sync coordinator first, which
+  waits for any running pass, and a pass closes its isolate's own connection
+  when it ends; and a second desktop instance hands off and exits before
+  reaching the preflight. So the holder would be another process, such as a
+  SQLite browser left open on the file.
+
   **If the snapshot fails, the preflight fails closed** (issue #442). A backup
-  that cannot be written (disk full, unwritable `db_backups`, checkpoint
-  failure) previously logged and migrated anyway; it now instead surfaces a
-  blocking consent dialog that explains the data-loss risk and names the likely
-  cause (low storage / unwritable backups folder). The user chooses **Quit**
-  (the default — abort so they can free space, fix permissions, or take a manual
+  that cannot be written (disk full, unwritable `db_backups`, a checkpoint that
+  fails or stays busy) previously logged and migrated anyway; it now instead
+  surfaces a blocking consent dialog that explains the data-loss risk and names
+  the likely cause (low storage / unwritable backups folder / another app has
+  the library open, above). The user chooses **Quit** (the default — abort so
+  they can free space, fix permissions, close the other app, or take a manual
   backup first) or **Proceed without a backup**. Without an explicit "proceed"
   the migration is aborted (`MigrationSnapshotAborted`, rendered on a
-  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a failed
-  upgrade can never become an unrecoverable one. A successful snapshot is
+  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a
+  failed upgrade can never become an unrecoverable one. A successful snapshot is
   unchanged — no prompt.
 
   **Restoring a pre-migration snapshot:** quit the app, replace the live
-  `compendium.sqlite` in the app-documents directory with the chosen
+  `compendium.sqlite` in the database directory (see Approach) with the chosen
   `.sqlite.bak` (renaming it back to `compendium.sqlite`), and relaunch. Because
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
-  the problem, open it with the matching older app version instead.
+  the problem, open it with the matching older app version instead. A
+  repair-only snapshot lacks the repair's marker, so the same build runs the
+  repair again on relaunch.
+
+**The four terminal startup screens (amendment, 2026-10-30).** The downgrade,
+below-floor, snapshot-aborted and relocation-blocked outcomes above each render
+a terminal `AppBootstrap` screen. Every one offers **Copy details** and a link
+to the Releases page; none offers Retry or a "Check again". Copy details is the
+error's type, typed discriminators (storage versions, the failure cause or
+reason as an enum name, each conflicting copy's folder and size) and the stack
+scrubbed by `CrashRedactor`; it never includes the error's own message, which
+can carry a path or text from the database that just failed (CWE-209). The
+reason for no re-run (maintainer decision R2-check-again, 2026-10-30): whatever
+the caller does to clear the cause, the app has to be reopened afterwards, so
+each screen's copy says to reopen it. A re-run could succeed for the last two
+outcomes (the caller frees disk space, or moves a copy aside), so this was a
+choice rather than a necessity; it was rejected to keep these screens strictly
+terminal.

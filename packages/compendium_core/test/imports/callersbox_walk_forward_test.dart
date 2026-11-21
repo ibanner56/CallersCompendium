@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// Issue #733 — The Caller's Box `walk forward` lines.
 ///
@@ -44,7 +45,7 @@ Future<List<Figure>> _importedFigures(List<String> lines) async {
   final adapter = CallersBoxAdapter();
   final discovered = await adapter.discover(ImportRequest(payload: payload));
   final raw = await adapter.fetch(discovered.single);
-  return adapter.parse(raw).dance.figures;
+  return figuresOf(adapter.parse(raw).dance);
 }
 
 int _totalBeats(List<Figure> figures) => figures.fold(0, (a, f) => a + f.beats);

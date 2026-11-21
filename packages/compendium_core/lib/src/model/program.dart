@@ -91,6 +91,35 @@ class ProgramSlot {
   /// (which is derived by query, never stored on the dance).
   final DateTime? performedAt;
 
+  /// Whether this slot counts toward its dance's calling history ("called
+  /// ×N", the Called filter, history rows, last-called, venue repeats and half
+  /// stats), before the "Require mark performed" setting is applied.
+  ///
+  /// A primary dance slot counts as soon as its program contains it (#583's
+  /// documented default). An alternate counts only once that slot is marked
+  /// performed: listing a dance as a fallback is not calling it (maintainer
+  /// ruling, 2026-10-28). The SQL side of the same rule is
+  /// `callingHistoryAlternateClause`; the two must agree.
+  bool get countsTowardCallingHistory =>
+      danceId != null && (!isAlt || performedAt != null);
+
+  /// Whether a bulk mark — **Mark all performed**, or the stamp when a program's
+  /// status becomes performed ([Program.stampDanceSlotsPerformed]) — stamps
+  /// this slot: an unperformed primary dance slot.
+  ///
+  /// Alternates are skipped because a bulk stamp would make every unused
+  /// alternate count as called (see [countsTowardCallingHistory]); a caller
+  /// marks the alternate they actually used by hand.
+  bool get isBulkMarkPerformedTarget =>
+      danceId != null && !isAlt && performedAt == null;
+
+  /// Whether this slot is one of the dances a program is planned for: every
+  /// slot except an alternate and the break. The one definition behind
+  /// [Program.plannedDanceCount] and the set-list numbering
+  /// ([Program.danceNumbersForSlots]), so a count and the highest number never
+  /// disagree (GIG-10).
+  bool get isPlannedDance => !isAlt && !isBreak;
+
   /// Whether this slot is a **break** — the divider the program's first/second
   /// section is derived from ([Program.sectionAtIndex]).
   ///
@@ -213,10 +242,14 @@ class Program {
     this.notes = '',
     this.status = ProgramStatus.draft,
     this.hideAlternates = false,
+    this.dialectName,
+    this.payMinorUnits,
+    this.payCurrency,
     List<ProgramSlot> slots = const [],
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.archivedAt,
     this.provenance,
   }) : slots = List.unmodifiable(
          <ProgramSlot>[...slots]
@@ -225,7 +258,30 @@ class Program {
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'must be non-empty');
     }
+    final pay = payMinorUnits;
+    final currency = payCurrency;
+    if ((pay == null) != (currency == null)) {
+      throw ArgumentError(
+        'payMinorUnits and payCurrency must be set together or not at all',
+      );
+    }
+    if (pay != null && pay < 0) {
+      throw ArgumentError.value(pay, 'payMinorUnits', 'must be >= 0');
+    }
+    if (currency != null && !isValidPayCurrency(currency)) {
+      throw ArgumentError.value(
+        currency,
+        'payCurrency',
+        'must be three uppercase ASCII letters (ISO 4217)',
+      );
+    }
   }
+
+  /// Whether [code] has the shape of an ISO 4217 currency code: exactly three
+  /// uppercase ASCII letters. Shape only — the list of assigned codes changes
+  /// and is not consulted, so a code this build has never heard of is kept.
+  static bool isValidPayCurrency(String code) =>
+      RegExp(r'^[A-Z]{3}$').hasMatch(code);
 
   final String id;
   final String title;
@@ -260,20 +316,59 @@ class Program {
   /// and always show every slot; the stored slots are never mutated.
   final bool hideAlternates;
 
+  /// Name of the dialect Perform uses for this program, or `null` to follow the
+  /// application dialect (the default, and every program before schema v37).
+  /// Applies to that program's Perform view only — the editor preview, summary
+  /// and exports keep the application dialect. A soft reference by name,
+  /// resolved with `Dialect.resolveByName` when Perform opens: a name that no
+  /// longer resolves silently falls back to the application dialect, so it is
+  /// never validated, and not cleared when a dialect is deleted; a rename is
+  /// carried to the program by `ProgramRepository.renameDialect`.
+  final String? dialectName;
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (cents for USD, whole yen for JPY), or `null` when no pay is recorded
+  /// (the default, and every program before schema v38). Never negative; set
+  /// together with [payCurrency] or not at all. Private to the caller's own
+  /// bookkeeping but shareable across their devices and in archives; it is not
+  /// part of the shared program text or PDF.
+  final int? payMinorUnits;
+
+  /// ISO 4217 code (three uppercase letters) that [payMinorUnits] is
+  /// denominated in; `null` exactly when [payMinorUnits] is.
+  final String? payCurrency;
+
   /// Slots, always ordered by position.
   final List<ProgramSlot> slots;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
-  /// Import provenance: where this program came from (CC `.USR`), keyed on
-  /// `(source, externalId)` so a re-import dedupes onto the same program rather
-  /// than creating a duplicate. `null` for user-created programs, which never
+  /// When the caller archived this program, or `null` when it is not archived
+  /// (the default, and every program before schema v42).
+  ///
+  /// Archiving only hides the program: the Programs list leaves it out unless
+  /// "Show archived" is on, and the Add to program sheet never offers it. It
+  /// still counts toward every dance's calling history, Last called and the
+  /// venue counts, and search still finds it. Unlike [deletedAt] it never
+  /// expires. It travels in Device Sync and the caller's own backups, but not in
+  /// program share files (`sanitizeProgramForShare`), so a recipient always
+  /// gets an unarchived program.
+  final DateTime? archivedAt;
+
+  /// Import provenance: where this program came from, keyed on
+  /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
+  /// dedupe onto the same program rather than create a duplicate. A program
+  /// received in a shared file (`json`) records its origin only: re-receiving
+  /// it adds a new program (F6). `null` for user-created programs, which never
   /// dedupe. Mirrors [Dance.provenance]; like Dance, it is metadata *about the
   /// import* and is deliberately excluded from value equality (`==`/[hashCode]).
   final Provenance? provenance;
 
   bool get isDeleted => deletedAt != null;
+
+  /// Whether the program is archived ([archivedAt] is set).
+  bool get isArchived => archivedAt != null;
 
   /// Canonical text of a **break** slot. The one-tap "insert break" affordance
   /// writes exactly this so section derivation ([sectionAtIndex]) keys off it without
@@ -287,6 +382,113 @@ class Program {
   int? get firstBreakSlotIndex {
     final index = slots.indexWhere((s) => s.isBreak);
     return index < 0 ? null : index;
+  }
+
+  /// How many dances the program is planned for: every slot except alternates
+  /// ([ProgramSlot.isAlt]) and the break ([ProgramSlot.isBreak]).
+  ///
+  /// Text-only slots that stand in for a dance ("bouncy", "set ender") and
+  /// purged-dance captions are counted; an orphaned leading alternate is not,
+  /// because it is still an alternate. [slots]`.length` is the row count, which
+  /// this deliberately is not.
+  int get plannedDanceCount => plannedDanceCountOf(slots);
+
+  /// [plannedDanceCount] for a working slot list, such as the builder's
+  /// unsaved edits, without constructing a [Program].
+  static int plannedDanceCountOf(Iterable<ProgramSlot> slots) =>
+      slots.where((s) => s.isPlannedDance).length;
+
+  /// How many slots hold [danceId], **alternates included** (N3-6): the
+  /// "will I add this twice?" count behind the add-to-program sheet's
+  /// "In this program" marker and the builder picker's "in program ×N".
+  ///
+  /// Deliberately not the calling-history rule, under which an alternate counts
+  /// only once performed. Break and free-text slots carry no dance id and never
+  /// match, so a text slot that names the dance is not detected.
+  int danceSlotCount(String danceId) => danceSlotCountsOf(slots)[danceId] ?? 0;
+
+  /// [danceSlotCount] for every dance in a working slot list, such as the
+  /// builder's unsaved edits, without constructing a [Program]. Dances absent
+  /// from [slots] are absent from the map.
+  static Map<String, int> danceSlotCountsOf(Iterable<ProgramSlot> slots) {
+    final counts = <String, int>{};
+    for (final slot in slots) {
+      final danceId = slot.danceId;
+      if (danceId == null) continue;
+      counts[danceId] = (counts[danceId] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// The set-list number of each slot in a **position-ordered** [slots] list,
+  /// as a parallel list (same length/order): planned dances
+  /// ([ProgramSlot.isPlannedDance]) are numbered `1..n`, and alternates and
+  /// the break are `null`. The highest number is therefore always
+  /// [plannedDanceCountOf] the same slots (GIG-10).
+  static List<int?> danceNumbersForSlots(List<ProgramSlot> slots) {
+    var number = 0;
+    return List<int?>.generate(
+      slots.length,
+      (i) => slots[i].isPlannedDance ? ++number : null,
+      growable: false,
+    );
+  }
+
+  /// [slots] without the slot at [index]. When that slot is the primary of an
+  /// alternate group, its first alternate takes its place as the primary and
+  /// any further alternates stay with it (LIFE-10); without this the group's
+  /// alternates would silently join the slot above (see
+  /// [alternateGroupsForSlots]). Positions are left for the caller to
+  /// renumber. Shared by cutting a slot and moving one.
+  static List<ProgramSlot> removeSlotPromotingAlternate(
+    List<ProgramSlot> slots,
+    int index,
+  ) {
+    final promoted = alternatePromotedByRemoving(slots, index);
+    final next = [...slots];
+    if (promoted != null) {
+      next[promoted] = next[promoted].copyWith(isAlt: false);
+    }
+    next.removeAt(index);
+    return next;
+  }
+
+  /// [slots] with the slot at [oldIndex] moved to [newIndex], where
+  /// [newIndex] is the insertion index after the removal (Flutter's
+  /// `onReorderItem` convention). A moved primary leaves its alternates behind
+  /// with the first promoted in its place, as [removeSlotPromotingAlternate]
+  /// does; a drop inside that promoted group's alternates lands after them,
+  /// so the group stays whole rather than its later alternates joining the
+  /// moved slot. Positions are left for the caller to renumber.
+  static List<ProgramSlot> moveSlotPromotingAlternate(
+    List<ProgramSlot> slots,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final item = slots[oldIndex];
+    final promoted = alternatePromotedByRemoving(slots, oldIndex);
+    final next = removeSlotPromotingAlternate(slots, oldIndex);
+    var target = newIndex.clamp(0, next.length);
+    if (promoted != null && target > oldIndex) {
+      // The promoted slot now sits at oldIndex; its alternates follow it.
+      var groupEnd = oldIndex + 1;
+      while (groupEnd < next.length && next[groupEnd].isAlt) {
+        groupEnd++;
+      }
+      if (target < groupEnd) target = groupEnd;
+    }
+    next.insert(target, item);
+    return next;
+  }
+
+  /// Index into [slots] of the alternate that
+  /// [removeSlotPromotingAlternate] would promote when removing [index], or
+  /// `null` when nothing would be promoted: the slot is itself an alternate,
+  /// or no alternate follows it.
+  static int? alternatePromotedByRemoving(List<ProgramSlot> slots, int index) {
+    if (index < 0 || index + 1 >= slots.length) return null;
+    if (slots[index].isAlt || !slots[index + 1].isAlt) return null;
+    return index + 1;
   }
 
   /// Whether the program contains a break slot (and therefore has derived
@@ -323,6 +525,21 @@ class Program {
         return null;
       }
       return section;
+    }, growable: false);
+  }
+
+  /// The alternate group of each slot in a **position-ordered** [slots] list,
+  /// as a parallel list (same length/order): every slot in one group is a
+  /// mutually exclusive choice for the same program position. Ids are
+  /// consecutive from 0. Uses exactly the rule [grouped] does — an `isAlt` slot
+  /// joins the nearest preceding non-alt slot's group (which may be a text-only
+  /// slot), and a leading/orphaned alt starts its own group — so the two never
+  /// disagree about which slots are alternatives to each other.
+  static List<int> alternateGroupsForSlots(List<ProgramSlot> slots) {
+    var group = -1;
+    return List<int>.generate(slots.length, (i) {
+      if (!slots[i].isAlt || group < 0) group++;
+      return group;
     }, growable: false);
   }
 
@@ -367,7 +584,9 @@ class Program {
   /// The [grouped] view used for **output** (plain-text set list, PDF, summary):
   /// identical to [grouped] except that, when [hideAlternates] is set, each
   /// group's [ProgramSlotGroup.alternates] are dropped so only primaries render.
-  /// Primaries stay numbered 1..n either way. The builder/Perform UIs use
+  /// The planned dances keep the same numbers either way: only a
+  /// [ProgramSlot.isPlannedDance] primary is numbered, so dropping alternates
+  /// changes no number. The builder/Perform UIs use
   /// [grouped] directly and are unaffected by the flag.
   List<ProgramSlotGroup> get outputGrouped {
     if (!hideAlternates) return grouped;
@@ -430,9 +649,13 @@ class Program {
     String? notes,
     ProgramStatus? status,
     bool? hideAlternates,
+    String? dialectName,
+    int? payMinorUnits,
+    String? payCurrency,
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
+    DateTime? archivedAt,
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
@@ -440,7 +663,10 @@ class Program {
     bool clearBand = false,
     bool clearCaller = false,
     bool clearDancerLevel = false,
+    bool clearDialectName = false,
     bool clearDeletedAt = false,
+    bool clearArchivedAt = false,
+    bool clearPay = false,
     bool clearProvenance = false,
   }) => Program(
     id: id,
@@ -454,17 +680,23 @@ class Program {
     notes: notes ?? this.notes,
     status: status ?? this.status,
     hideAlternates: hideAlternates ?? this.hideAlternates,
+    dialectName: clearDialectName ? null : (dialectName ?? this.dialectName),
+    payMinorUnits: clearPay ? null : (payMinorUnits ?? this.payMinorUnits),
+    payCurrency: clearPay ? null : (payCurrency ?? this.payCurrency),
     slots: slots ?? this.slots,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+    archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
   /// Deep copy for "duplicate program": fresh ids everywhere, draft status,
-  /// performance history cleared. [newSlotId] mints an id per copied slot.
+  /// performance history and event date cleared. [newSlotId] mints an id per
+  /// copied slot.
   /// Provenance is dropped (the copy is the user's own record, not an import),
-  /// mirroring [Dance.duplicate].
+  /// mirroring [Dance.duplicate]. The copy is never archived: it is for a new
+  /// event, so it belongs in the Programs list even when its source does not.
   Program duplicate({
     required String newId,
     required String Function() newSlotId,
@@ -473,7 +705,9 @@ class Program {
   }) => Program(
     id: newId,
     title: newTitle ?? title,
-    eventDate: eventDate,
+    // The event date is deliberately not copied, for the same reason as pay
+    // below: a duplicate is for a different event. Copying it would put a
+    // second calling-history entry on the original's date (LIFE-7).
     venue: venue,
     venueId: venueId,
     band: band,
@@ -482,6 +716,9 @@ class Program {
     notes: notes,
     status: ProgramStatus.draft,
     hideAlternates: hideAlternates,
+    dialectName: dialectName,
+    // Pay is deliberately not copied: it belongs to one event, and a duplicate
+    // is for a different one.
     slots: [
       for (final s in slots)
         ProgramSlot(
@@ -500,8 +737,9 @@ class Program {
     updatedAt: now,
   );
 
-  /// Returns a copy in which every **dance-linked** slot (`danceId != null`)
-  /// that has no [ProgramSlot.performedAt] is stamped performed at the first
+  /// Returns a copy in which every **primary dance-linked** slot (`danceId !=
+  /// null`, not an alternate) that has no [ProgramSlot.performedAt] is stamped
+  /// performed at the first
   /// unused stored timestamp at or after this program's [eventDate] when set,
   /// else at [fallback].
   ///
@@ -512,6 +750,12 @@ class Program {
   ///
   /// - **Dance-linked only:** free-text/note/break slots aren't dances and can
   ///   never contribute to calling history, so they're left untouched.
+  /// - **Primaries only:** alternate slots are left unstamped, as **Mark all
+  ///   performed** leaves them ([ProgramSlot.isBulkMarkPerformedTarget]). The
+  ///   maintainer ruled that an alternate counts only once marked performed and
+  ///   that Mark all performed skips alternates (2026-10-28); applying the same
+  ///   skip here is an inference from that ruling, because this is the same bulk
+  ///   stamp reached through the status, not a separately ruled behaviour.
   /// - **Idempotent:** a slot that already has a `performedAt` (e.g. a
   ///   manually-set date) is never overwritten.
   /// - **Pure:** callers choose the timestamp — typically the program's
@@ -528,7 +772,7 @@ class Program {
     var changed = false;
     final next = <ProgramSlot>[];
     for (final s in slots) {
-      if (s.danceId != null && s.performedAt == null) {
+      if (s.isBulkMarkPerformedTarget) {
         next.add(s.copyWith(performedAt: stamp));
         changed = true;
       } else {
@@ -553,10 +797,14 @@ class Program {
       other.notes == notes &&
       other.status == status &&
       other.hideAlternates == hideAlternates &&
+      other.dialectName == dialectName &&
+      other.payMinorUnits == payMinorUnits &&
+      other.payCurrency == payCurrency &&
       _listEq.equals(other.slots, slots) &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
-      other.deletedAt == deletedAt;
+      other.deletedAt == deletedAt &&
+      other.archivedAt == archivedAt;
 
   @override
   int get hashCode => Object.hash(id, title, updatedAt);

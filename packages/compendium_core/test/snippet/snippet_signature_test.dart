@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
 
 void main() {
+  _ecdSignatures();
   final tax = contraTaxonomy;
 
   group('figureSnippetSignature', () {
@@ -29,11 +30,11 @@ void main() {
     });
 
     test('folds taxonomy defaults so explicit == defaulted', () {
-      // allemande defaults: who=neighbors, hand=right, travel=1.0.
+      // allemande defaults: who=neighbors, hand=right, travel=1.5.
       final defaulted = Figure(move: 'allemande');
       final explicit = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.0},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.5},
       );
       expect(
         figureSnippetSignature(defaulted, tax),
@@ -137,6 +138,125 @@ void main() {
       expect(
         describeFigureSignature('not a signature!!', tax, renderer, dialect),
         'not a signature!!',
+      );
+    });
+  });
+
+  group('an other fraction amount (#2120)', () {
+    final renderer = FigureRenderer(tax);
+    Figure f8(Map<String, Object?> p) =>
+        testFigure(move: 'figure_8', params: p);
+
+    test('a stated amount joins the signature', () {
+      expect(
+        figureSnippetSignature(f8({'fraction': 'other', 'amount': 1.5}), tax),
+        'figure_8(amount=1.5,fraction=other,who=ones)',
+      );
+      expect(
+        figureSnippetSignature(f8({'fraction': 'other', 'amount': 2}), tax),
+        'figure_8(amount=2,fraction=other,who=ones)',
+      );
+    });
+
+    test('every key a pre-v39 figure could have is unchanged', () {
+      expect(
+        figureSnippetSignature(f8({'fraction': 'other'}), tax),
+        'figure_8(fraction=other,who=ones)',
+      );
+      // A stale amount under a named fraction is not part of the figure.
+      expect(
+        figureSnippetSignature(f8({'fraction': 'half', 'amount': 2}), tax),
+        'figure_8(fraction=half,who=ones)',
+      );
+    });
+
+    test('migration keeps a figure 8 amount and still renames orbit', () {
+      expect(
+        migrateFigureSnippetSignature(
+          'figure_8(amount=1.5,fraction=other,who=ones)',
+        ),
+        'figure_8(amount=1.5,fraction=other,who=ones)',
+      );
+      expect(
+        migrateFigureSnippetSignature('orbit(amount=0.5,turn=clockwise)'),
+        'orbit(direction=clockwise,travel=0.5)',
+      );
+    });
+
+    test('a signature with an amount describes as its figure', () {
+      expect(
+        describeFigureSignature(
+          'figure_8(amount=1.5,fraction=other,who=ones)',
+          tax,
+          renderer,
+          Dialect.larksRobins,
+        ),
+        startsWith('ones 1½ figure 8'),
+      );
+    });
+  });
+}
+
+void _ecdSignatures() {
+  group('ECD figures (ADR-006)', () {
+    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+    final renderer = FigureRenderer(ecd);
+
+    test('a flag in a template is part of the key', () {
+      final plain = figureSnippetSignature(testFigure(move: 'ecd_circle'), ecd);
+      final singleFile = figureSnippetSignature(
+        testFigure(move: 'ecd_circle', params: {'singleFile': true}),
+        ecd,
+      );
+      expect(singleFile, isNot(plain));
+    });
+
+    test('a list of dancers keys, migrates and reads back whole', () {
+      final figure = testFigure(
+        move: 'ecd_set',
+        params: {
+          'who': ['twos', 'ones'],
+        },
+      );
+      final sig = figureSnippetSignature(figure, ecd)!;
+      expect(
+        sig,
+        figureSnippetSignature(
+          testFigure(
+            move: 'ecd_set',
+            params: {
+              'who': ['ones', 'twos'],
+            },
+          ),
+          ecd,
+        ),
+      );
+      expect(migrateFigureSnippetSignature(sig), sig);
+      expect(
+        describeFigureSignature(sig, ecd, renderer, Dialect.canonical),
+        renderer.render(
+          testFigure(
+            move: 'ecd_set',
+            params: {
+              'who': ['ones', 'twos'],
+            },
+          ),
+          Dialect.canonical,
+        ),
+      );
+    });
+
+    test('a camelCase selector in a list reads back in its own spelling', () {
+      final figure = testFigure(
+        move: 'ecd_set',
+        params: {
+          'who': ['firstCorners', 'twos'],
+        },
+      );
+      final sig = figureSnippetSignature(figure, ecd)!;
+      expect(
+        describeFigureSignature(sig, ecd, renderer, Dialect.canonical),
+        renderer.render(figure, Dialect.canonical),
       );
     });
   });

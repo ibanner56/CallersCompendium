@@ -14,11 +14,13 @@ part 'database.g.dart';
 /// layer ever writes to (in lockstep with [DanceFigures]); drift's typed FTS5
 /// support targets `content=<table>`/`content=''` tables tied to a rowid
 /// convention that doesn't map cleanly onto our text-typed `dances.id`
-/// primary key. Deviating from the exact `content=''` sketch in
-/// `docs/design/storage.md`, this table carries `dance_id` as an `UNINDEXED`
-/// column instead, so rows are matched back to a dance directly without any
-/// implicit-`rowid` bookkeeping. Same derived/rebuildable behavior, simpler
-/// and more robust to maintain.
+/// primary key. This table carries `dance_id` as an `UNINDEXED` column
+/// instead, matching the DDL sketched in `docs/design/storage.md`, so rows
+/// are matched back to a dance directly without any implicit-`rowid`
+/// bookkeeping. (The design sketch originally specified a contentless
+/// `content=''` table; it was corrected to this `UNINDEXED`-column DDL to
+/// match what was actually built.) Same derived/rebuildable behavior,
+/// simpler and more robust to maintain.
 const String createDanceFtsSql = '''
 CREATE VIRTUAL TABLE dance_fts USING fts5(
   dance_id UNINDEXED,
@@ -42,9 +44,14 @@ CREATE VIRTUAL TABLE dance_substring_fts USING fts5(
 /// the `Then` sequence self-join is driven by `a.dance_id = b.dance_id`, which
 /// is already served by the implicit index SQLite creates for the
 /// `dance_figures` composite primary key `{danceId, idx}` (same leading
-/// column). The correlation column `group_idx` (#748) is compared as a residual
-/// filter over that already per-dance-restricted row set — a dance holds only
-/// tens of figures — so no separate index on it is needed.
+/// column). The correlation column `group_idx` (#748) is compared inside that
+/// per-dance row set, and `Then` also reads the next existing group with two
+/// `MIN(group_idx)` subqueries per candidate row. A dance holds only tens of
+/// figures, so no separate index on it has been needed. Measured when `Then`
+/// became "immediately follows" (`benchmark/search_benchmark.dart`, 20,000
+/// dances, `before` pinned by move and section): median 13.7 ms against 14.0 ms
+/// for the old `<` correlation. A regression in that case is the signal to add
+/// one.
 const List<String> searchIndexSql = [
   'CREATE INDEX IF NOT EXISTS dance_figures_move_section '
       'ON dance_figures(move, section)',
@@ -111,11 +118,54 @@ const String programSlotsDanceIdIndexSql =
     'CREATE INDEX IF NOT EXISTS program_slots_dance_id '
     'ON program_slots(dance_id)';
 
+/// Lookup indexes over the cited-id column of the four dance join tables
+/// (schema v41, #1935).
+///
+/// `dance_authors {danceId, choreographerId}`, `dance_tags {danceId, tagId}`,
+/// `dance_sources {danceId, sourceId}` and `custom_field_values {danceId,
+/// fieldId}` all lead their primary key with `dance_id`, so the implicit index
+/// serves "what does this dance cite" but not "who cites this record". Two
+/// queries ask the second question, and without these each is a full scan of
+/// the join table:
+///
+/// * `CompendiumSyncStorage._hasCitation`, for a choreographer, tag,
+///   published source or custom field: run for every pending deletion on every
+///   `snapshot()` and for each inbound tombstone.
+/// * `DanceRepository.danceIdsDerivingFrom` (#1920), which looks up the dances
+///   citing a changed choreographer, source or custom field. It never reads
+///   `dance_tags`, so that table's index serves `_hasCitation` alone.
+///
+/// Plain lookup indexes, not covering, as for [danceLinksDanceIdIndexSql]. The
+/// `dance_links` target, `program_slots.dance_id`, `programs.venue_id` and
+/// `dances.level_id` lookups `_hasCitation` also makes are already indexed.
+const List<String> citedIdLookupIndexSql = [
+  'CREATE INDEX IF NOT EXISTS dance_authors_choreographer_id '
+      'ON dance_authors(choreographer_id)',
+  'CREATE INDEX IF NOT EXISTS dance_tags_tag_id ON dance_tags(tag_id)',
+  'CREATE INDEX IF NOT EXISTS dance_sources_source_id '
+      'ON dance_sources(source_id)',
+  'CREATE INDEX IF NOT EXISTS custom_field_values_field_id '
+      'ON custom_field_values(field_id)',
+];
+
+/// Lookup index over `dance_interpreters.choreographer_id` (schema v42), for
+/// the "who credits this person as interpreter" lookups:
+/// `CompendiumSyncStorage._hasCitation`, the `ChoreographerRepository.delete`
+/// guard, `ReferenceEditRepository`'s live-dance counts and merge joins, and
+/// `rewriteLocalReferences`. Unlike the `dance_authors` index in
+/// [citedIdLookupIndexSql], it does not serve
+/// `DanceRepository.danceIdsDerivingFrom`, which never reads this table: no
+/// derived row holds interpreters.
+const String danceInterpretersChoreographerIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS dance_interpreters_choreographer_id '
+    'ON dance_interpreters(choreographer_id)';
+
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
 ///
-/// Written inside `onUpgrade` (so it is durable — it survives a crash between
-/// the schema bump and the rebuild) and cleared by
+/// Written durably inside the migrating open (`beforeOpen`'s FTS repair; the
+/// `onUpgrade` steps that used to set it are retired), so it survives a crash
+/// between the repair and the rebuild, and cleared by
 /// [CompendiumRepositories.ensureMigrated] only after the rebuild succeeds.
 const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 
@@ -241,7 +291,9 @@ const String compactDosidoSeesawCanonicalRebuildDoneKey =
 
 /// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v33.
 /// The v33 defaults and figure-eight canonical template change effective
-/// canonical text for existing figures without rewriting their source JSON.
+/// canonical text for existing figures. The pass also rewrites source JSON in
+/// one case: it drops the old parser's explicit `partners` subject from
+/// assumed bare `box_circulate` figures, so the new default can apply.
 const String taxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 
@@ -250,6 +302,36 @@ const String taxonomyV33CanonicalRebuildDoneKey =
 /// unstated in-front role are rewritten with an explicit `unspecified` subject.
 const String taxonomyV34CanonicalRebuildDoneKey =
     '__taxonomy_v34_canonical_rebuild_done__';
+
+/// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v37.
+/// The courtesy turn's default rotation became counterclockwise, which changes
+/// the canonical text of every stored courtesy turn that does not state its
+/// direction, without changing its source JSON.
+const String taxonomyV37CanonicalRebuildDoneKey =
+    '__taxonomy_v37_canonical_rebuild_done__';
+
+/// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v38.
+/// Ten seeded defaults changed (listed in the v38 entry of
+/// `docs/design/figure-taxonomy.md`), which changes the canonical text of every
+/// stored figure that does not state them, without changing its source JSON.
+const String taxonomyV38CanonicalRebuildDoneKey =
+    '__taxonomy_v38_canonical_rebuild_done__';
+
+/// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v39
+/// (#2120). A figure 8 or poussette fraction of `other` now reads its sibling
+/// `amount` and, when it states none, renders as an unstated amount instead of
+/// the bare word "other", which changes the canonical text of every stored
+/// such figure without changing its source JSON.
+const String taxonomyV39CanonicalRebuildDoneKey =
+    '__taxonomy_v39_canonical_rebuild_done__';
+
+/// Settings key for the one-time canonical/FTS rebuild owed when the English
+/// Country Dance taxonomy first ships (ADR-006). A dance already holding
+/// `ecd_` move IDs, from a newer peer or an archive, was indexed while those
+/// IDs were unknown, as the bare ID; with the taxonomy they render as
+/// movements. Nothing rebuilds from a taxonomy version, so this marker does.
+const String ecdTaxonomyCanonicalRebuildDoneKey =
+    '__ecd_taxonomy_canonical_rebuild_done__';
 
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
@@ -276,8 +358,144 @@ const String callersBoxRollAwayRoleRepairDoneKey =
 const String shareableTextNormalisationScopeKey =
     '__shareable_text_normalisation_scope__';
 
-/// Records a unique natural-key value that could not yet be normalized because
-/// another row occupies the normalized value.
+/// Settings key marking that this database has had the one-time derived-index
+/// repair owed by the normalization pass's dance-only rebuild condition
+/// (#1346).
+///
+/// Between v0.2.0-beta and this fix the pass set its rebuild flag only when the
+/// rewritten row was in `dances`, so a pass that repaired
+/// `choreographers.name`, `published_sources.title`/`.author` or
+/// `custom_field_values.value_text` left `dance_fts` / `dance_substring_fts`
+/// holding pre-normalization text and wrote its completion marker anyway.
+/// Bumping the algorithm version would not repair those installs: the re-run
+/// finds every row already normalized, rewrites nothing, sets no flag and so
+/// rebuilds nothing. The index has to be repaired directly, once.
+///
+/// Owed by an install that completed the pass under the old code, which is why
+/// the sweep is gated on the scope marker's presence rather than run
+/// unconditionally: a database that has never completed the pass has no
+/// pre-fix rewrite to have missed, and the pass itself now rebuilds on any
+/// rewrite. A database with nothing owed writes this marker immediately, so the
+/// next open cannot mistake its absence for a debt.
+///
+/// #1346 also deferred the repair while the library held a dance row the
+/// rebuild could not read, clearing this marker to re-arm the sweep. That is
+/// gone: #1347 made the rebuild tolerate such a row, so there is nothing to
+/// defer and this marker has one meaning again — the repair is done.
+const String normalisationDerivedIndexRepairDoneKey =
+    '__normalisation_derived_index_repair_done__';
+
+/// Settings key for the one-time custom-field index repair (maintainer
+/// decision search-index (a), 2026-10-29). Since that change the search bar's
+/// text index leaves out the values of a field whose Searchable setting is off
+/// and of every yes/no field (`customFieldIndexesValueText`); an index written
+/// before it still carries them. The pass reindexes exactly the dances holding
+/// a value for such a field, so a library with none pays nothing but the
+/// lookup.
+///
+/// Owed by the RULE CHANGE, not by any row change, like
+/// [gripSingleFileCanonicalInclusionDoneKey]. Written after a successful pass
+/// so it runs at most once per database; an interrupted pass retries on the
+/// next open.
+const String customFieldIndexRepairDoneKey =
+    '__custom_field_index_repair_done__';
+
+/// Settings key for the one-time custom-number index repair. The search bar's
+/// text index used to carry a whole-number custom value as "3.0" (a `double`'s
+/// `toString`); it now carries "3" (`_customValueIndexText`), but a row written
+/// before that still has the old text, which gave false hits for "0". The pass
+/// reindexes exactly the dances holding a value for a number field that is
+/// indexed, so a library with none pays only the lookup.
+///
+/// Owed by the RULE CHANGE, not by any row change, like
+/// [customFieldIndexRepairDoneKey]. Written after a successful pass so it runs
+/// at most once per database; an interrupted pass retries on the next open.
+const String customNumberIndexRepairDoneKey =
+    '__custom_number_index_repair_done__';
+
+/// The `(table, column)` address of a column both writers of
+/// `normalisation_skips` can record against.
+///
+/// `docs/design/sync-spec.md` §4.1 requires the spelling to "come from a single
+/// generated source shared by both writers", and says why: retry's condition (a)
+/// correlates entries by grouping on `(table, column)`, so if the one-time pass
+/// and the write-path carve-out spell a column differently their entries never
+/// group, collision detection silently degrades, and nothing anywhere raises.
+/// Until issue #1348 the carve-out sites each hand-typed their own pair of
+/// string literals.
+///
+/// [address] is the snake_case `table.column` form the classification registry
+/// already keys on (`'choreographers.name'`), which is the spelling §4.1 pins —
+/// the in-scope column set is defined over it.
+class NormalisationSkipColumn {
+  const NormalisationSkipColumn(this.table, this.column);
+
+  /// The snake_case table name, as `normalisation_skips.table_name` stores it.
+  final String table;
+
+  /// The snake_case column name, as `normalisation_skips.column_name` stores
+  /// it.
+  final String column;
+
+  /// The `table.column` spelling `fieldClassifications` is keyed on.
+  String get address => '$table.$column';
+
+  @override
+  String toString() => address;
+}
+
+/// `choreographers.name` — one of the four `UNIQUE` natural keys §4.1 groups
+/// before writing.
+const choreographerNameNormalisation = NormalisationSkipColumn(
+  'choreographers',
+  'name',
+);
+
+/// `tags.name` — one of the four `UNIQUE` natural keys §4.1 groups before
+/// writing.
+const tagNameNormalisation = NormalisationSkipColumn('tags', 'name');
+
+/// `difficulty_levels.label` — one of the four `UNIQUE` natural keys §4.1
+/// groups before writing.
+const difficultyLevelLabelNormalisation = NormalisationSkipColumn(
+  'difficulty_levels',
+  'label',
+);
+
+/// `custom_field_defs.key` — one of the four `UNIQUE` natural keys §4.1 groups
+/// before writing.
+const customFieldKeyNormalisation = NormalisationSkipColumn(
+  'custom_field_defs',
+  'key',
+);
+
+/// Every natural-key column in §4.1's scope, in one list so the pass's grouping
+/// set and the four repositories' carve-outs cannot diverge.
+const naturalKeyNormalisationColumns = <NormalisationSkipColumn>[
+  choreographerNameNormalisation,
+  tagNameNormalisation,
+  difficultyLevelLabelNormalisation,
+  customFieldKeyNormalisation,
+];
+
+/// `settings.value_json` — the settings half of the pass, whose collisions are
+/// between object keys inside one value rather than between sibling rows. §4.1
+/// names this address explicitly ("`table` `settings`, `column` `value_json`
+/// and `record_id` the settings key").
+const settingsValueNormalisation = NormalisationSkipColumn(
+  'settings',
+  'value_json',
+);
+
+/// Records the address of a row the normalization pass left as stored, so the
+/// pass can re-attempt it later.
+///
+/// There are three reasons a row is left, not one: a unique natural-key value
+/// whose normalized form another row already occupies; a settings value whose
+/// object keys normalize to the same string; and a JSON column whose stored
+/// value cannot be canonicalized at all — malformed, or itself key-colliding
+/// (#1347). Only the first is a collision with a sibling row; the pass records
+/// all three the same way because the retry unit is the same.
 Future<void> recordNormalisationSkip(
   CompendiumDatabase db, {
   required String table,
@@ -289,50 +507,112 @@ Future<void> recordNormalisationSkip(
   [table, column, recordId],
 );
 
+/// [recordNormalisationSkip] for a column whose address is fixed at compile
+/// time.
+///
+/// The write-path carve-outs use this rather than the string form so a call
+/// site cannot spell half an address itself — §4.1 asks for the identifiers to
+/// be "declared once … and imported at all four sites", and a helper taking the
+/// pair as one object is how that becomes unfalsifiable rather than a
+/// convention. The one-time pass keeps the string form because it walks a
+/// column set derived from the classification registry at runtime, which is the
+/// same single source by a different route.
+Future<void> recordNormalisationSkipAt(
+  CompendiumDatabase db,
+  NormalisationSkipColumn column, {
+  required String recordId,
+}) => recordNormalisationSkip(
+  db,
+  table: column.table,
+  column: column.column,
+  recordId: recordId,
+);
+
+/// Removes the entry [recordNormalisationSkip] wrote, once the row it names no
+/// longer needs re-attempting.
+///
+/// `docs/design/sync-spec.md` §4.1 requires the pass to "re-attempt the
+/// recorded rows on each subsequent open, **clearing an entry once its row is
+/// written**", because the entry is what keeps the pass from taking its early
+/// return: while any entry remains, every launch re-scans the whole library
+/// (#1346).
+///
+/// Paired with [recordNormalisationSkip] here rather than written out at each
+/// call site so the two writers cannot spell the address differently. §4.1
+/// (`:600`–`:619`) requires the `(table, column)` spelling be pinned to one
+/// source for exactly that reason — a record and a clear that disagree about
+/// the spelling would leave an entry nothing can ever remove.
+///
+/// **There is no single "is it clear-able?" predicate**, and assuming one is
+/// the mistake to avoid. The three things that record an entry fail for three
+/// different reasons and become writable under three different conditions — see
+/// `_normaliseShareableTextIfNeeded`, which applies each separately.
+Future<void> clearNormalisationSkip(
+  CompendiumDatabase db, {
+  required String table,
+  required String column,
+  required String recordId,
+}) => db.customStatement(
+  'DELETE FROM normalisation_skips WHERE table_name = ? '
+  'AND column_name = ? AND record_id = ?',
+  [table, column, recordId],
+);
+
+/// [clearNormalisationSkip] for a column whose address is fixed at compile
+/// time, so a clear cannot spell an address the matching record did not.
+Future<void> clearNormalisationSkipAt(
+  CompendiumDatabase db,
+  NormalisationSkipColumn column, {
+  required String recordId,
+}) => clearNormalisationSkip(
+  db,
+  table: column.table,
+  column: column.column,
+  recordId: recordId,
+);
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 35;
+const int kCompendiumSchemaVersion = 42;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
-/// Schema versions below this were retired (#837, and again raised past v19):
-/// their `onUpgrade` steps, fixture databases and `drift_schemas/generated/`
-/// dumps have been deleted, so there is no migration path from such a file to
-/// head. `onUpgrade` refuses one explicitly rather than running only the
-/// surviving steps and silently producing a structurally wrong database.
+/// Schema versions below this were retired (#837, then raised to v35, and to
+/// v39 when every release before v0.7.0 was retired): their `onUpgrade` steps,
+/// fixture databases and `drift_schemas/generated/` dumps have been deleted, so
+/// there is no migration path from such a file to head. `onUpgrade` refuses one
+/// explicitly rather than running only the surviving steps and silently
+/// producing a structurally wrong database.
 ///
 /// The value is the schema version shipped by the oldest *supported release*,
-/// `v0.1.0-beta.6` — not simply the oldest version whose code still exists.
-/// beta.5 shipped v15 (the last version below this floor ever shipped to a
-/// tester) and beta.6 shipped v20, so a database last opened by beta.5 or
+/// `v0.7.0-beta` — not simply the oldest version whose code still exists.
+/// v0.6.0-beta shipped v38 (the last version below this floor ever shipped)
+/// and v0.7.0-beta shipped v39, so a database last opened by v0.6.0-beta or
 /// earlier is below the floor and will be refused; that is deliberate, on the
-/// basis that every tester is on beta.6 or later.
+/// basis that every release before v0.7.0 is retired (maintainer, 2026-11-12).
 ///
 /// Raising this is a user-visible change: databases below the new floor stop
 /// opening. It needs an app `changelog.d/` fragment, stated in user-facing
 /// terms, with the release whose schema version is being adopted named as the reason.
-const int kMinSupportedSchemaVersion = 20;
+///
+/// The floor keeps a real fixture, `test/storage/fixtures/v39.sqlite`, captured
+/// from that release's tag. Its name is derived from this constant in
+/// `test/storage/real_release_fixture_test.dart`, so raising the floor fails
+/// that test until a fixture for the new floor is committed.
+const int kMinSupportedSchemaVersion = 39;
 
 /// The Caller's Compendium local database.
 ///
 /// The per-version schema log — every version from v1, including the
-/// v1–v19 entries retired by #837 — lives in `docs/design/storage.md` under
+/// v1–v38 entries retired by #837 and the floor raises since — lives in `docs/design/storage.md` under
 /// "Schema version history". **Every bump appends an entry there in the same
 /// PR**; `tools/ci/check_version_history.py` fails the build otherwise. It is
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
-///
-/// - v35 (issues #1104 and #1233): normalizes persisted figure parameter keys
-///   and consolidates the two legacy pull-by move ids; replaces
-///   `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
-///   `dance_minutes`, copying every existing value to dance minutes. The
-///   taxonomy source JSON is rewritten recursively, including nested
-///   `meanwhile` figures; derived figure/search rows are rebuilt after the
-///   rewrite.
 ///
 /// - v34 (issue #1200): adds the Device Sync timestamp triple to the
 ///   difficulty-level vocabulary, converting level deletion into a tombstone.
@@ -344,13 +624,19 @@ const int kMinSupportedSchemaVersion = 20;
 ///   re-importing the same bundle can recognise the venue by its exact
 ///   `(source, external_id)` pair even when the postal address block is absent
 ///   (it is redacted in shared bundles, making the content-fingerprint path
-///   produce no key). Purely additive: `createTable`; no columns are added to
+///   produce no key). Purely additive: one new table; no columns are added to
 ///   existing tables and no data is back-filled (existing imported venues have
 ///   no `venue_provenance` row and will not provenance-dedupe, but the new path
 ///   takes effect for every bundle imported after the upgrade). No figure index
 ///   is touched; no derived rebuild is required.
 ///
-/// Every future migration must (a) bump [schemaVersion], (b) add a
+/// Bump [schemaVersion] only when the current value has shipped in a release.
+/// While it has not, a schema change joins that version's `MigrationStrategy`
+/// step, test, history entry and dump instead of adding a version that would
+/// never be released. CONTRIBUTING.md ("Adding to an unreleased version")
+/// gives the check and the steps.
+///
+/// Every bump must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, (c) ship a test that
 /// opens a fixture DB created at the previous version and asserts the
 /// migrated schema/data (see `test/storage/migration_test.dart`), and (d) add a
@@ -374,6 +660,7 @@ const int kMinSupportedSchemaVersion = 20;
     DifficultyLevels,
     Choreographers,
     DanceAuthors,
+    DanceInterpreters,
     DanceFigures,
     Programs,
     ProgramSlots,
@@ -397,6 +684,10 @@ const int kMinSupportedSchemaVersion = 20;
     PendingDeletions,
     ReviewQueue,
     PublishedRecords,
+    RetainedSyncFields,
+    PeerManifests,
+    UserGlossaryEntries,
+    FigureNotes,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -426,6 +717,112 @@ class CompendiumDatabase extends _$CompendiumDatabase {
          ),
        );
 
+  /// The v39 additions, each created only if absent.
+  Future<void> _ensureV39Schema(Migrator m) async {
+    // Fields a newer version of the app added, kept so this device
+    // shares them back unchanged (spec §6.7). A new table and nothing
+    // else; the existence check only keeps the step idempotent.
+    final existing = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${retainedSyncFields.actualTableName}'",
+    ).get();
+    if (existing.isEmpty) await m.createTable(retainedSyncFields);
+
+    // What this device last published, so a pass with nothing new to
+    // share sends nothing (sync-spec §6.3 step 8). Both columns are
+    // nullable and start empty: the first pass after the upgrade
+    // publishes as every pass did before it. The live-schema check only
+    // keeps the step idempotent.
+    final stateColumns = await customSelect(
+      "SELECT name FROM pragma_table_info('${baselineState.actualTableName}')",
+    ).get();
+    final present = {for (final row in stateColumns) row.read<String>('name')};
+    if (!present.contains(baselineState.publishedManifestHash.name)) {
+      await m.addColumn(baselineState, baselineState.publishedManifestHash);
+    }
+    if (!present.contains(baselineState.publishedVerifiedAt.name)) {
+      await m.addColumn(baselineState, baselineState.publishedVerifiedAt);
+    }
+
+    // Each peer's last verified manifest, so a restart does not fetch
+    // them all again (sync-spec §5.2). A new, empty table: the first
+    // pass after the upgrade fetches every manifest, as before.
+    final peerManifestTable = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${peerManifests.actualTableName}'",
+    ).get();
+    if (peerManifestTable.isEmpty) await m.createTable(peerManifests);
+  }
+
+  /// The v40 additions (#709), each created only if absent: the user's own
+  /// glossary entries and their notes on shipped figures. Two new, empty
+  /// tables and nothing else; the existence checks only keep the step
+  /// idempotent.
+  Future<void> _ensureV40Schema(Migrator m) async {
+    for (final table in <TableInfo<Table, Object?>>[
+      userGlossaryEntries,
+      figureNotes,
+    ]) {
+      final existing = await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table' "
+        "AND name = '${table.actualTableName}'",
+      ).get();
+      if (existing.isEmpty) await m.createTable(table);
+    }
+  }
+
+  /// The v41 additions (#1935): the cited-id lookup indexes. No table or
+  /// column changes, so no data is touched and no derived rebuild is needed;
+  /// `IF NOT EXISTS` keeps the step idempotent.
+  Future<void> _ensureV41Schema() async {
+    for (final sql in citedIdLookupIndexSql) {
+      await customStatement(sql);
+    }
+  }
+
+  /// The v42 additions (ADR-006 §12, F2 and F3, and §9.2's interpreter
+  /// credits): four columns on `dances` (ECD's proper/improper flag, the
+  /// tune's meter and key, and `interpreted_on`) and the `dance_interpreters`
+  /// join table with its lookup index. Each column has a default (`false`,
+  /// `''`, `''`, `NULL`), so every existing row reads as proper with no meter,
+  /// key or interpretation, which is what it held before; the new table starts
+  /// empty. No data is rewritten and no derived index reads them, so no
+  /// rebuild is needed.
+  ///
+  /// Also `programs.archived_at` (program archiving, #2218), nullable, so
+  /// every existing program stays unarchived. It joined v42 while v42 was
+  /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
+  ///
+  /// The live-schema checks only keep the step idempotent.
+  Future<void> _ensureV42Schema(Migrator m) async {
+    final columns = await customSelect(
+      "SELECT name FROM pragma_table_info('${dances.actualTableName}')",
+    ).get();
+    final present = {for (final row in columns) row.read<String>('name')};
+    for (final column in <GeneratedColumn<Object>>[
+      dances.formationImproper,
+      dances.meter,
+      dances.musicalKey,
+      dances.interpretedOn,
+    ]) {
+      if (!present.contains(column.name)) await m.addColumn(dances, column);
+    }
+    final interpreters = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${danceInterpreters.actualTableName}'",
+    ).get();
+    if (interpreters.isEmpty) await m.createTable(danceInterpreters);
+    await customStatement(danceInterpretersChoreographerIdIndexSql);
+    final programColumns = await customSelect(
+      "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
+    ).get();
+    if (!{
+      for (final row in programColumns) row.read<String>('name'),
+    }.contains(programs.archivedAt.name)) {
+      await m.addColumn(programs, programs.archivedAt);
+    }
+  }
+
   @override
   int get schemaVersion => kCompendiumSchemaVersion;
 
@@ -446,6 +843,8 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await customStatement(sql);
       }
       await customStatement(programSlotsDanceIdIndexSql);
+      await _ensureV41Schema();
+      await customStatement(danceInterpretersChoreographerIdIndexSql);
     },
     onUpgrade: (m, from, to) async {
       // Belt-and-suspenders downgrade guard. drift is forward-only and has no
@@ -473,25 +872,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // with no error at all — silent corruption of a user's collection, which
       // is a far worse outcome than refusing to open the file.
       //
-      // KNOWN GAP — the app layer does *not* yet catch this earlier, unlike the
-      // downgrade case above. `runMigrationPreflight` reads `user_version`
-      // without opening the database and throws `DatabaseDowngradeError`, which
-      // `AppBootstrap` renders as a dedicated terminal screen with no Retry;
-      // `MigrationSnapshotAborted` gets the same treatment. This error is not
-      // one of those types, so it falls through to the generic
-      // `appBootstrapError` screen — **with a Retry button that can never
-      // succeed**. The user is protected from the silent corruption above, but
-      // is told nothing useful and can retry forever.
-      //
-      // The fix mirrors the downgrade path and is deliberately not bundled with
-      // the retirement (it lands on `app_en.arb` and the generated l10n, which
-      // several changes are converging on): add a typed `DatabaseTooOldError`
-      // thrown from `runMigrationPreflight` in
-      // `app/lib/src/data/migration_guard.dart`, a label in
-      // `app/lib/src/data/migration_error_labels.dart`, a new ARB key, and a
-      // no-Retry branch in `app/lib/src/widgets/app_bootstrap.dart`. This throw
-      // then stays as the backstop for any open path that bypasses the
-      // preflight, exactly as the downgrade guard above does.
+      // As with the downgrade case, the app layer normally catches this
+      // earlier: `runMigrationPreflight` (`app/lib/src/data/migration_guard.dart`)
+      // throws `DatabaseBelowFloorError`, which `AppBootstrap` renders as a
+      // recovery screen with Back-Up-and-Reset / Reset and no Retry (#841).
+      // This throw is the backstop for any open path that bypasses it.
       if (from < kMinSupportedSchemaVersion) {
         throw StateError(
           'This database was created at schema version $from by a build from '
@@ -502,422 +887,77 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         );
       }
 
-      if (from < 21) {
-        // Issues #781/#782: the first migration in this schema's history to
-        // REMOVE storage rather than add or rewrite it. Three drops, all of
-        // storage that no code path ever read:
-        //
-        //   * `provenance.raw_payload` — the verbatim imported source record.
-        //     For an HTML import this was the whole source page (~7.5 KB for
-        //     this repo's own ContraDB fixture), per dance, round-tripping
-        //     through every backup. It was justified as enabling "re-import
-        //     diffing"; that feature exists (`figure_diff.dart`) but compares
-        //     PARSED figures and never read this column. Re-import dedupes on
-        //     `(source, external_id)` and re-fetches, so nothing regresses.
-        //   * `program_provenance.raw_payload` — the same column on the
-        //     program side, where no import path ever wrote it. It is null for
-        //     every row that has ever existed, so this half is a pure no-op on
-        //     real data.
-        //   * the `snapshots` table — scaffolding for hosted-archive "update
-        //     available" prompts, a feature since CUT (ROADMAP 6.2/6.3;
-        //     `docs/design/callersbox-snapshot.md` is marked superseded).
-        //     `SnapshotRepository.upsert` had no call sites, so the table is
-        //     empty in every real database.
-        //
-        // This DELETES user data (the dance-side payloads) and is not
-        // reversible by downgrading. That was a deliberate call: the data was
-        // unreadable by any feature, and carrying it forever costs every user
-        // storage and backup size for nothing.
-        //
-        // `alterTable` rebuilds each provenance table from its current Dart
-        // definition and copies the surviving columns across by name — the
-        // portable route, and the one that does not depend on the host
-        // SQLite being new enough for `ALTER TABLE … DROP COLUMN` (3.35+),
-        // which we cannot assume across six platforms.
-        await m.alterTable(TableMigration(provenance));
-        await m.alterTable(TableMigration(programProvenance));
-        await m.deleteTable('snapshots');
+      // Every step below runs inside ONE transaction, whose last statement
+      // stamps `user_version` itself, so the schema and the version commit or
+      // roll back together. drift 2.34.3 does not wrap `onUpgrade` in a
+      // transaction of its own and stamps `user_version` only after the whole
+      // open hook returns — after `onUpgrade` *and* after `beforeOpen`
+      // (`_runMigrations` in `runtime/executor/helpers/engines.dart`;
+      // `beforeOpen` in `runtime/api/db_base.dart`). Without this wrap, each
+      // step commits as it goes: a throw or a process death after one step
+      // leaves that step's DDL committed under the OLD version stamp, and the
+      // next open re-enters the step and fails forever (the retired v35
+      // `program_slots` rebuild failed this way on `no such column:
+      // planned_minutes`). Wrapping
+      // the steps alone narrows that window but does not close it: a process
+      // death after this transaction commits and before drift's own stamp —
+      // which still has the whole of `beforeOpen` to run first — would leave
+      // the same stale-version symptom. Stamping `user_version` as this
+      // transaction's own last statement closes that window too: SQLite keeps
+      // `user_version` in the database header and writes it through the
+      // pager, so the pragma commits or rolls back with the DDL above it.
+      // drift's own stamp afterwards then just rewrites the same value.
+      //
+      // Two consequences to know about:
+      //
+      //   * drift's table-rebuild helper (Migrator.alterTable; no surviving
+      //     step uses it, a future one may) opens its own `transaction()`.
+      //     Nested inside this one it becomes a savepoint, released into —
+      //     and rolled back with — the enclosing transaction.
+      //   * That helper toggles `PRAGMA foreign_keys` OFF and back ON around
+      //     its rebuild if it finds it ON, and SQLite makes that pragma a
+      //     no-op inside a transaction. That does not matter here: foreign
+      //     keys are OFF for the whole of `onUpgrade` — SQLite's default, and
+      //     `beforeOpen` below is what turns them ON, after this returns — so
+      //     the helper reads OFF and never issues the toggle.
+      //
+      // The two refusal guards above stay outside the transaction: they
+      // throw before any DDL, so there is nothing for them to roll back.
+      //
+      // `test/storage/migration_atomicity_test.dart` covers both windows: one
+      // test injects a throw after the v40 step's DDL and asserts the stamp and
+      // the DDL are unchanged; another lets this transaction commit and then
+      // throws from `beforeOpen`, asserting `user_version` already reads the
+      // new value even though drift's own stamp never ran.
+      await transaction(() async {
+        if (from < 40) await _ensureV40Schema(m);
+        if (from < 41) await _ensureV41Schema();
+        if (from < 42) await _ensureV42Schema(m);
 
-        // No derived rebuild is owed: none of the three feeds `dance_figures`
-        // or `dance_fts`, so the search indexes are unaffected.
-      }
-
-      if (from < 22) {
-        // Issue #748: add the derived `dance_figures.group_idx` correlation
-        // column so the `Then` sequence operator can tell a genuine "before /
-        // after" pair from two *concurrent* sides of one `meanwhile` container.
-        //
-        // Before this, `Then` correlated on `a.idx < b.idx`; but the #590
-        // flattener gives a container's concurrent sides consecutive `idx`
-        // values (the `{danceId, idx}` PK forces a distinct idx per row), so
-        // `a.idx < b.idx` held between two sides that are simultaneous by
-        // construction and `Then(X, Y)` — and symmetrically `Then(Y, X)` —
-        // matched an `X while Y` container. The concurrency signal was absent
-        // from the index entirely, so this needs a schema column, not just a
-        // query change. `group_idx` is shared by every row flattened from one
-        // top-level figure and monotonic across them (see `_insertDerivedRows`);
-        // `Then` now correlates on `a.group_idx < b.group_idx`.
-        //
-        // Like the v2 `section` add, existing rows get the column DEFAULT (0),
-        // which is wrong for correlation (every row would share group 0), so a
-        // derived rebuild is owed to repopulate `group_idx` from `figures_json`.
-        // The rebuild needs the taxonomy/renderer, unreachable from
-        // `MigrationStrategy`, so durably record that it is owed (crash-safe);
-        // `CompendiumRepositories.ensureMigrated()` then regenerates
-        // `dance_figures` + `dance_fts` from `figures_json`.
-        await m.addColumn(danceFigures, danceFigures.groupIdx);
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [derivedRebuildRequiredKey, 'true'],
-        );
-      }
-
-      if (from < 23) {
-        // Issue #780: add `custom_field_defs.shareable` — a per-field flag
-        // controlling whether the field and its values travel in shared
-        // archives. DEFAULT 1 (shareable = true) so every existing row
-        // preserves today's behaviour: a pre-v23 custom field continues to
-        // travel in archives after upgrade. Users opt out per-field. No figure
-        // index is touched; no derived rebuild is required.
-        await m.addColumn(customFieldDefs, customFieldDefs.shareable);
-      }
-
-      if (from < 24) {
-        // Issue #732: add `dances.mixer` — a boolean flag marking a dance in
-        // which dancers change partners each time through. DEFAULT 0
-        // (mixer = false) so every existing row preserves today's behaviour:
-        // the concept could not be expressed before, so nothing was a mixer,
-        // and the additive default keeps it that way after upgrade. Users set
-        // it per-dance in the editor, and the Caller's Box importer infers it
-        // (see `callersbox_adapter.dart`). No figure index is touched; no
-        // derived rebuild is required.
-        await m.addColumn(dances, dances.mixer);
-      }
-
-      if (from < 25) {
-        // Issue #898: the Device Sync schema migration. Adds the sync timestamp
-        // triple to every syncable kind — twenty columns across eight tables —
-        // and converts the entity-level hard deletes to tombstones. See the
-        // note at the top of `tables.dart` for what each of the three columns
-        // means and why none of them can be folded into another.
-        //
-        // Six tables gain all three (`settings`, `choreographers`, `tags`,
-        // `published_sources`, `custom_field_defs`, `venues`); `dances` and
-        // `programs` already carry `updated_at`/`deleted_at` and gain only
-        // `existence_at`.
-        //
-        // Every column is NULLABLE, so there is no DEFAULT to preserve
-        // behaviour with — the back-fill below does that job instead. This is
-        // forced: SQLite's ALTER TABLE ADD COLUMN refuses a NOT NULL column
-        // unless it carries a *constant* default, and no constant is a truthful
-        // timestamp (an epoch-0 sentinel reads as a real 1970 stamp, which is
-        // worse than NULL). A 12-step table rebuild per table would allow NOT
-        // NULL, and was rejected as disproportionate for a migration whose
-        // stated design goal is a reviewable blast radius.
-        //
-        // No figure index is touched; no derived rebuild is required. Nothing
-        // reads `existence_at` yet — there is no sync client — so this step is
-        // behaviour-preserving apart from deletions becoming observable.
-        // ADD COLUMN, GUARDED — and the guard is load-bearing, not defensive
-        // tidiness. `m.createTable` in a historical step builds the table from
-        // *today's* Dart definition, not the definition that was current when
-        // that step was written. `venues` used to be created by the `from < 14`
-        // step (v14, "first-class venue entity"; see the schema history in
-        // `docs/design/storage.md`), which meant a database arriving from
-        // v11..v13 reached this point with
-        // `venues` already carrying all three v25 columns, and an unguarded
-        // `addColumn` would fail with "duplicate column name: updated_at". That
-        // exact `from` range is no longer reachable — v11..v19 were retired when
-        // the floor was raised to v20 (every database that can now reach
-        // `onUpgrade` already had `venues` created back when it was still on a
-        // pre-v25 build, so this specific hazard cannot recur) — but the guard is
-        // kept and written generically, not scoped to `venues`, so a future
-        // table-creating step cannot reintroduce the same class of failure.
-        //
-        // Skipping is correct rather than merely safe: a table created from
-        // today's definition already has the column in its final shape, and
-        // `createTable` leaves it empty, so there is nothing to back-fill
-        // either.
-        Future<void> addColumnIfMissing(
-          TableInfo<Table, dynamic> table,
-          GeneratedColumn<Object> column,
-        ) async {
-          final existing = await customSelect(
-            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
-          ).get();
-          final present = {
-            for (final row in existing) row.read<String>('name'),
-          };
-          if (present.contains(column.name)) return;
-          await m.addColumn(table, column);
-        }
-
-        await addColumnIfMissing(settings, settings.updatedAt);
-        await addColumnIfMissing(settings, settings.deletedAt);
-        await addColumnIfMissing(settings, settings.existenceAt);
-        await addColumnIfMissing(choreographers, choreographers.updatedAt);
-        await addColumnIfMissing(choreographers, choreographers.deletedAt);
-        await addColumnIfMissing(choreographers, choreographers.existenceAt);
-        await addColumnIfMissing(tags, tags.updatedAt);
-        await addColumnIfMissing(tags, tags.deletedAt);
-        await addColumnIfMissing(tags, tags.existenceAt);
-        await addColumnIfMissing(publishedSources, publishedSources.updatedAt);
-        await addColumnIfMissing(publishedSources, publishedSources.deletedAt);
-        await addColumnIfMissing(
-          publishedSources,
-          publishedSources.existenceAt,
-        );
-        await addColumnIfMissing(customFieldDefs, customFieldDefs.updatedAt);
-        await addColumnIfMissing(customFieldDefs, customFieldDefs.deletedAt);
-        await addColumnIfMissing(customFieldDefs, customFieldDefs.existenceAt);
-        await addColumnIfMissing(venues, venues.updatedAt);
-        await addColumnIfMissing(venues, venues.deletedAt);
-        await addColumnIfMissing(venues, venues.existenceAt);
-        await addColumnIfMissing(dances, dances.existenceAt);
-        await addColumnIfMissing(programs, programs.existenceAt);
-
-        // T₀ — one instant sampled here and written to every live row, so that
-        // no live row outranks another and the first real transition on any
-        // device establishes the ordering. `updated_at` on the six tables that
-        // just gained it is stamped from the same sample: same number, two
-        // different meanings ("this row's content was last written at" and
-        // "this row's existence was last decided at"), which happen to coincide
-        // because the migration is the only event either column can point at.
-        // That coincidence is confined to those six tables — `dances` and
-        // `programs` keep their own per-row `updated_at`, so there the two
-        // columns diverge immediately, which is what the migration test
-        // asserts against.
-        //
-        // Stored as unix seconds because that is drift's mapping for
-        // DateTimeColumn (see `existence.dart` for why the tick size follows
-        // from this).
-        final t0 = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-
-        // THE BACK-FILL RULE, AND WHY THE OBVIOUS CHOICE IS WRONG.
-        //
-        // `existence_at` MUST NOT be copied from `updated_at`. That is the
-        // natural thing to reach for and it reintroduces, through the
-        // migration, the exact coupling the third column exists to break: a
-        // device that *edited* a live record after another device *deleted* it
-        // would carry `existence_at = updated_at` greater than the tombstone's,
-        // its live copy would outrank the tombstone, and the record would come
-        // back on first sync. At launch the entire corpus is pre-migration
-        // rows, so that would be the common case rather than an edge case.
-        //
-        // Back-fill from the row's existence history instead:
-        //   * live               -> T₀
-        //   * already tombstoned -> its own `deleted_at`, which is when its
-        //                           existence actually last changed. This is
-        //                           the one case where a pre-existing column
-        //                           carries the right meaning.
-        //
-        // COALESCE expresses exactly that, and is applied uniformly to all
-        // eight tables. On the six that gained `deleted_at` in this same step
-        // it can only ever take the T₀ branch (the column is new, so every row
-        // is live); writing it the same way everywhere states the rule once
-        // rather than encoding "these tables cannot have tombstones yet" as an
-        // invisible assumption that a later change could falsify.
-        //
-        // ACCEPTED CONSEQUENCE (maintainer decision, recorded in
-        // docs/design/sync.md): T₀ is a per-device sampled clock, not a
-        // hardcoded pre-release constant, so it is necessarily later than any
-        // deletion already in the past. A device that deleted record R before
-        // migrating carries `existence_at = deleted_at` for it; a device that
-        // never deleted R and migrates later carries T₀, which is greater — so
-        // on first sync the live copy outranks the tombstone and R comes back.
-        // This is not bounded by the migration window: T₀ remains a record's
-        // operative existence value until that record has another live<->
-        // deleted transition. The alternative (a hardcoded pre-release
-        // constant) was considered and not taken.
-        for (final table in const [
-          'settings',
-          'choreographers',
-          'tags',
-          'published_sources',
-          'custom_field_defs',
-          'venues',
-        ]) {
-          await customStatement(
-            // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
-            'UPDATE $table SET updated_at = ?, '
-            'existence_at = COALESCE(deleted_at, ?)',
-            [t0, t0],
-          );
-        }
-        for (final table in const ['dances', 'programs']) {
-          await customStatement(
-            'UPDATE $table SET existence_at = COALESCE(deleted_at, ?)',
-            [t0],
-          );
-        }
-      }
-
-      if (from < 26) {
-        // Issue #899: provenance-based venue dedupe for shared bundles. Adds
-        // the `venue_provenance` table (one row per imported venue), mirroring
-        // `program_provenance`. Purely additive: no columns on existing tables,
-        // no back-fill, no derived rebuild. Existing imported venues have no
-        // row here and will not provenance-dedupe; the new path takes effect
-        // for every bundle imported after this migration.
-        await m.createTable(venueProvenance);
-      }
-      if (from < 27) {
-        await m.createTable(collectionImportEvents);
-      }
-      if (from < 28) {
-        // Issue #1005: add short-prefix and literal-substring search indexes.
-        // Recreate dance_fts so its prefix configuration is present on upgraded
-        // databases; the durable marker below makes the rebuild crash-safe.
-        await customStatement('DROP TABLE IF EXISTS dance_fts');
-        await customStatement('DROP TABLE IF EXISTS dance_substring_fts');
-        await customStatement(createDanceFtsSql);
-        await customStatement(createDanceSubstringFtsSql);
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [derivedRebuildRequiredKey, 'true'],
-        );
-      }
-      if (from < 29) {
-        await m.createTable(normalisationSkips);
-      }
-      if (from >= 29 && from < 30) {
-        await m.alterTable(TableMigration(normalisationSkips));
-      }
-      if (from < 31) {
-        // Issue #1130: mark related-dance links that participate in a
-        // transitive group. Existing links remain ordinary pairwise links.
-        await m.addColumn(danceLinks, danceLinks.transitive);
-        await customStatement(danceLinksTargetTransitiveIndexSql);
-      }
-      if (from < 32) {
-        // ADR-004/W4: local-only sync state. Baseline metadata is separate
-        // from baseline entries so an empty manifest still retains its epoch.
-        // normalisation_skips is W18-owned and deliberately not touched here.
-        await m.createTable(baselineState);
-        await m.createTable(baselineEntries);
-        await m.createTable(idAliases);
-        await m.createTable(pendingDeletions);
-        await m.createTable(reviewQueue);
-        await m.createTable(publishedRecords);
-      }
-      if (from < 34) {
-        final difficultyTableExists = (await customSelect(
-          "SELECT name FROM sqlite_master WHERE type = 'table' "
-          "AND name = 'difficulty_levels'",
-        ).get()).isNotEmpty;
-        if (!difficultyTableExists) {
-          final danceColumns = await customSelect(
-            "SELECT name FROM pragma_table_info('dances')",
-          ).get();
-          final hasLegacyLevel = danceColumns.any(
-            (row) => row.read<String>('name') == 'level',
-          );
-          await m.createTable(difficultyLevels);
-          await _seedDifficultyLevels();
-          if (hasLegacyLevel) {
-            final unsupported = await customSelect(
-              "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
-              "AND level NOT IN ('beginner', 'intermediate', 'advanced')",
-            ).get();
-            if (unsupported.isNotEmpty) {
-              final values = [
-                for (final row in unsupported) row.read<String>('level'),
-              ];
-              throw StateError(
-                'Cannot migrate dances with unsupported difficulty level '
-                'name(s): ${values.join(', ')}.',
-              );
-            }
-            await m.alterTable(
-              TableMigration(
-                dances,
-                columnTransformer: {
-                  dances.levelId: const CustomExpression<String>(
-                    "CASE level "
-                    "WHEN 'beginner' THEN 'difficulty-beginner' "
-                    "WHEN 'intermediate' THEN 'difficulty-intermediate' "
-                    "WHEN 'advanced' THEN 'difficulty-advanced' "
-                    'ELSE NULL END',
-                  ),
-                },
-              ),
-            );
-            await customStatement(dancesDifficultyLevelIdIndexSql);
-          }
-        }
-        Future<void> addColumnIfMissing(GeneratedColumn<Object> column) async {
-          final existing = await customSelect(
-            "SELECT name FROM pragma_table_info('difficulty_levels')",
-          ).get();
-          final present = {
-            for (final row in existing) row.read<String>('name'),
-          };
-          if (!present.contains(column.name)) {
-            await m.addColumn(difficultyLevels, column);
-          }
-        }
-
-        await addColumnIfMissing(difficultyLevels.updatedAt);
-        await addColumnIfMissing(difficultyLevels.deletedAt);
-        await addColumnIfMissing(difficultyLevels.existenceAt);
-        final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-        await customStatement(
-          // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
-          'UPDATE difficulty_levels '
-          'SET updated_at = ?, existence_at = ? '
-          'WHERE deleted_at IS NULL',
-          [now, now],
-        );
-        // Issue #1196: distinguish purge captions from ordinary text-only
-        // program slots so display-only conversion never rewrites a tombstone.
-        // Existing rows remain null: pre-v33 text-only rows are ambiguous and
-        // must stay literal until an explicit edit establishes their kind.
-        final programSlotColumns = await customSelect(
-          "SELECT name FROM pragma_table_info('program_slots')",
-        ).get();
-        final hasPurgeMarker = programSlotColumns.any(
-          (row) => row.read<String>('name') == programSlots.isPurgedDance.name,
-        );
-        if (!hasPurgeMarker) {
-          await m.addColumn(programSlots, programSlots.isPurgedDance);
-        }
-      }
-      if (from < 35) {
-        await m.alterTable(
-          TableMigration(
-            programSlots,
-            columnTransformer: {
-              programSlots.walkthroughMinutes: const CustomExpression<int>(
-                'NULL',
-              ),
-              programSlots.danceMinutes: const CustomExpression<int>(
-                'planned_minutes',
-              ),
-            },
-          ),
-        );
-        // Issue #1104: taxonomy v35 renamed persisted parameter keys and
-        // consolidated pull_by_dancers/pull_by_direction. The taxonomy and
-        // renderer are unavailable from MigrationStrategy, so record a
-        // durable post-open sweep for CompendiumRepositories.ensureMigrated.
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [taxonomyV35FigureNormalizationDoneKey, 'false'],
-        );
-      }
+        // Last statement in the transaction: see the comment above its
+        // opening for why this closes the remaining crash window. `to` is
+        // drift's own destination version, never user input.
+        await customStatement('PRAGMA user_version = $to');
+      });
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
-      // Older databases are repaired by the v28 migration itself. Waiting
-      // until the open is already at head avoids scheduling a duplicate
-      // rebuild marker while historical migration tests and real upgrades are
-      // still traversing the old schema.
-      if (details.versionBefore != kCompendiumSchemaVersion) return;
+      // v39 shipped in pieces: a development build stamped it before every
+      // piece existed, so a file at v39 can lack some. v39 is the floor, so no
+      // upgrade step adds them; this is the only place they are ensured. The
+      // step is idempotent; run it on every open.
+      if (details.versionNow >= 39) await _ensureV39Schema(createMigrator());
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
-      // backup) that predates either raw FTS5 table. Creating a missing index
-      // alone would silently return incomplete results, so schedule the same
-      // durable rebuild used by the schema migration.
+      // backup) that lacks either raw FTS5 table. Creating a missing index
+      // alone would silently return incomplete results, so schedule a durable
+      // rebuild.
+      //
+      // This runs on a migrating open too. drift calls `onUpgrade` before this
+      // callback, so the schema is already at head here. (A former
+      // early return for `versionBefore != head` deferred the repair to the
+      // *next* launch, after the post-open sweeps had already failed once.)
+      // `test/storage/fts_repair_on_migrating_open_test.dart` covers this.
       final tables = await customSelect(
         "SELECT name FROM sqlite_master WHERE type='table' "
         "AND name IN ('dance_fts', 'dance_substring_fts')",
@@ -941,11 +981,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     },
   );
 
+  /// Seeds the shipped vocabulary. `OR IGNORE` is retained from the retired
+  /// v34 step, which ran over a table that could already hold some of these
+  /// rows; on a fresh `onCreate` nothing is there to ignore.
   Future<void> _seedDifficultyLevels() async {
     final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
     for (final level in DifficultyLevel.shipped) {
       await customStatement(
-        'INSERT INTO difficulty_levels '
+        'INSERT OR IGNORE INTO difficulty_levels '
         '(id, label, position, updated_at, existence_at) '
         'VALUES (?, ?, ?, ?, ?)',
         [level.id, level.label, level.position, now, now],
@@ -954,10 +997,10 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   }
 
   /// Runs SQLite's `PRAGMA quick_check`, returning `true` when the database
-  /// reports `ok`. Wired into app startup (`_CompendiumAppState._startupSequence`
-  /// in `app/lib/main.dart`) so it runs once per app launch per
-  /// `docs/design/storage.md` ("Durability"); a failure is surfaced to the user
-  /// as a non-fatal corruption warning.
+  /// reports `ok`. The app runs it once per launch, after the first frame
+  /// (`_CompendiumAppState._runDeferredIntegrityProbe` in `app/lib/main.dart`),
+  /// per `docs/design/storage.md` ("Durability"); a failure is surfaced to the
+  /// user as a non-fatal corruption warning.
   Future<bool> quickCheck() async {
     final rows = await customSelect('PRAGMA quick_check').get();
     return rows.length == 1 && rows.first.data.values.first == 'ok';

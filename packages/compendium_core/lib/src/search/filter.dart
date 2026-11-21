@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../model/custom_field.dart';
 import '../model/enums.dart';
 import '../model/formation.dart';
+import '../storage/calling_history_scope.dart';
 
 /// The composable search filter tree (`docs/design/search.md`).
 ///
@@ -48,8 +49,10 @@ class NotFilter extends DanceFilter {
 }
 
 /// The local full-text scope. [omni] preserves the historical canonical
-/// cross-field search and adds a raw-title fallback; [title], [author], and
-/// [figure] restrict matching to one derived column.
+/// cross-field search and adds a raw-title fallback; [title] and [figure]
+/// restrict matching to one derived column each; [author] matches the
+/// `authors` column and the names of the dance's interpreters, accents
+/// folded.
 enum FullTextScope { omni, title, author, figure }
 
 /// Full-text search over the derived FTS5 indexes. [scope] defaults to
@@ -103,6 +106,48 @@ class SourceIdFilter extends DanceFilter {
   const SourceIdFilter(this.sourceId);
 
   final String sourceId;
+}
+
+/// Dances with at least one suggested tune whose name contains [query]
+/// (case-insensitive substring match).
+///
+/// [query] is a plain substring (compiled to `LIKE '%' || ? || '%'`), so `%`,
+/// `_` and `\` are treated literally. Case folding is SQLite's `LIKE`: ASCII
+/// only, as for [SourceFilter].
+///
+/// One leaf tests **one** value against the dance's whole tune list; a single
+/// tune entry may satisfy several leaves. The Collection Tunes facet AND-s one
+/// leaf per entered value, so it means "has every one of these" — the opposite
+/// of the OR-within-facet Author, Tag and Source facets.
+///
+/// A dance whose stored `tunes_json` cannot be decoded (`UnreadableTunes`)
+/// never matches: "cannot read it" is not "has this tune", and it must not
+/// raise either. See the compiler case for how that is guaranteed in SQL.
+@immutable
+class TunesFilter extends DanceFilter {
+  const TunesFilter(this.query);
+
+  final String query;
+}
+
+/// Dances whose meter is [meter] (ADR-006 §9.2, F3), ignoring case, accents
+/// and surrounding spaces: "6/8" finds a dance stored as " 6/8". The whole
+/// value must match; "6/8" does not find "6/8 and 9/8". The Collection's Meter
+/// filter offers the meters the collection already has.
+@immutable
+class MeterFilter extends DanceFilter {
+  const MeterFilter(this.meter);
+
+  final String meter;
+}
+
+/// Dances whose key is [musicalKey] (ADR-006 §9.2, F3), matched as
+/// [MeterFilter] matches a meter: "d minor" finds "D minor", and "D" does not.
+@immutable
+class MusicalKeyFilter extends DanceFilter {
+  const MusicalKeyFilter(this.musicalKey);
+
+  final String musicalKey;
 }
 
 /// Dances of a given [DanceForm] (roadmap "Type": contra / ecd / square).
@@ -206,17 +251,111 @@ class MixerFilter extends DanceFilter {
 /// all callers; a configured caller includes matching host callers and
 /// programs whose host caller is null or blank. [performedOnly] restricts the
 /// matching slots to those with a non-null performed timestamp.
+/// [requireEventDate] restricts them to programs that have an event date. In
+/// every mode an alternate slot matches only once it is marked performed
+/// (`ProgramSlot.countsTowardCallingHistory`).
+///
+/// [venue], [since] and [currentProgramId] are scopes: each narrows the set of
+/// slots those rules select, before [called] applies. So `called: false` with
+/// a venue is "no counted slot at that venue", never "a slot somewhere else".
+/// Every scope ANDs with the others and with the rules above.
+///
+/// - [venue] keeps the slots of programs at that venue, matched by
+///   [VenueKey] exactly as the repeated-venues summary groups them (N1-1,
+///   maintainer decision 2026-10-30).
+/// - [since] keeps the slots whose recency date
+///   (`callingHistoryRecencyDateSql`: the event date, else the performed
+///   time, else the program's last edit; see [tracking]) is on or after it.
+///   The window has no end, so a program dated next month falls in it (N1-9),
+///   and a slot with no recency date falls in no window (N1-3). It must be a calendar date, `DateTime.utc(y, m, d)`, like a
+///   stored event date; the compiler rejects any other value.
+/// - [tracking] says which slots have a recency date at all (its
+///   `recencyRequireEventDate` and `recencyRequirePerformed`). It narrows only
+///   [since]; whether a slot is called is decided by [performedOnly] and
+///   [requireEventDate] alone.
+/// - [currentProgramId] leaves out every slot of that program, performed or
+///   not (N1-6), so the program being edited never counts as its own history.
+///   Collection never sets it.
 @immutable
 class CalledFilter extends DanceFilter {
   const CalledFilter({
     required this.called,
     this.callerFilter,
     this.performedOnly = false,
+    this.requireEventDate = false,
+    this.venue,
+    this.since,
+    this.currentProgramId,
+    this.tracking = CallingHistoryTracking.defaults,
   });
 
   final bool called;
   final String? callerFilter;
   final bool performedOnly;
+  final bool requireEventDate;
+  final VenueKey? venue;
+  final DateTime? since;
+  final String? currentProgramId;
+  final CallingHistoryTracking tracking;
+}
+
+/// Which venue a program was at, as calling history groups programs: by the
+/// linked venue record when there is one, and otherwise by the program's typed
+/// venue, folded by `callingHistoryVenueText`.
+///
+/// A record key never matches a typed one, even when the names agree: a typed
+/// "Grange" and a record named "Grange" are two venues until the old programs
+/// are linked to the record (GIG-7 = (b), maintainer decision 2026-10-29;
+/// N1-1). Two records with the same name are two venues as well, because
+/// venues have no natural key in sync.
+///
+/// [storageKey] is the summary's string form: `id:<venueId>` or
+/// `text:<folded venue>`.
+@immutable
+class VenueKey {
+  /// The key of programs linked to the venue record [venueId].
+  const VenueKey.record(String this.venueId) : typedVenue = null;
+
+  /// The key of programs with no linked record whose typed venue folds to the
+  /// same text as [venue]. Throws [ArgumentError] for a blank [venue], which
+  /// has no key.
+  factory VenueKey.typed(String venue) {
+    final folded = callingHistoryVenueText(venue);
+    if (folded == null) {
+      throw ArgumentError.value(venue, 'venue', 'must not be blank');
+    }
+    return VenueKey._typed(folded);
+  }
+
+  const VenueKey._typed(String this.typedVenue) : venueId = null;
+
+  /// The key of a program with this linked [venueId] and typed [venue], or
+  /// null when it has neither. A linked record wins over the typed text.
+  static VenueKey? forProgram({String? venueId, String? venue}) {
+    if (venueId != null) return VenueKey.record(venueId);
+    final folded = callingHistoryVenueText(venue);
+    return folded == null ? null : VenueKey._typed(folded);
+  }
+
+  /// The linked venue record's id, for a record key.
+  final String? venueId;
+
+  /// The folded typed venue, for a typed key.
+  final String? typedVenue;
+
+  String get storageKey => venueId != null ? 'id:$venueId' : 'text:$typedVenue';
+
+  @override
+  bool operator ==(Object other) =>
+      other is VenueKey &&
+      other.venueId == venueId &&
+      other.typedVenue == typedVenue;
+
+  @override
+  int get hashCode => Object.hash(venueId, typedVenue);
+
+  @override
+  String toString() => 'VenueKey($storageKey)';
 }
 
 /// Dances whose curatorial rating is **at least** [minimum] (`rating >= N`) on
@@ -245,6 +384,27 @@ class TagFilter extends DanceFilter {
   const TagFilter(this.tagId);
 
   final String tagId;
+}
+
+/// Dances with **no live tag** — the complement of "has any tag".
+///
+/// "Live" is the same rule [TagFilter] applies: a `dance_tags` row only counts
+/// when its `tags` row is not soft-deleted. Deleting a tag leaves its join rows
+/// in place (so a revived tag comes back with its dances), which means a dance
+/// whose only tag was deleted has a join row yet shows no tag on its card; this
+/// leaf treats it as untagged, matching what the card shows.
+///
+/// Compiles to `id NOT IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t …
+/// WHERE t.deleted_at IS NULL)`. (`NOT IN` is safe here because
+/// `dance_tags.dance_id` is `NOT NULL`, part of the primary key, so the
+/// subquery never yields a NULL to trip up `NOT IN` — the same argument
+/// [FigureFilter] makes.)
+///
+/// The Collection Tags facet OR-s this with any selected [TagFilter]s: it is
+/// one more member of that facet, not a separate facet.
+@immutable
+class UntaggedFilter extends DanceFilter {
+  const UntaggedFilter();
 }
 
 /// Comparison operators for a [CustomFieldFilter], typed by the field's
@@ -408,12 +568,17 @@ class FigureFilter extends DanceFilter {
   final FigureQuery query;
 }
 
-/// Sequence: a figure matching [before] occurs **earlier** in the dance than
-/// a figure matching [after] (strict `a.group_idx < b.group_idx`, so two
+/// Sequence: a figure matching [after] **immediately follows** a figure
+/// matching [before], as in ContraDB's `then`. The dance is read as a loop, so
+/// the first figure follows the last: a dance that opens and closes with an
+/// allemande matches `Then(allemande, allemande)`, and a dance of a single
+/// figure matches `Then(X, X)` for a figure X that satisfies both sides, as
+/// ContraDB's does (the figure follows itself). Figures are compared by
+/// `group_idx`, the next group after `before`'s (else the first), so two
 /// concurrent sides of one `meanwhile` container — which share a group — are
-/// not treated as one-before-the-other; #748). Operands are [FigureQuery] only
-/// — metadata leaves and nested [ThenFilter] have no per-position meaning and
-/// are excluded by the type.
+/// never one-after-the-other (#748), and a figure between the two stops a
+/// match. Operands are [FigureQuery] only — metadata leaves and nested
+/// [ThenFilter] have no per-position meaning and are excluded by the type.
 @immutable
 class ThenFilter extends DanceFilter {
   const ThenFilter(this.before, this.after);
@@ -466,6 +631,15 @@ class FigureAnd extends FigureQuery {
 
   final List<FigureQuery> children;
 }
+
+/// Any figure at all: it matches every figure row, so a dance matches it when
+/// it has at least one figure, and `Then(anyFigure, x)` is "x, after whatever
+/// figure comes before it". It is the empty [FigureAnd] (no clause to fail),
+/// which the compiler already reads as true.
+///
+/// ContraDB's filter language has the same thing, `["figure", "*"]`, and
+/// starts a `then` with it on both sides.
+const FigureQuery anyFigure = FigureAnd([]);
 
 /// Any of [children] matches the **same** figure row (`OR` of clauses).
 @immutable

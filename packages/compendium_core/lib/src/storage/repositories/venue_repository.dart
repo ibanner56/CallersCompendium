@@ -4,10 +4,12 @@ import 'package:meta/meta.dart';
 import '../../model/enums.dart';
 import '../../model/provenance.dart';
 import '../../model/venue.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for [Venue] rows — the reusable venue entity many programs are held at.
 /// Mirrors `PublishedSourceRepository`: editing a venue's address/contacts/
@@ -37,7 +39,32 @@ class VenueRepository {
   static String? _normalize(String? value) =>
       value == null ? null : normalizeShareableText(value);
 
-  Future<void> upsert(Venue v, {DateTime? at}) {
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  Future<void> upsert(Venue v, {DateTime? at, bool localUserEdit = false}) =>
+      _write(v, at: at, fromSync: false, localUserEdit: localUserEdit);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// Separate from [upsert] per §6.7 so the interactive path cannot change what
+  /// an inbound apply does. Venues carry no UNIQUE natural key, so the only
+  /// difference today is existence seeding: the envelope owns `existence_at`.
+  /// The provenance row is rewritten either way — it travels on the wire, so
+  /// the overlay hands this writer the peer's value or the local one it
+  /// preserved.
+  Future<void> writeFromSync(Venue v, {DateTime? at}) =>
+      _write(v, at: at, fromSync: true, localUserEdit: false);
+
+  Future<void> _write(
+    Venue v, {
+    required DateTime? at,
+    required bool fromSync,
+    required bool localUserEdit,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       await _db
@@ -69,13 +96,26 @@ class VenueRepository {
               updatedAt: Value(now),
             ),
           );
-      await applyUpsertExistence(
-        _db,
-        table: _db.venues,
-        keyColumn: 'id',
-        key: v.id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: v.id,
+          at: now,
+        );
+      }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.venue,
+          recordId: v.id,
+          table: _db.venues,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
+
       // Provenance is a single dependent row keyed on the venue id: delete
       // then (re)insert so an update refreshes it and a venue that lost its
       // provenance drops the row. Mirrors ProgramRepository's provenance
@@ -116,14 +156,32 @@ class VenueRepository {
     return _toModel(row, prov);
   }
 
-  Future<List<Venue>> listAll() async {
-    final rows =
-        await (_db.select(_db.venues)
-              ..where((t) => t.deletedAt.isNull())
-              ..orderBy([
-                (t) => OrderingTerm(expression: t.name.collate(Collate.noCase)),
-              ]))
-            .get();
+  /// Whether a venue row with [id] exists at all, live or soft-deleted.
+  ///
+  /// For a reader deciding whether a stored `venueId` is dead. A tombstoned
+  /// venue is not: a restore can revive it. A `false` also covers a venue that
+  /// has not arrived yet (#2076), which this cannot tell from an erased one, so
+  /// a caller that replaces a dead link should do so only with a venue in hand.
+  Future<bool> rowExists(String id) async {
+    final row =
+        await (_db.selectOnly(_db.venues)
+              ..addColumns([_db.venues.id])
+              ..where(_db.venues.id.equals(id)))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Every live venue, by name. With [includeDeleted], soft-deleted rows too —
+  /// for the one reader that must see everything still on disk, the crash-log
+  /// term collector, which redacts what a failed statement could echo whether
+  /// or not the row is visible in the UI.
+  Future<List<Venue>> listAll({bool includeDeleted = false}) async {
+    final query = _db.select(_db.venues)
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.name.collate(Collate.noCase)),
+      ]);
+    if (!includeDeleted) query.where((t) => t.deletedAt.isNull());
+    final rows = await query.get();
     final ids = [for (final r in rows) r.id];
     final provByVenue = await _provenanceForMany(ids);
     return [for (final row in rows) _toModel(row, provByVenue[row.id])];
@@ -192,13 +250,22 @@ class VenueRepository {
   /// because `venueId` is an app-layer-enforced soft reference, not a DB FK.
   ///
   /// Tombstones by default (schema v25, issue #898); the guard is kept. See
-  /// `ChoreographerRepository.delete` for [permanent], which the archive and
-  /// `.USR` import rollbacks pass.
+  /// `ChoreographerRepository.delete` for [permanent].
   ///
-  /// The reference count deliberately does **not** filter
-  /// `programs.deleted_at`: a soft-deleted program can still be restored, and
-  /// restoring one whose venue had been removed in the meantime would orphan
-  /// its `venueId`. That predates this change and is unaffected by it.
+  /// The reference count filters `programs.deleted_at`, so it counts **live
+  /// programs only**. A tombstoned program does not block an ordinary delete:
+  /// this delete writes a tombstone of its own, and restoring the program
+  /// from Recently deleted revives it with [restore]
+  /// (`ProgramRepository.restore`; the maintainer's trash-policy decision,
+  /// 2026-10-29, option b). The other callers of [restore] are an
+  /// exact-provenance archive re-import and the venue manager's Undo of its
+  /// own delete. Erasure is the case that
+  /// cannot be undone, and the retention rule for it lives in [hardDelete],
+  /// which counts *every* surviving program row. Import rollback therefore
+  /// calls [hardDelete] rather than passing [permanent] here (issue #1357); an
+  /// earlier version of this comment claimed the count "deliberately does not
+  /// filter `programs.deleted_at`", which stopped being true when #1328
+  /// narrowed the guard to live programs.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -208,11 +275,16 @@ class VenueRepository {
       // `programs_venue_id` index (see `venueLookupIndexSql`) backs this WHERE
       // so the count restricts to matching references instead of scanning every
       // program row, keeping the guard cheap as a popular venue's history grows.
+      // Live programs only; a soft-deleted program keeps its `venue_id`. See
+      // the note in `ChoreographerRepository.delete`.
       final referencingCount = _db.programs.id.count();
       final count =
           await (_db.selectOnly(_db.programs)
                 ..addColumns([referencingCount])
-                ..where(_db.programs.venueId.equals(id)))
+                ..where(
+                  _db.programs.venueId.equals(id) &
+                      _db.programs.deletedAt.isNull(),
+                ))
               .map((row) => row.read(referencingCount) ?? 0)
               .getSingle();
       if (count > 0) {
@@ -221,6 +293,21 @@ class VenueRepository {
         );
       }
       if (permanent) {
+        if (await isPublishedSyncRecord(
+          _db,
+          kind: SyncRecordKind.venue,
+          recordId: id,
+        )) {
+          await stampExistenceTransition(
+            _db,
+            table: _db.venues,
+            keyColumn: 'id',
+            key: id,
+            at: now,
+            deleted: true,
+          );
+          return;
+        }
         await (_db.delete(_db.venues)..where((t) => t.id.equals(id))).go();
         return;
       }
@@ -236,36 +323,114 @@ class VenueRepository {
   }
 
   /// Restores a tombstoned venue without changing its fields. Exact archive
-  /// re-imports use this when the provenance row survives a prior deletion.
-  Future<void> restore(String id, {DateTime? at}) {
-    final now = resolveStamp(at);
-    return stampExistenceTransition(
-      _db,
-      table: _db.venues,
-      keyColumn: 'id',
-      key: id,
-      at: now,
-      deleted: false,
-    );
-  }
+  /// re-imports use this when the provenance row survives a prior deletion,
+  /// and the venue manager's Undo uses it to take back a delete.
+  Future<void> restore(String id, {DateTime? at, bool clearPending = true}) =>
+      _db.transaction(() async {
+        final now = resolveStamp(at);
+        await stampExistenceTransition(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+          deleted: false,
+        );
+        if (clearPending) {
+          await clearPendingSyncDeletionForRestore(
+            _db,
+            kind: SyncRecordKind.venue,
+            recordId: id,
+            table: _db.venues,
+            keyColumn: 'id',
+            at: now,
+          );
+        }
+      });
 
-  /// Unconditionally removes the venues [ids] in a single transaction, skipping
-  /// the reference guard. Intended solely for reverting a just-committed import
-  /// batch (see `CompendiumArchiveImporter.undo`), where the caller has already
-  /// removed the programs that referenced these venues; an empty [ids] is a
-  /// no-op. Ordinary deletes must go through [delete].
+  /// Removes unpublished, unreferenced venues [ids] in a single transaction;
+  /// published venues become tombstones so peers retain deletion evidence.
+  /// Intended solely for reverting a just-committed import batch (see
+  /// `CompendiumArchiveImporter.undo`); an empty [ids] is a no-op. Ordinary
+  /// deletes must go through [delete].
   ///
-  /// Stays a **hard** delete after the schema-v25 soft-delete conversion
-  /// (issue #898), exactly as `DanceRepository.hardDelete` and
-  /// `ProgramRepository.hardDelete` do on kinds that have been soft-deletable
-  /// for far longer. A rollback erases an import that is being treated as never
-  /// having happened, so a tombstone would advertise the deletion of an entity
-  /// no other device ever saw.
+  /// It skips [delete]'s *live*-reference guard, but still retains a venue any
+  /// surviving program row names — including a tombstoned one. The caller can
+  /// no longer be assumed to have removed every referencing program, because a
+  /// published program is tombstoned rather than erased, and `programs.venueId`
+  /// is not a foreign key: nothing else would reject the erasure, and the venue
+  /// is user-visible data on that program — erasing it out from under a
+  /// surviving reference would silently orphan the reference instead of
+  /// rejecting the delete.
+  ///
+  /// Retention is **total**: a still-referenced venue is left exactly as it
+  /// is, and is skipped by the published-row tombstone below as well as by the
+  /// erase (issue #1357). Sync-spec §3.1 requires this method to "retain any
+  /// row still referenced by a surviving record", and a tombstone does not
+  /// retain one in any sense the referencing program can observe — every venue
+  /// read filters `deleted_at IS NULL` ([getById], [listAll], [watchAll]) and
+  /// `ProgramRepository` refuses to link a tombstoned venue, so tombstoning
+  /// orphans a live program's reference exactly as erasing it would. (A
+  /// program in Recently deleted gets a tombstoned venue back when it is
+  /// restored, but not an erased one: `ProgramRepository.restore`.) An earlier version
+  /// tombstoned every published id before computing [stillReferenced], which
+  /// made the retention rule apply to erasure only.
+  ///
+  /// Unpublished rollback rows stay hard-deleted after the schema-v25
+  /// soft-delete conversion (issue #898), exactly as the corresponding dance
+  /// and program paths do. A rollback erases an import that is being treated as
+  /// never having happened, but a row that was already published still needs
+  /// its tombstone.
   Future<void> hardDelete(Iterable<String> ids) {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
+      // A venue still named by *any* surviving program row — including a
+      // tombstoned one — must stay. `programs.venue_id` is not a foreign key,
+      // so nothing at the database level would reject the erasure, and the
+      // venue is user-visible data on that program: erasing it out from under
+      // a surviving reference would silently orphan the reference rather than
+      // being caught anywhere. This became reachable when publication
+      // forfeiture started tombstoning published programs instead of erasing
+      // them, which breaks this method's documented precondition that the
+      // caller has already removed every referencing program.
+      //
+      // Computed FIRST, so it gates the tombstone below as well as the erase.
+      // A tombstone is not retention: a live referencing program cannot see
+      // a tombstoned venue any more than an erased one.
+      final stillReferenced = <String>{};
       for (final chunk in _chunkIds(list)) {
+        final rows =
+            await (_db.selectOnly(_db.programs)
+                  ..addColumns([_db.programs.venueId])
+                  ..where(_db.programs.venueId.isIn(chunk)))
+                .map((row) => row.read(_db.programs.venueId))
+                .get();
+        stillReferenced.addAll(rows.whereType<String>());
+      }
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.venue,
+        recordIds: list,
+      );
+      final now = DateTime.now().toUtc();
+      for (final id in publishedIds) {
+        if (stillReferenced.contains(id)) continue;
+        await stampExistenceTransition(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+          deleted: true,
+        );
+      }
+      final erasableIds = list
+          .where(
+            (id) => !publishedIds.contains(id) && !stillReferenced.contains(id),
+          )
+          .toList(growable: false);
+      for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.venues)..where((t) => t.id.isIn(chunk))).go();
       }
     });

@@ -6,30 +6,50 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
 import '../data/callersbox_online.dart';
+import '../data/collection_facets_scope.dart';
+import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/online_paging.dart';
 import '../data/online_search.dart';
+import '../data/require_event_date_for_history_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
+import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
+import '../search/collection_opening_sort.dart';
 import '../search/collection_query.dart';
-import '../screens/online_import_variation_dialog.dart';
+import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
+import 'collection_search_controls.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
+import 'online_import_dialogs.dart';
+import 'online_more_footer.dart';
+import 'online_result_count.dart';
 import 'online_result_tile.dart';
+import 'online_search_toggle.dart';
 import 'preview_hold_listener.dart';
+import 'search_panel_bar.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
-/// search + [FacetPanel] + [ByPhrasePanel] + [AdvancedQueryBuilder] +
-/// [DanceRepository.search]) so the Programs builder can find and add dances
-/// with the same figure-aware filtering as the Collection screen
-/// (`docs/design/ux.md` §4).
+/// search with **Search in** + [FacetPanel] + [ByPhrasePanel] +
+/// [AdvancedQueryBuilder] + [DanceRepository.search] with the Collection's
+/// sorts) so the Programs builder can find and add dances with the same
+/// figure-aware filtering as the Collection screen (`docs/design/ux.md` §4).
+/// Rows show the fields chosen in Settings ▸ Defaults ▸ Collection card fields,
+/// and online search takes the same Search in choices as the Collection's
+/// (FIND-7, PRES-15).
+///
+/// The sort is the picker's own: it opens in the Collection's opening sort
+/// ([readCollectionOpeningSort]) and a change lasts as long as this picker,
+/// never written back to Settings.
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
 /// app bar): it renders inline as the builder's right pane on wide layouts, or
@@ -96,7 +116,8 @@ class CollectionPicker extends StatefulWidget {
   /// existing consumer.
   final PickerRowAction rowAction;
 
-  /// Whether the Advanced panel offers the Collection's online search mode.
+  /// Whether the search row offers the Online search icon, the Collection's
+  /// online search mode.
   ///
   /// Hosts opt in because an online result imports before [onAddDance] runs,
   /// unlike a local result which is already persisted.
@@ -159,16 +180,38 @@ class _CollectionPickerState extends State<CollectionPicker> {
   static const Duration _addConfirmation = Duration(milliseconds: 1200);
 
   final _ftsController = TextEditingController();
+  FullTextScope _ftsScope = FullTextScope.omni;
+
+  /// The local Search in choice, restored when online search is turned off
+  /// (online search maps All fields to Title).
+  FullTextScope _localFtsScope = FullTextScope.omni;
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
-  bool _advancedEnabled = false;
+
+  CollectionSort _sort = CollectionSort.title;
+  SortDirection _sortDir = CollectionSort.title.searchSort.defaultDirection;
+
+  /// Whether the user picked a sort or direction in this picker, so the async
+  /// opening-sort read cannot overwrite it.
+  bool _sortUserSet = false;
 
   late OnlineSearchService _callersBox;
   late OnlineSearchService _contraDb;
   OnlineSource _onlineSource = OnlineSource.callersBox;
   bool _onlineEnabled = false;
   List<OnlineSearchResultRow> _onlineResults = const [];
+
+  // Paging through a source that pages (ContraDB). `_onlineQuery` is the
+  // query behind `_onlineResults`; `_onlinePagesLoaded` how many pages of it
+  // are in; `_onlinePagingSeq` the `_onlineSeq` they belong to, so a page for a
+  // search that has since been replaced is dropped.
+  OnlineSearchQuery? _onlineQuery;
+  int _onlinePagesLoaded = 1;
+  int _onlinePagingSeq = -1;
+  bool _onlineHasMore = false;
+  bool _onlineLoadingMore = false;
+  bool _onlineMoreFailed = false;
   bool _onlineSearching = false;
   String? _onlineError;
   String? _onlineImportError;
@@ -188,10 +231,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
   late CompendiumRepositories _repos;
   bool _started = false;
   bool _requirePerformedForHistory = false;
+  CallingHistoryTracking _tracking = CallingHistoryTracking.defaults;
+  bool _requireEventDateForHistory = false;
+
+  /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
+  /// [CollectionFacetsScope] so a newly hidden section's selection is cleared.
+  Set<String> _hiddenFacets = const {};
   bool _ignoreLeadingArticles = true;
 
   List<DanceListEntry> _results = const [];
-  bool _searching = false;
+
+  /// True from the start: the first search waits for the opening-sort read.
+  bool _searching = true;
   Object? _searchError;
   int _searchSeq = 0;
   Timer? _debounceTimer;
@@ -203,17 +254,35 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final requirePerformedChanged =
         _started && newRequirePerformed != _requirePerformedForHistory;
     _requirePerformedForHistory = newRequirePerformed;
+    final newRequireEventDate = RequireEventDateForHistoryScope.of(context);
+    final requireEventDateChanged =
+        _started && newRequireEventDate != _requireEventDateForHistory;
+    _requireEventDateForHistory = newRequireEventDate;
+    final newTracking = callingHistoryTrackingOf(context);
+    final trackingChanged = _started && newTracking != _tracking;
+    _tracking = newTracking;
     final newIgnoreLeadingArticles = SortIgnoreArticlesScope.of(context);
     final ignoreLeadingArticlesChanged =
         _started && newIgnoreLeadingArticles != _ignoreLeadingArticles;
     _ignoreLeadingArticles = newIgnoreLeadingArticles;
+    // Hiding a section clears its selection (issue #1419); see the same hook in
+    // DanceListScreen.didChangeDependencies for why only newly hidden sections.
+    final newHiddenFacets = CollectionFacetsScope.of(context);
+    final facetsCleared =
+        _started &&
+        _facets.clearFacets(newHiddenFacets.difference(_hiddenFacets));
+    _hiddenFacets = newHiddenFacets;
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
-      _runSearch();
-    } else if ((requirePerformedChanged || ignoreLeadingArticlesChanged) &&
+      unawaited(_seedSortThenSearch());
+    } else if ((requirePerformedChanged ||
+            requireEventDateChanged ||
+            trackingChanged ||
+            ignoreLeadingArticlesChanged ||
+            facetsCleared) &&
         !_onlineEnabled) {
       _runSearch();
     }
@@ -232,6 +301,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSeq++;
       setState(() {
         _onlineEnabled = false;
+        _syncAdvancedTagRows();
+        _ftsScope = _localFtsScope;
         _onlineResults = const [];
         _onlineError = null;
         _onlineImportError = null;
@@ -253,6 +324,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
               (dance) => dance.authorIds.contains(id),
             );
       });
+      // A tag no live dance carries has no chip left; see retainTags. The
+      // search below re-runs for any data change.
+      _facets.retainTags([for (final t in widget.data.tags) t.id]);
       dataChanged = true;
     }
     final hostOverrideAdvanced = _results.any((entry) {
@@ -324,8 +398,35 @@ class _CollectionPickerState extends State<CollectionPicker> {
     widget.onAddDance(danceId);
   }
 
+  /// Opens in the Collection's opening sort, then runs the first search.
+  Future<void> _seedSortThenSearch() async {
+    final opening = await readCollectionOpeningSort(_repos.settings);
+    if (!mounted) return;
+    if (opening != null && !_sortUserSet) {
+      _sort = opening.sort;
+      _sortDir = opening.direction;
+    }
+    if (!_onlineEnabled) await _runSearch();
+  }
+
+  /// Whether the query is a bare full-text search, the only case where Best
+  /// match is offered (`docs/design/search.md` decision 6).
+  bool get _isBareFullText => isBareFullText(
+    ftsText: _ftsController.text,
+    facets: _facets,
+    scope: _ftsScope,
+    byPhrase: _byPhrase,
+    advancedRoot: _advancedRoot,
+  );
+
   Future<void> _runSearch() async {
     final data = widget.data;
+    // Best match is only valid for a bare full-text search; fall back as the
+    // Collection does if the query stopped being one.
+    if (_sort == CollectionSort.relevance && !_isBareFullText) {
+      _sort = CollectionSort.title;
+      _sortDir = CollectionSort.title.searchSort.defaultDirection;
+    }
     final seq = ++_searchSeq;
     setState(() {
       _searching = true;
@@ -336,16 +437,27 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ftsText: _ftsController.text,
         facets: _facets,
         defs: data.customFieldDefs,
+        scope: _ftsScope,
         byPhrase: _byPhrase,
-        advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        advancedRoot: _advancedRoot,
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       final ids = await _repos.dances.search(
         filter,
+        sort: _sort.searchSort,
+        direction: _sortDir,
         dialect: widget.dialect,
         enrichment: widget.enrichment,
         ignoreLeadingArticles: _ignoreLeadingArticles,
+        // The Last-called sort reads the same history as the Called filter
+        // above, as the Collection's does (FIND-2).
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       if (!mounted || seq != _searchSeq) return;
       final choreographerNamesOverride = {
@@ -400,6 +512,40 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
   }
 
+  void _onFtsScopeChanged(FullTextScope? scope) {
+    if (scope == null || scope == _ftsScope) return;
+    _debounceTimer?.cancel();
+    if (_onlineEnabled) {
+      _onlineSeq++;
+    } else {
+      _searchSeq++;
+    }
+    setState(() {
+      _ftsScope = scope;
+      if (!_onlineEnabled) _localFtsScope = scope;
+    });
+    unawaited(_onlineEnabled ? _runOnlineSearch() : _runSearch());
+  }
+
+  void _selectSort(CollectionSort value) {
+    setState(() {
+      _sortUserSet = true;
+      _sort = value;
+      _sortDir = value.searchSort.defaultDirection;
+    });
+    _runSearch();
+  }
+
+  void _toggleSortDirection() {
+    setState(() {
+      _sortUserSet = true;
+      _sortDir = _sortDir == SortDirection.ascending
+          ? SortDirection.descending
+          : SortDirection.ascending;
+    });
+    _runSearch();
+  }
+
   void _onFacetsChanged() {
     setState(() {});
     _runSearch();
@@ -422,21 +568,29 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
-      _onlineSearching =
-          _ftsController.text.trim().isNotEmpty || _effectivePhrases() != null;
+      _onlineSearching = _hasOnlineCriteria;
     });
   }
 
   void _onAdvancedChanged() {
-    setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      // Online, the Advanced query narrows an online source that accepts it
+      // (ContraDB); for one that does not, the panel is greyed out, so this
+      // is only reached for a source whose search it affects.
+      _debounceTimer?.cancel();
+      _prepareDebouncedOnlineSearch();
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      setState(() {});
+      _runSearch();
+    }
   }
 
   bool get _hasActiveQuery =>
       _ftsController.text.trim().isNotEmpty ||
       !_facets.isEmpty ||
       !_byPhrase.isEmpty ||
-      (_advancedEnabled && _advancedRoot.toFilter() != null);
+      _advancedRoot.toFilter() != null;
 
   void _clearAll() {
     _debounceTimer?.cancel();
@@ -447,8 +601,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _facets.clear();
       _byPhrase.clear();
       _advancedRoot.children.clear();
+      _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
-      _advancedEnabled = false;
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
@@ -472,22 +626,59 @@ class _CollectionPickerState extends State<CollectionPicker> {
   CallersBoxPhraseQuery? _effectivePhrases() =>
       _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
 
+  /// The Advanced builder's filter as it applies to the active online source:
+  /// `null` for sources without Advanced support
+  /// ([OnlineSource.supportsAdvanced], i.e. The Caller's Box), so a residual
+  /// local Advanced query can't leak into its search or keep an empty search
+  /// "active". Mirrors [_effectivePhrases].
+  DanceFilter? _effectiveAdvanced() =>
+      _onlineSource.supportsAdvanced ? _advancedRoot.toFilter() : null;
+
+  /// Whether the online search has anything to search for: query text, by-phrase
+  /// figures, or an Advanced query the active source accepts.
+  bool get _hasOnlineCriteria =>
+      _ftsController.text.trim().isNotEmpty ||
+      _effectivePhrases() != null ||
+      _effectiveAdvanced() != null;
+
+  /// Tag rows taken out of the Advanced query while ContraDB (which has no
+  /// tags) is searched, so they can come back when it is not.
+  final _removedTags = RemovedTagRows();
+
+  /// Keeps the Advanced query's tag rows in line with the source searched: out
+  /// while it cannot carry a tag (ContraDB has none; one left in would make the
+  /// search fail), back in their place otherwise. Call inside `setState`,
+  /// after `_onlineEnabled` or `_onlineSource` changes.
+  void _syncAdvancedTagRows() {
+    if (_onlineEnabled && _onlineSource.hidesAdvancedTags) {
+      _removedTags.take(_advancedRoot);
+    } else {
+      _removedTags.restoreInto(_advancedRoot);
+    }
+  }
+
   void _onOnlineToggled(bool value) {
     _debounceTimer?.cancel();
     _searchSeq++;
     _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
+      _syncAdvancedTagRows();
       _onlineError = null;
       _onlineImportError = null;
+      if (value) {
+        _localFtsScope = _ftsScope;
+        _ftsScope = onlineFullTextScope(_ftsScope);
+      } else {
+        _ftsScope = _localFtsScope;
+      }
       if (!value) {
         _onlineResults = const [];
         _onlineSearching = false;
       }
     });
     if (value) {
-      if (_ftsController.text.trim().isNotEmpty ||
-          _effectivePhrases() != null) {
+      if (_hasOnlineCriteria) {
         _runOnlineSearch();
       }
     } else {
@@ -501,20 +692,74 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _onlineSeq++;
     setState(() {
       _onlineSource = source;
+      _syncAdvancedTagRows();
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
       _onlineSearching = false;
     });
-    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+    if (_hasOnlineCriteria) {
       _runOnlineSearch();
     }
   }
 
+  /// Fetches the next page of the current online search and appends it. Called
+  /// by the list's last item once the end is near; one request at a time, and
+  /// a page for a search that has since been replaced is dropped.
+  Future<void> _loadMoreOnline() async {
+    final base = _onlineQuery;
+    if (base == null ||
+        !_onlineHasMore ||
+        _onlineLoadingMore ||
+        _onlineMoreFailed ||
+        _onlinePagingSeq != _onlineSeq) {
+      return;
+    }
+    final seq = _onlineSeq;
+    setState(() => _onlineLoadingMore = true);
+    try {
+      final page = await _online.search(
+        base.withOffset(_onlinePagesLoaded * contraDbSearchCount),
+      );
+      if (!mounted || seq != _onlineSeq) return;
+      final merged = appendOnlinePage(_onlineResults, page);
+      setState(() {
+        final grew = merged.length > _onlineResults.length;
+        _onlineResults = merged;
+        _onlinePagesLoaded++;
+        _onlineHasMore = grew && onlineHasMore(merged, page);
+        _onlineLoadingMore = false;
+      });
+    } on Object catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      if (error is UrlFetchException) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'collection_picker._loadMoreOnline',
+        );
+      } else {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'collection_picker._loadMoreOnline',
+        );
+      }
+      setState(() {
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = true;
+      });
+    }
+  }
+
   Future<void> _runOnlineSearch() async {
-    final title = _ftsController.text.trim();
-    final phrases = _effectivePhrases();
-    if (title.isEmpty && phrases == null) {
+    final query = OnlineSearchQuery.forScope(
+      _ftsController.text,
+      _ftsScope,
+      phrases: _effectivePhrases(),
+      advanced: _effectiveAdvanced(),
+    );
+    if (query.isEmpty) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -532,13 +777,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineImportError = null;
     });
     try {
-      final results = await _online.search(
-        OnlineSearchQuery(title: title, phrases: phrases),
-      );
+      final results = await _online.search(query);
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlineResults = results;
         _onlineSearching = false;
+        _onlineQuery = query;
+        _onlinePagesLoaded = 1;
+        _onlinePagingSeq = seq;
+        _onlineHasMore = onlineHasMore(results, results);
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = false;
       });
     } on UrlFetchException catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
@@ -585,52 +834,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
       importReported = true;
       onImportingChanged?.call(_importActivityOwner, true);
       final preview = await service.loadPreview(_repos, onlineResult);
-      var result = await service.import(_repos, preview.plan);
-      if (result.kind == OnlineImportKind.needsConfirmation) {
-        final existingId = result.danceId;
-        assert(
-          existingId != null,
-          'needsConfirmation must carry an existing dance id',
-        );
-        if (existingId == null || !navigator.mounted) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!navigator.mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          navigator.context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !navigator.mounted) return;
-        result = await service.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
-        final existingId = result.danceId;
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry an existing dance id',
-        );
-        if (existingId == null || !navigator.mounted) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!navigator.mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          navigator.context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !navigator.mounted) return;
-        result = await service.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      }
+      // The navigator's context, not the picker's: the picker can be removed
+      // mid-import (a responsive layout change) while its route lives on, and
+      // the import must still complete (program_editor_screen_test).
+      if (!navigator.mounted) return;
+      final result = await resolveAndImportOnline(
+        navigator.context,
+        service: service,
+        repos: _repos,
+        preview: preview,
+        l10n: l10n,
+      );
+      if (result == null) return;
       final danceId = result.danceId;
       if ((result.kind == OnlineImportKind.created ||
               result.kind == OnlineImportKind.alreadyInCollection) &&
@@ -712,27 +927,35 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
   }
 
-  int _activeFacetCount() {
-    return _facets.forms.length +
-        _facets.formations.length +
-        _facets.progressions.length +
-        _facets.statuses.length +
-        _facets.callStatuses.length +
-        _facets.authorIds.length +
-        _facets.tagIds.length +
-        _facets.sourceIds.length +
-        _facets.choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
-        _facets.booleanValues.length +
-        _facets.textValues.values.where((s) => s.isEffective).length +
-        _facets.numberValues.values.where((s) => s.isEffective).length;
-  }
-
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
     final l10n = AppLocalizations.of(context);
-    // Picker call sites pass no visibleFields to DanceListTile, so they
-    // default to all-visible — no scope override needed here.
+    final searchField = TextField(
+      key: const ValueKey('picker-search'),
+      controller: _ftsController,
+      onChanged: _onFtsChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: _onlineEnabled
+            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+            : l10n.collectionPickerSearchLabel,
+        hintText: _onlineEnabled
+            ? l10n.collectionOnlineSearchFieldHint
+            : l10n.collectionSearchFieldHint,
+        // Dense, like Search in beside it, so the two line up in one row.
+        isDense: true,
+        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
+        suffixIcon: _hasActiveQuery
+            ? IconButton(
+                tooltip: l10n.collectionClearSearchTooltip,
+                icon: const Icon(Icons.clear),
+                onPressed: _clearAll,
+              )
+            : null,
+        border: const OutlineInputBorder(),
+      ),
+    );
     return ExcludeFocus(
       excluding: _onlineImporting,
       child: IgnorePointer(
@@ -741,29 +964,19 @@ class _CollectionPickerState extends State<CollectionPicker> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: TextField(
-                key: const ValueKey('picker-search'),
-                controller: _ftsController,
-                onChanged: _onFtsChanged,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  labelText: _onlineEnabled
-                      ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-                      : l10n.collectionPickerSearchLabel,
-                  hintText: _onlineEnabled
-                      ? l10n.collectionPickerOnlineSearchFieldHint
-                      : l10n.collectionSearchFieldHint,
-                  prefixIcon: Icon(
-                    _onlineEnabled ? Icons.cloud_outlined : Icons.search,
-                  ),
-                  suffixIcon: _hasActiveQuery
-                      ? IconButton(
-                          tooltip: l10n.collectionClearSearchTooltip,
-                          icon: const Icon(Icons.clear),
-                          onPressed: _clearAll,
-                        )
-                      : null,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: SearchFieldWithScope(
+                searchField: searchField,
+                scopeField: SearchScopeField(
+                  fieldKey: const ValueKey('picker-search-scope'),
+                  scope: _ftsScope,
+                  online: _onlineEnabled,
+                  onChanged: _onFtsScopeChanged,
                   border: const OutlineInputBorder(),
                 ),
               ),
@@ -774,10 +987,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 slivers: [
                   SliverList(
                     delegate: SliverChildListDelegate([
-                      if (!_onlineEnabled) _buildFiltersPanel(data),
-                      if (!_onlineEnabled || _onlineSource.supportsByPhrase)
-                        _buildByPhrasePanel(data),
-                      _buildAdvancedPanel(data),
+                      _buildSearchPanels(data),
                       _buildResultCount(),
                       const Divider(height: 1),
                     ]),
@@ -794,57 +1004,145 @@ class _CollectionPickerState extends State<CollectionPicker> {
     );
   }
 
-  Widget _buildFiltersPanel(CollectionData data) {
+  /// The same compact row of search tools as the Collection
+  /// ([SearchPanelBar]): Filters is local-only, By phrase and Advanced are also
+  /// available for online sources that support them, and a tool the active
+  /// source does not support stays in the row greyed out while online. The Online search
+  /// icon ends the row in both modes (when the picker offers online search);
+  /// while online, the source selector sits full-width under the row.
+  Widget _buildSearchPanels(CollectionData data) {
     final l10n = AppLocalizations.of(context);
-    final activeCount = _activeFacetCount();
-    return ExpansionTile(
-      key: const ValueKey('picker-filters-panel'),
-      leading: const Icon(Icons.filter_alt_outlined),
-      title: Text(l10n.collectionPickerFilters(activeCount)),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      children: [
-        FacetPanel(
-          facets: _facets,
-          forms: data.forms,
-          formations: data.formations,
-          progressions: data.progressions,
-          statuses: data.statuses,
-          levels: data.levels,
-          hasMixedLevel: data.hasMixedLevel,
-          hasMixer: data.hasMixer,
-          hasRating: data.hasRating,
-          hasCallingHistory: data.callCounts.values.any(
-            (counts) => counts.countFor(_requirePerformedForHistory) > 0,
-          ),
-          authors: data.authors,
-          tags: data.tags,
-          citedSources: data.citedSources,
-          choiceFields: data.choiceFields,
-          booleanFields: data.booleanFields,
-          textFields: data.textFields,
-          numberFields: data.numberFields,
-          onChanged: _onFacetsChanged,
+    final filtersActive = _facets.activeCount;
+    final byPhraseActive = _byPhraseActiveCount();
+    final panelBar = SearchPanelBar(
+      storageId: 'picker',
+      trailing: widget.enableOnlineSearch
+          ? OnlineSearchToggle(
+              key: const ValueKey('picker-online-search-enable'),
+              enabled: _onlineEnabled,
+              onChanged: _onlineImporting ? null : _onOnlineToggled,
+            )
+          : null,
+      panels: [
+        SearchPanelSpec(
+          key: const ValueKey('picker-filters-panel'),
+          enabled: !_onlineEnabled,
+          label: filtersActive == 0
+              ? l10n.collectionPickerFilters(0)
+              : l10n.searchToolActiveCount(
+                  l10n.collectionPickerFilters(0),
+                  filtersActive,
+                ),
+          semanticsLabel: filtersActive == 0
+              ? null
+              : l10n.collectionPickerFilters(filtersActive),
+          builder: (_) => _buildFiltersPanel(data),
         ),
+        SearchPanelSpec(
+          key: const ValueKey('picker-by-phrase-panel'),
+          enabled: !_onlineEnabled || _onlineSource.supportsByPhrase,
+          label: byPhraseActive == 0
+              ? l10n.collectionPickerByPhrase(0)
+              : l10n.searchToolActiveCount(
+                  l10n.collectionPickerByPhrase(0),
+                  byPhraseActive,
+                ),
+          semanticsLabel: byPhraseActive == 0
+              ? null
+              : l10n.collectionPickerByPhrase(byPhraseActive),
+          builder: (_) => _buildByPhrasePanel(data),
+        ),
+        SearchPanelSpec(
+          key: const ValueKey('picker-advanced-panel'),
+          enabled: !_onlineEnabled || _onlineSource.supportsAdvanced,
+          label: _advancedRoot.toFilter() != null
+              ? l10n.collectionAdvancedActive
+              : l10n.collectionPickerAdvanced,
+          builder: (_) => _buildAdvancedPanel(data),
+        ),
+      ],
+    );
+    // The bar is always the Column's first child, so toggling online keeps its
+    // state (open tool, scroll and focus inside a panel) instead of rebuilding it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        panelBar,
+        if (_onlineEnabled)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
+            child: SegmentedButton<OnlineSource>(
+              key: const ValueKey('picker-online-source-selector'),
+              expandedInsets: EdgeInsets.zero,
+              segments: [
+                for (final source in OnlineSource.values)
+                  ButtonSegment<OnlineSource>(
+                    value: source,
+                    label: Text(source.label),
+                  ),
+              ],
+              selected: {_onlineSource},
+              showSelectedIcon: false,
+              onSelectionChanged: _onlineImporting
+                  ? null
+                  : (selection) => _onOnlineSourceChanged(selection.first),
+            ),
+          ),
       ],
     );
   }
 
+  Widget _buildFiltersPanel(CollectionData data) {
+    return FacetPanel(
+      facets: _facets,
+      forms: data.forms,
+      formations: data.formations,
+      progressions: data.progressions,
+      statuses: data.statuses,
+      levels: data.levels,
+      hasMixedLevel: data.hasMixedLevel,
+      hasMixer: data.hasMixer,
+      hasRating: data.hasRating,
+      venueChoices: VenueChoiceSource(
+        repos: _repos,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
+      ),
+      hasCallingHistory: data.callCounts.values.any(
+        (counts) =>
+            counts.countFor(
+              _requirePerformedForHistory,
+              requireEventDate: _requireEventDateForHistory,
+            ) >
+            0,
+      ),
+      authors: data.authors,
+      tags: data.tags,
+      citedSources: data.citedSources,
+      tunes: data.tunes,
+      meters: data.meters,
+      musicalKeys: data.musicalKeys,
+      choiceFields: data.choiceFields,
+      booleanFields: data.booleanFields,
+      textFields: data.textFields,
+      numberFields: data.numberFields,
+      onChanged: _onFacetsChanged,
+    );
+  }
+
   Widget _buildByPhrasePanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    final activeCount = _byPhraseActiveCount();
-    return ExpansionTile(
-      key: const ValueKey('picker-by-phrase-panel'),
-      leading: const Icon(Icons.grid_view_outlined),
-      title: Text(l10n.collectionPickerByPhrase(activeCount)),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      children: [
-        ByPhrasePanel(
-          selections: _byPhrase,
-          taxonomy: data.taxonomy,
-          sectionLabels: data.sectionLabels,
-          onChanged: _onByPhraseChanged,
-        ),
-      ],
+    return ByPhrasePanel(
+      selections: _byPhrase,
+      taxonomy: data.taxonomy,
+      sectionLabels: data.sectionLabels,
+      dialect: widget.dialect,
+      onChanged: _onByPhraseChanged,
     );
   }
 
@@ -860,68 +1158,16 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Widget _buildAdvancedPanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    return ExpansionTile(
-      key: const ValueKey('picker-advanced-panel'),
-      leading: const Icon(Icons.account_tree_outlined),
-      title: Text(l10n.collectionPickerAdvanced),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      children: [
-        if (widget.enableOnlineSearch) ...[
-          SwitchListTile(
-            key: const ValueKey('picker-online-search-enable'),
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.cloud_outlined),
-            title: Text(l10n.onlineSearchToggleTitle),
-            subtitle: Text(l10n.onlineSearchToggleSubtitle),
-            value: _onlineEnabled,
-            onChanged: _onlineImporting ? null : _onOnlineToggled,
-          ),
-          if (_onlineEnabled)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: SegmentedButton<OnlineSource>(
-                  key: const ValueKey('picker-online-source-selector'),
-                  segments: [
-                    for (final source in OnlineSource.values)
-                      ButtonSegment<OnlineSource>(
-                        value: source,
-                        label: Text(source.label),
-                      ),
-                  ],
-                  selected: {_onlineSource},
-                  showSelectedIcon: false,
-                  onSelectionChanged: _onlineImporting
-                      ? null
-                      : (selection) => _onOnlineSourceChanged(selection.first),
-                ),
-              ),
-            ),
-        ],
-        SwitchListTile(
-          key: const ValueKey('picker-advanced-enable'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.collectionPickerUseAdvancedQuery),
-          subtitle: Text(l10n.collectionPickerAdvancedQueryHelp),
-          value: _advancedEnabled,
-          onChanged: _onlineEnabled
-              ? null
-              : (value) {
-                  setState(() => _advancedEnabled = value);
-                  _runSearch();
-                },
-        ),
-        if (_advancedEnabled && !_onlineEnabled)
-          AdvancedQueryBuilder(
-            root: _advancedRoot,
-            taxonomy: data.taxonomy,
-            dialect: widget.dialect,
-            sectionLabels: data.sectionLabels,
-            onChanged: _onAdvancedChanged,
-          ),
-      ],
+    return AdvancedQueryBuilder(
+      root: _advancedRoot,
+      taxonomy: data.taxonomy,
+      dialect: widget.dialect,
+      sectionLabels: data.sectionLabels,
+      tags: data.tags,
+      tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
+          ? _onlineSource.label
+          : null,
+      onChanged: _onAdvancedChanged,
     );
   }
 
@@ -929,32 +1175,65 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final l10n = AppLocalizations.of(context);
     final count = _onlineEnabled ? _onlineResults.length : _results.length;
     final searching = _onlineEnabled ? _onlineSearching : _searching;
+    // The sort sits at the end of the count row, the picker's nearest thing to
+    // the Collection's app bar. Online results come in the source's own order,
+    // so it is local-only, like the Filters panel. While local, the sort
+    // buttons' own 48 px height spaces the row.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Semantics(
-              liveRegion: true,
-              child: Text(
-                _onlineEnabled
-                    ? l10n.onlineResultCount(count)
-                    : l10n.collectionDanceCount(count),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+      padding: _onlineEnabled
+          ? const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.md,
+              AppSpacing.xs,
+            )
+          : const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.xs, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _onlineEnabled
+                          ? onlineResultCountLabel(
+                              l10n,
+                              _onlineResults,
+                              hasMore: _onlineHasMore,
+                              loadFailed: _onlineMoreFailed,
+                            )
+                          : l10n.collectionDanceCount(count),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ),
+                if (searching || _onlineImporting) ...[
+                  const SizedBox(width: 8),
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ],
+              ],
             ),
-            if (searching || _onlineImporting) ...[
-              const SizedBox(width: 8),
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ],
+          ),
+          if (!_onlineEnabled) ...[
+            CollectionSortMenuButton(
+              key: const ValueKey('picker-sort'),
+              sort: _sort,
+              sorts: availableCollectionSorts(bareFullText: _isBareFullText),
+              onSelected: _selectSort,
+            ),
+            SortDirectionButton(
+              buttonKey: const ValueKey('picker-sort-direction'),
+              direction: _sortDir,
+              onPressed: _toggleSortDirection,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -964,7 +1243,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_searchError != null) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(child: Text(l10n.collectionSearchError)),
         ),
       );
@@ -972,7 +1251,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_results.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(child: Text(l10n.collectionNoResults)),
         ),
       );
@@ -995,20 +1274,28 @@ class _CollectionPickerState extends State<CollectionPicker> {
           label: widget.rowAction == PickerRowAction.replace
               ? l10n.collectionPickerReplaceSemantic(entry.dance.title)
               : l10n.collectionPickerAddSemantic(entry.dance.title),
-          child: Stack(
+          // The tile takes the width left over by the row's action buttons
+          // rather than having them painted over its title (UX4-5): at 360px
+          // the buttons used to cover up to ~130px of the first line.
+          child: Row(
             children: [
-              PreviewHoldListener(
-                onPreviewStarted: widget.onPreviewDanceStarted == null
-                    ? null
-                    : () => widget.onPreviewDanceStarted!(entry.dance.id),
-                onPreviewEnded: widget.onPreviewDanceEnded == null
-                    ? null
-                    : () => widget.onPreviewDanceEnded!(entry.dance.id),
-                child: DanceListTile(
-                  key: ValueKey('picker-tile-${entry.dance.id}'),
-                  entry: entry,
-                  onTap: () => _handleAdd(entry.dance.id),
-                  showChevron: false,
+              Expanded(
+                child: PreviewHoldListener(
+                  onPreviewStarted: widget.onPreviewDanceStarted == null
+                      ? null
+                      : () => widget.onPreviewDanceStarted!(entry.dance.id),
+                  onPreviewEnded: widget.onPreviewDanceEnded == null
+                      ? null
+                      : () => widget.onPreviewDanceEnded!(entry.dance.id),
+                  child: DanceListTile(
+                    key: ValueKey('picker-tile-${entry.dance.id}'),
+                    entry: entry,
+                    // The Collection card fields setting covers the picker's
+                    // rows too, like its sibling Collection filters (PRES-15).
+                    visibleFields: CollectionTileFieldsScope.of(context),
+                    onTap: () => _handleAdd(entry.dance.id),
+                    showChevron: false,
+                  ),
                 ),
               ),
               // Persistent in-program marker: visible whenever the dance
@@ -1019,69 +1306,58 @@ class _CollectionPickerState extends State<CollectionPicker> {
               // signals something different — this one says "is in the
               // program", the button says "you just tapped add".
               if (inProgramCount > 0)
-                Positioned(
-                  top: 12,
-                  right: widget.onViewDanceDetails == null ? 56 : 104,
-                  child: Semantics(
-                    label: inProgramCount > 1
-                        ? l10n.collectionPickerInProgramCountSemantic(
-                            entry.dance.title,
-                            inProgramCount,
-                          )
-                        : l10n.collectionPickerInProgramSemantic(
-                            entry.dance.title,
-                          ),
-                    excludeSemantics: true,
-                    child: Row(
-                      key: ValueKey('picker-in-program-${entry.dance.id}'),
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (inProgramCount > 1)
-                          Text(
-                            '$inProgramCount',
-                            style: Theme.of(context).textTheme.labelMedium,
-                          ),
-                        const Icon(Icons.playlist_add_check, size: 20),
-                      ],
-                    ),
+                Semantics(
+                  label: inProgramCount > 1
+                      ? l10n.collectionPickerInProgramCountSemantic(
+                          entry.dance.title,
+                          inProgramCount,
+                        )
+                      : l10n.collectionPickerInProgramSemantic(
+                          entry.dance.title,
+                        ),
+                  excludeSemantics: true,
+                  child: Row(
+                    key: ValueKey('picker-in-program-${entry.dance.id}'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (inProgramCount > 1)
+                        Text(
+                          '$inProgramCount',
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      const Icon(Icons.playlist_add_check, size: 20),
+                    ],
                   ),
                 ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  key: ValueKey('picker-add-${entry.dance.id}'),
-                  tooltip: widget.rowAction == PickerRowAction.replace
-                      ? l10n.collectionPickerReplaceTooltip(entry.dance.title)
-                      : confirming
-                      ? l10n.collectionPickerAddedTooltip(entry.dance.title)
-                      : l10n.collectionPickerAddTooltip(entry.dance.title),
-                  // Both this button and the persistent marker above use
-                  // shape changes, not colour changes — colour is never the
-                  // only signal (`docs/design/ux.md` §4, WCAG 1.4.1). The
-                  // button stays enabled throughout — a dance may legitimately
-                  // appear in a program more than once.
-                  icon: Icon(
-                    widget.rowAction == PickerRowAction.replace
-                        ? Icons.swap_horiz
-                        : confirming
-                        ? Icons.check_circle
-                        : Icons.add_circle_outline,
-                  ),
-                  onPressed: () => _handleAdd(entry.dance.id),
-                ),
-              ),
               if (widget.onViewDanceDetails != null)
-                Positioned(
-                  top: 8,
-                  right: 56,
-                  child: IconButton(
-                    key: ValueKey('picker-details-${entry.dance.id}'),
-                    tooltip: l10n.viewDetails,
-                    icon: const Icon(Icons.visibility_outlined),
-                    onPressed: () => widget.onViewDanceDetails!(entry.dance.id),
-                  ),
+                IconButton(
+                  key: ValueKey('picker-details-${entry.dance.id}'),
+                  tooltip: l10n.viewDetails,
+                  icon: const Icon(Icons.visibility_outlined),
+                  onPressed: () => widget.onViewDanceDetails!(entry.dance.id),
                 ),
+              IconButton(
+                key: ValueKey('picker-add-${entry.dance.id}'),
+                tooltip: widget.rowAction == PickerRowAction.replace
+                    ? l10n.collectionPickerReplaceTooltip(entry.dance.title)
+                    : confirming
+                    ? l10n.collectionPickerAddedTooltip(entry.dance.title)
+                    : l10n.collectionPickerAddTooltip(entry.dance.title),
+                // Both this button and the persistent marker above use
+                // shape changes, not colour changes — colour is never the
+                // only signal (`docs/design/ux.md` §4, WCAG 1.4.1). The
+                // button stays enabled throughout — a dance may legitimately
+                // appear in a program more than once.
+                icon: Icon(
+                  widget.rowAction == PickerRowAction.replace
+                      ? Icons.swap_horiz
+                      : confirming
+                      ? Icons.check_circle
+                      : Icons.add_circle_outline,
+                ),
+                onPressed: () => _handleAdd(entry.dance.id),
+              ),
+              const SizedBox(width: AppSpacing.xs),
             ],
           ),
         );
@@ -1094,7 +1370,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_onlineError != null) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(_onlineError!, textAlign: TextAlign.center),
           ),
@@ -1104,18 +1380,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_onlineSearching && _onlineResults.isEmpty) {
       return const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.lg),
           child: Center(child: CircularProgressIndicator()),
         ),
       );
     }
-    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+    if (!_hasOnlineCriteria) {
       final hint = _onlineSource.supportsByPhrase
           ? l10n.onlineSearchHintByPhrase(_onlineSource.label)
           : l10n.onlineSearchHintTitle(_onlineSource.label);
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(child: Text(hint, textAlign: TextAlign.center)),
         ),
       );
@@ -1123,7 +1399,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_onlineResults.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(
               _onlineImportError ?? l10n.onlineNoResults(_onlineSource.label),
@@ -1133,16 +1409,37 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ),
       );
     }
+    final showFooter = _onlineHasMore || _onlineMoreFailed;
+    final leading = _onlineImportError == null ? 0 : 1;
     return SliverList.builder(
-      itemCount: _onlineResults.length + (_onlineImportError == null ? 0 : 1),
+      itemCount: _onlineResults.length + leading + (showFooter ? 1 : 0),
       itemBuilder: (context, index) {
         if (_onlineImportError != null && index == 0) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.xxs,
+            ),
             child: Text(_onlineImportError!, textAlign: TextAlign.center),
           );
         }
-        final resultIndex = index - (_onlineImportError == null ? 0 : 1);
+        if (index == _onlineResults.length + leading) {
+          return OnlineMoreFooter(
+            key: ValueKey(
+              'online-more-$_onlinePagingSeq-${_onlineResults.length}',
+            ),
+            failed: _onlineMoreFailed,
+            failedMessage: l10n.onlineSearchFailed(_onlineSource.label),
+            onLoad: _loadMoreOnline,
+            onRetry: () {
+              setState(() => _onlineMoreFailed = false);
+              _loadMoreOnline();
+            },
+          );
+        }
+        final resultIndex = index - leading;
         final result = _onlineResults[resultIndex];
         return Semantics(
           button: true,
@@ -1150,60 +1447,60 @@ class _CollectionPickerState extends State<CollectionPicker> {
           label: widget.rowAction == PickerRowAction.replace
               ? l10n.collectionPickerReplaceSemantic(result.name)
               : l10n.collectionPickerAddSemantic(result.name),
-          child: Stack(
+          // Same layout as the local rows: the trailing icons take their own
+          // width instead of covering the title (UX4-5).
+          child: Row(
             children: [
-              PreviewHoldListener(
-                onPreviewStarted:
-                    _onlineImporting || widget.onPreviewOnlineStarted == null
-                    ? null
-                    : () => widget.onPreviewOnlineStarted!(result),
-                onPreviewEnded: widget.onPreviewOnlineEnded == null
-                    ? null
-                    : () => widget.onPreviewOnlineEnded!(result),
-                child: OnlineResultTile(
-                  key: ValueKey(
-                    'picker-online-result-${result.source.name}-${result.id}',
-                  ),
-                  result: result,
-                  onTap: _onlineImporting
+              Expanded(
+                child: PreviewHoldListener(
+                  onPreviewStarted:
+                      _onlineImporting || widget.onPreviewOnlineStarted == null
                       ? null
-                      : () => _importOnlineResult(result),
+                      : () => widget.onPreviewOnlineStarted!(result),
+                  onPreviewEnded: widget.onPreviewOnlineEnded == null
+                      ? null
+                      : () => widget.onPreviewOnlineEnded!(result),
+                  child: OnlineResultTile(
+                    key: ValueKey(
+                      'picker-online-result-${result.source.name}-${result.id}',
+                    ),
+                    result: result,
+                    onTap: _onlineImporting
+                        ? null
+                        : () => _importOnlineResult(result),
+                  ),
                 ),
               ),
               if (_onlineAddedIds.contains((
                 source: result.source,
                 id: result.id,
               )))
-                Positioned(
-                  top: 12,
-                  right: widget.onViewOnlineDetails == null ? 16 : 56,
-                  child: IgnorePointer(
-                    child: Tooltip(
-                      message: l10n.collectionPickerAddedTooltip(result.name),
+                IgnorePointer(
+                  child: Tooltip(
+                    message: l10n.collectionPickerAddedTooltip(result.name),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
                       child: Icon(
                         key: ValueKey(
                           'picker-online-added-${result.source.name}-${result.id}',
                         ),
-                        Icons.check_circle,
+                        Icons.check_circle_outline,
                       ),
                     ),
                   ),
                 ),
               if (widget.onViewOnlineDetails != null)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: IconButton(
-                    key: ValueKey(
-                      'picker-online-details-${result.source.name}-${result.id}',
-                    ),
-                    tooltip: l10n.viewDetails,
-                    icon: const Icon(Icons.visibility_outlined),
-                    onPressed: _onlineImporting
-                        ? null
-                        : () => widget.onViewOnlineDetails!(result),
+                IconButton(
+                  key: ValueKey(
+                    'picker-online-details-${result.source.name}-${result.id}',
                   ),
+                  tooltip: l10n.viewDetails,
+                  icon: const Icon(Icons.visibility_outlined),
+                  onPressed: _onlineImporting
+                      ? null
+                      : () => widget.onViewOnlineDetails!(result),
                 ),
+              const SizedBox(width: AppSpacing.xs),
             ],
           ),
         );

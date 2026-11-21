@@ -5,12 +5,17 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
+import '../model/formation.dart';
 import '../model/program.dart';
 import '../model/published_source.dart';
 import '../model/tag.dart';
+import '../model/user_glossary.dart';
 import '../model/venue.dart';
+import '../model/figure_source.dart';
+import '../model/tunes_source.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
+const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 
 /// Current version of the canonical [CompendiumArchive] JSON schema.
 ///
@@ -32,7 +37,37 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// * **v3** — adds ordered `difficultyLevels` and the stable
 ///   `dance.difficultyLevelId` relationship.
 /// * **v4** — adds the optional `programSlot.isPurgedDance` discriminator.
-const int archiveSchemaVersion = archiveSchemaVersionProgramSlotMarkers;
+/// * **v5** — adds `dance.figuresRaw`, the stored transcription of a dance that
+///   could not be decoded, carried verbatim beside a well-formed empty
+///   `figures` array. Stamped only on an archive that contains one, so a
+///   healthy library still writes v1-v4 byte-identically. See
+///   [archiveSchemaVersionUnreadableFigures] for why the bump is what makes an
+///   older reader's loss audible rather than silent.
+/// * **v6** — adds `dance.tunesRaw`, the stored tune list of a dance whose
+///   `tunes_json` could not be decoded, carried verbatim beside a well-formed
+///   empty `tunes` array. Stamped only when such a dance is present, so an
+///   archive with undecodable figures but readable tunes still stamps v5.
+/// * **v7** — adds `deletedTags`: tombstoned tags with their deletion instant
+///   and the dances whose retained `dance_tags` row still points at them, so a
+///   full backup restores a deleted tag and its association. Written by backup
+///   mode only, and only when a tombstoned tag exists. See
+///   [archiveSchemaVersionDeletedTags].
+/// * **v8** — adds a dance's `meter` and `musicalKey`, `formation.improper`,
+///   and the ECD formation shapes (ADR-006 §12, F2 and F3). Stamped only when
+///   a dance carries one of them. See [archiveSchemaVersionEcdDanceFields].
+///
+/// **Not versioned:** a shared archive's `userFigures` section, the
+/// definitions of the user's own new figures its dances use (#1023, see
+/// [CompendiumArchive.userFigures]), is written without a bump, by the
+/// maintainer's decision. Every build before the one that added the section
+/// refuses a newer archive opened from the share sheet or "Open with", so a
+/// bump would keep a bundle carrying figures out of those builds there (their
+/// Import screen still reads it, with a warning). Without one, an older reader
+/// ignores the unknown key and imports the dances, each use of a figure as the
+/// line it carries. That build also stopped the share intake refusing a newer
+/// archive, so a later build can bump for this section and have readers from
+/// then on warn, as the earlier bumps intended.
+const int archiveSchemaVersion = archiveSchemaVersionEcdDanceFields;
 
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
@@ -48,6 +83,82 @@ const int archiveSchemaVersionDifficultyLevels = 3;
 /// The envelope version introduced for explicit text-only purge captions.
 const int archiveSchemaVersionProgramSlotMarkers = 4;
 
+/// The envelope version introduced for a dance whose stored transcription could
+/// not be decoded, carried verbatim in `figuresRaw` (#1347).
+///
+/// Stamped **only** on an archive that actually contains such a dance, per
+/// [requiredSchemaVersion]. That conditionality is the whole point: a library
+/// with no undecodable row still produces a v1-v4 archive, byte-identical to
+/// what earlier builds wrote, so upgrading the app does not push anyone's
+/// backups to a version their other installs cannot read.
+///
+/// **What an older reader does, and why the bump is what makes it safe.**
+/// A pre-v5 reader ignores `figuresRaw` (unknown keys are skipped) and reads
+/// the accompanying empty `figures` array. Without the bump that would be
+/// silent: `_figuresFromJson(null)` and an empty array both yield `const []`,
+/// so the dance would reconstruct as figureless and the restore would report
+/// success — the user's transcription dropped with no signal. With the bump,
+/// the same reader instead warns "archive schemaVersion 5 is newer than
+/// supported 4; reading known fields only" and the loss becomes visible.
+///
+/// So: the archive **file** is lossless — the bytes are in it, and a v5 reader
+/// reconstructs the case exactly. An older **reader** is not, and cannot be;
+/// the bump's job is to make that audible rather than silent.
+const int archiveSchemaVersionUnreadableFigures = 5;
+
+/// The envelope version introduced for a dance whose stored tune list could not
+/// be decoded, carried verbatim in `tunesRaw` (#1347).
+///
+/// A separate version from [archiveSchemaVersionUnreadableFigures] for the
+/// reason that one exists at all: a v5 reader understands `figuresRaw` and knows
+/// nothing of `tunesRaw`, so it would ignore the key and read the accompanying
+/// empty `tunes` array — reconstructing the dance with no tunes and reporting
+/// success. Stamped only when such a dance is present, so an archive carrying
+/// undecodable figures but readable tunes still stamps v5.
+const int archiveSchemaVersionUnreadableTunes = 6;
+
+/// The envelope version introduced for tombstoned tags in a full backup.
+///
+/// Tags are soft-deleted and their `dance_tags` rows are deliberately kept, so a
+/// restored tag returns with its dances. Before v7 a backup wrote live tags
+/// only, and dance hydration hides tombstoned ones, so a backup/restore round
+/// trip silently dropped both the tombstone and the retained association.
+///
+/// Tombstones live in their own `deletedTags` array rather than inside `tags`
+/// on purpose: a pre-v7 reader ignores an unknown key, so it restores exactly
+/// the live tags it always did, whereas a `deletedAt` marker inside `tags` would
+/// be ignored by that reader and the deleted tag would come back **live**. The
+/// bump makes the older reader's omission audible ("newer than supported").
+/// Stamped only when the archive carries a tombstoned tag, so a library that has
+/// never deleted a tag still writes its earlier version byte-identically.
+const int archiveSchemaVersionDeletedTags = 7;
+
+/// The envelope version introduced for the fields English country dance added
+/// to a dance (ADR-006 §12, F2 and F3, and §9.2's interpreter credits):
+/// `meter`, `musicalKey`, `formation.improper`, `interpreterIds`,
+/// `interpretedOn`, and the formation shapes from [FormationShape.dupleMinor]
+/// on.
+///
+/// A pre-v8 reader ignores the five keys, so without the bump it would
+/// restore the dance without its meter, key or interpreters, and as proper,
+/// and report success. A new shape it cannot read at all, and it skips that dance with a
+/// warning; the stamp also makes a backup holding one refuse to restore there
+/// rather than restore without it. Stamped only when a dance carries one of
+/// them, so a library with none still writes its earlier version
+/// byte-identically.
+const int archiveSchemaVersionEcdDanceFields = 8;
+
+/// Whether [dance] carries anything only a v8 reader understands
+/// ([archiveSchemaVersionEcdDanceFields]).
+bool _hasEcdDanceFields(Dance dance) =>
+    dance.meter.isNotEmpty ||
+    dance.musicalKey.isNotEmpty ||
+    dance.formation.improper ||
+    dance.interpreterIds.isNotEmpty ||
+    dance.interpretedOn != null ||
+    // Every shape before ECD's is one contra offers; any other is newer.
+    !contraFormationShapes.contains(dance.formation.shape);
+
 /// The minimum envelope version required to represent [archive] without silent
 /// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
 /// it carries a purge-caption marker, [archiveSchemaVersionDifficultyLevels]
@@ -59,13 +170,37 @@ const int archiveSchemaVersionProgramSlotMarkers = 4;
 /// venue-bearing archives always advertise v2 (old readers warn instead of
 /// dropping venues) while venue-less archives stay backward-compatible at v1 —
 /// and an explicitly higher requested version is still honored.
-int requiredSchemaVersion(CompendiumArchive archive) {
+///
+/// [includeDeletedTags] is `false` when the archive is being encoded for
+/// sharing, where `deletedTags` is never written, so it must not raise the
+/// stamp either.
+int requiredSchemaVersion(
+  CompendiumArchive archive, {
+  bool includeDeletedTags = true,
+}) {
   final hasDifficulty =
       archive.difficultyLevels.isNotEmpty ||
       archive.dances.any((d) => d.difficultyLevelId != null);
   final hasPurgeMarker = archive.programs.any(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
+  // Checked highest-version first, so the first match wins: an ECD dance field
+  // requires v8, a tombstoned tag requires v7, an undecodable tune
+  // list requires v6, and only if there is none does an undecodable
+  // transcription pull the archive to v5. Keep new cases in descending version
+  // order or a lower version will shadow a higher one.
+  if (archive.dances.any(_hasEcdDanceFields)) {
+    return archiveSchemaVersionEcdDanceFields;
+  }
+  if (includeDeletedTags && archive.deletedTags.isNotEmpty) {
+    return archiveSchemaVersionDeletedTags;
+  }
+  if (archive.dances.any((d) => d.tunesSource is UnreadableTunes)) {
+    return archiveSchemaVersionUnreadableTunes;
+  }
+  if (archive.dances.any((d) => d.figuresSource is UnreadableFigures)) {
+    return archiveSchemaVersionUnreadableFigures;
+  }
   if (hasPurgeMarker) return archiveSchemaVersionProgramSlotMarkers;
   if (hasDifficulty) return archiveSchemaVersionDifficultyLevels;
   return archive.venues.isNotEmpty ||
@@ -112,6 +247,8 @@ class CompendiumArchive {
     this.tags = const [],
     this.venues = const [],
     this.difficultyLevels = const [],
+    this.deletedTags = const [],
+    this.userFigures = const [],
   });
 
   /// The [archiveSchemaVersion] this archive is stamped as. Defaults to
@@ -138,6 +275,17 @@ class CompendiumArchive {
   /// Configurable difficulty vocabulary in display order.
   final List<DifficultyLevel> difficultyLevels;
 
+  /// Tombstoned tags of a full backup ([ArchiveSerializationMode.backup]);
+  /// empty in a share archive and in any archive that predates v7.
+  final List<ArchivedDeletedTag> deletedTags;
+
+  /// The user's own new figures (#1023) the dances use, as `customFigure`
+  /// entries without notes: what a shared archive carries so the receiver can
+  /// add them (plan C12). Written in share mode only; a backup carries the
+  /// whole glossary in its own section. Not versioned: see
+  /// [archiveSchemaVersion].
+  final List<UserGlossaryEntry> userFigures;
+
   @override
   bool operator ==(Object other) =>
       other is CompendiumArchive &&
@@ -150,7 +298,12 @@ class CompendiumArchive {
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tags, tags) &&
       _listEq.equals(other.venues, venues) &&
-      _listEq.equals(other.difficultyLevels, difficultyLevels);
+      _listEq.equals(other.difficultyLevels, difficultyLevels) &&
+      _listEq.equals(other.deletedTags, deletedTags) &&
+      _deepEq.equals(
+        other.userFigures.map(_userFigureFields).toList(),
+        userFigures.map(_userFigureFields).toList(),
+      );
 
   @override
   int get hashCode => Object.hash(
@@ -164,7 +317,55 @@ class CompendiumArchive {
     _listEq.hash(tags),
     _listEq.hash(venues),
     _listEq.hash(difficultyLevels),
+    _listEq.hash(deletedTags),
+    _deepEq.hash(userFigures.map(_userFigureFields).toList()),
   );
+}
+
+/// What an archive compares of one of [CompendiumArchive.userFigures]: an
+/// entry has no equality of its own.
+List<Object?> _userFigureFields(UserGlossaryEntry e) => [
+  e.id,
+  e.kindName,
+  e.name,
+  e.definition,
+  e.description,
+  e.keywords,
+  e.notes,
+  e.payload,
+  e.createdAt,
+];
+
+/// A tombstoned [Tag] in a full backup: the tag, when it was deleted, and the
+/// dances whose retained `dance_tags` row still names it.
+///
+/// [danceIds] is the same information as a per-dance list of retained tag ids,
+/// grouped by tag so that the tombstone and the associations it can restore
+/// travel as one record and cannot disagree. It includes tombstoned dances.
+@immutable
+class ArchivedDeletedTag {
+  const ArchivedDeletedTag({
+    required this.tag,
+    required this.deletedAt,
+    this.danceIds = const [],
+  });
+
+  final Tag tag;
+
+  /// When the tag was deleted (UTC).
+  final DateTime deletedAt;
+
+  final List<String> danceIds;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ArchivedDeletedTag &&
+      other.tag == tag &&
+      other.deletedAt == deletedAt &&
+      _listEq.equals(other.danceIds, danceIds);
+
+  @override
+  int get hashCode => Object.hash(tag, deletedAt, _listEq.hash(danceIds));
 }
 
 /// The number of entities a shared/imported [archive] would write into the
@@ -185,7 +386,8 @@ int compendiumArchiveEntityCount(CompendiumArchive archive) =>
     archive.difficultyLevels.length +
     archive.publishedSources.length +
     archive.customFields.length +
-    archive.tags.length;
+    archive.tags.length +
+    archive.deletedTags.length;
 
 /// Which phase produced an [ArchiveError].
 enum ArchiveErrorKind {
@@ -253,6 +455,20 @@ class ArchiveEncodingException implements Exception {
   String toString() =>
       'ArchiveEncodingException: dance "$danceId", custom field "$fieldId" '
       'contains a non-finite or unrepresentable numeric value';
+}
+
+/// Normalizes a domain [ArgumentError] caused by malformed archive content.
+///
+/// Archive boundaries convert this Dart [Error] into a narrow exception so it
+/// can be recorded in an [ArchiveReadResult] or [ArchiveRestoreResult] without
+/// also swallowing unrelated programming errors.
+class ArchiveContentValidationException implements Exception {
+  const ArchiveContentValidationException(this.cause);
+
+  final ArgumentError cause;
+
+  @override
+  String toString() => 'ArchiveContentValidationException: $cause';
 }
 
 /// Outcome of decoding archive JSON: the recovered [archive] plus any

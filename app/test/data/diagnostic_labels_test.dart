@@ -17,13 +17,28 @@ ValidationIssue _validationIssue(String code) => ValidationIssue(
   message: 'diagnostic english for $code',
   data: switch (code) {
     'phrase_overflow' || 'phrase_underflow' => {'actual': 68, 'expected': 64},
+    'sequence_exceeds_phrase' => {'position': 2, 'actual': 40, 'limit': 32},
     'orphaned_alt' => {'position': 2, 'text': 'Petronella'},
-    'empty_substitution' => {'source': 'gents'},
+    incompleteFigureValidationCode => {'position': 3},
+    'sequence_span_mismatch' => {
+      'position': 2,
+      'actual': 8,
+      'expected': 12,
+      'allTimed': true,
+    },
+    otherFormFiguresValidationCode => {
+      'count': 2,
+      'figureForm': 'ecd',
+      'danceForm': 'contra',
+      'pickerForm': 'contra',
+    },
+    'empty_substitution' => {'source': 'jays'},
     'dialect_collision' => {
-      'source': 'gents',
+      'source': 'jays',
       'existing': 'lords',
       'substitution': 'larks',
     },
+    'gendered_role_term' => {'source': 'role1', 'word': 'Gent'},
     _ => const <String, Object?>{},
   },
 );
@@ -40,7 +55,10 @@ void main() {
       for (final code in mappedValidationCodes) {
         final msg = validationIssueMessage(l10n, _validationIssue(code));
         expect(msg, isNotEmpty, reason: code);
-        expect(msg, isNot(equals(l10n.validationGeneric)), reason: code);
+        // startsWith, not equals: in a debug build (which tests are) the
+        // fallback is "<generic> [code: message]", so `equals` could never
+        // match and this assertion could not fail.
+        expect(msg, isNot(startsWith(l10n.validationGeneric)), reason: code);
       }
     });
 
@@ -56,6 +74,153 @@ void main() {
       // In debug (tests run in debug) the raw diagnostic is appended for devs,
       // but the user-facing generic prefix is always present.
       expect(msg, contains(l10n.validationGeneric));
+    });
+
+    test('figures of another form name both forms (ADR-006 W5)', () {
+      expect(
+        validationIssueMessage(
+          l10n,
+          _validationIssue(otherFormFiguresValidationCode),
+        ),
+        'This dance is Contra, but 2 figures are from English (ECD). They '
+        'are kept as they are, but the figure picker offers only Contra '
+        'figures.',
+      );
+    });
+
+    test('a form without figures of its own names the picker\'s', () {
+      expect(
+        validationIssueMessage(
+          l10n,
+          const ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: otherFormFiguresValidationCode,
+            message: 'x',
+            data: {
+              'count': 1,
+              'figureForm': 'ecd',
+              'danceForm': 'square',
+              'pickerForm': 'contra',
+            },
+          ),
+        ),
+        'This dance is Square, but 1 figure is from English (ECD). They are '
+        'kept as they are, but the figure picker offers only Contra figures.',
+      );
+    });
+
+    group('counts read in bars for a dance timed in bars', () {
+      ValidationIssue issue(String code, Map<String, Object?> data) =>
+          ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: code,
+            message: 'x',
+            data: data,
+          );
+
+      test('a phrase mismatch', () {
+        final i = issue('phrase_overflow', {'actual': 66, 'expected': 64});
+        expect(
+          validationIssueMessage(l10n, i, beatsPerBar: 2),
+          'The figures total 33 bars; the phrase structure expects 32 bars.',
+        );
+        // Without a bar it is in beats, as before.
+        expect(
+          validationIssueMessage(l10n, i),
+          'The figures total 66 beats; the phrase structure expects 64.',
+        );
+      });
+
+      test('a sequence longer than a phrase', () {
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('sequence_exceeds_phrase', {
+              'position': 3,
+              'actual': 20,
+              'limit': 16,
+            }),
+            beatsPerBar: 2,
+          ),
+          'A sequence in figure 3 is 10 bars, longer than one phrase '
+          '(8 bars).',
+        );
+      });
+
+      test('a sequence span, timed or with room for none', () {
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('sequence_span_mismatch', {
+              'position': 2,
+              'actual': 3,
+              'expected': 8,
+              'allTimed': true,
+            }),
+            beatsPerBar: 2,
+          ),
+          'The steps of the sequence in figure 2 take 1½ bars; the sequence '
+          'takes 4 bars.',
+        );
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('sequence_span_mismatch', {
+              'position': 2,
+              'actual': 2,
+              'expected': 2,
+              'allTimed': false,
+            }),
+            beatsPerBar: 2,
+          ),
+          'The timed steps of the sequence in figure 2 take 1 bar, leaving '
+          'none of its 1 bar for the rest.',
+        );
+      });
+
+      test('a count that is no whole number of half bars stays in beats', () {
+        expect(
+          validationIssueMessage(
+            l10n,
+            issue('phrase_underflow', {'actual': 47, 'expected': 48}),
+            beatsPerBar: 3,
+          ),
+          'The figures total 47 beats; the phrase structure expects 48.',
+        );
+      });
+    });
+
+    test('a sequence span that has no room for its untimed steps says so', () {
+      expect(
+        validationIssueMessage(
+          l10n,
+          const ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: 'sequence_span_mismatch',
+            message: 'x',
+            data: {
+              'position': 2,
+              'actual': 12,
+              'expected': 12,
+              'allTimed': false,
+            },
+          ),
+        ),
+        contains('leaving none'),
+      );
+    });
+
+    test('an incomplete figure names its position (AUTH-2)', () {
+      final msg = validationIssueMessage(
+        l10n,
+        const ValidationIssue(
+          severity: ValidationSeverity.warning,
+          code: incompleteFigureValidationCode,
+          message: 'x',
+          data: {'position': 3},
+        ),
+      );
+      expect(msg, 'Figure 3 is not complete, so Save leaves it out.');
     });
 
     test('orphaned_alt without text uses the un-named variant', () {
@@ -91,11 +256,14 @@ void main() {
     // adapters (as of this PR). If core adds a code, this list — and the mapper
     // — must grow, or the code will silently render the generic fallback.
     const producedCodes = {
+      'archive_custom_field_key_conflict',
+      'archive_newer_schema',
       'archive_program_empty_slot',
       'archive_program_unresolved_dance',
       'archive_program_unresolved_venue',
       'archive_read_error',
       'archive_read_warning',
+      'archive_related_dance_unresolved',
       'callersbox_direction_unmapped',
       'callersbox_formation_unclassified',
       'callersbox_phrase_structure_unreadable',
@@ -104,7 +272,10 @@ void main() {
       'cc_date_assumed_mdy',
       'cc_date_reduced_precision',
       'cc_missing_title',
+      'cc_new_level',
+      'cc_bars_meter_unstated',
       'cc_inactive_level',
+      'cc_program_deleted_dance',
       'cc_program_empty_slot',
       'cc_program_unparsed_date',
       'cc_program_unresolved_dance',
@@ -115,6 +286,8 @@ void main() {
       'cc_unmapped_type',
       'cc_unparsed_date',
       'cc_unparsed_rating',
+      'cc_user_field_key_adjusted',
+      'cc_user_field_label_missing',
       'contradb_figures_unreadable',
       'contradb_formation_unclassified',
       'contradb_html_beats_unreadable',
@@ -124,6 +297,14 @@ void main() {
       'contradb_move_fallback',
       'contradb_param_unmapped',
       'cc_related_dance_unresolved',
+      'duplicate_external_id_in_batch',
+      'usr_file_truncated',
+      'usr_figures_from_dance_rows',
+      'usr_phrase_groups_orphaned',
+      'usr_lines_dropped',
+      'usr_sets_skipped',
+      'usr_related_rows_skipped',
+      'usr_terms_skipped',
     };
 
     test('every produced code is mapped (no silent English leak)', () {
@@ -137,6 +318,11 @@ void main() {
         'cc_unparsed_date' || 'cc_date_assumed_mdy' => {'field': 'composed'},
         'cc_date_reduced_precision' => {'field': 'composed', 'year': 2004},
         'contradb_param_unmapped' => {'param': 'hand'},
+        'cc_new_level' => {'level': 'Easy/Intermediate'},
+        'archive_custom_field_key_conflict' => {
+          'label': 'Tempo',
+          'key': 'tempo_2',
+        },
         _ => const <String, Object?>{},
       };
       for (final code in mappedImportIssueCodes) {
@@ -150,7 +336,10 @@ void main() {
           ),
         );
         expect(msg, isNotEmpty, reason: code);
-        expect(msg, isNot(equals(l10n.importIssueGeneric)), reason: code);
+        // startsWith, not equals: in a debug build (which tests are) the
+        // fallback is "<generic> [code: message]", so `equals` could never
+        // match and this assertion could not fail.
+        expect(msg, isNot(startsWith(l10n.importIssueGeneric)), reason: code);
       }
     });
 
@@ -191,6 +380,28 @@ void main() {
       expect(revised, contains(l10n.importDateFieldRevised));
       expect(composed, isNot(contains('SECRETVALUE')));
       expect(revised, isNot(contains('SECRETVALUE')));
+    });
+
+    test('archive_custom_field_key_conflict names the receiver\'s field and '
+        'the new key, and nothing from the file (INTAKE-2)', () {
+      final named = importIssueMessage(
+        l10n,
+        issue('archive_custom_field_key_conflict', {
+          'label': 'Tempo',
+          'key': 'tempo_2',
+        }),
+      );
+      expect(
+        named,
+        l10n.importIssueArchiveCustomFieldKeyConflict('Tempo', 'tempo_2'),
+      );
+      expect(named, isNot(contains('SECRETVALUE')));
+      // A clash between two of the file's own fields carries no names.
+      final unnamed = importIssueMessage(
+        l10n,
+        issue('archive_custom_field_key_conflict', const {}),
+      );
+      expect(unnamed, l10n.importIssueArchiveCustomFieldKeyConflictGeneric);
     });
 
     test('cc_date_reduced_precision surfaces the year and field, not the raw '
@@ -281,6 +492,53 @@ void main() {
   });
 
   group('importRecordErrorMessage (CWE-209)', () {
+    test('every ImportErrorCode maps to a non-generic string', () {
+      final generic = {
+        for (final stage in ImportStage.values)
+          importRecordErrorMessage(
+            l10n,
+            ImportError(
+              stage: stage,
+              source: ProvenanceSource.contradb,
+              message: 'x',
+            ),
+          ),
+      };
+      final seen = <String>{};
+      for (final code in ImportErrorCode.values) {
+        if (code == ImportErrorCode.unknown) continue;
+        for (final stage in ImportStage.values) {
+          final msg = importRecordErrorMessage(
+            l10n,
+            ImportError(
+              stage: stage,
+              source: ProvenanceSource.contradb,
+              message: 'SECRET /Users/isaac/private.json',
+              code: code,
+            ),
+          );
+          expect(msg, isNotEmpty, reason: code.name);
+          expect(generic, isNot(contains(msg)), reason: code.name);
+          expect(msg, isNot(contains('SECRET')), reason: code.name);
+          if (stage == ImportStage.discover) {
+            expect(seen.add(msg), isTrue, reason: '${code.name} is distinct');
+          }
+        }
+      }
+    });
+
+    test('an unknown code falls back to the stage message', () {
+      const error = ImportError(
+        stage: ImportStage.discover,
+        source: ProvenanceSource.contradb,
+        message: 'x',
+      );
+      expect(
+        importRecordErrorMessage(l10n, error),
+        l10n.importRecordErrorDiscover,
+      );
+    });
+
     test('never surfaces the raw error message, whatever the stage', () {
       for (final stage in ImportStage.values) {
         final error = ImportError(
@@ -315,6 +573,57 @@ void main() {
       expect(
         snapshotCauseSentence(l10n, SnapshotFailureCause.unknown),
         isEmpty,
+      );
+    });
+
+    test('a database another app holds open gets its own copy, naming '
+        'the remedy rather than the disk/folder advice', () {
+      final failure = SnapshotFailure(
+        fromVersion: 2,
+        toVersion: 2,
+        cause: SnapshotFailureCause.databaseInUse,
+        error: const SnapshotDatabaseInUse('/raw/path'),
+      );
+      final consent = migrationSnapshotConsentBody(l10n, failure);
+      final aborted = migrationSnapshotAbortedMessage(l10n, failure);
+      for (final text in [consent, aborted]) {
+        expect(
+          text.toLowerCase(),
+          contains('another app has your library open'),
+        );
+        expect(text.toLowerCase(), contains('close any other app'));
+        expect(text.toLowerCase(), isNot(contains('free up space')));
+        expect(text, isNot(contains('/raw/path')));
+      }
+      // The reset flow appends the sentence alone: it names the remedy too.
+      expect(
+        snapshotCauseSentence(l10n, SnapshotFailureCause.databaseInUse),
+        contains('Close any other app'),
+      );
+    });
+
+    test('the generic consent body weaves in a known cause', () {
+      final failure = SnapshotFailure(
+        fromVersion: 1,
+        toVersion: 2,
+        cause: SnapshotFailureCause.diskFull,
+        error: 'x',
+      );
+      expect(
+        migrationSnapshotConsentBody(l10n, failure),
+        contains('\n\n${l10n.migrationSnapshotCauseDiskFull}'),
+      );
+      expect(
+        migrationSnapshotConsentBody(
+          l10n,
+          SnapshotFailure(
+            fromVersion: 1,
+            toVersion: 2,
+            cause: SnapshotFailureCause.unknown,
+            error: 'x',
+          ),
+        ),
+        l10n.migrationSnapshotConsentBody(''),
       );
     });
 

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'program_matrix_table.dart' show ProgramMatrixTable;
+import '../theme/app_breakpoints.dart';
+import '../theme/app_motion.dart';
+
+import '../theme/app_spacing.dart';
 
 /// Builds a single option row (e.g. a [ListTile]) for [option]. [onSelected]
 /// is pre-bound to that option — the tile just calls it on tap — so callers
@@ -68,12 +71,14 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.sheetSemanticLabel,
+    this.selectFirstOnSheetSubmit = false,
+    this.onSheetDismissed,
     this.overlayConstraints = const BoxConstraints(
       maxHeight: 240,
       maxWidth: 320,
     ),
-    this.compactWidthBreakpoint = ProgramMatrixTable.compactBreakpoint,
-    this.compactHeightBreakpoint = _defaultCompactHeightBreakpoint,
+    this.compactWidthBreakpoint = AppBreakpoints.compact,
+    this.compactHeightBreakpoint = AppBreakpoints.shortHeight,
   }) : assert(
          textEditingController == null || initialValue == null,
          'Provide either initialValue or textEditingController, not both '
@@ -81,7 +86,7 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
        );
 
   /// Width (logical pixels) below which the narrow/sheet layout is used,
-  /// mirroring [ProgramMatrixTable.compactBreakpoint] (Material 3's compact
+  /// mirroring [AppBreakpoints.compact] (Material 3's compact
   /// window-size-class cutoff) so phones get the sheet and tablets/desktop
   /// keep the fast inline overlay.
   final double compactWidthBreakpoint;
@@ -98,8 +103,6 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// heights (iPad mini landscape is ~768dp), so tablets aren't
   /// misclassified as compact.
   final double compactHeightBreakpoint;
-
-  static const double _defaultCompactHeightBreakpoint = 480;
 
   /// Given the current field text, returns the matching options (already
   /// filtered/sorted/capped by the caller — this widget does no filtering of
@@ -135,6 +138,24 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// Announced (as a semantics header) when the narrow-layout sheet opens,
   /// e.g. "Search moves". Ignored on the wide layout.
   final String? sheetSemanticLabel;
+
+  /// Whether pressing Enter in the narrow layout's sheet picks its first option
+  /// (as [onSelected] would on a tap) instead of only dismissing the sheet.
+  ///
+  /// The wide layout already behaves this way — [RawAutocomplete] selects the
+  /// highlighted option, which starts on the first, when the field is
+  /// submitted — so this restores parity for a caller whose first row is the
+  /// one Enter is meant to commit (the Tunes facet's typed-text row). It is
+  /// off by default because turning it on changes what Enter does: every other
+  /// call site keeps dismissing on submit in the sheet. With no options, or a
+  /// blank query, Enter still just dismisses. Ignored on the wide layout.
+  final bool selectFirstOnSheetSubmit;
+
+  /// Called with the sheet field's text when the narrow layout's sheet closes
+  /// without a choice and without Enter: dragged away, the barrier tapped, or
+  /// Back. That text is otherwise dropped, as the field under the sheet keeps
+  /// its own. Ignored on the wide layout, whose field keeps what was typed.
+  final ValueChanged<String>? onSheetDismissed;
 
   /// Size constraints for the wide layout's floating options popover. Ignored
   /// on the narrow layout (the sheet sizes itself via
@@ -263,6 +284,8 @@ class _ResponsiveAutocompleteState<T extends Object>
     // simultaneously with it.
     setState(() => _sheetOpen = true);
     final l10n = widget.sheetSemanticLabel;
+    var sheetText = _controller.text;
+    var submitted = false;
     final picked = await showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
@@ -288,11 +311,15 @@ class _ResponsiveAutocompleteState<T extends Object>
                 optionTileBuilder: widget.optionTileBuilder,
                 scrollController: scrollController,
                 semanticLabel: l10n,
+                selectFirstOnSubmit: widget.selectFirstOnSheetSubmit,
+                onTextChanged: (text) => sheetText = text,
+                onSubmitted: () => submitted = true,
               );
             },
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (!mounted) return;
     setState(() => _sheetOpen = false);
@@ -327,6 +354,8 @@ class _ResponsiveAutocompleteState<T extends Object>
         selection: TextSelection.collapsed(offset: selectionString.length),
       );
       widget.onSelected(picked);
+    } else if (!submitted) {
+      widget.onSheetDismissed?.call(sheetText);
     }
   }
 
@@ -373,9 +402,20 @@ class _ResponsiveAutocompleteState<T extends Object>
             alignment: AlignmentDirectional.topStart,
             child: Material(
               elevation: 4,
+              // On the menu tier and shaped like the app's popup menus, so
+              // High contrast outlines the option list as it does every other
+              // menu.
+              color: Theme.of(context).colorScheme.surfaceContainer,
+              shape: Theme.of(context).popupMenuTheme.shape,
+              clipBehavior: Clip.antiAlias,
               child: ConstrainedBox(
                 constraints: widget.overlayConstraints,
                 child: ListView(
+                  // Scrolling the suggestions must not take focus from the
+                  // field: losing focus closes the options. The app-wide
+                  // drag-to-dismiss default would do exactly that on touch.
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.manual,
                   padding: EdgeInsets.zero,
                   shrinkWrap: true,
                   children: [
@@ -414,7 +454,10 @@ class _ResponsiveAutocompleteState<T extends Object>
     // collapsing it has no visible effect for the user.
     return Semantics(
       button: true,
-      hint: widget.sheetSemanticLabel,
+      // A label, not a hint: with an empty field nothing else supplies a
+      // name, and Flutter's labeled-tap-target guideline fails a button that
+      // has only a hint.
+      label: widget.sheetSemanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _openSheet,
@@ -443,6 +486,9 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
     required this.fieldViewBuilder,
     required this.optionTileBuilder,
     required this.scrollController,
+    required this.selectFirstOnSubmit,
+    required this.onTextChanged,
+    required this.onSubmitted,
     this.semanticLabel,
   });
 
@@ -453,6 +499,13 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
   final ResponsiveAutocompleteFieldViewBuilder fieldViewBuilder;
   final AutocompleteOptionTileBuilder<T> optionTileBuilder;
   final ScrollController scrollController;
+  final bool selectFirstOnSubmit;
+
+  /// Told the sheet field's text whenever it changes.
+  final ValueChanged<String> onTextChanged;
+
+  /// Told when Enter closes the sheet, before it closes.
+  final VoidCallback onSubmitted;
   final String? semanticLabel;
 
   @override
@@ -491,6 +544,7 @@ class _AutocompleteSheetContentState<T extends Object>
   }
 
   void _recompute() {
+    widget.onTextChanged(_controller.text);
     setState(() {
       _options = widget.optionsBuilder(
         TextEditingValue(text: _controller.text),
@@ -523,14 +577,26 @@ class _AutocompleteSheetContentState<T extends Object>
     final content = Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: _SheetField(
             controller: _controller,
             focusNode: _focusNode,
             autofocus: widget.autofocus,
             fieldViewBuilder: widget.fieldViewBuilder,
             onChanged: _recompute,
-            onSubmit: () => Navigator.of(context).maybePop(),
+            onSubmit: () {
+              widget.onSubmitted();
+              if (widget.selectFirstOnSubmit && options.isNotEmpty) {
+                Navigator.of(context).pop(options.first);
+              } else {
+                Navigator.of(context).maybePop();
+              }
+            },
           ),
         ),
         Expanded(

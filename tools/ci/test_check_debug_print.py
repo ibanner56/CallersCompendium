@@ -275,6 +275,28 @@ def test_unguarded_forms() -> None:
         == [2],
     )
 
+    # --- the siblings ------------------------------------------------------
+    #
+    # `debugPrintStack` and `debugPrintThrottled` write to the same sink in a
+    # release build as `debugPrint` does; the call pattern used to match the
+    # bare name only, so both were invisible. `debugPrintStack` in a catch is
+    # a plausible honest use of a documented Flutter API, not evasion.
+    check(
+        "debugPrintStack is a debugPrint",
+        unguarded_lines("void f() {\n  debugPrintStack(label: url);\n}\n") == [2],
+    )
+    check(
+        "debugPrintThrottled is a debugPrint",
+        unguarded_lines("void f() {\n  debugPrintThrottled(text);\n}\n") == [2],
+    )
+    check(
+        "a guarded sibling is accepted like a guarded debugPrint",
+        unguarded_lines(
+            "void f() {\n  if (kDebugMode) debugPrintStack(label: url);\n}\n"
+        )
+        == [],
+    )
+
 
 # --------------------------------------------------------------------------
 # False positives — shapes that name `debugPrint` without calling it.
@@ -334,6 +356,33 @@ def test_guard_semantics() -> None:
     )
     check("ternary is not a guard", not guarded("kDebugMode ? a : b"))
     check("unrelated condition", not guarded("verbose"))
+
+    # Shapes that MENTION kDebugMode without implying it. The docstring had
+    # promised an accept-list ("a bare kDebugMode token, alone or in a
+    # conjunction") but the code was a reject-list of known-bad neighbours, so
+    # each of these was accepted as a guard -- and the first runs the call in
+    # release and nowhere else. Nobody writes these by accident; the point is
+    # that the code now matches the contract the docstring states.
+    check(
+        "parenthesised negation runs ONLY in release",
+        not guarded("!(kDebugMode)"),
+        "`!(` defeated a check for `!` immediately before the token",
+    )
+    check("bitwise or", not guarded("kDebugMode | true"))
+    check("bitwise xor", not guarded("kDebugMode ^ true"))
+    check("identical()", not guarded("identical(kDebugMode, false)"))
+    check(
+        "method call on the constant",
+        not guarded("kDebugMode.toString() == 'false'"),
+    )
+    check(
+        "kDebugMode buried in one operand of a conjunction",
+        not guarded("verbose && identical(kDebugMode, false)"),
+        "the operand containing the token must BE the token",
+    )
+    # Redundant parentheses around the bare token are still the bare token.
+    check("parenthesised bare token", guarded("(kDebugMode)"))
+    check("parenthesised bare token in a conjunction", guarded("(kDebugMode) && x"))
 
     # The predicate reads the LAST `if (` in the accumulated statement, so a
     # guarded block followed by an unguarded `if` must not inherit the guard.

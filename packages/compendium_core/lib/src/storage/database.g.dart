@@ -473,6 +473,21 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _formationImproperMeta = const VerificationMeta(
+    'formationImproper',
+  );
+  @override
+  late final GeneratedColumn<bool> formationImproper = GeneratedColumn<bool>(
+    'formation_improper',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("formation_improper" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<Progression, String> progression =
       GeneratedColumn<String>(
@@ -534,6 +549,28 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
   @override
   late final GeneratedColumn<String> walkthrough = GeneratedColumn<String>(
     'walkthrough',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _meterMeta = const VerificationMeta('meter');
+  @override
+  late final GeneratedColumn<String> meter = GeneratedColumn<String>(
+    'meter',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _musicalKeyMeta = const VerificationMeta(
+    'musicalKey',
+  );
+  @override
+  late final GeneratedColumn<String> musicalKey = GeneratedColumn<String>(
+    'musical_key',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -623,6 +660,17 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _interpretedOnMeta = const VerificationMeta(
+    'interpretedOn',
+  );
+  @override
+  late final GeneratedColumn<String> interpretedOn = GeneratedColumn<String>(
+    'interpreted_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _revisedOnMeta = const VerificationMeta(
     'revisedOn',
   );
@@ -685,12 +733,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     form,
     formationShape,
     formationDetail,
+    formationImproper,
     progression,
     phraseStructure,
     figuresJson,
     hook,
     callingNotes,
     walkthrough,
+    meter,
+    musicalKey,
     status,
     levelId,
     mixedLevel,
@@ -698,6 +749,7 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     rating,
     tunesJson,
     composedOn,
+    interpretedOn,
     revisedOn,
     createdAt,
     updatedAt,
@@ -735,6 +787,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         formationDetail.isAcceptableOrUnknown(
           data['formation_detail']!,
           _formationDetailMeta,
+        ),
+      );
+    }
+    if (data.containsKey('formation_improper')) {
+      context.handle(
+        _formationImproperMeta,
+        formationImproper.isAcceptableOrUnknown(
+          data['formation_improper']!,
+          _formationImproperMeta,
         ),
       );
     }
@@ -780,6 +841,18 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         ),
       );
     }
+    if (data.containsKey('meter')) {
+      context.handle(
+        _meterMeta,
+        meter.isAcceptableOrUnknown(data['meter']!, _meterMeta),
+      );
+    }
+    if (data.containsKey('musical_key')) {
+      context.handle(
+        _musicalKeyMeta,
+        musicalKey.isAcceptableOrUnknown(data['musical_key']!, _musicalKeyMeta),
+      );
+    }
     if (data.containsKey('level_id')) {
       context.handle(
         _levelIdMeta,
@@ -814,6 +887,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       context.handle(
         _composedOnMeta,
         composedOn.isAcceptableOrUnknown(data['composed_on']!, _composedOnMeta),
+      );
+    }
+    if (data.containsKey('interpreted_on')) {
+      context.handle(
+        _interpretedOnMeta,
+        interpretedOn.isAcceptableOrUnknown(
+          data['interpreted_on']!,
+          _interpretedOnMeta,
+        ),
       );
     }
     if (data.containsKey('revised_on')) {
@@ -886,6 +968,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}formation_detail'],
       ),
+      formationImproper: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}formation_improper'],
+      )!,
       progression: $DancesTable.$converterprogression.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -911,6 +997,14 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       walkthrough: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}walkthrough'],
+      )!,
+      meter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meter'],
+      )!,
+      musicalKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}musical_key'],
       )!,
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
@@ -941,6 +1035,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       composedOn: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}composed_on'],
+      ),
+      interpretedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}interpreted_on'],
       ),
       revisedOn: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -986,6 +1084,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   final DanceForm form;
   final FormationShape formationShape;
   final String? formationDetail;
+
+  /// ECD's proper/improper checkbox, `Formation.improper` (ADR-006 §12, F2).
+  /// Added in schema v42; existing rows read `false`, proper.
+  final bool formationImproper;
   final Progression progression;
 
   /// Persisted [PhraseStructure.raw] (`''` = the standard 4x16 structure).
@@ -1001,6 +1103,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
   /// feed the derived `dance_figures`/`dance_fts` indexes.
   final String walkthrough;
+
+  /// The tune's written meter, `Dance.meter`, as free text; `''` when not
+  /// given. Added in schema v42 (ADR-006 §12, F3).
+  final String meter;
+
+  /// The tune's key, `Dance.musicalKey`, as free text; `''` when not given.
+  /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
+  /// reserves.
+  final String musicalKey;
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
@@ -1033,6 +1144,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// Added in schema v5. Distinct from the record stamp [createdAt].
   final String? composedOn;
 
+  /// Interpretation date at partial precision (`Dance.interpretedOn`), the
+  /// canonical [PartialDate] string like [composedOn]; nullable. Added in
+  /// schema v42 (ADR-006 §9.2): ECD dances are often reconstructed from their
+  /// original publication by a later interpreter.
+  final String? interpretedOn;
+
   /// Author revision date at partial precision, persisted as the canonical
   /// [PartialDate] string; nullable. Added in schema v5. Distinct from the
   /// record stamp [updatedAt].
@@ -1051,12 +1168,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.form,
     required this.formationShape,
     this.formationDetail,
+    required this.formationImproper,
     required this.progression,
     required this.phraseStructure,
     required this.figuresJson,
     required this.hook,
     required this.callingNotes,
     required this.walkthrough,
+    required this.meter,
+    required this.musicalKey,
     required this.status,
     this.levelId,
     required this.mixedLevel,
@@ -1064,6 +1184,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     this.rating,
     required this.tunesJson,
     this.composedOn,
+    this.interpretedOn,
     this.revisedOn,
     required this.createdAt,
     required this.updatedAt,
@@ -1086,6 +1207,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     if (!nullToAbsent || formationDetail != null) {
       map['formation_detail'] = Variable<String>(formationDetail);
     }
+    map['formation_improper'] = Variable<bool>(formationImproper);
     {
       map['progression'] = Variable<String>(
         $DancesTable.$converterprogression.toSql(progression),
@@ -1096,6 +1218,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['hook'] = Variable<String>(hook);
     map['calling_notes'] = Variable<String>(callingNotes);
     map['walkthrough'] = Variable<String>(walkthrough);
+    map['meter'] = Variable<String>(meter);
+    map['musical_key'] = Variable<String>(musicalKey);
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -1112,6 +1236,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['tunes_json'] = Variable<String>(tunesJson);
     if (!nullToAbsent || composedOn != null) {
       map['composed_on'] = Variable<String>(composedOn);
+    }
+    if (!nullToAbsent || interpretedOn != null) {
+      map['interpreted_on'] = Variable<String>(interpretedOn);
     }
     if (!nullToAbsent || revisedOn != null) {
       map['revised_on'] = Variable<String>(revisedOn);
@@ -1136,12 +1263,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       formationDetail: formationDetail == null && nullToAbsent
           ? const Value.absent()
           : Value(formationDetail),
+      formationImproper: Value(formationImproper),
       progression: Value(progression),
       phraseStructure: Value(phraseStructure),
       figuresJson: Value(figuresJson),
       hook: Value(hook),
       callingNotes: Value(callingNotes),
       walkthrough: Value(walkthrough),
+      meter: Value(meter),
+      musicalKey: Value(musicalKey),
       status: Value(status),
       levelId: levelId == null && nullToAbsent
           ? const Value.absent()
@@ -1155,6 +1285,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       composedOn: composedOn == null && nullToAbsent
           ? const Value.absent()
           : Value(composedOn),
+      interpretedOn: interpretedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(interpretedOn),
       revisedOn: revisedOn == null && nullToAbsent
           ? const Value.absent()
           : Value(revisedOn),
@@ -1184,6 +1317,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         serializer.fromJson<String>(json['formationShape']),
       ),
       formationDetail: serializer.fromJson<String?>(json['formationDetail']),
+      formationImproper: serializer.fromJson<bool>(json['formationImproper']),
       progression: $DancesTable.$converterprogression.fromJson(
         serializer.fromJson<String>(json['progression']),
       ),
@@ -1192,6 +1326,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       hook: serializer.fromJson<String>(json['hook']),
       callingNotes: serializer.fromJson<String>(json['callingNotes']),
       walkthrough: serializer.fromJson<String>(json['walkthrough']),
+      meter: serializer.fromJson<String>(json['meter']),
+      musicalKey: serializer.fromJson<String>(json['musicalKey']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -1201,6 +1337,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       rating: serializer.fromJson<int?>(json['rating']),
       tunesJson: serializer.fromJson<String>(json['tunesJson']),
       composedOn: serializer.fromJson<String?>(json['composedOn']),
+      interpretedOn: serializer.fromJson<String?>(json['interpretedOn']),
       revisedOn: serializer.fromJson<String?>(json['revisedOn']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1221,6 +1358,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         $DancesTable.$converterformationShape.toJson(formationShape),
       ),
       'formationDetail': serializer.toJson<String?>(formationDetail),
+      'formationImproper': serializer.toJson<bool>(formationImproper),
       'progression': serializer.toJson<String>(
         $DancesTable.$converterprogression.toJson(progression),
       ),
@@ -1229,6 +1367,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'hook': serializer.toJson<String>(hook),
       'callingNotes': serializer.toJson<String>(callingNotes),
       'walkthrough': serializer.toJson<String>(walkthrough),
+      'meter': serializer.toJson<String>(meter),
+      'musicalKey': serializer.toJson<String>(musicalKey),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -1238,6 +1378,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'rating': serializer.toJson<int?>(rating),
       'tunesJson': serializer.toJson<String>(tunesJson),
       'composedOn': serializer.toJson<String?>(composedOn),
+      'interpretedOn': serializer.toJson<String?>(interpretedOn),
       'revisedOn': serializer.toJson<String?>(revisedOn),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1252,12 +1393,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     DanceForm? form,
     FormationShape? formationShape,
     Value<String?> formationDetail = const Value.absent(),
+    bool? formationImproper,
     Progression? progression,
     String? phraseStructure,
     String? figuresJson,
     String? hook,
     String? callingNotes,
     String? walkthrough,
+    String? meter,
+    String? musicalKey,
     DanceStatus? status,
     Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
@@ -1265,6 +1409,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     Value<int?> rating = const Value.absent(),
     String? tunesJson,
     Value<String?> composedOn = const Value.absent(),
+    Value<String?> interpretedOn = const Value.absent(),
     Value<String?> revisedOn = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1278,12 +1423,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     formationDetail: formationDetail.present
         ? formationDetail.value
         : this.formationDetail,
+    formationImproper: formationImproper ?? this.formationImproper,
     progression: progression ?? this.progression,
     phraseStructure: phraseStructure ?? this.phraseStructure,
     figuresJson: figuresJson ?? this.figuresJson,
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
+    meter: meter ?? this.meter,
+    musicalKey: musicalKey ?? this.musicalKey,
     status: status ?? this.status,
     levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1291,6 +1439,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     rating: rating.present ? rating.value : this.rating,
     tunesJson: tunesJson ?? this.tunesJson,
     composedOn: composedOn.present ? composedOn.value : this.composedOn,
+    interpretedOn: interpretedOn.present
+        ? interpretedOn.value
+        : this.interpretedOn,
     revisedOn: revisedOn.present ? revisedOn.value : this.revisedOn,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1308,6 +1459,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       formationDetail: data.formationDetail.present
           ? data.formationDetail.value
           : this.formationDetail,
+      formationImproper: data.formationImproper.present
+          ? data.formationImproper.value
+          : this.formationImproper,
       progression: data.progression.present
           ? data.progression.value
           : this.progression,
@@ -1324,6 +1478,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       walkthrough: data.walkthrough.present
           ? data.walkthrough.value
           : this.walkthrough,
+      meter: data.meter.present ? data.meter.value : this.meter,
+      musicalKey: data.musicalKey.present
+          ? data.musicalKey.value
+          : this.musicalKey,
       status: data.status.present ? data.status.value : this.status,
       levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
@@ -1335,6 +1493,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       composedOn: data.composedOn.present
           ? data.composedOn.value
           : this.composedOn,
+      interpretedOn: data.interpretedOn.present
+          ? data.interpretedOn.value
+          : this.interpretedOn,
       revisedOn: data.revisedOn.present ? data.revisedOn.value : this.revisedOn,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1353,12 +1514,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('form: $form, ')
           ..write('formationShape: $formationShape, ')
           ..write('formationDetail: $formationDetail, ')
+          ..write('formationImproper: $formationImproper, ')
           ..write('progression: $progression, ')
           ..write('phraseStructure: $phraseStructure, ')
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
+          ..write('meter: $meter, ')
+          ..write('musicalKey: $musicalKey, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1366,6 +1530,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('rating: $rating, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('composedOn: $composedOn, ')
+          ..write('interpretedOn: $interpretedOn, ')
           ..write('revisedOn: $revisedOn, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1382,12 +1547,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     form,
     formationShape,
     formationDetail,
+    formationImproper,
     progression,
     phraseStructure,
     figuresJson,
     hook,
     callingNotes,
     walkthrough,
+    meter,
+    musicalKey,
     status,
     levelId,
     mixedLevel,
@@ -1395,6 +1563,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     rating,
     tunesJson,
     composedOn,
+    interpretedOn,
     revisedOn,
     createdAt,
     updatedAt,
@@ -1410,12 +1579,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.form == this.form &&
           other.formationShape == this.formationShape &&
           other.formationDetail == this.formationDetail &&
+          other.formationImproper == this.formationImproper &&
           other.progression == this.progression &&
           other.phraseStructure == this.phraseStructure &&
           other.figuresJson == this.figuresJson &&
           other.hook == this.hook &&
           other.callingNotes == this.callingNotes &&
           other.walkthrough == this.walkthrough &&
+          other.meter == this.meter &&
+          other.musicalKey == this.musicalKey &&
           other.status == this.status &&
           other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
@@ -1423,6 +1595,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.rating == this.rating &&
           other.tunesJson == this.tunesJson &&
           other.composedOn == this.composedOn &&
+          other.interpretedOn == this.interpretedOn &&
           other.revisedOn == this.revisedOn &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1436,12 +1609,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<DanceForm> form;
   final Value<FormationShape> formationShape;
   final Value<String?> formationDetail;
+  final Value<bool> formationImproper;
   final Value<Progression> progression;
   final Value<String> phraseStructure;
   final Value<String> figuresJson;
   final Value<String> hook;
   final Value<String> callingNotes;
   final Value<String> walkthrough;
+  final Value<String> meter;
+  final Value<String> musicalKey;
   final Value<DanceStatus> status;
   final Value<String?> levelId;
   final Value<bool> mixedLevel;
@@ -1449,6 +1625,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<int?> rating;
   final Value<String> tunesJson;
   final Value<String?> composedOn;
+  final Value<String?> interpretedOn;
   final Value<String?> revisedOn;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1461,12 +1638,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.form = const Value.absent(),
     this.formationShape = const Value.absent(),
     this.formationDetail = const Value.absent(),
+    this.formationImproper = const Value.absent(),
     this.progression = const Value.absent(),
     this.phraseStructure = const Value.absent(),
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
+    this.meter = const Value.absent(),
+    this.musicalKey = const Value.absent(),
     this.status = const Value.absent(),
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1474,6 +1654,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.rating = const Value.absent(),
     this.tunesJson = const Value.absent(),
     this.composedOn = const Value.absent(),
+    this.interpretedOn = const Value.absent(),
     this.revisedOn = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1487,12 +1668,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     required DanceForm form,
     required FormationShape formationShape,
     this.formationDetail = const Value.absent(),
+    this.formationImproper = const Value.absent(),
     required Progression progression,
     this.phraseStructure = const Value.absent(),
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
+    this.meter = const Value.absent(),
+    this.musicalKey = const Value.absent(),
     required DanceStatus status,
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1500,6 +1684,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.rating = const Value.absent(),
     this.tunesJson = const Value.absent(),
     this.composedOn = const Value.absent(),
+    this.interpretedOn = const Value.absent(),
     this.revisedOn = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1520,12 +1705,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? form,
     Expression<String>? formationShape,
     Expression<String>? formationDetail,
+    Expression<bool>? formationImproper,
     Expression<String>? progression,
     Expression<String>? phraseStructure,
     Expression<String>? figuresJson,
     Expression<String>? hook,
     Expression<String>? callingNotes,
     Expression<String>? walkthrough,
+    Expression<String>? meter,
+    Expression<String>? musicalKey,
     Expression<String>? status,
     Expression<String>? levelId,
     Expression<bool>? mixedLevel,
@@ -1533,6 +1721,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<int>? rating,
     Expression<String>? tunesJson,
     Expression<String>? composedOn,
+    Expression<String>? interpretedOn,
     Expression<String>? revisedOn,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1546,12 +1735,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (form != null) 'form': form,
       if (formationShape != null) 'formation_shape': formationShape,
       if (formationDetail != null) 'formation_detail': formationDetail,
+      if (formationImproper != null) 'formation_improper': formationImproper,
       if (progression != null) 'progression': progression,
       if (phraseStructure != null) 'phrase_structure': phraseStructure,
       if (figuresJson != null) 'figures_json': figuresJson,
       if (hook != null) 'hook': hook,
       if (callingNotes != null) 'calling_notes': callingNotes,
       if (walkthrough != null) 'walkthrough': walkthrough,
+      if (meter != null) 'meter': meter,
+      if (musicalKey != null) 'musical_key': musicalKey,
       if (status != null) 'status': status,
       if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -1559,6 +1751,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (rating != null) 'rating': rating,
       if (tunesJson != null) 'tunes_json': tunesJson,
       if (composedOn != null) 'composed_on': composedOn,
+      if (interpretedOn != null) 'interpreted_on': interpretedOn,
       if (revisedOn != null) 'revised_on': revisedOn,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1574,12 +1767,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<DanceForm>? form,
     Value<FormationShape>? formationShape,
     Value<String?>? formationDetail,
+    Value<bool>? formationImproper,
     Value<Progression>? progression,
     Value<String>? phraseStructure,
     Value<String>? figuresJson,
     Value<String>? hook,
     Value<String>? callingNotes,
     Value<String>? walkthrough,
+    Value<String>? meter,
+    Value<String>? musicalKey,
     Value<DanceStatus>? status,
     Value<String?>? levelId,
     Value<bool>? mixedLevel,
@@ -1587,6 +1783,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<int?>? rating,
     Value<String>? tunesJson,
     Value<String?>? composedOn,
+    Value<String?>? interpretedOn,
     Value<String?>? revisedOn,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1600,12 +1797,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       form: form ?? this.form,
       formationShape: formationShape ?? this.formationShape,
       formationDetail: formationDetail ?? this.formationDetail,
+      formationImproper: formationImproper ?? this.formationImproper,
       progression: progression ?? this.progression,
       phraseStructure: phraseStructure ?? this.phraseStructure,
       figuresJson: figuresJson ?? this.figuresJson,
       hook: hook ?? this.hook,
       callingNotes: callingNotes ?? this.callingNotes,
       walkthrough: walkthrough ?? this.walkthrough,
+      meter: meter ?? this.meter,
+      musicalKey: musicalKey ?? this.musicalKey,
       status: status ?? this.status,
       levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1613,6 +1813,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       rating: rating ?? this.rating,
       tunesJson: tunesJson ?? this.tunesJson,
       composedOn: composedOn ?? this.composedOn,
+      interpretedOn: interpretedOn ?? this.interpretedOn,
       revisedOn: revisedOn ?? this.revisedOn,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1644,6 +1845,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (formationDetail.present) {
       map['formation_detail'] = Variable<String>(formationDetail.value);
     }
+    if (formationImproper.present) {
+      map['formation_improper'] = Variable<bool>(formationImproper.value);
+    }
     if (progression.present) {
       map['progression'] = Variable<String>(
         $DancesTable.$converterprogression.toSql(progression.value),
@@ -1663,6 +1867,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     }
     if (walkthrough.present) {
       map['walkthrough'] = Variable<String>(walkthrough.value);
+    }
+    if (meter.present) {
+      map['meter'] = Variable<String>(meter.value);
+    }
+    if (musicalKey.present) {
+      map['musical_key'] = Variable<String>(musicalKey.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(
@@ -1686,6 +1896,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     }
     if (composedOn.present) {
       map['composed_on'] = Variable<String>(composedOn.value);
+    }
+    if (interpretedOn.present) {
+      map['interpreted_on'] = Variable<String>(interpretedOn.value);
     }
     if (revisedOn.present) {
       map['revised_on'] = Variable<String>(revisedOn.value);
@@ -1716,12 +1929,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('form: $form, ')
           ..write('formationShape: $formationShape, ')
           ..write('formationDetail: $formationDetail, ')
+          ..write('formationImproper: $formationImproper, ')
           ..write('progression: $progression, ')
           ..write('phraseStructure: $phraseStructure, ')
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
+          ..write('meter: $meter, ')
+          ..write('musicalKey: $musicalKey, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1729,6 +1945,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('rating: $rating, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('composedOn: $composedOn, ')
+          ..write('interpretedOn: $interpretedOn, ')
           ..write('revisedOn: $revisedOn, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2652,6 +2869,291 @@ class DanceAuthorsCompanion extends UpdateCompanion<DanceAuthorRow> {
   }
 }
 
+class $DanceInterpretersTable extends DanceInterpreters
+    with TableInfo<$DanceInterpretersTable, DanceInterpreterRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DanceInterpretersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _danceIdMeta = const VerificationMeta(
+    'danceId',
+  );
+  @override
+  late final GeneratedColumn<String> danceId = GeneratedColumn<String>(
+    'dance_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES dances (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _choreographerIdMeta = const VerificationMeta(
+    'choreographerId',
+  );
+  @override
+  late final GeneratedColumn<String> choreographerId = GeneratedColumn<String>(
+    'choreographer_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES choreographers (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [danceId, choreographerId, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dance_interpreters';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DanceInterpreterRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dance_id')) {
+      context.handle(
+        _danceIdMeta,
+        danceId.isAcceptableOrUnknown(data['dance_id']!, _danceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_danceIdMeta);
+    }
+    if (data.containsKey('choreographer_id')) {
+      context.handle(
+        _choreographerIdMeta,
+        choreographerId.isAcceptableOrUnknown(
+          data['choreographer_id']!,
+          _choreographerIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_choreographerIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {danceId, choreographerId};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {danceId, position},
+  ];
+  @override
+  DanceInterpreterRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DanceInterpreterRow(
+      danceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dance_id'],
+      )!,
+      choreographerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}choreographer_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $DanceInterpretersTable createAlias(String alias) {
+    return $DanceInterpretersTable(attachedDatabase, alias);
+  }
+}
+
+class DanceInterpreterRow extends DataClass
+    implements Insertable<DanceInterpreterRow> {
+  final String danceId;
+  final String choreographerId;
+  final int position;
+  const DanceInterpreterRow({
+    required this.danceId,
+    required this.choreographerId,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dance_id'] = Variable<String>(danceId);
+    map['choreographer_id'] = Variable<String>(choreographerId);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  DanceInterpretersCompanion toCompanion(bool nullToAbsent) {
+    return DanceInterpretersCompanion(
+      danceId: Value(danceId),
+      choreographerId: Value(choreographerId),
+      position: Value(position),
+    );
+  }
+
+  factory DanceInterpreterRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DanceInterpreterRow(
+      danceId: serializer.fromJson<String>(json['danceId']),
+      choreographerId: serializer.fromJson<String>(json['choreographerId']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'danceId': serializer.toJson<String>(danceId),
+      'choreographerId': serializer.toJson<String>(choreographerId),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  DanceInterpreterRow copyWith({
+    String? danceId,
+    String? choreographerId,
+    int? position,
+  }) => DanceInterpreterRow(
+    danceId: danceId ?? this.danceId,
+    choreographerId: choreographerId ?? this.choreographerId,
+    position: position ?? this.position,
+  );
+  DanceInterpreterRow copyWithCompanion(DanceInterpretersCompanion data) {
+    return DanceInterpreterRow(
+      danceId: data.danceId.present ? data.danceId.value : this.danceId,
+      choreographerId: data.choreographerId.present
+          ? data.choreographerId.value
+          : this.choreographerId,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DanceInterpreterRow(')
+          ..write('danceId: $danceId, ')
+          ..write('choreographerId: $choreographerId, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(danceId, choreographerId, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DanceInterpreterRow &&
+          other.danceId == this.danceId &&
+          other.choreographerId == this.choreographerId &&
+          other.position == this.position);
+}
+
+class DanceInterpretersCompanion extends UpdateCompanion<DanceInterpreterRow> {
+  final Value<String> danceId;
+  final Value<String> choreographerId;
+  final Value<int> position;
+  final Value<int> rowid;
+  const DanceInterpretersCompanion({
+    this.danceId = const Value.absent(),
+    this.choreographerId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DanceInterpretersCompanion.insert({
+    required String danceId,
+    required String choreographerId,
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : danceId = Value(danceId),
+       choreographerId = Value(choreographerId),
+       position = Value(position);
+  static Insertable<DanceInterpreterRow> custom({
+    Expression<String>? danceId,
+    Expression<String>? choreographerId,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (danceId != null) 'dance_id': danceId,
+      if (choreographerId != null) 'choreographer_id': choreographerId,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DanceInterpretersCompanion copyWith({
+    Value<String>? danceId,
+    Value<String>? choreographerId,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return DanceInterpretersCompanion(
+      danceId: danceId ?? this.danceId,
+      choreographerId: choreographerId ?? this.choreographerId,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (danceId.present) {
+      map['dance_id'] = Variable<String>(danceId.value);
+    }
+    if (choreographerId.present) {
+      map['choreographer_id'] = Variable<String>(choreographerId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DanceInterpretersCompanion(')
+          ..write('danceId: $danceId, ')
+          ..write('choreographerId: $choreographerId, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $DanceFiguresTable extends DanceFigures
     with TableInfo<$DanceFiguresTable, DanceFigureRow> {
   @override
@@ -2911,13 +3413,15 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   final int idx;
 
   /// Correlation group: all rows flattened from one **top-level** figure share
-  /// this value, and it is monotonic across a dance's top-level figures. Unlike
+  /// this value, and it is monotonic across a dance's top-level figures — except
+  /// that each child of a top-level `sequence` container, being danced in
+  /// order, takes a group of its own. Unlike
   /// [idx] (unique per row, as the `{danceId, idx}` PK requires), [groupIdx] is
   /// deliberately **not** unique — the concurrent sides of a `meanwhile`
   /// container (flattened per side, #590) all carry the container's single
-  /// [groupIdx]. The `Then` sequence operator correlates on
-  /// `a.group_idx < b.group_idx` so two concurrent sides, sharing a group, are
-  /// never treated as one-before-the-other (#748). Added in schema v22; existing
+  /// [groupIdx]. The `Then` sequence operator pairs a row with the rows of the
+  /// next group after its own (wrapping from the last), so two concurrent
+  /// sides, sharing a group, are never treated as one-after-the-other (#748). Added in schema v22; existing
   /// rows default to 0 and are repopulated by the derived-index rebuild.
   final int groupIdx;
   final String move;
@@ -2925,6 +3429,8 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   final bool progression;
 
   /// Figure `params` as JSON (queried via SQLite JSON1, `params_json ->> ...`).
+  /// A use of a figure of your own (#1023) keeps its reference here only
+  /// while it renders live from its figure.
   final String paramsJson;
 
   /// Rendered canonical text (dialect-free); feeds `dance_fts.figures_text`.
@@ -3356,6 +3862,39 @@ class $ProgramsTable extends Programs
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _dialectNameMeta = const VerificationMeta(
+    'dialectName',
+  );
+  @override
+  late final GeneratedColumn<String> dialectName = GeneratedColumn<String>(
+    'dialect_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payMinorUnitsMeta = const VerificationMeta(
+    'payMinorUnits',
+  );
+  @override
+  late final GeneratedColumn<int> payMinorUnits = GeneratedColumn<int>(
+    'pay_minor_units',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payCurrencyMeta = const VerificationMeta(
+    'payCurrency',
+  );
+  @override
+  late final GeneratedColumn<String> payCurrency = GeneratedColumn<String>(
+    'pay_currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3400,6 +3939,17 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> archivedAt = GeneratedColumn<DateTime>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3413,10 +3963,14 @@ class $ProgramsTable extends Programs
     notes,
     status,
     hideAlternates,
+    dialectName,
+    payMinorUnits,
+    payCurrency,
     createdAt,
     updatedAt,
     deletedAt,
     existenceAt,
+    archivedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3497,6 +4051,33 @@ class $ProgramsTable extends Programs
         ),
       );
     }
+    if (data.containsKey('dialect_name')) {
+      context.handle(
+        _dialectNameMeta,
+        dialectName.isAcceptableOrUnknown(
+          data['dialect_name']!,
+          _dialectNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pay_minor_units')) {
+      context.handle(
+        _payMinorUnitsMeta,
+        payMinorUnits.isAcceptableOrUnknown(
+          data['pay_minor_units']!,
+          _payMinorUnitsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pay_currency')) {
+      context.handle(
+        _payCurrencyMeta,
+        payCurrency.isAcceptableOrUnknown(
+          data['pay_currency']!,
+          _payCurrencyMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3526,6 +4107,12 @@ class $ProgramsTable extends Programs
           data['existence_at']!,
           _existenceAtMeta,
         ),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
       );
     }
     return context;
@@ -3583,6 +4170,18 @@ class $ProgramsTable extends Programs
         DriftSqlType.bool,
         data['${effectivePrefix}hide_alternates'],
       )!,
+      dialectName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dialect_name'],
+      ),
+      payMinorUnits: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pay_minor_units'],
+      ),
+      payCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pay_currency'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3598,6 +4197,10 @@ class $ProgramsTable extends Programs
       existenceAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}existence_at'],
+      ),
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}archived_at'],
       ),
     );
   }
@@ -3621,12 +4224,25 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// schema v14. A deliberately un-constrained soft reference (no drift
   /// `.references()`/FK): the free-text [venue] label and this entity link
   /// coexist non-destructively. Referential integrity is enforced at the app
-  /// layer instead of by a DB constraint — `ProgramRepository` rejects a write
-  /// whose non-null `venueId` has no matching venue (checked inside the write
-  /// transaction), and `VenueRepository.delete` atomically refuses to remove a
-  /// venue any program still references. Import paths resolve-or-null a dangling
-  /// `venueId` before persisting, so a bundle can carry a program whose venue
-  /// record is absent without tripping the write-time check.
+  /// layer instead of by a DB constraint — `ProgramRepository`'s live-venue
+  /// guard rejects an *interactive* `create`/`update` whose non-null `venueId`
+  /// newly names a venue that does not exist (checked inside the write
+  /// transaction; a save that leaves an already-dangling `venueId` unchanged is
+  /// tolerated), and `VenueRepository.delete`'s guard atomically refuses to
+  /// remove a venue any *live* program still references.
+  ///
+  /// That live-only guard is exactly why this column can end up dangling by
+  /// the ordinary path: soft-delete a program, then delete the venue it named
+  /// — the tombstoned program keeps its `venueId`, and nothing stops the venue
+  /// from going. Device Sync's inbound write paths
+  /// (`ProgramRepository.writeFromSync` and its two-phase siblings) can also
+  /// persist a dangling `venueId`, but by design rather than by gap: they skip
+  /// the guard entirely and write a peer's body verbatim, because nulling a
+  /// dangling reference there would change the peer's serialised content
+  /// without advancing its `updatedAt` (sync-spec.md §6.5, §6.7). The archive
+  /// restorer's import paths are not a third dangling-producing path — they
+  /// resolve-or-null a dangling `venueId` before persisting, so a restored
+  /// program never carries one.
   final String? venueId;
   final String? band;
   final String? caller;
@@ -3634,6 +4250,26 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final String notes;
   final ProgramStatus status;
   final bool hideAlternates;
+
+  /// Name of the dialect Perform uses for this program (schema v37). `null`
+  /// (the default, and every program before v37) means Perform follows the
+  /// application dialect. A soft reference by **name** — dialects are
+  /// identified only by name (`Dialect.resolveByName`) — and deliberately not
+  /// validated at write time: a name that no longer resolves (the dialect was
+  /// deleted, or has not synced to this device yet) falls back to the
+  /// application dialect when Perform resolves it, so a dialect delete never
+  /// writes to programs. A dialect rename is carried to the programs that name
+  /// it by `ProgramRepository.renameDialect`.
+  final String? dialectName;
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (schema v38). `null` (every program before v38) means no pay is recorded.
+  /// Set together with [payCurrency] or not at all; never negative.
+  final int? payMinorUnits;
+
+  /// ISO 4217 code for [payMinorUnits] (three uppercase letters); `null`
+  /// exactly when [payMinorUnits] is.
+  final String? payCurrency;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -3642,6 +4278,13 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// file. Added in schema v25 (issue #898); `programs` already carried the
   /// other two.
   final DateTime? existenceAt;
+
+  /// When the caller archived the program (schema v42); `null` (every program
+  /// before v42) means it is not archived. Hides the program from the Programs
+  /// list and the Add to program sheet, nothing more: calling history still
+  /// counts it. Declared last because `ALTER TABLE ADD COLUMN` appends it there
+  /// on a migrated database, so a fresh one gets the same column order.
+  final DateTime? archivedAt;
   const ProgramRow({
     required this.id,
     required this.title,
@@ -3654,10 +4297,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     required this.notes,
     required this.status,
     required this.hideAlternates,
+    this.dialectName,
+    this.payMinorUnits,
+    this.payCurrency,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
     this.existenceAt,
+    this.archivedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3689,6 +4336,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       );
     }
     map['hide_alternates'] = Variable<bool>(hideAlternates);
+    if (!nullToAbsent || dialectName != null) {
+      map['dialect_name'] = Variable<String>(dialectName);
+    }
+    if (!nullToAbsent || payMinorUnits != null) {
+      map['pay_minor_units'] = Variable<int>(payMinorUnits);
+    }
+    if (!nullToAbsent || payCurrency != null) {
+      map['pay_currency'] = Variable<String>(payCurrency);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -3696,6 +4352,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     }
     if (!nullToAbsent || existenceAt != null) {
       map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<DateTime>(archivedAt);
     }
     return map;
   }
@@ -3723,6 +4382,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       notes: Value(notes),
       status: Value(status),
       hideAlternates: Value(hideAlternates),
+      dialectName: dialectName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialectName),
+      payMinorUnits: payMinorUnits == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payMinorUnits),
+      payCurrency: payCurrency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payCurrency),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -3731,6 +4399,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       existenceAt: existenceAt == null && nullToAbsent
           ? const Value.absent()
           : Value(existenceAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
     );
   }
 
@@ -3753,10 +4424,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         serializer.fromJson<String>(json['status']),
       ),
       hideAlternates: serializer.fromJson<bool>(json['hideAlternates']),
+      dialectName: serializer.fromJson<String?>(json['dialectName']),
+      payMinorUnits: serializer.fromJson<int?>(json['payMinorUnits']),
+      payCurrency: serializer.fromJson<String?>(json['payCurrency']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
+      archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
     );
   }
   @override
@@ -3776,10 +4451,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         $ProgramsTable.$converterstatus.toJson(status),
       ),
       'hideAlternates': serializer.toJson<bool>(hideAlternates),
+      'dialectName': serializer.toJson<String?>(dialectName),
+      'payMinorUnits': serializer.toJson<int?>(payMinorUnits),
+      'payCurrency': serializer.toJson<String?>(payCurrency),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'existenceAt': serializer.toJson<DateTime?>(existenceAt),
+      'archivedAt': serializer.toJson<DateTime?>(archivedAt),
     };
   }
 
@@ -3795,10 +4474,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     String? notes,
     ProgramStatus? status,
     bool? hideAlternates,
+    Value<String?> dialectName = const Value.absent(),
+    Value<int?> payMinorUnits = const Value.absent(),
+    Value<String?> payCurrency = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     Value<DateTime?> existenceAt = const Value.absent(),
+    Value<DateTime?> archivedAt = const Value.absent(),
   }) => ProgramRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -3811,10 +4494,16 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     notes: notes ?? this.notes,
     status: status ?? this.status,
     hideAlternates: hideAlternates ?? this.hideAlternates,
+    dialectName: dialectName.present ? dialectName.value : this.dialectName,
+    payMinorUnits: payMinorUnits.present
+        ? payMinorUnits.value
+        : this.payMinorUnits,
+    payCurrency: payCurrency.present ? payCurrency.value : this.payCurrency,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
   );
   ProgramRow copyWithCompanion(ProgramsCompanion data) {
     return ProgramRow(
@@ -3833,12 +4522,24 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       hideAlternates: data.hideAlternates.present
           ? data.hideAlternates.value
           : this.hideAlternates,
+      dialectName: data.dialectName.present
+          ? data.dialectName.value
+          : this.dialectName,
+      payMinorUnits: data.payMinorUnits.present
+          ? data.payMinorUnits.value
+          : this.payMinorUnits,
+      payCurrency: data.payCurrency.present
+          ? data.payCurrency.value
+          : this.payCurrency,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       existenceAt: data.existenceAt.present
           ? data.existenceAt.value
           : this.existenceAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
     );
   }
 
@@ -3856,10 +4557,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
+          ..write('dialectName: $dialectName, ')
+          ..write('payMinorUnits: $payMinorUnits, ')
+          ..write('payCurrency: $payCurrency, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
-          ..write('existenceAt: $existenceAt')
+          ..write('existenceAt: $existenceAt, ')
+          ..write('archivedAt: $archivedAt')
           ..write(')'))
         .toString();
   }
@@ -3877,10 +4582,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     notes,
     status,
     hideAlternates,
+    dialectName,
+    payMinorUnits,
+    payCurrency,
     createdAt,
     updatedAt,
     deletedAt,
     existenceAt,
+    archivedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -3897,10 +4606,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.notes == this.notes &&
           other.status == this.status &&
           other.hideAlternates == this.hideAlternates &&
+          other.dialectName == this.dialectName &&
+          other.payMinorUnits == this.payMinorUnits &&
+          other.payCurrency == this.payCurrency &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
-          other.existenceAt == this.existenceAt);
+          other.existenceAt == this.existenceAt &&
+          other.archivedAt == this.archivedAt);
 }
 
 class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
@@ -3915,10 +4628,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<String> notes;
   final Value<ProgramStatus> status;
   final Value<bool> hideAlternates;
+  final Value<String?> dialectName;
+  final Value<int?> payMinorUnits;
+  final Value<String?> payCurrency;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<DateTime?> existenceAt;
+  final Value<DateTime?> archivedAt;
   final Value<int> rowid;
   const ProgramsCompanion({
     this.id = const Value.absent(),
@@ -3932,10 +4649,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.notes = const Value.absent(),
     this.status = const Value.absent(),
     this.hideAlternates = const Value.absent(),
+    this.dialectName = const Value.absent(),
+    this.payMinorUnits = const Value.absent(),
+    this.payCurrency = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.existenceAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProgramsCompanion.insert({
@@ -3950,10 +4671,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.notes = const Value.absent(),
     required ProgramStatus status,
     this.hideAlternates = const Value.absent(),
+    this.dialectName = const Value.absent(),
+    this.payMinorUnits = const Value.absent(),
+    this.payCurrency = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.existenceAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -3972,10 +4697,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? notes,
     Expression<String>? status,
     Expression<bool>? hideAlternates,
+    Expression<String>? dialectName,
+    Expression<int>? payMinorUnits,
+    Expression<String>? payCurrency,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<DateTime>? existenceAt,
+    Expression<DateTime>? archivedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3990,10 +4719,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (notes != null) 'notes': notes,
       if (status != null) 'status': status,
       if (hideAlternates != null) 'hide_alternates': hideAlternates,
+      if (dialectName != null) 'dialect_name': dialectName,
+      if (payMinorUnits != null) 'pay_minor_units': payMinorUnits,
+      if (payCurrency != null) 'pay_currency': payCurrency,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (existenceAt != null) 'existence_at': existenceAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4010,10 +4743,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<String>? notes,
     Value<ProgramStatus>? status,
     Value<bool>? hideAlternates,
+    Value<String?>? dialectName,
+    Value<int?>? payMinorUnits,
+    Value<String?>? payCurrency,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<DateTime?>? existenceAt,
+    Value<DateTime?>? archivedAt,
     Value<int>? rowid,
   }) {
     return ProgramsCompanion(
@@ -4028,10 +4765,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       notes: notes ?? this.notes,
       status: status ?? this.status,
       hideAlternates: hideAlternates ?? this.hideAlternates,
+      dialectName: dialectName ?? this.dialectName,
+      payMinorUnits: payMinorUnits ?? this.payMinorUnits,
+      payCurrency: payCurrency ?? this.payCurrency,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       existenceAt: existenceAt ?? this.existenceAt,
+      archivedAt: archivedAt ?? this.archivedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4074,6 +4815,15 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (hideAlternates.present) {
       map['hide_alternates'] = Variable<bool>(hideAlternates.value);
     }
+    if (dialectName.present) {
+      map['dialect_name'] = Variable<String>(dialectName.value);
+    }
+    if (payMinorUnits.present) {
+      map['pay_minor_units'] = Variable<int>(payMinorUnits.value);
+    }
+    if (payCurrency.present) {
+      map['pay_currency'] = Variable<String>(payCurrency.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4085,6 +4835,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     }
     if (existenceAt.present) {
       map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<DateTime>(archivedAt.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -4106,10 +4859,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
+          ..write('dialectName: $dialectName, ')
+          ..write('payMinorUnits: $payMinorUnits, ')
+          ..write('payCurrency: $payCurrency, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('existenceAt: $existenceAt, ')
+          ..write('archivedAt: $archivedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6008,10 +6765,13 @@ class TagRow extends DataClass implements Insertable<TagRow> {
 
   /// Sync timestamp triple; see the note at the top of this file. Added in
   /// schema v25 (issue #898), which also converted `TagRepository.delete` from
-  /// a hard delete to a tombstone. Tags are the one converted kind with **no**
-  /// referential guard, so this is also the one whose `dance_tags` rows now
-  /// outlive the delete — every read that joins through `tags` filters on
-  /// `deleted_at IS NULL` for that reason.
+  /// a hard delete to a tombstone. Its *tombstoning* path is the one converted
+  /// kind's delete with **no** referential guard, so this is the one whose
+  /// `dance_tags` rows outlive the delete by ordinary use — every read that
+  /// joins through `tags` filters on `deleted_at IS NULL` for that reason. Its
+  /// `permanent: true` path is guarded like every sibling as of issue #1357:
+  /// that one erases, and `dance_tags` is `ON DELETE CASCADE`, so an unguarded
+  /// erase stripped the tag from live dances too.
   final DateTime? updatedAt;
   final DateTime? deletedAt;
   final DateTime? existenceAt;
@@ -9886,9 +10646,16 @@ class VenueRow extends DataClass implements Insertable<VenueRow> {
 
   /// Sync timestamp triple; see the note at the top of this file. Added in
   /// schema v25 (issue #898), which also converted `VenueRepository.delete`
-  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] stays a
-  /// hard delete: it exists solely to roll back a just-committed import, and a
-  /// rollback must leave no trace to publish.
+  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] still
+  /// erases, because it exists solely to roll back a just-committed import and
+  /// a rollback should leave no trace to publish — but only for a venue that
+  /// was never published and that no surviving program still names. A
+  /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture),
+  /// **unless** a surviving program row still names it, in which case it is
+  /// left live: retention outranks forfeiture, because a tombstoned venue is
+  /// invisible to every venue read and orphans a live program's `venue_id`
+  /// exactly as an erasure would (issue #1357). Only a program restored from
+  /// Recently deleted brings a tombstoned venue back.
   final DateTime? updatedAt;
   final DateTime? deletedAt;
   final DateTime? existenceAt;
@@ -11806,8 +12573,34 @@ class $BaselineStateTable extends BaselineState
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _publishedManifestHashMeta =
+      const VerificationMeta('publishedManifestHash');
   @override
-  List<GeneratedColumn> get $columns => [id, epoch];
+  late final GeneratedColumn<String> publishedManifestHash =
+      GeneratedColumn<String>(
+        'published_manifest_hash',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _publishedVerifiedAtMeta =
+      const VerificationMeta('publishedVerifiedAt');
+  @override
+  late final GeneratedColumn<int> publishedVerifiedAt = GeneratedColumn<int>(
+    'published_verified_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    epoch,
+    publishedManifestHash,
+    publishedVerifiedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -11831,6 +12624,24 @@ class $BaselineStateTable extends BaselineState
     } else if (isInserting) {
       context.missing(_epochMeta);
     }
+    if (data.containsKey('published_manifest_hash')) {
+      context.handle(
+        _publishedManifestHashMeta,
+        publishedManifestHash.isAcceptableOrUnknown(
+          data['published_manifest_hash']!,
+          _publishedManifestHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('published_verified_at')) {
+      context.handle(
+        _publishedVerifiedAtMeta,
+        publishedVerifiedAt.isAcceptableOrUnknown(
+          data['published_verified_at']!,
+          _publishedVerifiedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -11848,6 +12659,14 @@ class $BaselineStateTable extends BaselineState
         DriftSqlType.string,
         data['${effectivePrefix}epoch'],
       )!,
+      publishedManifestHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}published_manifest_hash'],
+      ),
+      publishedVerifiedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}published_verified_at'],
+      ),
     );
   }
 
@@ -11861,17 +12680,50 @@ class BaselineStateRow extends DataClass
     implements Insertable<BaselineStateRow> {
   final int id;
   final String epoch;
-  const BaselineStateRow({required this.id, required this.epoch});
+
+  /// SHA-256 of the manifest this device last published in [epoch], encoded
+  /// with its `writtenAt` fixed, so it names exactly the device id, epoch and
+  /// records the server holds for this device (sync-spec §6.3 step 8). Null
+  /// until a publication succeeds, and cleared before every manifest `PUT`, so
+  /// a `PUT` whose outcome is unknown is never mistaken for one that landed.
+  final String? publishedManifestHash;
+
+  /// When the store last confirmed every blob that manifest names, as
+  /// milliseconds since the Unix epoch, UTC. Set with
+  /// [publishedManifestHash]; a pass older than the refresh interval checks
+  /// every blob again and republishes even an unchanged manifest.
+  final int? publishedVerifiedAt;
+  const BaselineStateRow({
+    required this.id,
+    required this.epoch,
+    this.publishedManifestHash,
+    this.publishedVerifiedAt,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['epoch'] = Variable<String>(epoch);
+    if (!nullToAbsent || publishedManifestHash != null) {
+      map['published_manifest_hash'] = Variable<String>(publishedManifestHash);
+    }
+    if (!nullToAbsent || publishedVerifiedAt != null) {
+      map['published_verified_at'] = Variable<int>(publishedVerifiedAt);
+    }
     return map;
   }
 
   BaselineStateCompanion toCompanion(bool nullToAbsent) {
-    return BaselineStateCompanion(id: Value(id), epoch: Value(epoch));
+    return BaselineStateCompanion(
+      id: Value(id),
+      epoch: Value(epoch),
+      publishedManifestHash: publishedManifestHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedManifestHash),
+      publishedVerifiedAt: publishedVerifiedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedVerifiedAt),
+    );
   }
 
   factory BaselineStateRow.fromJson(
@@ -11882,6 +12734,12 @@ class BaselineStateRow extends DataClass
     return BaselineStateRow(
       id: serializer.fromJson<int>(json['id']),
       epoch: serializer.fromJson<String>(json['epoch']),
+      publishedManifestHash: serializer.fromJson<String?>(
+        json['publishedManifestHash'],
+      ),
+      publishedVerifiedAt: serializer.fromJson<int?>(
+        json['publishedVerifiedAt'],
+      ),
     );
   }
   @override
@@ -11890,15 +12748,38 @@ class BaselineStateRow extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'epoch': serializer.toJson<String>(epoch),
+      'publishedManifestHash': serializer.toJson<String?>(
+        publishedManifestHash,
+      ),
+      'publishedVerifiedAt': serializer.toJson<int?>(publishedVerifiedAt),
     };
   }
 
-  BaselineStateRow copyWith({int? id, String? epoch}) =>
-      BaselineStateRow(id: id ?? this.id, epoch: epoch ?? this.epoch);
+  BaselineStateRow copyWith({
+    int? id,
+    String? epoch,
+    Value<String?> publishedManifestHash = const Value.absent(),
+    Value<int?> publishedVerifiedAt = const Value.absent(),
+  }) => BaselineStateRow(
+    id: id ?? this.id,
+    epoch: epoch ?? this.epoch,
+    publishedManifestHash: publishedManifestHash.present
+        ? publishedManifestHash.value
+        : this.publishedManifestHash,
+    publishedVerifiedAt: publishedVerifiedAt.present
+        ? publishedVerifiedAt.value
+        : this.publishedVerifiedAt,
+  );
   BaselineStateRow copyWithCompanion(BaselineStateCompanion data) {
     return BaselineStateRow(
       id: data.id.present ? data.id.value : this.id,
       epoch: data.epoch.present ? data.epoch.value : this.epoch,
+      publishedManifestHash: data.publishedManifestHash.present
+          ? data.publishedManifestHash.value
+          : this.publishedManifestHash,
+      publishedVerifiedAt: data.publishedVerifiedAt.present
+          ? data.publishedVerifiedAt.value
+          : this.publishedVerifiedAt,
     );
   }
 
@@ -11906,46 +12787,71 @@ class BaselineStateRow extends DataClass
   String toString() {
     return (StringBuffer('BaselineStateRow(')
           ..write('id: $id, ')
-          ..write('epoch: $epoch')
+          ..write('epoch: $epoch, ')
+          ..write('publishedManifestHash: $publishedManifestHash, ')
+          ..write('publishedVerifiedAt: $publishedVerifiedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, epoch);
+  int get hashCode =>
+      Object.hash(id, epoch, publishedManifestHash, publishedVerifiedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BaselineStateRow &&
           other.id == this.id &&
-          other.epoch == this.epoch);
+          other.epoch == this.epoch &&
+          other.publishedManifestHash == this.publishedManifestHash &&
+          other.publishedVerifiedAt == this.publishedVerifiedAt);
 }
 
 class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
   final Value<int> id;
   final Value<String> epoch;
+  final Value<String?> publishedManifestHash;
+  final Value<int?> publishedVerifiedAt;
   const BaselineStateCompanion({
     this.id = const Value.absent(),
     this.epoch = const Value.absent(),
+    this.publishedManifestHash = const Value.absent(),
+    this.publishedVerifiedAt = const Value.absent(),
   });
   BaselineStateCompanion.insert({
     this.id = const Value.absent(),
     required String epoch,
+    this.publishedManifestHash = const Value.absent(),
+    this.publishedVerifiedAt = const Value.absent(),
   }) : epoch = Value(epoch);
   static Insertable<BaselineStateRow> custom({
     Expression<int>? id,
     Expression<String>? epoch,
+    Expression<String>? publishedManifestHash,
+    Expression<int>? publishedVerifiedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (epoch != null) 'epoch': epoch,
+      if (publishedManifestHash != null)
+        'published_manifest_hash': publishedManifestHash,
+      if (publishedVerifiedAt != null)
+        'published_verified_at': publishedVerifiedAt,
     });
   }
 
-  BaselineStateCompanion copyWith({Value<int>? id, Value<String>? epoch}) {
+  BaselineStateCompanion copyWith({
+    Value<int>? id,
+    Value<String>? epoch,
+    Value<String?>? publishedManifestHash,
+    Value<int?>? publishedVerifiedAt,
+  }) {
     return BaselineStateCompanion(
       id: id ?? this.id,
       epoch: epoch ?? this.epoch,
+      publishedManifestHash:
+          publishedManifestHash ?? this.publishedManifestHash,
+      publishedVerifiedAt: publishedVerifiedAt ?? this.publishedVerifiedAt,
     );
   }
 
@@ -11958,6 +12864,14 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
     if (epoch.present) {
       map['epoch'] = Variable<String>(epoch.value);
     }
+    if (publishedManifestHash.present) {
+      map['published_manifest_hash'] = Variable<String>(
+        publishedManifestHash.value,
+      );
+    }
+    if (publishedVerifiedAt.present) {
+      map['published_verified_at'] = Variable<int>(publishedVerifiedAt.value);
+    }
     return map;
   }
 
@@ -11965,7 +12879,9 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
   String toString() {
     return (StringBuffer('BaselineStateCompanion(')
           ..write('id: $id, ')
-          ..write('epoch: $epoch')
+          ..write('epoch: $epoch, ')
+          ..write('publishedManifestHash: $publishedManifestHash, ')
+          ..write('publishedVerifiedAt: $publishedVerifiedAt')
           ..write(')'))
         .toString();
   }
@@ -13029,6 +13945,17 @@ class $ReviewQueueTable extends ReviewQueue
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _localHashMeta = const VerificationMeta(
+    'localHash',
+  );
+  @override
+  late final GeneratedColumn<String> localHash = GeneratedColumn<String>(
+    'local_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _queuedAtMeta = const VerificationMeta(
     'queuedAt',
   );
@@ -13048,6 +13975,7 @@ class $ReviewQueueTable extends ReviewQueue
     reason,
     candidateBlob,
     candidateHash,
+    localHash,
     queuedAt,
   ];
   @override
@@ -13111,6 +14039,12 @@ class $ReviewQueueTable extends ReviewQueue
     } else if (isInserting) {
       context.missing(_candidateHashMeta);
     }
+    if (data.containsKey('local_hash')) {
+      context.handle(
+        _localHashMeta,
+        localHash.isAcceptableOrUnknown(data['local_hash']!, _localHashMeta),
+      );
+    }
     if (data.containsKey('queued_at')) {
       context.handle(
         _queuedAtMeta,
@@ -13154,6 +14088,10 @@ class $ReviewQueueTable extends ReviewQueue
         DriftSqlType.string,
         data['${effectivePrefix}candidate_hash'],
       )!,
+      localHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_hash'],
+      ),
       queuedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}queued_at'],
@@ -13177,6 +14115,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
   final String reason;
   final String candidateBlob;
   final String candidateHash;
+  final String? localHash;
   final DateTime queuedAt;
   const ReviewQueueRow({
     required this.kind,
@@ -13185,6 +14124,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     required this.reason,
     required this.candidateBlob,
     required this.candidateHash,
+    this.localHash,
     required this.queuedAt,
   });
   @override
@@ -13200,6 +14140,9 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     map['reason'] = Variable<String>(reason);
     map['candidate_blob'] = Variable<String>(candidateBlob);
     map['candidate_hash'] = Variable<String>(candidateHash);
+    if (!nullToAbsent || localHash != null) {
+      map['local_hash'] = Variable<String>(localHash);
+    }
     map['queued_at'] = Variable<DateTime>(queuedAt);
     return map;
   }
@@ -13212,6 +14155,9 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       reason: Value(reason),
       candidateBlob: Value(candidateBlob),
       candidateHash: Value(candidateHash),
+      localHash: localHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localHash),
       queuedAt: Value(queuedAt),
     );
   }
@@ -13230,6 +14176,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       reason: serializer.fromJson<String>(json['reason']),
       candidateBlob: serializer.fromJson<String>(json['candidateBlob']),
       candidateHash: serializer.fromJson<String>(json['candidateHash']),
+      localHash: serializer.fromJson<String?>(json['localHash']),
       queuedAt: serializer.fromJson<DateTime>(json['queuedAt']),
     );
   }
@@ -13245,6 +14192,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       'reason': serializer.toJson<String>(reason),
       'candidateBlob': serializer.toJson<String>(candidateBlob),
       'candidateHash': serializer.toJson<String>(candidateHash),
+      'localHash': serializer.toJson<String?>(localHash),
       'queuedAt': serializer.toJson<DateTime>(queuedAt),
     };
   }
@@ -13256,6 +14204,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     String? reason,
     String? candidateBlob,
     String? candidateHash,
+    Value<String?> localHash = const Value.absent(),
     DateTime? queuedAt,
   }) => ReviewQueueRow(
     kind: kind ?? this.kind,
@@ -13264,6 +14213,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     reason: reason ?? this.reason,
     candidateBlob: candidateBlob ?? this.candidateBlob,
     candidateHash: candidateHash ?? this.candidateHash,
+    localHash: localHash.present ? localHash.value : this.localHash,
     queuedAt: queuedAt ?? this.queuedAt,
   );
   ReviewQueueRow copyWithCompanion(ReviewQueueCompanion data) {
@@ -13280,6 +14230,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       candidateHash: data.candidateHash.present
           ? data.candidateHash.value
           : this.candidateHash,
+      localHash: data.localHash.present ? data.localHash.value : this.localHash,
       queuedAt: data.queuedAt.present ? data.queuedAt.value : this.queuedAt,
     );
   }
@@ -13293,6 +14244,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
           ..write('reason: $reason, ')
           ..write('candidateBlob: $candidateBlob, ')
           ..write('candidateHash: $candidateHash, ')
+          ..write('localHash: $localHash, ')
           ..write('queuedAt: $queuedAt')
           ..write(')'))
         .toString();
@@ -13306,6 +14258,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     reason,
     candidateBlob,
     candidateHash,
+    localHash,
     queuedAt,
   );
   @override
@@ -13318,6 +14271,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
           other.reason == this.reason &&
           other.candidateBlob == this.candidateBlob &&
           other.candidateHash == this.candidateHash &&
+          other.localHash == this.localHash &&
           other.queuedAt == this.queuedAt);
 }
 
@@ -13328,6 +14282,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
   final Value<String> reason;
   final Value<String> candidateBlob;
   final Value<String> candidateHash;
+  final Value<String?> localHash;
   final Value<DateTime> queuedAt;
   final Value<int> rowid;
   const ReviewQueueCompanion({
@@ -13337,6 +14292,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     this.reason = const Value.absent(),
     this.candidateBlob = const Value.absent(),
     this.candidateHash = const Value.absent(),
+    this.localHash = const Value.absent(),
     this.queuedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -13347,6 +14303,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    this.localHash = const Value.absent(),
     required DateTime queuedAt,
     this.rowid = const Value.absent(),
   }) : kind = Value(kind),
@@ -13363,6 +14320,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     Expression<String>? reason,
     Expression<String>? candidateBlob,
     Expression<String>? candidateHash,
+    Expression<String>? localHash,
     Expression<DateTime>? queuedAt,
     Expression<int>? rowid,
   }) {
@@ -13373,6 +14331,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
       if (reason != null) 'reason': reason,
       if (candidateBlob != null) 'candidate_blob': candidateBlob,
       if (candidateHash != null) 'candidate_hash': candidateHash,
+      if (localHash != null) 'local_hash': localHash,
       if (queuedAt != null) 'queued_at': queuedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -13385,6 +14344,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     Value<String>? reason,
     Value<String>? candidateBlob,
     Value<String>? candidateHash,
+    Value<String?>? localHash,
     Value<DateTime>? queuedAt,
     Value<int>? rowid,
   }) {
@@ -13395,6 +14355,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
       reason: reason ?? this.reason,
       candidateBlob: candidateBlob ?? this.candidateBlob,
       candidateHash: candidateHash ?? this.candidateHash,
+      localHash: localHash ?? this.localHash,
       queuedAt: queuedAt ?? this.queuedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -13423,6 +14384,9 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     if (candidateHash.present) {
       map['candidate_hash'] = Variable<String>(candidateHash.value);
     }
+    if (localHash.present) {
+      map['local_hash'] = Variable<String>(localHash.value);
+    }
     if (queuedAt.present) {
       map['queued_at'] = Variable<DateTime>(queuedAt.value);
     }
@@ -13441,6 +14405,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
           ..write('reason: $reason, ')
           ..write('candidateBlob: $candidateBlob, ')
           ..write('candidateHash: $candidateHash, ')
+          ..write('localHash: $localHash, ')
           ..write('queuedAt: $queuedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -13672,6 +14637,1755 @@ class PublishedRecordsCompanion extends UpdateCompanion<PublishedRecordRow> {
   }
 }
 
+class $RetainedSyncFieldsTable extends RetainedSyncFields
+    with TableInfo<$RetainedSyncFieldsTable, RetainedSyncFieldsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RetainedSyncFieldsTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($RetainedSyncFieldsTable.$converterkind);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _wholeRecordMeta = const VerificationMeta(
+    'wholeRecord',
+  );
+  @override
+  late final GeneratedColumn<bool> wholeRecord = GeneratedColumn<bool>(
+    'whole_record',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("whole_record" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, recordId, wholeRecord, payload];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'retained_sync_fields';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RetainedSyncFieldsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('whole_record')) {
+      context.handle(
+        _wholeRecordMeta,
+        wholeRecord.isAcceptableOrUnknown(
+          data['whole_record']!,
+          _wholeRecordMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, recordId};
+  @override
+  RetainedSyncFieldsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RetainedSyncFieldsRow(
+      kind: $RetainedSyncFieldsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      wholeRecord: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}whole_record'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $RetainedSyncFieldsTable createAlias(String alias) {
+    return $RetainedSyncFieldsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class RetainedSyncFieldsRow extends DataClass
+    implements Insertable<RetainedSyncFieldsRow> {
+  final SyncRecordKind kind;
+  final String recordId;
+  final bool wholeRecord;
+  final String payload;
+  const RetainedSyncFieldsRow({
+    required this.kind,
+    required this.recordId,
+    required this.wholeRecord,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $RetainedSyncFieldsTable.$converterkind.toSql(kind),
+      );
+    }
+    map['record_id'] = Variable<String>(recordId);
+    map['whole_record'] = Variable<bool>(wholeRecord);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  RetainedSyncFieldsCompanion toCompanion(bool nullToAbsent) {
+    return RetainedSyncFieldsCompanion(
+      kind: Value(kind),
+      recordId: Value(recordId),
+      wholeRecord: Value(wholeRecord),
+      payload: Value(payload),
+    );
+  }
+
+  factory RetainedSyncFieldsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RetainedSyncFieldsRow(
+      kind: $RetainedSyncFieldsTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      wholeRecord: serializer.fromJson<bool>(json['wholeRecord']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $RetainedSyncFieldsTable.$converterkind.toJson(kind),
+      ),
+      'recordId': serializer.toJson<String>(recordId),
+      'wholeRecord': serializer.toJson<bool>(wholeRecord),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  RetainedSyncFieldsRow copyWith({
+    SyncRecordKind? kind,
+    String? recordId,
+    bool? wholeRecord,
+    String? payload,
+  }) => RetainedSyncFieldsRow(
+    kind: kind ?? this.kind,
+    recordId: recordId ?? this.recordId,
+    wholeRecord: wholeRecord ?? this.wholeRecord,
+    payload: payload ?? this.payload,
+  );
+  RetainedSyncFieldsRow copyWithCompanion(RetainedSyncFieldsCompanion data) {
+    return RetainedSyncFieldsRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      wholeRecord: data.wholeRecord.present
+          ? data.wholeRecord.value
+          : this.wholeRecord,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetainedSyncFieldsRow(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wholeRecord: $wholeRecord, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, recordId, wholeRecord, payload);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RetainedSyncFieldsRow &&
+          other.kind == this.kind &&
+          other.recordId == this.recordId &&
+          other.wholeRecord == this.wholeRecord &&
+          other.payload == this.payload);
+}
+
+class RetainedSyncFieldsCompanion
+    extends UpdateCompanion<RetainedSyncFieldsRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> recordId;
+  final Value<bool> wholeRecord;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const RetainedSyncFieldsCompanion({
+    this.kind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.wholeRecord = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RetainedSyncFieldsCompanion.insert({
+    required SyncRecordKind kind,
+    required String recordId,
+    this.wholeRecord = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       recordId = Value(recordId),
+       payload = Value(payload);
+  static Insertable<RetainedSyncFieldsRow> custom({
+    Expression<String>? kind,
+    Expression<String>? recordId,
+    Expression<bool>? wholeRecord,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (recordId != null) 'record_id': recordId,
+      if (wholeRecord != null) 'whole_record': wholeRecord,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RetainedSyncFieldsCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? recordId,
+    Value<bool>? wholeRecord,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return RetainedSyncFieldsCompanion(
+      kind: kind ?? this.kind,
+      recordId: recordId ?? this.recordId,
+      wholeRecord: wholeRecord ?? this.wholeRecord,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $RetainedSyncFieldsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (wholeRecord.present) {
+      map['whole_record'] = Variable<bool>(wholeRecord.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetainedSyncFieldsCompanion(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wholeRecord: $wholeRecord, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PeerManifestsTable extends PeerManifests
+    with TableInfo<$PeerManifestsTable, PeerManifestRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PeerManifestsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _peerIdMeta = const VerificationMeta('peerId');
+  @override
+  late final GeneratedColumn<String> peerId = GeneratedColumn<String>(
+    'peer_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _epochMeta = const VerificationMeta('epoch');
+  @override
+  late final GeneratedColumn<String> epoch = GeneratedColumn<String>(
+    'epoch',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _etagMeta = const VerificationMeta('etag');
+  @override
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [peerId, epoch, etag, body];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'peer_manifests';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PeerManifestRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('peer_id')) {
+      context.handle(
+        _peerIdMeta,
+        peerId.isAcceptableOrUnknown(data['peer_id']!, _peerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_peerIdMeta);
+    }
+    if (data.containsKey('epoch')) {
+      context.handle(
+        _epochMeta,
+        epoch.isAcceptableOrUnknown(data['epoch']!, _epochMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_epochMeta);
+    }
+    if (data.containsKey('etag')) {
+      context.handle(
+        _etagMeta,
+        etag.isAcceptableOrUnknown(data['etag']!, _etagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_etagMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {peerId};
+  @override
+  PeerManifestRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PeerManifestRow(
+      peerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_id'],
+      )!,
+      epoch: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}epoch'],
+      )!,
+      etag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etag'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+    );
+  }
+
+  @override
+  $PeerManifestsTable createAlias(String alias) {
+    return $PeerManifestsTable(attachedDatabase, alias);
+  }
+}
+
+class PeerManifestRow extends DataClass implements Insertable<PeerManifestRow> {
+  /// The peer's per-attachment device id, as the store lists it.
+  final String peerId;
+
+  /// The store epoch the manifest was fetched in. A row from another epoch is
+  /// never used.
+  final String epoch;
+
+  /// The strong validator the server sent with the manifest, verbatim.
+  final String etag;
+
+  /// The manifest as this device verified and decoded it, re-encoded
+  /// canonically.
+  final String body;
+  const PeerManifestRow({
+    required this.peerId,
+    required this.epoch,
+    required this.etag,
+    required this.body,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['peer_id'] = Variable<String>(peerId);
+    map['epoch'] = Variable<String>(epoch);
+    map['etag'] = Variable<String>(etag);
+    map['body'] = Variable<String>(body);
+    return map;
+  }
+
+  PeerManifestsCompanion toCompanion(bool nullToAbsent) {
+    return PeerManifestsCompanion(
+      peerId: Value(peerId),
+      epoch: Value(epoch),
+      etag: Value(etag),
+      body: Value(body),
+    );
+  }
+
+  factory PeerManifestRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PeerManifestRow(
+      peerId: serializer.fromJson<String>(json['peerId']),
+      epoch: serializer.fromJson<String>(json['epoch']),
+      etag: serializer.fromJson<String>(json['etag']),
+      body: serializer.fromJson<String>(json['body']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'peerId': serializer.toJson<String>(peerId),
+      'epoch': serializer.toJson<String>(epoch),
+      'etag': serializer.toJson<String>(etag),
+      'body': serializer.toJson<String>(body),
+    };
+  }
+
+  PeerManifestRow copyWith({
+    String? peerId,
+    String? epoch,
+    String? etag,
+    String? body,
+  }) => PeerManifestRow(
+    peerId: peerId ?? this.peerId,
+    epoch: epoch ?? this.epoch,
+    etag: etag ?? this.etag,
+    body: body ?? this.body,
+  );
+  PeerManifestRow copyWithCompanion(PeerManifestsCompanion data) {
+    return PeerManifestRow(
+      peerId: data.peerId.present ? data.peerId.value : this.peerId,
+      epoch: data.epoch.present ? data.epoch.value : this.epoch,
+      etag: data.etag.present ? data.etag.value : this.etag,
+      body: data.body.present ? data.body.value : this.body,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeerManifestRow(')
+          ..write('peerId: $peerId, ')
+          ..write('epoch: $epoch, ')
+          ..write('etag: $etag, ')
+          ..write('body: $body')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(peerId, epoch, etag, body);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PeerManifestRow &&
+          other.peerId == this.peerId &&
+          other.epoch == this.epoch &&
+          other.etag == this.etag &&
+          other.body == this.body);
+}
+
+class PeerManifestsCompanion extends UpdateCompanion<PeerManifestRow> {
+  final Value<String> peerId;
+  final Value<String> epoch;
+  final Value<String> etag;
+  final Value<String> body;
+  final Value<int> rowid;
+  const PeerManifestsCompanion({
+    this.peerId = const Value.absent(),
+    this.epoch = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.body = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PeerManifestsCompanion.insert({
+    required String peerId,
+    required String epoch,
+    required String etag,
+    required String body,
+    this.rowid = const Value.absent(),
+  }) : peerId = Value(peerId),
+       epoch = Value(epoch),
+       etag = Value(etag),
+       body = Value(body);
+  static Insertable<PeerManifestRow> custom({
+    Expression<String>? peerId,
+    Expression<String>? epoch,
+    Expression<String>? etag,
+    Expression<String>? body,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (peerId != null) 'peer_id': peerId,
+      if (epoch != null) 'epoch': epoch,
+      if (etag != null) 'etag': etag,
+      if (body != null) 'body': body,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PeerManifestsCompanion copyWith({
+    Value<String>? peerId,
+    Value<String>? epoch,
+    Value<String>? etag,
+    Value<String>? body,
+    Value<int>? rowid,
+  }) {
+    return PeerManifestsCompanion(
+      peerId: peerId ?? this.peerId,
+      epoch: epoch ?? this.epoch,
+      etag: etag ?? this.etag,
+      body: body ?? this.body,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (peerId.present) {
+      map['peer_id'] = Variable<String>(peerId.value);
+    }
+    if (epoch.present) {
+      map['epoch'] = Variable<String>(epoch.value);
+    }
+    if (etag.present) {
+      map['etag'] = Variable<String>(etag.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeerManifestsCompanion(')
+          ..write('peerId: $peerId, ')
+          ..write('epoch: $epoch, ')
+          ..write('etag: $etag, ')
+          ..write('body: $body, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $UserGlossaryEntriesTable extends UserGlossaryEntries
+    with TableInfo<$UserGlossaryEntriesTable, UserGlossaryEntryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserGlossaryEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _definitionMeta = const VerificationMeta(
+    'definition',
+  );
+  @override
+  late final GeneratedColumn<String> definition = GeneratedColumn<String>(
+    'definition',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _keywordsJsonMeta = const VerificationMeta(
+    'keywordsJson',
+  );
+  @override
+  late final GeneratedColumn<String> keywordsJson = GeneratedColumn<String>(
+    'keywords_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _existenceAtMeta = const VerificationMeta(
+    'existenceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> existenceAt = GeneratedColumn<DateTime>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    kind,
+    name,
+    definition,
+    description,
+    keywordsJson,
+    notes,
+    payloadJson,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_glossary_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserGlossaryEntryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('definition')) {
+      context.handle(
+        _definitionMeta,
+        definition.isAcceptableOrUnknown(data['definition']!, _definitionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_definitionMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descriptionMeta);
+    }
+    if (data.containsKey('keywords_json')) {
+      context.handle(
+        _keywordsJsonMeta,
+        keywordsJson.isAcceptableOrUnknown(
+          data['keywords_json']!,
+          _keywordsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('existence_at')) {
+      context.handle(
+        _existenceAtMeta,
+        existenceAt.isAcceptableOrUnknown(
+          data['existence_at']!,
+          _existenceAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserGlossaryEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserGlossaryEntryRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      definition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}definition'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      keywordsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}keywords_json'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      existenceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}existence_at'],
+      ),
+    );
+  }
+
+  @override
+  $UserGlossaryEntriesTable createAlias(String alias) {
+    return $UserGlossaryEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class UserGlossaryEntryRow extends DataClass
+    implements Insertable<UserGlossaryEntryRow> {
+  final String id;
+  final String kind;
+  final String name;
+  final String definition;
+  final String description;
+
+  /// A JSON array of strings.
+  final String keywordsJson;
+  final String? notes;
+
+  /// The kind-specific payload as JSON, or null for a kind with none.
+  final String? payloadJson;
+
+  /// When the entry was first created; never moved by an edit.
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? existenceAt;
+  const UserGlossaryEntryRow({
+    required this.id,
+    required this.kind,
+    required this.name,
+    required this.definition,
+    required this.description,
+    required this.keywordsJson,
+    this.notes,
+    this.payloadJson,
+    required this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
+    this.existenceAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['kind'] = Variable<String>(kind);
+    map['name'] = Variable<String>(name);
+    map['definition'] = Variable<String>(definition);
+    map['description'] = Variable<String>(description);
+    map['keywords_json'] = Variable<String>(keywordsJson);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || payloadJson != null) {
+      map['payload_json'] = Variable<String>(payloadJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || existenceAt != null) {
+      map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
+    return map;
+  }
+
+  UserGlossaryEntriesCompanion toCompanion(bool nullToAbsent) {
+    return UserGlossaryEntriesCompanion(
+      id: Value(id),
+      kind: Value(kind),
+      name: Value(name),
+      definition: Value(definition),
+      description: Value(description),
+      keywordsJson: Value(keywordsJson),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      payloadJson: payloadJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payloadJson),
+      createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      existenceAt: existenceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(existenceAt),
+    );
+  }
+
+  factory UserGlossaryEntryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserGlossaryEntryRow(
+      id: serializer.fromJson<String>(json['id']),
+      kind: serializer.fromJson<String>(json['kind']),
+      name: serializer.fromJson<String>(json['name']),
+      definition: serializer.fromJson<String>(json['definition']),
+      description: serializer.fromJson<String>(json['description']),
+      keywordsJson: serializer.fromJson<String>(json['keywordsJson']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      payloadJson: serializer.fromJson<String?>(json['payloadJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'kind': serializer.toJson<String>(kind),
+      'name': serializer.toJson<String>(name),
+      'definition': serializer.toJson<String>(definition),
+      'description': serializer.toJson<String>(description),
+      'keywordsJson': serializer.toJson<String>(keywordsJson),
+      'notes': serializer.toJson<String?>(notes),
+      'payloadJson': serializer.toJson<String?>(payloadJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'existenceAt': serializer.toJson<DateTime?>(existenceAt),
+    };
+  }
+
+  UserGlossaryEntryRow copyWith({
+    String? id,
+    String? kind,
+    String? name,
+    String? definition,
+    String? description,
+    String? keywordsJson,
+    Value<String?> notes = const Value.absent(),
+    Value<String?> payloadJson = const Value.absent(),
+    DateTime? createdAt,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> existenceAt = const Value.absent(),
+  }) => UserGlossaryEntryRow(
+    id: id ?? this.id,
+    kind: kind ?? this.kind,
+    name: name ?? this.name,
+    definition: definition ?? this.definition,
+    description: description ?? this.description,
+    keywordsJson: keywordsJson ?? this.keywordsJson,
+    notes: notes.present ? notes.value : this.notes,
+    payloadJson: payloadJson.present ? payloadJson.value : this.payloadJson,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+  );
+  UserGlossaryEntryRow copyWithCompanion(UserGlossaryEntriesCompanion data) {
+    return UserGlossaryEntryRow(
+      id: data.id.present ? data.id.value : this.id,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      name: data.name.present ? data.name.value : this.name,
+      definition: data.definition.present
+          ? data.definition.value
+          : this.definition,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      keywordsJson: data.keywordsJson.present
+          ? data.keywordsJson.value
+          : this.keywordsJson,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      existenceAt: data.existenceAt.present
+          ? data.existenceAt.value
+          : this.existenceAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserGlossaryEntryRow(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('name: $name, ')
+          ..write('definition: $definition, ')
+          ..write('description: $description, ')
+          ..write('keywordsJson: $keywordsJson, ')
+          ..write('notes: $notes, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    kind,
+    name,
+    definition,
+    description,
+    keywordsJson,
+    notes,
+    payloadJson,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserGlossaryEntryRow &&
+          other.id == this.id &&
+          other.kind == this.kind &&
+          other.name == this.name &&
+          other.definition == this.definition &&
+          other.description == this.description &&
+          other.keywordsJson == this.keywordsJson &&
+          other.notes == this.notes &&
+          other.payloadJson == this.payloadJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.existenceAt == this.existenceAt);
+}
+
+class UserGlossaryEntriesCompanion
+    extends UpdateCompanion<UserGlossaryEntryRow> {
+  final Value<String> id;
+  final Value<String> kind;
+  final Value<String> name;
+  final Value<String> definition;
+  final Value<String> description;
+  final Value<String> keywordsJson;
+  final Value<String?> notes;
+  final Value<String?> payloadJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> existenceAt;
+  final Value<int> rowid;
+  const UserGlossaryEntriesCompanion({
+    this.id = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.name = const Value.absent(),
+    this.definition = const Value.absent(),
+    this.description = const Value.absent(),
+    this.keywordsJson = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserGlossaryEntriesCompanion.insert({
+    required String id,
+    required String kind,
+    required String name,
+    required String definition,
+    required String description,
+    this.keywordsJson = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       kind = Value(kind),
+       name = Value(name),
+       definition = Value(definition),
+       description = Value(description),
+       createdAt = Value(createdAt);
+  static Insertable<UserGlossaryEntryRow> custom({
+    Expression<String>? id,
+    Expression<String>? kind,
+    Expression<String>? name,
+    Expression<String>? definition,
+    Expression<String>? description,
+    Expression<String>? keywordsJson,
+    Expression<String>? notes,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? existenceAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (kind != null) 'kind': kind,
+      if (name != null) 'name': name,
+      if (definition != null) 'definition': definition,
+      if (description != null) 'description': description,
+      if (keywordsJson != null) 'keywords_json': keywordsJson,
+      if (notes != null) 'notes': notes,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (existenceAt != null) 'existence_at': existenceAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserGlossaryEntriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? kind,
+    Value<String>? name,
+    Value<String>? definition,
+    Value<String>? description,
+    Value<String>? keywordsJson,
+    Value<String?>? notes,
+    Value<String?>? payloadJson,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? existenceAt,
+    Value<int>? rowid,
+  }) {
+    return UserGlossaryEntriesCompanion(
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      name: name ?? this.name,
+      definition: definition ?? this.definition,
+      description: description ?? this.description,
+      keywordsJson: keywordsJson ?? this.keywordsJson,
+      notes: notes ?? this.notes,
+      payloadJson: payloadJson ?? this.payloadJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      existenceAt: existenceAt ?? this.existenceAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (definition.present) {
+      map['definition'] = Variable<String>(definition.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (keywordsJson.present) {
+      map['keywords_json'] = Variable<String>(keywordsJson.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (existenceAt.present) {
+      map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserGlossaryEntriesCompanion(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('name: $name, ')
+          ..write('definition: $definition, ')
+          ..write('description: $description, ')
+          ..write('keywordsJson: $keywordsJson, ')
+          ..write('notes: $notes, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FigureNotesTable extends FigureNotes
+    with TableInfo<$FigureNotesTable, FigureNoteRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FigureNotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _figureIdMeta = const VerificationMeta(
+    'figureId',
+  );
+  @override
+  late final GeneratedColumn<String> figureId = GeneratedColumn<String>(
+    'figure_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _existenceAtMeta = const VerificationMeta(
+    'existenceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> existenceAt = GeneratedColumn<DateTime>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    figureId,
+    notes,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'figure_notes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FigureNoteRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('figure_id')) {
+      context.handle(
+        _figureIdMeta,
+        figureId.isAcceptableOrUnknown(data['figure_id']!, _figureIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_figureIdMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notesMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('existence_at')) {
+      context.handle(
+        _existenceAtMeta,
+        existenceAt.isAcceptableOrUnknown(
+          data['existence_at']!,
+          _existenceAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {figureId};
+  @override
+  FigureNoteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FigureNoteRow(
+      figureId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}figure_id'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      existenceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}existence_at'],
+      ),
+    );
+  }
+
+  @override
+  $FigureNotesTable createAlias(String alias) {
+    return $FigureNotesTable(attachedDatabase, alias);
+  }
+}
+
+class FigureNoteRow extends DataClass implements Insertable<FigureNoteRow> {
+  final String figureId;
+  final String notes;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? existenceAt;
+  const FigureNoteRow({
+    required this.figureId,
+    required this.notes,
+    this.updatedAt,
+    this.deletedAt,
+    this.existenceAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['figure_id'] = Variable<String>(figureId);
+    map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || existenceAt != null) {
+      map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
+    return map;
+  }
+
+  FigureNotesCompanion toCompanion(bool nullToAbsent) {
+    return FigureNotesCompanion(
+      figureId: Value(figureId),
+      notes: Value(notes),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      existenceAt: existenceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(existenceAt),
+    );
+  }
+
+  factory FigureNoteRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FigureNoteRow(
+      figureId: serializer.fromJson<String>(json['figureId']),
+      notes: serializer.fromJson<String>(json['notes']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'figureId': serializer.toJson<String>(figureId),
+      'notes': serializer.toJson<String>(notes),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'existenceAt': serializer.toJson<DateTime?>(existenceAt),
+    };
+  }
+
+  FigureNoteRow copyWith({
+    String? figureId,
+    String? notes,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> existenceAt = const Value.absent(),
+  }) => FigureNoteRow(
+    figureId: figureId ?? this.figureId,
+    notes: notes ?? this.notes,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+  );
+  FigureNoteRow copyWithCompanion(FigureNotesCompanion data) {
+    return FigureNoteRow(
+      figureId: data.figureId.present ? data.figureId.value : this.figureId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      existenceAt: data.existenceAt.present
+          ? data.existenceAt.value
+          : this.existenceAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FigureNoteRow(')
+          ..write('figureId: $figureId, ')
+          ..write('notes: $notes, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(figureId, notes, updatedAt, deletedAt, existenceAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FigureNoteRow &&
+          other.figureId == this.figureId &&
+          other.notes == this.notes &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.existenceAt == this.existenceAt);
+}
+
+class FigureNotesCompanion extends UpdateCompanion<FigureNoteRow> {
+  final Value<String> figureId;
+  final Value<String> notes;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> existenceAt;
+  final Value<int> rowid;
+  const FigureNotesCompanion({
+    this.figureId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FigureNotesCompanion.insert({
+    required String figureId,
+    required String notes,
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : figureId = Value(figureId),
+       notes = Value(notes);
+  static Insertable<FigureNoteRow> custom({
+    Expression<String>? figureId,
+    Expression<String>? notes,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? existenceAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (figureId != null) 'figure_id': figureId,
+      if (notes != null) 'notes': notes,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (existenceAt != null) 'existence_at': existenceAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FigureNotesCompanion copyWith({
+    Value<String>? figureId,
+    Value<String>? notes,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? existenceAt,
+    Value<int>? rowid,
+  }) {
+    return FigureNotesCompanion(
+      figureId: figureId ?? this.figureId,
+      notes: notes ?? this.notes,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      existenceAt: existenceAt ?? this.existenceAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (figureId.present) {
+      map['figure_id'] = Variable<String>(figureId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (existenceAt.present) {
+      map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FigureNotesCompanion(')
+          ..write('figureId: $figureId, ')
+          ..write('notes: $notes, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -13681,6 +16395,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $DancesTable dances = $DancesTable(this);
   late final $ChoreographersTable choreographers = $ChoreographersTable(this);
   late final $DanceAuthorsTable danceAuthors = $DanceAuthorsTable(this);
+  late final $DanceInterpretersTable danceInterpreters =
+      $DanceInterpretersTable(this);
   late final $DanceFiguresTable danceFigures = $DanceFiguresTable(this);
   late final $ProgramsTable programs = $ProgramsTable(this);
   late final $ProgramSlotsTable programSlots = $ProgramSlotsTable(this);
@@ -13720,6 +16436,12 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $PublishedRecordsTable publishedRecords = $PublishedRecordsTable(
     this,
   );
+  late final $RetainedSyncFieldsTable retainedSyncFields =
+      $RetainedSyncFieldsTable(this);
+  late final $PeerManifestsTable peerManifests = $PeerManifestsTable(this);
+  late final $UserGlossaryEntriesTable userGlossaryEntries =
+      $UserGlossaryEntriesTable(this);
+  late final $FigureNotesTable figureNotes = $FigureNotesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -13729,6 +16451,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     dances,
     choreographers,
     danceAuthors,
+    danceInterpreters,
     danceFigures,
     programs,
     programSlots,
@@ -13752,6 +16475,10 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     pendingDeletions,
     reviewQueue,
     publishedRecords,
+    retainedSyncFields,
+    peerManifests,
+    userGlossaryEntries,
+    figureNotes,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -13768,6 +16495,20 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('dance_authors', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'dances',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('dance_interpreters', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'choreographers',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('dance_interpreters', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14151,7 +16892,9 @@ class $$DifficultyLevelsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DifficultyLevelsTable, DifficultyLevelRow>(
+                    table,
+                  ),
                   $$DifficultyLevelsTableReferences(db, table, e),
                 ),
               )
@@ -14211,12 +16954,15 @@ typedef $$DancesTableCreateCompanionBuilder =
       required DanceForm form,
       required FormationShape formationShape,
       Value<String?> formationDetail,
+      Value<bool> formationImproper,
       required Progression progression,
       Value<String> phraseStructure,
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
       Value<String> walkthrough,
+      Value<String> meter,
+      Value<String> musicalKey,
       required DanceStatus status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -14224,6 +16970,7 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<int?> rating,
       Value<String> tunesJson,
       Value<String?> composedOn,
+      Value<String?> interpretedOn,
       Value<String?> revisedOn,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -14238,12 +16985,15 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<DanceForm> form,
       Value<FormationShape> formationShape,
       Value<String?> formationDetail,
+      Value<bool> formationImproper,
       Value<Progression> progression,
       Value<String> phraseStructure,
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
       Value<String> walkthrough,
+      Value<String> meter,
+      Value<String> musicalKey,
       Value<DanceStatus> status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -14251,6 +17001,7 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<int?> rating,
       Value<String> tunesJson,
       Value<String?> composedOn,
+      Value<String?> interpretedOn,
       Value<String?> revisedOn,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -14295,6 +17046,27 @@ final class $$DancesTableReferences
     ).filter((f) => f.danceId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_danceAuthorsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DanceInterpretersTable, List<DanceInterpreterRow>>
+  _danceInterpretersRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.danceInterpreters,
+        aliasName: 'dances__id__dance_interpreters__dance_id',
+      );
+
+  $$DanceInterpretersTableProcessedTableManager get danceInterpretersRefs {
+    final manager = $$DanceInterpretersTableTableManager(
+      $_db,
+      $_db.danceInterpreters,
+    ).filter((f) => f.danceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _danceInterpretersRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -14490,6 +17262,11 @@ class $$DancesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnWithTypeConverterFilters<Progression, Progression, String>
   get progression => $composableBuilder(
     column: $table.progression,
@@ -14521,6 +17298,16 @@ class $$DancesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get meter => $composableBuilder(
+    column: $table.meter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnWithTypeConverterFilters<DanceStatus, DanceStatus, String> get status =>
       $composableBuilder(
         column: $table.status,
@@ -14549,6 +17336,11 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get composedOn => $composableBuilder(
     column: $table.composedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get interpretedOn => $composableBuilder(
+    column: $table.interpretedOn,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14616,6 +17408,31 @@ class $$DancesTableFilterComposer
           }) => $$DanceAuthorsTableFilterComposer(
             $db: $db,
             $table: $db.danceAuthors,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> danceInterpretersRefs(
+    Expression<bool> Function($$DanceInterpretersTableFilterComposer f) f,
+  ) {
+    final $$DanceInterpretersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceInterpreters,
+      getReferencedColumn: (t) => t.danceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceInterpretersTableFilterComposer(
+            $db: $db,
+            $table: $db.danceInterpreters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -14860,6 +17677,11 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get progression => $composableBuilder(
     column: $table.progression,
     builder: (column) => ColumnOrderings(column),
@@ -14890,6 +17712,16 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get meter => $composableBuilder(
+    column: $table.meter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -14917,6 +17749,11 @@ class $$DancesTableOrderingComposer
 
   ColumnOrderings<String> get composedOn => $composableBuilder(
     column: $table.composedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get interpretedOn => $composableBuilder(
+    column: $table.interpretedOn,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -14998,6 +17835,11 @@ class $$DancesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<Progression, String> get progression =>
       $composableBuilder(
         column: $table.progression,
@@ -15027,6 +17869,14 @@ class $$DancesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get meter =>
+      $composableBuilder(column: $table.meter, builder: (column) => column);
+
+  GeneratedColumn<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<DanceStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
@@ -15046,6 +17896,11 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumn<String> get composedOn => $composableBuilder(
     column: $table.composedOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get interpretedOn => $composableBuilder(
+    column: $table.interpretedOn,
     builder: (column) => column,
   );
 
@@ -15111,6 +17966,32 @@ class $$DancesTableAnnotationComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<T> danceInterpretersRefs<T extends Object>(
+    Expression<T> Function($$DanceInterpretersTableAnnotationComposer a) f,
+  ) {
+    final $$DanceInterpretersTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.danceInterpreters,
+          getReferencedColumn: (t) => t.danceId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DanceInterpretersTableAnnotationComposer(
+                $db: $db,
+                $table: $db.danceInterpreters,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -15332,6 +18213,7 @@ class $$DancesTableTableManager
           PrefetchHooks Function({
             bool levelId,
             bool danceAuthorsRefs,
+            bool danceInterpretersRefs,
             bool danceFiguresRefs,
             bool programSlotsRefs,
             bool customFieldValuesRefs,
@@ -15360,12 +18242,15 @@ class $$DancesTableTableManager
                 Value<DanceForm> form = const Value.absent(),
                 Value<FormationShape> formationShape = const Value.absent(),
                 Value<String?> formationDetail = const Value.absent(),
+                Value<bool> formationImproper = const Value.absent(),
                 Value<Progression> progression = const Value.absent(),
                 Value<String> phraseStructure = const Value.absent(),
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
+                Value<String> meter = const Value.absent(),
+                Value<String> musicalKey = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -15373,6 +18258,7 @@ class $$DancesTableTableManager
                 Value<int?> rating = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 Value<String?> composedOn = const Value.absent(),
+                Value<String?> interpretedOn = const Value.absent(),
                 Value<String?> revisedOn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -15385,12 +18271,15 @@ class $$DancesTableTableManager
                 form: form,
                 formationShape: formationShape,
                 formationDetail: formationDetail,
+                formationImproper: formationImproper,
                 progression: progression,
                 phraseStructure: phraseStructure,
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
+                meter: meter,
+                musicalKey: musicalKey,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -15398,6 +18287,7 @@ class $$DancesTableTableManager
                 rating: rating,
                 tunesJson: tunesJson,
                 composedOn: composedOn,
+                interpretedOn: interpretedOn,
                 revisedOn: revisedOn,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -15412,12 +18302,15 @@ class $$DancesTableTableManager
                 required DanceForm form,
                 required FormationShape formationShape,
                 Value<String?> formationDetail = const Value.absent(),
+                Value<bool> formationImproper = const Value.absent(),
                 required Progression progression,
                 Value<String> phraseStructure = const Value.absent(),
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
+                Value<String> meter = const Value.absent(),
+                Value<String> musicalKey = const Value.absent(),
                 required DanceStatus status,
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -15425,6 +18318,7 @@ class $$DancesTableTableManager
                 Value<int?> rating = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 Value<String?> composedOn = const Value.absent(),
+                Value<String?> interpretedOn = const Value.absent(),
                 Value<String?> revisedOn = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -15437,12 +18331,15 @@ class $$DancesTableTableManager
                 form: form,
                 formationShape: formationShape,
                 formationDetail: formationDetail,
+                formationImproper: formationImproper,
                 progression: progression,
                 phraseStructure: phraseStructure,
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
+                meter: meter,
+                musicalKey: musicalKey,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -15450,6 +18347,7 @@ class $$DancesTableTableManager
                 rating: rating,
                 tunesJson: tunesJson,
                 composedOn: composedOn,
+                interpretedOn: interpretedOn,
                 revisedOn: revisedOn,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -15459,14 +18357,17 @@ class $$DancesTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$DancesTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$DancesTable, DanceRow>(table),
+                  $$DancesTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
               ({
                 levelId = false,
                 danceAuthorsRefs = false,
+                danceInterpretersRefs = false,
                 danceFiguresRefs = false,
                 programSlotsRefs = false,
                 customFieldValuesRefs = false,
@@ -15480,6 +18381,7 @@ class $$DancesTableTableManager
                   db: db,
                   explicitlyWatchedTables: [
                     if (danceAuthorsRefs) db.danceAuthors,
+                    if (danceInterpretersRefs) db.danceInterpreters,
                     if (danceFiguresRefs) db.danceFigures,
                     if (programSlotsRefs) db.programSlots,
                     if (customFieldValuesRefs) db.customFieldValues,
@@ -15538,6 +18440,27 @@ class $$DancesTableTableManager
                                 table,
                                 p0,
                               ).danceAuthorsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.danceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (danceInterpretersRefs)
+                        await $_getPrefetchedData<
+                          DanceRow,
+                          $DancesTable,
+                          DanceInterpreterRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DancesTableReferences
+                              ._danceInterpretersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DancesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).danceInterpretersRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.danceId == item.id,
@@ -15735,6 +18658,7 @@ typedef $$DancesTableProcessedTableManager =
       PrefetchHooks Function({
         bool levelId,
         bool danceAuthorsRefs,
+        bool danceInterpretersRefs,
         bool danceFiguresRefs,
         bool programSlotsRefs,
         bool customFieldValuesRefs,
@@ -15801,6 +18725,30 @@ final class $$ChoreographersTableReferences
         );
 
     final cache = $_typedResult.readTableOrNull(_danceAuthorsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DanceInterpretersTable, List<DanceInterpreterRow>>
+  _danceInterpretersRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.danceInterpreters,
+        aliasName: 'choreographers__id__dance_interpreters__choreographer_id',
+      );
+
+  $$DanceInterpretersTableProcessedTableManager get danceInterpretersRefs {
+    final manager =
+        $$DanceInterpretersTableTableManager(
+          $_db,
+          $_db.danceInterpreters,
+        ).filter(
+          (f) => f.choreographerId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _danceInterpretersRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -15882,6 +18830,31 @@ class $$ChoreographersTableFilterComposer
           }) => $$DanceAuthorsTableFilterComposer(
             $db: $db,
             $table: $db.danceAuthors,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> danceInterpretersRefs(
+    Expression<bool> Function($$DanceInterpretersTableFilterComposer f) f,
+  ) {
+    final $$DanceInterpretersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceInterpreters,
+      getReferencedColumn: (t) => t.choreographerId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceInterpretersTableFilterComposer(
+            $db: $db,
+            $table: $db.danceInterpreters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -16017,6 +18990,32 @@ class $$ChoreographersTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> danceInterpretersRefs<T extends Object>(
+    Expression<T> Function($$DanceInterpretersTableAnnotationComposer a) f,
+  ) {
+    final $$DanceInterpretersTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.danceInterpreters,
+          getReferencedColumn: (t) => t.choreographerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DanceInterpretersTableAnnotationComposer(
+                $db: $db,
+                $table: $db.danceInterpreters,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ChoreographersTableTableManager
@@ -16032,7 +19031,10 @@ class $$ChoreographersTableTableManager
           $$ChoreographersTableUpdateCompanionBuilder,
           (ChoreographerRow, $$ChoreographersTableReferences),
           ChoreographerRow,
-          PrefetchHooks Function({bool danceAuthorsRefs})
+          PrefetchHooks Function({
+            bool danceAuthorsRefs,
+            bool danceInterpretersRefs,
+          })
         > {
   $$ChoreographersTableTableManager(
     _$CompendiumDatabase db,
@@ -16102,43 +19104,68 @@ class $$ChoreographersTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ChoreographersTable, ChoreographerRow>(table),
                   $$ChoreographersTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({danceAuthorsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (danceAuthorsRefs) db.danceAuthors],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (danceAuthorsRefs)
-                    await $_getPrefetchedData<
-                      ChoreographerRow,
-                      $ChoreographersTable,
-                      DanceAuthorRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$ChoreographersTableReferences
-                          ._danceAuthorsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$ChoreographersTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).danceAuthorsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.choreographerId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({danceAuthorsRefs = false, danceInterpretersRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (danceAuthorsRefs) db.danceAuthors,
+                    if (danceInterpretersRefs) db.danceInterpreters,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (danceAuthorsRefs)
+                        await $_getPrefetchedData<
+                          ChoreographerRow,
+                          $ChoreographersTable,
+                          DanceAuthorRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ChoreographersTableReferences
+                              ._danceAuthorsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ChoreographersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).danceAuthorsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.choreographerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (danceInterpretersRefs)
+                        await $_getPrefetchedData<
+                          ChoreographerRow,
+                          $ChoreographersTable,
+                          DanceInterpreterRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ChoreographersTableReferences
+                              ._danceInterpretersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ChoreographersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).danceInterpretersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.choreographerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -16155,7 +19182,10 @@ typedef $$ChoreographersTableProcessedTableManager =
       $$ChoreographersTableUpdateCompanionBuilder,
       (ChoreographerRow, $$ChoreographersTableReferences),
       ChoreographerRow,
-      PrefetchHooks Function({bool danceAuthorsRefs})
+      PrefetchHooks Function({
+        bool danceAuthorsRefs,
+        bool danceInterpretersRefs,
+      })
     >;
 typedef $$DanceAuthorsTableCreateCompanionBuilder =
     DanceAuthorsCompanion Function({
@@ -16454,7 +19484,7 @@ class $$DanceAuthorsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceAuthorsTable, DanceAuthorRow>(table),
                   $$DanceAuthorsTableReferences(db, table, e),
                 ),
               )
@@ -16529,6 +19559,393 @@ typedef $$DanceAuthorsTableProcessedTableManager =
       $$DanceAuthorsTableUpdateCompanionBuilder,
       (DanceAuthorRow, $$DanceAuthorsTableReferences),
       DanceAuthorRow,
+      PrefetchHooks Function({bool danceId, bool choreographerId})
+    >;
+typedef $$DanceInterpretersTableCreateCompanionBuilder =
+    DanceInterpretersCompanion Function({
+      required String danceId,
+      required String choreographerId,
+      required int position,
+      Value<int> rowid,
+    });
+typedef $$DanceInterpretersTableUpdateCompanionBuilder =
+    DanceInterpretersCompanion Function({
+      Value<String> danceId,
+      Value<String> choreographerId,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+final class $$DanceInterpretersTableReferences
+    extends
+        BaseReferences<
+          _$CompendiumDatabase,
+          $DanceInterpretersTable,
+          DanceInterpreterRow
+        > {
+  $$DanceInterpretersTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $DancesTable _danceIdTable(_$CompendiumDatabase db) =>
+      db.dances.createAlias('dance_interpreters__dance_id__dances__id');
+
+  $$DancesTableProcessedTableManager get danceId {
+    final $_column = $_itemColumn<String>('dance_id')!;
+
+    final manager = $$DancesTableTableManager(
+      $_db,
+      $_db.dances,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_danceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ChoreographersTable _choreographerIdTable(_$CompendiumDatabase db) =>
+      db.choreographers.createAlias(
+        'dance_interpreters__choreographer_id__choreographers__id',
+      );
+
+  $$ChoreographersTableProcessedTableManager get choreographerId {
+    final $_column = $_itemColumn<String>('choreographer_id')!;
+
+    final manager = $$ChoreographersTableTableManager(
+      $_db,
+      $_db.choreographers,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_choreographerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DanceInterpretersTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $DanceInterpretersTable> {
+  $$DanceInterpretersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DancesTableFilterComposer get danceId {
+    final $$DancesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableFilterComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChoreographersTableFilterComposer get choreographerId {
+    final $$ChoreographersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.choreographerId,
+      referencedTable: $db.choreographers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChoreographersTableFilterComposer(
+            $db: $db,
+            $table: $db.choreographers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceInterpretersTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $DanceInterpretersTable> {
+  $$DanceInterpretersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DancesTableOrderingComposer get danceId {
+    final $$DancesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableOrderingComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChoreographersTableOrderingComposer get choreographerId {
+    final $$ChoreographersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.choreographerId,
+      referencedTable: $db.choreographers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChoreographersTableOrderingComposer(
+            $db: $db,
+            $table: $db.choreographers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceInterpretersTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $DanceInterpretersTable> {
+  $$DanceInterpretersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  $$DancesTableAnnotationComposer get danceId {
+    final $$DancesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChoreographersTableAnnotationComposer get choreographerId {
+    final $$ChoreographersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.choreographerId,
+      referencedTable: $db.choreographers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChoreographersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.choreographers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceInterpretersTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $DanceInterpretersTable,
+          DanceInterpreterRow,
+          $$DanceInterpretersTableFilterComposer,
+          $$DanceInterpretersTableOrderingComposer,
+          $$DanceInterpretersTableAnnotationComposer,
+          $$DanceInterpretersTableCreateCompanionBuilder,
+          $$DanceInterpretersTableUpdateCompanionBuilder,
+          (DanceInterpreterRow, $$DanceInterpretersTableReferences),
+          DanceInterpreterRow,
+          PrefetchHooks Function({bool danceId, bool choreographerId})
+        > {
+  $$DanceInterpretersTableTableManager(
+    _$CompendiumDatabase db,
+    $DanceInterpretersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DanceInterpretersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DanceInterpretersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DanceInterpretersTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> danceId = const Value.absent(),
+                Value<String> choreographerId = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DanceInterpretersCompanion(
+                danceId: danceId,
+                choreographerId: choreographerId,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String danceId,
+                required String choreographerId,
+                required int position,
+                Value<int> rowid = const Value.absent(),
+              }) => DanceInterpretersCompanion.insert(
+                danceId: danceId,
+                choreographerId: choreographerId,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DanceInterpretersTable, DanceInterpreterRow>(
+                    table,
+                  ),
+                  $$DanceInterpretersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({danceId = false, choreographerId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (danceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable:
+                                    $$DanceInterpretersTableReferences
+                                        ._danceIdTable(db),
+                                referencedColumn:
+                                    $$DanceInterpretersTableReferences
+                                        ._danceIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (choreographerId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.choreographerId,
+                                referencedTable:
+                                    $$DanceInterpretersTableReferences
+                                        ._choreographerIdTable(db),
+                                referencedColumn:
+                                    $$DanceInterpretersTableReferences
+                                        ._choreographerIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DanceInterpretersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $DanceInterpretersTable,
+      DanceInterpreterRow,
+      $$DanceInterpretersTableFilterComposer,
+      $$DanceInterpretersTableOrderingComposer,
+      $$DanceInterpretersTableAnnotationComposer,
+      $$DanceInterpretersTableCreateCompanionBuilder,
+      $$DanceInterpretersTableUpdateCompanionBuilder,
+      (DanceInterpreterRow, $$DanceInterpretersTableReferences),
+      DanceInterpreterRow,
       PrefetchHooks Function({bool danceId, bool choreographerId})
     >;
 typedef $$DanceFiguresTableCreateCompanionBuilder =
@@ -16873,7 +20290,7 @@ class $$DanceFiguresTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceFiguresTable, DanceFigureRow>(table),
                   $$DanceFiguresTableReferences(db, table, e),
                 ),
               )
@@ -16950,10 +20367,14 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<String> notes,
       required ProgramStatus status,
       Value<bool> hideAlternates,
+      Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> deletedAt,
       Value<DateTime?> existenceAt,
+      Value<DateTime?> archivedAt,
       Value<int> rowid,
     });
 typedef $$ProgramsTableUpdateCompanionBuilder =
@@ -16969,10 +20390,14 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String> notes,
       Value<ProgramStatus> status,
       Value<bool> hideAlternates,
+      Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<DateTime?> existenceAt,
+      Value<DateTime?> archivedAt,
       Value<int> rowid,
     });
 
@@ -17089,6 +20514,21 @@ class $$ProgramsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -17106,6 +20546,11 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<DateTime> get existenceAt => $composableBuilder(
     column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17224,6 +20669,21 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -17241,6 +20701,11 @@ class $$ProgramsTableOrderingComposer
 
   ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
     column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -17291,6 +20756,21 @@ class $$ProgramsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -17302,6 +20782,11 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
     column: $table.existenceAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
     builder: (column) => column,
   );
 
@@ -17399,10 +20884,14 @@ class $$ProgramsTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<ProgramStatus> status = const Value.absent(),
                 Value<bool> hideAlternates = const Value.absent(),
+                Value<String?> dialectName = const Value.absent(),
+                Value<int?> payMinorUnits = const Value.absent(),
+                Value<String?> payCurrency = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime?> existenceAt = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion(
                 id: id,
@@ -17416,10 +20905,14 @@ class $$ProgramsTableTableManager
                 notes: notes,
                 status: status,
                 hideAlternates: hideAlternates,
+                dialectName: dialectName,
+                payMinorUnits: payMinorUnits,
+                payCurrency: payCurrency,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 existenceAt: existenceAt,
+                archivedAt: archivedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -17435,10 +20928,14 @@ class $$ProgramsTableTableManager
                 Value<String> notes = const Value.absent(),
                 required ProgramStatus status,
                 Value<bool> hideAlternates = const Value.absent(),
+                Value<String?> dialectName = const Value.absent(),
+                Value<int?> payMinorUnits = const Value.absent(),
+                Value<String?> payCurrency = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime?> existenceAt = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion.insert(
                 id: id,
@@ -17452,16 +20949,20 @@ class $$ProgramsTableTableManager
                 notes: notes,
                 status: status,
                 hideAlternates: hideAlternates,
+                dialectName: dialectName,
+                payMinorUnits: payMinorUnits,
+                payCurrency: payCurrency,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 existenceAt: existenceAt,
+                archivedAt: archivedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramsTable, ProgramRow>(table),
                   $$ProgramsTableReferences(db, table, e),
                 ),
               )
@@ -18001,7 +21502,7 @@ class $$ProgramSlotsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramSlotsTable, ProgramSlotRow>(table),
                   $$ProgramSlotsTableReferences(db, table, e),
                 ),
               )
@@ -18464,7 +21965,7 @@ class $$CustomFieldDefsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CustomFieldDefsTable, CustomFieldDefRow>(table),
                   $$CustomFieldDefsTableReferences(db, table, e),
                 ),
               )
@@ -18841,7 +22342,9 @@ class $$CustomFieldValuesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CustomFieldValuesTable, CustomFieldValueRow>(
+                    table,
+                  ),
                   $$CustomFieldValuesTableReferences(db, table, e),
                 ),
               )
@@ -19190,8 +22693,10 @@ class $$TagsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$TagsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$TagsTable, TagRow>(table),
+                  $$TagsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({danceTagsRefs = false}) {
@@ -19503,7 +23008,7 @@ class $$DanceTagsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceTagsTable, DanceTagRow>(table),
                   $$DanceTagsTableReferences(db, table, e),
                 ),
               )
@@ -19948,7 +23453,7 @@ class $$DanceLinksTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceLinksTable, DanceLinkRow>(table),
                   $$DanceLinksTableReferences(db, table, e),
                 ),
               )
@@ -20326,7 +23831,7 @@ class $$ProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProvenanceTable, ProvenanceRow>(table),
                   $$ProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -20728,7 +24233,9 @@ class $$PublishedSourcesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$PublishedSourcesTable, PublishedSourceRow>(
+                    table,
+                  ),
                   $$PublishedSourcesTableReferences(db, table, e),
                 ),
               )
@@ -21115,7 +24622,7 @@ class $$DanceSourcesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceSourcesTable, DanceSourceRow>(table),
                   $$DanceSourcesTableReferences(db, table, e),
                 ),
               )
@@ -21370,7 +24877,16 @@ class $$SettingsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$SettingsTable, SettingRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $SettingsTable,
+                    SettingRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -21708,7 +25224,9 @@ class $$ProgramProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramProvenanceTable, ProgramProvenanceRow>(
+                    table,
+                  ),
                   $$ProgramProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -22422,8 +25940,10 @@ class $$VenuesTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$VenuesTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$VenuesTable, VenueRow>(table),
+                  $$VenuesTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({venueProvenanceRefs = false}) {
@@ -22786,7 +26306,7 @@ class $$VenueProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$VenueProvenanceTable, VenueProvenanceRow>(table),
                   $$VenueProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -23030,7 +26550,19 @@ class $$CollectionImportEventsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<
+                    $CollectionImportEventsTable,
+                    CollectionImportEventRow
+                  >(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $CollectionImportEventsTable,
+                    CollectionImportEventRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23209,7 +26741,18 @@ class $$NormalisationSkipsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$NormalisationSkipsTable, NormalisationSkipRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $NormalisationSkipsTable,
+                    NormalisationSkipRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23238,9 +26781,19 @@ typedef $$NormalisationSkipsTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$BaselineStateTableCreateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, required String epoch});
+    BaselineStateCompanion Function({
+      Value<int> id,
+      required String epoch,
+      Value<String?> publishedManifestHash,
+      Value<int?> publishedVerifiedAt,
+    });
 typedef $$BaselineStateTableUpdateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, Value<String> epoch});
+    BaselineStateCompanion Function({
+      Value<int> id,
+      Value<String> epoch,
+      Value<String?> publishedManifestHash,
+      Value<int?> publishedVerifiedAt,
+    });
 
 class $$BaselineStateTableFilterComposer
     extends Composer<_$CompendiumDatabase, $BaselineStateTable> {
@@ -23258,6 +26811,16 @@ class $$BaselineStateTableFilterComposer
 
   ColumnFilters<String> get epoch => $composableBuilder(
     column: $table.epoch,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -23280,6 +26843,16 @@ class $$BaselineStateTableOrderingComposer
     column: $table.epoch,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BaselineStateTableAnnotationComposer
@@ -23296,6 +26869,16 @@ class $$BaselineStateTableAnnotationComposer
 
   GeneratedColumn<String> get epoch =>
       $composableBuilder(column: $table.epoch, builder: (column) => column);
+
+  GeneratedColumn<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
+    builder: (column) => column,
+  );
 }
 
 class $$BaselineStateTableTableManager
@@ -23337,12 +26920,37 @@ class $$BaselineStateTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> epoch = const Value.absent(),
-              }) => BaselineStateCompanion(id: id, epoch: epoch),
+                Value<String?> publishedManifestHash = const Value.absent(),
+                Value<int?> publishedVerifiedAt = const Value.absent(),
+              }) => BaselineStateCompanion(
+                id: id,
+                epoch: epoch,
+                publishedManifestHash: publishedManifestHash,
+                publishedVerifiedAt: publishedVerifiedAt,
+              ),
           createCompanionCallback:
-              ({Value<int> id = const Value.absent(), required String epoch}) =>
-                  BaselineStateCompanion.insert(id: id, epoch: epoch),
+              ({
+                Value<int> id = const Value.absent(),
+                required String epoch,
+                Value<String?> publishedManifestHash = const Value.absent(),
+                Value<int?> publishedVerifiedAt = const Value.absent(),
+              }) => BaselineStateCompanion.insert(
+                id: id,
+                epoch: epoch,
+                publishedManifestHash: publishedManifestHash,
+                publishedVerifiedAt: publishedVerifiedAt,
+              ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$BaselineStateTable, BaselineStateRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $BaselineStateTable,
+                    BaselineStateRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23534,7 +27142,16 @@ class $$BaselineEntriesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$BaselineEntriesTable, BaselineEntryRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $BaselineEntriesTable,
+                    BaselineEntryRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23703,7 +27320,16 @@ class $$IdAliasesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$IdAliasesTable, IdAliasRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $IdAliasesTable,
+                    IdAliasRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23916,7 +27542,18 @@ class $$PendingDeletionsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$PendingDeletionsTable, PendingDeletionRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PendingDeletionsTable,
+                    PendingDeletionRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23952,6 +27589,7 @@ typedef $$ReviewQueueTableCreateCompanionBuilder =
       required String reason,
       required String candidateBlob,
       required String candidateHash,
+      Value<String?> localHash,
       required DateTime queuedAt,
       Value<int> rowid,
     });
@@ -23963,6 +27601,7 @@ typedef $$ReviewQueueTableUpdateCompanionBuilder =
       Value<String> reason,
       Value<String> candidateBlob,
       Value<String> candidateHash,
+      Value<String?> localHash,
       Value<DateTime> queuedAt,
       Value<int> rowid,
     });
@@ -24004,6 +27643,11 @@ class $$ReviewQueueTableFilterComposer
 
   ColumnFilters<String> get candidateHash => $composableBuilder(
     column: $table.candidateHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localHash => $composableBuilder(
+    column: $table.localHash,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24052,6 +27696,11 @@ class $$ReviewQueueTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get localHash => $composableBuilder(
+    column: $table.localHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get queuedAt => $composableBuilder(
     column: $table.queuedAt,
     builder: (column) => ColumnOrderings(column),
@@ -24090,6 +27739,9 @@ class $$ReviewQueueTableAnnotationComposer
     column: $table.candidateHash,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get localHash =>
+      $composableBuilder(column: $table.localHash, builder: (column) => column);
 
   GeneratedColumn<DateTime> get queuedAt =>
       $composableBuilder(column: $table.queuedAt, builder: (column) => column);
@@ -24138,6 +27790,7 @@ class $$ReviewQueueTableTableManager
                 Value<String> reason = const Value.absent(),
                 Value<String> candidateBlob = const Value.absent(),
                 Value<String> candidateHash = const Value.absent(),
+                Value<String?> localHash = const Value.absent(),
                 Value<DateTime> queuedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReviewQueueCompanion(
@@ -24147,6 +27800,7 @@ class $$ReviewQueueTableTableManager
                 reason: reason,
                 candidateBlob: candidateBlob,
                 candidateHash: candidateHash,
+                localHash: localHash,
                 queuedAt: queuedAt,
                 rowid: rowid,
               ),
@@ -24158,6 +27812,7 @@ class $$ReviewQueueTableTableManager
                 required String reason,
                 required String candidateBlob,
                 required String candidateHash,
+                Value<String?> localHash = const Value.absent(),
                 required DateTime queuedAt,
                 Value<int> rowid = const Value.absent(),
               }) => ReviewQueueCompanion.insert(
@@ -24167,11 +27822,21 @@ class $$ReviewQueueTableTableManager
                 reason: reason,
                 candidateBlob: candidateBlob,
                 candidateHash: candidateHash,
+                localHash: localHash,
                 queuedAt: queuedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$ReviewQueueTable, ReviewQueueRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $ReviewQueueTable,
+                    ReviewQueueRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24321,7 +27986,18 @@ class $$PublishedRecordsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$PublishedRecordsTable, PublishedRecordRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PublishedRecordsTable,
+                    PublishedRecordRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24349,6 +28025,1001 @@ typedef $$PublishedRecordsTableProcessedTableManager =
       PublishedRecordRow,
       PrefetchHooks Function()
     >;
+typedef $$RetainedSyncFieldsTableCreateCompanionBuilder =
+    RetainedSyncFieldsCompanion Function({
+      required SyncRecordKind kind,
+      required String recordId,
+      Value<bool> wholeRecord,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$RetainedSyncFieldsTableUpdateCompanionBuilder =
+    RetainedSyncFieldsCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> recordId,
+      Value<bool> wholeRecord,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$RetainedSyncFieldsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RetainedSyncFieldsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RetainedSyncFieldsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$RetainedSyncFieldsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $RetainedSyncFieldsTable,
+          RetainedSyncFieldsRow,
+          $$RetainedSyncFieldsTableFilterComposer,
+          $$RetainedSyncFieldsTableOrderingComposer,
+          $$RetainedSyncFieldsTableAnnotationComposer,
+          $$RetainedSyncFieldsTableCreateCompanionBuilder,
+          $$RetainedSyncFieldsTableUpdateCompanionBuilder,
+          (
+            RetainedSyncFieldsRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $RetainedSyncFieldsTable,
+              RetainedSyncFieldsRow
+            >,
+          ),
+          RetainedSyncFieldsRow,
+          PrefetchHooks Function()
+        > {
+  $$RetainedSyncFieldsTableTableManager(
+    _$CompendiumDatabase db,
+    $RetainedSyncFieldsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RetainedSyncFieldsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RetainedSyncFieldsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RetainedSyncFieldsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<bool> wholeRecord = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RetainedSyncFieldsCompanion(
+                kind: kind,
+                recordId: recordId,
+                wholeRecord: wholeRecord,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String recordId,
+                Value<bool> wholeRecord = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => RetainedSyncFieldsCompanion.insert(
+                kind: kind,
+                recordId: recordId,
+                wholeRecord: wholeRecord,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RetainedSyncFieldsTable, RetainedSyncFieldsRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $RetainedSyncFieldsTable,
+                    RetainedSyncFieldsRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RetainedSyncFieldsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $RetainedSyncFieldsTable,
+      RetainedSyncFieldsRow,
+      $$RetainedSyncFieldsTableFilterComposer,
+      $$RetainedSyncFieldsTableOrderingComposer,
+      $$RetainedSyncFieldsTableAnnotationComposer,
+      $$RetainedSyncFieldsTableCreateCompanionBuilder,
+      $$RetainedSyncFieldsTableUpdateCompanionBuilder,
+      (
+        RetainedSyncFieldsRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $RetainedSyncFieldsTable,
+          RetainedSyncFieldsRow
+        >,
+      ),
+      RetainedSyncFieldsRow,
+      PrefetchHooks Function()
+    >;
+typedef $$PeerManifestsTableCreateCompanionBuilder =
+    PeerManifestsCompanion Function({
+      required String peerId,
+      required String epoch,
+      required String etag,
+      required String body,
+      Value<int> rowid,
+    });
+typedef $$PeerManifestsTableUpdateCompanionBuilder =
+    PeerManifestsCompanion Function({
+      Value<String> peerId,
+      Value<String> epoch,
+      Value<String> etag,
+      Value<String> body,
+      Value<int> rowid,
+    });
+
+class $$PeerManifestsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get peerId => $composableBuilder(
+    column: $table.peerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PeerManifestsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get peerId => $composableBuilder(
+    column: $table.peerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PeerManifestsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get peerId =>
+      $composableBuilder(column: $table.peerId, builder: (column) => column);
+
+  GeneratedColumn<String> get epoch =>
+      $composableBuilder(column: $table.epoch, builder: (column) => column);
+
+  GeneratedColumn<String> get etag =>
+      $composableBuilder(column: $table.etag, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+}
+
+class $$PeerManifestsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $PeerManifestsTable,
+          PeerManifestRow,
+          $$PeerManifestsTableFilterComposer,
+          $$PeerManifestsTableOrderingComposer,
+          $$PeerManifestsTableAnnotationComposer,
+          $$PeerManifestsTableCreateCompanionBuilder,
+          $$PeerManifestsTableUpdateCompanionBuilder,
+          (
+            PeerManifestRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $PeerManifestsTable,
+              PeerManifestRow
+            >,
+          ),
+          PeerManifestRow,
+          PrefetchHooks Function()
+        > {
+  $$PeerManifestsTableTableManager(
+    _$CompendiumDatabase db,
+    $PeerManifestsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PeerManifestsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PeerManifestsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PeerManifestsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> peerId = const Value.absent(),
+                Value<String> epoch = const Value.absent(),
+                Value<String> etag = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PeerManifestsCompanion(
+                peerId: peerId,
+                epoch: epoch,
+                etag: etag,
+                body: body,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String peerId,
+                required String epoch,
+                required String etag,
+                required String body,
+                Value<int> rowid = const Value.absent(),
+              }) => PeerManifestsCompanion.insert(
+                peerId: peerId,
+                epoch: epoch,
+                etag: etag,
+                body: body,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PeerManifestsTable, PeerManifestRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PeerManifestsTable,
+                    PeerManifestRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PeerManifestsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $PeerManifestsTable,
+      PeerManifestRow,
+      $$PeerManifestsTableFilterComposer,
+      $$PeerManifestsTableOrderingComposer,
+      $$PeerManifestsTableAnnotationComposer,
+      $$PeerManifestsTableCreateCompanionBuilder,
+      $$PeerManifestsTableUpdateCompanionBuilder,
+      (
+        PeerManifestRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $PeerManifestsTable,
+          PeerManifestRow
+        >,
+      ),
+      PeerManifestRow,
+      PrefetchHooks Function()
+    >;
+typedef $$UserGlossaryEntriesTableCreateCompanionBuilder =
+    UserGlossaryEntriesCompanion Function({
+      required String id,
+      required String kind,
+      required String name,
+      required String definition,
+      required String description,
+      Value<String> keywordsJson,
+      Value<String?> notes,
+      Value<String?> payloadJson,
+      required DateTime createdAt,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$UserGlossaryEntriesTableUpdateCompanionBuilder =
+    UserGlossaryEntriesCompanion Function({
+      Value<String> id,
+      Value<String> kind,
+      Value<String> name,
+      Value<String> definition,
+      Value<String> description,
+      Value<String> keywordsJson,
+      Value<String?> notes,
+      Value<String?> payloadJson,
+      Value<DateTime> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+
+class $$UserGlossaryEntriesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $UserGlossaryEntriesTable> {
+  $$UserGlossaryEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get keywordsJson => $composableBuilder(
+    column: $table.keywordsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserGlossaryEntriesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $UserGlossaryEntriesTable> {
+  $$UserGlossaryEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get keywordsJson => $composableBuilder(
+    column: $table.keywordsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserGlossaryEntriesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $UserGlossaryEntriesTable> {
+  $$UserGlossaryEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get keywordsJson => $composableBuilder(
+    column: $table.keywordsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => column,
+  );
+}
+
+class $$UserGlossaryEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $UserGlossaryEntriesTable,
+          UserGlossaryEntryRow,
+          $$UserGlossaryEntriesTableFilterComposer,
+          $$UserGlossaryEntriesTableOrderingComposer,
+          $$UserGlossaryEntriesTableAnnotationComposer,
+          $$UserGlossaryEntriesTableCreateCompanionBuilder,
+          $$UserGlossaryEntriesTableUpdateCompanionBuilder,
+          (
+            UserGlossaryEntryRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $UserGlossaryEntriesTable,
+              UserGlossaryEntryRow
+            >,
+          ),
+          UserGlossaryEntryRow,
+          PrefetchHooks Function()
+        > {
+  $$UserGlossaryEntriesTableTableManager(
+    _$CompendiumDatabase db,
+    $UserGlossaryEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserGlossaryEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserGlossaryEntriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$UserGlossaryEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> definition = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> keywordsJson = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserGlossaryEntriesCompanion(
+                id: id,
+                kind: kind,
+                name: name,
+                definition: definition,
+                description: description,
+                keywordsJson: keywordsJson,
+                notes: notes,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String kind,
+                required String name,
+                required String definition,
+                required String description,
+                Value<String> keywordsJson = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                required DateTime createdAt,
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserGlossaryEntriesCompanion.insert(
+                id: id,
+                kind: kind,
+                name: name,
+                definition: definition,
+                description: description,
+                keywordsJson: keywordsJson,
+                notes: notes,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UserGlossaryEntriesTable, UserGlossaryEntryRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $UserGlossaryEntriesTable,
+                    UserGlossaryEntryRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserGlossaryEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $UserGlossaryEntriesTable,
+      UserGlossaryEntryRow,
+      $$UserGlossaryEntriesTableFilterComposer,
+      $$UserGlossaryEntriesTableOrderingComposer,
+      $$UserGlossaryEntriesTableAnnotationComposer,
+      $$UserGlossaryEntriesTableCreateCompanionBuilder,
+      $$UserGlossaryEntriesTableUpdateCompanionBuilder,
+      (
+        UserGlossaryEntryRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $UserGlossaryEntriesTable,
+          UserGlossaryEntryRow
+        >,
+      ),
+      UserGlossaryEntryRow,
+      PrefetchHooks Function()
+    >;
+typedef $$FigureNotesTableCreateCompanionBuilder =
+    FigureNotesCompanion Function({
+      required String figureId,
+      required String notes,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$FigureNotesTableUpdateCompanionBuilder =
+    FigureNotesCompanion Function({
+      Value<String> figureId,
+      Value<String> notes,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+
+class $$FigureNotesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $FigureNotesTable> {
+  $$FigureNotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get figureId => $composableBuilder(
+    column: $table.figureId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FigureNotesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $FigureNotesTable> {
+  $$FigureNotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get figureId => $composableBuilder(
+    column: $table.figureId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FigureNotesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $FigureNotesTable> {
+  $$FigureNotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get figureId =>
+      $composableBuilder(column: $table.figureId, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => column,
+  );
+}
+
+class $$FigureNotesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $FigureNotesTable,
+          FigureNoteRow,
+          $$FigureNotesTableFilterComposer,
+          $$FigureNotesTableOrderingComposer,
+          $$FigureNotesTableAnnotationComposer,
+          $$FigureNotesTableCreateCompanionBuilder,
+          $$FigureNotesTableUpdateCompanionBuilder,
+          (
+            FigureNoteRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $FigureNotesTable,
+              FigureNoteRow
+            >,
+          ),
+          FigureNoteRow,
+          PrefetchHooks Function()
+        > {
+  $$FigureNotesTableTableManager(
+    _$CompendiumDatabase db,
+    $FigureNotesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FigureNotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FigureNotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FigureNotesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> figureId = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FigureNotesCompanion(
+                figureId: figureId,
+                notes: notes,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String figureId,
+                required String notes,
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FigureNotesCompanion.insert(
+                figureId: figureId,
+                notes: notes,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FigureNotesTable, FigureNoteRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $FigureNotesTable,
+                    FigureNoteRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FigureNotesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $FigureNotesTable,
+      FigureNoteRow,
+      $$FigureNotesTableFilterComposer,
+      $$FigureNotesTableOrderingComposer,
+      $$FigureNotesTableAnnotationComposer,
+      $$FigureNotesTableCreateCompanionBuilder,
+      $$FigureNotesTableUpdateCompanionBuilder,
+      (
+        FigureNoteRow,
+        BaseReferences<_$CompendiumDatabase, $FigureNotesTable, FigureNoteRow>,
+      ),
+      FigureNoteRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -24361,6 +29032,8 @@ class $CompendiumDatabaseManager {
       $$ChoreographersTableTableManager(_db, _db.choreographers);
   $$DanceAuthorsTableTableManager get danceAuthors =>
       $$DanceAuthorsTableTableManager(_db, _db.danceAuthors);
+  $$DanceInterpretersTableTableManager get danceInterpreters =>
+      $$DanceInterpretersTableTableManager(_db, _db.danceInterpreters);
   $$DanceFiguresTableTableManager get danceFigures =>
       $$DanceFiguresTableTableManager(_db, _db.danceFigures);
   $$ProgramsTableTableManager get programs =>
@@ -24409,4 +29082,12 @@ class $CompendiumDatabaseManager {
       $$ReviewQueueTableTableManager(_db, _db.reviewQueue);
   $$PublishedRecordsTableTableManager get publishedRecords =>
       $$PublishedRecordsTableTableManager(_db, _db.publishedRecords);
+  $$RetainedSyncFieldsTableTableManager get retainedSyncFields =>
+      $$RetainedSyncFieldsTableTableManager(_db, _db.retainedSyncFields);
+  $$PeerManifestsTableTableManager get peerManifests =>
+      $$PeerManifestsTableTableManager(_db, _db.peerManifests);
+  $$UserGlossaryEntriesTableTableManager get userGlossaryEntries =>
+      $$UserGlossaryEntriesTableTableManager(_db, _db.userGlossaryEntries);
+  $$FigureNotesTableTableManager get figureNotes =>
+      $$FigureNotesTableTableManager(_db, _db.figureNotes);
 }

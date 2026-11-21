@@ -1,0 +1,120 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
+import '../data/app_database.dart' show resolveDatabaseFile;
+import '../data/settings_keys.dart'
+    show kSyncDeviceIdKey, kSyncEnabledKey, kSyncEndpointKey, kSyncIdKey;
+import 'sync_coordinator.dart';
+import 'sync_http_client.dart';
+import 'sync_isolate.dart';
+import 'sync_invalidation.dart';
+
+/// Builds the production coordinator after the database-backed settings are
+/// available.
+///
+/// Sync is off until the user turns it on (spec §6.1): the coordinator is built
+/// only when `sync_enabled` is exactly `true`, so an unconfigured or disabled
+/// installation constructs no client and makes no sync-related network call.
+/// A missing sync ID is also the disabled state. The device identifier belongs
+/// to one attachment: it is generated when the first coordinator for that
+/// attachment is built, erased when the device detaches, and never taken from a
+/// peer or a backup.
+///
+/// The endpoint is the one recorded at pairing, which always writes it before
+/// the sync ID; a missing endpoint is therefore also the disabled state.
+final class ConfiguredSyncCoordinatorFactory {
+  /// Notified immediately before a completed pass's applied-kinds
+  /// invalidation reaches the main connection (see [markSyncAppliedTablesUpdated]).
+  ///
+  /// Mutable, not a constructor parameter: `main()` constructs this factory
+  /// before `SyncController` exists, so `_CompendiumAppState` assigns this
+  /// once the controller is built, routing the notification to
+  /// `SyncController.expectSyncAppliedInvalidation` so the resulting
+  /// `tableUpdates()` event is not mistaken for a local edit that should
+  /// schedule a follow-up pass. Left `null` in tests, which build their own
+  /// [SyncCoordinator] and never call through this factory.
+  void Function()? onBeforeAppliedInvalidation;
+
+  /// Notified immediately before this factory persists a newly minted device
+  /// ID, so the controller can mark that settings write as its own
+  /// bookkeeping rather than a user edit that schedules a pass. Every attach
+  /// mints one, so unmarked it would add a debounced pass after each pairing's
+  /// own. Assigned by `_CompendiumAppState` once the controller exists, for
+  /// the same reason as [onBeforeAppliedInvalidation].
+  void Function()? onBeforeDeviceIdMinted;
+
+  Future<SyncCoordinator?> call(CompendiumRepositories repositories) async {
+    if (await repositories.settings.get(kSyncEnabledKey) != true) return null;
+    final rawSyncId = await repositories.settings.get(kSyncIdKey);
+    if (rawSyncId == null) return null;
+    if (rawSyncId is! String) {
+      throw const FormatException('stored sync ID must be a string');
+    }
+    final syncId = normalizeSyncId(rawSyncId);
+    if (syncId.isEmpty) return null;
+    final rawEndpoint = await repositories.settings.get(kSyncEndpointKey);
+    if (rawEndpoint == null) return null;
+    final endpoint = rawEndpoint is String
+        ? tryParseSyncEndpoint(rawEndpoint)
+        : null;
+    if (endpoint == null) {
+      throw const FormatException('stored sync endpoint is invalid');
+    }
+    final databasePath = (await resolveDatabaseFile()).path;
+
+    final deviceId = await resolveSyncDeviceId(
+      repositories.settings,
+      beforeMint: onBeforeDeviceIdMinted,
+    );
+
+    final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
+    return SyncCoordinator(
+      syncId: syncId,
+      deviceId: deviceId,
+      store: CompendiumSyncCoordinatorStore(repositories, syncId: syncId),
+      transport: SyncHttpCoordinatorTransport(client),
+      passOperation: IsolatedSyncPassOperation(
+        databasePath: databasePath,
+        endpoint: endpoint,
+        syncId: syncId,
+        deviceId: deviceId,
+        onAppliedKinds: (kinds) {
+          onBeforeAppliedInvalidation?.call();
+          markSyncAppliedTablesUpdated(repositories.db, kinds);
+        },
+      ).call,
+    );
+  }
+}
+
+/// This device's stored sync device ID, minting and persisting a new one when
+/// none is stored.
+///
+/// The only place a device ID is created. A stored value that is not a valid
+/// identifier throws rather than being replaced, so corruption is loud instead
+/// of silently giving the device a second identity in the store. [beforeMint]
+/// runs immediately before a minted ID is written, and only then.
+@visibleForTesting
+Future<String> resolveSyncDeviceId(
+  SettingsRepository settings, {
+  void Function()? beforeMint,
+}) async {
+  final raw = await settings.get(kSyncDeviceIdKey);
+  switch (raw) {
+    case null:
+      final bytes = List<int>.generate(18, (_) => Random.secure().nextInt(256));
+      final deviceId = base64Url.encode(bytes).replaceAll('=', '');
+      beforeMint?.call();
+      await settings.set(kSyncDeviceIdKey, deviceId);
+      return deviceId;
+    case String value when _validDeviceId.hasMatch(value):
+      return value;
+    default:
+      throw const FormatException('stored sync device ID is invalid');
+  }
+}
+
+final _validDeviceId = RegExp(r'^[A-Za-z0-9_-]{1,64}$');

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart'
@@ -10,6 +12,24 @@ import '../diagnostics/error_log.dart';
 /// File name of the desktop single-instance lock, kept inside the app's private
 /// application-support directory (never a world-writable/predictable temp path).
 const String kSingleInstanceLockFileName = 'single_instance.lock';
+
+/// File name of the loopback port the first instance listens on for raise
+/// requests, written beside [kSingleInstanceLockFileName].
+const String kSingleInstancePortFileName = 'single_instance.port';
+
+/// The line that asks the first instance to raise its window.
+const String kRaiseRequestLine = 'raise';
+
+/// Prefix of the line that asks the first instance to raise its window and
+/// open a share file (PLAT-3): `open <absolute path>`, UTF-8. The path is
+/// untrusted, so the receiver checks it (`checkDesktopOpenPath`) before
+/// intake reads it. Any line that is neither this nor [kRaiseRequestLine] is
+/// ignored.
+const String kOpenRequestPrefix = 'open ';
+
+/// Longest request line, in bytes, the first instance accepts before it drops
+/// the connection. Room for a long path; a longer one is not forwarded.
+const int kMaxSingleInstanceRequestBytes = 8192;
 
 /// Resolves the directory the single-instance lock lives in. Injectable so
 /// tests can point the guard at a temp directory instead of the real
@@ -135,6 +155,11 @@ class AdvisoryFileLock implements InstanceLockPrimitive {
 class _RandomAccessFileLockHandle implements InstanceLockHandle {
   _RandomAccessFileLockHandle(this._raf);
 
+  // Holding this reference is what keeps the lock: an unreachable
+  // RandomAccessFile is finalized, which closes its fd and releases the OS
+  // lock. Production never calls [release], so a release (AOT) build would
+  // otherwise tree-shake the field as write-only (see [DesktopSingleInstance]).
+  @pragma('vm:entry-point')
   final RandomAccessFile _raf;
   bool _released = false;
 
@@ -152,6 +177,218 @@ class _RandomAccessFileLockHandle implements InstanceLockHandle {
   }
 }
 
+/// How a second launch asks the first instance to bring its window forward.
+///
+/// Abstracted like [InstanceLockPrimitive] so [handleSecondLaunch] is testable
+/// without a real second process.
+abstract class InstanceRaiseChannel {
+  /// Starts listening in the first instance and records where in [lockDir].
+  /// Calls [onRaise] each time a peer sends the raise request. An open request
+  /// calls [onRaise] and then [onOpen] with the path, unchecked. Returns the
+  /// bound port. May throw; the caller treats that as non-fatal.
+  Future<int> listen(
+    Directory lockDir,
+    void Function() onRaise, {
+    void Function(String path)? onOpen,
+  });
+
+  /// Asks the running first instance (found via [lockDir]) to raise its window.
+  /// Returns `false` on any failure (no port file, nothing listening, I/O
+  /// error). Never throws.
+  Future<bool> requestRaise(Directory lockDir);
+
+  /// Asks the running first instance to raise its window and open [path].
+  /// Returns `false` on any failure, like [requestRaise]. Never throws.
+  Future<bool> requestOpen(Directory lockDir, String path);
+
+  /// Stops listening and removes the port file if this channel wrote it.
+  /// Idempotent; never throws.
+  Future<void> close();
+}
+
+/// Most raise connections the first instance serves at once; more are closed
+/// on accept. A loopback port is reachable by every local process (any user's),
+/// and each open connection holds a file descriptor in the app.
+const int kMaxRaiseConnections = 4;
+
+/// [InstanceRaiseChannel] over a loopback-only TCP socket (IPv4, ephemeral
+/// port). The port is written to `<lockDir>/single_instance.port`.
+///
+/// This is not a general IPC surface: it binds `127.0.0.1`, reads at most one
+/// line of [kMaxSingleInstanceRequestBytes] per connection, acts only on the
+/// literal [kRaiseRequestLine] or a [kOpenRequestPrefix] line, and sends no
+/// reply. Any local process can connect, so the open path it carries is
+/// handed on unchecked and the receiver must check it.
+class LoopbackRaiseChannel implements InstanceRaiseChannel {
+  LoopbackRaiseChannel({
+    this.portFileName = kSingleInstancePortFileName,
+    this.timeout = const Duration(seconds: 2),
+  });
+
+  final String portFileName;
+
+  /// Bounds connect and read so a wedged peer can neither hang a second launch
+  /// nor hold a connection in the first instance open indefinitely. In the
+  /// first instance it is a deadline for the whole connection, not an idle
+  /// timeout, so trickling one byte at a time does not extend it.
+  final Duration timeout;
+
+  ServerSocket? _server;
+  File? _portFile;
+  int? _port;
+  int _serving = 0;
+
+  File _portFileIn(Directory dir) => File(p.join(dir.path, portFileName));
+
+  @override
+  Future<int> listen(
+    Directory lockDir,
+    void Function() onRaise, {
+    void Function(String path)? onOpen,
+  }) async {
+    await close();
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    _server = server;
+    server.listen(
+      (socket) {
+        if (_serving >= kMaxRaiseConnections) {
+          socket.destroy();
+          return;
+        }
+        _serving++;
+        unawaited(
+          _serve(socket, onRaise, onOpen).whenComplete(() => _serving--),
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'single_instance_guard.raiseListener',
+        );
+      },
+    );
+    _port = server.port;
+    final portFile = _portFileIn(lockDir);
+    try {
+      await portFile.parent.create(recursive: true);
+      await portFile.writeAsString('${server.port}\n', flush: true);
+    } catch (_) {
+      // diagnostics: silent — rethrown below; the caller logs it once.
+      await close();
+      rethrow;
+    }
+    _portFile = portFile;
+    return server.port;
+  }
+
+  Future<void> _serve(
+    Socket socket,
+    void Function() onRaise,
+    void Function(String path)? onOpen,
+  ) async {
+    // Destroying the socket ends the read loop below with no request.
+    final deadline = Timer(timeout, socket.destroy);
+    try {
+      final bytes = <int>[];
+      String? line;
+      await for (final chunk in socket.timeout(timeout)) {
+        bytes.addAll(chunk);
+        final newline = bytes.indexOf(0x0a);
+        if (newline > kMaxSingleInstanceRequestBytes ||
+            (newline < 0 && bytes.length > kMaxSingleInstanceRequestBytes)) {
+          break;
+        }
+        if (newline >= 0) {
+          // Throws on malformed UTF-8, which drops the request below.
+          line = utf8.decode(bytes.sublist(0, newline));
+          break;
+        }
+      }
+      if (line == null) return;
+      if (line.trim() == kRaiseRequestLine) {
+        onRaise();
+      } else if (line.startsWith(kOpenRequestPrefix)) {
+        onRaise();
+        onOpen?.call(line.substring(kOpenRequestPrefix.length));
+      }
+    } catch (_) {
+      // diagnostics: silent — a malformed, slow or reset peer is ignored; the
+      // channel only ever acts on a well-formed raise or open line.
+    } finally {
+      deadline.cancel();
+      socket.destroy();
+    }
+  }
+
+  @override
+  Future<bool> requestRaise(Directory lockDir) =>
+      _send(lockDir, kRaiseRequestLine);
+
+  @override
+  Future<bool> requestOpen(Directory lockDir, String path) {
+    final line = '$kOpenRequestPrefix$path';
+    // A newline would end the line early, and an over-long line is dropped
+    // by the receiver; neither can carry the path.
+    if (path.contains('\n') ||
+        utf8.encode(line).length > kMaxSingleInstanceRequestBytes) {
+      return Future.value(false);
+    }
+    return _send(lockDir, line);
+  }
+
+  Future<bool> _send(Directory lockDir, String line) async {
+    Socket? socket;
+    try {
+      final port = int.tryParse(
+        (await _portFileIn(lockDir).readAsString()).trim(),
+      );
+      if (port == null || port < 1 || port > 65535) return false;
+      socket = await Socket.connect(
+        InternetAddress.loopbackIPv4,
+        port,
+        timeout: timeout,
+      );
+      socket.add(utf8.encode('$line\n'));
+      await socket.flush().timeout(timeout);
+      await socket.close().timeout(timeout);
+      return true;
+    } catch (_) {
+      // diagnostics: silent — no port file, a stale port, or a refused connect
+      // all mean "could not raise"; the caller reports false on stderr.
+      return false;
+    } finally {
+      socket?.destroy();
+    }
+  }
+
+  @override
+  Future<void> close() async {
+    final server = _server;
+    final portFile = _portFile;
+    final port = _port;
+    _server = null;
+    _portFile = null;
+    _port = null;
+    try {
+      await server?.close();
+    } catch (_) {
+      // diagnostics: silent — best-effort shutdown of a loopback listener.
+    }
+    if (portFile == null) return;
+    try {
+      // Only remove a file that still names our port; a newer instance may
+      // have overwritten it after a crash/restart race.
+      if (int.tryParse((await portFile.readAsString()).trim()) == port) {
+        await portFile.delete();
+      }
+    } catch (_) {
+      // diagnostics: silent — a leftover port file is harmless (requestRaise
+      // fails to connect and the next instance overwrites it).
+    }
+  }
+}
+
 /// The outcome of a single-instance [DesktopSingleInstance.acquire] attempt.
 enum SingleInstanceResult {
   /// This process took the lock; it is the sole instance. The lock is held for
@@ -159,7 +396,8 @@ enum SingleInstanceResult {
   acquired,
 
   /// Another live instance already holds the lock. The caller must not open the
-  /// database; it should focus the existing window and/or exit.
+  /// database; it asks that instance to raise its window and exits
+  /// ([handleSecondLaunch]).
   alreadyRunning,
 
   /// The guard could not run (an unexpected IO fault). The caller proceeds
@@ -176,33 +414,71 @@ enum SingleInstanceResult {
 /// the lock, a second launch is refused so two processes can't race the
 /// migration / derived-rebuild marker and trip `database is locked`.
 ///
+/// On Linux and Windows the first instance also listens on a loopback socket
+/// ([InstanceRaiseChannel]) so a refused second launch can ask it to bring its
+/// window forward instead of exiting silently ([handleSecondLaunch]); see
+/// [listensForRaise] for why macOS does not.
+///
 /// This is intentionally desktop-only: [isSupportedPlatform] gates it to
 /// Linux/macOS/Windows, so mobile (the OS already owns single-instance) and web
 /// (no `dart:io`) are untouched. `main` calls it only on desktop, and the
 /// headless test harness never runs `main`, so `flutter test` is unaffected.
-/// The lock *directory* and lock *primitive* are both injectable so the
-/// decision logic is unit-testable without a real window or second process.
+/// The lock *directory*, lock *primitive* and raise *channel* are all
+/// injectable so the decision logic is unit-testable without a real window or
+/// second process.
 class DesktopSingleInstance {
   DesktopSingleInstance({
     LockDirectoryProvider? lockDirectoryProvider,
     this.primitive = const AdvisoryFileLock(),
     this.lockFileName = kSingleInstanceLockFileName,
-  }) : _lockDirectoryProvider =
+    InstanceRaiseChannel? raiseChannel,
+    bool? listensForRaise,
+  }) : raiseChannel = raiseChannel ?? _defaultRaiseChannel,
+       listensForRaise =
+           listensForRaise ??
+           (!kIsWeb && (Platform.isLinux || Platform.isWindows)),
+       _lockDirectoryProvider =
            lockDirectoryProvider ?? getApplicationSupportDirectory;
 
   final LockDirectoryProvider _lockDirectoryProvider;
   final InstanceLockPrimitive primitive;
   final String lockFileName;
 
+  /// How a second launch reaches the first instance, and how the first listens.
+  final InstanceRaiseChannel raiseChannel;
+
+  /// Whether the first instance starts [raiseChannel]'s listener. Linux and
+  /// Windows only: on macOS LaunchServices already brings the running app
+  /// forward, and the sandboxed release build has no
+  /// `com.apple.security.network.server` entitlement, so binding the loopback
+  /// listener there would fail and log an error on every launch.
+  final bool listensForRaise;
+
+  /// Shared by every guard built with the default, so the listener started in
+  /// the first instance is the one [releaseHeld] closes.
+  static final InstanceRaiseChannel _defaultRaiseChannel =
+      LoopbackRaiseChannel();
+
   /// Process-wide holder for the acquired lock, so the handle is never garbage
   /// collected and the lock stays held until the process exits (the OS then
   /// releases it).
+  ///
+  /// Only [releaseHeld] reads this, and only tests call that, so without the
+  /// pragma a release (AOT) build removes the field as write-only. The handle
+  /// is then collected about half a second after launch, its file is closed,
+  /// the lock is released, and a second launch runs on the same database.
+  /// `flutter test` (JIT) keeps the field, so only a release build shows it;
+  /// `single_instance_guard_test.dart` pins the pragma here and on `_raf`.
+  @pragma('vm:entry-point')
   static InstanceLockHandle? _held;
 
   /// Whether the current platform gets the desktop single-instance guard.
   /// Desktop only; a no-op on mobile and web.
   static bool get isSupportedPlatform =>
       !kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows);
+
+  /// The directory holding the lock file (and the raise port file).
+  Future<Directory> lockDirectory() => _lockDirectoryProvider();
 
   /// Attempts to become the sole instance.
   ///
@@ -242,6 +518,88 @@ class DesktopSingleInstance {
   static Future<void> releaseHeld() async {
     final held = _held;
     _held = null;
+    await _defaultRaiseChannel.close();
     await held?.release();
+  }
+}
+
+/// What `main` does after [handleSecondLaunch].
+enum SecondLaunchOutcome {
+  /// Continue starting the app (this process is the sole instance, or the guard
+  /// was unavailable and failed open).
+  proceed,
+
+  /// Another instance is running; this process must exit before opening the
+  /// database.
+  exitNow,
+}
+
+/// The second-launch decision, extracted from `main` so it is testable.
+///
+/// Runs before `AppData` exists, so a refused launch never opens the database.
+/// - `alreadyRunning`: asks the running instance to raise its window, or, when
+///   this launch was given [openPath], to raise it and open that file. Writes
+///   one line to [err] naming the outcome, returns [SecondLaunchOutcome.exitNow].
+/// - `acquired`: when [DesktopSingleInstance.listensForRaise] is set (Linux and
+///   Windows by default), starts the listener, calling [onRaise] on a raise
+///   request and [onRaise] then [onOpen] on an open request; either way
+///   returns [SecondLaunchOutcome.proceed]. A listener failure is logged and
+///   non-fatal: the app just won't be raisable.
+/// - `unavailable`: returns [SecondLaunchOutcome.proceed] (fail-open).
+Future<SecondLaunchOutcome> handleSecondLaunch(
+  DesktopSingleInstance guard, {
+  required void Function() onRaise,
+  void Function(String path)? onOpen,
+  String? openPath,
+  IOSink? err,
+}) async {
+  final sink = err ?? stderr;
+  final result = await guard.acquire();
+  switch (result) {
+    case SingleInstanceResult.alreadyRunning:
+      var raised = false;
+      try {
+        final lockDir = await guard.lockDirectory();
+        raised = openPath == null
+            ? await guard.raiseChannel.requestRaise(lockDir)
+            : await guard.raiseChannel.requestOpen(lockDir, openPath);
+      } catch (error, stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'single_instance_guard.requestRaise',
+        );
+      }
+      sink.writeln(switch ((raised, openPath)) {
+        (true, null) =>
+          "Caller's Compendium is already running; asked it to bring its "
+              'window forward. Exiting this second launch.',
+        (true, _) =>
+          "Caller's Compendium is already running; asked it to open the "
+              'file. Exiting this second launch.',
+        (false, _) =>
+          "Caller's Compendium is already running, but its window could "
+              'not be reached. Exiting this second launch to protect the '
+              'database.',
+      });
+      return SecondLaunchOutcome.exitNow;
+    case SingleInstanceResult.acquired:
+      if (!guard.listensForRaise) return SecondLaunchOutcome.proceed;
+      try {
+        await guard.raiseChannel.listen(
+          await guard.lockDirectory(),
+          onRaise,
+          onOpen: onOpen,
+        );
+      } catch (error, stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'single_instance_guard.listen',
+        );
+      }
+      return SecondLaunchOutcome.proceed;
+    case SingleInstanceResult.unavailable:
+      return SecondLaunchOutcome.proceed;
   }
 }

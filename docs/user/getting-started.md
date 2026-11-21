@@ -7,7 +7,7 @@ confidence.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Collection** and **New dance**. The first time a
-> dance term appears it links to the [Glossary](./glossary.md), so you
+> dance term appears it links to [App terms](./glossary.md), so you
 > can get a plain-language definition without losing your place.
 
 ## What Caller's Compendium is
@@ -27,14 +27,18 @@ It is **local-first**, and that shapes everything else:
   open the app and start working.
 - **No telemetry.** The app does not track you, phone home, or collect usage
   data. What you do in Caller's Compendium is your business alone.
-- **It works offline.** You can catalogue dances, build programs, and call a
-  whole evening with no internet connection. The only time the app reaches the
-  network is when *you* choose to bring in dances from an online source, and
-  even then it only reads — it never publishes your work back out.
+- **It works offline.** You can catalog dances, build programs, and call a
+  whole evening with no internet connection. The app goes online only when *you*
+  ask it to: to bring in dances from an online source, to check for updates, or
+  to sync your own devices if you turn on the optional
+  [Device Sync](./settings.md#device-sync). It never publishes your work to a
+  community site.
 - **It runs everywhere you call.** The same app, adapted to each screen size,
-  runs on Linux, macOS, Windows, Android, and iOS/iPadOS. On a phone you get a
-  single-column layout with a bottom navigation bar; on a tablet or desktop you
-  get side-by-side list and detail panes and a left navigation rail.
+  runs on Linux, macOS, Windows, Android, and iOS/iPadOS. On a phone held
+  upright you get a single-column layout with a bottom navigation bar. On
+  most phones turned on their side, a tablet or a desktop you get a left
+  navigation rail, and, once the window is wide enough (a tablet in
+  landscape, say), list and detail panes side by side.
 
 Because your whole library lives in one place on your device, you can move it to
 a new machine any time with a single backup file — see the
@@ -42,13 +46,13 @@ a new machine any time with a single backup file — see the
 
 ## Installing the app
 
-Downloadable builds are ready for **Linux**, **macOS**, **Windows**, and
-**Android**, and **iPhone/iPad** builds go out through **TestFlight** to invited
-testers. The [Installation guide](./installation.md) walks you through
-downloading the right file (or joining the TestFlight beta), getting past the
-first-time security prompt you may see on an unsigned Windows fallback (Linux
-artifacts are unsigned but generally have no signing prompt), and keeping the app
-up to date.
+Caller's Compendium is available for **Linux**, **macOS**, **Windows**, and
+**Android** from the project's Releases page, on **Android** through a Google
+Play closed test, and on **iPhone and iPad** through an open **TestFlight**
+beta — no invitation needed. The [Installation guide](./installation.md) walks
+you through choosing the right download, what to do if your system shows a
+security prompt the first time you open the app, and keeping the app up to
+date.
 
 ## Your first launch
 
@@ -56,15 +60,18 @@ When you open Caller's Compendium for the first time, it takes you straight to
 your **Collection**. There is no sign-in screen and no setup wizard to get
 through first.
 
-Your collection starts empty, so you will see a friendly prompt inviting you to
-add or import a dance to get started, alongside a **New dance** button. This is
-your starting point: from here you can build your library by hand, bring in
-dances you already have, or pull dances from an online source.
+Your collection starts with one sample dance, "The Baby Rose" by David Kaynor,
+so there is something to look at straight away. While it is the only dance
+there, a **Bring your dances in** card above it offers **Import dances**, **New dance**
+and **Browse published collections**. This is your starting point: from here you can build your
+library by hand, bring in dances you already have, or pull dances from an online
+source. Delete the sample whenever you like; it is not added back, and if you
+delete it the Collection shows **Import dances** and **New dance** on an empty page.
 
 *The Collection screen with a search query, the Filters panel open, and matching
 dances visible.*
 
-![The Collection screen showing a search query with the Filters panel open and several matching dances listed](images/collection-search-filters.png)
+![The Collection screen with a figure search for "petronella", three formations chosen in the Filters panel, and one of the four matching dances open beside the list](images/collection-search-filters.png)
 
 Two small things worth knowing on day one:
 
@@ -78,8 +85,11 @@ Two small things worth knowing on day one:
 ## A tour of the app
 
 Four destinations are always one step away in the navigation (a bottom bar on a
-phone, a left rail on a tablet or desktop): **Collection**, **Programs**,
-**Settings**, and **Guide**.
+phone held upright, a left rail on most phones turned on their side, a tablet or
+a desktop): **Collection**, **Programs**,
+**Settings**, and **Guide**. A fifth, **Glossary**, appears between **Programs**
+and **Settings** if you turn it on in **Settings ▸ Experimental** (see
+[Settings](settings.md#glossary-and-custom-figures)).
 
 **Perform** is not a destination but a *mode* — you step into it from a dance or a
 program when it is time to call, and step back out when you are done.
@@ -87,9 +97,18 @@ program when it is time to call, and step back out when you are done.
 **Guide** is this documentation, bundled into the app so you have it on stage with
 no signal. It is the same set of pages you are reading now.
 
-### Collection — your dance library
+To jump straight to a dance or program you can name, choose **Search** in the
+navigation rail, or press **Ctrl-K** (**Cmd-K** on macOS). With the bottom bar, use the
+Collection's search box, or the programs-only search at the top of
+**Programs**; see
+[Jump straight to a dance or program](./collection.md#jump-straight-to-a-dance-or-program).
+On a computer you can also use keyboard shortcuts, your mouse's **Back** button,
+and right-click menus on dances and programs; the
+[Accessibility guide](./accessibility.md#using-the-keyboard) lists them.
 
-**Collection** is your whole library of dances, and it is where the app opens.
+### Collection — your dances
+
+**Collection** is all of your dances, and it is where the app opens.
 Each dance is one transcription: its title, author,
 [formation](./glossary.md#formation), and the ordered list of
 [figures](./glossary.md#figure) (the moves) that make it up.
@@ -104,6 +123,9 @@ From here you can:
   [progression](./glossary.md#progression), author, tags, custom fields, or even by
   the figures a dance contains (for example, dances with a petronella, or a
   chain *then* a swing).
+- **Change many at once** — select several dances to tag them, set their
+  level or status, or delete them together; see
+  [Change many dances at once](./collection.md#change-many-dances-at-once).
 - **Add a dance** with **New dance**, or **Import** dances from other sources.
 
 Selecting a dance opens its detail view, with the full figure-by-figure
@@ -125,7 +147,7 @@ a waltz, announcements. A program also carries its event date, venue, and notes.
 *The Programs builder with ordered program slots beside a searchable collection
 picker.*
 
-![The Programs builder showing ordered program slots beside a searchable collection picker with filters](images/programs-builder.png)
+![The Programs builder showing ordered program slots with a break between the halves, beside a searchable collection picker with filters](images/programs-builder.png)
 
 Each program also has a **[matrix](./glossary.md#matrix)** — a figures-by-dances
 grid worked out from the choreography — so you can see the shape and variety of
@@ -136,8 +158,9 @@ and reading the matrix in full.
 ### Perform — the calling view
 
 **[Perform mode](./glossary.md#perform-mode)** is the app's stage-ready calling view.
-It is not a navigation tab; you enter it when you are ready to call and it fills
-the whole screen.
+It is not a navigation tab; you enter it when you are ready to call. On a phone
+or tablet it fills the whole screen; on a computer it opens in the app window,
+and **Full screen** takes it over the whole display.
 
 - To call a **single dance**, open it from your collection and choose
   **Perform this dance**.
@@ -146,9 +169,10 @@ the whole screen.
 
 Perform mode is built for the realities of the stage: huge, adjustable type on a
 high-contrast dark background, next and previous controls big enough to hit
-without looking, and the screen kept awake so it never dims mid-dance. If you
-need to make a change on the fly — reorder what is left, swap in an alt, or add a
-quick note — an **adjust** panel lets you do it without disturbing the card you
+without looking, and the screen kept awake so it never dims mid-dance. When a
+slot has an alt, **Show alternate** switches the card to it. If you need to
+change a program on the fly — reorder what is left, insert a dance, or add a
+quick note — **Adjust program** lets you do it without disturbing the card you
 are reading.
 
 *Perform mode in the dark-stage theme, with large type and controls for moving
@@ -166,6 +190,7 @@ sections:
 
 - **General** — where you run [imports](./glossary.md#import) and manage your
   data, including [backup and restore](./backup-portability.md).
+- **Program** — your saved venues and how programs and Perform mode behave.
 - **Appearance** — themes, including light, dark, and high-contrast, plus your
   own custom themes.
 - **[Dialect](./glossary.md#dialect)** — your role names and wording (more on
@@ -175,6 +200,8 @@ sections:
   save typing.
 - **Updates** — checking for and installing new versions.
 - **Diagnostics** — the local crash log, and how to send it with a bug report.
+- **Experimental** — features still being refined, such as the optional
+  **Device Sync**.
 - **About** — version, license information, and a link to this guide.
 
 The [Settings guide](./settings.md) covers each section in detail.
@@ -206,19 +233,28 @@ bringing in dances they already have.
 ## Bring in dances you already have
 
 If you already keep dances in another tool or have them from a community source,
-you can **Import** them instead of retyping. From **Collection**, choose
-**Import** (or run an import from **Settings → General**).
+you can import them instead of retyping. From **Collection**, choose **Import
+dances** (or run an import from **Settings ▸ General ▸ Import…**).
 
 Caller's Compendium can bring in dances from community sources such as **The
-Caller's Box** and **ContraDB**, and from a **Caller's Compendium** file that you
-or another caller exported. You can also turn on online search right from the
-collection to find and pull in individual dances from The Caller's Box.
+Caller's Box** and **ContraDB**, from a **Caller's Compendium** file that you
+or another caller exported, and your whole library from **Caller's Companion**
+(its exported `.USR` file). You can also turn on **Online search** right from
+the collection to find and pull in individual dances from The Caller's Box or
+ContraDB.
 
-Whatever the source, every import lands in a **review queue** first. You get a
-side-by-side look at the original and how the app understood it, and nothing
-touches your collection until you approve it — so an import can never quietly
-overwrite your work. The [Imports & migration guide](./imports.md) walks through
-each source step by step.
+Importing a file, link or pasted list opens a **review screen** first, and
+nothing touches your collection until you commit there — so an import can never
+quietly overwrite your work. The review lists every dance it found, with its
+author, formation, source, how much of it was read as structured figures, and
+any notes about it; you decide for each one whether to bring it in or skip it.
+It does not show the original text, and shows figures only where an incoming
+dance is a version of one you already have: then it lists the figure lines that
+differ. Where a row offers **Import and edit** (not when the file brings a
+program, or tags and other library details along with its dances, and not for a
+pasted title that matched more than one dance), it imports that one dance right
+away and opens it in the editor. The [Imports & migration guide](./imports.md) walks
+through each source step by step.
 
 ## Calling in your own words
 
@@ -232,7 +268,7 @@ shared vocabulary, so switching your dialect never changes the dances themselves
 — search keeps working and your data stays portable no matter which words you
 use. You can even switch dialects between gigs, or right from a dance card.
 
-Manage your dialects in **Settings → Dialect**. For the full picture — presets,
+Manage your dialects in **Settings ▸ Dialect**. For the full picture — presets,
 editing individual moves, and live previews — see the
 [Dialect guide](./dialects.md).
 
@@ -251,5 +287,5 @@ editing individual moves, and live previews — see the
   [Accessibility guide](./accessibility.md) covers screen readers, text
   size, high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

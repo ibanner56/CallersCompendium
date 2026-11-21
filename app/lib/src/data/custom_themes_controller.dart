@@ -54,21 +54,27 @@ class CustomThemesController extends ChangeNotifier {
 
   /// Loads persisted themes + active id from storage. Safe to call once at
   /// startup; malformed entries are skipped rather than throwing.
+  ///
+  /// Transactional: both reads finish before any state changes, so a failing
+  /// read leaves the previous themes and active id untouched.
   Future<void> load() async {
-    _themes.clear();
     final raw = await _settings.get(kCustomThemesKey);
+    final activeRaw = await _settings.get(kActiveCustomThemeKey);
+    final loaded = <CustomTheme>[];
     if (raw is List) {
       for (final entry in raw) {
         if (entry is Map) {
           try {
-            _themes.add(CustomTheme.fromJson(entry.cast<String, Object?>()));
+            loaded.add(CustomTheme.fromJson(entry.cast<String, Object?>()));
           } catch (_) {
             // diagnostics: silent — skips a corrupt entry rather than losing every theme
           }
         }
       }
     }
-    final activeRaw = await _settings.get(kActiveCustomThemeKey);
+    _themes
+      ..clear()
+      ..addAll(loaded);
     _activeId = activeRaw is String && byId(activeRaw) != null
         ? activeRaw
         : null;
@@ -118,6 +124,27 @@ class CustomThemesController extends ChangeNotifier {
     }
     await _persistThemes();
     if (changedActive) await _persistActive();
+    notifyListeners();
+  }
+
+  /// Puts [theme] back at [index] (clamped): Undo of [delete]. When
+  /// [wasActive] and no custom theme has been made active since, it is made
+  /// active again. A built-in theme chosen in between leaves no custom theme
+  /// active either, so the caller decides [wasActive] knowing that (the
+  /// Appearance section passes `false` once the built-in selection changed). Throws [ArgumentError] when a theme with its id exists.
+  Future<void> restoreDeleted(
+    CustomTheme theme, {
+    required int index,
+    required bool wasActive,
+  }) async {
+    if (byId(theme.id) != null) {
+      throw ArgumentError.value(theme.id, 'theme.id', 'already exists');
+    }
+    _themes.insert(index.clamp(0, _themes.length), theme);
+    final reactivate = wasActive && _activeId == null;
+    if (reactivate) _activeId = theme.id;
+    await _persistThemes();
+    if (reactivate) await _persistActive();
     notifyListeners();
   }
 

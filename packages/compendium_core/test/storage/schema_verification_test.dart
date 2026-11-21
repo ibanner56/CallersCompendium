@@ -22,7 +22,7 @@
 //     new column to the stored `CREATE TABLE` text. A migrated table therefore
 //     lists columns in migration order, while a fresh one lists them in
 //     declaration order.
-//   * The four raw lookup indices are created by this repo with
+//   * The raw lookup indices are created by this repo with
 //     `IF NOT EXISTS` (they are applied from both `onCreate` and an upgrade
 //     step), but a database instantiated from a generated schema snapshot
 //     creates them without it — drift's schema writer does not round-trip that
@@ -31,17 +31,25 @@
 // Asking SQLite itself for the structure via `PRAGMA table_info` /
 // `index_list` / `index_info` / `foreign_key_list` sidesteps both: SQLite has
 // already parsed the DDL, so the comparison is over structure, not syntax.
-// This schema declares no CHECK constraints, which are the one thing those
-// pragmas would not surface.
+//
+// The one thing those pragmas do not surface is CHECK constraints, and this
+// schema has many: drift emits `CHECK ("col" IN (0, 1))` for every
+// `BoolColumn`, and `baseline_state.id` carries `CHECK (id = 1)`. The blind
+// spot is tolerable today because every non-virtual table on both paths is
+// created by drift from the same Dart declarations (`createAll`, `createTable`,
+// `alterTable`, `addColumn`); no migration step writes raw `CREATE TABLE`
+// text, so the two paths cannot disagree on a CHECK. If one ever does, extend
+// `_describeSchema` to extract `CHECK (…)` clauses from `sqlite_master.sql`
+// through `_normalizeDdl`.
 //
 // ## Why this covers what drift's own `SchemaVerifier` would not
 //
-// Six entities here are created by raw `customStatement` DDL rather than
-// being drift-managed: the `dance_fts` FTS5 virtual table and the five lookup
-// indices. They are maintained by hand in two places (`onCreate` and an
+// Thirteen entities here are created by raw `customStatement` DDL rather than
+// being drift-managed: the `dance_fts` and `dance_substring_fts` FTS5 virtual
+// tables and the eleven lookup indices. They are maintained by hand in two places (`onCreate` and an
 // upgrade step), which makes them the *likeliest* to diverge, yet a schema
 // dumped from Dart source would not contain them at all. Taking the dumps from
-// the committed fixture databases keeps them in scope, and the comparison
+// real database files keeps them in scope, and the comparison
 // below treats them exactly like any other entity.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart';
@@ -203,6 +211,52 @@ void main() {
       freshSchema = await _describeSchema(fresh);
       await fresh.close();
       raw.close();
+    });
+
+    // The head dump is the one version the loop below never instantiates: it
+    // is the *target* of every migration, not a starting point. Nothing else
+    // reads it either, so a dump regenerated from the wrong tree would pass CI
+    // until the next bump PR, whose "from v<head>" test would then fail for a
+    // reason that lies in this PR. Instantiating the head dump and comparing it
+    // to a live `onCreate` pins it to the code it claims to record.
+    test('the head dump records the fresh head schema', () async {
+      final raw = _emptyDatabase();
+      final atHead = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        kCompendiumSchemaVersion,
+      );
+      await atHead.customSelect('SELECT 1').get();
+      final dumpedSchema = await _describeSchema(atHead);
+      await atHead.close();
+      raw.close();
+
+      expect(
+        (freshSchema.keys.toSet().difference(dumpedSchema.keys.toSet()).toList()
+          ..sort()),
+        isEmpty,
+        reason:
+            'the head dump lacks these entities, which a freshly created '
+            'head database has — regenerate drift_schema_v'
+            '$kCompendiumSchemaVersion.json from this tree',
+      );
+      expect(
+        (dumpedSchema.keys.toSet().difference(freshSchema.keys.toSet()).toList()
+          ..sort()),
+        isEmpty,
+        reason:
+            'the head dump has these extra entities, which a freshly created '
+            'head database does not — regenerate drift_schema_v'
+            '$kCompendiumSchemaVersion.json from this tree',
+      );
+      for (final entry in freshSchema.entries) {
+        expect(
+          dumpedSchema[entry.key],
+          entry.value,
+          reason:
+              '${entry.key} differs between the head dump and a fresh head '
+              'database (left: dump, right: freshly created at head)',
+        );
+      }
     });
 
     for (

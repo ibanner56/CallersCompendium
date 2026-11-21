@@ -46,5 +46,22 @@ void main() {
       expect(titleSortKey('Petronella'), 'petronella');
       expect(titleSortKey('A1 Balance'), 'a1 balance');
     });
+
+    test('folds accents so É files with E', () {
+      expect(titleSortKey('École'), 'ecole');
+      expect(titleSortKey('The Café'), 'cafe');
+      expect(
+        titleSortKey('Éclair').compareTo(titleSortKey('Zebra')),
+        lessThan(0),
+      );
+    });
+
+    test('does not fold characters with no decomposition (Æ, Ø)', () {
+      // Documented limit: accent folding is not locale-aware collation.
+      expect(
+        titleSortKey('Æther').compareTo(titleSortKey('Zebra')),
+        greaterThan(0),
+      );
+    });
   });
 }

@@ -245,8 +245,120 @@ def _cases() -> None:
         assert manifest["codename"] == "Allemande Left"
 
 
+def _expect_exit(fn, fragment: str) -> None:
+    try:
+        fn()
+    except SystemExit as exc:
+        assert fragment in str(exc), f"{fragment!r} not in {exc}"
+        return
+    raise AssertionError(f"expected SystemExit mentioning {fragment!r}")
+
+
+def _retirement_cases() -> None:
+    """``--retirements``: validated, copied into every manifest, and absent
+    from the output entirely when the list is empty."""
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        dist = _mkdist(tmp)
+        path = tmp / "retirements.json"
+
+        def load(entries: object, release: str = "0.8.0") -> list[dict]:
+            path.write_text(json.dumps(entries), encoding="utf-8")
+            return g.load_retirements(path, release_version=release)
+
+        good = [
+            {"through": "0.6.0-beta", "endOfLife": "2027-01-31"},
+            {"through": "0.7.0", "endOfLife": "2027-06-30"},
+        ]
+        assert load(good) == good
+        assert load([]) == []
+
+        # Each entry the client would refuse fails the release instead.
+        _expect_exit(lambda: load({"through": "0.7.0"}), "must be a JSON list")
+        _expect_exit(lambda: load(["0.7.0"]), "is not an object")
+        _expect_exit(
+            lambda: load([{"through": "0.7.0"}]), "must have exactly the keys"
+        )
+        _expect_exit(
+            lambda: load([{"through": "0.7.0", "endOfLife": "2027-01-31",
+                           "endofLife": "2027-01-31"}]),
+            "must have exactly the keys",
+        )
+        _expect_exit(
+            lambda: load([{"through": "v0.7.0", "endOfLife": "2027-01-31"}]),
+            "is not a SemVer version",
+        )
+        _expect_exit(
+            lambda: load([{"through": "0.7", "endOfLife": "2027-01-31"}]),
+            "is not a SemVer version",
+        )
+        _expect_exit(
+            lambda: load([{"through": "0.7.0", "endOfLife": "2027-1-31"}]),
+            "is not YYYY-MM-DD",
+        )
+        _expect_exit(
+            lambda: load([{"through": "0.7.0", "endOfLife": "2027-02-30"}]),
+            "is not a real date",
+        )
+        # A release can retire only older builds — not itself, and not a
+        # pre-release of itself either way round.
+        _expect_exit(
+            lambda: load([{"through": "0.8.0", "endOfLife": "2027-01-31"}]),
+            "cannot retire itself",
+        )
+        _expect_exit(
+            lambda: load([{"through": "0.8.0", "endOfLife": "2027-01-31"}],
+                         release="0.8.0-beta"),
+            "cannot retire itself",
+        )
+        assert load([{"through": "0.8.0-beta", "endOfLife": "2027-01-31"}],
+                    release="0.8.0") != []
+
+        _, plain = g.build_metadata(
+            version="0.1.0", tag=TAG, channel="stable", repo=REPO,
+            dist=dist, pub_date=PUB_DATE,
+        )
+        _, empty = g.build_metadata(
+            version="0.1.0", tag=TAG, channel="stable", repo=REPO,
+            dist=dist, pub_date=PUB_DATE, retirements=[],
+        )
+        assert empty == plain
+        assert "retirements" not in plain
+
+        # End to end: both refreshed channel manifests carry the list.
+        path.write_text(
+            json.dumps([{"through": "0.0.9", "endOfLife": "2027-01-31"}]),
+            encoding="utf-8",
+        )
+        rc = g.main([
+            "--version", VERSION, "--tag", TAG, "--channel", "stable",
+            "--repo", REPO, "--dist", str(dist), "--pub-date", PUB_DATE,
+            "--retirements", str(path),
+        ])
+        assert rc == 0
+        for channel in ("stable", "beta"):
+            manifest = json.loads(
+                (dist / f"{channel}.json").read_text(encoding="utf-8")
+            )
+            assert manifest["retirements"] == [
+                {"through": "0.0.9", "endOfLife": "2027-01-31"}
+            ], channel
+
+    # The checked-in file the release workflow passes must itself be valid
+    # for any release after it was last edited, so a typo fails here, in CI,
+    # rather than on the release run.
+    checked_in = Path(__file__).resolve().parent / "retirements.json"
+    entries = json.loads(checked_in.read_text(encoding="utf-8"))
+    newest = max(
+        (e["through"] for e in entries), key=g._semver_key, default="0.0.0"
+    )
+    major, minor, _ = (int(x) for x in newest.split("-")[0].split("+")[0].split("."))
+    g.load_retirements(checked_in, release_version=f"{major}.{minor + 1}.0")
+
+
 def main() -> int:
     _cases()
+    _retirement_cases()
     print("OK: all gen_release_metadata tests passed")
     return 0
 

@@ -6,12 +6,16 @@ import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
+import '../../search/filter.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../permanent_deletion.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
 import '../calling_history_scope.dart';
 import 'venue_repository.dart';
+import 'sync_local_repository.dart';
 
 /// One entry in a dance's calling history: a program that includes the dance
 /// (a slot referencing it), produced by
@@ -19,10 +23,11 @@ import 'venue_repository.dart';
 ///
 /// Calling history is a **derived query** over [ProgramSlot]s, never stored on
 /// the dance (see `docs/design/domain-model.md`). By default a program appears
-/// as soon as it *contains* the dance — [performedAt] may be null (the "mark
-/// performed" write path is a separate feature; see ROADMAP G.2). There is one
-/// record per matching slot, so a dance appearing more than once in the same
-/// program yields multiple records.
+/// as soon as it *contains* the dance in a primary slot — [performedAt] may be
+/// null (the "mark performed" write path is a separate feature; see ROADMAP
+/// G.2); an alternate slot appears only once it is marked performed. There is
+/// one record per matching slot, so a dance appearing more than once in the
+/// same program yields multiple records.
 @immutable
 class DanceCallingRecord {
   const DanceCallingRecord({
@@ -45,12 +50,13 @@ class DanceCallingRecord {
   final String programTitle;
 
   /// The program's last-updated timestamp (always present). UTC. Used as the
-  /// final ordering/display fallback when neither [performedAt] nor [eventDate]
+  /// final ordering/display fallback when neither [eventDate] nor [performedAt]
   /// is set.
   final DateTime programUpdatedAt;
 
-  /// When the slot was actually called, if the "mark performed" path has
-  /// stamped it — otherwise null. UTC.
+  /// When the slot was marked performed, if it has been — otherwise null. UTC.
+  /// It says the dance was called; its time dates the call only when the
+  /// program has no [eventDate] (see [effectiveDate]).
   final DateTime? performedAt;
 
   /// The program's scheduled event date, if any. UTC.
@@ -65,10 +71,54 @@ class DanceCallingRecord {
   /// fetch — the app layer decides which to show per the venue-entity mode.
   final String? venueId;
 
-  /// The date used for ordering and display: the actual performance time when
-  /// set, else the program's scheduled event date, else its last-updated time.
-  /// Always non-null so ordering never depends on [performedAt] being present.
-  DateTime get effectiveDate => performedAt ?? eventDate ?? programUpdatedAt;
+  /// The date used for ordering and display: the program's event date when it
+  /// has one, else when the slot was marked performed, else the program's
+  /// last-updated time (GIG-2, maintainer decision 2026-10-29). Marking a slot
+  /// on the Monday after Saturday's dance still dates the call Saturday, and
+  /// re-dating the program moves it. Always non-null so ordering never depends
+  /// on [performedAt] being present.
+  ///
+  /// `_callingHistoryRows` orders by the same date, and
+  /// `DanceRepository._sortByLastCalled` sorts by it, both through
+  /// `callingHistoryDateSql`.
+  DateTime get effectiveDate => eventDate ?? performedAt ?? programUpdatedAt;
+
+  /// The date the history order and the Last-called sort give this record, or
+  /// null when the record has none: [effectiveDate], unless [ignoreUndated] and
+  /// the program has no event date, or [ignoreUnperformed] and the slot was
+  /// never marked performed. The SQL side is `callingHistoryDateSql`; the two
+  /// must agree.
+  DateTime? orderingDate({
+    bool ignoreUndated = false,
+    bool ignoreUnperformed = false,
+  }) {
+    if (ignoreUndated && eventDate == null) return null;
+    if (ignoreUnperformed && performedAt == null) return null;
+    return effectiveDate;
+  }
+
+  /// The date a recency window gives this record, or null when the record is in
+  /// no window: [effectiveDate], unless [requireEventDate] and the program has
+  /// no event date, or [requirePerformed] and the slot was never marked
+  /// performed. The `updated_at` fallback therefore applies only while
+  /// [requireEventDate] is off: an edit counts as a call only when the caller
+  /// asked for undated programs to be dated by their last edit.
+  ///
+  /// A `CalledFilter.since` scope compares the same date, through
+  /// `callingHistoryRecencyDateSql`; the two must agree.
+  DateTime? recencyDate({
+    bool requireEventDate = true,
+    bool requirePerformed = false,
+  }) {
+    if (requireEventDate && eventDate == null) return null;
+    if (requirePerformed && performedAt == null) return null;
+    return effectiveDate;
+  }
+
+  /// The venue this record's program was at, as the repeated-venues summary
+  /// groups it, or null when the program has neither a linked record nor a
+  /// typed venue.
+  VenueKey? get venueKey => VenueKey.forProgram(venueId: venueId, venue: venue);
 
   @override
   bool operator ==(Object other) =>
@@ -98,8 +148,10 @@ class DanceCallingRecord {
 /// The number of matching calling-history records at one venue identity.
 ///
 /// Linked venues remain keyed by [venueId], while free-text venues are keyed by
-/// normalized [venue]. The app resolves linked labels before displaying or
-/// ordering these values because the venue catalogue is app-side state.
+/// normalized [venue] ([key] is the [VenueKey] either way, the same key a
+/// `CalledFilter.venue` scope matches). The app resolves linked labels before
+/// displaying or ordering these values because the venue catalogue is app-side
+/// state.
 @immutable
 class VenueCallCount {
   const VenueCallCount({
@@ -112,6 +164,13 @@ class VenueCallCount {
   final String? venue;
   final int count;
 
+  /// The venue these records share. The summary only builds a count for a
+  /// record with a key, so this throws only for a hand-built count with
+  /// neither [venueId] nor [venue]. Folding [venue] again gives the key the
+  /// summary grouped by: it stores [venue] trimmed and whitespace-collapsed,
+  /// and the fold is idempotent.
+  VenueKey get key => VenueKey.forProgram(venueId: venueId, venue: venue)!;
+
   @override
   bool operator ==(Object other) =>
       other is VenueCallCount &&
@@ -123,23 +182,79 @@ class VenueCallCount {
   int get hashCode => Object.hash(venueId, venue, count);
 }
 
+/// One venue with at least one counted call, and how many programs at it
+/// count, produced by [ProgramRepository.calledVenues].
+///
+/// The app labels a record [key] from its venue catalogue, and a typed one from
+/// [latestVenueText]. A record key whose record is missing (a dangling
+/// `programs.venue_id` from a peer) falls back to [latestVenueText] too.
+@immutable
+class CalledVenue {
+  const CalledVenue({
+    required this.key,
+    required this.programCount,
+    this.latestVenueText,
+  });
+
+  /// The venue, as a `CalledFilter.venue` scope and the repeated-venues
+  /// summary key it.
+  final VenueKey key;
+
+  /// How many distinct programs at this venue have a counted call.
+  final int programCount;
+
+  /// The typed venue of the most recent such program that has one, trimmed
+  /// and whitespace-collapsed but not lower-cased. Null when none has typed
+  /// text, which only a record key can be.
+  final String? latestVenueText;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CalledVenue &&
+      other.key == key &&
+      other.programCount == programCount &&
+      other.latestVenueText == latestVenueText;
+
+  @override
+  int get hashCode => Object.hash(key, programCount, latestVenueText);
+
+  @override
+  String toString() =>
+      'CalledVenue(${key.storageKey}, programs: $programCount, '
+      'latest: $latestVenueText)';
+}
+
 /// How many times a dance has been called, aggregated across every non-deleted
 /// program, produced by [ProgramRepository.countByDance].
 ///
-/// Two tallies are surfaced so a caller can honor the "Require mark-performed
-/// for calling history" setting (ROADMAP G.2) the same way the dance-detail
-/// calling history does — WITHOUT a second query:
-/// * [all] counts every occurrence (one per slot referencing the dance; a dance
-///   appearing twice in one program counts twice), mirroring the detail
-///   history's DEFAULT (a program appears as soon as it contains the dance).
+/// Four tallies are surfaced so a caller can honor the "Require mark-performed
+/// for calling history" setting (ROADMAP G.2) and the "Require an event date"
+/// setting the same way the dance-detail calling history does — WITHOUT a
+/// second query, so either toggle takes effect live:
+/// * [all] counts every counted occurrence (one per primary slot referencing
+///   the dance, plus each alternate slot marked performed; a dance appearing
+///   twice in one program counts twice), mirroring the detail history's
+///   DEFAULT (a program appears as soon as it contains the dance).
 /// * [performed] counts only occurrences whose slot was marked performed
 ///   (`performed_at IS NOT NULL`), mirroring the history's `performedOnly` mode.
+/// * [dated] and [performedDated] are the same two tallies restricted to
+///   programs that have an event date, mirroring `requireEventDate`.
 ///
-/// Always `performed <= all`. A dance that has never been called is simply
-/// absent from [countByDance]'s map rather than mapped to a zero record.
+/// Always `performed <= all`, `dated <= all` and
+/// `performedDated <= min(performed, dated)`. A dance that has never been
+/// called is simply absent from [countByDance]'s map rather than mapped to a
+/// zero record.
 @immutable
 class DanceCallCounts {
-  const DanceCallCounts({required this.all, required this.performed});
+  /// [dated] and [performedDated] default to [all] and [performed]: a record
+  /// built without them describes occurrences that all have an event date.
+  const DanceCallCounts({
+    required this.all,
+    required this.performed,
+    int? dated,
+    int? performedDated,
+  }) : dated = dated ?? all,
+       performedDated = performedDated ?? performed;
 
   /// Every occurrence of the dance (one per matching slot), regardless of
   /// whether the slot was marked performed.
@@ -148,23 +263,41 @@ class DanceCallCounts {
   /// Occurrences whose slot was marked performed (`performed_at` set).
   final int performed;
 
-  /// The tally that matches the active calling-history setting: [performed]
-  /// when mark-performed is required, otherwise [all]. Mirrors
-  /// `ProgramRepository.callingHistoryForDance`'s `performedOnly` flag so the
-  /// card's count and the detail history never disagree.
-  int countFor(bool performedOnly) => performedOnly ? performed : all;
+  /// Occurrences in a program with an event date.
+  final int dated;
+
+  /// Occurrences marked performed in a program with an event date.
+  final int performedDated;
+
+  /// The tally that matches the active calling-history settings: performed
+  /// occurrences when mark-performed is required, otherwise every occurrence,
+  /// and in either case only dated programs when [requireEventDate] is set.
+  /// Mirrors `ProgramRepository.callingHistoryForDance`'s `performedOnly` and
+  /// `requireEventDate` flags so the card's count and the detail history never
+  /// disagree.
+  int countFor(bool performedOnly, {bool requireEventDate = false}) =>
+      switch ((performedOnly, requireEventDate)) {
+        (false, false) => all,
+        (true, false) => performed,
+        (false, true) => dated,
+        (true, true) => performedDated,
+      };
 
   @override
   bool operator ==(Object other) =>
       other is DanceCallCounts &&
       other.all == all &&
-      other.performed == performed;
+      other.performed == performed &&
+      other.dated == dated &&
+      other.performedDated == performedDated;
 
   @override
-  int get hashCode => Object.hash(all, performed);
+  int get hashCode => Object.hash(all, performed, dated, performedDated);
 
   @override
-  String toString() => 'DanceCallCounts(all: $all, performed: $performed)';
+  String toString() =>
+      'DanceCallCounts(all: $all, performed: $performed, dated: $dated, '
+      'performedDated: $performedDated)';
 }
 
 /// A dance's calling history together with the half-calling stats derived from
@@ -219,7 +352,9 @@ class ProgramDerivedCounts {
     required this.callCounts,
   });
 
-  /// Same value as [ProgramRepository.lastCalledByDance].
+  /// Same value as [ProgramRepository.lastCalledByDance] with its default
+  /// `requireEventDate: false`. No rendered surface reads this date; the
+  /// Last-called sort runs its own query (see [ProgramRepository.lastCalledByDance]).
   final Map<String, DateTime> lastCalled;
 
   /// Same value as [ProgramRepository.countByDance].
@@ -264,6 +399,22 @@ class ProgramRepository {
   static List<Variable<Object>> _callerVariables(String? caller) =>
       caller == null ? const [] : [Variable<String>(caller)];
 
+  /// The alternate rule every derived calling-history query applies: an
+  /// alternate slot counts only once it is marked performed. See
+  /// [callingHistoryAlternateClause] and
+  /// [ProgramSlot.countsTowardCallingHistory].
+  static final String _alternateClause = callingHistoryAlternateClause(
+    slotTable: 'program_slots',
+  );
+
+  /// The event-date rule every derived calling-history query applies when
+  /// "Require an event date" is on. See [callingHistoryEventDateClause].
+  static String _eventDateClause(bool requireEventDate) =>
+      callingHistoryEventDateClause(
+        requireEventDate: requireEventDate,
+        programTable: 'programs',
+      );
+
   /// Persists a new program. Pass [knownVenueIds] on the bulk restore/import
   /// paths to validate a non-null `venueId` against a preloaded live snapshot
   /// instead of a per-row SELECT (keeps persisting N programs O(1) in venue
@@ -275,22 +426,174 @@ class ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) =>
       _upsert(program, knownVenueIds: knownVenueIds);
 
+  /// Updates [program] like [update] and returns it as stored, read back in
+  /// the same transaction (text normalized, performed stamps applied,
+  /// timestamps at the store's precision).
+  ///
+  /// The result is the exact token [replaceIfUnchanged] compares against: no
+  /// other write can land between this write and its read-back.
+  ///
+  /// With [keepStoredArchivedAt], the stored `archived_at` is kept rather
+  /// than [program]'s, read inside the same transaction as the write. For a
+  /// caller that never edits the archived state (the program builder): an
+  /// [archive] or [unarchive] that lands while its copy is in flight then
+  /// survives the save, which a read made before the transaction could not
+  /// promise.
+  Future<Program> updateAndReadBack(
+    Program program, {
+    bool keepStoredArchivedAt = false,
+  }) => _db.transaction(() async {
+    if (keepStoredArchivedAt) {
+      final storedArchivedAt =
+          await (_db.selectOnly(_db.programs)
+                ..addColumns([_db.programs.archivedAt])
+                ..where(_db.programs.id.equals(program.id)))
+              .map((row) => row.read(_db.programs.archivedAt))
+              .getSingleOrNull();
+      program = storedArchivedAt == null
+          ? program.copyWith(clearArchivedAt: true)
+          : program.copyWith(archivedAt: asUtc(storedArchivedAt));
+    }
+    await _upsert(program);
+    final stored = await getById(program.id);
+    if (stored == null) {
+      throw StateError('program "${program.id}" vanished inside its write');
+    }
+    return stored;
+  });
+
+  /// Atomically replaces the program [expected] describes with [replacement],
+  /// but only if the stored program still equals [expected] (a value returned
+  /// by [updateAndReadBack] or [getById]); returns whether it wrote.
+  ///
+  /// The comparison and the write share one transaction, so no write can land
+  /// between them. It compares the whole stored program, not its `updatedAt`
+  /// alone: the store keeps whole seconds, so a later edit within the same
+  /// second as [expected] would carry an equal stamp but different content.
+  /// [replacement] is written with a stamp after the current one (at or after
+  /// [updatedAt]), so restoring an older snapshot still advances `updatedAt`.
+  /// A missing or soft-deleted program is never replaced.
+  Future<bool> replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) async =>
+      await _replaceIfUnchanged(
+        expected: expected,
+        replacement: replacement,
+        updatedAt: updatedAt,
+        readBack: false,
+      ) !=
+      null;
+
+  /// [replaceIfUnchanged], returning the program as stored by the write, read
+  /// back in the same transaction, or `null` when it did not write. Like
+  /// [updateAndReadBack], the result is the exact token the next
+  /// [replaceIfUnchanged] compares against, so a chain of compare-and-replace
+  /// writes never needs a separate read that another write could land before.
+  Future<Program?> replaceIfUnchangedAndReadBack({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) => _replaceIfUnchanged(
+    expected: expected,
+    replacement: replacement,
+    updatedAt: updatedAt,
+    readBack: true,
+  );
+
+  /// Returns the stored program after the write when [readBack], [expected]
+  /// otherwise, and `null` when it did not write.
+  Future<Program?> _replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+    required bool readBack,
+  }) {
+    assertUtc(updatedAt, 'updatedAt');
+    if (replacement.id != expected.id) {
+      throw ArgumentError.value(
+        replacement.id,
+        'replacement.id',
+        'must match expected.id "${expected.id}"',
+      );
+    }
+    return _db.transaction(() async {
+      final current = await getById(expected.id);
+      if (current == null || current != expected) return null;
+      await _upsert(
+        replacement.copyWith(
+          updatedAt: nextStoredTimestamp(
+            now: updatedAt.isAfter(current.updatedAt)
+                ? updatedAt
+                : current.updatedAt.add(storedTimestampTick),
+            current: [current.updatedAt],
+          ),
+        ),
+      );
+      if (!readBack) return current;
+      final stored = await getById(expected.id);
+      if (stored == null) {
+        throw StateError('program "${expected.id}" vanished inside its write');
+      }
+      return stored;
+    });
+  }
+
+  /// Persists an inbound sync body without stamping performed slots as a local
+  /// status-transition side effect.
+  ///
+  /// Does not run the live-venue guard (see [_upsert]'s `enforceVenueExists`):
+  /// a peer's `venueId` is persisted exactly as received, dangling or not.
+  /// Device Sync's I1 forbids changing a peer's serialised content without
+  /// advancing its `updatedAt` (sync-spec.md §6.5), and nulling a dangling
+  /// reference here would do exactly that; `SyncStorage` reports the missing
+  /// venue separately instead (sync-spec.md §6.7).
+  Future<void> writeFromSync(Program program) =>
+      _upsert(program, stampPerformedSlots: false, enforceVenueExists: false);
+
+  /// Persists only the program row for a two-phase inbound sync write. See
+  /// [writeFromSync] for why the live-venue guard does not run here.
+  Future<void> writeFromSyncParent(Program program) => _upsert(
+    program,
+    stampPerformedSlots: false,
+    writeRelations: false,
+    enforceVenueExists: false,
+  );
+
+  /// Persists only the program's dependent rows for a two-phase inbound write.
+  /// See [writeFromSync] for why the live-venue guard does not run here.
+  Future<void> writeFromSyncRelations(Program program) => _upsert(
+    program,
+    stampPerformedSlots: false,
+    writeParent: false,
+    enforceVenueExists: false,
+  );
+
   /// Clears performed stamps created by one bulk mark action.
   ///
   /// The slot id and timestamp predicates make this an atomic compare-and-clear
   /// operation: a later edit to one of the slots, or an edit to another part of
   /// the program, is preserved instead of being overwritten by a stale
   /// [Program] snapshot.
+  ///
+  /// When the action also set the program's status to Performed (GIG-12), pass
+  /// the status it replaced as [restoreStatus]. In the same transaction, the
+  /// status goes back to it only while it is still Performed: a status someone
+  /// changed since is theirs, and stays. Writing the status directly never
+  /// stamps, like any move away from Performed. Returns how many slots were
+  /// cleared; a status put back with no slot to clear still returns 0.
   Future<int> clearPerformedAtIfMatches({
     required String programId,
     required Iterable<String> slotIds,
     required DateTime performedAt,
     required DateTime updatedAt,
+    ProgramStatus? restoreStatus,
   }) async {
     assertUtc(performedAt, 'performedAt');
     assertUtc(updatedAt, 'updatedAt');
     final ids = slotIds.toSet();
-    if (ids.isEmpty) return 0;
+    if (ids.isEmpty && restoreStatus == null) return 0;
 
     return _db.transaction(() async {
       var cleared = 0;
@@ -309,12 +612,16 @@ class ProgramRepository {
                 ))
                 .write(const ProgramSlotsCompanion(performedAt: Value(null)));
       }
-      if (cleared == 0) return 0;
       final liveProgram =
           await (_db.select(_db.programs)
                 ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
               .getSingleOrNull();
       if (liveProgram == null) return 0;
+      final revertStatus =
+          restoreStatus != null &&
+          restoreStatus != ProgramStatus.performed &&
+          liveProgram.status == ProgramStatus.performed;
+      if (cleared == 0 && !revertStatus) return 0;
       final rollbackUpdatedAt = nextStoredTimestamp(
         now: updatedAt.isAfter(liveProgram.updatedAt)
             ? updatedAt
@@ -326,6 +633,7 @@ class ProgramRepository {
       )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
         ProgramsCompanion(
           title: Value(normalizeShareableText(liveProgram.title)),
+          status: revertStatus ? Value(restoreStatus) : const Value.absent(),
           updatedAt: Value(rollbackUpdatedAt),
         ),
       );
@@ -333,13 +641,210 @@ class ProgramRepository {
     });
   }
 
+  /// Carries a dialect rename to the programs that name it: every program whose
+  /// `dialectName` is [oldName] gets [newName], and returns how many changed.
+  ///
+  /// Names are compared after [normalizeShareableText] on both sides, as
+  /// `resolveProgramDialect` does, so a program holding the NFD spelling of a
+  /// name still follows its NFC-normalized library entry. Trashed programs are
+  /// included: restoring one must not bring back a name that no longer exists.
+  ///
+  /// Each changed program gets a stamp after its current one (at or after
+  /// [updatedAt]), so the rename travels in Device Sync as an ordinary newer
+  /// program record. The dialect library syncs separately, as a setting.
+  Future<int> renameDialect({
+    required String oldName,
+    required String newName,
+    required DateTime updatedAt,
+  }) {
+    assertUtc(updatedAt, 'updatedAt');
+    final oldKey = normalizeShareableText(oldName);
+    if (oldKey == normalizeShareableText(newName)) return Future.value(0);
+    return _db.transaction(() async {
+      final rows = await (_db.select(
+        _db.programs,
+      )..where((t) => t.dialectName.isNotNull())).get();
+      var renamed = 0;
+      for (final row in rows) {
+        if (normalizeShareableText(row.dialectName!) != oldKey) continue;
+        await (_db.update(
+          _db.programs,
+        )..where((t) => t.id.equals(row.id))).write(
+          ProgramsCompanion(
+            dialectName: Value(normalizeShareableText(newName)),
+            updatedAt: Value(
+              nextStoredTimestamp(
+                now: updatedAt.isAfter(row.updatedAt)
+                    ? updatedAt
+                    : row.updatedAt.add(storedTimestampTick),
+                current: [row.updatedAt],
+              ),
+            ),
+          ),
+        );
+        renamed++;
+      }
+      return renamed;
+    });
+  }
+
+  /// Archives the live program [id]: stamps `archived_at` with [at] and gives
+  /// it an `updated_at` after its current one (at or after [at]), so the
+  /// change travels in Device Sync as an ordinary newer program record.
+  /// `existence_at` is untouched: archiving is a content edit, not an
+  /// existence transition. Returns whether it wrote: `false` when the program
+  /// is missing, in Recently deleted, or already archived (its first
+  /// `archived_at` is kept).
+  ///
+  /// Only this column and `updated_at` are written, so an archive cannot
+  /// overwrite an edit that landed after the caller read the program.
+  Future<bool> archive(String id, {required DateTime at}) =>
+      _setArchivedAt(id, archivedAt: at, at: at);
+
+  /// Reverses [archive] for the live program [id], with the same stamping.
+  /// Returns `false` when the program is missing, in Recently deleted, or not
+  /// archived.
+  Future<bool> unarchive(String id, {required DateTime at}) =>
+      _setArchivedAt(id, archivedAt: null, at: at);
+
+  Future<bool> _setArchivedAt(
+    String id, {
+    required DateTime? archivedAt,
+    required DateTime at,
+  }) {
+    assertUtc(at, 'at');
+    return _db.transaction(() async {
+      final row =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (row == null) return false;
+      if ((row.archivedAt != null) == (archivedAt != null)) return false;
+      final current = asUtc(row.updatedAt);
+      await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+        ProgramsCompanion(
+          archivedAt: Value(archivedAt),
+          updatedAt: Value(
+            nextStoredTimestamp(
+              now: at.isAfter(current) ? at : current.add(storedTimestampTick),
+              current: [current],
+            ),
+          ),
+        ),
+      );
+      return true;
+    });
+  }
+
+  // --- Linking typed venues to a venue record (GIG-7 = (b)) ---------------
+
+  /// The live programs that carry [name] as typed venue text and no linked
+  /// record, matched by [VenueKey] (the same folding the repeated-venues list
+  /// and the venue filter use). Empty for a blank [name].
+  ///
+  /// Trashed programs are not matched: a trashed program keeps its typed
+  /// venue, so restoring it brings back the text it was trashed with.
+  Future<List<ProgramRow>> _typedVenueMatches(
+    String name, {
+    String? excludeProgramId,
+  }) async {
+    if (callingHistoryVenueText(name) == null) return const [];
+    final key = VenueKey.typed(name);
+    final rows =
+        await (_db.select(_db.programs)..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.venueId.isNull() &
+                  t.venue.isNotNull() &
+                  (excludeProgramId == null
+                      ? const Constant(true)
+                      : t.id.equals(excludeProgramId).not()),
+            ))
+            .get();
+    return [
+      for (final row in rows)
+        if (VenueKey.forProgram(venue: row.venue) == key) row,
+    ];
+  }
+
+  /// How many live programs [linkTypedVenues] would link for [name]: the
+  /// programs with that typed venue and no linked record, other than
+  /// [excludeProgramId].
+  Future<int> countTypedVenuePrograms(
+    String name, {
+    String? excludeProgramId,
+  }) async => (await _typedVenueMatches(
+    name,
+    excludeProgramId: excludeProgramId,
+  )).length;
+
+  /// Links every live program whose typed venue matches [name] (by
+  /// [VenueKey]) and has no linked record to the venue record [venueId], and
+  /// returns how many it linked.
+  ///
+  /// Lossless: the typed `venue` text is kept, so unlinking later shows what
+  /// was typed. Each linked program gets a stamp after its current one (at or
+  /// after [updatedAt]), so the link travels in Device Sync as an ordinary
+  /// newer program record. Programs already linked to any record, trashed
+  /// programs, and [excludeProgramId] (the program an open editor is about to
+  /// save with its own link) are left alone. Throws [StateError] when [venueId] is not a
+  /// live venue record.
+  Future<int> linkTypedVenues({
+    required String venueId,
+    required String name,
+    required DateTime updatedAt,
+    String? excludeProgramId,
+  }) {
+    assertUtc(updatedAt, 'updatedAt');
+    return _db.transaction(() async {
+      final venue =
+          await (_db.select(_db.venues)
+                ..where((t) => t.id.equals(venueId) & t.deletedAt.isNull())
+                ..limit(1))
+              .getSingleOrNull();
+      if (venue == null) {
+        throw StateError(
+          'cannot link programs to venue "$venueId": it does not exist or is '
+          'soft-deleted',
+        );
+      }
+      final matches = await _typedVenueMatches(
+        name,
+        excludeProgramId: excludeProgramId,
+      );
+      for (final row in matches) {
+        await (_db.update(
+          _db.programs,
+        )..where((t) => t.id.equals(row.id))).write(
+          ProgramsCompanion(
+            venueId: Value(venueId),
+            updatedAt: Value(
+              nextStoredTimestamp(
+                now: updatedAt.isAfter(row.updatedAt)
+                    ? updatedAt
+                    : row.updatedAt.add(storedTimestampTick),
+                current: [row.updatedAt],
+              ),
+            ),
+          ),
+        );
+      }
+      return matches.length;
+    });
+  }
+
   Future<void> _upsert(
     Program program, {
     LiveVenueIds? knownVenueIds,
+    bool stampPerformedSlots = true,
+    bool writeParent = true,
+    bool writeRelations = true,
+    bool enforceVenueExists = true,
   }) => _db.transaction(() async {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
     assertUtcOrNull(program.deletedAt, 'program.deletedAt');
+    assertUtcOrNull(program.archivedAt, 'program.archivedAt');
     assertUtcOrNull(program.eventDate, 'program.eventDate');
     for (final slot in program.slots) {
       assertUtcOrNull(slot.performedAt, 'slot.performedAt');
@@ -357,8 +862,23 @@ class ProgramRepository {
     // identical at the time of validation: an unknown or tombstoned `venueId`
     // throws. A preloaded snapshot is point-in-time; callers that need atomic
     // liveness must use the transactional single-write path.
+    //
+    // [enforceVenueExists] disables this guard entirely for the inbound sync
+    // write paths ([writeFromSync] and its two-phase siblings): I1 forbids
+    // altering a peer's serialised content without advancing its `updatedAt`
+    // (sync-spec.md §6.5), so a dangling `venueId` from a peer MUST be
+    // persisted verbatim rather than refused or nulled — `SyncStorage` reports
+    // it separately (sync-spec.md §6.7).
+    //
+    // For every other caller (interactive `create`/`update`) the guard still
+    // runs, but tolerates a `venueId` that was already dangling on the stored
+    // row when this write does not change it: an inbound sync apply can leave
+    // a program pointing at a venue this device no longer has, and the user
+    // must still be able to save an otherwise-unrelated edit to that program
+    // (or simply re-save it) without first being forced to unlink the venue.
+    // Only a *newly chosen* non-existent venue is refused.
     final venueId = program.venueId;
-    if (venueId != null) {
+    if (venueId != null && enforceVenueExists) {
       final venueExists = knownVenueIds != null
           ? knownVenueIds.contains(venueId)
           // `deleted_at IS NULL` since schema v25 (#898): a tombstoned venue
@@ -372,10 +892,18 @@ class ProgramRepository {
                     .getSingleOrNull() !=
                 null;
       if (!venueExists) {
-        throw StateError(
-          'cannot save program "${program.id}": venueId "$venueId" '
-          'references a venue that does not exist or is soft-deleted',
-        );
+        final storedVenueId =
+            await (_db.selectOnly(_db.programs)
+                  ..addColumns([_db.programs.venueId])
+                  ..where(_db.programs.id.equals(program.id)))
+                .map((row) => row.read(_db.programs.venueId))
+                .getSingleOrNull();
+        if (storedVenueId != venueId) {
+          throw StateError(
+            'cannot save program "${program.id}": venueId "$venueId" '
+            'references a venue that does not exist or is soft-deleted',
+          );
+        }
       }
     }
     // Auto-stamp performed slots on a status transition to `performed`
@@ -384,10 +912,12 @@ class ProgramRepository {
     // the previously-stored status — so a slot the user manually cleared while
     // the program is already performed is NOT re-stamped, and reverting away
     // from performed never un-stamps (history is preserved). Idempotent and
-    // dance-linked-only logic lives in [Program.stampDanceSlotsPerformed]. The
+    // dance-linked, primaries-only logic lives in
+    // [Program.stampDanceSlotsPerformed] (skipping alternates there is an
+    // inference from the 2026-10-28 alternates ruling; see that method). The
     // stamp uses the program's eventDate when set, else its updatedAt (the
     // save's "now"), keeping the timestamp deterministic and validated.
-    if (program.status == ProgramStatus.performed) {
+    if (stampPerformedSlots && program.status == ProgramStatus.performed) {
       final priorRow = await (_db.select(
         _db.programs,
       )..where((t) => t.id.equals(program.id))).getSingleOrNull();
@@ -395,114 +925,133 @@ class ProgramRepository {
         program = program.stampDanceSlotsPerformed(fallback: program.updatedAt);
       }
     }
-    await _db
-        .into(_db.programs)
-        .insertOnConflictUpdate(
-          ProgramsCompanion.insert(
-            id: program.id,
-            title: normalizeShareableText(program.title),
-            eventDate: Value(program.eventDate),
-            venue: Value(
-              program.venue == null
-                  ? null
-                  : normalizeShareableText(program.venue!),
-            ),
-            venueId: Value(program.venueId),
-            band: Value(
-              program.band == null
-                  ? null
-                  : normalizeShareableText(program.band!),
-            ),
-            caller: Value(
-              program.caller == null
-                  ? null
-                  : normalizeShareableText(program.caller!),
-            ),
-            dancerLevel: Value(
-              program.dancerLevel == null
-                  ? null
-                  : normalizeShareableText(program.dancerLevel!),
-            ),
-            notes: Value(normalizeShareableText(program.notes)),
-            status: program.status,
-            hideAlternates: Value(program.hideAlternates),
-            createdAt: program.createdAt,
-            updatedAt: program.updatedAt,
-            deletedAt: Value(program.deletedAt),
-          ),
-        );
-    await seedExistenceIfMissing(
-      _db,
-      table: _db.programs,
-      keyColumn: 'id',
-      key: program.id,
-    );
-    await (_db.delete(
-      _db.programSlots,
-    )..where((t) => t.programId.equals(program.id))).go();
-    for (final slot in program.slots) {
+    if (writeParent) {
       await _db
-          .into(_db.programSlots)
-          .insert(
-            ProgramSlotsCompanion.insert(
-              id: slot.id,
-              programId: program.id,
-              position: slot.position,
-              danceId: Value(slot.danceId),
-              text_: Value(
-                slot.text == null ? null : normalizeShareableText(slot.text!),
-              ),
-              isPurgedDance: Value(slot.isPurgedDance),
-              isAlt: Value(slot.isAlt),
-              guestCaller: Value(
-                slot.guestCaller == null
+          .into(_db.programs)
+          .insertOnConflictUpdate(
+            ProgramsCompanion.insert(
+              id: program.id,
+              title: normalizeShareableText(program.title),
+              eventDate: Value(program.eventDate),
+              venue: Value(
+                program.venue == null
                     ? null
-                    : normalizeShareableText(slot.guestCaller!),
+                    : normalizeShareableText(program.venue!),
               ),
-              walkthroughMinutes: Value(slot.walkthroughMinutes),
-              danceMinutes: Value(slot.danceMinutes),
-              performedAt: Value(slot.performedAt),
+              venueId: Value(program.venueId),
+              band: Value(
+                program.band == null
+                    ? null
+                    : normalizeShareableText(program.band!),
+              ),
+              caller: Value(
+                program.caller == null
+                    ? null
+                    : normalizeShareableText(program.caller!),
+              ),
+              dancerLevel: Value(
+                program.dancerLevel == null
+                    ? null
+                    : normalizeShareableText(program.dancerLevel!),
+              ),
+              notes: Value(normalizeShareableText(program.notes)),
+              status: program.status,
+              hideAlternates: Value(program.hideAlternates),
+              // Normalized like every shareable string, and it must be: the
+              // dialect library's own names reach storage through
+              // SettingsRepository.set, which NFC-normalizes the shareable
+              // `custom_dialects` JSON, and Device Sync rejects a body that
+              // differs from its normalized form (`nonCanonicalWireBody`). A
+              // reference stored un-normalized would stop matching the
+              // reloaded library name and get the whole program rejected.
+              dialectName: Value(
+                program.dialectName == null
+                    ? null
+                    : normalizeShareableText(program.dialectName!),
+              ),
+              payMinorUnits: Value(program.payMinorUnits),
+              payCurrency: Value(program.payCurrency),
+              createdAt: program.createdAt,
+              updatedAt: program.updatedAt,
+              deletedAt: Value(program.deletedAt),
+              archivedAt: Value(program.archivedAt),
             ),
           );
+      await seedExistenceIfMissing(
+        _db,
+        table: _db.programs,
+        keyColumn: 'id',
+        key: program.id,
+      );
     }
-    // Provenance is a single dependent row keyed on the program id: delete then
-    // (re)insert so an update refreshes it and a program that lost its
-    // provenance drops the row. Mirrors DanceRepository's provenance handling.
-    await (_db.delete(
-      _db.programProvenance,
-    )..where((t) => t.programId.equals(program.id))).go();
-    final prov = program.provenance;
-    if (prov != null) {
-      assertUtc(prov.importedAt, 'program.provenance.importedAt');
-      await _db
-          .into(_db.programProvenance)
-          .insert(
-            ProgramProvenanceCompanion.insert(
-              programId: program.id,
-              source: prov.source,
-              externalId: Value(
-                prov.externalId == null
-                    ? null
-                    : normalizeShareableText(prov.externalId!),
+    if (writeRelations) {
+      await (_db.delete(
+        _db.programSlots,
+      )..where((t) => t.programId.equals(program.id))).go();
+      for (final slot in program.slots) {
+        await _db
+            .into(_db.programSlots)
+            .insert(
+              ProgramSlotsCompanion.insert(
+                id: slot.id,
+                programId: program.id,
+                position: slot.position,
+                danceId: Value(slot.danceId),
+                text_: Value(
+                  slot.text == null ? null : normalizeShareableText(slot.text!),
+                ),
+                isPurgedDance: Value(slot.isPurgedDance),
+                isAlt: Value(slot.isAlt),
+                guestCaller: Value(
+                  slot.guestCaller == null
+                      ? null
+                      : normalizeShareableText(slot.guestCaller!),
+                ),
+                walkthroughMinutes: Value(slot.walkthroughMinutes),
+                danceMinutes: Value(slot.danceMinutes),
+                performedAt: Value(slot.performedAt),
               ),
-              importedAt: prov.importedAt,
-              permission: Value(
-                prov.permission == null
-                    ? null
-                    : normalizeShareableText(prov.permission!),
+            );
+      }
+      // Provenance is a single dependent row keyed on the program id: delete then
+      // (re)insert so an update refreshes it and a program that lost its
+      // provenance drops the row. Mirrors DanceRepository's provenance handling.
+      await (_db.delete(
+        _db.programProvenance,
+      )..where((t) => t.programId.equals(program.id))).go();
+      final prov = program.provenance;
+      if (prov != null) {
+        assertUtc(prov.importedAt, 'program.provenance.importedAt');
+        await _db
+            .into(_db.programProvenance)
+            .insert(
+              ProgramProvenanceCompanion.insert(
+                programId: program.id,
+                source: prov.source,
+                externalId: Value(
+                  prov.externalId == null
+                      ? null
+                      : normalizeShareableText(prov.externalId!),
+                ),
+                importedAt: prov.importedAt,
+                permission: Value(
+                  prov.permission == null
+                      ? null
+                      : normalizeShareableText(prov.permission!),
+                ),
+                license: Value(
+                  prov.license == null
+                      ? null
+                      : normalizeShareableText(prov.license!),
+                ),
+                sourceVersion: Value(
+                  prov.sourceVersion == null
+                      ? null
+                      : normalizeShareableText(prov.sourceVersion!),
+                ),
               ),
-              license: Value(
-                prov.license == null
-                    ? null
-                    : normalizeShareableText(prov.license!),
-              ),
-              sourceVersion: Value(
-                prov.sourceVersion == null
-                    ? null
-                    : normalizeShareableText(prov.sourceVersion!),
-              ),
-            ),
-          );
+            );
+      }
     }
   });
 
@@ -544,6 +1093,34 @@ class ProgramRepository {
     final ids = [for (final r in rows) r.id];
     final slotsByProgram = await _slotsForMany(ids);
     final provByProgram = await _provenanceForMany(ids);
+    return [
+      for (final row in rows)
+        _toModel(
+          row,
+          slotsByProgram[row.id] ?? const [],
+          provByProgram[row.id],
+        ),
+    ];
+  }
+
+  /// The programs among [ids], assembled exactly as [listAll] assembles them,
+  /// in a bounded number of batched queries rather than one [getById] per
+  /// program. Unordered; an id with no row is left out.
+  Future<List<Program>> getByIds(
+    Iterable<String> ids, {
+    bool includeDeleted = false,
+  }) async {
+    final rows = <ProgramRow>[];
+    for (final chunk in _chunkIds(ids.toSet().toList())) {
+      final query = _db.select(_db.programs)..where((t) => t.id.isIn(chunk));
+      if (!includeDeleted) {
+        query.where((t) => t.deletedAt.isNull());
+      }
+      rows.addAll(await query.get());
+    }
+    final found = [for (final r in rows) r.id];
+    final slotsByProgram = await _slotsForMany(found);
+    final provByProgram = await _provenanceForMany(found);
     return [
       for (final row in rows)
         _toModel(
@@ -662,6 +1239,46 @@ class ProgramRepository {
     ];
   }
 
+  /// The forms of the live dances in each program, keyed by program id
+  /// (ADR-006: a program shows whether it is contra, English or both). Every
+  /// slot with a dance counts, alternates included, as the builder's,
+  /// summary's and Perform's mixed-form checks count them; a free-text slot,
+  /// a purged dance and a deleted dance count for nothing, and a program with none is absent. A
+  /// form this build does not know is skipped.
+  Future<Map<String, Set<DanceForm>>> formsByProgram() async =>
+      _formsOf(await _formsQuery().get());
+
+  /// [formsByProgram] as a live stream: emits now, then after every write to
+  /// a program, a slot or a dance. A stream of its own rather than a read
+  /// folded into [watchAll], because it reads `dances`, which [watchAll] does
+  /// not watch (rule 2 under [halfCallingStatsForDance]): a dance deleted,
+  /// restored or given another form changes a program's forms without
+  /// touching the program. Widening [watchAll] to `dances` instead would
+  /// reload every program on every dance edit (issue #340); this reload is one
+  /// small query.
+  Stream<Map<String, Set<DanceForm>>> watchFormsByProgram() =>
+      _formsQuery().watch().map(_formsOf);
+
+  Selectable<QueryRow> _formsQuery() => _db.customSelect(
+    'SELECT DISTINCT ps.program_id AS program_id, d.form AS form '
+    'FROM program_slots ps '
+    'JOIN programs p ON p.id = ps.program_id '
+    'JOIN dances d ON d.id = ps.dance_id '
+    'WHERE p.deleted_at IS NULL AND d.deleted_at IS NULL',
+    readsFrom: {_db.programSlots, _db.programs, _db.dances},
+  );
+
+  static Map<String, Set<DanceForm>> _formsOf(List<QueryRow> rows) {
+    final byProgram = <String, Set<DanceForm>>{};
+    for (final row in rows) {
+      final name = row.read<String>('form');
+      final form = DanceForm.values.where((f) => f.name == name).firstOrNull;
+      if (form == null) continue;
+      (byProgram[row.read<String>('program_id')] ??= {}).add(form);
+    }
+    return byProgram;
+  }
+
   Future<List<ProgramSlot>> _slotsFor(String programId) async {
     final rows =
         await (_db.select(_db.programSlots)
@@ -737,8 +1354,8 @@ class ProgramRepository {
   /// queries cannot drift apart, and justified per table:
   ///
   /// * `program_slots` — the history rows themselves (`dance_id`,
-  ///   `performed_at`), the `COUNT(*)` / `COUNT(performed_at)` tallies, and the
-  ///   `MAX(performed_at)` last-called timestamp.
+  ///   `performed_at`), the `COUNT(*)` / `COUNT(performed_at)` tallies, and
+  ///   which slots the last-called date is taken over.
   /// * `programs` — joined by every one of these queries for
   ///   `deleted_at IS NULL` and the host-caller filter, and read directly by
   ///   [callingHistoryForDance] for `title` / `event_date` / `venue` /
@@ -767,20 +1384,32 @@ class ProgramRepository {
   Set<ResultSetImplementation<dynamic, dynamic>>
   get _programDerivedWithVenues => {..._programDerivedTables, _db.venues};
 
-  /// Maps dance id → the most recent `performedAt` timestamp across every
-  /// slot of every non-deleted program, for dances that have actually been
-  /// called at least once. Feeds Collection's "last-called" sort (see
-  /// `docs/design/ux.md` §1); a dance absent from the map has never been
-  /// called — or, when [callerFilter] is set, was never called in a program led
-  /// by that host caller (see [callingHistoryForDance]; issue #583).
+  /// Maps dance id → the most recent date it was called across every
+  /// performed slot of every non-deleted program, for dances with at least one
+  /// slot marked performed; a dance absent from the map has no performed slot —
+  /// or, when [callerFilter] is set, none in a program led by that host caller
+  /// (see [callingHistoryForDance]; issue #583). Pass [requireEventDate] `true`
+  /// to consider only programs that have an event date ("Require an event
+  /// date").
+  ///
+  /// Each performed slot is dated as [DanceCallingRecord.effectiveDate] dates
+  /// it: the program's event date, else the performed stamp (GIG-2).
+  ///
+  /// Only performed slots count here, whatever the history settings.
+  /// Collection's Last-called sort does not read it: `DanceRepository.search`
+  /// orders by each dance's latest history date under the active
+  /// calling-history settings instead (FIND-2).
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
-  }) async => _programDerivedRows(
-    _normalizedCallerFilter(callerFilter),
-  ).get().then(_lastCalledFromRows);
+    bool requireEventDate = false,
+  }) async =>
+      _programDerivedRows(_normalizedCallerFilter(callerFilter)).get().then(
+        (rows) => _lastCalledFromRows(rows, requireEventDate: requireEventDate),
+      );
 
-  /// Maps dance id → its [DanceCallCounts] across every slot of every
-  /// non-deleted program, for dances that have been called at least once (a
+  /// Maps dance id → its [DanceCallCounts] across every counted slot (every
+  /// primary, plus each alternate marked performed) of every non-deleted
+  /// program, for dances that have been called at least once (a
   /// dance absent from the map has zero calls — or, when [callerFilter] is set,
   /// zero calls in programs led by that host caller; issue #583). One grouped
   /// query — the bulk sibling of [lastCalledByDance] — so the Collection list
@@ -791,6 +1420,8 @@ class ProgramRepository {
   /// only rows where `performed_at` is non-null) so a caller can honor the
   /// "Require mark-performed for calling history" setting (ROADMAP G.2) exactly
   /// as [callingHistoryForDance] does — see [DanceCallCounts.countFor]. The
+  /// same pair restricted to dated programs serves "Require an event date".
+  /// The
   /// `deleted_at IS NULL` join filter matches both [lastCalledByDance] and
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
@@ -802,28 +1433,37 @@ class ProgramRepository {
   /// The ONE query behind [lastCalledByDance], [countByDance] and
   /// [watchProgramDerivedCounts]. [caller] is already normalized.
   ///
-  /// The two tallies and the last-called timestamp are aggregated together
-  /// rather than by two queries, for two reasons. Sharing the query is what
-  /// stops the one-shot reads and the stream from ever disagreeing about which
-  /// slots count. And computing them in one statement is what makes each emit
-  /// of [watchProgramDerivedCounts] an internally consistent snapshot: taking
-  /// `MAX(performed_at)` in a second read could observe a write that landed
-  /// after the counts were read, so one emit would carry tallies from one
-  /// revision and a last-called stamp from the next.
+  /// The two tallies and the last-called date are aggregated together rather
+  /// than by two queries, for two reasons. Sharing the query is what stops the
+  /// one-shot reads and the stream from ever disagreeing about which slots
+  /// count. And computing them in one statement is what makes each emit of
+  /// [watchProgramDerivedCounts] an internally consistent snapshot: taking the
+  /// last-called date in a second read could observe a write that landed after
+  /// the counts were read, so one emit would carry tallies from one revision
+  /// and a last-called date from the next.
   ///
-  /// `MAX(performed_at)` ignores NULLs, so no `performed_at IS NOT NULL` filter
-  /// is needed to reproduce [lastCalledByDance]'s result: a dance whose slots
-  /// were all unperformed aggregates to NULL and [_lastCalledFromRows] simply
-  /// omits it, which is what the narrower query did by excluding the rows.
+  /// The last-called date is `COALESCE(event_date, performed_at)` over
+  /// performed slots only: [DanceCallingRecord.effectiveDate] for a slot that
+  /// has a stamp, so `updated_at` is never reached. The `CASE` yields NULL for
+  /// an unperformed slot and `MAX` ignores NULLs, so a dance whose slots were
+  /// all unperformed aggregates to NULL and [_lastCalledFromRows] omits it.
   Selectable<QueryRow> _programDerivedRows(String? caller) => _db.customSelect(
     'SELECT program_slots.dance_id AS dance_id, '
     'COUNT(*) AS all_count, '
     'COUNT(program_slots.performed_at) AS performed_count, '
-    'MAX(program_slots.performed_at) AS last_called '
+    'COUNT(programs.event_date) AS dated_count, '
+    'COUNT(CASE WHEN programs.event_date IS NOT NULL '
+    'THEN program_slots.performed_at END) AS performed_dated_count, '
+    'MAX(CASE WHEN program_slots.performed_at IS NOT NULL '
+    'THEN COALESCE(programs.event_date, program_slots.performed_at) END) '
+    'AS last_called, '
+    'MAX(CASE WHEN program_slots.performed_at IS NOT NULL '
+    'THEN programs.event_date END) AS last_called_dated '
     'FROM program_slots '
     'JOIN programs ON programs.id = program_slots.program_id '
     'WHERE program_slots.dance_id IS NOT NULL '
     'AND programs.deleted_at IS NULL '
+    '$_alternateClause'
     '${_callerClause(caller)}'
     'GROUP BY program_slots.dance_id',
     variables: _callerVariables(caller),
@@ -833,9 +1473,19 @@ class ProgramRepository {
   /// Dances with at least one performed slot, mapped to their most recent one.
   /// A NULL `last_called` means every slot for that dance is unperformed, so
   /// the dance is absent from the map rather than present with a null value.
-  Map<String, DateTime> _lastCalledFromRows(List<QueryRow> rows) => {
+  ///
+  /// With [requireEventDate], only slots in a program that has an event date
+  /// are considered, so a dance whose performed slots are all in undated
+  /// programs is absent too.
+  Map<String, DateTime> _lastCalledFromRows(
+    List<QueryRow> rows, {
+    bool requireEventDate = false,
+  }) => {
     for (final row in rows)
-      if (row.read<DateTime?>('last_called') case final lastCalled?)
+      if (row.read<DateTime?>(
+            requireEventDate ? 'last_called_dated' : 'last_called',
+          )
+          case final lastCalled?)
         row.read<String>('dance_id'): asUtc(lastCalled),
   };
 
@@ -844,6 +1494,8 @@ class ProgramRepository {
       row.read<String>('dance_id'): DanceCallCounts(
         all: row.read<int>('all_count'),
         performed: row.read<int>('performed_count'),
+        dated: row.read<int>('dated_count'),
+        performedDated: row.read<int>('performed_dated_count'),
       ),
   };
 
@@ -870,8 +1522,9 @@ class ProgramRepository {
   /// Reactive [countByDance] + [lastCalledByDance]: emits the current tallies
   /// immediately, then again whenever a write changes them.
   ///
-  /// The Collection list renders both — the "called ×N" badge and the
-  /// last-called sort/subtitle — so they are emitted as one
+  /// The Collection snapshot carries both — the "called ×N" badge and the
+  /// last-called stamps (the Last-called sort runs its own query in
+  /// `DanceRepository.search`) — so they are emitted as one
   /// [ProgramDerivedCounts] value, read from one query, so an emit can never
   /// pair tallies from one revision with a last-called stamp from another (see
   /// [_programDerivedRows]). [watchCallingHistoryForDance] states the pattern
@@ -889,9 +1542,11 @@ class ProgramRepository {
   /// that include the dance (a slot referencing it) on a non-deleted program,
   /// ordered most-recent first.
   ///
-  /// By DEFAULT a program appears as soon as it *contains* the dance —
-  /// regardless of whether the slot was marked performed ([performedAt] may be
-  /// null). Pass [performedOnly] `true` to restrict the history to slots that
+  /// By DEFAULT a program appears as soon as it *contains* the dance in a
+  /// primary slot — regardless of whether the slot was marked performed
+  /// ([performedAt] may be null). An alternate slot appears only once it is
+  /// marked performed ([ProgramSlot.countsTowardCallingHistory]), in either
+  /// mode. Pass [performedOnly] `true` to restrict the history to slots that
   /// were actually called (`performed_at IS NOT NULL`); this is the hook for
   /// the future "Require mark-performed for calling history" General setting
   /// (ROADMAP G.2, off by default).
@@ -902,21 +1557,91 @@ class ProgramRepository {
   /// (issue #583). `null`/blank means "track all callers" (unchanged). This
   /// gate is AND-combined with [performedOnly], never a replacement.
   ///
+  /// Pass [requireEventDate] `true` to leave out programs that have no event
+  /// date ("Require an event date", off by default). It too is AND-combined
+  /// with the other gates.
+  ///
   /// Calling history is a derived query, never stored (see
   /// `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the dance-detail
   /// wireframe "History"). One record per matching slot, ordered by each
-  /// record's effective date (performed_at, else event_date, else updated_at)
-  /// descending — the ordering never depends on `performed_at` being present.
+  /// record's [DanceCallingRecord.effectiveDate] (event_date, else
+  /// performed_at, else updated_at) descending. With the order toggles off,
+  /// the ordering never depends on `performed_at` being present (GIG-2).
+  ///
+  /// [tracking]'s `orderIgnoreUndated` and `orderIgnoreUnperformed` change only
+  /// the order: a record with no [DanceCallingRecord.orderingDate] stays in the
+  /// list, after every dated one. They never change which records are listed.
   /// Feeds the dance-detail "Calling history" section.
   Future<List<DanceCallingRecord>> callingHistoryForDance(
     String danceId, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     String? callerFilter,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   }) async => _callingHistoryRows(
     danceId,
     performedOnly: performedOnly,
+    requireEventDate: requireEventDate,
     caller: _normalizedCallerFilter(callerFilter),
+    tracking: tracking,
   ).get().then(_callingHistoryFromRows);
+
+  /// The slot/program gates that decide whether a slot is a calling-history
+  /// entry, as a SQL fragment: performed-only, the alternate rule, "Require an
+  /// event date" and the host-caller filter. The ONE definition shared by
+  /// [_callingHistoryRows] and [danceCountLosingHistory], so the count a delete
+  /// confirm shows (LIFE-6) is the number of dances whose history actually
+  /// lists the program. [caller] is already normalized. The caller still adds
+  /// `programs.deleted_at IS NULL`.
+  String _historyScopeSql({
+    required bool performedOnly,
+    required bool requireEventDate,
+    required String? caller,
+  }) =>
+      '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
+      '$_alternateClause'
+      '${_eventDateClause(requireEventDate)}'
+      '${_callerClause(caller)}';
+
+  /// How many distinct dances would lose [programId] from their calling
+  /// history if it were deleted (LIFE-6): the dances for which
+  /// [callingHistoryForDance], called with the same arguments, lists a slot of
+  /// this program. Takes the same [performedOnly], [requireEventDate] and
+  /// [callerFilter] as that query, so the number matches what the user sees on
+  /// dance pages. A permanently deleted dance has no dance page, so it is not
+  /// counted even when a slot still cites it. A program that is already in the
+  /// trash, or that the caller filter excludes, is in no one's history and
+  /// yields 0.
+  Future<int> danceCountLosingHistory(
+    String programId, {
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    String? callerFilter,
+  }) async {
+    final caller = _normalizedCallerFilter(callerFilter);
+    final row = await _db
+        .customSelect(
+          'SELECT COUNT(DISTINCT program_slots.dance_id) AS n '
+          'FROM program_slots '
+          'JOIN programs ON programs.id = program_slots.program_id '
+          'JOIN dances ON dances.id = program_slots.dance_id '
+          'WHERE program_slots.program_id = ? '
+          '${_historyScopeSql(performedOnly: performedOnly, requireEventDate: requireEventDate, caller: caller)}'
+          'AND programs.deleted_at IS NULL '
+          // A permanently deleted dance (here or on a synced device) has no
+          // dance page, so it has no history to lose. A slot can still cite
+          // one: a blanked dance's "Deleted dance" slot, or a cited tombstone.
+          "AND (dances.deleted_at IS NULL OR dances.deleted_at <> ?)",
+          variables: [
+            Variable<String>(programId),
+            ..._callerVariables(caller),
+            Variable<int>(unixSeconds(permanentlyDeletedAt)),
+          ],
+          readsFrom: {..._programDerivedTables, _db.dances},
+        )
+        .getSingle();
+    return row.read<int>('n');
+  }
 
   /// The query behind [callingHistoryForDance]. Shared by the one-shot read and
   /// [watchCallingHistoryForDance] so the two can never diverge; [caller] is
@@ -924,32 +1649,39 @@ class ProgramRepository {
   Selectable<QueryRow> _callingHistoryRows(
     String danceId, {
     required bool performedOnly,
+    required bool requireEventDate,
     required String? caller,
     bool includeVenues = false,
-  }) => _db.customSelect(
-    // Marker first: this query has two read sets, and drift's stream cache
-    // would otherwise treat both as one stream. See `watchCollectionSources`.
-    '${includeVenues ? '/* +venues */ ' : ''}'
-    'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
-    'programs.title AS program_title, '
-    'programs.event_date AS event_date, programs.venue AS venue, '
-    'programs.venue_id AS venue_id, '
-    'programs.updated_at AS updated_at, '
-    'program_slots.performed_at AS performed_at '
-    'FROM program_slots '
-    'JOIN programs ON programs.id = program_slots.program_id '
-    'WHERE program_slots.dance_id = ? '
-    '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
-    '${_callerClause(caller)}'
-    'AND programs.deleted_at IS NULL '
-    'ORDER BY COALESCE('
-    'program_slots.performed_at, programs.event_date, programs.updated_at'
-    ') DESC, programs.id',
-    variables: [Variable<String>(danceId), ..._callerVariables(caller)],
-    readsFrom: includeVenues
-        ? _programDerivedWithVenues
-        : _programDerivedTables,
-  );
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+  }) {
+    final orderDate = callingHistoryDateSql(
+      slotTable: 'program_slots',
+      programTable: 'programs',
+      ignoreUndated: tracking.orderIgnoreUndated,
+      ignoreUnperformed: tracking.orderIgnoreUnperformed,
+    );
+    return _db.customSelect(
+      // Marker first: this query has two read sets, and drift's stream cache
+      // would otherwise treat both as one stream. See `watchCollectionSources`.
+      '${includeVenues ? '/* +venues */ ' : ''}'
+      'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
+      'programs.title AS program_title, '
+      'programs.event_date AS event_date, programs.venue AS venue, '
+      'programs.venue_id AS venue_id, '
+      'programs.updated_at AS updated_at, '
+      'program_slots.performed_at AS performed_at '
+      'FROM program_slots '
+      'JOIN programs ON programs.id = program_slots.program_id '
+      'WHERE program_slots.dance_id = ? '
+      '${_historyScopeSql(performedOnly: performedOnly, requireEventDate: requireEventDate, caller: caller)}'
+      'AND programs.deleted_at IS NULL '
+      'ORDER BY ($orderDate) IS NULL, $orderDate DESC, programs.id',
+      variables: [Variable<String>(danceId), ..._callerVariables(caller)],
+      readsFrom: includeVenues
+          ? _programDerivedWithVenues
+          : _programDerivedTables,
+    );
+  }
 
   List<DanceCallingRecord> _callingHistoryFromRows(List<QueryRow> rows) => [
     for (final row in rows)
@@ -970,12 +1702,7 @@ class ProgramRepository {
   ) {
     final counts = <String, VenueCallCount>{};
     for (final record in records) {
-      final normalizedVenue = _normalizedVenueText(record.venue);
-      final key = record.venueId == null
-          ? normalizedVenue == null
-                ? null
-                : 'text:$normalizedVenue'
-          : 'id:${record.venueId}';
+      final key = record.venueKey?.storageKey;
       if (key == null) continue;
       final current = counts[key];
       counts[key] = VenueCallCount(
@@ -987,16 +1714,105 @@ class ProgramRepository {
     return counts.values.toList(growable: false);
   }
 
-  String? _normalizedVenueText(String? value) {
-    final trimmed = value?.trim();
-    if (trimmed == null || trimmed.isEmpty) return null;
-    return trimmed.replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
-  }
-
   String? _displayVenueText(String? value) {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return null;
     return trimmed.replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  /// Every venue with at least one counted call, for the Filters panel's venue
+  /// chooser: a choice with no counted call could not change a result, so it
+  /// is left out.
+  ///
+  /// "Counted" is what a `CalledFilter` with the same arguments counts: the
+  /// alternate rule, the caller scope ([callerFilter]), [performedOnly],
+  /// [requireEventDate], and non-deleted programs only. Venues are keyed as
+  /// the repeated-venues summary keys them ([VenueKey]); a program with no
+  /// venue is left out. Ordered by each venue's most recent call
+  /// ([DanceCallingRecord.effectiveDate]'s date, newest first), then by
+  /// [VenueKey.storageKey].
+  Future<List<CalledVenue>> calledVenues({
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    String? callerFilter,
+  }) => _calledVenueRows(
+    performedOnly: performedOnly,
+    requireEventDate: requireEventDate,
+    caller: _normalizedCallerFilter(callerFilter),
+  ).get().then(_calledVenuesFromRows);
+
+  /// Reactive [calledVenues]: emits now, then whenever a write to programs or
+  /// slots changes it. Arguments mean what they do on the one-shot method.
+  Stream<List<CalledVenue>> watchCalledVenues({
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    String? callerFilter,
+  }) => _calledVenueRows(
+    performedOnly: performedOnly,
+    requireEventDate: requireEventDate,
+    caller: _normalizedCallerFilter(callerFilter),
+  ).watch().map(_calledVenuesFromRows);
+
+  /// One row per program with a venue and at least one counted slot, with its
+  /// newest counted slot's history date. Shared by [calledVenues] and
+  /// [watchCalledVenues] so the two cannot diverge.
+  Selectable<QueryRow> _calledVenueRows({
+    required bool performedOnly,
+    required bool requireEventDate,
+    required String? caller,
+  }) => _db.customSelect(
+    'SELECT programs.id AS program_id, programs.venue_id AS venue_id, '
+    'programs.venue AS venue, '
+    'MAX(${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')}) '
+    'AS called_at '
+    'FROM program_slots '
+    'JOIN programs ON programs.id = program_slots.program_id '
+    'WHERE programs.deleted_at IS NULL '
+    '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
+    '$_alternateClause'
+    '${_eventDateClause(requireEventDate)}'
+    '${_callerClause(caller)}'
+    'GROUP BY programs.id',
+    variables: _callerVariables(caller),
+    readsFrom: _programDerivedTables,
+  );
+
+  List<CalledVenue> _calledVenuesFromRows(List<QueryRow> rows) {
+    final programs =
+        [
+          for (final row in rows)
+            if (VenueKey.forProgram(
+                  venueId: row.read<String?>('venue_id'),
+                  venue: row.read<String?>('venue'),
+                )
+                case final key?)
+              (
+                key: key,
+                venue: _displayVenueText(row.read<String?>('venue')),
+                calledAt: asUtc(row.read<DateTime>('called_at')),
+              ),
+        ]..sort((a, b) {
+          final byDate = b.calledAt.compareTo(a.calledAt);
+          return byDate != 0
+              ? byDate
+              : a.key.storageKey.compareTo(b.key.storageKey);
+        });
+    final counts = <VenueKey, int>{};
+    final latestText = <VenueKey, String>{};
+    for (final program in programs) {
+      counts.update(program.key, (n) => n + 1, ifAbsent: () => 1);
+      if (program.venue case final venue?) {
+        latestText.putIfAbsent(program.key, () => venue);
+      }
+    }
+    return [
+      for (final MapEntry(:key, value: count) in counts.entries)
+        CalledVenue(
+          key: key,
+          programCount: count,
+          latestVenueText: latestText[key],
+        ),
+    ];
   }
 
   /// Reactive [callingHistoryForDance] + [halfCallingStatsForDance]: emits the
@@ -1038,7 +1854,8 @@ class ProgramRepository {
   ///    through one, so a write yields exactly one emit.
   /// 4. **Create the stream once, in `State`, never in `build()`.** Rebuilding
   ///    it per frame re-subscribes and re-queries; recreate it only when an
-  ///    argument here changes (`performedOnly`, `callerFilter`).
+  ///    argument here changes (`performedOnly`, `requireEventDate`,
+  ///    `callerFilter`).
   /// 5. **When a view's data is fully reactive, drop its refresh-scope listener
   ///    in the same change.** Leaving it attached means one write both re-emits
   ///    the stream and re-runs the imperative load — reintroducing #340 while
@@ -1048,13 +1865,17 @@ class ProgramRepository {
   Stream<DanceCallingHistory> watchCallingHistoryForDance(
     String danceId, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     String? callerFilter,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   }) {
     final caller = _normalizedCallerFilter(callerFilter);
     return _callingHistoryRows(
       danceId,
       performedOnly: performedOnly,
+      requireEventDate: requireEventDate,
       caller: caller,
+      tracking: tracking,
       // The section renders a venue label per row, resolved app-side, so it
       // must re-emit when a venue changes (issue #944). The one-shot
       // `callingHistoryForDance` above does not opt in: it has no subscriber
@@ -1069,14 +1890,19 @@ class ProgramRepository {
       // are derived from the same revision of `program_slots` the records came
       // from rather than from a re-query that a write could land in front of.
       //
-      // The two id sets agree. With `performedOnly` false the history holds
-      // every program containing the dance, which is exactly what that query
-      // returns. With it true the history is narrowed to programs where the
-      // dance was performed — and a program containing it but never performed
-      // contributes no counted occurrence anyway, so dropping it cannot change
-      // the result. `program_repository_watch_test.dart` asserts the equality
-      // against [halfCallingStatsForDance] under both flags, with such a
-      // program present.
+      // The two id sets agree on everything that counts. That query returns
+      // every program containing the dance. The history leaves out a program
+      // whose only slots for the dance are unperformed alternates, and with
+      // `performedOnly` true also one where the dance was never performed —
+      // and such a program contributes no counted occurrence to the stats
+      // either (`computeHalfCallingStats` skips the same slots), so dropping
+      // it cannot change the result. With `requireEventDate` true both sides
+      // leave out an undated program by the same clause.
+      // `program_repository_watch_test.dart`
+      // asserts the equality against [halfCallingStatsForDance] under both
+      // flags with a never-performed program present, and
+      // `calling_history_alternates_test.dart` does so with an
+      // alternates-only program.
       return DanceCallingHistory(
         records: records,
         halfStats: await _halfStatsForPrograms(
@@ -1104,9 +1930,13 @@ class ProgramRepository {
   /// by default). Program structure — and therefore the derived halves and the
   /// first/last-in-half positions — is always taken from the full slot list,
   /// independent of [performedOnly].
+  ///
+  /// [requireEventDate] mirrors [callingHistoryForDance] too: when true a
+  /// program with no event date contributes nothing.
   Future<HalfCallingStats> halfCallingStatsForDance(
     String danceId, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     String? callerFilter,
   }) async {
     final caller = _normalizedCallerFilter(callerFilter);
@@ -1116,6 +1946,7 @@ class ProgramRepository {
           'FROM program_slots '
           'JOIN programs ON programs.id = program_slots.program_id '
           'WHERE program_slots.dance_id = ? '
+          '${_eventDateClause(requireEventDate)}'
           '${_callerClause(caller)}'
           'AND programs.deleted_at IS NULL',
           variables: [Variable<String>(danceId), ..._callerVariables(caller)],
@@ -1153,6 +1984,15 @@ class ProgramRepository {
   /// Duplicates the program identified by [id] under [newId] via
   /// [Program.duplicate] (fresh identity everywhere, draft status, performance
   /// history cleared) and persists it. [newSlotId] mints an id per copied slot.
+  ///
+  /// A `venueId` that names no live venue is not copied (LIFE-4). The source
+  /// may keep one: a venue can be deleted while a program naming it is in
+  /// Recently deleted, or a peer's program can arrive before its venue. The
+  /// copy is a new program, and [create] refuses to link a new program to a
+  /// venue it cannot find, so copying the id made Duplicate fail. The copy
+  /// keeps the free-text venue, which is what the source shows in that case
+  /// (`resolveVenueLabel`). Duplicating does not revive the venue: it is not a
+  /// request to undo the venue's deletion, as restoring the program is.
   Future<Program> duplicate({
     required String id,
     required String newId,
@@ -1161,19 +2001,32 @@ class ProgramRepository {
     String? newTitle,
   }) async {
     assertUtc(now, 'now');
-    final source = await getById(id, includeDeleted: true);
-    if (source == null) {
-      throw ArgumentError.value(id, 'id', 'no such program');
-    }
-    final copy = source.duplicate(
-      newId: newId,
-      newSlotId: newSlotId,
-      now: now,
-      newTitle: newTitle,
-    );
-    await create(copy);
-    return copy;
+    return _db.transaction(() async {
+      final source = await getById(id, includeDeleted: true);
+      if (source == null) {
+        throw ArgumentError.value(id, 'id', 'no such program');
+      }
+      final copy = source.duplicate(
+        newId: newId,
+        newSlotId: newSlotId,
+        now: now,
+        newTitle: newTitle,
+      );
+      final venueId = copy.venueId;
+      final stored = venueId == null || await _isLiveVenue(venueId)
+          ? copy
+          : copy.copyWith(clearVenueId: true);
+      await create(stored);
+      return stored;
+    });
   }
+
+  Future<bool> _isLiveVenue(String id) async =>
+      await (_db.selectOnly(_db.venues)
+            ..addColumns([_db.venues.id])
+            ..where(_db.venues.id.equals(id) & _db.venues.deletedAt.isNull()))
+          .getSingleOrNull() !=
+      null;
 
   /// Tombstones the program, stamping `existence_at` causally (schema v25,
   /// issue #898). One shared [at] goes into both `deletedAt` and `updatedAt`
@@ -1186,8 +2039,83 @@ class ProgramRepository {
   /// #898). A revival is an existence transition, so it must advance
   /// `existence_at` or a peer holding the tombstone would win the comparison
   /// and delete it straight back.
-  Future<void> restore(String id, {required DateTime at}) =>
-      _stampExistence(id, at: at, deleted: false);
+  ///
+  /// With [reviveReferences] (the default; every restore the user asks for),
+  /// it also revives, in this transaction, the tombstoned venue the program
+  /// links to. The trash does not protect what its records use (the
+  /// maintainer's trash-policy decision, 2026-10-29, option b), so the venue
+  /// may have been deleted while the program was in Recently deleted; without
+  /// the revival the restored program would lose its venue (LIFE-4, GIG-17).
+  /// The revival is [VenueRepository.restore], so it stamps `existence_at` and
+  /// syncs, unless a peer's held tombstone still covers the venue (see
+  /// `DanceRepository._reviveReferences`). A venue that is gone outright is left as it is: the program shows
+  /// its free-text venue, or none (`resolveVenueLabel`), an unchanged
+  /// `venueId` does not block a save (see [_upsert]), and [duplicate] drops
+  /// it. Clearing the id here was rejected: a peer's program can name a venue
+  /// that has not arrived yet, and clearing it would sync the loss. A
+  /// permanently deleted program ([isPermanentlyDeleted]) is not in Recently
+  /// deleted, so this path neither restores it nor revives anything for it.
+  ///
+  /// Pass `reviveReferences: false` only from a caller that must not bring
+  /// the venue back: the archive merge, which overwrites the program straight
+  /// after reviving it, and the Caller's Companion re-import, whose undo would
+  /// not re-tombstone a revived venue.
+  ///
+  /// With [unarchive], an archived program that was in Recently deleted also
+  /// comes back unarchived, in the same transaction, with
+  /// [ProgramRepository.unarchive]'s stamping (so the change syncs). A program
+  /// that is live already (a stale Recently deleted row, after a sync revived
+  /// it) keeps its archived state.
+  /// Recently deleted passes it, by the maintainer's decision on #2218: a
+  /// program restored there should be one the Programs list shows. An Undo
+  /// right after a delete does not: it puts back exactly what was deleted.
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+    bool reviveReferences = true,
+    bool unarchive = false,
+  }) => _db.transaction(() async {
+    if (reviveReferences) {
+      final row = await (_db.select(
+        _db.programs,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (row == null || isPermanentlyDeleted(row.deletedAt)) return;
+      final venueId = row.venueId;
+      if (venueId != null &&
+          await (_db.selectOnly(_db.venues)
+                    ..addColumns([_db.venues.id])
+                    ..where(
+                      _db.venues.id.equals(venueId) &
+                          _db.venues.deletedAt.isNotNull(),
+                    ))
+                  .getSingleOrNull() !=
+              null) {
+        // A derived revival must not cancel a hold; see
+        // `DanceRepository._reviveReferences`.
+        await VenueRepository(
+          _db,
+        ).restore(venueId, at: at, clearPending: false);
+      }
+    }
+    // Read before the stamp clears it: only a program that was actually in
+    // Recently deleted is unarchived by its restore.
+    final wasDeleted = unarchive && (await isDeletedById(id) ?? false);
+    await _stampExistence(id, at: at, deleted: false);
+    // `_setArchivedAt` acts only on a live program, which the stamp above has
+    // just made this one.
+    if (wasDeleted) await _setArchivedAt(id, archivedAt: null, at: at);
+    if (clearPending) {
+      await clearPendingSyncDeletionForRestore(
+        _db,
+        kind: SyncRecordKind.program,
+        recordId: id,
+        table: _db.programs,
+        keyColumn: 'id',
+        at: at,
+      );
+    }
+  });
 
   /// Shared live<->deleted transition: one statement that writes
   /// `max(at, current + 1 tick)` while reading the pre-update
@@ -1207,10 +2135,11 @@ class ProgramRepository {
     deleted: deleted,
   );
 
-  /// Hard-deletes the programs identified by [ids] outright (ignoring their
-  /// soft-delete state), removing each program's slots via the
-  /// `program_slots.program_id` cascade. Unknown ids are ignored; an empty
-  /// [ids] is a no-op. Runs in a single transaction.
+  /// Removes the programs identified by [ids] regardless of soft-delete state:
+  /// unpublished programs are hard-deleted, while published programs become
+  /// tombstones so peers retain deletion evidence. Physical deletes remove
+  /// each program's slots via the `program_slots.program_id` cascade. Unknown
+  /// ids are ignored; an empty [ids] is a no-op. Runs in a single transaction.
   ///
   /// Intended for reverting a just-committed import batch (import-session undo,
   /// e.g. [CallersCompanionUsrImporter.undo]); ordinary user deletes should go
@@ -1219,24 +2148,296 @@ class ProgramRepository {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
-      for (final chunk in _chunkIds(list)) {
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: list,
+      );
+      for (final id in publishedIds) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.programs,
+          keyColumn: 'id',
+          key: id,
+          at: DateTime.now().toUtc(),
+          deleted: true,
+        );
+      }
+      final erasableIds = list
+          .where((id) => !publishedIds.contains(id))
+          .toList(growable: false);
+      for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.programs)..where((t) => t.id.isIn(chunk))).go();
       }
     });
   }
 
-  /// Hard-deletes soft-deleted programs whose `deletedAt` is older than
-  /// [retention] (default 30 days per `docs/design/storage.md`). Slots
-  /// cascade automatically (FK).
+  /// Hard-deletes unpublished soft-deleted programs whose `deletedAt` is older
+  /// than [retention] (default 30 days per `docs/design/storage.md`). A
+  /// published program cannot be erased, so an expired one is blanked instead,
+  /// as "Permanently delete" blanks it; its deletion record stays so peers
+  /// retain deletion evidence. See `DanceRepository._markExpiredPublished` for
+  /// why that leaves `existence_at` alone. Returns how many programs it erased.
+  /// Physical deletes cascade slots automatically (FK).
+  ///
+  /// When [onlyIds] is non-null the purge is restricted to those ids: a row
+  /// outside the set is left alone even if it is past the cutoff. The manual
+  /// "Permanently delete" action uses this so erasing one item cannot sweep
+  /// other expired items past the user's retention setting (LIFE-1). The
+  /// cutoff and the published-record exclusion still apply, so a caller wanting
+  /// one specific row gone first backdates its `deletedAt` (see
+  /// [softDelete]).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
+    Iterable<String>? onlyIds,
   }) {
     assertUtc(now, 'now');
     final cutoff = now.subtract(retention);
-    return (_db.delete(
-      _db.programs,
-    )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).go();
+    final restrictTo = onlyIds?.toSet();
+    return _db.transaction(() async {
+      final rows = <ProgramRow>[];
+      if (restrictTo == null) {
+        rows.addAll(
+          await (_db.select(
+            _db.programs,
+          )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get(),
+        );
+      } else {
+        for (final chunk in _chunkIds(restrictTo.toList())) {
+          rows.addAll(
+            await (_db.select(_db.programs)..where(
+                  (t) =>
+                      t.deletedAt.isSmallerOrEqualValue(cutoff) &
+                      t.id.isIn(chunk),
+                ))
+                .get(),
+          );
+        }
+      }
+      if (rows.isEmpty) return 0;
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: rows.map((row) => row.id),
+      );
+      final expiredPublished = [
+        for (final row in rows)
+          if (publishedIds.contains(row.id) &&
+              !isPermanentlyDeleted(row.deletedAt))
+            row.id,
+      ];
+      if (expiredPublished.isNotEmpty) {
+        // Leaves `existence_at` alone: see
+        // `DanceRepository._markExpiredPublished`.
+        // The mark changes the body, so it stamps content too; see
+        // `DanceRepository._markExpiredPublished`.
+        for (final chunk in _chunkIds(expiredPublished)) {
+          await _db.customUpdate(
+            'UPDATE ${_db.programs.actualTableName} '
+            'SET deleted_at = ?, updated_at = MAX(updated_at + 1, ?) '
+            'WHERE id IN (${List.filled(chunk.length, '?').join(', ')})',
+            variables: [
+              Variable<int>(unixSeconds(permanentlyDeletedAt)),
+              Variable<int>(unixSeconds(now)),
+              for (final id in chunk) Variable<String>(id),
+            ],
+            updates: {_db.programs},
+            updateKind: UpdateKind.update,
+          );
+        }
+        await removePermanentlyDeleted(now: now, onlyIds: expiredPublished);
+      }
+      final erasableIds = [
+        for (final row in rows)
+          if (!publishedIds.contains(row.id)) row.id,
+      ];
+      if (erasableIds.isEmpty) return 0;
+      var deleted = 0;
+      for (final chunk in _chunkIds(erasableIds)) {
+        deleted += await (_db.delete(
+          _db.programs,
+        )..where((t) => t.id.isIn(chunk))).go();
+      }
+      return deleted;
+    });
+  }
+
+  /// "Permanently delete" for one program in Recently deleted (LIFE-2).
+  ///
+  /// Erases the program when no device has published it, exactly as before. A
+  /// published program cannot be erased (sync-spec.md §3.1 forfeiture), so it
+  /// is blanked instead and hidden from Recently deleted; see
+  /// `permanent_deletion.dart` for the design and the maintainer's decision.
+  ///
+  /// Mirrors `DanceRepository.permanentlyDelete`: a causal existence stamp, the
+  /// [permanentlyDeletedAt] mark, then [removePermanentlyDeleted]. A program
+  /// that is missing or live is left alone and reported as
+  /// [PermanentDeletion.none].
+  Future<PermanentDeletion> permanentlyDelete(
+    String id, {
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    return _db.transaction(() async {
+      final trashed =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNotNull()))
+              .getSingleOrNull();
+      if (trashed == null) return PermanentDeletion.none;
+      await _stampExistence(id, at: now, deleted: true);
+      // The stamp above also moved `updated_at` to [now]. Put the content stamp
+      // back: the blank body must outrank the content it replaces, which may
+      // carry a stamp ahead of this clock.
+      await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+        ProgramsCompanion(
+          updatedAt: Value(trashed.updatedAt),
+          deletedAt: Value(permanentlyDeletedAt),
+        ),
+      );
+      final published = await isPublishedSyncRecord(
+        _db,
+        kind: SyncRecordKind.program,
+        recordId: id,
+      );
+      await removePermanentlyDeleted(now: now, onlyIds: [id]);
+      return published ? PermanentDeletion.blanked : PermanentDeletion.erased;
+    });
+  }
+
+  /// Finishes every permanently deleted program ([isPermanentlyDeleted]):
+  /// erases the unpublished ones through [purgeDeleted] and blanks the
+  /// published ones that still hold content. Returns how many it erased or
+  /// blanked. See `DanceRepository.removePermanentlyDeleted` for why the
+  /// startup sweep runs it whatever the retention setting, and why a blank
+  /// program is skipped.
+  ///
+  /// When [onlyIds] is non-null only those programs are considered.
+  Future<int> removePermanentlyDeleted({
+    required DateTime now,
+    Iterable<String>? onlyIds,
+  }) {
+    assertUtc(now, 'now');
+    final restrictTo = onlyIds?.toSet();
+    return _db.transaction(() async {
+      final marked = <ProgramRow>[];
+      if (restrictTo == null) {
+        marked.addAll(
+          await (_db.select(
+            _db.programs,
+          )..where((t) => t.deletedAt.equals(permanentlyDeletedAt))).get(),
+        );
+      } else {
+        for (final chunk in _chunkIds(restrictTo.toList())) {
+          marked.addAll(
+            await (_db.select(_db.programs)..where(
+                  (t) =>
+                      t.deletedAt.equals(permanentlyDeletedAt) &
+                      t.id.isIn(chunk),
+                ))
+                .get(),
+          );
+        }
+      }
+      if (marked.isEmpty) return 0;
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: marked.map((row) => row.id),
+      );
+      var removed = await purgeDeleted(
+        now: now,
+        onlyIds: [
+          for (final row in marked)
+            if (!publishedIds.contains(row.id)) row.id,
+        ],
+      );
+      for (final row in marked) {
+        if (!publishedIds.contains(row.id) || await _isBlank(row)) continue;
+        await _blank(row, now: now);
+        removed++;
+      }
+      return removed;
+    });
+  }
+
+  /// Whether [row] already holds nothing but a deletion record. Slots are
+  /// checked too: a program's slots carry most of what it says.
+  Future<bool> _isBlank(ProgramRow row) async =>
+      row.title == blankedRecordTitle &&
+      row.eventDate == null &&
+      row.venue == null &&
+      row.venueId == null &&
+      row.band == null &&
+      row.caller == null &&
+      row.dancerLevel == null &&
+      row.notes.isEmpty &&
+      row.status == ProgramStatus.draft &&
+      !row.hideAlternates &&
+      row.dialectName == null &&
+      row.payMinorUnits == null &&
+      row.payCurrency == null &&
+      row.archivedAt == null &&
+      await (_db.selectOnly(_db.programSlots)
+                ..addColumns([_db.programSlots.id])
+                ..where(_db.programSlots.programId.equals(row.id))
+                ..limit(1))
+              .getSingleOrNull() ==
+          null;
+
+  /// Removes everything a trashed, published program holds except its
+  /// deletion record: its slots, its provenance, any kept parts a newer peer's
+  /// build sent (`retained_sync_fields`), the queued reviews about it
+  /// (`review_queue`; a conflict choice holds another device's whole
+  /// version), and every field of its row. The blank
+  /// body is stamped after the content it replaces, so it wins last-writer-wins
+  /// on every peer. Nothing else cites a program.
+  Future<void> _blank(ProgramRow row, {required DateTime now}) async {
+    final id = row.id;
+    await (_db.delete(
+      _db.programSlots,
+    )..where((t) => t.programId.equals(id))).go();
+    await (_db.delete(
+      _db.programProvenance,
+    )..where((t) => t.programId.equals(id))).go();
+    await (_db.delete(_db.retainedSyncFields)..where(
+          (t) =>
+              t.kind.equals(SyncRecordKind.program.name) &
+              t.recordId.equals(id),
+        ))
+        .go();
+    await (_db.delete(_db.reviewQueue)..where(
+          (t) =>
+              t.kind.equalsValue(SyncRecordKind.program) &
+              t.recordId.equals(id),
+        ))
+        .go();
+    final current = asUtc(row.updatedAt);
+    await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+      ProgramsCompanion(
+        title: Value(normalizeShareableText(blankedRecordTitle)),
+        eventDate: const Value(null),
+        venue: Value(normalizeShareableTextOrNull(null)),
+        venueId: const Value(null),
+        band: Value(normalizeShareableTextOrNull(null)),
+        caller: Value(normalizeShareableTextOrNull(null)),
+        dancerLevel: Value(normalizeShareableTextOrNull(null)),
+        notes: Value(normalizeShareableText('')),
+        status: const Value(ProgramStatus.draft),
+        hideAlternates: const Value(false),
+        dialectName: Value(normalizeShareableTextOrNull(null)),
+        payMinorUnits: const Value(null),
+        payCurrency: const Value(null),
+        archivedAt: const Value(null),
+        updatedAt: Value(
+          nextStoredTimestamp(
+            now: now.isAfter(current) ? now : current.add(storedTimestampTick),
+            current: [current],
+          ),
+        ),
+        deletedAt: Value(permanentlyDeletedAt),
+      ),
+    );
   }
 
   Program _toModel(
@@ -1255,10 +2456,14 @@ class ProgramRepository {
     notes: row.notes,
     status: row.status,
     hideAlternates: row.hideAlternates,
+    dialectName: row.dialectName,
+    payMinorUnits: row.payMinorUnits,
+    payCurrency: row.payCurrency,
     slots: slots,
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),
     deletedAt: asUtcOrNull(row.deletedAt),
+    archivedAt: asUtcOrNull(row.archivedAt),
     provenance: provenance,
   );
 

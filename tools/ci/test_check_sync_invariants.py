@@ -9,9 +9,13 @@ import tempfile
 from pathlib import Path
 
 from check_sync_invariants import (
+    ALTERNATE_TITLE_EXEMPTIONS,
+    SYNC_WRITE_PATH,
+    ScanResult,
     _certificate_violations,
     _drift_join_violations,
     _drift_write_violations,
+    _interactive_upsert_violations,
     _raw_join_violations,
     _write_violations,
     blank_comments,
@@ -64,6 +68,36 @@ def test_comment_stripping_and_exact_source_roots() -> None:
         result = scan(root)
         assert result.soft_join_candidates == 2
         assert result.normalize_title_definitions == 1
+        assert_no(result.violations)
+
+
+def test_source_roots_cover_the_whole_lib_tree() -> None:
+    """``app/lib/main.dart`` and a package's public barrel sit outside
+    ``lib/src``, and both are production code; the sibling ratchets
+    (``check_debug_print.py``, ``check_settings_marker_reads.py``) scan
+    ``lib/**``. Nothing in ``main.dart`` writes SQL today, so the narrower
+    root was an inconsistency rather than a decision -- but a join written
+    there would have been invisible to this checker with nothing to say so.
+    Two compliant joins outside ``lib/src`` must be *counted* as candidates.
+    """
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "app/lib/src").mkdir(parents=True)
+        (root / "packages/core/lib/src").mkdir(parents=True)
+        (root / "app/lib/main.dart").write_text(
+            "String normalizeTitle(String value) => value;\n"
+            "final query = 'SELECT * FROM dances JOIN programs p ON p.id = x "
+            "WHERE p.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        (root / "packages/core/lib/core.dart").write_text(
+            "final query = 'SELECT * FROM dances JOIN tags t ON t.id = x "
+            "WHERE t.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        result = scan(root)
+        assert result.soft_join_candidates == 2, result
+        assert result.normalize_title_definitions == 1, result
         assert_no(result.violations)
 
 
@@ -243,6 +277,166 @@ def test_typed_drift_writes_fail_closed() -> None:
         for v in _drift_write_violations(unknown, "fixture.dart")
     )
     assert_no(_drift_write_violations("// await db.update(db.dances).write(x);", "fixture.dart"))
+    # `apply-undo` suppresses the boundary check, and only on the marked line:
+    # the same statement one line later is still flagged, so the exclusion
+    # cannot silently cover a whole file.
+    excused = (
+        "// sync-invariant-exclusion: apply-undo restores captured values verbatim.\n"
+        "await db.into(db.dances).insertOnConflictUpdate(companion);\n"
+    )
+    assert_no(_drift_write_violations(excused, "fixture.dart"))
+    # The marker is for the typed boundary only. It must not reach the raw-SQL
+    # I1/I2 checks, which share the *other* exclusion set.
+    raw_i1 = (
+        "// sync-invariant-exclusion: apply-undo\n"
+        "final q = 'UPDATE dances SET figures_json = ? WHERE id = ?';\n"
+    )
+    assert any(
+        v.kind == "I1" for v in _write_violations(raw_i1, "fixture.dart")
+    )
+    unmarked_after_excused = excused + (
+        "await db.into(db.dances).insertOnConflictUpdate(other);\n"
+    )
+    assert any(
+        v.kind == "typed-write-boundary"
+        for v in _drift_write_violations(unmarked_after_excused, "fixture.dart")
+    )
+
+
+def test_join_hydrated_body_excuses_only_the_raw_i2_check() -> None:
+    stamp = "final q = 'UPDATE dances SET updated_at = ? WHERE id = ?';\n"
+    marker = "// sync-invariant-exclusion: join-hydrated-body\n"
+    assert any(v.kind == "I2" for v in _write_violations(stamp, "fixture.dart"))
+    assert_no(_write_violations(marker + stamp, "fixture.dart"))
+    # Line-scoped: the marker does not cover a statement one line further on.
+    assert any(
+        v.kind == "I2"
+        for v in _write_violations(marker + "\n" + stamp, "fixture.dart")
+    )
+    # It excuses I2 only. A content write without updated_at is still I1, and
+    # the typed boundary is untouched.
+    raw_i1 = "final q = 'UPDATE dances SET figures_json = ? WHERE id = ?';\n"
+    assert any(
+        v.kind == "I1" for v in _write_violations(marker + raw_i1, "fixture.dart")
+    )
+    typed_i2 = (
+        "await db.update(db.dances).write("
+        "DancesCompanion(updatedAt: Value(now)));\n"
+    )
+    assert any(
+        v.kind == "typed-I2"
+        for v in _drift_write_violations(marker + typed_i2, "fixture.dart")
+    )
+
+
+def test_sync_write_path_rejects_the_interactive_upsert() -> None:
+    offending = "await repositories.tags.upsert(tag, at: record.updatedAt);\n"
+    compliant = "await repositories.tags.writeFromSync(tag, at: record.updatedAt);\n"
+    assert any(
+        v.kind == "sync-interactive-upsert"
+        for v in _interactive_upsert_violations(offending, SYNC_WRITE_PATH)
+    )
+    assert_no(_interactive_upsert_violations(compliant, SYNC_WRITE_PATH))
+    # Scoped to the inbound write path: the editor's own callers are the whole
+    # reason `upsert` still exists.
+    assert_no(
+        _interactive_upsert_violations(
+            offending, "app/lib/src/screens/tags_screen.dart"
+        )
+    )
+    # Commented-out code is not a call.
+    assert_no(
+        _interactive_upsert_violations(
+            "// await repositories.tags.upsert(tag);", SYNC_WRITE_PATH
+        )
+    )
+    # Every Dart file under the core sync/ directory is covered, so moving
+    # write-path code out of sync_storage.dart cannot exempt it.
+    for moved in (
+        "packages/compendium_core/lib/src/sync/sync_apply.dart",
+        "packages/compendium_core/lib/src/sync/server/sync_server.dart",
+    ):
+        assert any(
+            v.kind == "sync-interactive-upsert"
+            for v in _interactive_upsert_violations(offending, moved)
+        )
+    # The app-side sync directory is not the inbound write path.
+    assert_no(
+        _interactive_upsert_violations(
+            offending, "app/lib/src/sync/sync_runtime.dart"
+        )
+    )
+
+
+def test_sync_write_path_rejects_every_upsert_shape() -> None:
+    # guards-5: the receiver-shaped pattern let a local alias, a cascade and
+    # `upsertInTransaction` through. Under the core sync/ directory any upsert
+    # call or tear-off is flagged, outside a `writeFromSync*` body.
+    moved = "packages/compendium_core/lib/src/sync/sync_apply.dart"
+    for name, source in [
+        ("local alias", "final dances = repositories.dances;\nawait dances.upsert(d);\n"),
+        ("cascade", "repositories.dances..upsert(d);\n"),
+        ("upsertInTransaction", "await repositories.dances.upsertInTransaction(tx, d);\n"),
+        ("any receiver, any upsert*", "await store.upsertPendingDeletion(kind: k);\n"),
+        ("bare call", "await upsertInTransaction(tx, d);\n"),
+        ("tear-off", "final write = repositories.dances.upsert;\nawait write(d);\n"),
+        ("generic call", "await repo.upsert<Dance>(d);\n"),
+        ("call split across lines", "await repositories.dances\n    .upsert(d);\n"),
+    ]:
+        for path in (SYNC_WRITE_PATH, moved):
+            found = [
+                v for v in _interactive_upsert_violations(source, path)
+                if v.kind == "sync-interactive-upsert"
+            ]
+            assert len(found) == 1, (name, path, found)
+    # Inside a writeFromSync* body the upsert is the sync writer's own business.
+    inside = (
+        "Future<void> writeFromSyncParent(\n"
+        "  Dance d,\n"
+        ") async {\n"
+        "  await _upsertInTransaction(tx, d);\n"
+        "}\n"
+        "Future<void> other() async {\n"
+        "  await repositories.dances.upsert(d);\n"
+        "}\n"
+    )
+    found = _interactive_upsert_violations(inside, SYNC_WRITE_PATH)
+    assert [v.line for v in found] == [7], found
+    # A deliberate exception carries the marker, with a reason, on the line
+    # above -- the same `sync-invariant-exclusion:` convention as the I1/I2
+    # write checks.
+    marked = (
+        "// sync-invariant-exclusion: upsert — pending-deletion bookkeeping\n"
+        "await repositories.syncLocal.upsertPendingDeletion(kind: k);\n"
+    )
+    assert_no(_interactive_upsert_violations(marked, SYNC_WRITE_PATH))
+    bare_marker = (
+        "// sync-invariant-exclusion: upsert\n"
+        "await repositories.syncLocal.upsertPendingDeletion(kind: k);\n"
+    )
+    assert _interactive_upsert_violations(bare_marker, SYNC_WRITE_PATH)
+    distant_marker = (
+        "// sync-invariant-exclusion: upsert — not adjacent\n"
+        "final x = 1;\n"
+        "await repositories.dances.upsert(d);\n"
+    )
+    assert _interactive_upsert_violations(distant_marker, SYNC_WRITE_PATH)
+    # Review of #1701: the marker must be a comment, not marker-shaped code.
+    for not_a_comment in (
+        "const reason = 'sync-invariant-exclusion: upsert — x';\n",
+        "final r = 1; // sync-invariant-exclusion: upsert — trailing on code\n",
+    ):
+        assert _interactive_upsert_violations(
+            not_a_comment + "await repositories.dances.upsert(d);\n",
+            SYNC_WRITE_PATH,
+        ), not_a_comment
+    # Prose and strings that mention upsert are not calls.
+    assert_no(
+        _interactive_upsert_violations(
+            "// see `ProgramRepository._upsert`\nfinal s = 'upsert(x)';\n",
+            SYNC_WRITE_PATH,
+        )
+    )
 
 
 def test_certificate_scan_catches_each_concrete_escape_hatch() -> None:
@@ -342,6 +536,59 @@ def test_title_scan_rejects_alternate_implementation() -> None:
 
         result = scan(root)
         assert any(v.kind == "normalizeTitle" for v in result.violations)
+
+
+def _scan_exempt_title_helpers(
+    relative: str, names: frozenset[str], extra: str = ""
+) -> ScanResult:
+    """Scan a tree whose [relative] file defines one normalizer per [names]."""
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "packages/core/lib/src/imports/dedupe.dart"
+        helpers = root / relative
+        title.parent.mkdir(parents=True)
+        helpers.parent.mkdir(parents=True, exist_ok=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        helpers.write_text(
+            "".join(
+                f"String {name}(String title) =>\n"
+                "    title.replaceAll('a', 'b').toLowerCase();\n"
+                for name in sorted(names)
+            )
+            + extra,
+            encoding="utf-8",
+        )
+        return scan(root)
+
+
+def test_title_exemption_covers_only_its_named_helpers_in_its_file() -> None:
+    assert ALTERNATE_TITLE_EXEMPTIONS
+    for exempt_path, names in ALTERNATE_TITLE_EXEMPTIONS.items():
+        assert not any(
+            v.kind == "normalizeTitle"
+            for v in _scan_exempt_title_helpers(exempt_path, names).violations
+        ), exempt_path
+
+        elsewhere = _scan_exempt_title_helpers(
+            "packages/compendium_core/lib/src/imports/title_key.dart", names
+        )
+        assert sum(
+            v.kind == "normalizeTitle" for v in elsewhere.violations
+        ) == len(names), elsewhere.violations
+
+        third = _scan_exempt_title_helpers(
+            exempt_path,
+            names,
+            "String titleKey(String title) =>\n"
+            "    title.toLowerCase().replaceAll(' ', '');\n",
+        )
+        assert (
+            sum(v.kind == "normalizeTitle" for v in third.violations) == 1
+        ), third.violations
 
 
 def test_title_scan_requires_sync_call_sites_to_import_shared_definition() -> None:

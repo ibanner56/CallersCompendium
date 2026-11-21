@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import 'app_theme_extension.dart';
@@ -34,6 +35,31 @@ class AppTheme {
   /// (non-high-contrast) themes; only the built-in "High contrast" selection
   /// uses the outline-driven variation via [highContrast].
   static ThemeData fromScheme(ColorScheme scheme) => _build(scheme);
+
+  /// [theme] with page transitions and the [ExpansionTile] animation turned
+  /// off, for the in-app Reduce motion switch. Dialogs and
+  /// bottom sheets have no theme hook for their animation, so each call site
+  /// passes `AppMotion.styleFor(context)` instead.
+  ///
+  /// iOS and macOS keep the Cupertino builder at zero duration rather than a
+  /// bare instant one, because the edge swipe back lives in that builder.
+  /// Pushes and completed swipes are instant; a swipe let go before halfway
+  /// still slides the page back, a motion the user started.
+  static ThemeData withoutMotion(ThemeData theme) => theme.copyWith(
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: <TargetPlatform, PageTransitionsBuilder>{
+        TargetPlatform.android: _NoTransitionsBuilder(),
+        TargetPlatform.iOS: _InstantCupertinoTransitionsBuilder(),
+        TargetPlatform.macOS: _InstantCupertinoTransitionsBuilder(),
+        TargetPlatform.windows: _NoTransitionsBuilder(),
+        TargetPlatform.linux: _NoTransitionsBuilder(),
+        TargetPlatform.fuchsia: _NoTransitionsBuilder(),
+      },
+    ),
+    expansionTileTheme: theme.expansionTileTheme.copyWith(
+      expansionAnimationStyle: AnimationStyle.noAnimation,
+    ),
+  );
 
   static ThemeData _build(ColorScheme scheme, {bool highContrast = false}) {
     final textTheme = AppTypography.textTheme.apply(
@@ -76,7 +102,56 @@ class AppTheme {
       listTileTheme: components.listTile,
       navigationRailTheme: components.navigationRail,
       navigationBarTheme: components.navigationBar,
+      snackBarTheme: components.snackBar,
+      bottomSheetTheme: components.bottomSheet,
+      popupMenuTheme: components.popupMenu,
+      menuTheme: components.menu,
+      appBarTheme: components.appBar,
+      floatingActionButtonTheme: components.floatingActionButton,
+      iconButtonTheme: components.iconButton,
+      segmentedButtonTheme: components.segmentedButton,
+      expansionTileTheme: components.expansionTile,
+      tooltipTheme: components.tooltip,
+      dropdownMenuTheme: components.dropdownMenu,
+      progressIndicatorTheme: components.progressIndicator,
+      switchTheme: components.switchTheme,
+      checkboxTheme: components.checkbox,
+      datePickerTheme: components.datePicker,
+      timePickerTheme: components.timePicker,
       extensions: <ThemeExtension<dynamic>>[extension],
     );
   }
+}
+
+/// A page transition that shows the new route at once.
+class _NoTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => Duration.zero;
+
+  @override
+  Duration get reverseTransitionDuration => Duration.zero;
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => child;
+}
+
+/// The Cupertino page transition at zero duration: the page appears at once,
+/// but the builder still installs the edge swipe back.
+class _InstantCupertinoTransitionsBuilder
+    extends CupertinoPageTransitionsBuilder {
+  const _InstantCupertinoTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => Duration.zero;
+
+  @override
+  Duration get reverseTransitionDuration => Duration.zero;
 }

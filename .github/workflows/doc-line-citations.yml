@@ -1,0 +1,49 @@
+# `file.dart:N` line citations in docs/**/*.md still land on code (count ceiling).
+#
+# See tools/ci/check_doc_line_citations.py for what counts as stale.
+#
+# This lives in its own workflow, like doc-gate-references.yml and for the same
+# reason: ci.yml skips _checks.yml for a Markdown-only change, and the citations
+# this gate reads are in Markdown. Without it a docs-only PR could add or fix a
+# stale citation, merge green, and leave the next unrelated code PR to fail the
+# exact-count ceiling. The _checks.yml steps stay, because a code PR can move
+# the cited lines without touching any Markdown.
+#
+# It is intentionally cheap (plain python3, no toolchain setup) and is not
+# marked a required status (maintainer decision, #2313), so it never leaves a
+# required check pending on an unrelated PR.
+name: Doc line citations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'tools/ci/check_doc_line_citations.py'
+      - 'tools/ci/test_check_doc_line_citations.py'
+      - 'tools/ci/doc_line_citations_ceiling.json'
+      - '.github/workflows/doc-line-citations.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'tools/ci/check_doc_line_citations.py'
+      - 'tools/ci/test_check_doc_line_citations.py'
+      - 'tools/ci/doc_line_citations_ceiling.json'
+      - '.github/workflows/doc-line-citations.yml'
+
+# Least privilege: this check only reads the checked-out code.
+permissions:
+  contents: read
+
+jobs:
+  doc-line-citations:
+    name: Doc line citations (count ceiling)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The ratchet's own suite runs first, so a gate that has only ever been
+      # seen green is not mistaken for one that works.
+      - name: Test the doc line citation ceiling
+        run: python3 tools/ci/test_check_doc_line_citations.py
+      - name: Guard doc line citations (count ceiling)
+        run: python3 tools/ci/check_doc_line_citations.py

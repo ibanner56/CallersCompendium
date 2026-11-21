@@ -2,15 +2,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/custom_themes_controller.dart';
-import 'package:compendium_app/src/data/custom_themes_scope.dart';
-import 'package:compendium_app/src/data/repositories_scope.dart';
-import 'package:compendium_app/src/screens/dance_list_screen.dart';
-
 import '../support/test_repositories.dart';
-import '../support/l10n_harness.dart';
+import '../support/batch_screen_harness.dart';
 
 Dance _dance({
   required String id,
@@ -30,42 +23,9 @@ Dance _dance({
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
-Future<void> _pumpScreen(
-  WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 3000));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-  final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-  addTearDown(notifier.dispose);
-  final themeNotifier = ValueNotifier<AppThemeSelection>(
-    AppThemeSelection.system,
-  );
-  addTearDown(themeNotifier.dispose);
-  final customThemes = CustomThemesController(repos.settings);
-  await customThemes.load();
-  addTearDown(customThemes.dispose);
-  await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: themeNotifier,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(notifier: notifier, child: child!),
-          ),
-        ),
-      ),
-      home: const DanceListScreen(),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
-
 Future<void> _enterSelectionMode(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('batch-select')));
   await tester.pumpAndSettle();
 }
@@ -85,7 +45,7 @@ void main() {
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
     await repos.dances.create(_dance(id: 'd3', title: 'Charlie'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     expect(find.text('0 selected'), findsOneWidget);
@@ -101,7 +61,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('batch-exit')));
     await tester.pumpAndSettle();
     expect(find.text('1 selected'), findsNothing);
-    expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('collection-more-actions')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('long-press enters selection mode with that row selected', (
@@ -110,7 +73,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await tester.longPress(find.text('Alpha'));
     await tester.pumpAndSettle();
@@ -129,7 +92,7 @@ void main() {
     await repos.dances.create(
       _dance(id: 'd4', title: 'Tag seed', tagIds: ['t1']),
     );
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -146,7 +109,10 @@ void main() {
     expect(_tagIdsOf((await repos.dances.getById('d2'))!), {'t1'});
     expect(_tagIdsOf((await repos.dances.getById('d3'))!), isEmpty);
     // Selection mode ends after applying.
-    expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('collection-more-actions')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('add-tags unions without duplicating an existing tag', (
@@ -159,7 +125,7 @@ void main() {
     await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo', tagIds: ['t2']));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -187,7 +153,7 @@ void main() {
       _dance(id: 'd1', title: 'Alpha', tagIds: ['t1', 't2']),
     );
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo', tagIds: ['t1']));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -212,7 +178,7 @@ void main() {
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -228,7 +194,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -255,7 +221,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -287,7 +253,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -317,7 +283,7 @@ void main() {
     await repos.tags.upsert(Tag(id: 'old', name: 'Easy'));
     await repos.tags.delete('old');
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -342,7 +308,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -367,7 +333,7 @@ void main() {
     await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -395,7 +361,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -425,7 +391,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     final handle = tester.ensureSemantics();
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
 
@@ -463,5 +429,136 @@ void main() {
       reason: 'Add tags must be a reachable button',
     );
     handle.dispose();
+  });
+
+  group('row menu Add tags (issue #1416)', () {
+    Future<void> openRowAddTags(WidgetTester tester, String danceId) async {
+      await tester.tap(find.byKey(ValueKey('dance-actions-$danceId')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-action-add-tags')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('tags only that dance and does not enter selection mode', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
+      await repos.dances.create(_dance(id: 'd3', title: 'Charlie'));
+      await repos.dances.create(
+        _dance(id: 'd4', title: 'Tag seed', tagIds: ['t1']),
+      );
+      await pumpBatchScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd1');
+      expect(find.byKey(const ValueKey('batch-tag-dialog')), findsOneWidget);
+      // Checked while the picker is open: a mutation that enters selection
+      // mode is otherwise undone by the post-apply exit and goes unseen.
+      expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('batch-tag-option-t1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), {'t1'});
+      expect(_tagIdsOf((await repos.dances.getById('d2'))!), isEmpty);
+      expect(_tagIdsOf((await repos.dances.getById('d3'))!), isEmpty);
+      // The row shows the new tag without a manual reload.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('slidable-d1')),
+          matching: find.byKey(const ValueKey('tag-filter-chip-t1')),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('batch-tag-snackbar')), findsOneWidget);
+      expect(find.text('Tagged 1 dance'), findsOneWidget);
+      // Never entered selection mode.
+      expect(
+        find.byKey(const ValueKey('collection-more-actions')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
+    });
+
+    testWidgets('the row menu is hidden in selection mode', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await pumpBatchScreen(tester, repos);
+
+      await _enterSelectionMode(tester);
+
+      expect(find.byKey(const ValueKey('dance-actions-d1')), findsNothing);
+    });
+
+    testWidgets('undo restores that dance to its prior tags', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Tag seed', tagIds: ['t1']),
+      );
+      await pumpBatchScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd1');
+      await tester.tap(find.byKey(const ValueKey('batch-tag-option-t1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+      await tester.pumpAndSettle();
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), {'t1'});
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), isEmpty);
+      expect(_tagIdsOf((await repos.dances.getById('d2'))!), {'t1'});
+    });
+
+    testWidgets('an inline-created tag lands on that dance only', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
+      await pumpBatchScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd2');
+      await tester.enterText(
+        find.byKey(const ValueKey('batch-new-tag-field')),
+        'Contra Corners',
+      );
+      await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+      await tester.pumpAndSettle();
+
+      final created = (await repos.tags.listAll()).singleWhere(
+        (t) => t.name == 'Contra Corners',
+      );
+      expect(_tagIdsOf((await repos.dances.getById('d2'))!), {created.id});
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), isEmpty);
+    });
+
+    testWidgets('cancelling the picker changes nothing', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Tag seed', tagIds: ['t1']),
+      );
+      await pumpBatchScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd1');
+      await tester.tap(find.byKey(const ValueKey('batch-tag-cancel')));
+      await tester.pumpAndSettle();
+
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), isEmpty);
+      expect(find.byKey(const ValueKey('batch-tag-snackbar')), findsNothing);
+    });
   });
 }

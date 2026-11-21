@@ -1,0 +1,19 @@
+{
+  "id": "ecd-w5-glossary-forms",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Glossary has a choice of Contra or English (ECD) figures, each in its own dialect. Each time you go to it, it shows the type a new dance starts as, until you choose one. Your own figures and terms are listed under the type they were made for, and one you add is made for the type shown. Copying an English figure makes it an English figure of your own; such a copy offers contra's groups of dancers for now, so English-only ones such as ends or top can't be chosen in it yet."
+    ],
+    "changed": [
+      "Editing an English dialect previews English figures, not contra ones.",
+      "Walkthrough snippets in Settings, and in a sync conflict on them, are each shown in the dialect of their figure's dance type.",
+      "A sync conflict on your note on an English figure names the figure and shows both versions of the note in your English dialect."
+    ]
+  },
+  "core": {
+    "changed": [
+      "userFigureSeedFromMove seeds an ECD movement's dancerList parameter as a dancerSet with no default, the kind a figure of the user's can declare."
+    ]
+  }
+}

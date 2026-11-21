@@ -11,7 +11,8 @@ import 'package:pdf/widgets.dart' as pw;
 /// (`dance_pdf.dart` already imports `program_pdf.dart` for [loadProgramPdfTheme]).
 ///
 /// Layout: bold section-heading rows (A1 / A2 / B1 / B2 …) in blueGrey,
-/// indented figure rows with beat-count in a right-aligned grey column, and
+/// indented figure rows with their count (in bars for an English dance, as
+/// [DanceExportLabels.count] gives it) in a right-aligned grey column, and
 /// optional italic per-figure notes further indented beneath.
 List<pw.Widget> buildFigureWidgets(
   Dance dance,
@@ -21,7 +22,16 @@ List<pw.Widget> buildFigureWidgets(
   bool canonicalizeDiscouragedTerms = false,
 }) {
   final widgets = <pw.Widget>[];
-  final sectioned = deriveSections(dance.figures, dance.phraseStructure);
+  final sectioned = deriveSections(switch (dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => const <Figure>[],
+  }, dance.phraseStructure);
+  // An English dance is counted in bars, as on screen (ADR-006 §5.5).
+  final beatsPerBar = danceBeatsPerBar(
+    dance.form,
+    dance.phraseStructure,
+    meter: dance.meter,
+  );
   String? lastLabel;
   for (final sf in sectioned) {
     if (sf.label != lastLabel) {
@@ -46,7 +56,7 @@ List<pw.Widget> buildFigureWidgets(
             dialect,
           )
         : renderer.renderSummary(sf.figure, dialect);
-    final beatsLabel = labels.beats(sf.figure.beats);
+    final beatsLabel = labels.count(sf.figure.beats, beatsPerBar);
     final marker = sf.figure.progression ? ' ¶' : '';
     widgets.add(
       pw.Padding(

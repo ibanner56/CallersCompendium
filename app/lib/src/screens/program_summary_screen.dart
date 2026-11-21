@@ -4,34 +4,52 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
-import '../data/app_theme_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
+import '../data/mark_all_sets_status_scope.dart';
+import '../data/show_performed_toggles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
 import '../diagnostics/error_log.dart';
+import '../editor/perform_adjustment_write.dart';
+import '../editor/program_slot_rebase.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_theme_extension.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
+import '../widgets/command_palette.dart';
+import '../utils/slot_dance_title.dart';
 import 'perform_program_screen.dart';
+import 'recently_deleted_screen.dart';
 import 'program_editor_screen.dart';
+import '../theme/app_breakpoints.dart';
+import '../widgets/adaptive_fab.dart';
+
+/// How many times a row toggle re-reads and retries after losing a race with
+/// another writer before it gives up and says so.
+const int _kTogglePerformedAttempts = 3;
 
 /// Full-screen, read-focused summary of a saved program, pushed on **narrow**
 /// (phone / tablet-portrait) layouts when the user taps a program in the
@@ -46,18 +64,24 @@ import 'program_editor_screen.dart';
 ///
 /// The programs list reloads unconditionally when this route pops, so the
 /// screen only self-manages what it must: **Edit** opens the builder (reloading
-/// in place, or popping if the builder deleted the program), **Delete** pops
-/// back to the list, and **Duplicate** re-targets this screen at the new copy.
+/// in place, or popping if the builder deleted or archived the program),
+/// **Delete** and **Archive** pop back to the list, and **Duplicate** re-targets
+/// this screen at the new copy.
 class ProgramSummaryScreen extends StatefulWidget {
   const ProgramSummaryScreen({
     super.key,
     required this.programId,
+    this.performResumeStore,
     this.callersBoxOnline,
     this.contraDbOnline,
     this.reimportPicker,
   });
 
   final String programId;
+
+  /// See [ProgramSummaryPane.performResumeStore]. This screen is the open
+  /// program, so it drops the program's resume state when it closes.
+  final PerformResumeStore? performResumeStore;
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
@@ -68,6 +92,14 @@ class ProgramSummaryScreen extends StatefulWidget {
 
 class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
   late String _programId = widget.programId;
+
+  @override
+  void dispose() {
+    // This route is popped only when the caller leaves the program: a rotation
+    // keeps it, since it sits on the root navigator.
+    widget.performResumeStore?.forget(_programId);
+    super.dispose();
+  }
 
   Future<void> _openBuilder() async {
     final result = await Navigator.of(context).push<String>(
@@ -81,9 +113,9 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       ),
     );
     if (!mounted) return;
-    if (result == 'deleted') {
-      // The builder deleted the program; leave the summary and return to the
-      // list (which reloads and drops the stale row).
+    if (result == 'deleted' || result == 'archived') {
+      // The builder deleted or archived the program; leave the summary and
+      // return to the list (which reloads and drops the stale row).
       Navigator.of(context).pop();
     }
     // A save under the same id needs no tick: it writes `programs` /
@@ -102,9 +134,13 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       programId: _programId,
       showAppBar: true,
       prominentPerform: true,
+      performResumeStore: widget.performResumeStore,
       onOpenBuilder: _openBuilder,
       onDeleted: () => Navigator.of(context).pop(),
-      onNavigateTo: (id) => setState(() => _programId = id),
+      onNavigateTo: (id) {
+        widget.performResumeStore?.forget(_programId);
+        setState(() => _programId = id);
+      },
       callersBoxOnline: widget.callersBoxOnline,
       contraDbOnline: widget.contraDbOnline,
       reimportPicker: widget.reimportPicker,
@@ -137,6 +173,7 @@ class ProgramSummaryPane extends StatefulWidget {
     required this.onNavigateTo,
     this.showAppBar = false,
     this.prominentPerform = false,
+    this.performResumeStore,
     this.callersBoxOnline,
     this.contraDbOnline,
     this.reimportPicker,
@@ -144,17 +181,28 @@ class ProgramSummaryPane extends StatefulWidget {
 
   final String programId;
   final VoidCallback onOpenBuilder;
+
+  /// Called when the program leaves this view from one of its own actions:
+  /// Delete, or Archive, which leaves the way Delete does. The host closes the
+  /// pane (wide) or pops the route (narrow).
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
 
-  /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title) when
-  /// pushed as a full-screen route on narrow layouts. The wide detail pane
-  /// leaves this `false` — its title lives in the body, not an app bar.
+  /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title +
+  /// the record actions) when pushed as a full-screen route on narrow layouts;
+  /// the program's name then has its own line in the body. The wide detail
+  /// pane leaves this `false` — it has no app bar, so the name and the same
+  /// actions share one row in the body.
   final bool showAppBar;
 
   /// Renders a prominent full-width "Perform this program" button (Perform-first)
   /// in place of the compact perform icon button, for the narrow read view.
   final bool prominentPerform;
+
+  /// Where Perform's place and clock are kept between launches (GIG-14): the
+  /// Programs shell's store, which outlives this pane, so a rotation across
+  /// the split breakpoint does not lose them. `null` keeps them in this pane.
+  final PerformResumeStore? performResumeStore;
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
@@ -174,22 +222,65 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Program? _program;
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
+
+  /// Dances a slot's Restore is restoring, so a second tap before this pane
+  /// reloads does not restore (and announce) the dance twice.
+  final Set<String> _restoringDanceIds = {};
+
+  Future<void> _restoreSlotDance(Dance dance) async {
+    if (!_restoringDanceIds.add(dance.id)) return;
+    setState(() {});
+    try {
+      await restoreSlotDanceFromRecentlyDeleted(context, _repos, dance);
+    } finally {
+      if (mounted) setState(() => _restoringDanceIds.remove(dance.id));
+    }
+  }
+
+  /// Author names in credit order, by dance id, for a Recently deleted dance
+  /// whose authors include one Recently deleted holds, which `CollectionData`
+  /// and [_dances] leave out. Only for the text and PDF exports, as Perform
+  /// shows them (GIG-11).
+  Map<String, List<String>> _authorNamesOverride = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
   bool _loading = true;
+
+  /// True while [_performProgram] resolves deleted dances, so a double tap
+  /// cannot push two Perform screens.
+  bool _resolvingPerform = false;
+
+  /// Re-entrancy guard for [_delete]. The confirm now reads the history count
+  /// before its dialog opens (LIFE-6), so a second tap can land in that gap and
+  /// stack a second dialog; confirming the top one would then make a narrow
+  /// layout's `onDeleted` pop that dialog instead of this route. Same pattern
+  /// as the editor's `_deleting`.
+  bool _deleting = false;
+
+  /// Re-entrancy guard for [_archive] and [_unarchive], as [_deleting] is for
+  /// [_delete]: a second tap before the first write lands must not leave the
+  /// view twice or announce twice.
+  bool _archiving = false;
   Object? _error;
 
-  /// In-memory Perform resume state (issue #434) — same pattern as
-  /// [ProgramEditorScreen]. Perform is pushed on top of this summary, so this
-  /// survives that navigation: the Perform view hands back its live position +
-  /// clock on exit and the next launch threads it back in, so re-entry resumes
-  /// rather than resetting to slot 1 with a fresh clock.
-  PerformResumeState? _performResume;
+  /// In-memory Perform resume state (issue #434), used when the host passes no
+  /// [ProgramSummaryPane.performResumeStore]. Perform is pushed on top of this
+  /// summary, so this survives that navigation: the Perform view hands back
+  /// its live position + clock on exit and the next launch threads it back
+  /// in, so re-entry resumes rather than resetting to slot 1 with a fresh
+  /// clock.
+  final PerformResumeStore _ownPerformResume = PerformResumeStore();
 
-  /// Shared renderer for the large-print Perform view (mirrors
-  /// [ProgramEditorScreen]'s `_performRenderer`).
-  static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
+  PerformResumeStore get _performResume =>
+      widget.performResumeStore ?? _ownPerformResume;
+
+  /// For prose and formation labels only; a dance's figures go to
+  /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
+  /// figures live (#1023).
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
@@ -241,6 +332,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     BuildContext routeContext,
     DanceDetailData detail,
   ) => _reimport.open(routeContext, detail);
+
+  /// The slots whose toggle write is in flight. A second tap on the same row
+  /// while its write is in flight is ignored (it would set the same state).
+  /// Other rows are never blocked: their writes serialise through
+  /// [ProgramRepository.replaceIfUnchanged] and its retry.
+  final Set<String> _togglingSlots = {};
 
   void _invalidateBulkUndo() {
     _bulkUndoSnackBar?.close();
@@ -435,7 +532,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    // Blank the pane (spinner) only when there is nothing of this program to
+    // keep showing. A reload of the program already on screen — every write to
+    // it, such as marking a slot performed — swaps the data in place; replacing
+    // the list with a spinner would dispose its ListView and reset the scroll
+    // position to the top.
+    final keepVisible = _program?.id == widget.programId && _error == null;
+    if (!keepVisible) setState(() => _loading = true);
     try {
       final program = await _repos.programs.getById(widget.programId);
       if (program == null) {
@@ -444,6 +547,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _program = null;
           _danceTitles = const {};
           _dances = const {};
+          _authorNamesOverride = const {};
           _venuesById = const {};
           _collectionData = null;
           _loading = false;
@@ -463,12 +567,58 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         for (final s in program.slots)
           if (s.danceId != null) s.danceId!,
       };
-      final loaded = await Future.wait(ids.map(_repos.dances.getById));
+      // A dance in Recently deleted still renders, marked as deleted, and
+      // still reaches the exports (GIG-11): the same lookup as
+      // `resolveDeletedSlotDances`, which Perform uses.
+      final loaded = await Future.wait(
+        ids.map(
+          (id) => _repos.dances.getById(
+            id,
+            includeDeleted: true,
+            includeDeletedAuthors: true,
+          ),
+        ),
+      );
+      // A dance Recently deleted holds can have an author it holds too, which
+      // the collection does not list. As in Perform (`resolveDeletedSlotDances`)
+      // the author is credited by name in the text and PDF exports, in credit
+      // order; but the dance the share bundle embeds keeps only the authors it
+      // can embed. A dance the collection lists is credited from the
+      // collection, as before.
+      final authorsToName = <String, List<String>>{};
       for (final dance in loaded) {
         if (dance != null) {
           titles[dance.id] = dance.title;
-          dances[dance.id] = dance;
+          final listed = data.dancesById.containsKey(dance.id);
+          final live = [
+            for (final id in dance.authorIds)
+              if (data.choreographersById.containsKey(id)) id,
+          ];
+          if (!listed && live.length != dance.authorIds.length) {
+            authorsToName[dance.id] = dance.authorIds;
+          }
+          dances[dance.id] = live.length == dance.authorIds.length
+              ? dance
+              : dance.copyWith(authorIds: live);
         }
+      }
+      final authorNames = <String, List<String>>{};
+      if (authorsToName.isNotEmpty) {
+        final names = {
+          for (final c in await _repos.choreographers.listAll(
+            includeDeleted: true,
+          ))
+            c.id: c.name,
+        };
+        authorNames.addAll({
+          for (final entry in authorsToName.entries)
+            entry.key: [
+              for (final id in entry.value)
+                if ((data.choreographersById[id]?.name ?? names[id])
+                    case final String name when name.isNotEmpty)
+                  name,
+            ],
+        });
       }
       // Resolve only the linked venue (if any). The summary shows a single
       // program, so loading the whole catalogue just to look up one id is
@@ -485,6 +635,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _program = program;
         _danceTitles = titles;
         _dances = dances;
+        _authorNamesOverride = authorNames;
         _venuesById = venuesById;
         _collectionData = data;
         _difficultyLevels = difficultyLevels;
@@ -529,11 +680,90 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onNavigateTo(copy.id);
   }
 
+  /// Archives the program and leaves this view, as Delete does, with an Undo.
+  Future<void> _archive() async {
+    final source = _program;
+    if (source == null || _archiving || _deleting) return;
+    _archiving = true;
+    try {
+      final archived = await _repos.programs.archive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!mounted) return;
+      if (archived) {
+        final l10n = AppLocalizations.of(context);
+        // Nothing captured for the Undo beyond the repositories: the unarchive
+        // is a write every view of the program watches, as for Delete below.
+        showUndoSnackBar(
+          ScaffoldMessenger.of(context),
+          message: l10n.programsArchivedSnack(source.title),
+          undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+          onUndo: () async {
+            await _repos.programs.unarchive(
+              source.id,
+              at: DateTime.now().toUtc(),
+            );
+          },
+        );
+      }
+      // Leaves even when nothing was written: `false` means the program was
+      // archived or deleted elsewhere meanwhile, and either way it is no
+      // longer one this view should hold open.
+      widget.onDeleted();
+    } finally {
+      _archiving = false;
+    }
+  }
+
+  /// Unarchives the program. The view stays open: nothing leaves it.
+  Future<void> _unarchive() async {
+    final source = _program;
+    if (source == null || _archiving) return;
+    _archiving = true;
+    try {
+      final unarchived = await _repos.programs.unarchive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!unarchived || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).programsUnarchivedSnack(source.title),
+          ),
+        ),
+      );
+    } finally {
+      _archiving = false;
+    }
+  }
+
   Future<void> _delete() async {
     final source = _program;
-    if (source == null) return;
+    // Both guards, as in the builder: an Archive still in flight would leave the
+    // view as well, and two exits pop the route underneath.
+    if (source == null || _deleting || _archiving) return;
+    _deleting = true;
+    try {
+      await _deleteConfirmed(source);
+    } finally {
+      _deleting = false;
+    }
+  }
+
+  Future<void> _deleteConfirmed(Program source) async {
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-    if (!await confirmDeleteIfEnabled(context, itemLabel: source.title)) return;
+    if (!await confirmDeleteProgramIfEnabled(
+      context,
+      itemLabel: source.title,
+      programId: source.id,
+      repositories: _repos,
+    )) {
+      return;
+    }
     if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
@@ -549,6 +779,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       ScaffoldMessenger.of(context),
       message: l10n.programsDeletedSnack(source.title),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
@@ -557,40 +788,141 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onDeleted();
   }
 
-  /// Launches the large-print Perform view for the current saved program,
-  /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
-  /// nothing to perform or the reference data has not finished loading.
-  void _performProgram() {
+  /// Launches the large-print Perform view for the current saved program: the
+  /// app's only way into program Perform. No-op when there is nothing to
+  /// perform or the reference data has not finished loading.
+  Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
+    if (_resolvingPerform) return;
+    _resolvingPerform = true;
     _invalidateBulkUndo();
+    final DeletedSlotDances deletedDances;
+    try {
+      deletedDances = await resolveDeletedSlotDances(
+        _repos.dances,
+        _repos.choreographers,
+        program.slots,
+        data,
+      );
+    } finally {
+      _resolvingPerform = false;
+    }
+    if (!mounted) return;
+    // Each Perform write, as stored: the token the post-exit Undo compares
+    // the stored program against (flows-1). Keyed by the adjusted program's
+    // identity, so a stale Undo cannot match a later adjustment's write.
+    final storedAfterWrite = Expando<Program>();
+    final resumeStore = _performResume;
+    final resume = resumeStore[program.id];
+    // The stored program Perform's copy is based on: the one it opens with,
+    // then each adjustment's write as stored (GIG-6). Writes run one after
+    // another, so each compares with the one before it rather than finding
+    // its own earlier write "changed elsewhere".
+    var performBase = program;
+    Future<void> performWrites = Future<void>.value();
+    // Resolved before the push: the route may rebuild after this screen has
+    // gone, when its context can no longer be read.
+    final renderer = UserFiguresScope.rendererOf(context);
+    final repos = _repos;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
+        // Ctrl-K is suppressed while this route is on top ([performRouteName]).
+        settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          danceOverrides: deletedDances.dances,
+          authorNameOverrides: deletedDances.authorNames,
           difficultyLevels: _difficultyLevels,
-          renderer: _performRenderer,
-          // Resume where the caller left off (issue #434).
-          initialGroup: _performResume?.groupIndex ?? 0,
-          initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
-          initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
-          initialPaused: _performResume?.paused ?? false,
-          onExit: (state) => _performResume = state,
+          renderer: renderer,
+          // Resume where the caller left off (issue #434), from the shell's
+          // store when there is one, so the place survives this pane being
+          // rebuilt by a rotation across the breakpoint (GIG-14).
+          initialGroup: resume?.groupIndex ?? 0,
+          initialElapsedSeconds: resume?.elapsedSeconds ?? 0,
+          initialSlotStartSeconds: resume?.slotStartSeconds ?? 0,
+          initialPaused: resume?.paused ?? false,
+          initialWalkthroughEndedAtSlotSeconds:
+              resume?.walkthroughEndedAtSlotSeconds,
+          initialWalkthroughEndedSlotId: resume?.walkthroughEndedSlotId,
+          onExit: (state) => resumeStore[program.id] = state,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the
           // repository (bumping `updatedAt`, and possibly the slot count). The
           // summary and the coexisting Programs list both re-render from their
           // own subscriptions, so neither needs telling.
-          onProgramChanged: (updated) async {
-            await _repos.programs.update(updated);
-            if (!mounted) return;
+          //
+          // Only the adjustment's own change is written, onto the program as
+          // stored and as a compare-and-replace, so a change that landed while
+          // Perform was open (Device Sync, typically) is kept rather than
+          // overwritten by Perform's copy; Perform is then handed the newer
+          // program to show (GIG-6). Uses the repository rather than this
+          // pane, which may itself have closed by then.
+          onProgramChanged: (before, updated) async {
+            final queued = performWrites.then(
+              (_) =>
+                  writePerformAdjustment(
+                    repos.programs,
+                    programId: program.id,
+                    expected: performBase,
+                    before: before.slots,
+                    after: updated.slots,
+                  ).then((write) {
+                    performBase = write.stored;
+                    return write;
+                  }),
+            );
+            performWrites = queued.then<void>(
+              (_) {},
+              // diagnostics: silent — the failure is logged below, where this write is awaited; the next write only needs the queue to move on.
+              onError: (_) {},
+            );
+            final PerformAdjustmentWrite write;
+            try {
+              write = await queued;
+            } on Object catch (error, stackTrace) {
+              // export-guard: exempt — Perform adjustment write, not an export
+              // diagnostics: logged — Perform keeps the change on screen.
+              // `Object`: a program deleted meanwhile fails with a StateError.
+              logCaughtError(
+                error,
+                stackTrace,
+                source: 'program_summary_screen._performPersist',
+              );
+              return null;
+            }
+            storedAfterWrite[updated] = write.stored;
             // The write itself is what reloads this pane and every other view
             // of these slots — the coexisting program list, the Collection's
             // "called N times" badge, a mounted dance detail's calling history.
             // Calling `_load` here as well would load this pane twice for one
             // adjustment (issue #340).
+            return write.changedUnderneath ? write.stored : null;
+          },
+          // The "Program adjusted" Undo after leaving Perform restores only
+          // while the stored program still equals, field for field, what that
+          // adjustment's write stored; the compare and the restore are one
+          // transaction, so no edit or sync apply can slip between them
+          // (flows-1). It reverses only the adjustment's own change, so a
+          // change from elsewhere that the write was applied on top of stays.
+          restoreIfUnchanged: (previous, adjusted) async {
+            final expected = storedAfterWrite[adjusted];
+            if (expected == null) return false;
+            return repos.programs.replaceIfUnchanged(
+              expected: expected,
+              replacement: expected.copyWith(
+                slots: renumberSlots(
+                  rebaseSlotEdits(
+                    before: adjusted.slots,
+                    after: previous.slots,
+                    onto: expected.slots,
+                  ),
+                ),
+              ),
+              updatedAt: DateTime.now().toUtc(),
+            );
           },
         ),
       ),
@@ -600,24 +932,105 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(title: Text(l10n.programsSummaryTitle))
-          : null,
-      body: _buildBody(),
-      floatingActionButton: (_program != null)
-          ? FloatingActionButton.extended(
-              key: const ValueKey('open-builder'),
-              heroTag: 'open-builder',
-              onPressed: _openBuilder,
-              icon: const Icon(Icons.edit_note),
-              label: Text(l10n.programsEditProgram),
-            )
-          : null,
+    // One width read for both the top bar and the body, so the two never
+    // disagree about whether the secondary actions are inline or folded.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < AppBreakpoints.compact;
+        final program = _loading || _error != null ? null : _program;
+        return Scaffold(
+          // D-11 "(B) Actions to top bar" (UX6-2): with a top bar, it keeps
+          // the word "Program" and carries the record actions; the program's
+          // own name keeps its line in the body. The wide split pane has no
+          // top bar and keeps the same actions in its body row.
+          appBar: widget.showAppBar
+              ? AppBar(
+                  title: Text(l10n.programsSummaryTitle),
+                  actions: program == null
+                      ? null
+                      : _buildActions(program, compact: compact),
+                )
+              : null,
+          body: _buildBody(compact: compact),
+          floatingActionButton: (_program != null)
+              ? adaptiveExtendedFab(
+                  context,
+                  key: const ValueKey('open-builder'),
+                  heroTag: 'open-builder',
+                  onPressed: _openBuilder,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: l10n.programsEditProgram,
+                )
+              : null,
+        );
+      },
     );
   }
 
-  Widget _buildBody() {
+  /// The record actions, in tab order: Perform (only when it is not the
+  /// prominent body button), Export, then Mark all performed, Duplicate,
+  /// Archive (Unarchive for an archived program) and Delete. Below
+  /// [AppBreakpoints.compact] the last four fold into [_secondaryActionsMenu].
+  /// Shown in the top bar when there
+  /// is one, else at the end of the body's title row.
+  List<Widget> _buildActions(Program program, {required bool compact}) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      if (!widget.prominentPerform) _buildPerformAction(program),
+      ProgramExportMenu(
+        program: program,
+        titleFor: (id) => switch (_dances[id]) {
+          final dance? => slotDanceTitle(l10n, dance),
+          null => _danceTitles[id],
+        },
+        venuesById: _venuesById,
+        danceFor: (id) => _dances[id],
+        choreographerFor: (id) => _collectionData?.choreographersById[id],
+        authorNamesOverrideFor: (id) => _authorNamesOverride[id],
+        tagFor: (id) => _collectionData?.tagFor(id),
+        publishedSourceFor: (id) => _collectionData?.publishedSourceFor(id),
+        customFieldFor: (id) => _collectionData?.customFieldFor(id),
+        difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
+      ),
+      if (compact)
+        _secondaryActionsMenu(program)
+      else ...[
+        if (program.slots.any((s) => s.danceId != null))
+          IconButton(
+            key: const ValueKey('mark-all-performed'),
+            tooltip: l10n.programsMarkAllPerformedTooltip,
+            icon: const Icon(Icons.done_all),
+            onPressed: _markAllPerformed,
+          ),
+        IconButton(
+          key: const ValueKey('summary-duplicate'),
+          tooltip: l10n.commonDuplicate,
+          icon: const Icon(Icons.copy_all_outlined),
+          onPressed: _duplicate,
+        ),
+        IconButton(
+          key: const ValueKey('summary-archive'),
+          tooltip: program.isArchived
+              ? l10n.programsUnarchive
+              : l10n.programsArchive,
+          icon: Icon(
+            program.isArchived
+                ? Icons.unarchive_outlined
+                : Icons.archive_outlined,
+          ),
+          onPressed: program.isArchived ? _unarchive : _archive,
+        ),
+        IconButton(
+          key: const ValueKey('summary-delete'),
+          tooltip: l10n.commonDelete,
+          icon: const Icon(Icons.delete_outline),
+          onPressed: _delete,
+        ),
+      ],
+    ];
+  }
+
+  Widget _buildBody({required bool compact}) {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
       return Center(
@@ -626,16 +1039,20 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
     final program = _program;
     if (_error != null || program == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.programsSummaryUnavailable),
-        ),
+      // A failed read can succeed on a second try; a program that is gone
+      // cannot, so it offers the way out instead.
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: _error != null
+            ? l10n.programsLoadError
+            : l10n.programsSummaryUnavailable,
+        onRetry: _error != null ? _load : null,
+        onBack: _error != null ? null : widget.onDeleted,
       );
     }
 
     final theme = Theme.of(context);
-    final slotCount = program.slots.length;
+    final danceCount = program.plannedDanceCount;
     final dateLabel = program.eventDate == null
         ? null
         : formatEventDate(
@@ -646,50 +1063,49 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           );
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      // The bottom inset lets the last slot scroll clear of the Edit FAB.
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.fabClearance,
+      ),
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(program.title, style: theme.textTheme.headlineSmall),
-            ),
-            if (!widget.prominentPerform) _buildPerformAction(program),
-            ProgramExportMenu(
-              program: program,
-              titleFor: (id) => _danceTitles[id],
-              venuesById: _venuesById,
-              danceFor: (id) => _dances[id],
-              choreographerFor: (id) => _collectionData?.choreographersById[id],
-              difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
-            ),
-            if (program.slots.any((s) => s.danceId != null))
-              IconButton(
-                key: const ValueKey('mark-all-performed'),
-                tooltip: l10n.programsMarkAllPerformedTooltip,
-                icon: const Icon(Icons.done_all),
-                onPressed: _markAllPerformed,
+        if (widget.showAppBar)
+          Text(program.title, style: theme.textTheme.headlineSmall)
+        else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  program.title,
+                  style: theme.textTheme.headlineSmall,
+                ),
               ),
-            IconButton(
-              key: const ValueKey('summary-duplicate'),
-              tooltip: l10n.commonDuplicate,
-              icon: const Icon(Icons.copy_all_outlined),
-              onPressed: _duplicate,
-            ),
-            IconButton(
-              key: const ValueKey('summary-delete'),
-              tooltip: l10n.commonDelete,
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _delete,
-            ),
-          ],
-        ),
+              ..._buildActions(program, compact: compact),
+            ],
+          ),
         const SizedBox(height: 8),
-        ProgramStatusChip(status: program.status),
+        _statusLine(program),
+        if (program.isArchived)
+          const Padding(
+            padding: EdgeInsets.only(top: AppSpacing.xxs),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: ProgramArchivedChip(),
+            ),
+          ),
         if (widget.prominentPerform) ...[
           const SizedBox(height: 16),
           _buildProminentPerform(program),
         ],
         const SizedBox(height: 16),
+        if (programFormsLabel(l10n, programSlotForms(program.slots, _dances))
+            case final formsLabel?)
+          KeyedSubtree(
+            key: const ValueKey('program-summary-forms'),
+            child: _summaryRow(Icons.category_outlined, formsLabel),
+          ),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
         if (resolveVenueLabel(program, _venuesById) case final venueLabel?)
           _summaryRow(Icons.place_outlined, venueLabel),
@@ -705,8 +1121,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ),
         if (program.dancerLevel != null)
           _summaryRow(
-            Icons.groups_outlined,
+            Icons.signal_cellular_alt_outlined,
             l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
+          ),
+        if ((program.payMinorUnits, program.payCurrency) case (
+          final pay?,
+          final currency?,
+        ))
+          _summaryRow(
+            Icons.payments_outlined,
+            l10n.programsSummaryPay(
+              '${formatPayMinorUnits(pay, currency)} $currency',
+            ),
           ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -716,21 +1142,79 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ],
         const SizedBox(height: 24),
         Text(
-          l10n.programsSetListHeader(slotCount),
+          l10n.programsSetListHeader(danceCount),
           style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: 8),
         ..._buildSetList(program),
-        const SizedBox(height: 80),
+        const SizedBox(height: AppSpacing.fabClearance),
       ],
     );
   }
 
-  /// "Perform this program" action shown in the summary's top action Row,
-  /// mirroring the program builder's `perform-program` AppBar action. Disabled
+  /// The narrow layout's "⋮" menu: Mark all performed, Duplicate, Archive (or
+  /// Unarchive) and Delete, under the keys and labels of the buttons they
+  /// replace.
+  Widget _secondaryActionsMenu(Program program) {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<void>(
+      key: const ValueKey('summary-actions-overflow'),
+      tooltip: l10n.programsMoreActions,
+      icon: const Icon(Icons.more_vert),
+      itemBuilder: (context) => [
+        if (program.slots.any((s) => s.danceId != null))
+          PopupMenuItem<void>(
+            key: const ValueKey('mark-all-performed'),
+            onTap: _markAllPerformed,
+            child: ListTile(
+              leading: const Icon(Icons.done_all),
+              title: Text(l10n.programsMarkAllPerformedTooltip),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        PopupMenuItem<void>(
+          key: const ValueKey('summary-duplicate'),
+          onTap: _duplicate,
+          child: ListTile(
+            leading: const Icon(Icons.copy_all_outlined),
+            title: Text(l10n.commonDuplicate),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('summary-archive'),
+          onTap: program.isArchived ? _unarchive : _archive,
+          child: ListTile(
+            leading: Icon(
+              program.isArchived
+                  ? Icons.unarchive_outlined
+                  : Icons.archive_outlined,
+            ),
+            title: Text(
+              program.isArchived
+                  ? l10n.programsUnarchive
+                  : l10n.programsArchive,
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('summary-delete'),
+          onTap: _delete,
+          child: ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l10n.commonDelete),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// "Perform this program" action shown in the summary's top action Row, the
+  /// way into Perform for a saved program (the builder has none). Disabled
   /// (with an explanatory tooltip) when the program has no slots or the
-  /// reference data has not loaded yet, mirroring the editor's `_slots.isEmpty`
-  /// guard — never a dead button. The disabled state is exposed to assistive
+  /// reference data has not loaded yet — never a dead button. The disabled state is exposed to assistive
   /// technology via the button's own disabled semantics, not colour alone.
   Widget _buildPerformAction(Program program) {
     final l10n = AppLocalizations.of(context);
@@ -771,15 +1255,23 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// Marks every slot with a dance as performed (now), persists the change, and
-  /// reloads the summary. Mirrors [ProgramEditorScreen]'s `_markAllPerformed`
-  /// (no confirm dialog), but writes through the repository immediately because
-  /// the summary shows a saved program — there is no draft to fold into a later
-  /// save. Only reachable when at least one slot has a dance, matching the
-  /// builder's guard.
+  /// Marks every primary slot with a dance as performed (now) — alternates are
+  /// skipped ([ProgramSlot.isBulkMarkPerformedTarget]) — persists the change,
+  /// and reloads the summary. Mirrors [ProgramEditorScreen]'s
+  /// `_markAllPerformed` (no confirm dialog), but writes through the repository
+  /// immediately because the summary shows a saved program — there is no draft
+  /// to fold into a later save. Only reachable when at least one slot has a
+  /// dance, matching the builder's guard; with only alternates it marks nothing.
+  ///
+  /// While "Mark all performed sets the status" is on (the default, GIG-12), it
+  /// also sets the status to Performed — even when every primary was already
+  /// marked — and Undo puts the status back with the marks.
   Future<void> _markAllPerformed() async {
     final program = _program;
     if (program == null) return;
+    final setsStatus =
+        MarkAllSetsStatusScope.read(context) &&
+        program.status != ProgramStatus.performed;
     final now = nextStoredTimestamp(
       now: DateTime.now().toUtc(),
       current: program.slots.map((s) => s.performedAt),
@@ -787,29 +1279,61 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final markedSlotIds = <String>{};
     final updatedSlots = <ProgramSlot>[];
     for (final s in program.slots) {
-      if (s.danceId != null && s.performedAt == null) {
+      // Alternates are skipped: one counts as called only once the caller
+      // marks it by hand (maintainer ruling, 2026-10-28).
+      if (s.isBulkMarkPerformedTarget) {
         markedSlotIds.add(s.id);
         updatedSlots.add(s.copyWith(performedAt: now));
       } else {
         updatedSlots.add(s);
       }
     }
-    if (markedSlotIds.isEmpty) return;
-    final updated = program.copyWith(slots: updatedSlots, updatedAt: now);
+    if (markedSlotIds.isEmpty && !setsStatus) {
+      // Every primary was already marked: say why the alternates still are not,
+      // rather than doing nothing visible. There is nothing to undo.
+      if (program.slots.any(_isUnmarkedAlternate)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).programsMarkedAllPerformedExceptAlternates,
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    final updated = program.copyWith(
+      slots: updatedSlots,
+      updatedAt: now,
+      status: setsStatus ? ProgramStatus.performed : null,
+    );
+    // Every stamp target is already marked, so the repository's stamp on the
+    // move to Performed (#356) finds nothing left to stamp.
     await _repos.programs.update(updated);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final exceptAlternates = updatedSlots.any(_isUnmarkedAlternate);
     _bulkUndoSnackBar = showUndoSnackBar(
       messenger,
-      message: l10n.programsMarkedAllPerformed,
+      message: switch ((exceptAlternates, setsStatus)) {
+        (true, true) =>
+          l10n.programsMarkedAllPerformedExceptAlternatesSetStatus,
+        (true, false) => l10n.programsMarkedAllPerformedExceptAlternates,
+        (false, true) => l10n.programsMarkedAllPerformedSetStatus,
+        (false, false) => l10n.programsMarkedAllPerformed,
+      },
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () => unawaited(
         _undoMarkAllPerformed(
           programId: program.id,
           markedSlotIds: markedSlotIds,
           actionTimestamp: now,
+          restoreStatus: setsStatus ? program.status : null,
           messenger: messenger,
           errorMessage: l10n.programsUndoPerformedError,
         ),
@@ -822,10 +1346,189 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // stream re-emits for it.
   }
 
+  /// The per-row mark-performed toggle (shown while "Show mark-performed
+  /// toggles" is on). A plain button in the row, so it needs no swipe or long
+  /// press; the semantics name the dance and its state, and the 48dp target is
+  /// the [IconButton] default.
+  Widget _performedToggle(ProgramSlot slot, String title) {
+    final l10n = AppLocalizations.of(context);
+    final performed = slot.performedAt != null;
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      button: true,
+      toggled: performed,
+      label: performed
+          ? l10n.programsSummaryPerformedToggleOn(title)
+          : l10n.programsSummaryPerformedToggleOff(title),
+      onTap: () => unawaited(_setPerformed(slot.id, title, !performed)),
+      child: IconButton(
+        key: ValueKey('summary-slot-${slot.id}-performed-toggle'),
+        tooltip: performed
+            ? l10n.programsSummaryClearPerformedTooltip(title)
+            : l10n.programsSummaryMarkPerformedTooltip(title),
+        isSelected: performed,
+        icon: const Icon(Icons.radio_button_unchecked),
+        selectedIcon: const Icon(Icons.check_circle_outline),
+        onPressed: () => unawaited(_setPerformed(slot.id, title, !performed)),
+      ),
+    );
+  }
+
+  /// Sets one slot's performed mark to [marking] — what the tapped row
+  /// showed, flipped — and offers Undo. A slot already in that state in the
+  /// store (another device synced the same mark in, or a double tap) is left
+  /// alone rather than flipped back, so a tap never does the opposite of what
+  /// the caller saw.
+  ///
+  /// Marking stamps with [nextStoredTimestamp]; clearing removes the stamp —
+  /// the same per-slot behaviour as the builder. The write is computed from the
+  /// *stored* program, never [_program] (this pane's possibly stale loaded
+  /// copy), and lands through [ProgramRepository.replaceIfUnchanged], so an edit
+  /// or sync apply that landed since the read is neither overwritten nor
+  /// silently dropped: the compare fails and the toggle re-reads and retries.
+  Future<void> _setPerformed(String slotId, String title, bool marking) async {
+    final programId = _program?.id;
+    if (programId == null || !_togglingSlots.add(slotId)) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    _invalidateBulkUndo();
+    try {
+      for (var attempt = 0; attempt < _kTogglePerformedAttempts; attempt++) {
+        final stored = await _repos.programs.getById(programId);
+        final before = stored?.slots.where((s) => s.id == slotId).firstOrNull;
+        // The program or the row is gone (deleted, or removed elsewhere).
+        if (stored == null || before == null) return;
+        if ((before.performedAt != null) == marking) return;
+        final updatedSlots = [
+          for (final s in stored.slots)
+            if (s.id != slotId)
+              s
+            else if (marking)
+              s.copyWith(
+                performedAt: nextStoredTimestamp(
+                  now: DateTime.now().toUtc(),
+                  current: stored.slots.map((x) => x.performedAt),
+                ),
+              )
+            else
+              s.copyWith(clearPerformedAt: true),
+        ];
+        final wrote = await _repos.programs.replaceIfUnchanged(
+          expected: stored,
+          replacement: stored.copyWith(slots: updatedSlots),
+          updatedAt: DateTime.now().toUtc(),
+        );
+        if (!wrote) continue;
+        // The Undo token is the program as the write stored it. Read back now;
+        // if something else already changed this slot there is nothing of ours
+        // left to undo, so no Undo is offered.
+        final after = await _repos.programs.getById(programId);
+        final afterSlot = after?.slots.where((s) => s.id == slotId).firstOrNull;
+        final message = marking
+            ? l10n.programsSummaryMarkedPerformedSnack(title)
+            : l10n.programsSummaryClearedPerformedSnack(title);
+        if (!mounted) return;
+        if (after == null ||
+            afterSlot == null ||
+            (afterSlot.performedAt == null) == marking) {
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+          return;
+        }
+        showUndoSnackBar(
+          messenger,
+          message: message,
+          undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
+          accessibleNavigation: accessibleNavigation,
+          onUndo: () => unawaited(
+            _undoTogglePerformed(
+              token: after,
+              slotId: slotId,
+              restore: before,
+              messenger: messenger,
+              errorMessage: l10n.programsSummaryUndoPerformedToggleError,
+            ),
+          ),
+        );
+        return;
+      }
+      // Every attempt lost a race with another writer.
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.programsSummaryPerformedToggleError)),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._setPerformed',
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.programsSummaryPerformedToggleError)),
+        );
+      }
+    } finally {
+      _togglingSlots.remove(slotId);
+    }
+  }
+
+  /// Puts one slot back to [restore]'s performed state, but only while the
+  /// stored program is still [token] (what the toggle's write stored). The
+  /// replacement is [token] with just that slot reverted, so nothing else is
+  /// rewritten from an older snapshot.
+  Future<void> _undoTogglePerformed({
+    required Program token,
+    required String slotId,
+    required ProgramSlot restore,
+    required ScaffoldMessengerState messenger,
+    required String errorMessage,
+  }) async {
+    var restored = false;
+    try {
+      restored = await _repos.programs.replaceIfUnchanged(
+        expected: token,
+        replacement: token.copyWith(
+          slots: [
+            for (final s in token.slots)
+              if (s.id != slotId)
+                s
+              else if (restore.performedAt == null)
+                s.copyWith(clearPerformedAt: true)
+              else
+                s.copyWith(performedAt: restore.performedAt),
+          ],
+        ),
+        updatedAt: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._undoTogglePerformed',
+      );
+    }
+    if (restored) return;
+    messenger
+      ..clearSnackBars()
+      ..removeCurrentSnackBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+    });
+  }
+
+  static bool _isUnmarkedAlternate(ProgramSlot s) =>
+      s.danceId != null && s.isAlt && s.performedAt == null;
+
   Future<void> _undoMarkAllPerformed({
     required String programId,
     required Set<String> markedSlotIds,
     required DateTime actionTimestamp,
+    required ProgramStatus? restoreStatus,
     required ScaffoldMessengerState messenger,
     required String errorMessage,
   }) async {
@@ -835,6 +1538,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         slotIds: markedSlotIds,
         performedAt: actionTimestamp,
         updatedAt: DateTime.now().toUtc(),
+        restoreStatus: restoreStatus,
       );
     } catch (error, stackTrace) {
       logCaughtError(
@@ -852,16 +1556,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
   }
 
-  /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
-  /// ALT alternates render indented beneath their primary with an icon + text
-  /// label (never colour alone), per `docs/design/ux.md` §4. Dance rows are
-  /// tappable and open [DanceDetailScreen]; free-text slots are plain,
-  /// non-interactive text. Editing/reordering stays behind the builder FAB.
+  /// Builds the read-only, ordered set list. Planned dances are numbered 1..n
+  /// and the break is not; ALT alternates render indented beneath their
+  /// primary with an icon + text label (never colour alone), per
+  /// `docs/design/ux.md` §4. Dance rows are tappable and open
+  /// [DanceDetailScreen], except a dance in Recently deleted; free-text slots
+  /// are plain, non-interactive text. Editing/reordering stays behind the builder FAB.
   List<Widget> _buildSetList(Program program) {
     if (program.slots.isEmpty) {
       return [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           child: Text(
             AppLocalizations.of(context).programsSummaryEmptySetList,
             key: const ValueKey('summary-set-list-empty'),
@@ -874,10 +1579,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
 
     final rows = <Widget>[];
+    // Planned dances are numbered and the break is not, as in the set list's
+    // text and PDF (GIG-10).
     var ordinal = 0;
     for (final group in program.outputGrouped) {
-      ordinal++;
-      rows.add(_slotRow(group.primary, ordinalLabel: '$ordinal'));
+      rows.add(
+        _slotRow(
+          group.primary,
+          ordinalLabel: group.primary.isPlannedDance ? '${++ordinal}' : null,
+        ),
+      );
       for (final alt in group.alternates) {
         rows.add(_slotRow(alt, ordinalLabel: null, indented: true));
       }
@@ -885,11 +1596,32 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return rows;
   }
 
+  /// [dance]'s form's dialect, with lark and robin for the roles when [dance]'s
+  /// choreographer asked for them (`dialectForDance`), credited as the
+  /// exports credit it.
+  Dialect _danceDialect(Dance dance) => dialectForDance(
+    (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forDance(
+      dance,
+    ),
+    title: dance.title,
+    authorNames:
+        _authorNamesOverride[dance.id] ??
+        [
+          for (final id in dance.authorIds)
+            if (_collectionData?.choreographersById[id]?.name
+                case final String name)
+              name,
+        ],
+  );
+
   String _displayProse(String text) {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    // Program prose (slot and program notes) has no dance form: contra's.
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(DanceForm.contra);
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
   }
 
@@ -902,13 +1634,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final theme = Theme.of(context);
     final danceId = slot.danceId;
     // Colour-code accent (issue #270): a *redundant* cue paired with the
-    // formation text below. Suppressed when the user disables it. High contrast
-    // is either the app's high-contrast theme or the OS setting, in which case
-    // we use the brighter high-contrast palette.
+    // formation text below. Suppressed when the user disables it. Dark and
+    // high-contrast themes (the app's or the OS setting) use the brighter
+    // palette.
     final colorCodingEnabled = SetListColorCodingScope.of(context);
-    final highContrast =
-        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
-        MediaQuery.highContrastOf(context);
+    final brightAccents = setListAccentsBright(context);
 
     Widget leading = SizedBox(
       width: 28,
@@ -955,13 +1685,24 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
     if (danceId != null) {
       final dance = _dances[danceId];
-      final title = dance?.title ?? _danceTitles[danceId];
+      final storedTitle = dance?.title ?? _danceTitles[danceId];
+      // A dance in Recently deleted is marked as Perform marks it, and its row
+      // opens nothing: the dance details read live dances only.
+      final deleted = dance?.isDeleted ?? false;
+      final title = dance == null
+          ? storedTitle
+          : slotDanceTitle(l10n, dance, markDeleted: true);
       final performed = slot.performedAt != null;
+      final showToggle = title != null && ShowPerformedTogglesScope.of(context);
       if (title == null) {
         // The dance no longer resolves (deleted/tombstoned). Render a graceful,
         // non-interactive fallback rather than a broken tappable row.
         return Padding(
-          padding: EdgeInsets.only(left: indented ? 32 : 0, top: 4, bottom: 4),
+          padding: EdgeInsets.only(
+            left: indented ? AppSpacing.xl : 0,
+            top: AppSpacing.xxs,
+            bottom: AppSpacing.xxs,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -992,13 +1733,20 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         );
       }
 
+      // The dance's form, named only when the program mixes forms, as the
+      // builder and Perform name it (ADR-006 S5). A dance in Recently deleted
+      // names none, as it counts toward no mix.
+      final formLabel = dance != null && !dance.isDeleted && _mixesForms
+          ? danceFormLabel(l10n, dance.form)
+          : null;
       final secondaryParts = <String>[
+        ?formLabel,
         if (dance != null)
           formationDisplayLabel(
             l10n,
             dance.formation,
-            _performRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _proseRenderer,
+            _danceDialect(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -1018,9 +1766,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // Resolve the redundant formation accent (issue #270, extended for mixer
       // flag in issue #732). Only when a dance resolves, color-coding is on, and
       // the family has a themed accent. Mixer-flagged dances get the mixer accent
-      // regardless of shape — see setListAccentForDance.
+      // regardless of shape; otherwise the user's own formation colour wins
+      // over the family tint (PRES-12) — see setListAccentForRow.
       final accent = (dance != null && colorCodingEnabled)
-          ? setListAccentForDance(dance, highContrast: highContrast)
+          ? setListAccentForRow(
+              dance.formation.shape,
+              dance.mixer,
+              userColor: FormationColorsScope.of(
+                context,
+              )?.overrideFor(dance.formation.shape),
+              brightPalette: brightAccents,
+            )
           : null;
       // Expose the formation and, for mixer-flagged dances, the mixer term to AT
       // so the row is fully readable without colour (ux.md §4): the accent is
@@ -1028,99 +1784,135 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // mixer term to both the visible secondary text and the semantics label.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
+        ?formLabel,
         if (dance != null)
           formationDisplayLabel(
             l10n,
             dance.formation,
-            _performRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _proseRenderer,
+            _danceDialect(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
           ),
         if (dance != null && dance.mixer) l10n.commonMixer,
-        if (performed) l10n.programsPerformed,
+        // The toggle announces the state itself, so the row does not repeat it.
+        if (performed && !showToggle) l10n.programsPerformed,
       ].join('. ');
 
-      return Padding(
-        padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
-        child: MergeSemantics(
-          child: Semantics(
-            button: true,
-            label: semanticsLabel,
-            child: InkWell(
-              key: ValueKey('summary-slot-${slot.id}'),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (routeContext) => DanceDetailScreen(
-                    danceId: danceId,
-                    onReimport: (detail) =>
-                        _beginReimport(routeContext, detail),
+      final rowBody = MergeSemantics(
+        child: Semantics(
+          button: !deleted,
+          label: semanticsLabel,
+          child: InkWell(
+            key: ValueKey('summary-slot-${slot.id}'),
+            onTap: deleted
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (routeContext) => DanceDetailScreen(
+                        danceId: danceId,
+                        onReimport: (detail) =>
+                            _beginReimport(routeContext, detail),
+                      ),
+                    ),
                   ),
+            child: ExcludeSemantics(
+              child: Container(
+                key: accent != null
+                    ? ValueKey('summary-slot-${slot.id}-accent')
+                    : null,
+                decoration: accent != null
+                    ? BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: accent, width: 4),
+                        ),
+                      )
+                    : null,
+                padding: EdgeInsets.only(
+                  left: accent != null ? AppSpacing.xs : 0,
+                  top: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
                 ),
-              ),
-              child: ExcludeSemantics(
-                child: Container(
-                  key: accent != null
-                      ? ValueKey('summary-slot-${slot.id}-accent')
-                      : null,
-                  decoration: accent != null
-                      ? BoxDecoration(
-                          border: Border(
-                            left: BorderSide(color: accent, width: 4),
-                          ),
-                        )
-                      : null,
-                  padding: EdgeInsets.only(
-                    left: accent != null ? 8 : 0,
-                    top: 8,
-                    bottom: 8,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      leading,
-                      Icon(
-                        Icons.music_note_outlined,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ?altBadge,
-                            Text(title, style: theme.textTheme.bodyLarge),
-                            if (secondary.isNotEmpty)
-                              Text(
-                                secondary,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    leading,
+                    Icon(
+                      deleted
+                          ? Icons.report_gmailerrorred_outlined
+                          : Icons.music_note_outlined,
+                      size: 20,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ?altBadge,
+                          Text(title, style: theme.textTheme.bodyLarge),
+                          if (secondary.isNotEmpty)
+                            Text(
+                              secondary,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                      if (performed) ...[
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
+                    ),
+                    if (performed && !showToggle) ...[
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 20,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    if (!deleted)
                       Icon(
                         Icons.chevron_right,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
         ),
+      );
+      // A dance in Recently deleted can be restored from its row (LIFE-8).
+      // Outside the row's merged semantics, so it is its own button. The row
+      // loses its marking when this pane reloads on the restore's write.
+      final restoreButton = dance != null && canRestoreSlotDance(dance)
+          ? Tooltip(
+              message: l10n.programsRestoreDeletedDance,
+              child: TextButton(
+                key: ValueKey('summary-slot-${slot.id}-restore-dance'),
+                onPressed: _restoringDanceIds.contains(dance.id)
+                    ? null
+                    : () => _restoreSlotDance(dance),
+                child: Text(l10n.recentlyDeletedRestore),
+              ),
+            )
+          : null;
+      return Padding(
+        padding: EdgeInsets.only(
+          left: indented ? AppSpacing.xl : 0,
+          top: AppSpacing.xxxs,
+          bottom: AppSpacing.xxxs,
+        ),
+        child: showToggle || restoreButton != null
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: rowBody),
+                  ?restoreButton,
+                  if (showToggle) _performedToggle(slot, title),
+                ],
+              )
+            : rowBody,
       );
     }
 
@@ -1130,7 +1922,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ? text
         : _displayProse(text);
     return Padding(
-      padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
+      padding: EdgeInsets.only(
+        left: indented ? AppSpacing.xl : 0,
+        top: AppSpacing.xs,
+        bottom: AppSpacing.xs,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1167,6 +1963,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
+  /// Whether the program's dances are of more than one form, when each
+  /// dance's row names its form (ADR-006 S5).
+  /// The same set as the type line at the top ([programSlotForms]), so a
+  /// dance in Recently deleted counts for neither.
+  bool get _mixesForms =>
+      programSlotForms(
+        _program?.slots ?? const <ProgramSlot>[],
+        _dances,
+      ).length >
+      1;
+
   DifficultyLevel? _difficultyLevelFor(Dance? dance) {
     if (dance == null) return null;
     for (final level in _difficultyLevels) {
@@ -1178,10 +1985,37 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return DifficultyLevel.knownForId(dance.difficultyLevelId);
   }
 
+  /// The program's status as a plain, start-aligned line under the title: the
+  /// icon and label with no fill, border or elevation, so it reads as a status
+  /// rather than a button. (The list row keeps the chip; there it is one more
+  /// piece of metadata on a tappable row, not a lone control.)
+  Widget _statusLine(Program program) {
+    final theme = Theme.of(context);
+    final presentation = programStatusPresentation(
+      program.status,
+      AppLocalizations.of(context),
+    );
+    final color = programStatusColor(program.status, theme);
+    return Row(
+      key: const ValueKey('program-summary-status'),
+      children: [
+        Icon(
+          presentation.icon,
+          size: 18,
+          color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(presentation.label, style: theme.textTheme.bodyMedium),
+        ),
+      ],
+    );
+  }
+
   Widget _summaryRow(IconData icon, String text) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         children: [
           Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),

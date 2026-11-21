@@ -5,7 +5,9 @@ after it is filed. It describes how incoming beta feedback is sorted, labeled, a
 tracked so nothing gets lost and testers can see where their reports stand.
 
 Every label named here comes from the project's single source of truth,
-[`.github/labels.yml`](../../.github/labels.yml) — the 47-label taxonomy. Use labels
+[`.github/labels.yml`](../../.github/labels.yml) — the 49-label triage taxonomy, plus the
+`review: claude` PR label and the four `claude: *` review-status labels (set by
+`claude-review-status.yml`, never by hand), none of which is a triage label. Use labels
 by their **exact names** (for example `severity: critical`, not "critical"); do not
 invent ad-hoc labels in the GitHub UI.
 
@@ -51,8 +53,10 @@ Apply one **type** label so reports route to the right mindset:
 
 - `type: bug` — a defect; something is not working as intended.
 - `type: enhancement` — a new feature or an improvement to existing behavior.
-- `type: feedback` — general beta-tester impressions (often from a **Beta
-  check-in**).
+- `type: feedback` — general beta-tester impressions (usually from the
+  **General feedback** form).
+- `type: experimental` — experimental behavior under evaluation, which may change
+  or be removed.
 - `type: usability` — a confusing, awkward, or inefficient experience, even if
   nothing is technically "broken."
 - `type: import` — anything about importing dances or notation from external
@@ -68,13 +72,18 @@ These mirror the parts of the app testers use:
 - `area: collection` — the dance collection / library.
 - `area: programs` — building and managing programs.
 - `area: perform` — Perform / calling mode.
-- `area: dialect` — figure taxonomy, notation, and dialects.
+- `area: dance_entry` — the dance editor and figure entry.
+- `area: dialect` — figure notation and dialects.
+- `area: taxonomy` — figure definitions, parameters, parameter options, and new
+  figure support.
 - `area: import` — the import pipeline and parsers.
 - `area: search` — search and filtering.
 - `area: settings` — settings and preferences (including backup/restore).
 - `area: packaging` — packaging, installers, and distribution.
 - `area: a11y` — accessibility.
 - `area: docs` — documentation and help content.
+- `area: sync` — Device Sync (pairing, merge, sync settings) and the Athenaeum
+  sync server.
 
 Multiple areas are fine — a search-in-Perform-mode problem might get both
 `area: perform` and `area: search`.
@@ -110,8 +119,10 @@ backbone testers watch to see their report move:
 
 Off to the side of the happy path:
 
+- `status: backlog` — accepted, but not currently scheduled.
 - `status: blocked` — cannot proceed because of a dependency or a pending decision.
   Note what it is blocked on.
+- `status: duplicate` — already tracked by another issue or pull request.
 
 A typical bug travels `triage → confirmed → in-progress → fixed-pending-release`. A
 report that needs clarification detours through `needs-info` and back. Not every
@@ -135,6 +146,10 @@ a `severity: major` edge case that hits almost no one could sit at `priority: lo
 
 - `beta` — apply to anything reported or raised during the beta program, so we can
   see the whole beta picture at a glance regardless of type or area.
+- `stable` — apply to work that will be delivered after the beta and is not
+  guaranteed to ship before `v1.0.0`. It records timing, not urgency, so
+  it does not replace a priority label: a `stable` issue can still be
+  `priority: high` for the post-beta milestone.
 - `good first issue` — a well-scoped, low-context task suitable for a first-time
   contributor. Adding this to confirmed, small issues invites help.
 

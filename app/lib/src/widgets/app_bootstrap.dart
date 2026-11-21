@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/migration_error_labels.dart';
@@ -8,10 +9,16 @@ import '../data/migration_guard.dart'
     show
         DatabaseBelowFloorError,
         DatabaseDowngradeError,
+        DatabaseRelocationBlocked,
         MigrationSnapshotAborted,
         SnapshotFailure,
         SnapshotFailureCause,
         snapshotBeforeMigrate;
+import '../diagnostics/error_log.dart';
+import '../update/retirement_banner.dart' show kReleasesPageUrl;
+import '../theme/app_spacing.dart';
+import '../utils/launch_external_url.dart';
+import 'brand_mark.dart';
 
 /// Gates the app on a startup [future] — the schema migration / derived-index
 /// back-fill run by `CompendiumRepositories.ensureMigrated()`. Shows a loading
@@ -25,13 +32,24 @@ import '../data/migration_guard.dart'
 /// indeterminate spinner that can look hung (#440). Ordinary launches (no
 /// rebuild owed) keep the plain spinner.
 ///
-/// Two errors are terminal with *no* Retry:
+/// Four errors are terminal, with neither Try again nor "Check again" (maintainer
+/// decision R2-check-again, 2026-10-30, which overrode the audit's suggestion
+/// of Check again on the last two): whatever the user does to fix them, the app
+/// has to be reopened afterwards, and each screen's copy says so. Each offers
+/// **Copy details** and a link to the Releases page ([_TerminalScreen]), except
+/// [DatabaseBelowFloorError], which offers Copy details and a button to the
+/// release that can update the data, in place of the generic link.
 /// - [DatabaseDowngradeError] (on-disk data written by a newer build): the only
 ///   fix is to update the app, so retrying would just fail again.
 /// - [DatabaseBelowFloorError] (on-disk data written by a build older than the
 ///   minimum supported schema version): retrying cannot recover the data; the
 ///   user must run the bridge release to migrate it, or reset. [onBackUpAndReset]
 ///   and [onResetOnly] supply the recovery actions.
+/// - [MigrationSnapshotAborted] (no backup could be written): free space, fix
+///   the backups folder, or close another app that has the library open, then
+///   reopen.
+/// - [DatabaseRelocationBlocked] (the library could not be moved safely): fix
+///   the folders, then reopen.
 class AppBootstrap extends StatelessWidget {
   const AppBootstrap({
     super.key,
@@ -47,13 +65,13 @@ class AppBootstrap extends StatelessWidget {
   final WidgetBuilder builder;
   final VoidCallback onRetry;
 
-  /// Called when the user confirms "Back Up + Reset" on the below-floor
+  /// Called when the user confirms "Back up + reset" on the below-floor
   /// recovery screen. The implementation must: (1) write a snapshot using
   /// [snapshotBeforeMigrate] and surface any [SnapshotFailure] rather than
   /// proceeding; (2) only wipe the database if the snapshot succeeded.
   final Future<void> Function(DatabaseBelowFloorError error) onBackUpAndReset;
 
-  /// Called when the user confirms "Reset Only" on the below-floor recovery
+  /// Called when the user confirms "Reset only" on the below-floor recovery
   /// screen. This action is unrecoverable; the implementation is responsible
   /// for any confirmation friction the maintainer has specified.
   final Future<void> Function(DatabaseBelowFloorError error) onResetOnly;
@@ -75,28 +93,35 @@ class AppBootstrap extends StatelessWidget {
         if (snapshot.hasError) {
           final error = snapshot.error;
           if (error is DatabaseDowngradeError) {
-            return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.system_update_alt, size: 48),
-                      const SizedBox(height: 8),
-                      Text(
-                        databaseDowngradeMessage(l10n),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+            return _TerminalScreen(
+              icon: Icons.system_update_alt,
+              errorType: 'DatabaseDowngradeError',
+              stackTrace: snapshot.stackTrace,
+              typedDetails: [
+                'fileVersion: ${error.fileVersion}',
+                'appVersion: ${error.appVersion}',
+              ],
+              body: [
+                Text(
+                  databaseDowngradeMessage(l10n),
+                  textAlign: TextAlign.center,
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.migrationDowngradeVersions(
+                    error.fileVersion,
+                    error.appVersion,
+                  ),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             );
           }
           if (error is DatabaseBelowFloorError) {
             return _BelowFloorRecoveryScreen(
               error: error,
+              stackTrace: snapshot.stackTrace,
               onBackUpAndReset: () => onBackUpAndReset(error),
               onResetOnly: () => onResetOnly(error),
             );
@@ -105,43 +130,73 @@ class AppBootstrap extends StatelessWidget {
           // backup (the pre-migration snapshot failed) and chose to abort, or
           // there was no way to ask (issue #442). Like the downgrade case this
           // is terminal with *no* Retry: retrying wouldn't create the backup —
-          // the user must free space / fix the backups folder and reopen.
+          // the user must free space / fix the backups folder / close another
+          // app that has the library open, and reopen.
           if (error is MigrationSnapshotAborted) {
-            return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_snapshotAbortedIcon(error.failure.cause), size: 48),
-                      const SizedBox(height: 8),
-                      Text(
-                        migrationSnapshotAbortedMessage(l10n, error.failure),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+            return _TerminalScreen(
+              icon: _snapshotAbortedIcon(error.failure.cause),
+              errorType: 'MigrationSnapshotAborted',
+              stackTrace: snapshot.stackTrace,
+              typedDetails: [
+                'cause: ${error.failure.cause.name}',
+                'fromVersion: ${error.failure.fromVersion}',
+                'toVersion: ${error.failure.toVersion}',
+              ],
+              body: [
+                Text(
+                  migrationSnapshotAbortedMessage(l10n, error.failure),
+                  textAlign: TextAlign.center,
                 ),
-              ),
+              ],
             );
           }
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48),
-                  const SizedBox(height: 8),
-                  Text(l10n.appBootstrapError),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: onRetry,
-                    child: Text(l10n.commonRetry),
+          // The one-time move of the database out of Documents could not be
+          // completed safely, or could not be ruled out (Documents
+          // unreachable). Terminal, no Try again: nothing was deleted, and
+          // opening a database now would create an empty one beside the real
+          // library.
+          if (error is DatabaseRelocationBlocked) {
+            return _TerminalScreen(
+              icon: Icons.folder_off_outlined,
+              errorType: 'DatabaseRelocationBlocked',
+              stackTrace: snapshot.stackTrace,
+              typedDetails: [
+                'reason: ${error.reason.name}',
+                for (final copy in error.copies)
+                  'copy: ${copy.location.name}, ${copy.bytes} bytes',
+              ],
+              body: [
+                Text(
+                  databaseRelocationMessage(l10n, error.reason),
+                  textAlign: TextAlign.center,
+                ),
+                // Which copy is the library is the user's call: give
+                // them each copy's size and last change to decide by.
+                // Plain Text, so screen readers announce every value.
+                if (error.copies.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.migrationRelocationCopiesHeading,
+                    textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 8),
+                  for (final copy in error.copies)
+                    Text(
+                      databaseCopyDetails(
+                        l10n,
+                        MaterialLocalizations.of(context),
+                        copy,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                 ],
-              ),
-            ),
+              ],
+            );
+          }
+          return _BootstrapErrorScreen(
+            errorType: '${error.runtimeType}',
+            stackTrace: snapshot.stackTrace,
+            onRetry: onRetry,
           );
         }
         return builder(context);
@@ -156,12 +211,12 @@ class AppBootstrap extends StatelessWidget {
   Widget _buildLoading(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final progress = rebuildProgress;
-    if (progress == null) return _indeterminateLoading(l10n);
+    if (progress == null) return _indeterminateLoading(context, l10n);
     return ValueListenableBuilder<DerivedRebuildProgress?>(
       valueListenable: progress,
       builder: (context, value, _) {
         if (value == null || value.total == 0) {
-          return _indeterminateLoading(l10n);
+          return _indeterminateLoading(context, l10n);
         }
         final percent = (value.fraction * 100).round();
         return Scaffold(
@@ -169,6 +224,8 @@ class AppBootstrap extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _loadingMark(context),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: 48,
                   height: 48,
@@ -188,13 +245,28 @@ class AppBootstrap extends StatelessWidget {
     );
   }
 
-  Widget _indeterminateLoading(AppLocalizations l10n) => Scaffold(
-    body: Center(
-      child: CircularProgressIndicator(
-        semanticsLabel: l10n.appBootstrapPreparing,
-      ),
-    ),
+  /// The quiet brand mark above the startup spinner (same muted treatment as
+  /// the empty states).
+  Widget _loadingMark(BuildContext context) => BrandMark(
+    size: 64,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
   );
+
+  Widget _indeterminateLoading(BuildContext context, AppLocalizations l10n) =>
+      Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _loadingMark(context),
+              const SizedBox(height: 24),
+              CircularProgressIndicator(
+                semanticsLabel: l10n.appBootstrapPreparing,
+              ),
+            ],
+          ),
+        ),
+      );
 
   /// Picks a terminal-screen icon that reflects the *actual* snapshot-failure
   /// cause (issue #442 review): a storage glyph for a full disk, a
@@ -207,8 +279,10 @@ class AppBootstrap extends StatelessWidget {
         return Icons.disc_full;
       case SnapshotFailureCause.unwritableBackupsDir:
         return Icons.folder_off_outlined;
+      case SnapshotFailureCause.databaseInUse:
+        return Icons.lock_outline;
       case SnapshotFailureCause.unknown:
-        return Icons.warning_amber_rounded;
+        return Icons.warning_amber_outlined;
     }
   }
 }
@@ -218,10 +292,10 @@ class AppBootstrap extends StatelessWidget {
 ///
 /// Like [DatabaseDowngradeError], this is terminal with *no* Retry — retrying
 /// cannot apply retired migration steps. Two recovery paths are offered:
-/// - **Back Up + Reset**: snapshot the database first (fail-closed — if the
+/// - **Back up + reset**: snapshot the database first (fail-closed — if the
 ///   snapshot cannot be written, the wipe is not performed), then wipe to a
 ///   fresh state.
-/// - **Reset Only**: wipe to a fresh state immediately, with no backup.
+/// - **Reset only**: wipe to a fresh state immediately, with no backup.
 ///
 /// The primary message explains that the data *is* recoverable by running the
 /// bridge release first, so the reset buttons are the fallback, not the only
@@ -229,11 +303,13 @@ class AppBootstrap extends StatelessWidget {
 class _BelowFloorRecoveryScreen extends StatefulWidget {
   const _BelowFloorRecoveryScreen({
     required this.error,
+    required this.stackTrace,
     required this.onBackUpAndReset,
     required this.onResetOnly,
   });
 
   final DatabaseBelowFloorError error;
+  final StackTrace? stackTrace;
   final Future<void> Function() onBackUpAndReset;
   final Future<void> Function() onResetOnly;
 
@@ -260,8 +336,8 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -278,7 +354,28 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              FilledButton(
+              // Recovering the data is the primary action; the two resets
+              // abandon it, so they are outlined and sit under their own label.
+              FilledButton.icon(
+                key: const ValueKey('bootstrap-get-bridge'),
+                onPressed: () => launchExternalUrl(
+                  context,
+                  '$kReleasesPageUrl/tag/${widget.error.bridgeTag}',
+                ),
+                icon: const Icon(Icons.open_in_new),
+                label: Text(
+                  databaseBelowFloorGetBridge(l10n, widget.error.bridgeTag),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                databaseBelowFloorStartFresh(l10n),
+                style: Theme.of(context).textTheme.titleSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                key: const ValueKey('bootstrap-back-up-and-reset'),
                 onPressed: _inFlight
                     ? null
                     : () => _run(widget.onBackUpAndReset),
@@ -286,12 +383,223 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton(
+                key: const ValueKey('bootstrap-reset-only'),
                 onPressed: _inFlight ? null : () => _run(widget.onResetOnly),
                 child: Text(databaseBelowFloorResetOnly(l10n)),
+              ),
+              const SizedBox(height: 16),
+              _CopyDetailsButton(
+                details: _terminalDetails('DatabaseBelowFloorError', [
+                  'fileVersion: ${widget.error.fileVersion}',
+                  'minSupportedVersion: ${widget.error.minSupportedVersion}',
+                  'bridgeTag: ${widget.error.bridgeTag}',
+                ], widget.stackTrace),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The generic startup-failure screen: the error's *type* (never its message),
+/// a Copy details control, where the log lives, and Retry.
+///
+/// The message is withheld on purpose. It can carry file paths or text derived
+/// from the database that just failed (#1469, CWE-209), and scrubbing needs
+/// `SensitiveTerms`, which is gathered from that same database. The full record
+/// is in the on-device crash log (source `main.bootstrap`).
+class _BootstrapErrorScreen extends StatelessWidget {
+  const _BootstrapErrorScreen({
+    required this.errorType,
+    required this.stackTrace,
+    required this.onRetry,
+  });
+
+  final String errorType;
+  final StackTrace? stackTrace;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                BrandMark(
+                  size: 48,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 8),
+                Text(l10n.appBootstrapError, textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.appBootstrapLogHint,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: onRetry,
+                  child: Text(l10n.commonTryAgain),
+                ),
+                const SizedBox(height: 8),
+                _CopyDetailsButton(
+                  details: _terminalDetails(errorType, const [], stackTrace),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The text behind every Copy details button on a startup screen: the error's
+/// *type*, any typed discriminators in [typedDetails] (version numbers, enum
+/// names — never the error's own message, which can carry paths or text from
+/// the database that just failed), and the stack scrubbed by [CrashRedactor],
+/// the same shape `CrashFallback` copies, so the stack's absolute paths are
+/// collapsed before it reaches the clipboard.
+String _terminalDetails(
+  String errorType,
+  List<String> typedDetails,
+  StackTrace? stackTrace,
+) {
+  final buffer = StringBuffer(errorType);
+  for (final line in typedDetails) {
+    buffer.write('\n$line');
+  }
+  if (stackTrace != null) {
+    buffer.write('\n\n${CrashRedactor().scrub(stackTrace.toString())}');
+  }
+  return buffer.toString();
+}
+
+/// One of the three terminal startup screens other than below-floor: an icon, [body], the log hint, and
+/// [_TerminalHelpActions] (Copy details and the Releases link). There is no
+/// Retry and no "Check again" — see [AppBootstrap].
+class _TerminalScreen extends StatelessWidget {
+  const _TerminalScreen({
+    required this.icon,
+    required this.errorType,
+    required this.stackTrace,
+    required this.typedDetails,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String errorType;
+  final StackTrace? stackTrace;
+  final List<String> typedDetails;
+  final List<Widget> body;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 48),
+                const SizedBox(height: 8),
+                ...body,
+                const SizedBox(height: 16),
+                Text(
+                  l10n.appBootstrapLogHint,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                _TerminalHelpActions(
+                  details: _terminalDetails(
+                    errorType,
+                    typedDetails,
+                    stackTrace,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Copy details and a link to the Releases page, shared by the three terminal
+/// startup screens other than below-floor.
+class _TerminalHelpActions extends StatelessWidget {
+  const _TerminalHelpActions({required this.details});
+
+  final String details;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _CopyDetailsButton(details: details),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          key: const ValueKey('bootstrap-releases-link'),
+          onPressed: () => launchExternalUrl(context, kReleasesPageUrl),
+          icon: const Icon(Icons.open_in_new),
+          label: Text(l10n.appBootstrapReleasesLink),
+        ),
+      ],
+    );
+  }
+}
+
+/// The Copy details button: copies [details] and says so.
+class _CopyDetailsButton extends StatefulWidget {
+  const _CopyDetailsButton({required this.details});
+
+  final String details;
+
+  @override
+  State<_CopyDetailsButton> createState() => _CopyDetailsButtonState();
+}
+
+class _CopyDetailsButtonState extends State<_CopyDetailsButton> {
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    try {
+      await Clipboard.setData(ClipboardData(text: widget.details));
+      if (mounted) setState(() => _copied = true);
+    } catch (error, stackTrace) {
+      // A clipboard failure is new information (the bootstrap failure itself is
+      // already logged). logCaughtError is exception-proof, so a broken
+      // diagnostics store cannot make this screen throw.
+      logCaughtError(error, stackTrace, source: 'app_bootstrap._copy');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return OutlinedButton.icon(
+      key: const ValueKey('bootstrap-copy-details'),
+      onPressed: _copied ? null : _copy,
+      icon: Icon(_copied ? Icons.check : Icons.copy_outlined),
+      label: Text(
+        _copied ? l10n.appBootstrapCopiedDetails : l10n.appBootstrapCopyDetails,
       ),
     );
   }

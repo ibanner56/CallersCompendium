@@ -1,9 +1,17 @@
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
+import '../theme/app_motion.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
+import '../widgets/notice_card.dart';
+import '../widgets/app_bar_text_action.dart';
+import '../widgets/confirm_discard_changes.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 
 /// Full-role editor for a [CustomTheme] (`docs/design/ux-modernization.md`
 /// §4B). Lets the user rename the theme and edit every major color role, with
@@ -12,6 +20,7 @@ import '../widgets/color_edit_dialog.dart';
 /// AA is **warn-but-allow**: failing pairs are flagged clearly but never block
 /// saving (the caller decided some palettes are intentionally low-contrast).
 /// Returns the edited [CustomTheme] via [Navigator.pop], or `null` if canceled.
+/// Backing out with unsaved changes asks first ([DiscardChangesGuard]).
 class ThemeEditorScreen extends StatefulWidget {
   const ThemeEditorScreen({super.key, required this.initial});
 
@@ -52,22 +61,35 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   Color _colorOf(String key) => Color(_resolved[key]!);
 
   Future<void> _editRole(ColorRole role) async {
+    final title = themeEditorRoleLabel(AppLocalizations.of(context), role);
     final picked = await showDialog<Color>(
       context: context,
       builder: (_) =>
-          ColorEditDialog(title: role.label, initial: _colorOf(role.key)),
+          ColorEditDialog(title: title, initial: _colorOf(role.key)),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked != null) {
       setState(() => _setTheme(_theme.withColor(role.key, picked)));
     }
   }
 
-  void _save() {
+  /// The name [_save] would keep: the typed one, or the theme's own when the
+  /// field is blank.
+  String get _savedName {
     final name = _nameController.text.trim();
-    Navigator.of(
-      context,
-    ).pop(_theme.copyWith(name: name.isEmpty ? _theme.name : name));
+    return name.isEmpty ? _theme.name : name;
   }
+
+  void _save() {
+    Navigator.of(context).pop(_theme.copyWith(name: _savedName));
+  }
+
+  /// Whether leaving now would lose a change Save would have kept: a colour,
+  /// or the name. Colours compare by what Save stores, so picking a stored
+  /// role's current colour again is not a change.
+  bool get _dirty =>
+      _savedName != widget.initial.name ||
+      !mapEquals(_theme.roles, widget.initial.roles);
 
   int get _failingPairs => CustomThemeRoles.allPairs
       .where(
@@ -84,52 +106,68 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final failing = _failingPairs;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.themeEditorTitle),
-        actions: [TextButton(onPressed: _save, child: Text(l10n.commonSave))],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        children: [
-          _PreviewCard(scheme: _theme.toScheme()),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _nameController,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              labelText: l10n.themeEditorNameLabel,
-              border: const OutlineInputBorder(),
+    return DiscardChangesGuard(
+      dirty: _dirty,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.themeEditorTitle),
+          actions: [
+            AppBarTextAction(
+              label: l10n.commonSave,
+              icon: Icons.check,
+              onPressed: _save,
             ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xl,
           ),
-          const SizedBox(height: 12),
-          if (failing > 0)
-            _AaWarningBanner(failing: failing)
-          else
-            Row(
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.themeEditorContrastAllPass,
-                    style: theme.textTheme.bodySmall,
+          children: [
+            _PreviewCard(scheme: _theme.toScheme()),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nameController,
+              textInputAction: TextInputAction.done,
+              // Rebuilds, so the back guard sees the edited name.
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: l10n.themeEditorNameLabel,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (failing > 0)
+              _AaWarningBanner(failing: failing)
+            else
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: theme.colorScheme.primary,
                   ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 8),
-          for (final group in CustomThemeRoles.groups)
-            _RoleGroupSection(
-              group: group,
-              colorOf: _colorOf,
-              onEdit: _editRole,
-            ),
-        ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.themeEditorContrastAllPass,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 8),
+            for (final group in CustomThemeRoles.groups)
+              _RoleGroupSection(
+                group: group,
+                colorOf: _colorOf,
+                onEdit: _editRole,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -142,7 +180,6 @@ class _AaWarningBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     // `liveRegion: true` makes assistive tech announce the warning when the
     // banner appears — and re-announce when the failing-pair count changes —
@@ -151,30 +188,9 @@ class _AaWarningBanner extends StatelessWidget {
     return Semantics(
       liveRegion: true,
       container: true,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              size: 20,
-              color: theme.colorScheme.onErrorContainer,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.themeEditorContrastFailing(failing),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-              ),
-            ),
-          ],
-        ),
+      child: NoticeCard(
+        kind: NoticeKind.warning,
+        child: Text(l10n.themeEditorContrastFailing(failing)),
       ),
     );
   }
@@ -194,13 +210,17 @@ class _RoleGroupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 20, bottom: 8),
+          padding: const EdgeInsets.only(
+            top: AppSpacing.md,
+            bottom: AppSpacing.xs,
+          ),
           child: Text(
-            group.label,
+            themeEditorGroupLabel(l10n, group),
             style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.primary,
             ),
@@ -208,7 +228,7 @@ class _RoleGroupSection extends StatelessWidget {
         ),
         for (final pair in group.pairs)
           _ContrastBadge(
-            label: pair.label,
+            label: themeEditorPairLabel(l10n, pair),
             ratio: Wcag.contrastRatio(
               colorOf(pair.foreground),
               colorOf(pair.background),
@@ -249,11 +269,11 @@ class _ContrastBadge extends StatelessWidget {
     final color = passes ? theme.colorScheme.primary : theme.colorScheme.error;
     final ratioText = ratio.toStringAsFixed(1);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
       child: Row(
         children: [
           Icon(
-            passes ? Icons.check_circle : Icons.error,
+            passes ? Icons.check_circle_outline : Icons.error_outline,
             size: 16,
             color: color,
           ),
@@ -271,7 +291,7 @@ class _ContrastBadge extends StatelessWidget {
                 : l10n.themeEditorRatioFail(ratioText),
             style: theme.textTheme.labelSmall?.copyWith(
               color: color,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -305,11 +325,11 @@ class _RoleTile extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppShapes.borderRadiusSmall,
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
       ),
-      title: Text(role.label),
+      title: Text(themeEditorRoleLabel(AppLocalizations.of(context), role)),
       subtitle: Text(hex),
       trailing: const Icon(Icons.edit_outlined, size: 18),
     );
@@ -328,10 +348,10 @@ class _PreviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppShapes.borderRadiusMedium,
         border: Border.all(color: scheme.outlineVariant),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -340,7 +360,7 @@ class _PreviewCard extends StatelessWidget {
             style: TextStyle(
               color: scheme.onSurface,
               fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 4),
@@ -354,21 +374,25 @@ class _PreviewCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _swatch(
+                context,
                 l10n.themeEditorSwatchPrimary,
                 scheme.primary,
                 scheme.onPrimary,
               ),
               _swatch(
+                context,
                 l10n.themeEditorSwatchSecondary,
                 scheme.secondary,
                 scheme.onSecondary,
               ),
               _swatch(
+                context,
                 l10n.themeEditorSwatchTertiary,
                 scheme.tertiary,
                 scheme.onTertiary,
               ),
               _swatch(
+                context,
                 l10n.themeEditorSwatchError,
                 scheme.error,
                 scheme.onError,
@@ -380,16 +404,19 @@ class _PreviewCard extends StatelessWidget {
     );
   }
 
-  Widget _swatch(String label, Color bg, Color fg) {
+  Widget _swatch(BuildContext context, String label, Color bg, Color fg) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
       ),
       child: Text(
         label,
-        style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 12),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: fg),
       ),
     );
   }

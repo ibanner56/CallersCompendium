@@ -3,17 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/app_theme_scope.dart';
+import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
+import 'dirty_dialog_guard.dart';
+import 'empty_state.dart';
 import 'preview_hold_listener.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
 /// (`docs/design/ux.md` §4).
 ///
 /// Reordering offers a drag handle **plus** a non-drag alternative (move
-/// up/down and cut/paste), mirroring `figure_list_editor.dart` for WCAG 2.5.7.
+/// up/down), for WCAG 2.5.7. The scissors button removes the slot (issue
+/// #1270); there is no cut/paste reordering here, unlike
+/// `figure_list_editor.dart`. On a narrow row (see [AppBreakpoints.compact])
+/// only the drag handle and the "…" menu stay on the row; move up/down, View
+/// details and cut move into that menu, up and down first.
 /// `isAlt` slots render **indented** under their primary with an alt icon +
 /// "Alt" text (never colour alone), matching [Program.grouped] semantics.
 ///
@@ -27,13 +36,18 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.danceTitles,
     required this.formationFor,
     required this.mixerFor,
+    this.formFor,
     required this.onReorder,
     required this.onSlotChanged,
     required this.onPromoteAlternate,
     required this.onRemove,
     required this.onCreateDance,
+    this.isDeletedDance,
+    this.canRestoreDance,
+    this.onRestoreDeletedDance,
     this.reservedPerformedAt,
     this.dialect,
+    this.dialectFor,
     this.canonicalizeDiscouragedTerms = false,
     this.onPickReplacementDance,
     this.onPreviewDanceStarted,
@@ -44,9 +58,24 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Slots in position order.
   final List<ProgramSlot> slots;
 
-  /// Resolves a slot's `danceId` to a display title. A missing id (soft-deleted
-  /// dance) yields null → a tombstone is shown.
+  /// Resolves a slot's `danceId` to a display title. An id that resolves to
+  /// nothing yields null → a tombstone is shown.
   final String? Function(String danceId) danceTitles;
+
+  /// Whether a slot's `danceId` is a dance in Recently deleted. Its row keeps
+  /// the title [danceTitles] gives it but has no preview or details, which
+  /// load live dances only, and shows the tombstone icon. `null` treats every
+  /// dance as live.
+  final bool Function(String danceId)? isDeletedDance;
+
+  /// Whether a slot's `danceId` is a dance Recently deleted can restore: one
+  /// [isDeletedDance] marks, unless another device deleted it for good.
+  /// `null` offers no Restore.
+  final bool Function(String danceId)? canRestoreDance;
+
+  /// Restores a slot's dance from Recently deleted (LIFE-8), offered on the
+  /// "…" menu of a row [canRestoreDance] accepts. `null` offers nothing.
+  final void Function(String danceId)? onRestoreDeletedDance;
 
   /// Resolves a slot's `danceId` to its [Formation], or null when the dance is
   /// unavailable. Drives the redundant formation-family row accent (issue #270)
@@ -58,6 +87,12 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// [formationFor] to resolve the mixer-aware row accent (issue #732) and to
   /// append the mixer term to the subtitle when true.
   final bool Function(String danceId) mixerFor;
+
+  /// Resolves a slot's `danceId` to its dance form, or null when the dance is
+  /// unavailable. A program has no form of its own; when its dances are of
+  /// more than one form, each dance row names its form as the first part of
+  /// its subtitle (ADR-006 §12.2, S5). `null` names no form.
+  final DanceForm? Function(String danceId)? formFor;
 
   /// Reorder from [oldIndex] to [newIndex] using [ReorderableListView]'s
   /// `onReorderItem` semantics (newIndex is the post-removal insertion index).
@@ -84,9 +119,14 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// text isn't blank — see [_SlotTile.build]'s gating.
   final void Function(int index) onCreateDance;
 
-  /// Dialect used for read-only slot and formation previews. The edit dialog
-  /// remains lossless and never uses this value.
+  /// Dialect used for read-only slot previews, and for a formation preview
+  /// when [dialectFor] gives none. The edit dialog remains lossless and never
+  /// uses this value.
   final Dialect? dialect;
+
+  /// The dialect a slot's dance is shown in (its own form's, ADR-006 §9.1,
+  /// point 1), for the formation preview; `null` falls back to [dialect].
+  final Dialect? Function(String danceId)? dialectFor;
 
   /// Whether read-only slot and formation previews should use canonical
   /// discouraged-term wording.
@@ -109,37 +149,18 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Opens a persistent details preview for keyboard and AT users.
   final void Function(String danceId)? onViewDanceDetails;
 
+  /// List width below which rows use the compact layout even on a wide window.
+  /// The builder's two-pane layout halves the window, so up to about 1100dp
+  /// the program pane is too narrow for the full row (in a program pane about
+  /// 380dp wide, an alternate row's title got no width at all, and the row
+  /// overflowed).
+  static const double minFullRowWidth = 520;
+
   @override
   State<ProgramSlotListEditor> createState() => _ProgramSlotListEditorState();
 }
 
 class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
-  /// Id of the slot currently "cut" (awaiting a paste destination), or null.
-  String? _cutSlotId;
-
-  void _startCut(String id) => setState(() => _cutSlotId = id);
-  void _cancelCut() => setState(() => _cutSlotId = null);
-
-  /// Moves the cut slot to just before [beforeIndex] (original-list index).
-  void _paste(int beforeIndex) {
-    final cutId = _cutSlotId;
-    if (cutId == null) return;
-    final cutIndex = widget.slots.indexWhere((s) => s.id == cutId);
-    if (cutIndex == -1) {
-      setState(() => _cutSlotId = null);
-      return;
-    }
-    setState(() => _cutSlotId = null);
-    // After removing the cut item, an insertion point after it shifts down one.
-    final finalPos = beforeIndex > cutIndex ? beforeIndex - 1 : beforeIndex;
-    widget.onReorder(cutIndex, finalPos);
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      AppLocalizations.of(context).programsSlotMoved,
-      Directionality.maybeOf(context) ?? TextDirection.ltr,
-    );
-  }
-
   bool _isAltAtIndex(int index) {
     final slot = widget.slots[index];
     // A leading alt (no preceding primary) is degenerate — treat it as a
@@ -152,18 +173,35 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return false;
   }
 
-  /// The 1-based running-order ordinal for the slot at [index], or `null` when
-  /// the slot is an alternate rendered under a preceding primary. Numbers only
-  /// primaries (matching [Program.grouped] and the plain-text export, where
-  /// primaries are numbered and alts render as `ALT:` lines) so an alt is never
-  /// counted as its own running-order position.
-  int? _ordinalAtIndex(int index) {
-    if (_isAltAtIndex(index)) return null;
-    var ordinal = 0;
-    for (var i = 0; i <= index; i++) {
-      if (!_isAltAtIndex(i)) ordinal++;
+  /// [ProgramSlotListEditor.onRestoreDeletedDance] for [slot], or null when
+  /// its dance is not in Recently deleted: a live dance has nothing to restore,
+  /// and one deleted for good (purged, or blanked by another device) is gone.
+  VoidCallback? _restoreCallback(ProgramSlot slot) {
+    final danceId = slot.danceId;
+    final restore = widget.onRestoreDeletedDance;
+    if (danceId == null ||
+        restore == null ||
+        !(widget.canRestoreDance?.call(danceId) ?? false)) {
+      return null;
     }
-    return ordinal;
+    return () => restore(danceId);
+  }
+
+  bool _isTombstone(ProgramSlot slot) {
+    final danceId = slot.danceId;
+    if (danceId == null) return false;
+    return widget.danceTitles(danceId) == null ||
+        (widget.isDeletedDance?.call(danceId) ?? false);
+  }
+
+  /// [message] followed, when [index]'s first alternate takes its place on a
+  /// cut or move ([Program.removeSlotPromotingAlternate]), by which alternate
+  /// that is: the row changes level without the caller asking.
+  String _withPromotion(AppLocalizations l10n, int index, String message) {
+    final promoted = Program.alternatePromotedByRemoving(widget.slots, index);
+    if (promoted == null) return message;
+    final name = _slotTitle(l10n, widget.slots[promoted]);
+    return '$message ${l10n.programsAlternatePromoted(name)}';
   }
 
   String _slotTitle(AppLocalizations l10n, ProgramSlot slot) {
@@ -182,7 +220,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       return text;
     }
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
   }
 
@@ -195,7 +233,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       return text;
     }
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
   }
 
@@ -217,162 +255,98 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final slots = widget.slots;
-    // Guard: a cut slot removed externally.
-    if (_cutSlotId != null && !slots.any((s) => s.id == _cutSlotId)) {
-      _cutSlotId = null;
-    }
-
     if (slots.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Center(
-          key: const ValueKey('slots-empty'),
-          child: Text(l10n.programsSlotEditorEmpty),
-        ),
+      return EmptyState(
+        key: const ValueKey('slots-empty'),
+        inline: true,
+        icon: EmptyState.glyph(context, Icons.queue_music_outlined),
+        title: l10n.programsSlotEditorEmptyTitle,
+        body: l10n.programsSlotEditorEmptyBody,
       );
     }
 
-    final cutName = _cutSlotId == null
-        ? null
-        : _slotTitle(l10n, slots.firstWhere((s) => s.id == _cutSlotId));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_cutSlotId != null)
-          Card(
-            key: const ValueKey('slot-cut-banner'),
-            color: Theme.of(context).colorScheme.secondaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.content_cut, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(l10n.programsSlotCutBanner(cutName ?? '—')),
-                  ),
-                  TextButton(
-                    key: const ValueKey('slot-cut-cancel'),
-                    onPressed: _cancelCut,
-                    child: Text(l10n.commonCancel),
-                  ),
-                ],
-              ),
+    // Each slot's 1-based dance number, or `null` for an alternate or the
+    // break: the same numbers as the set list, its text and its PDF, so the
+    // builder's "5" is the band's "5." (GIG-10).
+    final danceNumbers = Program.danceNumbersForSlots(slots);
+    // Each dance's form, named only when the program mixes forms.
+    final forms = [
+      for (final slot in slots)
+        switch (slot.danceId) {
+          final id? => widget.formFor?.call(id),
+          null => null,
+        },
+    ];
+    final mixesForms = forms.nonNulls.toSet().length > 1;
+    // Below the compact width each row keeps only its drag handle and "…"
+    // menu, folding View details, move up/down and cut into the menu: at 360dp
+    // the full row left the title 8dp and overflowed an alternate row by 24dp.
+    final narrowWindow =
+        MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
+    return LayoutBuilder(
+      builder: (context, constraints) => ReorderableListView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
+        onReorderItem: widget.onReorder,
+        children: [
+          for (var i = 0; i < slots.length; i++)
+            _SlotTile(
+              key: ValueKey('slot-${slots[i].id}'),
+              compact:
+                  narrowWindow ||
+                  constraints.maxWidth < ProgramSlotListEditor.minFullRowWidth,
+              index: i,
+              slot: slots[i],
+              title: _slotTitle(l10n, slots[i]),
+              note: _slotNote(slots[i]),
+              dialect: widget.dialect,
+              formationDialect: switch (slots[i].danceId) {
+                final id? => widget.dialectFor?.call(id),
+                null => null,
+              },
+              canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
+              formation: _slotFormation(slots[i]),
+              mixer: _slotMixer(slots[i]),
+              form: mixesForms ? forms[i] : null,
+              ordinal: danceNumbers[i],
+              isDanceSlot: slots[i].danceId != null,
+              isTombstone: _isTombstone(slots[i]),
+              indented: _isAltAtIndex(i),
+              onMoveUp: i == 0 ? null : () => _moveUp(i),
+              onMoveDown: i == slots.length - 1 ? null : () => _moveDown(i),
+              onEdit: () => _editSlot(i),
+              onToggleAlt: () => _toggleAlt(i),
+              onTogglePerformed: () => _togglePerformed(i),
+              onRemove: () => _remove(i),
+              onCreateDance: () => widget.onCreateDance(i),
+              onRestoreDance: _restoreCallback(slots[i]),
+              onPreviewDanceStarted:
+                  widget.onPreviewDanceStarted == null ||
+                      slots[i].danceId == null
+                  ? null
+                  : () => widget.onPreviewDanceStarted!(slots[i].danceId!),
+              onPreviewDanceEnded:
+                  widget.onPreviewDanceEnded == null || slots[i].danceId == null
+                  ? null
+                  : () => widget.onPreviewDanceEnded!(slots[i].danceId!),
+              onViewDanceDetails:
+                  widget.onViewDanceDetails == null || slots[i].danceId == null
+                  ? null
+                  : () => widget.onViewDanceDetails!(slots[i].danceId!),
             ),
-          ),
-        if (_cutSlotId == null)
-          ReorderableListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorderItem: widget.onReorder,
-            children: [
-              for (var i = 0; i < slots.length; i++)
-                _SlotTile(
-                  key: ValueKey('slot-${slots[i].id}'),
-                  index: i,
-                  slot: slots[i],
-                  title: _slotTitle(l10n, slots[i]),
-                  note: _slotNote(slots[i]),
-                  dialect: widget.dialect,
-                  canonicalizeDiscouragedTerms:
-                      widget.canonicalizeDiscouragedTerms,
-                  formation: _slotFormation(slots[i]),
-                  mixer: _slotMixer(slots[i]),
-                  ordinal: _ordinalAtIndex(i),
-                  isDanceSlot: slots[i].danceId != null,
-                  isTombstone:
-                      slots[i].danceId != null &&
-                      widget.danceTitles(slots[i].danceId!) == null,
-                  indented: _isAltAtIndex(i),
-                  draggable: true,
-                  isCut: false,
-                  onMoveUp: i == 0 ? null : () => _moveUp(i),
-                  onMoveDown: i == slots.length - 1 ? null : () => _moveDown(i),
-                  onCut: () => _startCut(slots[i].id),
-                  onEdit: () => _editSlot(i),
-                  onToggleAlt: () => _toggleAlt(i),
-                  onTogglePerformed: () => _togglePerformed(i),
-                  onRemove: () => _remove(i),
-                  onCreateDance: () => widget.onCreateDance(i),
-                  onPreviewDanceStarted:
-                      widget.onPreviewDanceStarted == null ||
-                          slots[i].danceId == null
-                      ? null
-                      : () => widget.onPreviewDanceStarted!(slots[i].danceId!),
-                  onPreviewDanceEnded:
-                      widget.onPreviewDanceEnded == null ||
-                          slots[i].danceId == null
-                      ? null
-                      : () => widget.onPreviewDanceEnded!(slots[i].danceId!),
-                  onViewDanceDetails:
-                      widget.onViewDanceDetails == null ||
-                          slots[i].danceId == null
-                      ? null
-                      : () => widget.onViewDanceDetails!(slots[i].danceId!),
-                ),
-            ],
-          )
-        else
-          Column(
-            children: [
-              _PasteButton(
-                key: const ValueKey('slot-paste-top'),
-                semanticsLabel: l10n.programsPasteBeforeFirst,
-                onPaste: () => _paste(0),
-              ),
-              for (var i = 0; i < slots.length; i++) ...[
-                _SlotTile(
-                  key: ValueKey('slot-${slots[i].id}'),
-                  index: i,
-                  slot: slots[i],
-                  title: _slotTitle(l10n, slots[i]),
-                  note: _slotNote(slots[i]),
-                  dialect: widget.dialect,
-                  canonicalizeDiscouragedTerms:
-                      widget.canonicalizeDiscouragedTerms,
-                  formation: _slotFormation(slots[i]),
-                  mixer: _slotMixer(slots[i]),
-                  ordinal: _ordinalAtIndex(i),
-                  isDanceSlot: slots[i].danceId != null,
-                  isTombstone:
-                      slots[i].danceId != null &&
-                      widget.danceTitles(slots[i].danceId!) == null,
-                  indented: _isAltAtIndex(i),
-                  draggable: false,
-                  isCut: slots[i].id == _cutSlotId,
-                  onMoveUp: i == 0 ? null : () => _moveUp(i),
-                  onMoveDown: i == slots.length - 1 ? null : () => _moveDown(i),
-                  onCut: slots[i].id == _cutSlotId
-                      ? null
-                      : () => _startCut(slots[i].id),
-                  onEdit: () => _editSlot(i),
-                  onToggleAlt: () => _toggleAlt(i),
-                  onTogglePerformed: () => _togglePerformed(i),
-                  onRemove: () => _remove(i),
-                  onCreateDance: () => widget.onCreateDance(i),
-                ),
-                if (slots[i].id != _cutSlotId)
-                  _PasteButton(
-                    key: ValueKey('slot-paste-after-${slots[i].id}'),
-                    semanticsLabel: l10n.programsPasteAfter(
-                      _slotTitle(l10n, slots[i]),
-                    ),
-                    onPaste: () => _paste(i + 1),
-                  ),
-              ],
-            ],
-          ),
-      ],
+        ],
+      ),
     );
   }
 
   void _moveUp(int i) {
+    final l10n = AppLocalizations.of(context);
+    final message = _withPromotion(l10n, i, l10n.programsSlotMovedUp);
     widget.onReorder(i, i - 1);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      AppLocalizations.of(context).programsSlotMovedUp,
+      message,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -380,10 +354,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   void _moveDown(int i) {
     // onReorderItem semantics: newIndex is the post-removal insertion index,
     // so moving down one slot targets i + 1.
+    final l10n = AppLocalizations.of(context);
+    final message = _withPromotion(l10n, i, l10n.programsSlotMovedDown);
     widget.onReorder(i, i + 1);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      AppLocalizations.of(context).programsSlotMovedDown,
+      message,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -451,10 +427,11 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   void _remove(int i) {
     final l10n = AppLocalizations.of(context);
     final name = _slotTitle(l10n, widget.slots[i]);
+    final message = _withPromotion(l10n, i, l10n.programsRemovedSlot(name));
     widget.onRemove(i);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      l10n.programsRemovedSlot(name),
+      message,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -468,6 +445,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
         danceTitle: widget.danceTitles,
         onPickReplacementDance: widget.onPickReplacementDance,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (result != null && mounted) {
       if (slot.isAlt && !result.isAlt) {
@@ -479,42 +457,52 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   }
 }
 
-/// A single slot row: drag handle + alt-indent + summary + inline controls.
+/// A single slot row: drag handle + alt-indent + summary + controls (inline,
+/// or in the "…" menu when [compact]).
 class _SlotTile extends StatelessWidget {
   const _SlotTile({
     super.key,
+    required this.compact,
     required this.index,
     required this.slot,
     required this.title,
     required this.note,
     required this.dialect,
+    this.formationDialect,
     required this.canonicalizeDiscouragedTerms,
     required this.formation,
     required this.mixer,
+    this.form,
     required this.ordinal,
     required this.isDanceSlot,
     required this.isTombstone,
     required this.indented,
-    required this.draggable,
-    required this.isCut,
     required this.onMoveUp,
     required this.onMoveDown,
-    required this.onCut,
     required this.onEdit,
     required this.onToggleAlt,
     required this.onTogglePerformed,
     required this.onRemove,
     required this.onCreateDance,
+    this.onRestoreDance,
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
     this.onViewDanceDetails,
   });
 
+  /// Keep only the drag handle and the "…" menu on the row; View details,
+  /// move up/down and cut become menu items (see
+  /// [AppBreakpoints.compact]).
+  final bool compact;
   final int index;
   final ProgramSlot slot;
   final String title;
   final String? note;
   final Dialect? dialect;
+
+  /// The slot's dance's own dialect for its formation label, or `null` to
+  /// use [dialect].
+  final Dialect? formationDialect;
   final bool canonicalizeDiscouragedTerms;
 
   /// The resolved dance formation for a dance slot, or null for free-text
@@ -526,17 +514,18 @@ class _SlotTile extends StatelessWidget {
   /// mixer-aware accent and to append the mixer term to the subtitle.
   final bool mixer;
 
-  /// The 1-based running-order number for a primary slot, or `null` for an
-  /// alternate (which is grouped under its primary and carries no number).
+  /// The dance's form, named first in the subtitle; `null` names none.
+  final DanceForm? form;
+
+  /// The 1-based dance number ([Program.danceNumbersForSlots]), or `null` for
+  /// an alternate (grouped under its primary, and marked "ALT") or the break
+  /// (left blank).
   final int? ordinal;
   final bool isDanceSlot;
   final bool isTombstone;
   final bool indented;
-  final bool draggable;
-  final bool isCut;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
-  final VoidCallback? onCut;
   final VoidCallback onEdit;
   final VoidCallback onToggleAlt;
   final VoidCallback onTogglePerformed;
@@ -545,6 +534,10 @@ class _SlotTile extends StatelessWidget {
   /// Create a dance from this slot's note text (issue #881). Only meaningful
   /// when [_showCreateDance] gates the menu item in.
   final VoidCallback onCreateDance;
+
+  /// Restores the slot's dance from Recently deleted; non-null only while it
+  /// is there.
+  final VoidCallback? onRestoreDance;
   final VoidCallback? onPreviewDanceStarted;
   final VoidCallback? onPreviewDanceEnded;
   final VoidCallback? onViewDanceDetails;
@@ -563,31 +556,35 @@ class _SlotTile extends StatelessWidget {
     final performed = slot.performedAt != null;
     final previewable =
         isDanceSlot && !isTombstone && onPreviewDanceStarted != null;
+    final canViewDetails = onViewDanceDetails != null && !isTombstone;
 
     // Redundant formation-family accent (issue #270, extended for mixer flag in
     // issue #732): only for dance slots with a resolved formation, when the user
     // has colour-coding on. Mixer-flagged dances get the mixer accent regardless
-    // of shape — see setListAccentForShapeAndMixer. The mixer term is also
+    // of shape; otherwise the user's own formation colour wins over the family
+    // tint (PRES-12) — see setListAccentForRow. The mixer term is also
     // appended to the subtitle text so colour is never the sole cue (ux.md §4).
     final colorCodingEnabled = SetListColorCodingScope.of(context);
-    final highContrast =
-        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
-        MediaQuery.highContrastOf(context);
+    final brightAccents = setListAccentsBright(context);
     final accent = (formation != null && colorCodingEnabled)
-        ? setListAccentForShapeAndMixer(
+        ? setListAccentForRow(
             formation!.shape,
             mixer,
-            highContrast: highContrast,
+            userColor: FormationColorsScope.of(
+              context,
+            )?.overrideFor(formation!.shape),
+            brightPalette: brightAccents,
           )
         : null;
 
     final subtitleParts = <String>[
+      if (form != null) danceFormLabel(l10n, form!),
       if (formation != null)
         formationDisplayLabel(
           l10n,
           formation!,
-          FigureRenderer(contraTaxonomy),
-          dialect ?? Dialect.larksRobins,
+          FigureRenderer(shippedTaxonomies.anyForm),
+          formationDialect ?? dialect ?? Dialect.larksRobins,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),
       if (mixer) l10n.commonMixer,
@@ -600,272 +597,301 @@ class _SlotTile extends StatelessWidget {
         l10n.programsPlannedMinutes(slot.plannedTotalMinutes!),
     ]..removeWhere((s) => s.isEmpty);
 
-    return Opacity(
-      opacity: isCut ? 0.45 : 1.0,
-      child: Padding(
-        // Indent alternates under their primary.
-        padding: EdgeInsets.only(left: indented ? 32 : 0, top: 4, bottom: 4),
-        child: Card(
-          margin: EdgeInsets.zero,
-          child: Container(
-            key: accent != null ? ValueKey('slot-${slot.id}-accent') : null,
-            decoration: accent != null
-                ? BoxDecoration(
-                    border: Border(left: BorderSide(color: accent, width: 4)),
-                  )
-                : null,
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: accent != null ? 12 : 8,
-                right: 8,
-                top: 8,
-                bottom: 8,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Ordinal: the primary slot's 1-based running-order position.
-                  // Alternates are grouped under their primary, so they show an
-                  // "ALT" marker instead of a number (never color alone) to
-                  // avoid implying a separate running-order position.
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: SizedBox(
-                      width: 24,
-                      child: Text(
-                        ordinal != null ? '$ordinal' : l10n.programsAltOrdinal,
-                        key: ValueKey('slot-$index-ordinal'),
-                        textAlign: TextAlign.center,
-                        style:
-                            (ordinal != null
-                                    ? theme.textTheme.labelMedium
-                                    : theme.textTheme.labelSmall)
-                                ?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
-                                ),
-                      ),
+    return Padding(
+      // Indent alternates under their primary.
+      padding: EdgeInsets.only(
+        left: indented ? AppSpacing.xl : 0,
+        top: AppSpacing.xxs,
+        bottom: AppSpacing.xxs,
+      ),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Container(
+          key: accent != null ? ValueKey('slot-${slot.id}-accent') : null,
+          decoration: accent != null
+              ? BoxDecoration(
+                  border: Border(left: BorderSide(color: accent, width: 4)),
+                )
+              : null,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: accent != null ? AppSpacing.sm : AppSpacing.xs,
+              right: AppSpacing.xs,
+              top: AppSpacing.xs,
+              bottom: AppSpacing.xs,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Ordinal: the slot's 1-based dance number; the break has none.
+                // Alternates are grouped under their primary, so they show an
+                // "ALT" marker instead of a number (never color alone) to
+                // avoid implying a separate running-order position.
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.xxs),
+                  child: SizedBox(
+                    width: 24,
+                    child: Text(
+                      ordinal != null
+                          ? '$ordinal'
+                          : slot.isAlt
+                          ? l10n.programsAltOrdinal
+                          : '',
+                      key: ValueKey('slot-$index-ordinal'),
+                      textAlign: TextAlign.center,
+                      style:
+                          (ordinal != null
+                                  ? theme.textTheme.labelMedium
+                                  : theme.textTheme.labelSmall)
+                              ?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
                     ),
                   ),
-                  if (draggable)
-                    ReorderableDragStartListener(
-                      index: index,
-                      child: Semantics(
-                        label: l10n.programsDragToReorder(title),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(Icons.drag_handle),
-                        ),
-                      ),
-                    )
-                  else
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: Icon(Icons.drag_handle, color: Colors.transparent),
+                ),
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Semantics(
+                    label: l10n.programsDragToReorder(title),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+                      child: Icon(Icons.drag_handle),
                     ),
-                  // Type icon (icon + text, never colour alone).
-                  Icon(
-                    isDanceSlot
-                        ? (isTombstone
-                              ? Icons.report_gmailerrorred_outlined
-                              : Icons.music_note_outlined)
-                        : Icons.notes_outlined,
-                    size: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: PreviewHoldListener(
-                      onPreviewStarted: previewable
-                          ? onPreviewDanceStarted
-                          : null,
-                      onPreviewEnded: onPreviewDanceEnded,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              if (slot.isAlt) ...[
-                                Icon(
-                                  Icons.subdirectory_arrow_right,
-                                  size: 16,
+                ),
+                // Type icon (icon + text, never colour alone).
+                Icon(
+                  isDanceSlot
+                      ? (isTombstone
+                            ? Icons.report_gmailerrorred_outlined
+                            : Icons.music_note_outlined)
+                      : Icons.notes_outlined,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: PreviewHoldListener(
+                    onPreviewStarted: previewable
+                        ? onPreviewDanceStarted
+                        : null,
+                    onPreviewEnded: onPreviewDanceEnded,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (slot.isAlt) ...[
+                              Icon(
+                                Icons.subdirectory_arrow_right,
+                                size: 16,
+                                color: theme.colorScheme.tertiary,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                l10n.programsAltBadge,
+                                key: ValueKey('slot-${slot.id}-alt-badge'),
+                                style: theme.textTheme.labelSmall?.copyWith(
                                   color: theme.colorScheme.tertiary,
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  l10n.programsAltBadge,
-                                  key: ValueKey('slot-${slot.id}-alt-badge'),
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.tertiary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                              ],
-                              Flexible(
-                                child: Text(
-                                  title,
-                                  key: ValueKey('slot-${slot.id}-title'),
-                                  style: theme.textTheme.titleSmall,
-                                  overflow: TextOverflow.ellipsis,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              if (performed) ...[
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.check_circle_outline,
-                                  size: 16,
-                                  color: theme.colorScheme.primary,
-                                  semanticLabel: l10n.programsPerformed,
-                                ),
-                              ],
+                              const SizedBox(width: 6),
                             ],
-                          ),
-                          if (subtitleParts.isNotEmpty)
-                            Text(
-                              subtitleParts.join(' · '),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                            Flexible(
+                              child: Text(
+                                title,
+                                key: ValueKey('slot-${slot.id}-title'),
+                                style: theme.textTheme.titleSmall,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                        ],
-                      ),
+                            if (performed) ...[
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 16,
+                                color: theme.colorScheme.primary,
+                                semanticLabel: l10n.programsPerformed,
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (subtitleParts.isNotEmpty)
+                          Text(
+                            subtitleParts.join(' · '),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  if (onViewDanceDetails != null && !isTombstone)
+                ),
+                if (!compact) ...[
+                  if (canViewDetails)
                     IconButton(
                       key: ValueKey('slot-$index-view-details'),
                       tooltip: l10n.viewDetails,
                       icon: const Icon(Icons.visibility_outlined, size: 18),
-                      visualDensity: VisualDensity.compact,
                       onPressed: onViewDanceDetails,
                     ),
                   IconButton(
                     key: ValueKey('slot-$index-move-up'),
                     tooltip: l10n.programsMoveSlotUp(title),
                     icon: const Icon(Icons.arrow_upward, size: 18),
-                    visualDensity: VisualDensity.compact,
                     onPressed: onMoveUp,
                   ),
                   IconButton(
                     key: ValueKey('slot-$index-move-down'),
                     tooltip: l10n.programsMoveSlotDown(title),
                     icon: const Icon(Icons.arrow_downward, size: 18),
-                    visualDensity: VisualDensity.compact,
                     onPressed: onMoveDown,
                   ),
+                  // Scissors icon and "Cut …" tooltip kept by maintainer
+                  // decision (issue #1270), but the action is removal.
                   IconButton(
-                    key: ValueKey('slot-$index-cut'),
+                    key: ValueKey('slot-$index-remove'),
                     tooltip: l10n.programsCutSlot(title),
                     icon: const Icon(Icons.content_cut, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onCut,
+                    onPressed: onRemove,
                   ),
-                  PopupMenuButton<String>(
-                    key: ValueKey('slot-$index-menu'),
-                    tooltip: l10n.programsMoreActionsForSlot(title),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          onEdit();
-                        case 'alt':
-                          onToggleAlt();
-                        case 'performed':
-                          onTogglePerformed();
-                        case 'create_dance':
-                          onCreateDance();
-                        case 'remove':
-                          onRemove();
-                      }
-                    },
-                    itemBuilder: (context) => [
+                ],
+                PopupMenuButton<String>(
+                  key: ValueKey('slot-$index-menu'),
+                  tooltip: l10n.programsMoreActionsForSlot(title),
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'move_up':
+                        onMoveUp?.call();
+                      case 'move_down':
+                        onMoveDown?.call();
+                      case 'view_details':
+                        onViewDanceDetails?.call();
+                      case 'remove':
+                        onRemove();
+                      case 'edit':
+                        onEdit();
+                      case 'alt':
+                        onToggleAlt();
+                      case 'performed':
+                        onTogglePerformed();
+                      case 'create_dance':
+                        onCreateDance();
+                      case 'restore_dance':
+                        onRestoreDance?.call();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    // A compact row's inline actions, under the same keys and
+                    // labels as the buttons they replace. Up and down come
+                    // first so the non-drag reorder stays one step away.
+                    if (compact) ...[
                       PopupMenuItem(
-                        value: 'edit',
+                        key: ValueKey('slot-$index-move-up'),
+                        value: 'move_up',
+                        enabled: onMoveUp != null,
                         child: ListTile(
-                          leading: const Icon(Icons.edit_outlined),
-                          title: Text(l10n.programsEditSlotMenu),
+                          leading: const Icon(Icons.arrow_upward),
+                          title: Text(l10n.programsMoveSlotUp(title)),
+                          enabled: onMoveUp != null,
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
                       PopupMenuItem(
-                        value: 'alt',
+                        key: ValueKey('slot-$index-move-down'),
+                        value: 'move_down',
+                        enabled: onMoveDown != null,
                         child: ListTile(
-                          leading: const Icon(Icons.alt_route),
-                          title: Text(
-                            slot.isAlt
-                                ? l10n.programsMakePrimaryMenu
-                                : l10n.programsMarkAlternateMenu,
-                          ),
+                          leading: const Icon(Icons.arrow_downward),
+                          title: Text(l10n.programsMoveSlotDown(title)),
+                          enabled: onMoveDown != null,
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
-                      PopupMenuItem(
-                        value: 'performed',
-                        child: ListTile(
-                          leading: const Icon(Icons.check_circle_outline),
-                          title: Text(
-                            performed
-                                ? l10n.programsClearPerformedMenu
-                                : l10n.programsMarkPerformedMenu,
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      if (_showCreateDance)
+                      if (canViewDetails)
                         PopupMenuItem(
-                          key: const ValueKey('slot-menu-create-dance'),
-                          value: 'create_dance',
+                          key: ValueKey('slot-$index-view-details'),
+                          value: 'view_details',
                           child: ListTile(
-                            leading: const Icon(Icons.library_music_outlined),
-                            title: Text(l10n.programsCreateDanceFromNoteMenu),
+                            leading: const Icon(Icons.visibility_outlined),
+                            title: Text(l10n.viewDetails),
                             contentPadding: EdgeInsets.zero,
                           ),
                         ),
+                      // Scissors icon and "Cut …" wording kept by maintainer
+                      // decision (issue #1270), but the action is removal.
                       PopupMenuItem(
+                        key: ValueKey('slot-$index-remove'),
                         value: 'remove',
                         child: ListTile(
-                          leading: const Icon(Icons.delete_outline),
-                          title: Text(l10n.programsRemoveSlotMenu),
+                          leading: const Icon(Icons.content_cut),
+                          title: Text(l10n.programsCutSlot(title)),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
+                      const PopupMenuDivider(),
                     ],
-                  ),
-                ],
-              ),
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(
+                        leading: const Icon(Icons.edit_outlined),
+                        title: Text(l10n.programsEditSlotMenu),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'alt',
+                      child: ListTile(
+                        leading: const Icon(Icons.alt_route),
+                        title: Text(
+                          slot.isAlt
+                              ? l10n.programsMakePrimaryMenu
+                              : l10n.programsMarkAlternateMenu,
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'performed',
+                      child: ListTile(
+                        leading: const Icon(Icons.check_circle_outline),
+                        title: Text(
+                          performed
+                              ? l10n.programsClearPerformedMenu
+                              : l10n.programsMarkPerformedMenu,
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    if (onRestoreDance != null)
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-restore-dance'),
+                        value: 'restore_dance',
+                        child: ListTile(
+                          leading: const Icon(Icons.restore_from_trash),
+                          title: Text(l10n.programsRestoreDeletedDance),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    if (_showCreateDance)
+                      PopupMenuItem(
+                        key: const ValueKey('slot-menu-create-dance'),
+                        value: 'create_dance',
+                        child: ListTile(
+                          leading: const Icon(Icons.library_music_outlined),
+                          title: Text(l10n.programsCreateDanceFromNoteMenu),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Compact "paste here" affordance shown between cards during a cut.
-class _PasteButton extends StatelessWidget {
-  const _PasteButton({
-    super.key,
-    required this.semanticsLabel,
-    required this.onPaste,
-  });
-
-  final String semanticsLabel;
-  final VoidCallback onPaste;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Semantics(
-      label: semanticsLabel,
-      button: true,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: onPaste,
-          icon: const Icon(Icons.content_paste, size: 16),
-          label: Text(l10n.programsPasteHere),
         ),
       ),
     );
@@ -923,6 +949,18 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   String? _noteError;
 
   bool get _isDanceSlot => _danceId != null;
+
+  /// Whether anything differs from the slot the dialog opened with. Compared
+  /// as typed (not trimmed), so adding a space still counts as an edit.
+  bool _isDirty() {
+    final s = widget.slot;
+    return _note.text != (s.text ?? '') ||
+        _guest.text != (s.guestCaller ?? '') ||
+        _walkthroughMinutes.text != (s.walkthroughMinutes?.toString() ?? '') ||
+        _danceMinutes.text != (s.danceMinutes?.toString() ?? '') ||
+        _isAlt != s.isAlt ||
+        _danceId != s.danceId;
+  }
 
   bool get _isBreakNote =>
       !_isDanceSlot &&
@@ -1026,132 +1064,141 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final danceId = _danceId;
-    return AlertDialog(
-      title: Text(
-        _isDanceSlot
-            ? l10n.programsEditDanceSlotTitle
-            : l10n.programsEditNoteTitle,
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_isDanceSlot && danceId != null) ...[
-              _ReplaceDanceRow(
-                title:
-                    widget.danceTitle?.call(danceId) ??
-                    l10n.programsDeletedDanceFallback,
-                onPickReplacementDance: widget.onPickReplacementDance == null
-                    ? null
-                    : _pickReplacement,
-              ),
-              const SizedBox(height: 12),
-            ],
-            TextField(
-              key: const ValueKey('slot-edit-note'),
-              controller: _note,
-              minLines: 1,
-              maxLines: 4,
-              onChanged: (_) {
-                if (!_isDanceSlot || _noteError != null) {
-                  setState(() => _noteError = null);
-                }
-              },
-              decoration: InputDecoration(
-                labelText: _isDanceSlot
-                    ? l10n.programsCallerNoteLabel
-                    : l10n.programsFreeTextLabel,
-                hintText: _isDanceSlot
-                    ? l10n.programsCallerNoteHint
-                    : l10n.programsFreeTextHint,
-                errorText: _noteError,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            if (!_isDanceSlot &&
-                !_isBreakNote &&
-                widget.onPickReplacementDance != null) ...[
-              const SizedBox(height: 4),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  key: const ValueKey('slot-edit-replace-dance'),
-                  onPressed: _pickReplacement,
-                  icon: const Icon(Icons.swap_horiz, size: 18),
-                  label: Text(l10n.programsReplaceDanceButton),
+    return DirtyDialogGuard(
+      listenable: Listenable.merge([
+        _note,
+        _guest,
+        _walkthroughMinutes,
+        _danceMinutes,
+      ]),
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(
+          _isDanceSlot
+              ? l10n.programsEditDanceSlotTitle
+              : l10n.programsEditNoteTitle,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isDanceSlot && danceId != null) ...[
+                _ReplaceDanceRow(
+                  title:
+                      widget.danceTitle?.call(danceId) ??
+                      l10n.programsDeletedDanceFallback,
+                  onPickReplacementDance: widget.onPickReplacementDance == null
+                      ? null
+                      : _pickReplacement,
+                ),
+                const SizedBox(height: 12),
+              ],
+              TextField(
+                key: const ValueKey('slot-edit-note'),
+                controller: _note,
+                minLines: 1,
+                maxLines: 4,
+                onChanged: (_) {
+                  if (!_isDanceSlot || _noteError != null) {
+                    setState(() => _noteError = null);
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: _isDanceSlot
+                      ? l10n.programsCallerNoteLabel
+                      : l10n.programsFreeTextLabel,
+                  hintText: _isDanceSlot
+                      ? l10n.programsCallerNoteHint
+                      : l10n.programsFreeTextHint,
+                  errorText: _noteError,
+                  border: const OutlineInputBorder(),
                 ),
               ),
+              if (!_isDanceSlot &&
+                  !_isBreakNote &&
+                  widget.onPickReplacementDance != null) ...[
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    key: const ValueKey('slot-edit-replace-dance'),
+                    onPressed: _pickReplacement,
+                    icon: const Icon(Icons.swap_horiz, size: 18),
+                    label: Text(l10n.programsReplaceDanceButton),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                key: const ValueKey('slot-edit-guest'),
+                controller: _guest,
+                decoration: InputDecoration(
+                  labelText: l10n.programsGuestCallerLabel,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.programsPlannedTimingHeader,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const ValueKey('slot-edit-walkthrough-minutes'),
+                controller: _walkthroughMinutes,
+                keyboardType: TextInputType.number,
+                onChanged: (_) {
+                  if (_walkthroughMinutesError != null) {
+                    setState(() => _walkthroughMinutesError = null);
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: l10n.programsWalkthroughMinutesLabel,
+                  errorText: _walkthroughMinutesError,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const ValueKey('slot-edit-dance-minutes'),
+                controller: _danceMinutes,
+                keyboardType: TextInputType.number,
+                onChanged: (_) {
+                  if (_danceMinutesError != null) {
+                    setState(() => _danceMinutesError = null);
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: l10n.programsDanceMinutesLabel,
+                  errorText: _danceMinutesError,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 4),
+              CheckboxListTile(
+                key: const ValueKey('slot-edit-alt'),
+                contentPadding: EdgeInsets.zero,
+                value: _isAlt,
+                onChanged: (v) => setState(() => _isAlt = v ?? false),
+                title: Text(l10n.programsAlternateDanceTitle),
+                subtitle: Text(l10n.programsAlternateDanceSubtitle),
+              ),
             ],
-            const SizedBox(height: 12),
-            TextField(
-              key: const ValueKey('slot-edit-guest'),
-              controller: _guest,
-              decoration: InputDecoration(
-                labelText: l10n.programsGuestCallerLabel,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              l10n.programsPlannedTimingHeader,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const ValueKey('slot-edit-walkthrough-minutes'),
-              controller: _walkthroughMinutes,
-              keyboardType: TextInputType.number,
-              onChanged: (_) {
-                if (_walkthroughMinutesError != null) {
-                  setState(() => _walkthroughMinutesError = null);
-                }
-              },
-              decoration: InputDecoration(
-                labelText: l10n.programsWalkthroughMinutesLabel,
-                errorText: _walkthroughMinutesError,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const ValueKey('slot-edit-dance-minutes'),
-              controller: _danceMinutes,
-              keyboardType: TextInputType.number,
-              onChanged: (_) {
-                if (_danceMinutesError != null) {
-                  setState(() => _danceMinutesError = null);
-                }
-              },
-              decoration: InputDecoration(
-                labelText: l10n.programsDanceMinutesLabel,
-                errorText: _danceMinutesError,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 4),
-            CheckboxListTile(
-              key: const ValueKey('slot-edit-alt'),
-              contentPadding: EdgeInsets.zero,
-              value: _isAlt,
-              onChanged: (v) => setState(() => _isAlt = v ?? false),
-              title: Text(l10n.programsAlternateDanceTitle),
-              subtitle: Text(l10n.programsAlternateDanceSubtitle),
-            ),
-          ],
+          ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('slot-edit-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('slot-edit-save'),
+            onPressed: _save,
+            child: Text(l10n.commonDone),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('slot-edit-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('slot-edit-save'),
-          onPressed: _save,
-          child: Text(l10n.commonDone),
-        ),
-      ],
     );
   }
 }

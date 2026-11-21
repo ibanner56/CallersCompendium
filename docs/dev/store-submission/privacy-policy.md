@@ -8,14 +8,14 @@
 > distribute, even for beta/testing tracks. This markdown is a human-readable
 > mirror of that page for review and history. There is no build step that
 > generates one from the other, so **any policy change must be made to both
-> `site/privacy/index.html` and this file, keeping their wording and the
-> effective date in sync.** This is not legal advice.
+> `site/privacy/index.html` and this file, keeping their wording, the effective
+> date and the last-updated date in sync.** This is not legal advice.
 
 ---
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** September 3, 2026
+**Effective date:** November 12, 2026 · **Last updated:** November 12, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -63,14 +63,25 @@ dialects, themes, and settings — is stored **locally on your device**. It is u
 your control. If you enable Device Sync, selected shareable content is also
 stored by the sync service you configure so it can be synchronized.
 
+The sync service also stores a random identifier for each connected device,
+which the device makes up itself and replaces with a new one each time it
+connects to a store, together with when that device last shared changes. They
+are kept until that device is removed from the store or the store is deleted or
+expires. The identifier names a connection, not a person: it contains nothing
+about you or your device.
+
 The service operator can read the plaintext synchronized store if they choose to.
 A break-glass access path exists for abuse investigations, and every use is
-logged. The derived sync storage path in that log becomes eligible for nulling
-after 30 days of access and is nulled by the next hourly sweep; after that it
-becomes a timestamp-only aggregate row. Ordinary diagnostic events that contain
+logged before anything is read, including what it reads: which device's index
+of synced items, or which synced item by a hash of its content, but never the
+content itself. The derived sync storage path, the store version, the device
+identifier and the content hash in that log become eligible for nulling after 30
+days of access and are nulled by the next hourly sweep; after that each use
+becomes a timestamp-only aggregate row, and each item requested keeps only its
+time and whether it was an index or an item. Ordinary diagnostic events that contain
 store-derived metadata become eligible for removal after 30 days and are
 removed by the next hourly sweep. They never include request bodies, record
-content, or bearer credentials.
+content, or sync phrases.
 
 Device Sync does not transfer structured venue street address, city, region,
 country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
@@ -148,16 +159,17 @@ Your local data remains under your control:
   content.
 
 When Device Sync is enabled, the configured sync service holds the selected
-content for as long as the store receives authenticated activity, then reaps it
-after 30 days of disuse. Unreferenced uploads are protected for 24 hours while
+content for as long as the store keeps receiving requests addressed to it, then
+reaps it after 30 days of disuse. Unreferenced uploads are protected for 24 hours while
 they can still be published, but deleting the store requests immediate removal.
 If physical removal fails, a durable cleanup record retries it on later requests
 and hourly sweeps.
-The access log's derived sync storage path becomes eligible for nulling 30 days
-after access and is nulled by the next hourly sweep; it retains a timestamp-only
-aggregate row after that. Ordinary diagnostic events become eligible for
-removal after 30 days and are removed by the next hourly sweep. They contain no
-content or bearer credentials.
+The access log's derived sync storage path, and the identifiers of what was
+requested, become eligible for nulling 30 days after access and are nulled by the
+next hourly sweep; it retains a timestamp-only aggregate row after that, and
+for each item requested only its time and kind. Ordinary diagnostic events
+become eligible for removal after 30 days and are removed by the next hourly
+sweep. They contain no content or sync phrases.
 
 ### 8. Open source
 

@@ -11,6 +11,8 @@ Dance _dance({
   required String title,
   List<String> authorIds = const [],
   List<String> tagIds = const [],
+  List<String> tunes = const [],
+  String callingNotes = '',
   List<CustomFieldValue> customFields = const [],
   List<Figure>? figures,
   DanceForm form = DanceForm.contra,
@@ -31,6 +33,8 @@ Dance _dance({
     title: title,
     authorIds: authorIds,
     tagIds: tagIds,
+    tunes: tunes,
+    callingNotes: callingNotes,
     customFields: customFields,
     form: form,
     formation: Formation(formation),
@@ -53,6 +57,8 @@ Dance _dance({
     deletedAt: deletedAt,
   );
 }
+
+String _pad6(int n) => n.toString().padLeft(6, '0');
 
 void main() {
   late CompendiumDatabase db;
@@ -119,6 +125,191 @@ void main() {
       await dances.create(_dance(id: 'a', title: 'A', tagIds: ['t1']));
       await dances.create(_dance(id: 'b', title: 'B'));
       expect(await dances.search(const TagFilter('t1')), ['a']);
+    });
+
+    group('Tunes', () {
+      Future<void> storeRawTunes(String id, String raw) => db.customStatement(
+        'UPDATE dances SET tunes_json = ? WHERE id = ?',
+        [raw, id],
+      );
+
+      test('is a case-insensitive substring match over every entry', () async {
+        await dances.create(
+          _dance(id: 'a', title: 'A', tunes: ['Dmaj / Bmin']),
+        );
+        await dances.create(_dance(id: 'b', title: 'B', tunes: ['Gmaj']));
+        await dances.create(_dance(id: 'c', title: 'C'));
+        expect(await dances.search(const TunesFilter('dmaj')), ['a']);
+        expect(await dances.search(const TunesFilter('BMIN')), ['a']);
+        expect(await dances.search(const TunesFilter('maj')), ['a', 'b']);
+        expect(await dances.search(const TunesFilter('nothing')), isEmpty);
+      });
+
+      test(
+        'AND of leaves needs every value, spread over any entries',
+        () async {
+          await dances.create(
+            _dance(id: 'both', title: 'Both', tunes: ['Dmaj', '6/8']),
+          );
+          // One entry satisfying both values.
+          await dances.create(
+            _dance(id: 'one', title: 'One', tunes: ['Dmaj 6/8']),
+          );
+          await dances.create(_dance(id: 'dOnly', title: 'D', tunes: ['Dmaj']));
+          await dances.create(_dance(id: 'sOnly', title: 'S', tunes: ['6/8']));
+          expect(
+            await dances.search(
+              const AndFilter([TunesFilter('Dmaj'), TunesFilter('6/8')]),
+            ),
+            ['both', 'one'],
+          );
+          // The same two values OR-ed would match all four: the AND is real.
+          expect(
+            await dances.search(
+              const OrFilter([TunesFilter('Dmaj'), TunesFilter('6/8')]),
+            ),
+            hasLength(4),
+          );
+        },
+      );
+
+      test('LIKE metacharacters match literally', () async {
+        await dances.create(_dance(id: 'a', title: 'A', tunes: ['100% jig']));
+        await dances.create(_dance(id: 'b', title: 'B', tunes: ['a_b']));
+        await dances.create(_dance(id: 'c', title: 'C', tunes: ['axb']));
+        expect(await dances.search(const TunesFilter('%')), ['a']);
+        expect(await dances.search(const TunesFilter('a_b')), ['b']);
+      });
+
+      test('a soft-deleted dance never matches', () async {
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'A',
+            tunes: ['Dmaj'],
+            deletedAt: DateTime.utc(2026, 2, 1),
+          ),
+        );
+        expect(await dances.search(const TunesFilter('Dmaj')), isEmpty);
+      });
+
+      // Every shape `_tunesSourceFor` refuses (`unreadable_tunes_test.dart`),
+      // plus valid JSON that only *looks* searchable: a JSON string, an object
+      // holding the query as a value, and a list mixing in a non-string.
+      const unreadable = <String, String>{
+        'not JSON at all': '[{"a":',
+        'root is an object holding the value': '{"a":"Dmaj"}',
+        'root is a bare string': '"Dmaj"',
+        'elements are numbers': '[1,2,3]',
+        'a null element': '[null]',
+        'a list mixing a string with a number': '["Dmaj",1]',
+        'JSON5 the strict parser refuses': "['Dmaj']",
+      };
+
+      unreadable.forEach((label, raw) {
+        test('$label: matches nothing and does not fail the query', () async {
+          await dances.create(_dance(id: 'bad', title: 'Bad'));
+          await dances.create(
+            _dance(id: 'good', title: 'Good', tunes: ['Dmaj']),
+          );
+          await storeRawTunes('bad', raw);
+          // The healthy dance is still found: one unreadable row must not
+          // take the query down (`json_each` raises on malformed text).
+          expect(await dances.search(const TunesFilter('Dmaj')), ['good']);
+          expect(
+            await dances.search(
+              const AndFilter([TunesFilter('Dmaj'), TunesFilter('D')]),
+            ),
+            ['good'],
+          );
+          // Under NOT the leaf is a plain 0, so this must only not raise.
+          await dances.search(const NotFilter(TunesFilter('Dmaj')));
+        });
+
+        test('$label: agrees with how Dart classifies the same text', () async {
+          await dances.create(_dance(id: 'bad', title: 'Bad'));
+          await storeRawTunes('bad', raw);
+          final loaded = await dances.getById('bad');
+          expect(loaded!.tunesSource, isA<UnreadableTunes>());
+        });
+      });
+
+      test('a readable list containing the query is the only thing that '
+          'matches: readable and empty lists are not swept in', () async {
+        await dances.create(_dance(id: 'empty', title: 'Empty'));
+        await dances.create(_dance(id: 'ok', title: 'Ok', tunes: ['Dmaj']));
+        expect(await dances.search(const TunesFilter('Dmaj')), ['ok']);
+      });
+    });
+
+    group('Untagged', () {
+      final t0 = DateTime.utc(2026, 2, 1);
+      final t1 = DateTime.utc(2026, 2, 1, 0, 0, 1);
+
+      /// `a` has a live tag, `b` has none, `c`'s only tag is soft-deleted (its
+      /// join row survives), `d` has one live and one soft-deleted tag.
+      Future<void> seed() async {
+        // ignore: unused_result
+        await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+        // ignore: unused_result
+        await tags.upsert(Tag(id: 't2', name: 'retired'));
+        await dances.create(_dance(id: 'a', title: 'A', tagIds: ['t1']));
+        await dances.create(_dance(id: 'b', title: 'B'));
+        await dances.create(_dance(id: 'c', title: 'C', tagIds: ['t2']));
+        await dances.create(_dance(id: 'd', title: 'D', tagIds: ['t1', 't2']));
+        await tags.delete('t2', at: t0);
+      }
+
+      test('lists dances with no live tag, incl. a deleted-only tag', () async {
+        await seed();
+        expect(await dances.search(const UntaggedFilter()), ['b', 'c']);
+      });
+
+      test('a restored tag takes its dance out of Untagged again', () async {
+        await seed();
+        await tags.restore('t2', at: t1);
+        expect(await dances.search(const UntaggedFilter()), ['b']);
+      });
+
+      test('OR with a tag is the union', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const OrFilter([UntaggedFilter(), TagFilter('t1')]),
+          ),
+          ['a', 'b', 'c', 'd'],
+        );
+        // Untagged + a tag nobody has live: only the untagged dances remain.
+        expect(
+          await dances.search(
+            const OrFilter([UntaggedFilter(), TagFilter('t2')]),
+          ),
+          ['b', 'c'],
+        );
+      });
+
+      test('AND with another facet narrows the untagged set', () async {
+        await seed();
+        await dances.create(_dance(id: 'x', title: 'X', form: DanceForm.ecd));
+        expect(
+          await dances.search(
+            const AndFilter([FormFilter(DanceForm.ecd), UntaggedFilter()]),
+          ),
+          ['x'],
+        );
+        expect(
+          await dances.search(
+            const AndFilter([FormFilter(DanceForm.contra), UntaggedFilter()]),
+          ),
+          ['b', 'c'],
+        );
+      });
+
+      test('a soft-deleted dance never appears', () async {
+        await seed();
+        await dances.softDelete('b', at: t0);
+        expect(await dances.search(const UntaggedFilter()), ['c']);
+      });
     });
 
     test('Level: eq matches exactly, ordered ops respect the scale', () async {
@@ -928,7 +1119,7 @@ void main() {
   });
 
   group('sequence: Then', () {
-    test('positive: before occurs earlier than after', () async {
+    test('positive: after immediately follows before', () async {
       await dances.create(_dance(id: 'a', title: 'A'));
       // petronella (idx0) then swing (idx1)
       expect(
@@ -952,15 +1143,313 @@ void main() {
 
     test('Then with section constraint on the before clause', () async {
       await dances.create(_dance(id: 'a', title: 'A'));
-      // petronella in A1, then balance later.
+      // swing is in A2 and balance (B1) follows it directly.
       expect(
         await dances.search(
-          ThenFilter(
-            FigureLeaf('petronella', section: 'A1'),
-            FigureLeaf('balance'),
-          ),
+          ThenFilter(FigureLeaf('swing', section: 'A2'), FigureLeaf('balance')),
         ),
         ['a'],
+      );
+      // The section is a constraint, not a wildcard.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing', section: 'A1'), FigureLeaf('balance')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a figure in between stops a match: later is not immediately '
+        'after', () async {
+      await dances.create(_dance(id: 'a', title: 'A'));
+      // petronella, swing, balance, long_lines: swing sits between petronella
+      // and balance, though balance does come later in the dance.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('balance')),
+        ),
+        isEmpty,
+      );
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('long_lines')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('wraps: the first figure follows the last, as in ContraDB', () async {
+      await dances.create(_dance(id: 'a', title: 'A'));
+      // long_lines is last and petronella first, so they abut across the end.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('long_lines'), FigureLeaf('petronella')),
+        ),
+        ['a'],
+      );
+      // The wrap joins only the last figure to the first: balance is not last.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('balance'), FigureLeaf('petronella')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a two-figure dance matches in both orders (one is a wrap)', () async {
+      await dances.create(
+        _dance(
+          id: 'two',
+          title: 'Two',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 32}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      );
+      for (final filter in [
+        ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ThenFilter(FigureLeaf('swing'), FigureLeaf('petronella')),
+      ]) {
+        expect(await dances.search(filter), ['two']);
+      }
+    });
+
+    test('a dance that opens and closes with the same move matches it then '
+        'itself, through the wrap', () async {
+      await dances.create(
+        _dance(
+          id: 'loop',
+          title: 'Loop',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      // petronella comes again later, but neither next to itself nor across
+      // the wrap (the dance ends on balance): "later" is not "immediately".
+      await dances.create(
+        _dance(
+          id: 'spread',
+          title: 'Spread',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'balance', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      // The default dance has petronella once, first: no second one to abut.
+      await dances.create(_dance(id: 'once', title: 'Once'));
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('petronella')),
+        ),
+        ['loop'],
+      );
+    });
+
+    test('a figure before a container abuts each of its concurrent sides, and '
+        'the sides do not abut each other', () async {
+      // swing, then petronella while balance, then long_lines.
+      await dances.create(
+        _dance(
+          id: 'mw',
+          title: 'MW',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'balance'),
+              ],
+              beats: 8,
+            ),
+            Figure(move: 'long_lines', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      Future<List<String>> then(String a, String b) =>
+          dances.search(ThenFilter(FigureLeaf(a), FigureLeaf(b)));
+
+      expect(await then('swing', 'petronella'), ['mw']);
+      expect(await then('swing', 'balance'), ['mw']);
+      expect(await then('petronella', 'long_lines'), ['mw']);
+      expect(await then('balance', 'long_lines'), ['mw']);
+      // The wrap: long_lines is last, swing first.
+      expect(await then('long_lines', 'swing'), ['mw']);
+      // Concurrent sides, in both directions.
+      expect(await then('petronella', 'balance'), isEmpty);
+      expect(await then('balance', 'petronella'), isEmpty);
+      // A container sits between swing and long_lines.
+      expect(await then('swing', 'long_lines'), isEmpty);
+    });
+
+    test('a one-figure dance pairs its figure with itself, as ContraDB '
+        'does', () async {
+      await dances.create(
+        _dance(
+          id: 'lone',
+          title: 'Lone',
+          figures: [
+            Figure(move: 'swing', params: const {'beats': 64}),
+          ],
+        ),
+      );
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('swing')),
+        ),
+        ['lone'],
+      );
+      // The figure must satisfy BOTH sides: there is no other figure.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('chain')),
+        ),
+        isEmpty,
+      );
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('chain'), FigureLeaf('swing')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a lone row pairs only with itself: two sides of one container '
+        'still do not pair (#748)', () async {
+      await dances.create(
+        _dance(
+          id: 'mw-only',
+          title: 'MW only',
+          figures: [
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'balance'),
+              ],
+              beats: 8,
+            ),
+          ],
+        ),
+      );
+      for (final filter in [
+        ThenFilter(FigureLeaf('petronella'), FigureLeaf('balance')),
+        ThenFilter(FigureLeaf('balance'), FigureLeaf('petronella')),
+      ]) {
+        expect(await dances.search(filter), isEmpty);
+      }
+    });
+
+    test('a dance with no figures never matches', () async {
+      await dances.create(_dance(id: 'none', title: 'None', figures: []));
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('swing')),
+        ),
+        isEmpty,
+      );
+    });
+  });
+
+  group('sequence: any figure', () {
+    Future<void> seed() async {
+      await dances.create(
+        _dance(
+          id: 'two',
+          title: 'Two',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      await dances.create(
+        _dance(
+          id: 'plain',
+          title: 'Plain',
+          figures: [
+            Figure(move: 'chain', params: const {'beats': 8}),
+            Figure(move: 'balance', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      await dances.create(
+        _dance(
+          id: 'solo',
+          title: 'Solo',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      );
+      await dances.create(_dance(id: 'empty', title: 'Empty', figures: []));
+    }
+
+    test('a dance matches any figure when it has at least one', () async {
+      await seed();
+      expect(
+        await dances.search(FigureFilter(anyFigure)),
+        unorderedEquals(['two', 'plain', 'solo']),
+      );
+      // "No figure at all": only the dance without any.
+      expect(await dances.search(FigureFilter(FigureNot(anyFigure))), [
+        'empty',
+      ]);
+    });
+
+    test('Then(any, x): x, after whatever figure comes before it', () async {
+      await seed();
+      Future<List<String>> then(FigureQuery a, FigureQuery b) =>
+          dances.search(ThenFilter(a, b));
+
+      // petronella follows swing; swing follows petronella across the wrap.
+      expect(
+        await then(anyFigure, FigureLeaf('petronella')),
+        unorderedEquals(['two']),
+      );
+      expect(
+        await then(anyFigure, FigureLeaf('swing')),
+        unorderedEquals(['two', 'solo']),
+      );
+      expect(await then(anyFigure, FigureLeaf('allemande')), isEmpty);
+    });
+
+    test('Then(x, any): x, then whatever figure follows it', () async {
+      await seed();
+      Future<List<String>> then(FigureQuery a, FigureQuery b) =>
+          dances.search(ThenFilter(a, b));
+
+      expect(
+        await then(FigureLeaf('swing'), anyFigure),
+        unorderedEquals(['two', 'solo']),
+      );
+      expect(
+        await then(FigureLeaf('petronella'), anyFigure),
+        unorderedEquals(['two']),
+      );
+      expect(await then(FigureLeaf('allemande'), anyFigure), isEmpty);
+    });
+
+    test('a lone figure is its own neighbour, as in ContraDB, and Then(any, '
+        'any) needs only one figure', () async {
+      await seed();
+      expect(
+        await dances.search(ThenFilter(anyFigure, anyFigure)),
+        unorderedEquals(['two', 'plain', 'solo']),
+      );
+      // `solo` has one figure, so swing abuts itself either way round.
+      expect(
+        await dances.search(ThenFilter(FigureLeaf('swing'), anyFigure)),
+        contains('solo'),
+      );
+      expect(
+        await dances.search(ThenFilter(anyFigure, FigureLeaf('swing'))),
+        contains('solo'),
       );
     });
   });
@@ -1307,6 +1796,310 @@ void main() {
       },
     );
 
+    test(
+      'a larks full-text term matches canonical custom figure text (DIA-02)',
+      () async {
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'Custom Dance',
+            figures: [
+              Figure(move: 'custom', params: const {'text': 'role1s chain'}),
+            ],
+          ),
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('larks'),
+            dialect: Dialect.larksRobins,
+          ),
+          ['a'],
+        );
+      },
+    );
+
+    group('omni search and the internal role tokens (FIND-16)', () {
+      Future<void> seed() async {
+        await dances.create(_dance(id: 'log', title: 'Rolling Off a Log'));
+        await dances.create(
+          _dance(
+            id: 'plain',
+            title: 'Plain Jane',
+            figures: [
+              Figure(
+                move: 'swing',
+                params: const {'who': 'role1s', 'beats': 8},
+              ),
+            ],
+          ),
+        );
+      }
+
+      test(
+        'a fragment of a role token finds only the verbatim-text match',
+        () async {
+          await seed();
+          // 1-2 characters use the prefix index; longer ones the trigram index.
+          const matchesTitle = {'r', 'ro', 'rol'}; // "Rolling": not "role"
+          for (final q in ['r', 'ro', 'rol', 'role', 'ole']) {
+            expect(
+              await dances.search(
+                FullTextFilter(q),
+                dialect: Dialect.larksRobins,
+              ),
+              matchesTitle.contains(q) ? ['log'] : isEmpty,
+              reason: 'omni "$q"',
+            );
+          }
+        },
+      );
+
+      test(
+        'a fragment still finds a real move whose name starts with it',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'roll',
+              title: 'Plain Two',
+              figures: [
+                Figure(
+                  move: 'custom',
+                  params: const {'text': 'roll away with a half sashay'},
+                ),
+              ],
+            ),
+          );
+          await seed();
+          for (final q in ['r', 'ro', 'rol', 'roll']) {
+            for (final sort in [SearchSort.title, SearchSort.relevance]) {
+              expect(
+                await dances.search(
+                  FullTextFilter(q),
+                  dialect: Dialect.larksRobins,
+                  sort: sort,
+                ),
+                contains('roll'),
+                reason: 'omni "$q" ($sort)',
+              );
+              expect(
+                await dances.search(
+                  FullTextFilter(q),
+                  dialect: Dialect.larksRobins,
+                  sort: sort,
+                ),
+                isNot(contains('plain')),
+                reason: 'omni "$q" ($sort) must not reach the role token',
+              );
+            }
+          }
+        },
+      );
+
+      test(
+        'a multi-word query ending in a short word still finds the figure',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'circ',
+              title: 'Plain Three',
+              figures: [
+                Figure(
+                  move: 'custom',
+                  params: const {'text': 'circle left 3 places'},
+                ),
+              ],
+            ),
+          );
+          await seed();
+          expect(
+            await dances.search(
+              const FullTextFilter('circle le'),
+              dialect: Dialect.larksRobins,
+            ),
+            ['circ'],
+          );
+        },
+      );
+
+      test(
+        'the relevance sort direction still flips a fragment query',
+        () async {
+          await dances.create(
+            _dance(id: 'many', title: 'Rosy Rogue Robin Rover Rowan Roy'),
+          );
+          await dances.create(_dance(id: 'one', title: 'Roman Holiday Jig'));
+          await dances.create(
+            _dance(
+              id: 'roll',
+              title: 'Plain Two',
+              figures: [
+                Figure(move: 'custom', params: const {'text': 'roll away'}),
+              ],
+            ),
+          );
+          final asc = await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+            direction: SortDirection.ascending,
+          );
+          final desc = await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+            direction: SortDirection.descending,
+          );
+          expect(asc.toSet(), {'many', 'one', 'roll'});
+          expect(desc, asc.reversed.toList());
+        },
+      );
+
+      test('the relevance sort leaves the token out too', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+          ),
+          ['log'],
+        );
+      });
+
+      test('a whole role word still finds the figure', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('larks'),
+            dialect: Dialect.larksRobins,
+          ),
+          ['plain'],
+        );
+      });
+    });
+
+    group('omni raw branch (role words in verbatim columns)', () {
+      Future<void> seedAuthored() async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Robin Hayden'),
+        );
+        await dances.create(_dance(id: 'a', title: 'Plain', authorIds: ['c1']));
+      }
+
+      test(
+        'omni "Robin Hayden" finds the dance by author under the default sort',
+        () async {
+          await seedAuthored();
+          expect(await dances.search(const FullTextFilter('Robin Hayden')), [
+            'a',
+          ]);
+          // A partial trailing term still matches (substring table).
+          expect(await dances.search(const FullTextFilter('Robin Hay')), ['a']);
+        },
+      );
+
+      test(
+        'omni "Robin Hayden" finds the dance by author under relevance sort',
+        () async {
+          await seedAuthored();
+          expect(
+            await dances.search(
+              const FullTextFilter('Robin Hayden'),
+              sort: SearchSort.relevance,
+            ),
+            ['a'],
+          );
+        },
+      );
+
+      test(
+        'omni "ladies" finds a calling note containing the word verbatim',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'n',
+              title: 'Noted',
+              callingNotes: 'Ladies chain across, then ladies roll away',
+            ),
+          );
+          await dances.create(_dance(id: 'x', title: 'Other'));
+          expect(await dances.search(const FullTextFilter('ladies')), ['n']);
+          expect(
+            await dances.search(
+              const FullTextFilter('ladies'),
+              sort: SearchSort.relevance,
+            ),
+            ['n'],
+          );
+        },
+      );
+
+      test('omni finds a source name and a custom value verbatim', () async {
+        final def = CustomFieldDef(
+          id: 'f',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        );
+        // ignore: unused_result
+        await customFieldDefs.upsert(def);
+        final sources = PublishedSourceRepository(db);
+        await sources.upsert(PublishedSource(id: 's1', title: 'Robin Book'));
+        await dances.create(
+          _dance(
+            id: 'src',
+            title: 'Sourced',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+        );
+        await dances.create(
+          _dance(
+            id: 'cv',
+            title: 'Valued',
+            customFields: [
+              CustomFieldValue(fieldId: 'f', value: 'Robin Hayden camp'),
+            ],
+          ),
+        );
+        expect(await dances.search(const FullTextFilter('Robin Book')), [
+          'src',
+        ]);
+        expect(await dances.search(const FullTextFilter('Robin Hayden')), [
+          'cv',
+        ]);
+      });
+
+      test('figures_text stays canonical-only', () async {
+        await dances.create(
+          _dance(
+            id: 'fig',
+            title: 'Roles',
+            figures: [
+              Figure(
+                move: 'swing',
+                params: const {'who': 'role2s', 'beats': 8},
+              ),
+            ],
+          ),
+        );
+        // The raw branch must not look at figures_text: the stored token is
+        // the canonical role2s, matched only through the canonical branch.
+        expect(await dances.search(const FullTextFilter('role2s')), ['fig']);
+        // The column allowlist lives in the bound MATCH expression (not the
+        // SQL text), so assert on the raw bind for both compile paths.
+        final omni = FilterCompiler().compile(const FullTextFilter('abc'));
+        expect(omni.binds[1], contains('{title authors'));
+        expect(omni.binds[1], isNot(contains('figures_text')));
+        // Relevance is only bm25-ranked for short (prefix) queries.
+        final relevance = FilterCompiler().compile(
+          const FullTextFilter('ab'),
+          sort: SearchSort.relevance,
+        );
+        expect(relevance.binds.first, contains('{title authors'));
+        expect(relevance.binds.first, isNot(contains('figures_text')));
+      });
+    });
+
     test('a gents move-param term matches canonical role in params', () async {
       await dances.create(
         _dance(
@@ -1554,7 +2347,15 @@ void main() {
     test(
       'title ignoring leading articles files under first real word',
       () async {
-        await dances.create(_dance(id: 'nice', title: 'The Nice Combination'));
+        await dances.create(
+          _dance(
+            id: 'nice',
+            title: 'The Nice Combination',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
         await dances.create(_dance(id: 'apple', title: 'Apple Blossom'));
         await dances.create(_dance(id: 'zesty', title: 'A Zesty Reel'));
         await dances.create(_dance(id: 'mid', title: 'Midtown'));
@@ -1569,6 +2370,78 @@ void main() {
         );
       },
     );
+
+    test(
+      'title sort folds accents with or without the articles flag',
+      () async {
+        await dances.create(_dance(id: 'ecole', title: 'École Reel'));
+        await dances.create(_dance(id: 'dog', title: 'Dog Days'));
+        await dances.create(_dance(id: 'fox', title: 'Fox Trot'));
+        // SQL COLLATE NOCASE alone would file É after Z.
+        for (final articles in [false, true]) {
+          expect(
+            await dances.search(
+              const AndFilter([]),
+              sort: SearchSort.title,
+              ignoreLeadingArticles: articles,
+            ),
+            ['dog', 'ecole', 'fox'],
+            reason: 'ignoreLeadingArticles: $articles',
+          );
+          expect(
+            await dances.search(
+              const AndFilter([]),
+              sort: SearchSort.title,
+              direction: SortDirection.descending,
+              ignoreLeadingArticles: articles,
+            ),
+            ['fox', 'ecole', 'dog'],
+            reason: 'descending, ignoreLeadingArticles: $articles',
+          );
+        }
+      },
+    );
+
+    test('ASCII-only titles keep the SQL order; an accented title joins '
+        'without reordering them', () async {
+      // Case, punctuation and surrounding whitespace all differ. The ASCII
+      // shortcut returns the SQL order, so the Dart pass must agree with it.
+      final titles = {
+        'sp': ' Zed',
+        'up': 'apple',
+        'ca': 'Apple Core',
+        'us': 'Apple_Core',
+        'pu': 'Apple-Core',
+        'tr': 'Banana ',
+        'ba': 'Banana',
+      };
+      for (final e in titles.entries) {
+        await dances.create(_dance(id: e.key, title: e.value));
+      }
+      Future<List<String>> order() =>
+          dances.search(const AndFilter([]), sort: SearchSort.title);
+      final ascii = await order();
+      expect(ascii.first, 'sp', reason: 'leading space sorts first in SQL');
+      await dances.create(_dance(id: 'ez', title: 'Éclair'));
+      final mixed = await order();
+      expect(mixed.where((id) => id != 'ez').toList(), ascii);
+    });
+
+    test('author sort folds accents', () async {
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'e', name: 'Émile'));
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'd', name: 'Dana'));
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'f', name: 'Fay'));
+      await dances.create(_dance(id: 'fd', title: 'One', authorIds: ['f']));
+      await dances.create(_dance(id: 'ed', title: 'Two', authorIds: ['e']));
+      await dances.create(_dance(id: 'dd', title: 'Three', authorIds: ['d']));
+      expect(
+        await dances.search(const AndFilter([]), sort: SearchSort.author),
+        ['dd', 'ed', 'fd'],
+      );
+    });
 
     test('title without the flag sorts by literal text', () async {
       await dances.create(_dance(id: 'apple', title: 'The Apple'));
@@ -1605,6 +2478,34 @@ void main() {
         );
       },
     );
+
+    test("ignoreLeadingArticles sort does not throw above SQLite's "
+        'bind-variable limit', () async {
+      // 32,767 is the default SQLITE_MAX_VARIABLE_NUMBER (3.32+); go past it.
+      const count = 33000;
+      // Minimal rows via one recursive-CTE insert. Odd rows carry a leading
+      // "The " so the article-ignoring key (the zero-padded number) differs
+      // from the literal title order.
+      await db.customStatement('''
+WITH RECURSIVE seq(n) AS (
+  SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < $count
+)
+INSERT INTO dances (id, title, form, formation_shape, progression, status,
+                    created_at, updated_at)
+SELECT printf('d%06d', n),
+       CASE WHEN n % 2 = 1 THEN 'The ' ELSE '' END || printf('Dance %06d', n),
+       'contra', 'dupleImproper', 'single', 'active', 0, 0
+FROM seq
+''');
+
+      final result = await dances.search(
+        const AndFilter([]),
+        sort: SearchSort.title,
+        ignoreLeadingArticles: true,
+      );
+
+      expect(result, [for (var n = 1; n <= count; n++) 'd${_pad6(n)}']);
+    });
   });
 
   group('sort direction (ascending/descending toggle)', () {
@@ -1621,6 +2522,38 @@ void main() {
         ['c', 'b', 'a'],
       );
     });
+
+    test(
+      'recentlyAdded / recentlyEdited break timestamp ties by title',
+      () async {
+        // Timestamps are stored at one-second precision, so every import batch
+        // or restore stamps a whole group with one instant. Without a tiebreak
+        // the group's order is whatever SQLite's plan yields; the documented
+        // contract is a title tiebreak in both directions.
+        final stamp = DateTime.utc(2024, 5, 1, 12, 0, 0);
+        for (final t in ['cherry', 'Apple', 'banana']) {
+          await dances.create(
+            _dance(id: t, title: t, createdAt: stamp, updatedAt: stamp),
+          );
+        }
+        for (final sort in [
+          SearchSort.recentlyAdded,
+          SearchSort.recentlyEdited,
+        ]) {
+          for (final dir in SortDirection.values) {
+            expect(
+              await dances.search(
+                const AndFilter([]),
+                sort: sort,
+                direction: dir,
+              ),
+              ['Apple', 'banana', 'cherry'],
+              reason: '$sort $dir',
+            );
+          }
+        }
+      },
+    );
 
     test('recentlyAdded ascending is oldest-first', () async {
       await dances.create(
@@ -1757,16 +2690,6 @@ void main() {
       await dances.softDelete('b', at: DateTime.utc(2026, 2));
       expect(await dances.search(const AndFilter([])), ['a']);
       expect(await dances.search(FigureFilter.leaf('petronella')), ['a']);
-    });
-  });
-
-  group('searchDances convenience', () {
-    test('returns hydrated dances in id order', () async {
-      await dances.create(_dance(id: 'a', title: 'Apple'));
-      await dances.create(_dance(id: 'b', title: 'Banana'));
-      final result = await dances.searchDances(const AndFilter([]));
-      expect(result.map((d) => d.id), ['a', 'b']);
-      expect(result.first, isA<Dance>());
     });
   });
 
@@ -2126,5 +3049,812 @@ void main() {
         expect(capture.boundArgs, isNot(contains('decoy')));
       },
     );
+  });
+
+  // Since #1328 a custom-field definition, choreographer or published source
+  // may be deleted while the only dance citing it is itself soft-deleted, and
+  // that dance may then be restored. Search must not keep matching text the
+  // restored dance no longer shows (#1358).
+  group('soft-deleted parents contribute nothing to search', () {
+    late PublishedSourceRepository sources;
+    final t0 = DateTime.utc(2026, 2, 1);
+    final t1 = DateTime.utc(2026, 2, 1, 0, 0, 1);
+    final t2 = DateTime.utc(2026, 2, 1, 0, 0, 2);
+
+    setUp(() => sources = PublishedSourceRepository(db));
+
+    CustomFieldDef originField() => CustomFieldDef(
+      id: 'f',
+      key: 'origin',
+      label: 'Origin',
+      type: CustomFieldType.text,
+    );
+
+    /// Creates dance `a` citing a live definition, choreographer and source,
+    /// then reaches the state #1328 made possible: the dance is soft-deleted,
+    /// all three parents are deleted (each guard counts live dances only), and
+    /// the dance is restored.
+    Future<CustomFieldDef> seedRestoredWithTombstonedParents() async {
+      final def = originField();
+      // ignore: unused_result
+      await customFieldDefs.upsert(def);
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Quillsworth'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Brambleton'));
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'A',
+          authorIds: ['c1'],
+          customFields: [CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel')],
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      await dances.softDelete('a', at: t0);
+      await customFieldDefs.delete('f', at: t0);
+      await choreographers.delete('c1', at: t0);
+      await sources.delete('s1', at: t0);
+      // Without the revival a trash restore now does (B9), so the dance is
+      // live under tombstoned parents, as an archive merge or a peer can
+      // still leave it.
+      await dances.restore('a', at: t1, reviveReferences: false);
+      return def;
+    }
+
+    test('structured filter ignores a tombstoned definition', () async {
+      final def = await seedRestoredWithTombstonedParents();
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'Zanzi'),
+        ),
+        isEmpty,
+        reason:
+            'the value row survives the tombstone (no FK cascade fires), but '
+            'the definition is deleted, so the filter must match nothing — '
+            'exactly as getById hides the value',
+      );
+      expect(
+        (await dances.getById('a'))!.customFields,
+        isEmpty,
+        reason: 'the record and search must agree',
+      );
+
+      // Restoring the definition makes it match again: the filter reads
+      // liveness, it does not remember the tombstone.
+      // ignore: unused_result
+      await customFieldDefs.restore('f', at: t2);
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'Zanzi'),
+        ),
+        ['a'],
+      );
+    });
+
+    test(
+      "free text drops a tombstoned definition's value on restore",
+      () async {
+        await seedRestoredWithTombstonedParents();
+        expect(
+          await dances.search(const FullTextFilter('Zanzibarreel')),
+          isEmpty,
+        );
+        expect(
+          await dances.search(const FullTextFilter('anzibarr')),
+          isEmpty,
+          reason: 'dance_substring_fts must behave like dance_fts',
+        );
+
+        // Restoring the parent and re-saving the dance makes it searchable
+        // again — the index follows the write path, it is not a tombstone log.
+        // ignore: unused_result
+        await customFieldDefs.restore('f', at: t2);
+        await dances.update((await dances.getById('a'))!);
+        expect(await dances.search(const FullTextFilter('Zanzibarreel')), [
+          'a',
+        ]);
+        expect(await dances.search(const FullTextFilter('anzibarr')), ['a']);
+      },
+    );
+
+    test("free text drops a tombstoned author's name on restore", () async {
+      await seedRestoredWithTombstonedParents();
+      expect(await dances.search(const FullTextFilter('Quillsworth')), isEmpty);
+      expect(await dances.search(const FullTextFilter('uillswort')), isEmpty);
+
+      // ignore: unused_result
+      await choreographers.restore('c1', at: t2);
+      await dances.update((await dances.getById('a'))!);
+      expect(await dances.search(const FullTextFilter('Quillsworth')), ['a']);
+      expect(await dances.search(const FullTextFilter('uillswort')), ['a']);
+    });
+
+    test("free text drops a tombstoned source's title on restore", () async {
+      await seedRestoredWithTombstonedParents();
+      expect(await dances.search(const FullTextFilter('Brambleton')), isEmpty);
+      expect(await dances.search(const FullTextFilter('rambleto')), isEmpty);
+
+      await sources.restore('s1', at: t2);
+      await dances.update((await dances.getById('a'))!);
+      expect(await dances.search(const FullTextFilter('Brambleton')), ['a']);
+      expect(await dances.search(const FullTextFilter('rambleto')), ['a']);
+    });
+
+    // The three tests above exercise the restore path. These three exercise
+    // the *write* path, with no restore involved, and they deliberately build
+    // the Dance directly rather than round-tripping it through getById:
+    // hydration already drops tombstoned parents, so a dance read back from
+    // the database can no longer name one. Routing them through
+    // rebuildAllDerived would be worse still — it feeds the assembler a
+    // hydrated dance AND live-only prefetch maps, so it is guarded twice and
+    // could not fail however the single-write path behaved. On unfixed code a
+    // direct save writes all three texts into the index.
+    test(
+      'a save naming a tombstoned definition writes no custom text',
+      () async {
+        // ignore: unused_result
+        await customFieldDefs.upsert(originField());
+        await customFieldDefs.delete('f', at: t0);
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'A',
+            customFields: [
+              CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel'),
+            ],
+          ),
+        );
+        expect(
+          await dances.search(const FullTextFilter('Zanzibarreel')),
+          isEmpty,
+        );
+        expect(await dances.search(const FullTextFilter('anzibarr')), isEmpty);
+      },
+    );
+
+    test('a save naming a tombstoned author writes no author text', () async {
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Quillsworth'));
+      await choreographers.delete('c1', at: t0);
+      await dances.create(_dance(id: 'a', title: 'A', authorIds: ['c1']));
+      expect(await dances.search(const FullTextFilter('Quillsworth')), isEmpty);
+      expect(await dances.search(const FullTextFilter('uillswort')), isEmpty);
+    });
+
+    test('a save naming a tombstoned source writes no source text', () async {
+      await sources.upsert(PublishedSource(id: 's1', title: 'Brambleton'));
+      await sources.delete('s1', at: t0);
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'A',
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      expect(await dances.search(const FullTextFilter('Brambleton')), isEmpty);
+      expect(await dances.search(const FullTextFilter('rambleto')), isEmpty);
+    });
+
+    test('rebuildAllDerived output is unchanged for live parents', () async {
+      final def = originField();
+      // ignore: unused_result
+      await customFieldDefs.upsert(def);
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Quillsworth'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Brambleton'));
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'A',
+          authorIds: ['c1'],
+          customFields: [CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel')],
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      const queries = ['Zanzibarreel', 'Quillsworth', 'Brambleton', 'anzibarr'];
+      for (final q in queries) {
+        expect(await dances.search(FullTextFilter(q)), [
+          'a',
+        ], reason: 'pre: $q');
+      }
+
+      await dances.rebuildAllDerived();
+
+      for (final q in queries) {
+        expect(
+          await dances.search(FullTextFilter(q)),
+          ['a'],
+          reason: 'the live-definition prefetch must not change rebuild output',
+        );
+      }
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'Zanzi'),
+        ),
+        ['a'],
+      );
+    });
+  });
+
+  // parser-6: the query "mad robin" was canonicalised to "mad role2", which
+  // never matches a structured mad robin (canonical text "role2s mad robin
+  // once"). And a verb "lead" typed under Leads/Follows was canonicalised to
+  // "role1", so "lead down" missed the stored custom text that keeps it.
+  group('move words that are also role words', () {
+    for (final dialect in [null, Dialect.larksRobins, Dialect.leadsFollows]) {
+      for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+        test('"mad robin" finds a structured mad robin '
+            '(${dialect?.name ?? 'no dialect'}, ${scope.name})', () async {
+          await dances.create(
+            _dance(
+              id: 'a',
+              title: 'Robinless',
+              figures: [Figure(move: 'mad_robin')],
+            ),
+          );
+          await dances.create(_dance(id: 'b', title: 'Other'));
+          expect(
+            await dances.search(
+              FullTextFilter('mad robin', scope: scope),
+              dialect: dialect,
+            ),
+            ['a'],
+          );
+        });
+      }
+    }
+
+    test('"lead down" finds custom text with the verb lead '
+        '(Leads/Follows)', () async {
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'Hall',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Ones lead down the hall four abreast'},
+            ),
+          ],
+        ),
+      );
+      await dances.create(_dance(id: 'b', title: 'Other'));
+      expect(
+        await dances.search(
+          const FullTextFilter('lead down', scope: FullTextScope.figure),
+          dialect: Dialect.leadsFollows,
+        ),
+        ['a'],
+      );
+    });
+  });
+
+  group(
+    'several words find a dance with them in different fields (FIND-5)',
+    () {
+      Future<void> seed() async {
+        // ignore: unused_result
+        await choreographers.upsert(Choreographer(id: 'k', name: 'Bob Kaynor'));
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'r', name: 'Robin Hayden'),
+        );
+        await dances.create(
+          _dance(
+            id: 'kaynor-pet',
+            title: 'Fiddleheads',
+            authorIds: ['k'],
+            figures: [
+              Figure(move: 'petronella', params: const {'beats': 8}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'kaynor-only',
+            title: 'Plainsong',
+            authorIds: ['k'],
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'hayden-swing',
+            title: 'Quiet Morning',
+            authorIds: ['r'],
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'dosido',
+            title: 'Neighbourly',
+            figures: [
+              Figure(move: 'do_si_do', params: const {'beats': 8}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'nice',
+            title: 'The Nice Combination',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+      }
+
+      test('an author word and a figure word', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('Kaynor petronella')), [
+          'kaynor-pet',
+        ]);
+      });
+
+      test('word order does not matter', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('combination nice')), [
+          'nice',
+        ]);
+        expect(
+          await dances.search(
+            const FullTextFilter(
+              'combination nice',
+              scope: FullTextScope.title,
+            ),
+          ),
+          ['nice'],
+        );
+      });
+
+      test(
+        'a role word and a figure word: the raw branch is per word',
+        () async {
+          await seed();
+          // "Robin" is a role word; only its raw form finds the author, while
+          // "swing" is found in the figures.
+          expect(
+            await dances.search(
+              const FullTextFilter('Robin Hayden swing'),
+              dialect: Dialect.larksRobins,
+            ),
+            ['hayden-swing'],
+          );
+        },
+      );
+
+      test('a short word uses the prefix index alongside a long one', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('Kaynor pe')), [
+          'kaynor-pet',
+        ]);
+      });
+
+      test('a move name of several words is matched as that move', () async {
+        await seed();
+        // "do si do" is a keyword of the move stored as "dosido"; split into
+        // words first, "si" would match nothing.
+        expect(await dances.search(const FullTextFilter('do si do')), [
+          'dosido',
+        ]);
+      });
+
+      test('a short word of punctuation alone constrains nothing', () async {
+        await seed();
+        await dances.create(
+          _dance(
+            id: 'rock',
+            title: 'Rock & Roll Reel',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        // "&" has no token for the prefix index, so as a word of its own it
+        // would match no row and empty the whole AND.
+        expect(await dances.search(const FullTextFilter('Rock & Roll')), [
+          'rock',
+        ]);
+        expect(
+          await dances.search(
+            const FullTextFilter('Rock - Roll', scope: FullTextScope.title),
+          ),
+          ['rock'],
+        );
+        // Alone it still matches nothing, as before.
+        expect(await dances.search(const FullTextFilter('&')), isEmpty);
+      });
+
+      test('every word must match', () async {
+        await seed();
+        expect(
+          await dances.search(const FullTextFilter('Kaynor swing')),
+          isEmpty,
+        );
+      });
+    },
+  );
+
+  group(
+    "the search bar finds a move by the dialect's name for it (FIND-4)",
+    () {
+      final buzz = Dialect(name: 'Buzz', moves: const {'swing': 'buzz'});
+
+      Future<void> seed() async {
+        await dances.create(
+          _dance(
+            id: 'swing',
+            title: 'Whirl',
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'other',
+            title: 'Stillness',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'titled',
+            title: 'Buzz Off',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+      }
+
+      test('All fields finds the figure and a title with the word', () async {
+        await seed();
+        expect(
+          await dances.search(const FullTextFilter('buzz'), dialect: buzz),
+          unorderedEquals(['swing', 'titled']),
+        );
+      });
+
+      test('Figure finds the figure', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('buzz', scope: FullTextScope.figure),
+            dialect: buzz,
+          ),
+          ['swing'],
+        );
+      });
+
+      test('a dialect name that is also a word of other moves still finds '
+          'them', () async {
+        await dances.create(
+          _dance(
+            id: 'ring',
+            title: 'Circle',
+            figures: [
+              Figure(move: 'balance_the_ring', params: const {'beats': 4}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'plain-balance',
+            title: 'Lines',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 4}),
+            ],
+          ),
+        );
+        final ringIsBalance = Dialect(
+          name: 'Ring',
+          moves: const {'balance_the_ring': 'balance'},
+        );
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(
+            await dances.search(
+              FullTextFilter('balance', scope: scope),
+              dialect: ringIsBalance,
+            ),
+            containsAll(['ring', 'plain-balance']),
+          );
+        }
+      });
+
+      test('without the dialect the word is only a word', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('buzz')), ['titled']);
+      });
+    },
+  );
+
+  group(
+    'All fields finds the meter, key and interpreters (ADR-006 F3, §9.2)',
+    () {
+      Future<void> seed() async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'sharp', name: 'Cecil Sharp'),
+        );
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'playford', name: 'John Playford'),
+        );
+        await dances.create(
+          _dance(
+            id: 'hole',
+            title: 'Hole in the Wall',
+            authorIds: ['playford'],
+            form: DanceForm.ecd,
+          ).copyWith(
+            meter: '3/2',
+            musicalKey: 'D minor',
+            interpreterIds: ['sharp'],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'other',
+            title: 'Other',
+            form: DanceForm.ecd,
+          ).copyWith(meter: '6/8', musicalKey: 'G'),
+        );
+        await dances.create(_dance(id: 'plain', title: 'Plain'));
+      }
+
+      test('a meter, a key and an interpreter each find the dance', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('3/2')), ['hole']);
+        expect(await dances.search(const FullTextFilter('d minor')), ['hole']);
+        expect(await dances.search(const FullTextFilter('Sharp')), ['hole']);
+        // Every word must still match somewhere (FIND-5).
+        expect(await dances.search(const FullTextFilter('Cecil minor')), [
+          'hole',
+        ]);
+        expect(await dances.search(const FullTextFilter('Sharp 6/8')), isEmpty);
+      });
+
+      test('a short word must start a word of the value', () async {
+        await seed();
+        // "D" starts "D minor"; "8" starts the 8 of "6/8"; "G" is the key.
+        expect(
+          await dances.search(const FullTextFilter('D')),
+          contains('hole'),
+        );
+        expect(await dances.search(const FullTextFilter('8')), ['other']);
+        expect(await dances.search(const FullTextFilter('G')), ['other']);
+        // "in" sits inside "minor" but starts no word of it, so it finds only
+        // the title with the word "in".
+        expect(await dances.search(const FullTextFilter('in')), ['hole']);
+        expect(await dances.search(const FullTextFilter('nor')), ['hole']);
+        expect(await dances.search(const FullTextFilter('no')), isEmpty);
+      });
+
+      test('accents and capitals fold on both sides', () async {
+        await seed();
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'emile', name: 'Émile Dupont'),
+        );
+        await dances.create(
+          _dance(
+            id: 'emile-dance',
+            title: 'Interpreted',
+            form: DanceForm.ecd,
+          ).copyWith(interpreterIds: ['emile'], musicalKey: 'Ré mineur'),
+        );
+        await dances.create(
+          _dance(
+            id: 'plain-emile',
+            title: 'Plain name',
+            form: DanceForm.ecd,
+          ).copyWith(musicalKey: 'Emile key'),
+        );
+        for (final typed in ['Émile', 'émile', 'Emile', 'emile', 'EMILE']) {
+          expect(
+            await dances.search(FullTextFilter(typed)),
+            unorderedEquals(['emile-dance', 'plain-emile']),
+            reason: typed,
+          );
+        }
+        // A short word folds too, and must still start a word.
+        expect(await dances.search(const FullTextFilter('em')), [
+          'emile-dance',
+          'plain-emile',
+        ]);
+        expect(await dances.search(const FullTextFilter('re')), [
+          'emile-dance',
+        ]);
+        expect(await dances.search(const FullTextFilter('MINEUR')), [
+          'emile-dance',
+        ]);
+        // A decomposed accent (e + U+0301) folds as the composed one does.
+        expect(await dances.search(const FullTextFilter('E\u0301mile')), [
+          'emile-dance',
+          'plain-emile',
+        ]);
+      });
+
+      test('a meter is found while it is typed', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('3/')), ['hole']);
+        expect(await dances.search(const FullTextFilter('6/')), ['other']);
+      });
+
+      test('a short word may start with a separator', () async {
+        await seed();
+        // "/8" names the 8 of "6/8"; "(D" the D of "D minor".
+        expect(await dances.search(const FullTextFilter('/8')), ['other']);
+        expect(
+          await dances.search(const FullTextFilter('(D')),
+          contains('hole'),
+        );
+      });
+
+      test('a word of punctuation alone matches no meter', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('/')), isEmpty);
+      });
+
+      test('a deleted interpreter matches nothing', () async {
+        await seed();
+        await db.customStatement(
+          "UPDATE choreographers SET deleted_at = 1 WHERE id = 'sharp'",
+        );
+        expect(await dances.search(const FullTextFilter('Sharp')), isEmpty);
+      });
+
+      test('the Author scope finds authors and interpreters', () async {
+        await seed();
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'emile', name: 'Émile Dupont'),
+        );
+        await dances.create(
+          _dance(
+            id: 'emile-dance',
+            title: 'Interpreted',
+            form: DanceForm.ecd,
+          ).copyWith(interpreterIds: ['emile']),
+        );
+        Future<List<String>> author(String q) =>
+            dances.search(FullTextFilter(q, scope: FullTextScope.author));
+        expect(await author('Sharp'), ['hole']);
+        expect(await author('Playford'), ['hole']);
+        expect(await author('emile'), ['emile-dance']);
+        expect(await author('Ce'), ['hole']);
+        // A meter or a key is not an author.
+        expect(await author('3/2'), isEmpty);
+        expect(await author('minor'), isEmpty);
+      });
+
+      test('the Meter and Key filters match a whole value, folded', () async {
+        await seed();
+        await dances.create(
+          _dance(
+            id: 'spaced',
+            title: 'Spaced',
+            form: DanceForm.ecd,
+          ).copyWith(meter: ' 6/8 ', musicalKey: 'Ré mineur'),
+        );
+        await dances.create(
+          _dance(
+            id: 'two-meters',
+            title: 'Two meters',
+            form: DanceForm.ecd,
+          ).copyWith(meter: '6/8 and 9/8'),
+        );
+        expect(await dances.search(const MeterFilter('6/8')), [
+          'other',
+          'spaced',
+        ]);
+        expect(await dances.search(const MeterFilter('3/2')), ['hole']);
+        expect(await dances.search(const MeterFilter('3')), isEmpty);
+        expect(await dances.search(const MeterFilter('  ')), isEmpty);
+        expect(await dances.search(const MusicalKeyFilter('d MINOR')), [
+          'hole',
+        ]);
+        expect(await dances.search(const MusicalKeyFilter('re mineur')), [
+          'spaced',
+        ]);
+        expect(await dances.search(const MusicalKeyFilter('D')), isEmpty);
+        // A dance with no meter is never matched, whatever is asked.
+        expect(await dances.search(const MeterFilter('')), isEmpty);
+        // Whitespace other than a space is trimmed as the chip trims it.
+        await dances.create(
+          _dance(
+            id: 'tabbed',
+            title: 'Tabbed',
+            form: DanceForm.ecd,
+          ).copyWith(meter: '9/8\t', musicalKey: '\u00a0E minor'),
+        );
+        expect(await dances.search(const MeterFilter('9/8')), ['tabbed']);
+        expect(await dances.search(const MusicalKeyFilter('e minor')), [
+          'tabbed',
+        ]);
+        expect(await dances.search(const FullTextFilter('9/8')), [
+          'tabbed',
+          'two-meters',
+        ]);
+      });
+
+      test('relevance finds a key and ranks it after scored matches', () async {
+        await seed();
+        await dances.create(_dance(id: 'g-title', title: 'G Whiz'));
+        expect(
+          await dances.search(
+            const FullTextFilter('G'),
+            sort: SearchSort.relevance,
+          ),
+          ['g-title', 'other'],
+        );
+      });
+    },
+  );
+
+  group('an English sequence with untimed steps (ADR-006 §5.5)', () {
+    // One span of 32 beats, A1 and A2, holding three steps with no timing of
+    // their own: they share it evenly, so the last starts in A2.
+    Dance spanDance(DanceForm form) => _dance(
+      id: 'span',
+      title: 'Span',
+      form: form,
+      figures: [
+        Figure.sequence(
+          beats: 32,
+          figures: [
+            Figure(move: 'ecd_siding'),
+            Figure(move: 'ecd_turn_single'),
+            Figure(move: 'ecd_cast'),
+          ],
+        ),
+        Figure(move: 'ecd_circle', params: const {'beats': 32}),
+      ],
+    );
+
+    Future<List<String>> inSection(String move, String section) =>
+        dances.search(FigureFilter.leaf(move, section: section));
+
+    test('each step is placed by its share of the span', () async {
+      await dances.create(spanDance(DanceForm.ecd));
+      expect(await inSection('ecd_siding', 'A1'), ['span']);
+      expect(await inSection('ecd_turn_single', 'A1'), ['span']);
+      expect(await inSection('ecd_cast', 'A2'), ['span']);
+      expect(await inSection('ecd_cast', 'A1'), isEmpty);
+    });
+
+    test('a timed step keeps its own count', () async {
+      await dances.create(
+        _dance(
+          id: 'mixed',
+          title: 'Mixed',
+          form: DanceForm.ecd,
+          figures: [
+            Figure.sequence(
+              beats: 32,
+              figures: [
+                Figure(move: 'ecd_siding', params: const {'beats': 24}),
+                Figure(move: 'ecd_turn_single'),
+                Figure(move: 'ecd_cast'),
+              ],
+            ),
+            Figure(move: 'ecd_circle', params: const {'beats': 32}),
+          ],
+        ),
+      );
+      // Siding takes 0–24; the others share the last 8 beats, in A2.
+      expect(await inSection('ecd_turn_single', 'A2'), ['mixed']);
+      expect(await inSection('ecd_cast', 'A2'), ['mixed']);
+    });
+
+    test('a contra sequence is placed by its steps as stored', () async {
+      await dances.create(spanDance(DanceForm.contra));
+      expect(await inSection('ecd_cast', 'A1'), ['span']);
+    });
   });
 }

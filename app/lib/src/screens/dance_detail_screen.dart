@@ -2,47 +2,56 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../widgets/bar_timing.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/calling_card_settings_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_filter_scope.dart';
+import '../data/dance_share_fields_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/formation_colors_scope.dart';
+import '../data/related_dance_links.dart';
 import '../data/repositories_scope.dart';
+import '../data/require_event_date_for_history_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/venue_call_count_scope.dart';
 import '../diagnostics/error_log.dart';
-import '../export/dance_pdf.dart';
-import '../export/dance_share_bundle.dart';
-import '../export/export_labels_l10n.dart';
 import '../export/json_export.dart';
 import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
-import '../theme/app_spacing.dart';
+import '../theme/app_shapes.dart';
 import '../theme/app_theme_extension.dart';
+import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../utils/undo_snack_bar.dart';
-import '../utils/safe_name.dart';
 import '../widgets/add_to_program_sheet.dart';
+import '../widgets/command_palette.dart';
+import '../widgets/dance_export_actions.dart';
 import '../widgets/dance_export_menu.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
+import '../widgets/load_error_view.dart';
+import '../widgets/program_status_chip.dart';
+import '../widgets/selectable_content.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
 import 'dance_detail/calling_history_section.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_summary_screen.dart';
+import '../widgets/provenance_labels.dart';
+import '../theme/app_breakpoints.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -72,6 +81,8 @@ class DanceDetailScreen extends StatefulWidget {
     this.readOnly = false,
     this.onPreviewNavigate,
     this.jsonExportDelivery,
+    this.shareInvoker,
+    this.pdfLayouter,
     this.onClose,
   }) : previewData = null,
        onImport = null;
@@ -94,7 +105,9 @@ class DanceDetailScreen extends StatefulWidget {
        readOnly = false,
        onPreviewNavigate = null,
        onClose = null,
-       jsonExportDelivery = null;
+       jsonExportDelivery = null,
+       shareInvoker = null,
+       pdfLayouter = null;
 
   /// Read-only presentation for an online result. Unlike [preview], this
   /// intentionally exposes neither an import nor any collection mutation.
@@ -111,7 +124,9 @@ class DanceDetailScreen extends StatefulWidget {
        onNavigateTo = null,
        onReimport = null,
        readOnly = true,
-       jsonExportDelivery = null;
+       jsonExportDelivery = null,
+       shareInvoker = null,
+       pdfLayouter = null;
 
   /// Id of the persisted dance to load, or `null` in preview mode (see
   /// [DanceDetailScreen.preview]).
@@ -155,16 +170,20 @@ class DanceDetailScreen extends StatefulWidget {
   /// owns routed navigation; the collection shell owns its split-pane preview.
   final Future<void> Function(DanceDetailData detail)? onReimport;
 
-  /// Shared JSON delivery seam for the compact overflow export.
+  /// Shared JSON delivery seam for the compact overflow export. Its
+  /// `saveInvoker` also receives the `.ccshare` bundle where
+  /// [isBundleShareUnsupported] (Linux) turns "Share dance file" into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
-  /// App-bar action layout breakpoint (logical pixels). Below this width the
-  /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
-  /// Delete) into a single overflow menu so the bar never overflows on a phone;
-  /// at or above it the full action row is shown. 600 mirrors Material 3's
-  /// compact window-size-class cutoff, so phones get the decluttered layout
-  /// while tablets/desktop keep the one-tap row.
-  static const double compactActionsBreakpoint = 600;
+  /// Overrides the OS share sheet for the compact overflow's text share and
+  /// `.ccshare` file share (the latter is Save As where
+  /// [isBundleShareUnsupported] is true).
+  /// Defaults to [SharePlus.instance.share]; tests use it to force a failure.
+  final ShareInvoker? shareInvoker;
+
+  /// Overrides the OS print/save dialog for the compact overflow's PDF export.
+  /// Defaults to [Printing.layoutPdf]; tests use it to force a failure.
+  final PdfLayouter? pdfLayouter;
 
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
@@ -182,6 +201,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// first frame of every open.
   DanceDetailData? _data;
   bool _loaded = false;
+
+  /// Whether the last read failed, as opposed to finding no such dance.
+  /// Only meaningful once [_loaded]; a data event clears it.
+  bool _loadFailed = false;
+
+  /// Re-entrancy guard for [_delete]; see the note there.
+  bool _deleting = false;
 
   /// The live subscription, and the id it was opened for.
   ///
@@ -208,6 +234,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// calling history when the setting is toggled while this screen is open.
   bool _requirePerformedForHistory = false;
 
+  /// The last-seen value of the "require an event date" calling-history
+  /// setting, tracked like [_requirePerformedForHistory].
+  bool _requireEventDateForHistory = false;
+  CallingHistoryTracking _tracking = CallingHistoryTracking.defaults;
+
   /// The last-seen value of the "track calling history for all callers" setting
   /// (issue #583). Tracked so [didChangeDependencies] can reload the calling
   /// history when the setting is toggled while this screen is open.
@@ -229,7 +260,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// (mirrors the settings-screen load-vs-toggle race guard).
   bool _canonicalUserSet = false;
 
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  /// For prose and formation labels only; the dance's figures go to
+  /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
+  /// figures live (#1023).
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   @override
   void didChangeDependencies() {
@@ -245,12 +281,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       }
       return;
     }
-    // The two calling-history settings are passed straight down to
-    // [CallingHistorySection], which rebuilds its query when either changes.
+    // The calling-history settings are passed straight down to
+    // [CallingHistorySection], which rebuilds its query when any changes.
     // didChangeDependencies is always followed by a build, so keeping the
     // fields current is all that is needed — toggling a setting no longer
     // reloads this whole screen to re-run one query (issue #768).
     _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
+    _requireEventDateForHistory = RequireEventDateForHistoryScope.of(context);
+    _tracking = callingHistoryTrackingOf(context);
     _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
     _venueCallCount = VenueCallCountScope.of(context);
     if (!_started) {
@@ -274,9 +312,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // which is worse than either staleness or churn.
     if (!_isPreview && _started && widget.danceId != oldWidget.danceId) {
       _loaded = false;
+      _loadFailed = false;
       _data = null;
       _subscribe();
     }
+  }
+
+  void _retryLoad() {
+    setState(() {
+      _loaded = false;
+      _loadFailed = false;
+    });
+    _subscribe();
   }
 
   /// Seeds the rendering preference, then opens the live subscription.
@@ -350,16 +397,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         setState(() {
           _data = data;
           _loaded = true;
+          _loadFailed = false;
         });
       },
       // A stream error means the record could not be re-read — a failing query,
-      // a database closed under us. Rendered exactly as a failed one-shot load
-      // was: the not-found body. That is deliberately unchanged (the previous
-      // `FutureBuilder` never read `snapshot.error`, so an error and an absent
-      // dance already looked alike here), but it is precisely why this has to
-      // be logged rather than discarded: on screen the two are
-      // indistinguishable, so "the dance won't open" arrives as a bug report
-      // with nothing behind it unless the failure reaches the diagnostic log
+      // a database closed under us. Rendered as its own "couldn't load" body
+      // with Try again, apart from the not-found body: telling the caller their
+      // dance is gone when it merely failed to read would be wrong. It is
+      // still logged, so "the dance won't open" reaches the diagnostic log
       // (issue #963).
       //
       // `logCaughtError` rather than the type-only variant: this is our own
@@ -380,6 +425,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         setState(() {
           _data = null;
           _loaded = true;
+          _loadFailed = true;
         });
       },
       cancelOnError: false,
@@ -411,13 +457,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }
 
   /// Opens the full-screen large-print [PerformDanceScreen] for this dance,
-  /// passing the shared [FigureRenderer] and the already-resolved author names.
+  /// passing a renderer that shows uses of the user's own figures live and
+  /// the already-resolved author names.
   Future<void> _perform(DanceDetailData detail) async {
+    // Resolved before the push: the route may rebuild after this screen has
+    // gone, when its context can no longer be read.
+    final renderer = UserFiguresScope.rendererOf(context);
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
+        // Ctrl-K is suppressed while this route is open ([performRouteName]).
+        settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformDanceScreen(
           dance: detail.dance,
-          renderer: _renderer,
+          renderer: renderer,
           authorNames: detail.authorNames,
           difficultyLevel: detail.difficultyLevel,
         ),
@@ -471,18 +523,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _duplicate() async {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
-    final copy = await _repos.dances.duplicate(
+    // The "(copy)" suffix is persisted into the copy's title so the duplicate
+    // is visually distinct in the list. It is applied in the same write that
+    // creates the copy, not by a second update afterwards.
+    final copy = await duplicateDanceWithRelatedLinks(
+      _repos,
       id: widget.danceId!,
       newId: uuidV4(),
       now: now,
-    );
-    // Append the localized " (copy)" suffix so the duplicate is visually
-    // distinct in the list. This wording is persisted into the copy's title.
-    await _repos.dances.update(
-      copy.copyWith(
-        title: l10n.commonDuplicateTitleSuffix(copy.title),
-        updatedAt: now,
-      ),
+      copyTitle: l10n.commonDuplicateTitleSuffix,
     );
     if (!mounted) return;
     if (widget.onNavigateTo != null) {
@@ -513,41 +562,58 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// snackbar is enqueued. In split-pane mode, this ensures the snackbar
   /// appears in the detail pane rather than being lost on unmount.
   Future<void> _delete() async {
+    if (_deleting) return;
     final l10n = AppLocalizations.of(context);
     final title = _data?.dance.title ?? l10n.danceScreenTitle;
-    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
-    if (!mounted) return;
-    final now = DateTime.now().toUtc();
-    await _repos.dances.softDelete(widget.danceId!, at: now);
-    if (!mounted) return;
-    // Capture ScaffoldMessengerState before any navigation/callback so we
-    // don't read a deactivating context after the widget is removed.
-    final messenger = ScaffoldMessenger.of(context);
-    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    // Show the snackbar first so the Scaffold is still in the tree when the
-    // messenger enqueues it — then notify the parent (which may unmount this
-    // widget) or pop the route.
-    showUndoSnackBar(
-      messenger,
-      key: const ValueKey('deleted-snackbar'),
-      message: l10n.commonDeletedSnack(title),
-      undoLabel: l10n.commonUndo,
-      accessibleNavigation: accessibleNavigation,
-      onUndo: () async {
-        await _repos.dances.restore(
-          widget.danceId!,
-          at: DateTime.now().toUtc(),
-        );
-        widget.onRestored?.call();
-      },
-    );
-    if (widget.onDeleted != null) {
-      // Embedded (split-pane) mode: notify the parent; no route to pop.
-      widget.onDeleted!.call();
-    } else {
-      // Routed mode: pop with true so the list screen can reload.
-      Navigator.of(context).pop(true);
+    // Re-entrancy guard: a second tap that lands while the soft-delete is
+    // still awaiting would run the whole method again — a second write and a
+    // second `pop()`. The second pop targets the route *underneath* (the first
+    // is already popping), and on a phone that is the shell root, so it
+    // empties the navigator with no exception: a blank app.
+    setState(() => _deleting = true);
+    var deleted = false;
+    try {
+      // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!mounted) return;
+      final now = DateTime.now().toUtc();
+      await _repos.dances.softDelete(widget.danceId!, at: now);
+      if (!mounted) return;
+      deleted = true;
+      // Capture ScaffoldMessengerState before any navigation/callback so we
+      // don't read a deactivating context after the widget is removed.
+      final messenger = ScaffoldMessenger.of(context);
+      final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+      // Show the snackbar first so the Scaffold is still in the tree when the
+      // messenger enqueues it — then notify the parent (which may unmount this
+      // widget) or pop the route.
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('deleted-snackbar'),
+        message: l10n.commonDeletedSnack(title),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: accessibleNavigation,
+        onUndo: () async {
+          await _repos.dances.restore(
+            widget.danceId!,
+            at: DateTime.now().toUtc(),
+          );
+          widget.onRestored?.call();
+        },
+      );
+      if (widget.onDeleted != null) {
+        // Embedded (split-pane) mode: notify the parent; no route to pop.
+        widget.onDeleted!.call();
+      } else {
+        // Routed mode: pop with true so the list screen can reload.
+        Navigator.of(context).pop(true);
+      }
+    } finally {
+      // Once the delete has gone through the route is on its way out (or the
+      // parent is replacing this pane), so the control stays disabled;
+      // declined or failed deletes re-enable it.
+      if (!deleted && mounted) setState(() => _deleting = false);
     }
   }
 
@@ -569,12 +635,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   );
 
   // --- App-bar actions -------------------------------------------------------
-  // The dance-detail bar carries seven affordances (dialect switch, Perform,
-  // Export, Duplicate, Add-to-program, Delete, plus the Edit FAB). On a phone
-  // that full row clips, so below [DanceDetailScreen.compactActionsBreakpoint]
-  // we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
-  // the FAB) and fold the secondary actions into a single overflow menu. Every
-  // action keeps its key, tooltip/label and behaviour in both layouts.
+  // The dance-detail bar carries more affordances than a bar can hold (dialect
+  // switch, Perform, Share, Duplicate, Add-to-program, Re-import, Delete, plus
+  // the Edit FAB). At every width Duplicate, Re-import and Delete (last) and
+  // the dialect choice live in an overflow menu. Below [AppBreakpoints.compact]
+  // (Material 3's compact window-size-class cutoff) the Share actions fold
+  // into it too and Perform is an icon; at or above it Perform is a labelled
+  // button and Share stays on the bar. Every action keeps its key,
+  // tooltip/label and behaviour in both layouts.
 
   Widget _performButton(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
@@ -596,9 +664,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  /// The dialect [detail]'s dance is shown and exported in: [active], with
+  /// lark and robin for the roles when the dance's choreographer asked for
+  /// them (`dialectForDance`). [active] itself when nothing is set aside.
+  Dialect _danceDialect(DanceDetailData detail, Dialect active) =>
+      dialectForDance(
+        active,
+        title: detail.dance.title,
+        authorNames: detail.authorNames,
+      );
+
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = _danceDialect(
+      detail,
+      ActiveDialectScope.of(context).forDance(detail.dance),
+    );
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -614,7 +695,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ),
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
-      renderer: _renderer,
+      renderer: UserFiguresScope.rendererOf(context),
+      fields: DanceShareFieldsScope.of(context),
       choreographersById: detail.choreographersById,
       tagsById: detail.tagsById,
       sourcesById: detail.sourcesById,
@@ -624,30 +706,31 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  /// Wide layout: the full one-tap action row.
+  /// Wide layout: Perform (labelled), Share and Add-to-program stay one tap
+  /// away; the dialect choice, Duplicate, Re-import and Delete live in the
+  /// overflow menu, with Delete last, as on the phone layout.
   Widget _fullActions(BuildContext context, DanceDetailData detail) {
-    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const DialectQuickSwitch(),
-        _performButton(detail),
+        _performLabelledButton(detail),
         _exportMenu(context, detail),
-        IconButton(
-          key: const ValueKey('duplicate-dance'),
-          tooltip: l10n.danceDuplicateTooltip,
-          icon: const Icon(Icons.copy_all_outlined),
-          onPressed: _duplicate,
-        ),
         _addToProgramButton(detail),
-        _reimportButton(detail),
-        IconButton(
-          key: const ValueKey('delete-dance'),
-          tooltip: l10n.danceDeleteTooltip,
-          icon: const Icon(Icons.delete_outline),
-          onPressed: _delete,
-        ),
+        _overflowMenu(context, detail, wide: true),
       ],
+    );
+  }
+
+  Widget _performLabelledButton(DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      child: TextButton.icon(
+        key: const ValueKey('perform-dance'),
+        icon: const Icon(Icons.slideshow),
+        label: Text(l10n.performTitle),
+        onPressed: () => _perform(detail),
+      ),
     );
   }
 
@@ -680,35 +763,74 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     ],
   );
 
-  /// Single "⋮" menu holding the secondary actions on narrow widths. Every
-  /// entry is a first-class [PopupMenuItem] so it stays keyboard- and
+  /// Single "⋮" menu holding the secondary actions. On narrow widths it holds
+  /// the share actions too; with [wide] they stay on the bar and are left out.
+  /// Every entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
-  /// (mirroring [DialectQuickSwitch]), the three Export actions are flattened in
-  /// from [DanceExportMenu], and Duplicate / Delete call the same handlers as
-  /// the wide layout. Nothing is a nested popup, so activating any row performs
+  /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
+  /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
+  /// [DanceExportActions], and Duplicate / Delete call the same handlers
+  /// whichever layout opens them. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
-  Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
+  Widget _overflowMenu(
+    BuildContext context,
+    DanceDetailData detail, {
+    bool wide = false,
+  }) {
     final l10n = AppLocalizations.of(context);
-    final controller = DialectLibraryScope.maybeOf(context);
+    // The dance's own form's dialects: switching here changes that form's
+    // active dialect only (ADR-006 §9.1, point 1).
+    final controller = DialectLibraryScope.maybeOf(
+      context,
+    )?.forForm(detail.dance.form);
     final activeDialectName = controller == null
         ? null
         : (controller.activeName ?? controller.active.name);
-    final dialect = ActiveDialectScope.of(context);
-    String exportText() => danceToPlainText(
-      detail.dance,
+    final dialect = _danceDialect(
+      detail,
+      ActiveDialectScope.of(context).forDance(detail.dance),
+    );
+    // Everything the export actions need is resolved here, before the menu
+    // route pops: the `onTap`s below run after it has, and the actions run
+    // across awaits.
+    final messenger = ScaffoldMessenger.of(context);
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final callingCards = CallingCardSettingsScope.of(context);
+    final exportActions = DanceExportActions(
+      dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
       formationLabel: _formationDisplayLabel(
         l10n,
         detail.dance.formation,
         dialect,
-        CanonicalDiscouragedTermsScope.of(context),
+        canonicalizeDiscouragedTerms,
       ),
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
-      renderer: _renderer,
-      labels: danceExportLabels(l10n),
-      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      renderer: UserFiguresScope.rendererOf(context),
+      fields: DanceShareFieldsScope.of(context),
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      choreographersById: detail.choreographersById,
+      tagsById: detail.tagsById,
+      sourcesById: detail.sourcesById,
+      customFieldsById: detail.customFieldsById,
+      difficultyLevelFor: (id) =>
+          id == detail.dance.difficultyLevelId ? detail.difficultyLevel : null,
+      userFigureFor: UserFiguresScope.entryLookupOf(context),
+      shareInvoker: widget.shareInvoker,
+      pdfLayouter: widget.pdfLayouter,
+      jsonExportDelivery: widget.jsonExportDelivery,
+    );
+    // The compact menu has no anchor widget to measure, so file shares anchor
+    // to the screen centre (the native popover needs some origin on desktop).
+    final size = MediaQuery.sizeOf(context);
+    final centerOrigin = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: 1,
+      height: 1,
     );
 
     return PopupMenuButton<void>(
@@ -726,58 +848,90 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
           const PopupMenuDivider(),
         ],
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance'),
-          onTap: () => _shareDance(exportText(), detail.dance.title),
-          child: ListTile(
-            leading: const Icon(Icons.mail_outline),
-            title: Text(l10n.exportShareDanceText),
-            contentPadding: EdgeInsets.zero,
+        if (!wide) ...[
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-share-dance'),
+            onTap: () => exportActions.shareText(messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.mail_outline),
+              title: Text(l10n.exportShareDanceText),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance-bundle'),
-          onTap: () => _shareDanceBundle(detail),
-          child: ListTile(
-            leading: const Icon(Icons.share_outlined),
-            title: Text(l10n.exportShareDanceBundle),
-            contentPadding: EdgeInsets.zero,
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-share-dance-bundle'),
+            onTap: () => exportActions.shareBundle(
+              messenger,
+              l10n,
+              origin: centerOrigin,
+            ),
+            child: ListTile(
+              leading: Icon(
+                isBundleShareUnsupported()
+                    ? Icons.save_alt_outlined
+                    : Icons.share_outlined,
+              ),
+              title: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportSaveDanceBundle
+                    : l10n.exportShareDanceBundle,
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-copy-dance'),
-          onTap: () => _copyDance(exportText()),
-          child: ListTile(
-            leading: const Icon(Icons.copy_outlined),
-            title: Text(l10n.exportCopyDance),
-            contentPadding: EdgeInsets.zero,
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-copy-dance'),
+            onTap: () => exportActions.copyText(messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.copy_outlined),
+              title: Text(l10n.exportCopyDance),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance-json'),
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                _shareDanceBundle(detail, extension: danceShareJsonExtension);
-              }
-            });
-          },
-          child: ListTile(
-            leading: const Icon(Icons.data_object_outlined),
-            title: Text(l10n.exportShareDanceJson),
-            contentPadding: EdgeInsets.zero,
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-share-dance-json'),
+            onTap: () {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  // The State's context, not the popup item's: the item's route
+                  // has popped by now, and the choice dialog needs a live one.
+                  exportActions.exportJson(
+                    this.context,
+                    messenger,
+                    l10n,
+                    origin: centerOrigin,
+                  );
+                }
+              });
+            },
+            child: ListTile(
+              leading: const Icon(Icons.data_object_outlined),
+              title: Text(l10n.exportShareDanceJson),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-export-pdf'),
-          onTap: () => _exportDancePdf(dialect, detail),
-          child: ListTile(
-            leading: const Icon(Icons.picture_as_pdf_outlined),
-            title: Text(l10n.exportPrintPdf),
-            contentPadding: EdgeInsets.zero,
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-export-pdf'),
+            onTap: () => exportActions.exportPdf(messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: Text(l10n.exportPrintPdf),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
-        const PopupMenuDivider(),
+          if (callingCards.enabled)
+            PopupMenuItem<void>(
+              key: const ValueKey('overflow-calling-card'),
+              onTap: () =>
+                  exportActions.printCallingCard(messenger, l10n, callingCards),
+              child: ListTile(
+                leading: const Icon(Icons.style_outlined),
+                title: Text(l10n.exportPrintCallingCard),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+        ],
+        if (!wide) const PopupMenuDivider(),
         if (widget.onReimport != null)
           PopupMenuItem<void>(
             key: const ValueKey('reimport-dance'),
@@ -799,6 +953,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         PopupMenuItem<void>(
           key: const ValueKey('delete-dance'),
+          enabled: !_deleting,
           onTap: _delete,
           child: ListTile(
             leading: const Icon(Icons.delete_outline),
@@ -810,172 +965,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  // Compact-layout Export handlers. On wide layouts the Export control is the
-  // reusable [DanceExportMenu]; on narrow widths its three actions are flattened
-  // into the overflow menu (above) so each stays an individually activatable
-  // item instead of a nested popup. The shareable card and PDF are built from
-  // the same public `danceToPlainText` / `buildDancePdf` helpers the widget
-  // uses, so only the thin share / clipboard / print wiring lives here.
-  Future<void> _shareDance(String text, String subject) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    try {
-      await SharePlus.instance.share(ShareParams(text: text, subject: subject));
-    } on Exception catch (e, stackTrace) {
-      logCaughtError(e, stackTrace, source: 'dance_detail_screen._shareDance');
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.exportShareDanceError)),
-      );
-    }
-  }
-
-  Future<void> _copyDance(String text) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: text));
-    messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
-  }
-
-  Future<void> _shareDanceBundle(
-    DanceDetailData detail, {
-    String extension = danceShareBundleExtension,
-  }) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final size = MediaQuery.sizeOf(context);
-    final origin = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height / 2),
-      width: 1,
-      height: 1,
-    );
-    if (extension == danceShareJsonExtension) {
-      await _exportDanceJson(detail, origin);
-      return;
-    }
-    try {
-      final json = buildDanceShareBundle(
-        detail.dance,
-        choreographerFor: (id) => detail.choreographersById[id],
-        tagFor: (id) => detail.tagsById[id],
-        publishedSourceFor: (id) => detail.sourcesById[id],
-        customFieldFor: (id) => detail.customFieldsById[id],
-        difficultyLevelFor: (id) => id == detail.dance.difficultyLevelId
-            ? detail.difficultyLevel
-            : null,
-      );
-      final fileName = danceShareBundleFileName(
-        detail.dance.title,
-        extension: extension,
-      );
-      final xfile = await writeBundleTempFile(json, fileName);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [xfile],
-          fileNameOverrides: [fileName],
-          subject: detail.dance.title,
-          sharePositionOrigin: origin,
-        ),
-      );
-    } on Object catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._shareDanceBundle',
-      );
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.exportShareDanceError)),
-      );
-    }
-  }
-
-  JsonExportDelivery get _jsonDelivery =>
-      widget.jsonExportDelivery ?? const JsonExportDelivery();
-
-  Future<void> _exportDanceJson(DanceDetailData detail, Rect? origin) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    late final String json;
-    late final String fileName;
-    try {
-      json = buildDanceShareBundle(
-        detail.dance,
-        choreographerFor: (id) => detail.choreographersById[id],
-        tagFor: (id) => detail.tagsById[id],
-        publishedSourceFor: (id) => detail.sourcesById[id],
-        customFieldFor: (id) => detail.customFieldsById[id],
-        difficultyLevelFor: (id) => id == detail.dance.difficultyLevelId
-            ? detail.difficultyLevel
-            : null,
-      );
-      fileName = danceShareBundleFileName(
-        detail.dance.title,
-        extension: danceShareJsonExtension,
-      );
-    } on Object catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._buildJsonExport',
-      );
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.exportJsonShareError)),
-      );
-      return;
-    }
-
-    final choice = await _jsonDelivery.choose(context);
-    if (choice == null || !mounted) return;
-
-    switch (choice) {
-      case JsonExportChoice.save:
-        await _guardJsonDelivery(messenger, l10n.exportJsonSaveError, () async {
-          final result = await _jsonDelivery.save(json, fileName);
-          if (result == null || !mounted) return;
-          final message = result.fileName == null
-              ? l10n.exportJsonSavedGeneric
-              : result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName!)
-              : l10n.exportJsonSavedTo(result.fileName!, result.path);
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        });
-      case JsonExportChoice.copy:
-        await _guardJsonDelivery(messenger, l10n.exportJsonCopyError, () async {
-          await _jsonDelivery.copy(json);
-          if (mounted) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.exportJsonCopied)),
-            );
-          }
-        });
-      case JsonExportChoice.share:
-        await _guardJsonDelivery(messenger, l10n.exportJsonShareError, () {
-          return _jsonDelivery.share(
-            json: json,
-            fileName: fileName,
-            subject: detail.dance.title,
-            sharePositionOrigin: origin,
-          );
-        });
-    }
-  }
-
-  Future<void> _guardJsonDelivery(
-    ScaffoldMessengerState messenger,
-    String failureMessage,
-    Future<void> Function() action,
-  ) async {
-    try {
-      await action();
-    } on Object catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._guardJsonDelivery',
-      );
-      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
-    }
-  }
-
   String _formationDisplayLabel(
     AppLocalizations l10n,
     Formation formation,
@@ -984,45 +973,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   ) => formationDisplayLabel(
     l10n,
     formation,
-    _renderer,
+    _proseRenderer,
     dialect,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
   );
-
-  Future<void> _exportDancePdf(Dialect dialect, DanceDetailData detail) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    try {
-      await Printing.layoutPdf(
-        name: sanitizeExportName(detail.dance.title, fallback: 'dance'),
-        onLayout: (format) => buildDancePdf(
-          detail.dance,
-          dialect: dialect,
-          authorNames: detail.authorNames,
-          formationLabel: _formationDisplayLabel(
-            l10n,
-            detail.dance.formation,
-            dialect,
-            CanonicalDiscouragedTermsScope.of(context),
-          ),
-          levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
-          statusLabel: danceStatusLabel(l10n, detail.dance.status),
-          renderer: _renderer,
-          labels: danceExportLabels(l10n),
-          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-            context,
-          ),
-        ),
-      );
-    } on Exception catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._exportDancePdf',
-      );
-      messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceError)));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1040,8 +994,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       title: detail?.dance.title,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact =
-              constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
+          final compact = constraints.maxWidth < AppBreakpoints.compact;
           return Scaffold(
             appBar: AppBar(
               title: Text(l10n.danceScreenTitle),
@@ -1069,30 +1022,38 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             body: !_loaded
                 ? const SkeletonDetailView()
                 : detail == null
-                ? Center(child: Text(l10n.danceNotFound))
-                : _buildBody(detail),
+                ? (_loadFailed
+                      ? LoadErrorView(
+                          icon: LoadErrorView.errorGlyph(context),
+                          message: l10n.danceLoadError,
+                          onRetry: _retryLoad,
+                        )
+                      : _buildNotFound(l10n))
+                : SelectableContent(child: _buildBody(detail)),
             // Edit mirrors the program preview's builder affordance: a bottom-right
-            // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
-            // so opening the editor is consistent across the dance and program views.
+            // extended FAB rather than an AppBar action, so opening the editor is
+            // consistent across the dance and program views.
             // In preview mode the same slot becomes an Import button.
             floatingActionButton: detail == null || _isReadOnly
                 ? null
                 : _isPreview
-                ? FloatingActionButton.extended(
+                ? adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('import-dance'),
                     heroTag: 'import-dance',
                     onPressed: widget.onImport == null
                         ? null
                         : () => widget.onImport!(),
                     icon: const Icon(Icons.library_add_outlined),
-                    label: Text(l10n.importAction),
+                    label: l10n.importAction,
                   )
-                : FloatingActionButton.extended(
+                : adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('edit-dance'),
                     heroTag: 'edit-dance',
                     onPressed: _openEditor,
-                    icon: const Icon(Icons.edit_note),
-                    label: Text(l10n.danceEditFab),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: l10n.danceEditFab,
                   ),
           );
         },
@@ -1100,20 +1061,92 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  /// The explanation shown in place of content whose stored text could not be
+  /// decoded (#1347).
+  ///
+  /// Every clause of the copy is literally true of the behaviour: the row is
+  /// intact, the stored text is written back verbatim, and an edit to another
+  /// field preserves it. It deliberately says nothing about syncing — such a
+  /// dance is withheld from Device Sync, and this notice neither promises nor
+  /// denies that.
+  Widget _unreadableNotice(BuildContext context, String headline) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            headline,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            l10n.danceUnreadableReassurance,
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The body for a dance that is gone. Retrying would find nothing, so the
+  /// way forward is out of the pane: Back, when this screen can leave (a close
+  /// callback, or it is a route above another). The wide Collection pane can do
+  /// neither, since the list beside it is the way to another dance, and there
+  /// the plain message stands rather than a button that would do nothing.
+  ///
+  /// Reads the route, not `Navigator.canPop`: [ModalRoute.of] rebuilds this
+  /// when the route changes, and a route the pane sits on never stops being
+  /// first when something is pushed over it.
+  Widget _buildNotFound(AppLocalizations l10n) {
+    final route = ModalRoute.of(context);
+    final canLeave =
+        widget.onClose != null || (route != null && !route.isFirst);
+    if (!canLeave) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LoadErrorView.errorGlyph(context),
+              const SizedBox(height: AppSpacing.md),
+              Text(l10n.danceNotFound, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+    return LoadErrorView(
+      icon: LoadErrorView.errorGlyph(context),
+      message: l10n.danceNotFound,
+      onRetry: null,
+      onBack: widget.onClose ?? () => Navigator.of(context).maybePop(),
+    );
+  }
+
   Widget _buildBody(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final dance = detail.dance;
-    final activeDialect = ActiveDialectScope.of(context);
+    final activeDialect = ActiveDialectScope.of(context).forDance(dance);
+    // The dialect this dance is shown in: the reader's, unless the dance's
+    // choreographer asked that it only be called with larks and robins.
+    final danceDialect = _danceDialect(detail, activeDialect);
+    final roleTermsOverridden = !identical(danceDialect, activeDialect);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    // When the active dialect is already canonical, _canonicalView is a no-op
+    // When the dance's dialect is already canonical, _canonicalView is a no-op
     // (both sides of the toggle are identical).  In that case hide the toggle.
-    final isCanonicalDialect = activeDialect == Dialect.canonical;
+    final isCanonicalDialect = danceDialect == Dialect.canonical;
     final dialect = _canonicalFigureTextEnabled && _canonicalView
         ? Dialect.canonical
-        : activeDialect;
+        : danceDialect;
     final visibleLinks = dance.links
         .where(
           (link) =>
@@ -1123,7 +1156,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         .toList();
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      // The bottom inset lets the last section scroll clear of the Edit FAB.
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.fabClearance,
+      ),
       children: [
         Card(
           color: theme.colorScheme.surfaceContainer,
@@ -1132,13 +1171,24 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(dance.title, style: theme.textTheme.headlineMedium),
+                SelectableLine(
+                  child: Text(
+                    dance.title,
+                    style: theme.textTheme.headlineMedium,
+                  ),
+                ),
                 if (detail.authorNames.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    detail.authorNames.join(', '),
-                    style: theme.textTheme.bodyLarge,
+                  SelectableLine(
+                    child: Text(
+                      detail.authorNames.join(', '),
+                      style: theme.textTheme.bodyLarge,
+                    ),
                   ),
+                ],
+                if (roleTermsOverridden) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  const _RoleTermsOverrideNote(),
                 ],
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -1204,18 +1254,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
                     text: canonicalDiscouragedTerms
-                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                            dance.hook,
-                            dialect,
-                          )
-                        : _renderer.renderFreeText(dance.hook, dialect),
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                dance.hook,
+                                dialect,
+                              )
+                        : _proseRenderer.renderFreeText(dance.hook, dialect),
                     linkText: dance.hook,
                     transformUnlinkedText: (value) => canonicalDiscouragedTerms
-                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                            value,
-                            dialect,
-                          )
-                        : _renderer.renderFreeText(value, dialect),
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                value,
+                                dialect,
+                              )
+                        : _proseRenderer.renderFreeText(value, dialect),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,
@@ -1229,28 +1281,33 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.md),
           Builder(
             builder: (context) {
-              // Tapping a tag filters the Collection to it (issue #414). Only
-              // wired for a saved dance (not an online preview) and only when
-              // the app-level coordinator scope is present; otherwise the chips
-              // stay non-interactive, preserving prior behaviour.
+              // Tapping a tag adds it to the Collection's filter (issue #414,
+              // FIND-14). Only wired for a saved dance (not an online preview)
+              // and only when the app-level coordinator scope is present;
+              // otherwise the chips stay non-interactive, preserving prior
+              // behaviour.
               final filter = _isPreview || _isReadOnly
                   ? null
                   : CollectionFilterScope.maybeOf(context);
-              return Wrap(
-                spacing: 8,
-                children: [
-                  for (final tag in detail.tags)
-                    if (filter != null)
-                      TagChip(
-                        key: ValueKey('tag-filter-chip-${tag.id}'),
-                        name: tag.name,
-                        color: tag.color,
-                        tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
-                        onPressed: () => filter.filterByTag(tag.id),
-                      )
-                    else
-                      TagChip(name: tag.name, color: tag.color),
-                ],
+              // Chips are controls, not copy text: a drag that starts on a tag
+              // name must not select it, and its name stays out of a copy.
+              return SelectionContainer.disabled(
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final tag in detail.tags)
+                      if (filter != null)
+                        TagChip(
+                          key: ValueKey('tag-filter-chip-${tag.id}'),
+                          name: tag.name,
+                          color: tag.color,
+                          tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
+                          onPressed: () => filter.filterByTag(tag.id),
+                        )
+                      else
+                        TagChip(name: tag.name, color: tag.color),
+                  ],
+                ),
               );
             },
           ),
@@ -1258,45 +1315,66 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         const SizedBox(height: AppSpacing.lg),
         Row(
           children: [
-            Text(l10n.danceSectionFigures, style: theme.textTheme.titleMedium),
+            SelectableLine(
+              child: Text(
+                l10n.danceSectionFigures,
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
             const Spacer(),
+            // A control, not copy text: its label stays out of a copy.
             if (_canonicalFigureTextEnabled && !isCanonicalDialect)
-              _DialectToggle(
-                canonical: _canonicalView,
-                onChanged: (value) => setState(() {
-                  _canonicalUserSet = true;
-                  _canonicalView = value;
-                }),
+              SelectionContainer.disabled(
+                child: _DialectToggle(
+                  canonical: _canonicalView,
+                  onChanged: (value) => setState(() {
+                    _canonicalUserSet = true;
+                    _canonicalView = value;
+                  }),
+                ),
               ),
           ],
         ),
-        FigureTable(
-          figures: dance.figures,
-          phraseStructure: dance.phraseStructure,
-          renderer: _renderer,
-          dialect: dialect,
-        ),
+        switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => BarTimingScope.forDance(
+            dance,
+            child: FigureTable(
+              figures: figures,
+              phraseStructure: dance.phraseStructure,
+              renderer: UserFiguresScope.rendererOf(context),
+              dialect: dialect,
+            ),
+          ),
+          // An empty table would say the dance has no figures, which is false
+          // and is the claim this whole change exists to stop making.
+          UnreadableFigures() => _unreadableNotice(
+            context,
+            l10n.danceFiguresUnreadable,
+          ),
+        },
         if (dance.callingNotes.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionCallingNotes,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionCallingNotes,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
             text: canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     dance.callingNotes,
                     dialect,
                   )
-                : _renderer.renderFreeText(dance.callingNotes, dialect),
+                : _proseRenderer.renderFreeText(dance.callingNotes, dialect),
             linkText: dance.callingNotes,
             transformUnlinkedText: (value) => canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     value,
                     dialect,
                   )
-                : _renderer.renderFreeText(value, dialect),
+                : _proseRenderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1304,53 +1382,94 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (dance.walkthrough.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionWalkthrough,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionWalkthrough,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
             text: canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     dance.walkthrough.trim(),
                     dialect,
                   )
-                : _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+                : _proseRenderer.renderFreeText(
+                    dance.walkthrough.trim(),
+                    dialect,
+                  ),
             linkText: dance.walkthrough.trim(),
             transformUnlinkedText: (value) => canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     value,
                     dialect,
                   )
-                : _renderer.renderFreeText(value, dialect),
+                : _proseRenderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
           ),
         ],
-        if (dance.tunes.isNotEmpty) ...[
+        // Two mutually exclusive branches. This one claims the undecodable
+        // case and says so; the decoded branch below folds `UnreadableTunes` to
+        // an empty list, which is only honest because this branch has already
+        // rendered the notice. Delete this branch and the fold silently becomes
+        // the lie that the dance has no tunes.
+        if (dance.tunesSource case UnreadableTunes()) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionTunes,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          _unreadableNotice(context, l10n.danceTunesUnreadable),
+        ],
+        if (switch (dance.tunesSource) {
+          DecodedTunes(:final tunes) => tunes,
+          UnreadableTunes() => const <String>[],
+        }.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionTunes,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
             canonicalDiscouragedTerms
-                ? dance.tunes
+                ? switch (dance.tunesSource) {
+                        DecodedTunes(:final tunes) => tunes,
+                        UnreadableTunes() => const <String>[],
+                      }
                       .map(
-                        (tune) => _renderer
+                        (tune) => _proseRenderer
                             .renderFreeTextWithCanonicalDiscouragedTerms(
                               tune,
                               dialect,
                             ),
                       )
                       .join(', ')
-                : dance.tunes.join(', '),
+                : switch (dance.tunesSource) {
+                    DecodedTunes(:final tunes) => tunes,
+                    UnreadableTunes() => const <String>[],
+                  }.join(', '),
           ),
         ],
         if (visibleLinks.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(l10n.danceSectionLinks, style: theme.textTheme.titleMedium),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionLinks,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
           for (final link in visibleLinks)
             _LinkRow(
+              form: dance.form,
               key: ValueKey('link-row-${link.id}'),
               link: link,
               relatedDanceTitle: link.kind == LinkKind.relatedDance
@@ -1371,9 +1490,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (dance.sourceCitations.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionPublishedSources,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionPublishedSources,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           for (final citation in dance.sourceCitations)
             _SourceCitationRow(
@@ -1384,17 +1505,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (detail.customFields.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionCustomFields,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionCustomFields,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           const SizedBox(height: AppSpacing.xxs),
-          for (final field in detail.customFields)
+          for (final field in detail.customFields.map(
+            (f) =>
+                (label: f.label, text: formatCustomFieldValue(l10n, f.value)),
+          ))
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
-              padding: const EdgeInsets.symmetric(vertical: 2),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
               child: Text(
-                '${field.label}: ${canonicalDiscouragedTerms ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(field.value, dialect) : field.value}',
+                '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.text, dialect) : field.text}',
               ),
             ),
         ],
@@ -1408,6 +1534,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             repositories: _repos,
             danceId: widget.danceId!,
             performedOnly: _requirePerformedForHistory,
+            requireEventDate: _requireEventDateForHistory,
+            tracking: _tracking,
             trackAllCallers: _trackHistoryForAllCallers,
             venueCallCount: _venueCallCount,
             onOpenProgram: _openProgram,
@@ -1431,6 +1559,39 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       builder: (_) => ProgramSummaryScreen(programId: programId),
     ),
   );
+}
+
+/// Says the dance is shown with larks and robins rather than the role terms
+/// of the reader's dialect, because its choreographer asked for them
+/// (`dialectForDance`). Shown only when the reader's dialect calls the roles
+/// something else.
+class _RoleTermsOverrideNote extends StatelessWidget {
+  const _RoleTermsOverrideNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    // About the page, not the dance: it stays out of a copy of the dance.
+    return SelectionContainer.disabled(
+      child: Row(
+        key: const ValueKey('role-terms-override-note'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(
+            child: Icon(Icons.info_outline, size: 18, color: color),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).danceRoleTermsOverrideNote,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DialectToggle extends StatelessWidget {
@@ -1469,34 +1630,30 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final neutralStatusColor = AppThemeExtension.of(context).statusDeprecated;
-    final (icon, color) = switch (status) {
-      DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
-      DanceStatus.deprecated => (
-        Icons.warning_amber_outlined,
-        theme.colorScheme.tertiary,
-      ),
-      DanceStatus.active => (
-        Icons.check_circle_outline,
-        theme.colorScheme.primary,
-      ),
-      DanceStatus.draft => (Icons.edit_note_outlined, neutralStatusColor),
-      DanceStatus.variation => (Icons.alt_route, neutralStatusColor),
-    };
+    // The same glyph and §2 status token as the Collection list's chip, so a
+    // status reads identically wherever it appears.
+    final (:icon, :label) = danceStatusPresentation(status, l10n);
+    final color = danceStatusColor(status, theme);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xs),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: AppThemeExtension.statusTintAlpha),
+        borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(
+            icon,
+            size: 18,
+            color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+          ),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            danceStatusLabel(l10n, status),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -1516,7 +1673,7 @@ class _ProvenanceLine extends StatelessWidget {
     final theme = Theme.of(context);
     final license = provenance.license;
     final text = [
-      l10n.danceProvenanceVia(_sourceLabel(l10n, provenance.source)),
+      l10n.danceProvenanceVia(provenanceSourceLabel(l10n, provenance.source)),
       if (license != null && license.isNotEmpty) license,
     ].join(' · ');
     return Row(
@@ -1534,25 +1691,19 @@ class _ProvenanceLine extends StatelessWidget {
       ],
     );
   }
-
-  static String _sourceLabel(AppLocalizations l10n, ProvenanceSource source) =>
-      switch (source) {
-        ProvenanceSource.callersbox => "The Caller's Box",
-        ProvenanceSource.contradb => 'ContraDB',
-        ProvenanceSource.callersCompanion => "Caller's Companion",
-        ProvenanceSource.manual => l10n.danceProvenanceSourceManual,
-        ProvenanceSource.json => l10n.danceProvenanceSourceJson,
-        ProvenanceSource.publishedCollection => l10n.publishedCollectionsTitle,
-      };
 }
 
 class _LinkRow extends StatelessWidget {
   const _LinkRow({
     super.key,
+    required this.form,
     required this.link,
     this.relatedDanceTitle,
     this.onTap,
   });
+
+  /// The form of the dance the link belongs to, whose dialect it reads in.
+  final DanceForm form;
 
   final DanceLink link;
 
@@ -1570,8 +1721,10 @@ class _LinkRow extends StatelessWidget {
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(form);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final String display;
     if (label != null && label.isNotEmpty) {
       display = canonicalizeDiscouragedTerms
@@ -1615,7 +1768,7 @@ class _LinkRow extends StatelessWidget {
             child: ExcludeSemantics(
               child: Padding(
                 // intentional: 2px optical inset, below the 4px AppSpacing grid
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
                 child: Row(
                   children: [
                     Icon(icon, size: 16),
@@ -1633,7 +1786,7 @@ class _LinkRow extends StatelessWidget {
 
     Widget content = Padding(
       // intentional: 2px optical inset, below the 4px AppSpacing grid
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
       child: Row(
         children: [
           Icon(icon, size: 16),
@@ -1650,12 +1803,6 @@ class _LinkRow extends StatelessWidget {
   }
 }
 
-/// One entry in the dance's calling history: a program the dance is included
-/// in. A single merged-semantics button exposing the program title, its
-/// effective date (the slot's `performedAt` when set, else the program's
-/// `eventDate`, else its last-updated time), and the venue if present; tapping
-/// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
-/// and the set-list rows in `programs_shell.dart`.
 /// A single cited published source: title (+ author/year), the citation's
 /// page/number, and the source's URL if present. Read-only display mirroring
 /// [_LinkRow]. A [Semantics] label collapses the multi-line content into one
@@ -1733,7 +1880,7 @@ class _SourceCitationRow extends StatelessWidget {
         children: [
           const Padding(
             // intentional: 2px optical inset, below the 4px AppSpacing grid
-            padding: EdgeInsets.only(top: 2),
+            padding: EdgeInsets.only(top: AppSpacing.xxxs),
             child: Icon(Icons.menu_book_outlined, size: 16),
           ),
           const SizedBox(width: AppSpacing.xs),
@@ -1791,7 +1938,10 @@ class _CrossReferenceText extends StatelessWidget {
   final void Function(String danceId) onOpenDance;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      SelectableLine(child: _buildText(context));
+
+  Widget _buildText(BuildContext context) {
     if (!linker.hasTitles) {
       return Text(text, style: style);
     }

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """CI ratchets for the invariants shared by future device-sync paths.
 
-The checker deliberately covers the production source roots only:
-``app/lib/src`` and ``packages/*/lib/src``.  It checks:
+The checker covers the production library roots, ``app/lib`` and
+``packages/*/lib`` -- the whole tree, not ``lib/src``, because
+``app/lib/main.dart`` and each package's public barrel are production code
+too, and the sibling ratchets scan ``lib/**``.  It checks:
 
 * every Drift or raw-SQL join through a soft-deletable parent has a
   ``deleted_at IS NULL`` predicate;
@@ -41,6 +43,8 @@ SOFT_SQL_TABLES = frozenset(
         "published_sources",
         "venues",
         "settings",
+        "user_glossary_entries",
+        "figure_notes",
     }
 )
 
@@ -53,6 +57,8 @@ SOFT_DRIFT_TABLES = {
     "publishedSources",
     "venues",
     "settings",
+    "userGlossaryEntries",
+    "figureNotes",
 }
 SQL_ALIAS_STOP_WORDS = frozenset(
     {"where", "join", "on", "group", "order", "limit", "having", "union"}
@@ -65,6 +71,25 @@ I1_EXCEPTION_MARKER_RE = re.compile(
 NON_SYNC_WRITE_EXCLUSION_RE = re.compile(
     r"sync-invariant-exclusion:\s*"
     r"(?:migration-backfill|maintenance-backfill|maintenance-cleanup)\b[^\n]*",
+    re.IGNORECASE,
+)
+# Deliberately its own pattern rather than another alternative in the set
+# above. That set is consulted by the raw-SQL I1/I2 checks as well, so an
+# `apply-undo` alternative there would also let a marked raw `UPDATE` skip
+# those invariants — far more than the captured-companion case it is for.
+APPLY_UNDO_EXCLUSION_RE = re.compile(
+    r"sync-invariant-exclusion:\s*apply-undo\b[^\n]*",
+    re.IGNORECASE,
+)
+# Raw `UPDATE ... SET updated_at` on a sync-record table whose body changed
+# through a *join*, not through a column of that row: a dance's wire body
+# carries a custom-field value only while its definition is live and shareable,
+# so the definition's write changes the dance without touching the dance's row.
+# I2's column check cannot see that. Its own pattern for the same reason as
+# `apply-undo` above: it is consulted by the raw-SQL I2 check alone, so it
+# excuses nothing about I1 and nothing about the typed-write boundary.
+JOIN_HYDRATED_BODY_RE = re.compile(
+    r"sync-invariant-exclusion:\s*join-hydrated-body\b[^\n]*",
     re.IGNORECASE,
 )
 SOFT_JOIN_EXCEPTION_RE = re.compile(
@@ -170,6 +195,59 @@ EXPORT_RE = re.compile(
 )
 
 
+# Title helpers allowed to exist beside `normalizeTitle`, by file and by name.
+# Each must say why it is not an identity key. Naming the functions (not just
+# the file) keeps a third normalizer added to an exempt file a violation.
+ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
+    # The stored form of a meanwhile/modifier/sequence group's optional title
+    # (`params['title']`): whitespace collapsed, trimmed and clamped. It names a
+    # group of figures inside a dance, not a dance, and is not a dance-title
+    # key; dance titles still use `normalizeTitle`. Its output is stored inside
+    # `figures_json`, so it reaches the choreography fingerprint and figure
+    # comparisons only as stored data, written identically by the container
+    # factories and the figure codec on every device.
+    "packages/compendium_core/lib/src/model/figure.dart": frozenset(
+        {"normalizeContainerTitle"}
+    ),
+    # Online-source query text and exact-title matching (`lookupUniqueExactTitle`).
+    # They fold only typographic punctuation and keep articles and ASCII
+    # punctuation, so an unattended program import never treats `Archive` as
+    # `The Archive`. Neither is a sync or dedupe key; those use `normalizeTitle`.
+    "packages/compendium_core/lib/src/imports/title_punctuation.dart": frozenset(
+        {"foldTitlePunctuation", "titleMatchKey"}
+    ),
+    # The import-only "possible match" lookup key (#1907). It is deliberately
+    # looser than `normalizeTitle` (drops trailing `{…}`/`(…)`/`[…]`, reads
+    # `A-1` as `a1`) and only proposes choices to a user. It is never a sync,
+    # merge or identity key, so it must not replace `normalizeTitle`.
+    "packages/compendium_core/lib/src/imports/dedupe.dart": frozenset(
+        {"dedupeCoreTitleKey"}
+    ),
+    # Rewrites an imported title filed library-style ("Baby Rose, The" ->
+    # "The Baby Rose", #1976) before it is stored. Import dedupe also keys a
+    # title on `normalizeTitle` of its output (`dedupeTitleKeys`), beside the
+    # plain `normalizeTitle`; that is an import-only key that only widens which
+    # titles match, never a sync, merge or identity key, and sync never calls
+    # it.
+    "packages/compendium_core/lib/src/imports/title_article.dart": frozenset(
+        {"frontTrailingArticle"}
+    ),
+    # In-memory display matching for the Ctrl/Cmd-K palette: lowercases and
+    # drops combining marks so typing `ecole` finds `École`, as the Collection's
+    # FTS index does. It only ranks and filters what is shown. It is never a
+    # sync, merge, dedupe or identity key, and keeps articles and punctuation.
+    "packages/compendium_core/lib/src/search/title_match.dart": frozenset(
+        {"rankTitleMatch"}
+    ),
+    # `foldForTitleMatch` now lives beside `titleSortKey` (B13, FIND-15) because
+    # the sort keys fold accents with it too. Same role: display ordering and
+    # matching only, never a sync, merge, dedupe or identity key.
+    "packages/compendium_core/lib/src/search/title_sort_key.dart": frozenset(
+        {"foldForTitleMatch"}
+    ),
+}
+
+
 @dataclass(frozen=True)
 class Violation:
     kind: str
@@ -206,16 +284,23 @@ def blank_comments(source: str) -> str:
 
 
 def source_roots(root: Path) -> list[Path]:
-    """Return ``app/lib/src`` plus every existing ``packages/*/lib/src``."""
+    """Return ``app/lib`` plus every existing ``packages/*/lib``.
+
+    Whole library trees, not ``lib/src``: ``main.dart`` and the package barrels
+    are production code, and a raw join written there was invisible with
+    nothing to say so. The generated ``app/lib/l10n`` Dart comes along and is
+    inert here -- every heuristic below runs on masked or literal-extracted
+    text, and its string literals contain no SQL.
+    """
 
     roots: list[Path] = []
-    app_root = root / "app" / "lib" / "src"
+    app_root = root / "app" / "lib"
     if app_root.is_dir():
         roots.append(app_root)
     packages = root / "packages"
     if packages.is_dir():
         for package in sorted(path for path in packages.iterdir() if path.is_dir()):
-            package_root = package / "lib" / "src"
+            package_root = package / "lib"
             if package_root.is_dir():
                 roots.append(package_root)
     return roots
@@ -540,6 +625,7 @@ def _write_violations(source: str, path: str) -> list[Violation]:
                 and not content_columns
                 and not has_existence
                 and not _exception_on_line(source, line, NON_SYNC_WRITE_EXCLUSION_RE)
+                and not _exception_on_line(source, line, JOIN_HYDRATED_BODY_RE)
             ):
                 violations.append(
                     Violation(
@@ -549,6 +635,98 @@ def _write_violations(source: str, path: str) -> list[Violation]:
                         "updated_at advance must change body or existence state",
                     )
                 )
+    return violations
+
+
+SYNC_WRITE_PATH = "packages/compendium_core/lib/src/sync/sync_storage.dart"
+SYNC_WRITE_DIR = "packages/compendium_core/lib/src/sync/"
+# Any `upsert*` member reached through `.` or `..` (call or tear-off), on any
+# receiver -- `repositories.x`, a local alias, a cascade -- or a bare
+# `upsert*(` / `_upsert*(` call.
+INTERACTIVE_UPSERT_RE = re.compile(
+    r"\.\s*\.?\s*_?upsert[A-Za-z0-9_$]*\b"
+    r"|(?<![A-Za-z0-9_$.])_?upsert[A-Za-z0-9_$]*\s*(?:<[^>;()]*>\s*)?\("
+)
+# A deliberate exception: the line directly above the call is a comment line
+#   // sync-invariant-exclusion: upsert — <reason>
+# The reason is mandatory. Anchored to a line that *is* a comment, so a string
+# literal or a trailing comment on code that spells the marker does not count.
+UPSERT_EXCLUSION_RE = re.compile(
+    r"^\s*//+\s*sync-invariant-exclusion:\s*upsert\s*[—–-]+\s*\S"
+)
+WRITE_FROM_SYNC_DECL_RE = re.compile(r"\bwriteFromSync[A-Za-z0-9_]*\s*\(")
+
+
+def _write_from_sync_bodies(masked: str) -> list[tuple[int, int]]:
+    """`(start, end)` of every `writeFromSync*` function body in [masked]."""
+
+    spans: list[tuple[int, int]] = []
+    for match in WRITE_FROM_SYNC_DECL_RE.finditer(masked):
+        close = _balanced_call_end(masked, match.end() - 1)
+        if close is None:
+            continue
+        rest = masked[close + 1 :]
+        body = re.match(r"\s*(?:async\*?|sync\*)?\s*(\{|=>)", rest)
+        if body is None:
+            continue  # a call, not a declaration
+        open_at = close + 1 + body.start(1)
+        if body.group(1) == "=>":
+            end = masked.find(";", open_at)
+        else:
+            end = _balanced_block_end(masked, open_at)
+        spans.append((open_at, len(masked) if end is None or end < 0 else end))
+    return spans
+
+
+def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
+    """Keep the inbound sync write off the interactive `upsert` path.
+
+    §6.7: "Apply MUST be read-modify-write inside the apply transaction — never
+    the repository `upsert` path, which writes every column." The rule is
+    structural rather than behavioural on purpose. `upsert` carries behaviour
+    that exists for a person editing a record and is wrong for a peer's: it
+    adopts a tombstoned row's identity, and it keeps the local name when another
+    row holds the incoming one, storing an altered copy while still reporting
+    success. Each kind has a `writeFromSync` entry point instead.
+
+    Auditing today's behaviour would not hold: the point is that a future edit
+    to the editor's path must not silently change what an inbound apply does.
+
+    The rule covers every Dart file under the core `sync/` directory (including
+    `server/`), not only `SYNC_WRITE_PATH`, so moving write-path code out of
+    `sync_storage.dart` cannot exempt it. The app-side `app/lib/src/sync/` is
+    not the inbound write path and is not scanned.
+
+    It flags *any* `upsert*` call or tear-off there, on any receiver (a local
+    alias, a cascade, `upsertInTransaction`), not only
+    `repositories.<kind>.upsert(`, so the rule cannot be stepped around by
+    spelling. A `writeFromSync*` body declared there is exempt; any other
+    deliberate use carries `// sync-invariant-exclusion: upsert — <reason>` on
+    the line directly above.
+    """
+
+    if not path.startswith(SYNC_WRITE_DIR):
+        return []
+    masked = "\n".join(mask_source(source))
+    exempt = _write_from_sync_bodies(masked)
+    violations: list[Violation] = []
+    for match in INTERACTIVE_UPSERT_RE.finditer(masked):
+        if any(start <= match.start() < end for start, end in exempt):
+            continue
+        name_at = match.start() + masked[match.start() : match.end()].find("upsert")
+        line = _line_number(source, name_at)
+        if _exception_on_line(source, line, UPSERT_EXCLUSION_RE):
+            continue
+        violations.append(
+            Violation(
+                "sync-interactive-upsert",
+                path,
+                line,
+                "inbound sync write must use writeFromSync, not the interactive "
+                "upsert path (sync-spec.md §6.7); mark a deliberate exception "
+                "`// sync-invariant-exclusion: upsert — <reason>` on the line above",
+            )
+        )
     return violations
 
 
@@ -580,6 +758,17 @@ def _drift_write_violations(source: str, path: str) -> list[Violation]:
             continue
         line = _line_number(source, match.start())
         if not re.search(r"[A-Za-z_][A-Za-z0-9_]*Companion(?:\.insert)?\(", statement):
+            # `apply-undo` is the one shape that cannot name its fields inline
+            # and must not: it writes back a companion captured from the row
+            # itself, so I1/I2 hold by construction — every column, including
+            # the stamps, is restored to the value it already had. Spelling the
+            # columns out would make the undo silently drop any column added
+            # later, which is the corruption it exists to prevent. Narrow on
+            # purpose: its own marker, suppressing only this boundary check, only
+            # on the line carrying it, and excusing nothing in the raw-SQL
+            # checks that share the other exclusion set.
+            if _exception_on_line(source, line, APPLY_UNDO_EXCLUSION_RE):
+                continue
             violations.append(
                 Violation(
                     "typed-write-boundary",
@@ -667,14 +856,16 @@ def _function_body(source: str, match: re.Match[str]) -> str:
     return masked[body_at:] if end is None else masked[body_at : end + 1]
 
 
-def _alternate_title_definitions(source: str) -> list[int]:
+def _alternate_title_definitions(
+    source: str, exempt: frozenset[str] = frozenset()
+) -> list[int]:
     """Find functions that implement title normalization under another name."""
 
     masked = "\n".join(mask_source(source))
     definitions: list[int] = []
     for match in FUNCTION_DEF_RE.finditer(masked):
         name = match.group("name")
-        if name == "normalizeTitle":
+        if name == "normalizeTitle" or name in exempt:
             continue
         signature = match.group("parameters")
         title_relevant = "title" in name.lower() or re.search(
@@ -851,6 +1042,7 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         violations.extend(drift_violations)
         violations.extend(_write_violations(source, relative))
         violations.extend(_drift_write_violations(source, relative))
+        violations.extend(_interactive_upsert_violations(source, relative))
         violations.extend(_certificate_violations(source, relative))
         soft_candidates += raw_candidates + drift_candidates
 
@@ -858,7 +1050,9 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         title_definitions += len(title_matches)
         if title_matches:
             title_definition_paths.extend([path] * len(title_matches))
-        for offset in _alternate_title_definitions(source):
+        for offset in _alternate_title_definitions(
+            source, ALTERNATE_TITLE_EXEMPTIONS.get(relative, frozenset())
+        ):
             violations.append(
                 Violation(
                     "normalizeTitle",

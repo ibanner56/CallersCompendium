@@ -17,14 +17,70 @@ import '../model/figure.dart';
 /// so existing data and ordinary figures stay byte-for-byte compatible.
 /// `walkthroughOverride` (#411) is written only when present/non-blank and is
 /// soft-clamped on decode. `wordingOverride` is handled the same way. A
-/// Structural container figures (`meanwhile` and `modifier`) additionally carry
+/// Structural container figures (`meanwhile`, `modifier` and `sequence`) carry
 /// their children in `params['figures']`; those children are (de)serialized
 /// recursively through this same codec and the shared beat count lives in
-/// `params['beats']`. This is all additive — there is **no**
+/// `params['beats']`. A container's optional title is `params['title']`
+/// ([containerTitleKey]), written only when present. This is all additive — there is **no**
 /// `figureSchemaVersion` bump. Decoding is tolerant: unknown keys are ignored (so files written by newer
 /// app versions still load), a missing `schemaVersion` is treated as version 1,
 /// a missing/unknown `customOrigin` decodes as `userEntered`, and a
 /// missing/non-bool `assumedSubject` decodes as `false`.
+
+/// Every key [figureToJson] can write. Decoding keeps only these and drops the
+/// rest, which is what lets an older build read a newer one's file — and why
+/// Device Sync must not accept a peer's figures carrying anything else
+/// ([unsupportedFigurePath]): the dropped key would be gone from the record
+/// this device then shares back. `figure_codec_test.dart` ties this set to
+/// [figureToJson]'s output.
+const Set<String> figureJsonKeys = {
+  'schemaVersion',
+  'move',
+  'params',
+  'note',
+  'progression',
+  'customOrigin',
+  'assumedSubject',
+  'walkthroughOverride',
+  'wordingOverride',
+};
+
+/// The first path inside a raw `figures` array that decoding would lose, or
+/// null when this build can read all of it: a key outside [figureJsonKeys], a
+/// `customOrigin` it does not know, or a `schemaVersion` newer than
+/// [figureSchemaVersion]. Paths are dotted from `figures`, through a
+/// structural container's `params.figures`, e.g. `figures.params.figures.key`.
+///
+/// Anything structurally wrong (a non-list, a non-object entry, a non-string
+/// `move`) is left to decoding to reject as malformed; this only answers "is
+/// this from a newer version of the app".
+String? unsupportedFigurePath(Object? raw, [String path = 'figures']) {
+  if (raw is! List) return null;
+  for (final entry in raw) {
+    if (entry is! Map) continue;
+    for (final key in entry.keys) {
+      if (!figureJsonKeys.contains(key)) return '$path.$key';
+    }
+    final origin = entry['customOrigin'];
+    if (origin != null && !CustomOrigin.values.any((o) => o.name == origin)) {
+      return '$path.customOrigin';
+    }
+    final version = entry['schemaVersion'];
+    if (version is int && version > figureSchemaVersion) {
+      return '$path.schemaVersion';
+    }
+    final move = entry['move'];
+    final params = entry['params'];
+    if (isContainerMove(move) && params is Map) {
+      final nested = unsupportedFigurePath(
+        params['figures'],
+        '$path.params.figures',
+      );
+      if (nested != null) return nested;
+    }
+  }
+  return null;
+}
 
 Map<String, Object?> figureToJson(Figure figure) {
   final params = _paramsToJson(figure);
@@ -116,7 +172,7 @@ Figure _figureFromJson(Map<String, Object?> json, int depth) {
   return Figure(
     schemaVersion: schemaVersion,
     move: move,
-    params: move == meanwhileMove || move == modifierMove
+    params: isContainerMove(move)
         ? _decodeContainerParams(
             move,
             params.map((k, v) => MapEntry(k.toString(), v)),
@@ -144,19 +200,28 @@ String? _optionalOverride(Object? raw) {
 /// defensive against untrusted input:
 ///
 /// * non-object / junk entries are ignored;
-/// * only the opposite container may nest, and only one level deep;
-/// * the child count is clamped to [kMaxMeanwhileSides];
-/// * deeper or same-kind containers are dropped rather than flattened.
+/// * only a container of another kind may nest, and only one level deep;
+/// * the child count is clamped to the kind's [maxContainerChildren];
+/// * deeper or same-kind containers are dropped rather than flattened;
+/// * the optional title ([containerTitleKey]) is kept only in its normalized
+///   form ([normalizeContainerTitle]): a non-string or blank one is dropped,
+///   and a multi-line or oversized one is collapsed and clamped, never
+///   rejected.
 Map<String, Object?> _decodeContainerParams(
   String move,
   Map<String, Object?> params,
   int depth,
-) => {
-  ...params,
-  'figures': List<Figure>.unmodifiable(
-    _decodeContainerChildren(params['figures'], move, depth),
-  ),
-};
+) {
+  final title = normalizeContainerTitle(params[containerTitleKey]);
+  return {
+    for (final entry in params.entries)
+      if (entry.key != containerTitleKey) entry.key: entry.value,
+    'figures': List<Figure>.unmodifiable(
+      _decodeContainerChildren(params['figures'], move, depth),
+    ),
+    containerTitleKey: ?title,
+  };
+}
 
 List<Figure> _decodeContainerChildren(
   Object? raw,
@@ -165,14 +230,14 @@ List<Figure> _decodeContainerChildren(
 ) {
   final children = <Figure>[];
   if (raw is! List || depth >= kMaxContainerDepth) return children;
+  final cap = maxContainerChildren(parentMove);
   for (final entry in raw) {
-    if (children.length >= kMaxMeanwhileSides) break;
+    if (children.length >= cap) break;
     if (entry is! Map) continue; // ignore junk; never fabricate
     final map = entry.cast<String, Object?>();
     try {
       final childMove = map['move'];
-      if (childMove is String &&
-          (childMove == meanwhileMove || childMove == modifierMove)) {
+      if (childMove is String && isContainerMove(childMove)) {
         if (childMove == parentMove) continue;
         final child = _figureFromJson(map, depth + 1);
         if (child.isContainer && child.subFigures.isNotEmpty) {
@@ -195,8 +260,19 @@ List<Figure> _decodeContainerChildren(
 String encodeFigures(List<Figure> figures) =>
     jsonEncode([for (final f in figures) figureToJson(f)]);
 
-/// Decodes a `figures_json` string. Throws [FormatException] on malformed
-/// input (invalid JSON, non-array root, malformed figure objects).
+/// Decodes a `figures_json` string.
+///
+/// Throws [FormatException] on malformed input (invalid JSON, non-array root,
+/// malformed figure objects) **and [ArgumentError] when a syntactically valid
+/// figure object violates a [Figure] invariant** — an empty `move`, or a
+/// parameter the constructor rejects. `[{"move":""}]` and
+/// `[{"move":"swing","params":{"beats":1e999}}]` both take the second path:
+/// `1e999` is legal JSON that parses to an infinity, which is not a
+/// non-negative integer.
+///
+/// Callers that must not raise have to catch both. This doc previously named
+/// only [FormatException], and a caller that believed it would still have
+/// crashed on the two examples above (#1347).
 List<Figure> decodeFigures(String json) {
   final Object? decoded;
   try {

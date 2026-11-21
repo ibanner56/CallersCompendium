@@ -34,8 +34,11 @@ Any new database column, settings key, or data-entry surface must be classified
 covering:
 
 - database columns,
-- settings keys declared as an exact constant, and
-- settings keys built at runtime from a declared prefix.
+- settings keys declared as a top-level `const String …Key = '…';` — any
+  identifier ending in `Key`, `k`-prefixed or not, under `app/lib/src` or any
+  `packages/*/lib/src` (a non-settings constant of that shape is excluded by
+  name in the ratchet, never by narrowing the pattern), and
+- settings keys built at runtime from a declared `…KeyPrefix` constant.
 
 The failure mode is a red CI run rather than a silent leak. This exists because
 the boundary used to be prose and prose did not hold — see
@@ -55,16 +58,31 @@ the boundary used to be prose and prose did not hold — see
   of what the value *means* on another device, and must not travel by any route.
   Conflating the two is how a device-scoped value ends up in a backup.
 
-Record **why** in the entry's `note` whenever the call is not self-evident, and
-say who decided it if it was contested. A classification with no stated reason is
-indistinguishable from a guess.
+A field that should reach the owner's own devices and backups but not share
+files stays `shareable`: `deviceLocal` means never serialised and would stop
+Device Sync. Strip it in the share bundle builders
+(`app/lib/src/export/share_sanitization.dart`), not in the archive codec, whose
+share mode the import-side re-encodes also use, and say so in the note
+(`programs.pay_minor_units`, `dances.rating`).
+
+Record **why** in the entry's `note`, and say who decided it if it was
+contested. `data_classification_note_test.dart` requires a non-empty note on
+every entry that is not `shareable`, every `shareable` entry whose subject is not
+`none`, and every third-party entry, with no exemption for the last, in the three
+`compendium_core` registries (the server's own registry is not covered). The one
+exemption is the shared note-free `_preference` classification
+(`preferenceSettingKeys`, derived with `identical`, so an equal inline entry is
+exempt too); give a setting a note rather than widening it.
 
 ## Do not narrow a ratchet to silence a false positive
 
-The settings ratchet flags `kUpdateManifestPublicKey`, which is the Ed25519 root
-of trust for update authenticity rather than a preference. It is excluded **by
-name, with a reason**, so the next non-settings `…Key` constant still fails
-loudly. A cleverer detection pattern would have dropped both silently.
+The settings ratchet flagged `kPublishedCollectionPublicKey`, which was the
+Ed25519 root of trust for the published-collection feed rather than a
+preference. It was excluded **by name, with a reason**, so the next
+non-settings `…Key` constant still failed loudly. A cleverer detection pattern
+would have dropped both silently. (That key is now the list
+`kPublishedCollectionPublicKeys` (#2161), which the pattern does not match;
+the same rule applies to the next false positive.)
 
 ## Before pushing
 

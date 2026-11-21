@@ -1,21 +1,21 @@
 # Backup & portability
 
 Caller's Compendium keeps everything on your own device — there's no
-cloud account and nothing gets synced somewhere else without you asking.
-That's great for privacy and for working offline at a hall with spotty
-signal, but it also means you are the keeper of your own safety copy. A
-backup is a single file that holds your whole library, ready to bring
-back if a device is lost, replaced, or wiped.
+cloud account, and nothing leaves your device unless you send it. That's
+good for privacy and for working offline at a hall with spotty signal, but
+it also means you keep your own safety copy. A backup is a single file that
+holds your whole library, ready to bring back if a device is lost,
+replaced, or wiped.
 
 > **Finding your way around these words.** On-screen buttons and screens
 > are written in **bold** — like **Settings**, **Export**, and
-> **Restore**. The first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language
+> **Restore**. The first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language
 > definition without losing your place.
 
 ## Why back up
 
-Because your work lives locally, a backup is simply your insurance. One
+Because your work lives on your device, a backup is your insurance. One
 exported file captures your entire [collection](./glossary.md#collection) of
 [dances](./glossary.md#dance), your [programs](./glossary.md#program),
 and all your personal settings. Keep a recent copy somewhere safe — a
@@ -32,14 +32,36 @@ A few good moments to export a backup:
 
 1. Open **Settings**, then choose **General**.
 2. Find the **Backup & restore** section.
-3. Choose **Export a backup**.
+3. Choose **Export** beside **Export a backup**.
+
+While the backup is prepared, a progress bar shows that the app is
+working. It closes once you have finished with the save or share sheet.
 
 The app creates a single dated file — something like
-`callers-compendium-backup-2026-07-15.json` — and hands it to your
+`callers-compendium-backup-2026-07-15.json`, dated by your device's clock — and hands it to your
 device's normal share or save sheet. From there you decide where it
 goes: a cloud drive, your Files area, an email to yourself, or a folder
 of your choosing. When it's done, you'll see a **Backup exported.**
-confirmation.
+confirmation. If you close the sheet without choosing a destination, nothing is
+saved, no confirmation appears, and the overdue-backup reminder stays.
+
+The app won't write a backup larger than it can restore. If your library is
+too large to export as a single backup, it says so, shows the size and the
+limit, and saves nothing — your data is unchanged.
+
+### Saving over an older backup
+
+On Windows and Linux, the app writes a new backup beside the file you chose
+and swaps it in only once it is complete, so a save that fails part way
+leaves your earlier backup as it was.
+
+On a Mac, macOS lets the app write only to the exact file you chose, so saving
+over an older backup replaces that file in place. Before it does, the app
+checks that the disk has room for the new backup. If it doesn't, the app says
+how much space the backup needs and how much is free, saves nothing, and
+leaves your earlier backup unchanged. Free up some space and export again, or
+save under a new name. The check can't foresee another app filling the disk
+during the save, so it's worth keeping more than one backup.
 
 ### An integrity check, not a lock
 
@@ -48,38 +70,55 @@ see your library. It is **not** encrypted or password-protected, so treat
 the file the way you'd treat any personal document and store it somewhere
 you trust.
 
-Every backup does carry a built-in **integrity checksum**. Think of it as a
-checksum, not a lock or a security seal: it doesn't hide anything and it can't
-stop a determined editor (who could simply recalculate it), but it lets the app
-notice if the file was accidentally corrupted or changed after you exported
-it. If a restore ever detects a mismatch, it stops before touching your
-data (see [Restore from a backup](#restore-from-a-backup) below) instead of
-importing something damaged.
+Every backup carries a built-in **integrity checksum**. It isn't a lock: it
+doesn't hide anything, and it can't stop someone who deliberately edits the
+file (they could recalculate it). What it does is let the app notice if the
+file was accidentally corrupted or changed after you exported it. If a
+restore detects a mismatch, it stops before touching your data (see
+[Restore from a backup](#restore-from-a-backup) below) instead of importing
+something damaged.
 
 ### What's inside a backup
 
 A backup holds **everything** you've built, including:
 
-- Your whole collection of dances — figures, notes, tunes, links, and
-  any [custom field](./glossary.md#custom-field) values you've filled in,
+- Your whole collection of dances — figures, notes, tunes, links, your star
+  ratings, and any [custom field](./glossary.md#custom-field) values you've filled in,
   including fields marked **Include in sharing** off, along with where each
   dance was imported from.
 - All your programs, with their [slots](./glossary.md#slot),
-  [alternates](./glossary.md#alt), event details, and which dances
-  you've marked as performed.
-- Your custom fields, tags, and choreographers. A sharing opt-out keeps a custom
-  field out of files you send to other people; it does not remove the field from
-  your own backup.
+  [alternates](./glossary.md#alt), event details, pay, Perform dialect,
+  which dances you've marked as performed, and which programs you've
+  [archived](./programs.md#create-and-manage-programs).
+- The dances and programs in **Recently deleted**, so you can still restore
+  them after bringing the backup back.
+- Your custom fields, tags, authors, published sources, difficulty levels,
+  and saved [venues](./glossary.md#venue). An author's private email,
+  location and deceased marker, and a venue's address and contact people, are
+  in your backup too. Files you share leave them out, except a venue's contact
+  people when you choose to include them. A sharing
+  opt-out keeps a custom field out of files you send to other people; it does
+  not remove the field from your own backup.
 - Your custom [dialects](./dialects.md) and which one is active.
 - Your custom themes and which one is active.
-- Your settings and preferences.
+- Your settings and preferences, including your figure shorthands and
+  walkthrough snippets.
+- Your own figures from the Glossary and your notes on built-in figures (see
+  [Glossary and Custom Figures](./settings.md#glossary-and-custom-figures)).
+  Restoring a backup replaces them, but a backup made while you had none
+  leaves the ones on this device as they are. Your Glossary has a size limit
+  for what you add yourself; a backup made before the limit existed restores
+  whole even if it is over the limit, and you can then shorten or delete
+  figures and notes, but not add more until it is under.
 
-A few device-specific odds and ends are left out on purpose, so a
-restored device feels right at home instead of inheriting the old one's
-quirks — things like window size and position, any half-finished edits
-you hadn't saved yet, and the backup-reminder bookkeeping itself. You
-don't need to think about these; the important part is that all your
-real content comes along.
+A few device-specific things are left out on purpose, so a restored device
+doesn't inherit the old one's quirks: window size and position, any
+half-finished edits you hadn't saved yet, your last-backup date, and everything about
+[Device Sync](./settings.md#device-sync) — so restoring a backup never turns
+sync on or connects a device to a store. All your real content comes
+along, and so does your reminder cadence (off / weekly / monthly) — but the
+last-backup date does not travel, so restoring leaves this device's own
+last-backup date as it was.
 
 ## Restore from a backup
 
@@ -88,40 +127,99 @@ setting up a new device or recovering after a problem.
 
 1. Open **Settings**, then choose **General**.
 2. Find the **Backup & restore** section.
-3. Choose **Restore from a backup**, then choose **Restore**.
+3. Choose **Restore** beside **Restore from a backup**.
 4. Either choose **Choose file…** (a picker that shows `.json` backups)
-   or paste the backup text directly.
-5. Confirm with **Replace all data**.
+   or paste the backup text into **Or paste backup JSON**. A chosen file is
+   shown as a short summary (its date, how many dances and programs it
+   holds, and its size) rather than as text in the box; the box is for
+   pasted text only. Choose **Clear** to forget the file. Once the box
+   holds text or a file is chosen, a tap outside the dialog, **Esc** or
+   **Back** will not close it, so a stray tap can't lose what you pasted;
+   choose **Cancel** to close it on purpose.
+5. Confirm with **Replace all data**. A progress bar counts the restore
+   from start to finish; it can't be dismissed, so wait for it to close.
 
-On success, you'll see a **Backup restored.** confirmation. If a few
-items in the file couldn't be read, the app still restores everything
-else and tells you how many were skipped. And if the file turns out to
-be invalid or corrupt, the restore is safely stopped *before* any of
-your current data is touched — so you never lose what you already have
-by trying.
+On success, you'll see a **Backup restored.** confirmation. If any
+dance, program or other core item in the file can't be read, the restore
+stops *before* anything changes and tells you; only optional extras (custom
+dialects and themes, and any of your own figures, terms or notes the app can't
+store) can be skipped, and the app tells you how many problems it skipped. If the file is invalid or
+corrupt, comes from a newer version of the app that this one can't
+read, or has no app-settings section (an older, hand-edited or incomplete
+file that couldn't say what your settings, themes and dialects should
+become), the restore stops *before* any of your current data is touched —
+so you never lose what you already have by trying. A file too large to be a
+backup is refused the same way, with its size and the limit.
+
+> **Restoring on an older version of the app.** A backup that holds your own
+> Glossary figures or notes, or pay or a Perform dialect on any program, needs
+> version 0.8.0 or later. Versions 0.5.2 to 0.7.0 refuse it as coming from a
+> newer version. That includes 0.6.0 and 0.7.0, which could read pay and Perform
+> dialects: a backup can't tell them apart from 0.5.2 to 0.5.4, which would
+> restore it without them. Versions before 0.5.2 don't check, and may restore it
+> without those details. Install the current version before you restore.
+>
+> The same goes for a backup that holds an English country dance formation
+> (such as duple minor), a dance marked improper, a dance's meter or key, or
+> who interpreted a dance and when: versions without them refuse it as coming
+> from a newer version. A backup that holds an archived program needs version
+> 0.11.0 or later to replace your library: versions 0.5.2 to 0.10.0 refuse
+> that, rather than bring your archived programs back unarchived.
+
+### Restoring while Device Sync is connected
+
+If this device is connected to [Device Sync](./settings.md#device-sync), the
+restore dialog says so. A restore puts this device back the way it was when the
+backup was made, but it doesn't turn back the clock on your other devices:
+
+- Anything Device Sync carries that was changed on a device you sync with
+  **since the backup was made** comes back from that device at the next sync.
+  That covers edits, new items and deletions — a tag renamed on your phone
+  last week, a glossary term added on your tablet, a venue deleted on your
+  laptop, a shared setting such as decimal turns changed anywhere. It includes
+  changes you made on this device and had already synced, because your other
+  devices hold them too.
+- Everything else takes the backup's version: what hasn't changed since the
+  backup (on this device and, after the next sync, on your other devices),
+  changes made on this device that never reached your other devices, and
+  settings kept per device, such as the app language, which Device Sync
+  never carries.
+
+So with sync on, a restore can't undo a change your other devices already
+have. To undo one everywhere, make the change again after the restore — for a
+dance or program, that includes restoring it from **Recently deleted**.
+
+If you use Device Sync with another device that
+runs a newer version of the app, a restore keeps the details that version added
+to your records, so the next sync doesn't remove them from your other devices.
 
 > **If your settings don't come back, your dances still did.** Occasionally a
 > restore succeeds for your content but fails while re-applying your saved
 > settings. The app says so plainly — *your dances and programs were restored,
-> but applying your saved settings failed* — and offers **Retry settings**.
-> Choose it and the app tries again, confirming with **Settings applied.** Your
-> restored content is safe either way.
+> but applying your saved settings failed* — and offers **Try again**.
+> Choose it and the app tries again, confirming with **Settings applied.** If
+> the restore also skipped one of your own figures or notes it couldn't use,
+> such as a figure whose name is too long, it tells you how many problems it
+> skipped instead: trying again won't change those. Your restored content is safe either way.
 
-> **A broken integrity seal never harms your data.** If a backup was
+> **A failed integrity check never harms your data.** If a backup was
 > corrupted or altered after it was exported, its integrity check won't
-> match and the app tells you it can't safely restore the file, then
-> stops. Nothing is imported and your current library is left exactly as
-> it was. Re-export a fresh backup and try again with that.
+> match, so the app tells you it can't safely restore the file and stops.
+> Nothing is imported and your current library is left exactly as it was.
+> Export a fresh backup and restore from that instead.
 
-> **Have an older `.ccbackup` file?** Earlier betas offered an optional
-> passphrase-encrypted backup saved as `.ccbackup`. That option has been
-> retired, and the app can no longer open those files. If you're updating
-> from an older beta and still have data only in a `.ccbackup`, restore it
-> with the older build first, then export a fresh `.json` backup.
+> **Have an older `.ccbackup` file?** Some early versions offered an
+> optional passphrase-encrypted backup saved as `.ccbackup`. That option
+> has been retired, and the app can no longer open those files. If you
+> still have data only in a `.ccbackup`, restore it with the older version
+> first, then export a fresh `.json` backup.
 
 > **Restoring replaces everything.** A restore swaps out *all* of your
 > current dances, programs, settings, and customizations for the
-> contents of the backup file, and it **cannot be undone**. The app
+> contents of the backup file on this device, and it **cannot be undone**
+> (with Device Sync on, see
+> [Restoring while Device Sync is connected](#restoring-while-device-sync-is-connected)
+> for what comes back from your other devices). The app
 > shows a confirmation dialog to make sure this is what you want. If
 > there's anything on your device you haven't backed up yet, export a
 > fresh backup first.
@@ -134,16 +232,15 @@ source *alongside* what you already have, use the
 ## Move to a new device
 
 Moving your whole library to a new phone, tablet, or computer is a clean
-round trip. Because a backup restores exactly, what you save is what you
-get back:
+round trip — what you save is what you get back:
 
 1. On your **old** device, export a backup (see above).
 2. Transfer the file to the new device — through a cloud drive, a USB
    stick, or email to yourself.
 3. On your **new** device, restore from that backup.
 
-That's it. Your collection, programs, dialects, themes, and settings all
-arrive intact.
+Your collection, programs, dialects, themes, and settings all arrive
+intact.
 
 ## Backup reminders
 
@@ -156,31 +253,31 @@ includes a **Backup reminder** setting. You can choose:
 
 The setting also shows **Last backup: never** or the date of your most
 recent backup, so you always know where you stand. When a backup is
-overdue, the app shows a gentle reminder to export one — no pressure,
-just a friendly tap on the shoulder.
+overdue, a note under the setting suggests exporting one now. The app also
+shows a reminder bar on the main screen, once each time you open the app,
+with **Export backup** and **Not now** buttons. **Not now** hides it until
+the next time you open the app.
 
 ## Backups happen automatically too
 
-Beyond the backups you make, the app quietly keeps its own recovery
-snapshot before any major internal upgrade. This means your data stays
-protected across app updates without you doing anything at all. There's
-no button to press and nothing to manage — it's simply there as an extra
-safety net.
+Before an app update changes how your data is stored, or runs a one-time
+repair over your saved dances, the app saves its own recovery snapshot on
+your device. There's nothing to press and
+nothing to manage — it's an extra safety net across updates.
 
-This automatic snapshot is a bonus, not a replacement. Your own exported
-backups are still the copies you can move between devices and store
-wherever you like.
+This snapshot is a bonus, not a replacement. Your own exported backups are
+the copies you can move between devices and store wherever you like.
 
 ## Backups vs. sharing vs. importing
 
-It's easy to mix up three related-but-different features:
+Three related features are easy to mix up:
 
 - **Backup & restore** (this guide) works with your *entire* library at
   once — one file in, one file out.
-- **Sharing a single dance or program** as text or PDF is a separate
-  thing that lives on each individual dance or program, not here. See
-  [Collection & search](./collection.md) for sharing dances and
-  [Programs & matrix](./programs.md) for sharing programs.
+- **Sharing a single dance or program** — as text, a PDF, or a file
+  another caller can import — happens from that dance or program, not here,
+  and leaves out private details a backup keeps. See
+  [Share, print & export](./sharing.md).
 - **Importing** brings dances in from other apps and sources — such as
   The Caller's Box, ContraDB, or another Caller's Compendium file — and
   *merges* them alongside what you already have. See

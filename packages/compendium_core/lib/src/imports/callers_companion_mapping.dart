@@ -1,17 +1,30 @@
 import 'package:meta/meta.dart';
 
+import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
+import '../model/source_citation.dart';
+import '../taxonomy/dance_vocabulary.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'author_tokenizer.dart';
+import 'beat_implied_balance.dart';
+import 'callers_companion_comma_split.dart';
+import 'callers_companion_user_fields.dart';
+import 'ecd_bars.dart';
+import 'ecd_figure_parser.dart';
+import 'ecd_formation.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
+import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'structured_draft.dart';
+import 'title_article.dart';
 
 /// The reusable Caller's Companion (CC) → Compendium mapping layer.
 ///
@@ -34,7 +47,9 @@ import 'structured_draft.dart';
 /// is routed through the shared free-text fan-out** ([parseFigureLinesFanOut])
 /// — recognised moves structure into taxonomy figures, and anything the fan-out
 /// cannot canonicalize degrades to an honest [CustomOrigin.importGap] `custom`
-/// (parse-never-fails, never invents structure).
+/// (parse-never-fails, never invents structure). One CC-only retry sits on top:
+/// a missed line with a hyphenated hand (`Left-hand allemande`) is read again
+/// with the bare side (see [_retryHyphenatedHand]).
 
 /// The Caller's Companion figure-text front-end. CC's `(beats) text` body lines
 /// are the user's personal free text and never carry TCB paren/annotation
@@ -42,6 +57,11 @@ import 'structured_draft.dart';
 /// the lowest-precedence tier of the free-text fan-out
 /// ([figureFanOutFrontEnds]: ContraDB > TCB > CC); exposed as its own named,
 /// independently-callable [FigureFrontEnd] so the fan-out can select it by name.
+///
+/// Nothing CC-specific belongs on this front-end: free-text entry, call-button
+/// seeding and the reparse upgrade fan out across it too, so a CC-only reading
+/// placed here would change them. That is why the hyphenated-hand retry
+/// ([_retryHyphenatedHand], #1908) lives in [mapCallersCompanionDance] instead.
 const FigureFrontEnd callersCompanionFigureFrontEnd = canonicalFigureFrontEnd;
 
 /// One free-text body section of a CC dance (e.g. `A1`, `B2`).
@@ -76,17 +96,34 @@ class CcDanceRecord {
     this.name,
     List<String> authors = const [],
     this.type,
+    this.subType,
     this.formation,
+    this.formationFamily,
+    this.contraForm,
+    this.direction,
+    this.formationOther,
+    this.fromUsrColumns = false,
     this.level,
     this.progression,
+    this.progressionOther,
     this.music,
     this.notes,
+    this.callingNotes,
+    this.otherNotes,
+    this.from,
+    this.reference,
+    this.pageNumber,
+    this.callersBoxId,
+    List<String> sourceUrls = const [],
+    List<String> videoUrls = const [],
     this.composed,
     this.revised,
     this.rating,
     List<CcUserField> userFields = const [],
     List<CcBodySection> body = const [],
-  }) : authors = List.unmodifiable(authors),
+  }) : sourceUrls = List.unmodifiable(sourceUrls),
+       videoUrls = List.unmodifiable(videoUrls),
+       authors = List.unmodifiable(authors),
        userFields = List.unmodifiable(userFields),
        body = List.unmodifiable(body);
 
@@ -101,8 +138,36 @@ class CcDanceRecord {
   /// CC `Type` (e.g. "Contra", "Square").
   final String? type;
 
-  /// CC `Formation`/`ContraForm` (e.g. "Improper", "Becket", "Proper").
+  /// CC `SubType` (e.g. "Keeper, H S H S", "Mixer, H H S S" on a square).
+  final String? subType;
+
+  /// A single formation string (e.g. "Improper", "Becket", "Proper"), as the
+  /// CC text export gives it. Not read for a `.USR` record
+  /// ([fromUsrColumns]), which carries the separate columns below.
   final String? formation;
+
+  /// CC `Formation`: the shape family ("Duple Minor", "Four Facing Four",
+  /// "Triple Minor", "Triplet", "Square", "Other").
+  final String? formationFamily;
+
+  /// CC `ContraForm`: how a duple minor starts ("Improper", "Becket",
+  /// "Proper", "Indecent").
+  final String? contraForm;
+
+  /// CC `Direction`: a Becket's rotation ("CW"/"CCW"), or "Rev" for a
+  /// reverse-progression improper.
+  final String? direction;
+
+  /// CC `FormationOther`: the caller's own description of the start
+  /// ("Long Waves, R-hand to Neighbor", "Five couple horseshoe").
+  final String? formationOther;
+
+  /// Whether this record was read from a `.USR`'s columns
+  /// (`ccDanceRecordFromColumns`), so its formation comes from
+  /// [formationFamily], [contraForm], [direction] and [formationOther] and its
+  /// mixer flag from [type] and [subType] (#1972). The text export's records
+  /// leave it false and keep the single [formation] string.
+  final bool fromUsrColumns;
 
   /// CC `Level` (e.g. "Beginner", "Intermediate", "Advanced", "Mixed").
   final String? level;
@@ -110,12 +175,45 @@ class CcDanceRecord {
   /// CC `Progression` (e.g. "Single", "Double").
   final String? progression;
 
+  /// CC `ProgressionOther` beside a stated [progression]: its detail, which
+  /// the app has no field for, so it goes to the calling notes (#1974).
+  final String? progressionOther;
+
   /// CC `Music` — free-text tune/music note.
   final String? music;
 
   /// Any additional free-text notes (e.g. CC `Credits`), if the source has
   /// them. Folded into the dance's calling notes.
   final String? notes;
+
+  /// CC `CallingNotes`: the caller's own notes, first in the calling notes
+  /// (#1974).
+  final String? callingNotes;
+
+  /// CC `NotesOther`: history, variations, attribution. Added to the calling
+  /// notes under "Other notes:" (#1974).
+  final String? otherNotes;
+
+  /// CC `From`: where the caller found the dance, a source that is not a link.
+  /// Added at the bottom of the calling notes as "Source:" (#1974).
+  final String? from;
+
+  /// CC `Reference`: a published source (book) the dance appears in; cited
+  /// with [pageNumber] (#1974).
+  final String? reference;
+
+  /// CC `PageNumber`: the page of [reference].
+  final String? pageNumber;
+
+  /// CC `CallersBox_id`: the dance's id on The Caller's Box, kept as a source
+  /// link to its page (#1974).
+  final String? callersBoxId;
+
+  /// CC `SourceURL`: source links (#1974).
+  final List<String> sourceUrls;
+
+  /// CC `VideoURL` … `VideoURL5`: video links (#1974).
+  final List<String> videoUrls;
 
   /// CC `DateComposed`, as a raw string (`YYYY`, `YYYY-MM`, or `YYYY-MM-DD`).
   final String? composed;
@@ -131,9 +229,10 @@ class CcDanceRecord {
 
   /// CC `UserDefined_1..3` user-defined fields, each a (label, value) pair.
   /// CC lets a caller define up to three custom columns (with `*_Name`
-  /// labels). The model's typed `customFields` need a custom-field *definition*
-  /// the import pipeline cannot create yet, so these are folded into the
-  /// dance's calling notes as labelled lines by [mapCallersCompanionDance].
+  /// labels). [mapCallersCompanionDance] maps each non-empty one to a text
+  /// custom-field value under a key derived from its label (see
+  /// `planCcUserFields`); the definition behind it is created or matched at
+  /// commit by `CallersCompanionUsrImporter`, not here.
   final List<CcUserField> userFields;
 
   /// The free-text transcription body, grouped by CC section.
@@ -145,9 +244,17 @@ class CcDanceRecord {
 /// `UserDefined_N`.
 @immutable
 class CcUserField {
-  const CcUserField({required this.label, required this.value});
+  const CcUserField({
+    required this.label,
+    required this.value,
+    this.labelWasBlank = false,
+  });
   final String label;
   final String value;
+
+  /// Whether the source had no UserDefined_N_Name, so [label] is a name the
+  /// reader made up. [mapCallersCompanionDance] notes it on the draft.
+  final bool labelWasBlank;
 }
 
 /// The result of [mapCallersCompanionDance]: a [Dance] draft plus the non-fatal
@@ -181,27 +288,105 @@ class CcDanceMapping {
 /// one.
 const String ccUntitledDanceTitle = "Untitled Caller's Companion dance";
 
+/// Remembers the figures each body line parsed to, so a library that says
+/// `(8) Partner swing` four thousand times parses it once.
+///
+/// Keyed on the **trimmed raw line, beats prefix included**: a line's figures —
+/// including how a compound `(4,12)` prefix is allocated across them — are a
+/// pure function of that text under the default taxonomy and dialect, which is
+/// what [mapCallersCompanionDance] parses with. (A caller that ever parsed with
+/// another taxonomy or dialect must not share a cache with one that did not.)
+/// Sharing the cached [Figure]s between dances is safe: [Figure] is immutable,
+/// with unmodifiable params.
+///
+/// Bounded, because the input is untrusted: a file can hold far more distinct
+/// lines than any real library. Past [maxEntries] new lines are simply parsed
+/// each time; nothing already cached is evicted or changed.
+class CcFigureLineCache {
+  CcFigureLineCache({this.maxEntries = defaultMaxEntries});
+
+  /// Sized for a large real library (a Caller's Box-scale corpus of ~20,000
+  /// dances has ~14,500 distinct lines) with room to spare, while capping what
+  /// a hostile file can make this hold.
+  static const int defaultMaxEntries = 50000;
+
+  final int maxEntries;
+  final Map<String, List<Figure>> _figuresByLine = <String, List<Figure>>{};
+
+  /// An English dance's lines, kept apart: the same text reads differently
+  /// in an English dance (ADR-006 W6), and differently again in a ring of
+  /// another size (a `half way` circle turns 2 places of 4, 3 of 6) or a tune
+  /// of another meter (`1-4` is 8 beats in 2/2, 12 in 3/4), so each is keyed
+  /// by the ring size and the beats in a bar its dance gives too.
+  final Map<(String, int?, int?), List<Figure>> _ecdFiguresByLine =
+      <(String, int?, int?), List<Figure>>{};
+
+  /// How many distinct lines are remembered, of either kind.
+  int get length => _figuresByLine.length + _ecdFiguresByLine.length;
+
+  /// The figures [line] parsed to, or null if it has not been remembered.
+  /// [ecd] selects an English dance's lines, read in a ring of [ringDancers]
+  /// with [beatsPerBar] beats in a bar.
+  List<Figure>? lookup(
+    String line, {
+    bool ecd = false,
+    int? ringDancers,
+    int? beatsPerBar,
+  }) => ecd
+      ? _ecdFiguresByLine[(line, ringDancers, beatsPerBar)]
+      : _figuresByLine[line];
+
+  /// The figures [line] of a contra or square dance parsed to, or null.
+  List<Figure>? operator [](String line) => lookup(line);
+
+  /// Remembers [figures] for [line] unless the cache is full. [ecd] marks an
+  /// English dance's line, read in a ring of [ringDancers] with [beatsPerBar]
+  /// beats in a bar.
+  void remember(
+    String line,
+    List<Figure> figures, {
+    bool ecd = false,
+    int? ringDancers,
+    int? beatsPerBar,
+  }) {
+    if (length >= maxEntries) return;
+    final kept = List<Figure>.unmodifiable(figures);
+    if (ecd) {
+      _ecdFiguresByLine[(line, ringDancers, beatsPerBar)] = kept;
+    } else {
+      _figuresByLine[line] = kept;
+    }
+  }
+}
+
 /// Maps a source-agnostic [CcDanceRecord] into a [Dance] draft and the issues
 /// raised while doing so. **Never throws on content** — a missing title, an
 /// unmapped level/formation, or an unparseable date all surface as
 /// [ImportIssue]s, and every body line becomes a structured or [customMove]
-/// figure via [parseFigureLine] (the parse-never-fails invariant). This is the
-/// single unit both the text adapter and the `.USR` reader call.
+/// figure via [parseFigureLinesFanOut], or [parseEcdFigureLine] for a dance
+/// whose Type is English (the parse-never-fails invariant). This
+/// is the single unit both the text adapter and the `.USR` reader call.
 ///
 /// The draft's identity is disposable: [newId] (default [uuidV4]) and
 /// [timestamp] (default the Unix epoch) exist only so a valid [Dance] can be
 /// constructed — the pipeline reassigns id/`createdAt`/`updatedAt` at commit.
+///
+/// [lineCache], when given, is consulted and filled per body line (see
+/// [CcFigureLineCache]); it changes what parsing costs, never what it returns.
 CcDanceMapping mapCallersCompanionDance(
   CcDanceRecord record, {
   String Function()? newId,
   DateTime? timestamp,
+  CcFigureLineCache? lineCache,
+  bool englishDances = false,
 }) {
   final issues = <ImportIssue>[];
   final now = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 
   // Title — placeholder + warning when absent (never throw). Sanitized
   // single-line so control/bidi/format spoofing chars never reach storage
-  // (issue #444).
+  // (issue #444). CC files titles library-style ("Baby Rose, The"); the
+  // article goes back to the front (#1976).
   final rawName = _sanitizeLine(record.name) ?? '';
   final String title;
   if (rawName.isEmpty) {
@@ -210,13 +395,14 @@ CcDanceMapping mapCallersCompanionDance(
       const ImportIssue(
         severity: ImportIssueSeverity.warning,
         code: 'cc_missing_title',
+        // Both the pasted text and a `.USR` row reach here (#1976).
         message:
-            'The pasted dance had no title; imported as '
+            'The dance had no title; imported as '
             '"$ccUntitledDanceTitle". Edit it before committing.',
       ),
     );
   } else {
-    title = rawName;
+    title = frontTrailingArticle(rawName);
   }
 
   // Authors — collected as display names for the pipeline to resolve to
@@ -226,16 +412,53 @@ CcDanceMapping mapCallersCompanionDance(
   // ONE shared canonical splitter (#685) so a combined "Alice and Bob" string
   // and a pre-split ["Alice", "Bob"] array both normalize identically. Never
   // fabricates ids; blank/duplicate names are dropped.
-  final authorNames = splitAuthorNames(record.authors, issues: issues);
+  // "And Others" credits nobody: it becomes a note, not an author (#1976).
+  final (:fields, :hadOthers) = peelUnnamedOthers(record.authors);
+  final authorNames = splitAuthorNames(fields, issues: issues);
 
   // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
-  final (difficultyLevelId, mixedLevel) = _mapLevel(record.level, issues);
+  final (
+    id: difficultyLevelId,
+    mixed: mixedLevel,
+    label: difficultyLevelLabel,
+  ) = _mapLevel(
+    record.level,
+    issues,
+  );
+
+  // A `.USR` carries the formation in separate columns, and its formation
+  // types and mixer SubTypes are read into the formation and the mixer flag
+  // (#1972); the text export gives one formation string.
+  final usr = record.fromUsrColumns;
 
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
-  final (form, typeNote) = _mapForm(record.type, issues);
+  // A file the person says holds English dances reads every dance that is not
+  // a square as English, whatever its Type says (Hudson, 19 November 2026: a
+  // Caller's Companion library often types its English dances "Contra").
+  final (mappedForm, typeNote) = _mapForm(
+    record.type,
+    issues,
+    typeIsFormation: usr,
+  );
+  final form = englishDances && mappedForm == DanceForm.contra
+      ? DanceForm.ecd
+      : mappedForm;
+  // An unknown Type was read as English, not "imported as a contra": its
+  // note still keeps the Type.
+  if (form != mappedForm) {
+    issues.removeWhere((issue) => issue.code == 'cc_unmapped_type');
+  }
 
-  // Formation → FormationShape, preserving unmapped text as detail.
-  final formation = _mapFormation(record.formation, issues);
+  // Formation → FormationShape, preserving unmapped text as detail. An
+  // English dance takes the ECD shape its contra shape names (ADR-006 W6).
+  final formation = form == DanceForm.ecd
+      ? _mapEcdFormation(record, usr, issues)
+      : usr
+      ? _mapFormationColumns(record, issues)
+      : _mapFormation(record.formation, issues);
+  // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
+  // SubType ("Mixer, H H S S").
+  final mixer = usr && _isCcMixer(record);
 
   // Progression → Progression enum, best-effort.
   final progression = _mapProgression(record.progression, issues);
@@ -247,22 +470,78 @@ CcDanceMapping mapCallersCompanionDance(
   // Rating → 1..5 star scale, best-effort; out-of-range → warning + unset.
   final rating = _mapRating(record.rating, issues);
 
-  // Notes: Music + an unmapped-type note + any extra source notes + the CC
-  // user-defined fields (folded here because true customFields need a
-  // custom-field-definition import path the pipeline lacks — see the mapping
-  // doc / PR notes).
+  // CC user-defined fields → text custom-field values. The value's fieldId is a
+  // placeholder the importer resolves to a real definition at commit.
+  // Sanitized as the calling-notes path always was (#444): a label becomes a
+  // display name and a value free text, so control, bidi-override and invisible
+  // characters are stripped from both.
+  final userFieldPlan = planCcUserFields([
+    for (final field in record.userFields)
+      CcUserField(
+        label: _sanitizeLine(field.label) ?? '',
+        value: sanitizeImportedText(field.value).trim(),
+        labelWasBlank: field.labelWasBlank,
+      ),
+  ]);
+  issues.addAll(userFieldPlan.issues);
+
+  // Notes: the caller's own calling notes, Music, an unmapped-type note, any
+  // extra source notes, the other notes, an "and others" credit (#1976), and
+  // last the non-link source, as the Caller's Box and ContraDB importers end
+  // with "Imported from …" (#1974).
   final notes = _joinNotes([
+    if ((record.callingNotes ?? '').trim().isNotEmpty)
+      record.callingNotes!.trim(),
     if ((record.music ?? '').trim().isNotEmpty)
       'Music: ${record.music!.trim()}',
     ?typeNote,
+    if ((record.progressionOther ?? '').trim().isNotEmpty)
+      'Progression: ${record.progressionOther!.trim()}',
     if ((record.notes ?? '').trim().isNotEmpty) record.notes!.trim(),
-    for (final field in record.userFields)
-      if (field.value.trim().isNotEmpty)
-        '${field.label.trim().isEmpty ? 'Note' : field.label.trim()}: '
-            '${field.value.trim()}',
+    if ((record.otherNotes ?? '').trim().isNotEmpty)
+      'Other notes: ${record.otherNotes!.trim()}',
+    if (hadOthers)
+      authorNames.isEmpty
+          ? 'Choreography: others, not named'
+          : 'Choreography: ${authorNames.join(', ')} and others',
+    if ((record.from ?? '').trim().isNotEmpty) 'Source: ${record.from!.trim()}',
   ]);
 
-  // Body → figures (design §2). Each `(beats) text` line has its leading beats
+  // Links: source and video URLs, and the dance's Caller's Box page (#1974).
+  // A URL the file repeats is linked once.
+  final mintLinkId = newId ?? uuidV4;
+  final callersBoxUrl = callersBoxDanceUrl(record.callersBoxId);
+  final linked = <String>{?callersBoxUrl};
+  final links = <DanceLink>[
+    for (final url in record.sourceUrls.map(ccLinkUrl).nonNulls)
+      if (linked.add(url))
+        DanceLink(id: mintLinkId(), kind: LinkKind.source, url: url),
+    if (callersBoxUrl != null)
+      DanceLink(
+        id: mintLinkId(),
+        kind: LinkKind.source,
+        url: callersBoxUrl,
+        label: "The Caller's Box",
+      ),
+    for (final url in record.videoUrls.map(ccLinkUrl).nonNulls)
+      if (linked.add(url))
+        DanceLink(id: mintLinkId(), kind: LinkKind.video, url: url),
+  ];
+
+  // A published source: its id is a placeholder the importer resolves to a
+  // matched or created [PublishedSource] at commit, as for user fields.
+  final reference = _sanitizeLine(record.reference);
+  final citations = [
+    if (reference != null)
+      SourceCitation(
+        sourceId: ccPublishedSourcePlaceholderId(reference),
+        page: _sanitizeLine(record.pageNumber),
+      ),
+  ];
+
+  // Body → figures (design §2). An English dance's lines go to the ECD
+  // grammar instead ([_ecdLineFigures]); the rest of this comment is contra's
+  // and square's path. Each `(beats) text` line has its leading beats
   // prefix peeled off ([splitCcBeatPrefix], which accepts a lone `(16)` or a
   // compound `(4,12)`) and is then routed through the shared free-text FAN-OUT
   // ([parseFigureLinesFanOut]): the line is attempted against each source
@@ -274,17 +553,108 @@ CcDanceMapping mapCallersCompanionDance(
   // (parse-never-fails); a line that is empty after scrubbing yields nothing
   // (nothing to store). The fan-out applies the core `scrubFigureText`
   // chokepoint internally, and the TCB attempt `;`-splits a compound line into
-  // multiple figures. Section labels are NOT embedded in the figure text (they
-  // derive from cumulative beats), so the section label is not prefixed.
+  // multiple figures. A line the fan-out misses gets one more attempt from
+  // [_retryHyphenatedHand], and then may split at its commas
+  // ([splitCallersCompanionCommaLine]). Section labels are NOT embedded in the
+  // figure text (they derive from cumulative beats), so the section label is
+  // not prefixed.
+  // An English dance's tune meter and key, from the Music text ("Key: G,
+  // Meter: 2/2"); a leading bar range counts in bars of that meter.
+  final music = form == DanceForm.ecd
+      ? ccMusicMeterAndKey(record.music)
+      : (meter: '', key: '');
+  final meter = music.meter;
+  final barBeats = ecdBeatsPerBar(meter);
+  var countedBarsUnstated = false;
   final figures = <Figure>[];
+  // Each section's label and the beats its figures count, from which an
+  // English dance's named phrases are found ([ecdPhraseStructureFor]).
+  final sectionBeats = <EcdSectionBeats>[];
   for (final section in record.body) {
+    final firstFigure = figures.length;
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
+      // An English line is read by the ECD grammar, never as a contra move
+      // (ADR-006 §5.1), so its cache entry is kept apart from contra's.
+      final ecd = form == DanceForm.ecd;
+      final ring = ecd ? ecdRingDancers(formation.shape) : null;
+      final bar = ecd ? barBeats.beatsPerBar : null;
+      // The bars are counted after a `(8)` prefix, so look past it too.
+      if (ecd &&
+          !barBeats.stated &&
+          splitEcdBarRange(splitCcBeatPrefix(line).text) != null) {
+        countedBarsUnstated = true;
+      }
+      final cached = lineCache?.lookup(
+        line,
+        ecd: ecd,
+        ringDancers: ring,
+        beatsPerBar: bar,
+      );
+      if (cached != null) {
+        figures.addAll(cached);
+        continue;
+      }
       final prefix = splitCcBeatPrefix(line);
-      final produced = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
-      figures.addAll(_allocateCompoundBeats(produced, prefix.parts));
+      if (ecd) {
+        final read = _ecdLineFigures(
+          prefix.text,
+          prefix.beats,
+          prefix.parts,
+          line: line,
+          ringDancers: ring,
+          meter: meter,
+        );
+        lineCache?.remember(
+          line,
+          read,
+          ecd: true,
+          ringDancers: ring,
+          beatsPerBar: bar,
+        );
+        figures.addAll(read);
+        continue;
+      }
+      final first = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
+      final produced =
+          _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
+      // A line that names several figures separated by commas is split only
+      // when it did not read whole, or read with a note holding its last piece
+      // (#1975); the split shares out the beats itself.
+      final split =
+          produced.any((f) => f.isCustom) ||
+              noteSwallowsPieces(prefix.text, produced)
+          ? splitCallersCompanionCommaLine(
+              prefix.text,
+              beats: prefix.beats,
+              parts: prefix.parts,
+            )
+          : null;
+      final allocated = withBeatImpliedBalance(
+        prefix.text,
+        split ?? _allocateCompoundBeats(produced, prefix.parts),
+      );
+      lineCache?.remember(line, allocated);
+      figures.addAll(allocated);
     }
+    final beats = figures
+        .skip(firstFigure)
+        .fold(0, (sum, figure) => sum + figure.beats);
+    sectionBeats.add((
+      label: section.label,
+      beats: beats,
+      // The figures count every count the lines state, and no more: a count
+      // lost in a line kept as text, or a figure's default count where its
+      // line states none, leaves the section's bars unknown.
+      counted:
+          form == DanceForm.ecd &&
+          beats ==
+              section.lines.fold(
+                0,
+                (sum, line) => sum + ecdStatedBeats(line, barBeats.beatsPerBar),
+              ),
+    ));
   }
 
   final dance = Dance(
@@ -293,22 +663,52 @@ CcDanceMapping mapCallersCompanionDance(
     form: form,
     formation: formation,
     progression: progression,
+    mixer: mixer,
     figures: figures,
     callingNotes: notes,
     difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
+    links: links,
+    sourceCitations: citations,
+    customFields: [
+      for (final field in userFieldPlan.fields)
+        CustomFieldValue(
+          fieldId: ccUserFieldPlaceholderId(field.key, field.label),
+          value: field.value,
+        ),
+    ],
     composedOn: composedOn,
     revisedOn: revisedOn,
+    meter: meter,
+    musicalKey: music.key,
+    phraseStructure: form == DanceForm.ecd
+        ? ecdPhraseStructureFor(
+            sectionBeats,
+            beatsPerBar: barBeats.beatsPerBar,
+            meterStated: barBeats.stated,
+          )
+        : '',
     createdAt: now,
     updatedAt: now,
   );
+  if (countedBarsUnstated) {
+    issues.add(
+      const ImportIssue(
+        severity: ImportIssueSeverity.info,
+        code: 'cc_bars_meter_unstated',
+        message:
+            'The dance counts in bars but its Music states no meter; each '
+            'bar was counted as 2 beats.',
+      ),
+    );
+  }
 
   return CcDanceMapping(
     dance: dance,
     issues: issues,
     authorNames: authorNames,
-    difficultyLevelLabel: record.level?.trim(),
+    difficultyLevelLabel: difficultyLevelLabel,
   );
 }
 
@@ -403,26 +803,183 @@ Figure _withBeats(Figure figure, int beats) {
   return figure.copyWith(params: params);
 }
 
-(String?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
-  final value = raw?.trim().toLowerCase() ?? '';
-  if (value.isEmpty) return (null, false);
-  if (value.contains('mix')) return (null, true);
-  const beginner = {'beginner', 'easy', 'novice', 'basic'};
-  const intermediate = {'intermediate', 'medium', 'moderate'};
-  const advanced = {'advanced', 'hard', 'challenging', 'difficult', 'expert'};
-  if (beginner.contains(value)) return (DifficultyLevel.beginnerId, false);
-  if (intermediate.contains(value)) {
-    return (DifficultyLevel.intermediateId, false);
+/// One `left-hand`/`right-hand` token, matched case-insensitively, with the
+/// word after it (if any) captured but not consumed, so a second token is
+/// still counted. Punctuation between them is skipped, since the parser strips
+/// it from the token's edge (`right-hand, lady` reads as `right-hand lady`).
+final RegExp _hyphenatedHand = RegExp(
+  r'\b(left|right)-hand\b(?=(?:[.,;:!]*\s+(\S+))?)',
+  caseSensitive: false,
+);
+
+/// The punctuation the parser strips from each word's edges.
+final RegExp _edgePunct = RegExp(r'^[.,;:!]+|[.,;:!]+$');
+
+/// Whether [word], the word after a `<side>-hand` token, makes that token
+/// name something other than a hand: a diagonal (`on right-hand diagonal`) or
+/// a dancer by position (square dance's `right-hand lady`, `left-hand
+/// neighbor`). The word is scrubbed on its own, its edge punctuation dropped,
+/// and looked up in [dancerWords], so `lady`/`lark` count through their role
+/// tokens.
+///
+/// Any dancer word counts, not only role nouns, so `left-hand partner
+/// allemande` stays custom too: a hand followed by a dancer can be either
+/// that dancer by position or that dancer by that hand, and the line does not
+/// say which.
+bool _qualifiesNextWord(String? word) {
+  if (word == null) return false;
+  final read = scrubFigureText(word).toLowerCase().replaceAll(_edgePunct, '');
+  return read == 'diagonal' || dancerWords.containsKey(read);
+}
+
+/// Caller's Companion's catch-all for a hyphenated hand (#1908): re-reads a
+/// body line the fan-out missed with its `<side>-hand` token as the bare side,
+/// so `Left-hand allemande` reads as `Left allemande` does. Returns the retried
+/// figures, or null to keep [first].
+///
+/// Taken only when [first] is a miss (so a line that structures today keeps
+/// its reading and its note's words), the line has exactly one such token and
+/// it does not qualify the next word ([_qualifiesNextWord]), and the retry is
+/// one plain figure with no note whose `hand` is that side. The hand check
+/// rules out readings that take the side as something else (`left circle`
+/// reads it as a direction, `left star promenade` discards it), and the
+/// next-word check rules out a side that belongs to a diagonal or a dancer,
+/// which the hand check cannot see (`allemande your right lady` reads as
+/// `role2s`, hand right). A note would hold the rewritten words rather than
+/// the line's own.
+///
+/// CC-only by design; see [callersCompanionFigureFrontEnd].
+List<Figure>? _retryHyphenatedHand(String text, int beats, List<Figure> first) {
+  if (first.isEmpty || !first.every((f) => f.isCustom)) return null;
+  final hands = _hyphenatedHand.allMatches(text).take(2).toList();
+  if (hands.length != 1) return null;
+  final hand = hands.single;
+  if (_qualifiesNextWord(hand[2])) return null;
+  final side = hand[1]!;
+  final retried = parseFigureLinesFanOut(
+    text.replaceRange(hand.start, hand.end, side),
+    beats: beats,
+  );
+  if (retried.length != 1) return null;
+  final f = retried.single;
+  if (f.isCustom || f.isContainer || f.note != null) return null;
+  return f.params['hand'] == side.toLowerCase() ? retried : null;
+}
+
+/// Reads a CC `Level` into a shipped difficulty-level id, the mixed-level
+/// flag, and the label the pipeline matches against the receiver's levels.
+///
+/// CC's `Level` is a multi-select and stores each checked value on its own
+/// line (#1973). One value (or several that are the same step) maps to a
+/// shipped level as before, `Easy` to Beginner. Several steps name a level of
+/// their own, "Easy/Intermediate", lowest first on CC's scale
+/// ([ccLevelScale]); it is left unset here, with a [ccNewLevelIssueCode] issue,
+/// and the pipeline reuses a level of that name while the `.USR` importer
+/// creates one that does not exist yet.
+({String? id, bool mixed, String? label}) _mapLevel(
+  String? raw,
+  List<ImportIssue> issues,
+) {
+  final values = [
+    for (final value in (raw ?? '').split(_lineBreak))
+      if (value.trim().isNotEmpty) value.trim(),
+  ];
+  if (values.isEmpty) return (id: null, mixed: false, label: null);
+  // Joined, not raw: a message or label never carries a line break.
+  final written = values.join('/');
+  if (written.toLowerCase().contains('mix')) {
+    return (id: null, mixed: true, label: written);
   }
-  if (advanced.contains(value)) return (DifficultyLevel.advancedId, false);
+  final steps = <int>{};
+  for (final value in values) {
+    final step = _ccLevelStep(value);
+    if (step == null) {
+      issues.add(
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: 'cc_unmapped_level',
+          message: 'Level "$written" is unrecognized; left unspecified.',
+        ),
+      );
+      return (id: null, mixed: false, label: written);
+    }
+    steps.add(step);
+  }
+  if (steps.length == 1) {
+    final id = switch (steps.single) {
+      0 || 1 => DifficultyLevel.beginnerId,
+      2 => DifficultyLevel.intermediateId,
+      _ => DifficultyLevel.advancedId,
+    };
+    return (id: id, mixed: false, label: values.first);
+  }
+  final name = ([...steps]..sort()).map((s) => ccLevelScale[s]).join('/');
   issues.add(
     ImportIssue(
-      severity: ImportIssueSeverity.warning,
-      code: 'cc_unmapped_level',
-      message: 'Level "${raw!.trim()}" is unrecognized; left unspecified.',
+      severity: ImportIssueSeverity.info,
+      code: ccNewLevelIssueCode,
+      message: 'Level "$name" is added as a difficulty level of its own.',
+      // Safe to show: built only from [ccLevelScale]'s own names.
+      data: {'level': name},
     ),
   );
-  return (null, false);
+  return (id: null, mixed: false, label: name);
+}
+
+final RegExp _lineBreak = RegExp(r'\r\n|\r|\n');
+
+/// Caller's Companion's level scale, lowest first (#1973). A combined level
+/// is named from these and placed among the receiver's levels by them
+/// ([ccLevelScaleKey]).
+const List<String> ccLevelScale = [
+  'Beginner',
+  'Easy',
+  'Intermediate',
+  'Advanced',
+];
+
+/// The key two level names match on when a CC combined level is reused
+/// (#1973): case and spacing are ignored, so a hand-made "easy / intermediate"
+/// is the imported "Easy/Intermediate".
+String ccLevelNameKey(String label) =>
+    label.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+
+/// The [ImportIssue] code on a draft whose CC level combines several steps
+/// and names a level that is not resolved yet (#1973).
+const String ccNewLevelIssueCode = 'cc_new_level';
+
+/// The step on [ccLevelScale] a CC level value names, or null. The synonyms
+/// are the ones a single value has always mapped.
+int? _ccLevelStep(String value) => switch (value.toLowerCase()) {
+  'beginner' || 'novice' || 'basic' => 0,
+  'easy' => 1,
+  'intermediate' || 'medium' || 'moderate' => 2,
+  'advanced' || 'hard' || 'challenging' || 'difficult' || 'expert' => 3,
+  _ => null,
+};
+
+/// Where [level] sits on [ccLevelScale], or null when it says nothing about
+/// that: the shipped levels by id (whatever they are now called), and a level
+/// named from scale steps ("Easy/Intermediate") at the middle of its span.
+double? ccLevelScaleKey(DifficultyLevel level) {
+  switch (level.id) {
+    case DifficultyLevel.beginnerId:
+      return 0;
+    case DifficultyLevel.intermediateId:
+      return 2;
+    case DifficultyLevel.advancedId:
+      return 3;
+  }
+  final steps = <int>[];
+  for (final part in level.label.split('/')) {
+    final index = ccLevelScale.indexWhere(
+      (step) => step.toLowerCase() == part.trim().toLowerCase(),
+    );
+    if (index < 0) return null;
+    steps.add(index);
+  }
+  steps.sort();
+  return (steps.first + steps.last) / 2;
 }
 
 /// Returns whether [raw] still names [level] in the receiver's active
@@ -464,11 +1021,156 @@ bool callersCompanionDifficultyLabelMatches(
   };
 }
 
-(DanceForm, String?) _mapForm(String? raw, List<ImportIssue> issues) {
+/// The figures of one body line of an English dance, read by the ECD grammar
+/// ([parseEcdFigureLine]). A compound prefix (`(4,4)`) whose parts match the
+/// steps of the sequence the line reads, and add up to its count (a bar range
+/// may count it otherwise), keeps each part on its step, as
+/// [_allocateCompoundBeats] does for contra's split figures; otherwise the
+/// total is the figure's span. None of contra's other retries apply: they
+/// read contra's grammar.
+///
+/// A prefix count (`(6)`, `(4,4)`) that disagrees with the line's bar range
+/// keeps the whole [line] as text, prefix included, with the bars' count:
+/// the bars win, and the disagreement stays visible, as for a count written
+/// after the range ([ecdRestStatesBeats]).
+List<Figure> _ecdLineFigures(
+  String text,
+  int beats,
+  List<int> parts, {
+  required String line,
+  int? ringDancers,
+  String? meter,
+}) {
+  final bars = beats > 0 ? ecdBarCount(text, meter: meter) : null;
+  if (bars != null && bars.beats != beats) {
+    return [
+      customFigure(
+        scrubFigureText(line),
+        beats: bars.beats,
+        origin: CustomOrigin.importGap,
+      ),
+    ];
+  }
+  final figure = parseEcdFigureLine(
+    text,
+    beats: beats,
+    ringDancers: ringDancers,
+    meter: meter,
+  );
+  if (figure == null) return const [];
+  if (parts.length >= 2 &&
+      figure.isSequence &&
+      figure.subFigures.length == parts.length &&
+      parts.every((part) => part >= 0 && part <= 64) &&
+      // A bar range counts the line over the prefix (the bars are the
+      // count), and parts that no longer add up to it would contradict it.
+      parts.fold(0, (sum, part) => sum + part) == figure.params['beats']) {
+    final steps = [
+      for (var i = 0; i < parts.length; i++)
+        _withBeats(figure.subFigures[i], parts[i]),
+    ];
+    return [
+      figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(steps)},
+      ),
+    ];
+  }
+  return [figure];
+}
+
+/// The tune [music] text's meter (`2/2`, `6/8`) and key (`G`, `Dm`, `Bb`),
+/// each `''` when it does not state one. Caller's Companion keeps both in its
+/// free-text Music field, written `Key: G, Meter: 2/2`, `Key D Meter 3/4` or
+/// `Em 6/8`. A number after a track, disc or page word (`Track 3/4 of CD`) is
+/// no meter, and an opening `A` before a meter and a word in lower case or a
+/// kind of tune (`A 3/2 hornpipe`, `A 3/2 Hornpipe`) is the article, not the
+/// key, which such a text may give as `in G`: `A 6/8` alone, or
+/// `A 6/8 Trad.`, still reads key A. A meter after its own word
+/// (`Meter 3/2 of Playford`) is always the meter. Bounded to [kMaxMusicLabelLength] characters each.
+({String meter, String key}) ccMusicMeterAndKey(String? music) {
+  final text = music ?? '';
+  // A meter its own word names (`Meter 3/2 of Playford`) first; otherwise a
+  // track or disc number (`Track 3/4 of CD`, `CD 2/3`) is no meter.
+  final meter = _ccNamedMeter.firstMatch(text) ?? _ccMeter.firstMatch(text);
+  final key =
+      _ccKeyWord.firstMatch(text) ??
+      // `A 3/2 hornpipe` is a hornpipe, not one in A; it may say `in G`.
+      (_ccArticle.hasMatch(text)
+          ? _ccInKey.firstMatch(text)
+          : _ccLeadingKey.firstMatch(text));
+  // Only a meter the bars can be counted by: `track 3/12` is no meter.
+  final meterText = meter == null ? '' : '${meter.group(1)}/${meter.group(2)}';
+  final stated = ecdBeatsPerBar(meterText).stated;
+  String clip(String value) => value.length > kMaxMusicLabelLength
+      ? value.substring(0, kMaxMusicLabelLength)
+      : value;
+  return (
+    meter: stated ? clip(meterText) : '',
+    key: key == null ? '' : clip(key.group(1)!),
+  );
+}
+
+/// A meter, but not a number after a word that numbers a recording or page
+/// (`Track 3/4`, `CD #2/3`, `p. 3/4`) or one followed by `of` (`3/4 of CD 2`
+/// counts tracks, not beats). One scan, with bounded look-arounds, so a long
+/// Music text costs no more than a short one per character.
+final RegExp _ccMeter = RegExp(
+  // A digit first, so the word check runs only where a number starts.
+  r'(?<![\d/])(?=\d)'
+  r'(?<!\b(?:tracks?|trk|tr|cds?|discs?|disks?|side|vol|volume|no|nr|number|page|pg|p)'
+  r'\s{0,3}[.:#]?\s{0,3}#?\s{0,3})'
+  r'(\d{1,2})\s{0,3}/\s{0,3}(\d{1,2})(?![\d/])(?!\s{1,3}of\b)',
+  caseSensitive: false,
+);
+
+/// A meter after its own word (`Meter: 3/2`, `Time 6/8`), whatever follows.
+final RegExp _ccNamedMeter = RegExp(
+  r'\b(?:meter|metre|time(?:\s{1,3}signature)?)\s{0,3}:?\s{0,3}'
+  r'(\d{1,2})\s{0,3}/\s{0,3}(\d{1,2})(?![\d/])',
+  caseSensitive: false,
+);
+
+/// A Music text that opens with the article `A` before a meter and a word in
+/// lower case or a kind of tune (`A 3/2 hornpipe`, `A 6/8 Jig in G`), where
+/// `A` names no key.
+final RegExp _ccArticle = RegExp(
+  r'^\s*A\s+\d{1,2}\s*/\s*\d{1,2}\s+'
+  r'(?:[a-z]|(?:Hornpipe|Jig|Slip [Jj]ig|Reel|Waltz|Polka|March|Minuet|Air|'
+  r'Strathspey|Rant|Tune|Dance|Bourr[eé]e|Gavotte|Sarabande|Slide|Triple|'
+  r'Mazurka|Schottische)\b)',
+);
+
+/// A key: its note, then `m`, `minor` or `major` when it says (`E minor`,
+/// `G Minor`).
+///
+/// The key patterns bound each run of spaces, as the meter's do: two
+/// unbounded runs side by side backtrack over every split of a long run of
+/// spaces in a Music text, which has no length cap.
+const String _ccKey =
+    r'([A-G](?:b|#|♭|♯)?(?:\s{0,3}(?:[Mm]inor|[Mm]ajor)\b|m(?![A-Za-z]))?)';
+final RegExp _ccKeyWord = RegExp(
+  '\\bkey\\s{0,3}:?\\s{0,3}$_ccKey(?![A-Za-z])',
+  caseSensitive: false,
+);
+
+/// The key a tune is `in` (`A 6/8 jig in G`).
+final RegExp _ccInKey = RegExp('\\bin\\s{1,3}$_ccKey(?![A-Za-z])');
+final RegExp _ccLeadingKey = RegExp('^\\s{0,8}$_ccKey\\s{0,3}[,;]?\\s{1,3}\\d');
+
+(DanceForm, String?) _mapForm(
+  String? raw,
+  List<ImportIssue> issues, {
+  bool typeIsFormation = false,
+}) {
   final value = raw?.trim().toLowerCase() ?? '';
   if (value.isEmpty) return (DanceForm.contra, null);
   if (value.contains('contra')) return (DanceForm.contra, null);
   if (value.contains('square')) return (DanceForm.square, null);
+  // Formation types, read into the formation instead when it is built from the
+  // `.USR` columns (#1972); the text export keeps them as a note.
+  if (typeIsFormation && _ccFormationTypes.contains(value)) {
+    return (DanceForm.contra, null);
+  }
   if (value.contains('english') || value == 'ecd') {
     return (DanceForm.ecd, null);
   }
@@ -484,6 +1186,135 @@ bool callersCompanionDifficultyLabelMatches(
   return (DanceForm.contra, 'Type: ${raw.trim()}');
 }
 
+/// CC `Type` values that name a formation rather than a dance form.
+const Set<String> _ccFormationTypes = {
+  'circle mixer',
+  'scatter mixer',
+  'longways',
+};
+
+bool _isCcMixer(CcDanceRecord r) {
+  final type = r.type?.trim().toLowerCase() ?? '';
+  final subType = r.subType?.trim().toLowerCase() ?? '';
+  return type == 'circle mixer' ||
+      type == 'scatter mixer' ||
+      subType.startsWith('mixer');
+}
+
+/// [f] with [detail] appended to its own detail.
+Formation _withDetail(Formation f, String? detail) {
+  if (detail == null) return f;
+  return Formation(
+    f.shape,
+    detail: f.detail == null ? detail : '${f.detail}; $detail',
+  );
+}
+
+/// The formation from a `.USR`'s separate columns (#1972). `Type` and the
+/// `Formation` family decide the shape; a duple minor's `ContraForm` and
+/// `Direction` refine it; `FormationOther` is the detail. A family or start
+/// outside the values CC offers is read as the text export's single string
+/// would be, so it keeps that reading or is preserved as text.
+Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
+  String low(String? v) => v?.trim().toLowerCase() ?? '';
+  final type = low(r.type);
+  final family = low(r.formationFamily);
+  final contraForm = low(r.contraForm);
+  final direction = low(r.direction);
+  final other = _sanitizeLine(r.formationOther);
+  final detail = (other == null || other.isEmpty) ? null : other;
+
+  if (type == 'circle mixer') {
+    return Formation(FormationShape.circleMixer, detail: detail);
+  }
+  if (type == 'scatter mixer') {
+    return Formation(FormationShape.scatterMixer, detail: detail);
+  }
+  if (type == 'longways') {
+    return Formation(FormationShape.longways, detail: detail);
+  }
+  switch (family) {
+    case 'four facing four':
+      return Formation(FormationShape.fourFaceFour, detail: detail);
+    case 'triplet':
+      return Formation(FormationShape.triplet, detail: detail);
+    case 'triple minor':
+      // No triple-minor shape per start, so the start is the detail.
+      final start = _sanitizeLine(r.contraForm);
+      final parts = [?start, ?detail].where((p) => p.isNotEmpty);
+      return Formation(
+        FormationShape.tripleMinor,
+        detail: parts.isEmpty ? null : parts.join('; '),
+      );
+    case 'square':
+      return Formation(
+        FormationShape.other,
+        detail: detail == null ? 'Square' : 'Square; $detail',
+      );
+    case 'other':
+      return Formation(FormationShape.other, detail: detail ?? 'Other');
+    case '' when contraForm.isEmpty && detail != null:
+      // Only the caller's own description: read it as the text export reads
+      // its single string, as before #1972.
+      return _mapFormation(r.formationOther, issues);
+    case '' || 'duple minor':
+      break;
+    default:
+      return _withDetail(_mapFormation(r.formationFamily, issues), detail);
+  }
+  final FormationShape shape;
+  switch (contraForm) {
+    case 'becket':
+      shape = direction == 'ccw'
+          ? FormationShape.becketCcw
+          : FormationShape.becketCw;
+    case 'indecent':
+      shape = FormationShape.dupleIndecent;
+    case 'proper':
+      shape = FormationShape.dupleProper;
+    case 'improper' || '':
+      // No start stated defaults to improper, as the single-string path does.
+      shape = direction == 'rev'
+          ? FormationShape.reverseProgressionImproper
+          : FormationShape.dupleImproper;
+    default:
+      return _withDetail(_mapFormation(r.contraForm, issues), detail);
+  }
+  return Formation(shape, detail: detail);
+}
+
+/// An English dance's formation: the contra shape the source gives, as the
+/// ECD shape it names ([ecdFormationFromContra]).
+///
+/// Improper only when the source says so: contra reads a formation that
+/// states no start as improper, but an ECD dance's improper flag defaults to
+/// proper (ADR-006 §9.2 point 2), so an unstated start is left proper. A text
+/// export's "Duple Minor", which names no contra shape, is ECD's duple minor.
+Formation _mapEcdFormation(
+  CcDanceRecord record,
+  bool usr,
+  List<ImportIssue> issues,
+) {
+  final text = (_sanitizeLine(record.formation) ?? '').toLowerCase();
+  if (!usr && text == 'duple minor') {
+    return const Formation(FormationShape.dupleMinor);
+  }
+  final source = usr
+      ? _mapFormationColumns(record, issues)
+      : _mapFormation(record.formation, issues);
+  final statesImproper = usr
+      ? (record.contraForm?.trim().toLowerCase() ?? '') == 'improper' ||
+            (_sanitizeLine(record.formationOther) ?? '').toLowerCase().contains(
+              'improper',
+            )
+      : text.contains('improper');
+  final mapped = ecdFormationFromContra(source);
+  if (source.shape == FormationShape.dupleImproper && !statesImproper) {
+    return mapped.copyWith(improper: false);
+  }
+  return mapped;
+}
+
 Formation _mapFormation(String? raw, List<ImportIssue> issues) {
   final trimmed = _sanitizeLine(raw) ?? '';
   if (trimmed.isEmpty) return const Formation(FormationShape.dupleImproper);
@@ -491,6 +1322,14 @@ Formation _mapFormation(String? raw, List<ImportIssue> issues) {
   // Order matters: check the more specific tokens first.
   if (value.contains('becket')) {
     return const Formation(FormationShape.becketCw);
+  }
+  // Set shapes before the start words: "Proper Triplet" is a triplet.
+  final set = classifyFormationSetName(value);
+  if (set != null) {
+    return Formation(
+      set.shape,
+      detail: joinFormationDetail(set.qualifier, null),
+    );
   }
   if (value.contains('indecent')) {
     return const Formation(FormationShape.dupleIndecent);
@@ -896,3 +1735,49 @@ int? _mapRating(String? raw, List<ImportIssue> issues) {
   }
   return parsed;
 }
+
+/// The prefix of the placeholder source id [mapCallersCompanionDance] gives a
+/// CC `Reference`, which `CallersCompanionUsrImporter` resolves at commit.
+const String kCcPublishedSourceIdPrefix = 'cc-published-source:';
+
+/// The placeholder source id for the CC reference titled [title].
+String ccPublishedSourcePlaceholderId(String title) =>
+    '$kCcPublishedSourceIdPrefix$title';
+
+/// The title carried by a placeholder source id, or null for a real id.
+String? ccPublishedSourceTitleOf(String sourceId) =>
+    sourceId.startsWith(kCcPublishedSourceIdPrefix)
+    ? sourceId.substring(kCcPublishedSourceIdPrefix.length)
+    : null;
+
+/// The longest link kept from an imported file; longer is not a real link.
+const int _maxCcLinkLength = 2048;
+
+/// [raw] as a link to keep, or null: only an `http`/`https` URL with a host
+/// and no whitespace, control or invisible characters, so CC's empty `http://`
+/// placeholder and anything that is not a web link are dropped (imported text
+/// is untrusted).
+String? ccLinkUrl(String? raw) {
+  final trimmed = raw?.trim() ?? '';
+  if (trimmed.isEmpty || trimmed.length > _maxCcLinkLength) return null;
+  if (trimmed.contains(RegExp(r'\s')) ||
+      sanitizeImportedText(trimmed, allowLineBreaks: false) != trimmed) {
+    return null;
+  }
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    return null;
+  }
+  if (uri.host.isEmpty) return null;
+  return trimmed;
+}
+
+/// The Caller's Box page of the dance with the id [raw], or null when [raw] is
+/// not a plain number.
+String? callersBoxDanceUrl(String? raw) {
+  final id = raw?.trim() ?? '';
+  if (!_callersBoxIdRe.hasMatch(id)) return null;
+  return 'https://ibiblio.org/contradance/thecallersbox/dance.php?id=$id';
+}
+
+final RegExp _callersBoxIdRe = RegExp(r'^[0-9]{1,9}$');

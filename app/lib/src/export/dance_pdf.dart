@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'pdf_page_furniture.dart';
 import 'program_figure_widgets.dart';
 import 'program_pdf.dart';
 
@@ -25,9 +27,18 @@ import 'program_pdf.dart';
 /// ([authorNames], [formationLabel], [levelLabel], [statusLabel]); [levelLabel]
 /// is `null` when unspecified and the Level line is omitted, and the Status
 /// line is omitted for an active dance (mirroring the text renderer). [renderer]
-/// supplies the dialect engine; when omitted a `FigureRenderer(contraTaxonomy)`
+/// supplies the dialect engine; when omitted a `FigureRenderer` over
+/// `TaxonomyRegistry.anyForm`, as the app wires it,
 /// is used. [theme] supplies the Unicode font; when omitted it is loaded from
 /// the bundled asset.
+///
+/// [fields] selects which non-figures fields appear (issue #1434). Gating and
+/// the dialect rendering of the notes, walkthrough and tunes happen once, in
+/// core's [DanceCardContent], which this builder only lays out — the same
+/// object [danceToPlainText] serialises and [buildProgramPdf]'s figure-appendix
+/// cards lay out. Defaults to
+/// [DanceShareField.allExceptTunes], matching every block this builder
+/// rendered before the picker existed. [pageFormat] defaults to A4.
 Future<Uint8List> buildDancePdf(
   Dance dance, {
   required Dialect dialect,
@@ -39,94 +50,129 @@ Future<Uint8List> buildDancePdf(
   DanceExportLabels labels = const DanceExportLabels(),
   pw.ThemeData? theme,
   bool canonicalizeDiscouragedTerms = false,
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  List<String> sourceLines = const [],
+  PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: dance.title, theme: resolvedTheme);
 
-  final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
-
-  final metaLines = <String>[
-    if (_has(formationLabel)) '${labels.formation}: ${formationLabel.trim()}',
-    if (_has(levelLabel)) '${labels.level}: ${levelLabel!.trim()}',
-    if (dance.mixer && _has(labels.mixer)) labels.mixer.trim(),
-    // Mirror the on-screen card / text export: only a non-active dance shows
-    // a Status line; an active dance omits it.
-    if (dance.status != DanceStatus.active && _has(statusLabel))
-      '${labels.status}: ${statusLabel.trim()}',
-    if (_has(dance.phraseStructure.raw))
-      '${labels.phrase}: ${dance.phraseStructure.raw.trim()}',
-  ];
+  final content = DanceCardContent.build(
+    dance,
+    dialect: dialect,
+    authorNames: authorNames,
+    formationLabel: formationLabel,
+    levelLabel: levelLabel,
+    statusLabel: statusLabel,
+    renderer: fig,
+    labels: labels,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    fields: fields,
+    sourceLines: sourceLines,
+  );
 
   doc.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
-      build: (context) => [
-        pw.Header(
-          level: 0,
-          child: pw.Text(
-            dance.title.trim(),
-            style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
-          ),
-        ),
-        if (names.isNotEmpty)
-          pw.Text(names.join(', '), style: const pw.TextStyle(fontSize: 13)),
-        for (final line in metaLines)
-          pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
-        if (dance.figures.isNotEmpty) ...[
-          pw.SizedBox(height: 12),
-          pw.Text(
-            labels.figures,
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 4),
-          ...buildFigureWidgets(
-            dance,
-            fig,
-            dialect,
-            labels,
-            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-          ),
-        ],
-        if (_has(dance.callingNotes)) ...[
-          pw.SizedBox(height: 12),
-          pw.Text(
-            labels.callingNotes,
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 4),
-          pw.Text(
-            canonicalizeDiscouragedTerms
-                ? fig.renderFreeTextWithCanonicalDiscouragedTerms(
-                    dance.callingNotes.trim(),
-                    dialect,
-                  )
-                : fig.renderFreeText(dance.callingNotes.trim(), dialect),
-            style: const pw.TextStyle(fontSize: 12),
-          ),
-        ],
-        if (_has(dance.walkthrough)) ...[
-          pw.SizedBox(height: 12),
-          pw.Text(
-            labels.walkthrough,
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 4),
-          pw.Text(
-            canonicalizeDiscouragedTerms
-                ? fig.renderFreeTextWithCanonicalDiscouragedTerms(
-                    dance.walkthrough.trim(),
-                    dialect,
-                  )
-                : fig.renderFreeText(dance.walkthrough.trim(), dialect),
-            style: const pw.TextStyle(fontSize: 12),
-          ),
-        ],
-      ],
+      pageFormat: pageFormat,
+      header: (context) => pdfRunningHeader(context, content.title),
+      footer: (context) => pdfPageFooter(context, labels.pageOf),
+      build: (context) => danceCardWidgets(
+        dance,
+        content,
+        fig,
+        dialect,
+        labels,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      ),
     ),
   );
 
   return doc.save();
 }
 
-bool _has(String? value) => value != null && value.trim().isNotEmpty;
+/// Lays out a [DanceCardContent] as the single-dance PDF's widgets. Layout
+/// only: every gating and dialect decision was made when [content] was built.
+/// Exposed so tests can assert on what is laid out rather than on PDF bytes.
+@visibleForTesting
+List<pw.Widget> danceCardWidgets(
+  Dance dance,
+  DanceCardContent content,
+  FigureRenderer renderer,
+  Dialect dialect,
+  DanceExportLabels labels, {
+  bool canonicalizeDiscouragedTerms = false,
+}) {
+  pw.Widget heading(String text) => pw.Text(
+    text,
+    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+  );
+  return [
+    pw.Header(
+      level: 0,
+      child: pw.Text(
+        content.title,
+        style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+      ),
+    ),
+    if (content.authorNames.isNotEmpty)
+      pw.Text(
+        content.authorNames.join(', '),
+        style: const pw.TextStyle(fontSize: 13),
+      ),
+    for (final line in content.metaLines)
+      pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
+    if (content.hook case final hook?)
+      pw.Text('${labels.hook}: $hook', style: const pw.TextStyle(fontSize: 12)),
+    if (content.figures.isNotEmpty) ...[
+      pw.SizedBox(height: 12),
+      heading(labels.figures),
+      pw.SizedBox(height: 4),
+      ...buildFigureWidgets(
+        dance,
+        renderer,
+        // The card's own dialect: lark and robin for a dance that requires
+        // them (`dialectForDance`), whatever [dialect] calls the roles.
+        content.dialect,
+        labels,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      ),
+    ],
+    if (content.callingNotes case final notes?) ...[
+      pw.SizedBox(height: 12),
+      heading(labels.callingNotes),
+      pw.SizedBox(height: 4),
+      pw.Text(
+        notes,
+        style: const pw.TextStyle(fontSize: 12),
+        overflow: pw.TextOverflow.span,
+      ),
+    ],
+    if (content.walkthrough case final walkthrough?) ...[
+      pw.SizedBox(height: 12),
+      heading(labels.walkthrough),
+      pw.SizedBox(height: 4),
+      pw.Text(
+        walkthrough,
+        style: const pw.TextStyle(fontSize: 12),
+        overflow: pw.TextOverflow.span,
+      ),
+    ],
+    if (content.tuneNames.isNotEmpty) ...[
+      pw.SizedBox(height: 12),
+      heading(labels.tunes),
+      pw.SizedBox(height: 4),
+      pw.Text(
+        content.tuneNames.join(', '),
+        style: const pw.TextStyle(fontSize: 12),
+      ),
+    ],
+    if (content.sourceLines.isNotEmpty) ...[
+      pw.SizedBox(height: 12),
+      heading(labels.sources),
+      pw.SizedBox(height: 4),
+      for (final line in content.sourceLines)
+        pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
+    ],
+  ];
+}

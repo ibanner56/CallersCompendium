@@ -7,3 +7,5 @@
 "share_extension.message.no_link" = "Ce partage ne contenait pas de lien que Caller's Compendium peut importer.";
 "share_extension.title.save_failed" = "Impossible d’enregistrer le lien";
 "share_extension.message.save_failed" = "Caller's Compendium n’a pas pu enregistrer ce lien pour l’importation. Veuillez réessayer.";
+"share_extension.title.too_long" = "Texte trop long";
+"share_extension.message.too_long" = "Ce texte partagé est trop long pour être importé par Caller's Compendium. Essayez de partager uniquement le lien.";

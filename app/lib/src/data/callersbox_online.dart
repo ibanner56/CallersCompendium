@@ -182,7 +182,7 @@ class CallersBoxOnline implements OnlineSearchService {
   }
 
   /// Commits [plan] into the local collection using the dedup-aware default:
-  /// - a brand-new dance is created;
+  /// - a dance that matches nothing is created;
   /// - an exact re-import match is reported as already-in-collection (nothing
   ///   written — no silent duplicate);
   /// - a fuzzy near-match with a confident title+author candidate and differing
@@ -190,13 +190,20 @@ class CallersBoxOnline implements OnlineSearchService {
   ///   so the caller can show a resolution dialog (issue #797);
   /// - a fuzzy near-match with a confident title+author candidate,
   ///   **canonically identical** figures (same moves and order; beats and notes
-  ///   may differ), and a confirmed different source returns
-  ///   [OnlineImportKind.needsConfirmationIdentical] (nothing written) so the
-  ///   caller can show a cross-source duplicate dialog (issue #811); dances with
-  ///   null provenance (hand-entered) fall through to the next case rather than
-  ///   being falsely labelled "from a different source";
+  ///   may differ), and either a different source or a hand-entered existing
+  ///   dance returns [OnlineImportKind.needsConfirmationIdentical] (nothing
+  ///   written) so the caller can show the duplicate dialog (issue #811;
+  ///   INTAKE-5); only a same-source re-import whose id has drifted is created
+  ///   without asking;
+  /// - with no confident candidate, a possible match under another title
+  ///   ([DedupeVerdict.possibleMatchIds]) returns
+  ///   [OnlineImportKind.needsPossibleMatchChoice] (nothing written) so the
+  ///   caller can let the user choose (issue #1907);
   /// - any other fuzzy near-match is imported as a new dance (the user
   ///   explicitly asked for this Caller's Box dance).
+  ///
+  /// The policy lives in [commitPreviewedOnlinePlan], including the rule that an
+  /// undecodable transcription never compares as identical (#1347).
   ///
   /// Pass [ambiguousResolution] to skip the needsConfirmation check and commit
   /// immediately with the given resolution (used on the retry after the dialog).
@@ -210,100 +217,18 @@ class CallersBoxOnline implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
-    final title = plan.draft.dance.title;
-    if (plan.verdict.kind == DedupeKind.reimport) {
-      return OnlineImportResult(
-        kind: OnlineImportKind.alreadyInCollection,
-        title: title,
-        // The exact re-import verdict carries the existing dance's id so the UI
-        // can open it in the detail pane instead of leaving the user to hunt.
-        danceId: plan.verdict.targetDanceId,
-        danceCount: 1,
-      );
-    }
-
-    // When the verdict is ambiguous and a confident candidate exists, check
-    // whether the figures differ. If they do and no resolution has been
-    // supplied yet, return needsConfirmation so the caller can prompt the user
-    // before writing anything (issue #797). Mirrors the detection in
-    // program_import_online_resolver.dart:resolveConfidentOnlineDanceId.
-    if (ambiguousResolution == null &&
-        plan.verdict.kind == DedupeKind.ambiguous &&
-        plan.verdict.hasConfidentMatch) {
-      final candidateId = plan.verdict.candidates
-          .firstWhere((c) => c.confident)
-          .danceId;
-      final existing = await repos.dances.getById(candidateId);
-      if (existing != null) {
-        final identical = figuresCanonicallyIdentical(
-          oldFigures: existing.figures,
-          newFigures: plan.draft.dance.figures,
-          taxonomy: contraTaxonomy,
-        );
-        if (!identical) {
-          return OnlineImportResult(
-            kind: OnlineImportKind.needsConfirmation,
-            title: title,
-            danceId: candidateId,
-            danceCount: 1,
-          );
-        } else if (existing.provenance?.source != null &&
-            plan.draft.raw.source != existing.provenance!.source) {
-          // Canonically identical figures (same moves and order; beats and
-          // notes may differ) from a confirmed different source: prompt the
-          // user instead of silently creating a second copy (issue #811).
-          // Condition guards are:
-          //   - existing.provenance.source != null: skip hand-entered dances
-          //     (null provenance) so we never claim they are "from a different
-          //     source".
-          //   - sources differ: a same-source re-import with a drifted
-          //     externalId stays silent (DedupeResolution.duplicate() below).
-          return OnlineImportResult(
-            kind: OnlineImportKind.needsConfirmationIdentical,
-            title: title,
-            danceId: candidateId,
-            danceCount: 1,
-          );
-        }
-      }
-    }
-
-    final resolutions = plan.verdict.kind == DedupeKind.ambiguous
-        ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
-        : const <int, DedupeResolution>{};
-
-    final pipeline = ImportPipeline(
-      repos.dances,
-      repos.choreographers,
-      difficultyLevels: repos.difficultyLevels,
-    );
-    final session = await pipeline.commit(
-      ImportBatchResult(records: [plan]),
-      now: now ?? DateTime.now().toUtc(),
-      newId: uuidV4,
-      resolutions: resolutions,
-    );
-
-    // A single-record batch: surface a failed/skipped commit as a user-safe
-    // error instead of letting `firstWhere` throw an opaque StateError.
-    final record = session.records.first;
-    if (!record.succeeded || record.danceId == null) {
-      // Keep the raw commit error for debug logging only; the UI gets a generic
-      // localized message so no lower-layer detail leaks (CWE-209).
-      if (kDebugMode && record.error != null) {
-        debugPrint("Caller's Box import commit failed: ${record.error}");
-      }
-      throw const UrlFetchException(
-        UrlFetchFailureReason.callersBoxImportFailed,
-      );
-    }
-    return OnlineImportResult(
-      kind: OnlineImportKind.created,
-      title: title,
-      danceId: record.danceId,
-      // Committed exactly this one previewed dance (single-record batch).
-      danceCount: session.committedCount,
+    // The commit flow (reimport / needs-confirmation / unreadable-figures
+    // guard / pipeline commit) is shared with the other online source.
+    return commitPreviewedOnlinePlan(
+      repos,
+      plan,
+      now: now,
+      ambiguousResolution: ambiguousResolution,
+      defaultTagIds: defaultTagIds,
+      importFailedReason: UrlFetchFailureReason.callersBoxImportFailed,
+      debugLabel: "Caller's Box",
     );
   }
 

@@ -2,15 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/custom_themes_controller.dart';
-import 'package:compendium_app/src/data/custom_themes_scope.dart';
-import 'package:compendium_app/src/data/repositories_scope.dart';
-import 'package:compendium_app/src/screens/dance_list_screen.dart';
-
 import '../support/test_repositories.dart';
-import '../support/l10n_harness.dart';
+import '../support/batch_screen_harness.dart';
+import '../figures_support.dart';
 
 Dance _dance({
   required String id,
@@ -30,42 +24,9 @@ Dance _dance({
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
-Future<void> _pumpScreen(
-  WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 3000));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-  final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-  addTearDown(notifier.dispose);
-  final themeNotifier = ValueNotifier<AppThemeSelection>(
-    AppThemeSelection.system,
-  );
-  addTearDown(themeNotifier.dispose);
-  final customThemes = CustomThemesController(repos.settings);
-  await customThemes.load();
-  addTearDown(customThemes.dispose);
-  await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: themeNotifier,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(notifier: notifier, child: child!),
-          ),
-        ),
-      ),
-      home: const DanceListScreen(),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
-
 Future<void> _enterSelectionMode(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('batch-select')));
   await tester.pumpAndSettle();
 }
@@ -106,7 +67,7 @@ void main() {
     );
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
     await repos.dances.create(_dance(id: 'd3', title: 'Charlie'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -114,10 +75,10 @@ void main() {
     await _addTunes(tester, ['Jig B']);
 
     // Existing tune preserved; addition merged in.
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A', 'Jig B']);
-    expect((await repos.dances.getById('d2'))!.tunes, ['Jig B']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A', 'Jig B']);
+    expect(tunesOf((await repos.dances.getById('d2'))!), ['Jig B']);
     // The un-selected dance is untouched.
-    expect((await repos.dances.getById('d3'))!.tunes, isEmpty);
+    expect(tunesOf((await repos.dances.getById('d3'))!), isEmpty);
     expect(find.text('Added tunes to 2 dances'), findsOneWidget);
   });
 
@@ -129,7 +90,7 @@ void main() {
       _dance(id: 'd1', title: 'Alpha', tunes: ['Reel A']),
     );
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -137,8 +98,8 @@ void main() {
     await _addTunes(tester, ['Reel A']);
 
     expect(find.text('Added tunes to 1 dance'), findsOneWidget);
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A']);
-    expect((await repos.dances.getById('d2'))!.tunes, ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d2'))!), ['Reel A']);
   });
 
   testWidgets('undo restores the prior per-dance tunes after add', (
@@ -149,7 +110,7 @@ void main() {
       _dance(id: 'd1', title: 'Alpha', tunes: ['Reel A']),
     );
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -159,8 +120,8 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A']);
-    expect((await repos.dances.getById('d2'))!.tunes, isEmpty);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d2'))!), isEmpty);
   });
 
   testWidgets('clear-tunes removes all tunes after confirmation', (
@@ -173,7 +134,7 @@ void main() {
     await repos.dances.create(
       _dance(id: 'd2', title: 'Bravo', tunes: ['Reel C']),
     );
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -184,8 +145,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, isEmpty);
-    expect((await repos.dances.getById('d2'))!.tunes, isEmpty);
+    expect(tunesOf((await repos.dances.getById('d1'))!), isEmpty);
+    expect(tunesOf((await repos.dances.getById('d2'))!), isEmpty);
     expect(find.text('Cleared tunes from 2 dances'), findsOneWidget);
   });
 
@@ -196,7 +157,7 @@ void main() {
     await repos.dances.create(
       _dance(id: 'd1', title: 'Alpha', tunes: ['Reel A']),
     );
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -204,7 +165,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('batch-clear-tunes-cancel')));
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A']);
   });
 
   testWidgets('undo restores tunes after a clear', (tester) async {
@@ -212,7 +173,7 @@ void main() {
     await repos.dances.create(
       _dance(id: 'd1', title: 'Alpha', tunes: ['Reel A', 'Jig B']),
     );
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -225,6 +186,6 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A', 'Jig B']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A', 'Jig B']);
   });
 }

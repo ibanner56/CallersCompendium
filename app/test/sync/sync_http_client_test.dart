@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -246,6 +247,34 @@ void main() {
       expect(sentChunks, lessThan(chunks.length));
     });
 
+    test('buffers plain and gzip response bodies as Uint8List', () async {
+      // Incompressible, so the gzip expansion guard stays out of the way.
+      final random = Random(1941);
+      final payload = [for (var i = 0; i < 4096; i++) random.nextInt(256)];
+      final server = await _startServer((request) async {
+        if (request.uri.path.endsWith('/gzip')) {
+          request.response.headers.set('content-encoding', 'gzip');
+          request.response.add(gzip.encode(payload));
+        } else {
+          request.response.add(payload);
+        }
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      for (final path in ['plain', 'gzip']) {
+        final response = await client.request('GET', path);
+        expect(response.body, isA<Uint8List>(), reason: path);
+        expect(response.body, payload, reason: path);
+      }
+    });
+
     test('aborts a gzip response exceeding the decompression ratio', () async {
       final compressed = gzip.encode(List<int>.filled(1024 * 1024, 0x61));
       var sentChunks = 0;
@@ -481,6 +510,130 @@ void main() {
       expect(requests.single.headers.value('x-sync-epoch'), isNull);
     });
 
+    test('removes one device manifest with a single DELETE at the encoded '
+        'path', () async {
+      final requests = <HttpRequest>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        request.response.statusCode = HttpStatus.noContent;
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      // A device id is server-minted base64url, but it arrives here as an
+      // opaque string the user picked off a list, so the path segment is
+      // encoded rather than trusted: an unencoded `/` would address a
+      // different route entirely.
+      final response = await client.deleteManifest('peer/a b');
+
+      expect(response.kind, SyncResponseKind.success);
+      expect(requests, hasLength(1));
+      expect(requests.single.method, 'DELETE');
+      expect(requests.single.uri.path, '/v1/manifests/peer%2Fa%20b');
+      expect(
+        requests.single.headers.value('authorization'),
+        isNotNull,
+        reason: 'a removal is authenticated like every other request',
+      );
+
+      // `Uri.encodeComponent` leaves dots alone, so a traversal attempt
+      // survives encoding as literal `..` — and `_uri`'s whole-path check
+      // rejects it before anything is sent. A server-minted id is base64url
+      // and can never contain a dot, so this costs nothing real.
+      await expectLater(
+        client.deleteManifest('peer/../store'),
+        throwsArgumentError,
+      );
+      expect(requests, hasLength(1), reason: 'nothing more was sent');
+    });
+
+    test('deletes the whole store with a single DELETE', () async {
+      final requests = <HttpRequest>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        request.response.statusCode = HttpStatus.noContent;
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      final response = await client.deleteStore();
+
+      expect(response.kind, SyncResponseKind.success);
+      expect(requests, hasLength(1));
+      expect(requests.single.method, 'DELETE');
+      expect(requests.single.uri.path, '/v1/store');
+    });
+
+    test(
+      'a wipe against a store that is already gone reads as notFound',
+      () async {
+        final server = await _startServer((request) async {
+          request.response.statusCode = HttpStatus.notFound;
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final client = SyncHttpClient(
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+          syncId: 'one-two-three-four',
+        );
+        addTearDown(client.close);
+
+        expect(
+          (await client.deleteStore()).kind,
+          SyncResponseKind.notFound,
+          reason: 'the controller treats this as the end state, not a failure',
+        );
+      },
+    );
+
+    test('posts the bounded missing-blob request as JSON', () async {
+      final requests = <HttpRequest>[];
+      final bodies = <Object?>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        final bytes = await request.fold<List<int>>(
+          <int>[],
+          (all, chunk) => all..addAll(chunk),
+        );
+        bodies.add(jsonDecode(utf8.decode(bytes)));
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType.json;
+        request.response.write('{"missing":[]}');
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final hash = List.filled(64, 'a').join();
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      final response = await client.postMissing([hash]);
+
+      expect(response.kind, SyncResponseKind.success);
+      expect(requests.single.uri.path, '/v1/blobs/missing');
+      expect(requests.single.headers.contentType?.mimeType, 'application/json');
+      expect(bodies.single, {
+        'hashes': [hash],
+      });
+    });
+
     test(
       'enforces manifest and blob response limits before allocation',
       () async {
@@ -507,6 +660,230 @@ void main() {
           client.getBlob('hash'),
           throwsA(isA<SyncEndpointException>()),
         );
+      },
+    );
+  });
+
+  group('SyncHttpClient.postBlobBatch (spec §5.2)', () {
+    final first = sha256Hex(utf8.encode('first'));
+    final second = sha256Hex(utf8.encode('second'));
+
+    List<int> blobFrame(String hash, List<int> body) => [
+      ...encodeSyncBlobBatchFrameHead(
+        SyncBlobBatchFrameStatus.blob,
+        hash,
+        length: body.length,
+      ),
+      ...body,
+    ];
+
+    Future<SyncHttpClient> clientFor(
+      FutureOr<void> Function(HttpRequest request) handler,
+    ) async {
+      final server = await _startServer(handler);
+      addTearDown(() => server.close(force: true));
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+      return client;
+    }
+
+    test(
+      'asks for gzip and hands each frame on, compressed past 10×',
+      () async {
+        // Twenty identical-shaped records compress far past the 10× guard the
+        // other routes apply; a batch must still be read.
+        final hashes = [
+          for (var i = 0; i < 20; i++) sha256Hex(utf8.encode('$i')),
+        ];
+        final body = [
+          for (final hash in hashes)
+            ...blobFrame(hash, utf8.encode('{"padding":"${'a' * 2000}"}')),
+        ];
+        final compressed = gzip.encode(body);
+        expect(body.length / compressed.length, greaterThan(10));
+        String? acceptEncoding;
+        final client = await clientFor((request) async {
+          acceptEncoding = request.headers.value('accept-encoding');
+          await request.drain<void>();
+          request.response.headers
+            ..set('content-type', syncBlobBatchMediaType)
+            ..set('content-encoding', 'gzip');
+          request.response.add(compressed);
+          await request.response.close();
+        });
+        final frames = <SyncBlobBatchFrame>[];
+
+        final response = await client.postBlobBatch(
+          hashes,
+          onFrame: frames.add,
+        );
+
+        expect(response.kind, SyncResponseKind.success);
+        expect(acceptEncoding, contains('gzip'));
+        expect([for (final f in frames) f.hash], hashes);
+      },
+    );
+
+    test('a 200 that is not a batch comes back as unexpected', () async {
+      final client = await clientFor((request) async {
+        await request.drain<void>();
+        request.response.headers.contentType = ContentType.html;
+        request.response.write('<html>captive portal</html>');
+        await request.response.close();
+      });
+      final frames = <SyncBlobBatchFrame>[];
+
+      final response = await client.postBlobBatch([first], onFrame: frames.add);
+
+      expect(response.statusCode, 200);
+      expect(response.kind, SyncResponseKind.unexpectedStatus);
+      expect(frames, isEmpty);
+    });
+
+    test('a response that ends cleanly before every hash is answered throws '
+        'as a network failure, after handing on what arrived', () async {
+      final client = await clientFor((request) async {
+        await request.drain<void>();
+        request.response.headers.set('content-type', syncBlobBatchMediaType);
+        request.response.add(blobFrame(first, utf8.encode('one')));
+        await request.response.close();
+      });
+      final frames = <SyncBlobBatchFrame>[];
+
+      await expectLater(
+        client.postBlobBatch([first, second], onFrame: frames.add),
+        throwsA(isA<HttpException>()),
+      );
+      expect([for (final f in frames) f.hash], [first]);
+    });
+
+    test('a malformed frame throws as a malformed reply', () async {
+      final client = await clientFor((request) async {
+        await request.drain<void>();
+        request.response.headers.set('content-type', syncBlobBatchMediaType);
+        request.response.add(blobFrame(second, utf8.encode('two')));
+        await request.response.close();
+      });
+
+      await expectLater(
+        client.postBlobBatch([first], onFrame: (_) {}),
+        throwsA(isA<SyncEndpointException>()),
+      );
+    });
+
+    test('a corrupt gzip body throws as a malformed reply, so the caller '
+        'falls back', () async {
+      final client = await clientFor((request) async {
+        await request.drain<void>();
+        request.response.headers
+          ..set('content-type', syncBlobBatchMediaType)
+          ..set('content-encoding', 'gzip');
+        request.response.add(utf8.encode('this is not gzip at all'));
+        await request.response.close();
+      });
+
+      await expectLater(
+        client.postBlobBatch([first], onFrame: (_) {}),
+        throwsA(isA<SyncEndpointException>()),
+      );
+    });
+
+    test('caps the decoded response, and the encoded one', () async {
+      // Blob frames of 1 MB each, more of them than the cap allows.
+      final hashes = [
+        for (var i = 0; i < 3; i++) sha256Hex(utf8.encode('big $i')),
+      ];
+      final body = [
+        for (final hash in hashes)
+          ...blobFrame(hash, List<int>.filled(syncMaxBlobResponseBytes, 0x61)),
+      ];
+      expect(body.length, greaterThan(syncMaxBlobBatchResponseBytes));
+      final plain = await clientFor((request) async {
+        await request.drain<void>();
+        request.response.headers.set('content-type', syncBlobBatchMediaType);
+        request.response.add(body);
+        await request.response.close();
+      });
+      await expectLater(
+        plain.postBlobBatch(hashes, onFrame: (_) {}),
+        throwsA(isA<SyncEndpointException>()),
+      );
+
+      // Empty gzip members decode to nothing, so only the encoded cap stops
+      // them.
+      final emptyMember = gzip.encode(const []);
+      final members = [
+        for (
+          var i = 0;
+          i * emptyMember.length <= syncMaxBlobBatchResponseBytes * 2;
+          i++
+        )
+          ...emptyMember,
+      ];
+      final bomb = await clientFor((request) async {
+        await request.drain<void>();
+        request.response.headers
+          ..set('content-type', syncBlobBatchMediaType)
+          ..set('content-encoding', 'gzip');
+        request.response.add(members);
+        await request.response.close();
+      });
+      await expectLater(
+        bomb.postBlobBatch([first], onFrame: (_) {}),
+        throwsA(isA<SyncEndpointException>()),
+      );
+    });
+  });
+
+  group('SyncHttpClient.putBlobBatch (spec §5.2)', () {
+    test(
+      'sends gzip-compressed blob frames with the batch media type',
+      () async {
+        final blobs = [for (var i = 0; i < 3; i++) utf8.encode('{"n":$i}')];
+        final received = <SyncBlobBatchFrame>[];
+        String? contentType;
+        String? encoding;
+        final server = await _startServer((request) async {
+          contentType = request.headers.value('content-type');
+          encoding = request.headers.value('content-encoding');
+          final body = await request.fold<List<int>>(
+            <int>[],
+            (all, chunk) => all..addAll(chunk),
+          );
+          SyncBlobBatchFrameReader.upload(
+              maxBlobBytes: syncMaxBlobResponseBytes,
+            )
+            ..add(gzip.decode(body), received.add)
+            ..close();
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(
+            jsonEncode({
+              'results': [
+                for (final frame in received)
+                  {'hash': frame.hash, 'status': 201},
+              ],
+            }),
+          );
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+        final client = SyncHttpClient(
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+          syncId: 'one-two-three-four',
+        );
+        addTearDown(client.close);
+
+        final response = await client.putBlobBatch([
+          for (final blob in blobs) (hash: sha256Hex(blob), body: blob),
+        ]);
+
+        expect(response.kind, SyncResponseKind.success);
+        expect(contentType, startsWith(syncBlobBatchMediaType));
+        expect(encoding, 'gzip');
+        expect([for (final frame in received) frame.body], blobs);
       },
     );
   });

@@ -10,8 +10,8 @@ on a dim stage, at arm's length, often one-handed and under pressure.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Appearance**, and **Reduce motion**.
-> The first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition without
+> The first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition without
 > losing your place.
 
 If you're brand new to the app, the [Getting started](./getting-started.md) guide
@@ -34,10 +34,12 @@ adds a second layer on top of your system setting, because a stage is a special
 case. Perform text starts large — sized to be readable at arm's length — and
 there's a very wide range beyond that.
 
-- **Auto-size** fits each card's text to the screen so nothing scrolls off. It's
-  on by default. Set how it starts under **Settings › Program › Auto-size Perform
-  cards**, and flip it for the night with **Auto-size text to screen** in Perform
-  itself.
+- **Auto-size** fits each card's text to the screen, but never shrinks the
+  figure lines or their notes below your system text size; a card too long for
+  that scrolls.
+  It's on by default. Set how it starts under **Settings ▸ Program ▸ Auto-size
+  Perform cards**, and flip it for the night with **Auto-size text to screen**
+  in Perform itself.
 - The **Decrease text size** and **Increase text size** buttons — **A−** and
   **A+** — set the size yourself. Using either one switches auto-size off, and the
   size you land on is remembered for next time. Choose whatever is comfortable for
@@ -52,24 +54,28 @@ context — see the [Perform mode guide](./perform.md#set-the-stage).
 
 ## Themes, contrast, and the dark stage
 
-Open **Settings › Appearance** to choose how the app looks. You'll find:
+Open **Settings ▸ Appearance ▸ Theme** to choose how the app looks. You'll find:
 
 - **System** — follows your device's light or dark setting automatically, and
   switches when your device does.
 - **Light** — a bright theme for well-lit rooms and daytime prep.
 - **Dark** — an easy-on-the-eyes theme that suits calling on a dark stage.
-- **High Contrast** — a dedicated theme tuned for strong legibility, with bold
-  separation between text and background.
+- **High contrast** — a dedicated theme tuned for strong legibility, with bold
+  separation between text and background. Cards, dialogs, popup menus, bottom
+  sheets, suggestion lists, the date and time pickers and buttons (icon buttons
+  included) also get a visible outline, so you can see their edges without
+  relying on shading. So do the lists that open from every drop-down, the
+  small ones at the end of a row in **Settings** included.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
-[Settings › Appearance](./settings.md#appearance).
+[Settings ▸ Appearance ▸ Theme](./settings.md#theme).
 
-For calling on a dim stage, **Dark** and **High Contrast** are the natural choices
+For calling on a dim stage, **Dark** and **High contrast** are the natural choices
 — they keep the screen from glaring at the room while staying readable for you. If
 you navigate with a keyboard, you'll notice that focus outlines are clearly
 visible as you move between controls, and they're especially strong in **High
-Contrast**.
+contrast**.
 
 **A stage theme just for calling.** Perform mode opens on its own dark,
 high-contrast look — built for a contrast ratio of at least 7 to 1 under stage
@@ -88,7 +94,7 @@ Caller's Compendium works with the screen reader on your platform:
 - **Narrator**, **NVDA**, or **JAWS** on Windows
 - **Orca** on Linux (best-effort support)
 
-Screens are labelled so a screen reader can describe them meaningfully. As you
+Screens are labeled so a screen reader can describe them meaningfully. As you
 work, the app announces changes you'd otherwise have to see:
 
 - Search result counts and selection counts are announced as they change, so you
@@ -101,7 +107,7 @@ work, the app announces changes you'd otherwise have to see:
   reads as its full spoken wording along with its beat count and whether it
   progresses.
 
-**Verbose figure text.** Turn on **Settings › General › Always show verbose figure
+**Verbose figure text.** Turn on **Settings ▸ General ▸ Always show verbose figure
 text** to display the full spoken-style wording of each figure on screen in the
 dance view — not only through a screen reader. This helps screen-reader users
 confirm what's shown, and it's just as useful for anyone who prefers plain, spoken
@@ -121,42 +127,155 @@ a spot that reads poorly, we'd genuinely like to hear about it — see
 You can drive Caller's Compendium from the keyboard without reaching for a
 pointer.
 
-**Quick search.** Press **Ctrl-K** (or **Cmd-K** on macOS) from anywhere to open a
+**Quick search.** Press **Ctrl-K** (or **Cmd-K** on macOS) from anywhere except while performing (Perform mode) to open a
 search box over whatever you're doing. Start typing to filter your dances and
 programs, use the **up** and **down arrow keys** to move through results, press
 **Enter** to open the highlighted item, and press **Esc** to close.
 
+**Shortcuts on a computer (Windows, macOS and Linux).** Use **Ctrl** on Windows
+and Linux and **Cmd** on a Mac:
+
+- **Ctrl-S** (**Cmd-S**) saves the dance or program you're editing, as its
+  **Save** button does. In the program builder that's on the **Build** tab,
+  where the button is.
+- **Ctrl-N** (**Cmd-N**) starts a new dance.
+- **Ctrl-F** (**Cmd-F**) puts the cursor in the **Collection**'s search box and
+  selects what's already there. Anywhere else it opens Quick search.
+- **Ctrl-A** (**Cmd-A**) selects every dance in the **Collection**'s current
+  results and starts selecting if you weren't. It works while the keyboard focus
+  is in the list of dances; in the search box it selects the text, as usual.
+  Dances your filters hide are not selected. Pressing it again leaves everything
+  selected.
+- **Ctrl-,** (**Cmd-,**) opens **Settings**.
+- **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
+  suggestions, or a dialog you could close by clicking outside it is open, it
+  closes that first (a dialog holding text you have typed stays open, so that
+  text is not lost; use its **Cancel**). Otherwise it leaves
+  the page you're on, as the back button does, so an editor with unsaved
+  changes asks you first. A mouse's **Back** button does the same.
+
+Ctrl-N and Ctrl-, take you out of whatever page you're on. If that page is an
+editor with unsaved changes, it asks about them first; answer, then press the
+keys again. They do nothing while a dialog is open. While performing, Ctrl-N, Ctrl-F
+and Ctrl-, do nothing, and Esc closes an open walkthrough when you are calling
+a program and otherwise only leaves full screen (see below); Ctrl-W and a
+mouse's Back button ask whether to stop performing, as the back button does.
+
+**Right-click.** On a computer, right-click a dance in the **Collection**, or a
+program in **Programs**, to open its **⋮** menu.
+
+**The menu bar on a Mac.** The **Caller's Compendium** menu has **Settings…**.
+**File** has **New Dance**, **Import Dances…** and **Close** (which goes back,
+like Cmd-W). **View** has the system's full-screen item, **Window** has
+Minimize and Zoom, and **Help** has **User Guide**. There is no **Edit** menu.
+Cmd-C, Cmd-X, Cmd-V, Cmd-Z and Cmd-A still work in text, and right-clicking
+text offers **Copy**. The system's own items (About, Hide, Quit, full screen,
+Minimize and the like) are named by macOS, so the app's language setting
+doesn't change them.
+
+**Selecting and copying text (Windows, macOS and Linux).** On a dance's page,
+drag across any text to select it, then press **Ctrl-C** (**Cmd-C** on macOS) to
+copy it. **Ctrl-A** (**Cmd-A**) selects everything on the page, and a right-click
+on text offers **Copy** and **Select all**. A figure's beat count and the tags
+are left out of a copy. Screen readers announce each figure as a single item, so
+they can't select part of a figure; use **Copy dance** for a figure's full text.
+Phones and Perform mode don't offer text selection.
+
 **Moving through Perform mode.** In [Perform mode](./glossary.md#perform-mode),
-move between [slots](./glossary.md#slot) with the **left** and **right arrow
-keys**, or with **Page Up** and **Page Down**. These work alongside the on-screen
-next and previous controls and the large edge zones, so you can use whichever
-suits you.
+move between [slots](./glossary.md#slot) with the arrow keys, or with **Page Up**
+and **Page Down**. When a card is too long to fit, **down** and **Page Down**
+scroll it to the end before moving on, and **up** and **Page Up** scroll back to
+the top before going back. The **left** and **right** keys always change slot.
+When you are performing a single dance there is no slot to move to, so those
+keys only scroll a long card.
+These work alongside the on-screen next and previous controls and the large edge
+zones, so you can use whichever suits you. On a computer, **F11** (**Ctrl-Cmd-F**
+on macOS) takes Perform full screen and back, and **Esc** leaves full screen
+without leaving Perform. When you are calling a program and a dance's walkthrough overlay is
+open, those keys pause — the
+**up** and **down** keys scroll the walkthrough instead — and **Esc** closes it,
+so reading ahead never changes your slot.
 
-**Reordering without dragging.** Anything that supports dragging — program slots,
-figures — also offers **move-up** and **move-down** actions, plus cut and paste.
-You never *need* to drag to reorder something.
+**Reordering without dragging.** Program slots and figures also offer **move-up**
+and **move-down** actions, and figures additionally offer cut and paste, so you
+never *need* to drag them. The settings lists you can reorder — matrix columns,
+difficulty levels and custom-field choices — have the same **Move up** and
+**Move down** buttons beside each item, as well as drag handles. After you use
+one, a screen reader says where the item now is, such as "Intermediate moved to
+position 2 of 5".
 
-**Always know where you are.** Interactive controls show a visible focus outline
-as you move through them, so you can always see which control has focus.
+**Figure actions menu.** Tab to a figure's **⋮** button and press **Space** or
+**Enter** to open its actions menu. Focus lands on the first action you can use,
+the **up** and **down** arrow keys move between actions (skipping any that are
+unavailable, such as Move up on the first figure), **Enter** runs the highlighted
+one, and **Esc** closes the menu and returns focus to the **⋮** button.
+
+**Add figure menu.** Open it with **Space** or **Enter** and focus lands on its
+first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
+meanwhile**, **Add modifier** and **Add sequence**.
+
+**Drop-down fields.** Tab to a drop-down field (in an editor, a dialog, the
+**Collection**'s search or **Settings**) and press **Enter** to open its list, the **up** and
+**down** arrow keys to move through it, **Enter** to choose, and **Esc** to
+close it without changing anything. A field with a long list (a dozen entries or
+more, such as months, days, numbers and currencies), or one that grows with your
+own data (your dialects, tags, difficulty levels, custom fields and their
+options, every figure in the glossary, the moves a dialect can rename), also
+lets you type: start typing and the
+list narrows to the entries that match. Only choosing an entry changes the
+field; text you typed without choosing is put back when you move on. On a phone
+or tablet those fields bring up the on-screen keyboard when you tap them; the
+others just open their list.
+
+**Always know where you are.** As you move through controls with the keyboard,
+the one with focus gets a solid outline drawn just outside it — in the theme's
+accent color, or a thicker yellow ring in **High contrast** — so you can always
+see which control has focus. Text fields show the same ring as their border. The
+outline appears only while you're using the keyboard, not when you tap or click.
 
 ## Motion, deleting, and other comforts
 
 A few smaller settings and behaviors round out the experience:
 
-- **Reduce motion** (**Settings › General**) dampens non-essential animation. If
+- **Reduce motion** (**Settings ▸ General**) dampens non-essential animation. If
   you've already turned on *Reduce Motion* (or *Remove animations*) in your
   device's system accessibility settings, the app honors that automatically — you
-  don't have to find this switch first. Flip the in-app switch when you want to
-  override the system setting in either direction.
-- **Confirm before delete** (**Settings › General**) adds a prompt before you
-  delete a dance or a program. And regardless of this setting, deletes are
-  undoable — so a slip is recoverable either way.
+  don't have to find this switch first. Turn the in-app switch on to
+  switch off the app's animations and the fade between themes even when your
+  device allows motion: screens, dialogs, date pickers and bottom sheets then
+  appear at once instead of sliding or fading in, and expanding sections open
+  without animating. On iPhone and iPad you can still swipe in from the edge of
+  the screen to go back. Turning it off stops the app removing its own animations, but
+  cannot restore animations your device's setting has already shortened.
+- **Confirm before delete** (**Settings ▸ General**) adds a prompt before any
+  delete you can undo: a dance or a program from its **⋮** menu, from its own
+  screen, or from Collection's selection mode, and a venue, custom field, tag,
+  author, source, shorthand, dialect, custom theme, walkthrough snippet or
+  matrix column. It does not cover the swipe shortcut: swiping a row in the
+  Collection or Programs list reveals a **Delete** button, and tapping that
+  button deletes straight away. If you want every delete to ask first, use the
+  **⋮** menu rather than the swipe. Regardless of this setting, those deletes
+  offer **Undo**, so a slip is recoverable either way. A delete that can't be
+  undone (permanently deleting from **Recently deleted**, or deleting one of
+  your own Glossary entries or figures) always asks first and says "This can't
+  be undone."
+- **Undo prompt** (**Settings ▸ General**) sets how long the **Undo** message
+  stays on screen: 2, 5, 10 (the default) or 15 seconds, or **Until I close
+  it**. Whatever you choose, the message also stays while you point at it with
+  a mouse or move to its **Undo** button with the keyboard, and its full time
+  starts again when you move away. With a screen reader running, it stays until
+  you act on it or close it.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
   color, so nothing depends on being able to distinguish hues. That holds for the
   colors you choose yourself too: a formation or tag you have colored still shows
   its name, and the app picks a black or white label for it automatically so the
   text stays readable whichever color you pick.
+- **Scrolling puts the on-screen keyboard away.** On an Android phone or
+  tablet, an iPhone or an iPad, drag any list or page with your finger and the
+  on-screen keyboard closes, so it
+  isn't covering what you want to read. A list of suggestions under a box
+  you're typing in scrolls without closing it.
 - **Perform mode keeps the screen awake.** The display won't dim or sleep
   mid-dance while you're calling.
 - **Comfortable touch targets.** Controls are sized to be easy to hit, and the
@@ -165,12 +284,13 @@ A few smaller settings and behaviors round out the experience:
 
 ## Help us improve
 
-Accessibility is an ongoing commitment, not a finished checkbox. Everything above
-is available today, but we know real-world use turns up rough edges we haven't
-found yet. If a screen reads awkwardly, a control is hard to reach, or something
-just doesn't work the way it should for you, please tell us through the project's
-issue tracker — you'll find the link in the [project README](../../README.md).
-Your reports genuinely make the app better for everyone.
+Accessibility is an ongoing commitment, not a finished checkbox. Everything
+above is available today, and real-world use is the best way to find what can
+still be better. If a screen reads awkwardly, a control is hard to reach, or
+something doesn't work the way it should for you, please
+[open an issue](https://github.com/ibanner56/CallersCompendium/issues/new/choose)
+or email [compendium@contra.dance](mailto:compendium@contra.dance). Every report
+helps make the app better for everyone.
 
 ## Where to go next
 

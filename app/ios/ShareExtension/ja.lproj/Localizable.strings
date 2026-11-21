@@ -7,3 +7,5 @@
 "share_extension.message.no_link" = "この共有にはCaller's Compendiumでインポートできるリンクが含まれていません。";
 "share_extension.title.save_failed" = "リンクを保存できませんでした";
 "share_extension.message.save_failed" = "Caller's Compendiumでこのリンクをインポート用に保存できませんでした。もう一度お試しください。";
+"share_extension.title.too_long" = "テキストが長すぎます";
+"share_extension.message.too_long" = "この共有テキストは長すぎるため、Caller's Compendium にインポートできません。リンクのみを共有してみてください。";

@@ -54,8 +54,9 @@ void _tapLink(WidgetTester tester, String href) {
 }
 
 void main() {
-  // The root asset bundle caches parsed results (the asset manifest and each
-  // guide's string) as `SynchronousFuture`s after the first load. Under the
+  // The root asset bundle caches parsed results (the asset manifest; guides
+  // are read as bytes, which it does not cache) as `SynchronousFuture`s after
+  // the first load. Under the
   // test binding that cached-synchronous path stalls the guide's FutureBuilders
   // on every test after the first, so clear the cache before each test to make
   // each one load the guides fresh.
@@ -143,6 +144,26 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('user-guide-back')));
     await tester.pumpAndSettle();
     expect(_title(tester), 'User guide');
+  });
+
+  testWidgets('a guide of 50 KiB or more opens', (tester) async {
+    // AssetBundle.loadString decodes a string of 50 KiB or more on a
+    // background isolate, which never completes under the test binding, so a
+    // guide that grew past that size stopped opening in these tests. The
+    // reader decodes the bytes itself. settings.md is the guide used here;
+    // the first expectation keeps this test from silently testing a small one.
+    final bytes = await rootBundle.load('assets/docs/user/settings.md');
+    expect(bytes.lengthInBytes, greaterThanOrEqualTo(50 * 1024));
+
+    await _pumpGuide(tester);
+    _tapLink(tester, 'settings.md');
+    await tester.pumpAndSettle();
+
+    expect(_title(tester), 'Settings');
+    // The body itself, not just the title: a failed read falls back to a
+    // title derived from the file name, which is also "Settings".
+    final markdown = tester.widget<Markdown>(find.byType(Markdown));
+    expect(markdown.data, startsWith('# Settings\n'));
   });
 
   testWidgets(
@@ -379,13 +400,7 @@ void main() {
     );
   });
 
-  testWidgets('an image reference renders its alt text as a caption', (
-    tester,
-  ) async {
-    // The guide ships text-only: instead of loading an asset, an image renders
-    // its alt text as a subtle caption so the prose stays readable and nothing
-    // is fetched. Exercise the doc view directly with an inline image so the
-    // caption is built regardless of where it falls in a scrolled guide.
+  Future<void> pumpImageDoc(WidgetTester tester, String markdown) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
@@ -393,26 +408,128 @@ void main() {
         home: Scaffold(
           body: UserGuideDocView(
             docId: 'getting-started.md',
-            data: '![A wireframe of the Collection screen](../design/x.svg)',
+            data: markdown,
             onTapLink: (_) {},
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
+  }
 
+  testWidgets('a bundled guide image renders as a labelled picture', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpImageDoc(
+      tester,
+      '![The Collection screen with filters open]'
+      '(images/collection-search-filters.png)',
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    // Decoded no wider than drawn, so the asset sits inside a ResizeImage.
+    final provider = image.image;
+    expect(provider, isA<ResizeImage>());
     expect(
-      find.textContaining('A wireframe of the Collection screen'),
+      ((provider as ResizeImage).imageProvider as AssetImage).assetName,
+      'assets/docs/user/images/collection-search-filters.png',
+    );
+    // The label is announced once, on the image; the pixels add nothing.
+    expect(
+      find.bySemanticsLabel('The Collection screen with filters open'),
       findsOneWidget,
     );
-    // Text-only: no image widgets are ever built for the reference.
-    expect(find.byType(Image), findsNothing);
+    // The alt text is not also drawn as visible text.
+    expect(find.byType(Text), findsNothing);
+    semantics.dispose();
   });
 
-  testWidgets('the bundle ships text-only (no image assets)', (tester) async {
-    // Proves the offline bundle carries only Markdown guides — no SVGs or
-    // raster images — so the text-only guide can never depend on a bundled
-    // image asset.
+  testWidgets('an image that is not a bundled guide image shows its alt text', (
+    tester,
+  ) async {
+    await pumpImageDoc(
+      tester,
+      '![A remote picture](https://example.com/x.png)\n\n'
+      '![An escaping path](../../../secret.png)',
+    );
+
+    expect(find.byType(Image), findsNothing);
+    expect(find.text('A remote picture'), findsOneWidget);
+    expect(find.text('An escaping path'), findsOneWidget);
+  });
+
+  testWidgets('a bundled image that fails to load falls back to its alt text', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpImageDoc(
+      tester,
+      '![A screenshot that is missing](images/nope.png)',
+    );
+    // Asset loading is real async; let the failed load land, then rebuild.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('A screenshot that is missing'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('A screenshot that is missing'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('a decorative image (empty alt) is hidden from semantics', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpImageDoc(tester, '![](images/collection-search-filters.png)');
+
+    expect(find.byType(Image), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.byType(Image),
+        matching: find.byType(ExcludeSemantics),
+      ),
+      findsWidgets,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('every guide image reference is bundled', (tester) async {
+    await tester.runAsync(() async {
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final assets = manifest.listAssets().toSet();
+      // Only PNGs are bundled (sync_user_docs.py); an embedded SVG is allowed
+      // by the image conventions and shows as its alt text, so it is exempt.
+      final reference = RegExp(
+        r'!\[[^\]]*\]\((images/[^)\s]+\.png)\)',
+        caseSensitive: false,
+      );
+      final docs = assets
+          .where(
+            (key) => key.startsWith('assets/docs/user/') && key.endsWith('.md'),
+          )
+          .toList();
+      expect(docs, isNotEmpty);
+      for (final doc in docs) {
+        final text = await rootBundle.loadString(doc);
+        for (final m in reference.allMatches(text)) {
+          expect(
+            assets,
+            contains('assets/docs/user/${m.group(1)}'),
+            reason: '$doc references an image missing from the bundle',
+          );
+        }
+      }
+    });
+  });
+
+  testWidgets('the bundle carries only guides and their images', (
+    tester,
+  ) async {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     final docAssets = manifest
         .listAssets()
@@ -421,10 +538,13 @@ void main() {
 
     expect(docAssets, isNotEmpty);
     for (final key in docAssets) {
+      final lower = key.toLowerCase();
       expect(
-        key.toLowerCase().endsWith('.md'),
+        lower.endsWith('.md') ||
+            (key.startsWith('assets/docs/user/images/') &&
+                lower.endsWith('.png')),
         isTrue,
-        reason: 'Bundled doc asset should be Markdown-only, found: $key',
+        reason: 'Unexpected bundled doc asset: $key',
       );
     }
   });

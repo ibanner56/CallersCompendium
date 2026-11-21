@@ -3,9 +3,12 @@ import 'dart:convert';
 import 'package:compendium_app/src/published_collections/published_collection_config.dart';
 import 'package:compendium_app/src/published_collections/published_collection_manifest.dart';
 import 'package:compendium_app/src/published_collections/published_collection_service.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  _catalogFormatTests();
+  _pinnedKeyTests();
   test('requires the archive digest to match the signed entry', () async {
     final archive = utf8.encode('archive');
     final service = PublishedCollectionService(
@@ -137,5 +140,137 @@ void main() {
       ),
     );
     expect(archiveFetched, isFalse);
+  });
+}
+
+Future<PublishedCollectionFetchFailure> _catalogFailure(
+  Map<String, Object?> manifest,
+) async {
+  final service = PublishedCollectionService(
+    bytesFetcher: (uri, _) async =>
+        uri.toString() == kPublishedCollectionManifestUrl
+        ? utf8.encode(jsonEncode(manifest))
+        : utf8.encode('signature'),
+    signatureVerifier: (_, _) async => true,
+  );
+  try {
+    await service.fetchCatalog();
+  } on PublishedCollectionFetchException catch (error) {
+    return error.code;
+  }
+  fail('fetchCatalog did not throw');
+}
+
+void _catalogFormatTests() {
+  group('a catalog this app cannot read', () {
+    Map<String, Object?> manifest({
+      int major = 1,
+      int minor = 0,
+      String minReader = '0.1.0',
+    }) => {
+      'manifestSchema': {'major': major, 'minor': minor},
+      'minReaderVersion': minReader,
+      'collections': const <Object?>[],
+    };
+
+    test('a newer schema major needs a newer app', () async {
+      expect(
+        await _catalogFailure(manifest(major: 2)),
+        PublishedCollectionFetchFailure.unsupported,
+      );
+    });
+
+    test('a newer schema minor needs a newer app', () async {
+      expect(
+        await _catalogFailure(manifest(minor: 1)),
+        PublishedCollectionFetchFailure.unsupported,
+      );
+    });
+
+    test('a minimum reader version above this app needs a newer app', () async {
+      expect(
+        await _catalogFailure(manifest(minReader: '999.0.0')),
+        PublishedCollectionFetchFailure.unsupported,
+      );
+    });
+
+    test(
+      'an older schema major or a corrupt manifest stays malformed',
+      () async {
+        expect(
+          await _catalogFailure(manifest(major: 0)),
+          PublishedCollectionFetchFailure.malformed,
+        );
+        expect(
+          await _catalogFailure(manifest()),
+          PublishedCollectionFetchFailure.malformed,
+          reason: 'an empty collections list is a corrupt manifest',
+        );
+      },
+    );
+  });
+}
+
+void _pinnedKeyTests() {
+  group('kPublishedCollectionPublicKeys (pinned set, #2161)', () {
+    test('is non-empty and every entry is a 32-byte Ed25519 key', () {
+      // A malformed entry would be skipped silently by the fail-closed
+      // verifier, so a typo in a newly added "next" key would only surface at
+      // rotation time, when that key is the one Analect signs with.
+      expect(kPublishedCollectionPublicKeys, isNotEmpty);
+      for (final key in kPublishedCollectionPublicKeys) {
+        expect(base64.decode(key.trim()), hasLength(32), reason: key);
+      }
+      expect(
+        kPublishedCollectionPublicKeys.toSet(),
+        hasLength(kPublishedCollectionPublicKeys.length),
+        reason: 'duplicate pinned key',
+      );
+    });
+
+    test('still pins the key the live catalog is signed with', () {
+      // Removing this key before Analect has switched ANALECT_SIGNING_KEY_B64
+      // to the next key would make every install reject the catalog.
+      expect(
+        kPublishedCollectionPublicKeys,
+        contains('wT1TeOTv4opmfWstQXB8mFnLQEPgfQTKqR95ipYqaHk='),
+      );
+    });
+
+    test(
+      'the default service rejects a catalog signed by an unpinned key',
+      () async {
+        // The production wiring, end to end: a real Ed25519 signature from a key
+        // that is not pinned (standing in for a "next" key nobody pinned) must
+        // fail closed as invalidSignature, not verify and not read as offline.
+        final algorithm = Ed25519();
+        final keyPair = await algorithm.newKeyPair();
+        final manifest = utf8.encode(
+          jsonEncode({
+            'manifestSchema': {'major': 1, 'minor': 0},
+            'minReaderVersion': '0.1.0',
+            'collections': const <Object?>[],
+          }),
+        );
+        final signature = await algorithm.sign(manifest, keyPair: keyPair);
+        final service = PublishedCollectionService(
+          bytesFetcher: (uri, _) async =>
+              uri.toString() == kPublishedCollectionManifestUrl
+              ? manifest
+              : utf8.encode(base64.encode(signature.bytes)),
+        );
+
+        await expectLater(
+          service.fetchCatalog(),
+          throwsA(
+            isA<PublishedCollectionFetchException>().having(
+              (e) => e.code,
+              'code',
+              PublishedCollectionFetchFailure.invalidSignature,
+            ),
+          ),
+        );
+      },
+    );
   });
 }

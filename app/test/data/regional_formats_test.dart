@@ -1,10 +1,20 @@
+import 'dart:ui' show Locale;
+
 import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/custom_date_pattern.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:flutter/material.dart' show DefaultMaterialLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalMaterialLocalizations;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 void main() {
+  // The app registers date symbols for every locale Flutter ships when its
+  // localizations delegate first loads; do the same so the region lookup under
+  // test sees the data it sees at runtime.
+  setUpAll(() => GlobalMaterialLocalizations.delegate.load(const Locale('en')));
+
   group('dateFormatPrefFromStored', () {
     test('defaults to system when unset (null)', () {
       expect(dateFormatPrefFromStored(null), DateFormatPref.system);
@@ -98,6 +108,48 @@ void main() {
     });
   });
 
+  group('formatEventDateTime', () {
+    const material = DefaultMaterialLocalizations();
+    final l10n = AppLocalizationsEn();
+    final when = DateTime(2026, 7, 15, 15, 4);
+    // Symbols load in setUpAll, after the group is declared.
+    String time() => DateFormat.jm('en').format(when);
+
+    test('follows the chosen format, then the time in the app language', () {
+      expect(
+        formatEventDateTime(
+          when,
+          DateFormatSetting(DateFormatPref.ymd),
+          material,
+          l10n,
+        ),
+        '2026-07-15 ${time()}',
+      );
+      expect(
+        formatEventDateTime(
+          when,
+          DateFormatSetting(DateFormatPref.dmy),
+          material,
+          l10n,
+        ),
+        '15/07/2026 ${time()}',
+      );
+    });
+
+    test('under the system default, uses the device region\'s numeric date, '
+        'not a month name', () {
+      final text = formatEventDateTime(
+        when,
+        DateFormatSetting.system,
+        material,
+        l10n,
+        platformLocale: const Locale('en', 'DK'),
+      );
+      expect(text, '${DateFormat.yMd('da').format(when)} ${time()}');
+      expect(text, isNot(contains('Jul')));
+    });
+  });
+
   group('formatEventDate', () {
     const material = DefaultMaterialLocalizations();
     final l10n = AppLocalizationsEn();
@@ -174,29 +226,97 @@ void main() {
       );
     });
 
-    test('defers to the localization medium date for system', () {
-      final date = DateTime(2026, 7, 15);
-      expect(
+    final date = DateTime(2026, 7, 15);
+    const system = DateFormatSetting.system;
+
+    String sys(Locale platform, [DateFormatSetting setting = system]) =>
         formatEventDate(
           date,
-          DateFormatSetting(DateFormatPref.system),
+          setting,
           material,
           l10n,
+          platformLocale: platform,
+        );
+
+    test('system carries the year in the device locale\'s order', () {
+      expect(sys(const Locale('en', 'US')), '7/15/2026');
+      expect(sys(const Locale('en', 'GB')), '15/07/2026');
+      expect(sys(const Locale('da', 'DK')), '15.7.2026');
+      expect(sys(const Locale('ja', 'JP')), '2026/7/15');
+    });
+
+    test('system follows the region, not the app language (PLAT-12)', () {
+      // l10n is English; the Danish-region phone still gets Danish numerals
+      // order, and no month name from either language appears.
+      final out = sys(const Locale('da', 'DK'));
+      expect(out, isNot('7/15/2026'));
+      expect(out, isNot(contains('Jul')));
+      expect(out, isNot(contains('jul')));
+    });
+
+    test('a locale tag with a script subtag still resolves', () {
+      expect(
+        sys(
+          Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hans',
+            countryCode: 'CN',
+          ),
         ),
-        material.formatMediumDate(date),
+        '2026/7/15',
       );
     });
 
-    test('an invalid custom pattern defers to the medium date (system)', () {
-      final date = DateTime(2026, 7, 15);
+    test('an unresolvable tag falls back to the app-language short date', () {
+      expect(sys(const Locale('xx', 'YY')), material.formatShortDate(date));
+    });
+
+    test('a shipped regional variant is honoured (en_GB, fr_CA)', () {
+      expect(sys(const Locale('en', 'GB')), '15/07/2026');
+      expect(sys(const Locale('fr', 'CA')), '2026-07-15');
+    });
+
+    test('an English device in a country with no English variant follows the '
+        'country, not US order (en_DK, en_SE, en_NL)', () {
+      expect(sys(const Locale('en', 'DK')), '15.7.2026');
+      expect(sys(const Locale('en', 'SE')), '2026-07-15');
+      expect(sys(const Locale('en', 'NL')), '15-7-2026');
+      expect(sys(const Locale('en', 'DE')), '15.7.2026');
+    });
+
+    test('a country with exactly one shipped variant uses it (en_MX)', () {
+      // es_MX is the only `_MX` set, and has day-first order; plain `en` is US.
+      expect(sys(const Locale('en', 'MX')), '15/7/2026');
+    });
+
+    test('a country with several shipped variants still follows the country '
+        '(de_US, fr_US, de_CA)', () {
+      // The US has en_US and es_US, Canada en_CA and fr_CA, so the
+      // single-variant rule skips them and the table decides.
+      expect(sys(const Locale('de', 'US')), '7/15/2026');
+      expect(sys(const Locale('fr', 'US')), '7/15/2026');
+      expect(sys(const Locale('de', 'CA')), '2026-07-15');
+    });
+
+    test('a multilingual or unlisted country keeps the language default', () {
+      // BE is deliberately not in kRegionDateLocales (nl, fr and de all apply);
+      // a country-code-equals-language-code rule would wrongly pick Belarusian.
+      expect(sys(const Locale('en', 'BE')), '7/15/2026');
+      expect(sys(const Locale('en', 'ZZ')), '7/15/2026');
+    });
+
+    test('a language-only device locale uses the language default', () {
+      expect(sys(const Locale('en')), '7/15/2026');
+      expect(sys(const Locale('da')), '15.7.2026');
+    });
+
+    test('an invalid custom pattern follows the device locale too', () {
       expect(
-        formatEventDate(
-          date,
+        sys(
+          const Locale('da', 'DK'),
           DateFormatSetting(DateFormatPref.custom, customPattern: 'bogus'),
-          material,
-          l10n,
         ),
-        material.formatMediumDate(date),
+        '15.7.2026',
       );
     });
   });
@@ -383,6 +503,40 @@ void main() {
         final order = orderedWeekdays(pref, material);
         expect(order.length, 7);
         expect(order.toSet(), {1, 2, 3, 4, 5, 6, 7});
+      }
+    });
+  });
+
+  group('kRegionDateLocales drift', () {
+    test('every value is a date-symbol locale intl ships', () {
+      for (final MapEntry(:key, :value) in kRegionDateLocales.entries) {
+        expect(
+          DateFormat.localeExists(value),
+          isTrue,
+          reason: '$key maps to $value, which intl has no date symbols for',
+        );
+      }
+    });
+
+    test('every key is an upper-case ISO region code', () {
+      for (final key in kRegionDateLocales.keys) {
+        expect(key, matches(RegExp(r'^[A-Z]{2}$')));
+      }
+    });
+
+    test('no key is dead: a country with exactly one shipped variant is '
+        'resolved before the table', () {
+      // resolveDateLocale takes the single shipped `<language>_<CC>` set first,
+      // so an entry for such a country never runs and would hide a later
+      // change to the shipped list. Countries with several (US, CA) are live.
+      final shipped = DateFormat.allLocalesWithSymbols();
+      for (final key in kRegionDateLocales.keys) {
+        expect(
+          shipped.where((l) => l.toUpperCase().endsWith('_$key')).length,
+          isNot(1),
+          reason:
+              '$key has exactly one shipped variant; drop it from the table',
+        );
       }
     });
   });

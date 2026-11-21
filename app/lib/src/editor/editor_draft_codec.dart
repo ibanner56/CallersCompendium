@@ -3,16 +3,38 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 
 import 'editor_snapshot.dart';
+import 'figure_draft.dart';
 
 /// Settings-table key prefix for the dance editor's transient autosave drafts.
 ///
-/// Draft keys are dynamic (`editor_draft:<danceId|new>`) and hold unsaved,
+/// Draft keys are dynamic ([danceEditorDraftKey]: `editor_draft:<danceId>`, or
+/// `editor_draft:new:<editor id>` for a dance not yet saved) and hold unsaved,
 /// device-local in-progress edits — not user content or preferences. They must
 /// never travel in a backup, so `backup_service.dart` excludes this prefix from
 /// both export and restore (see `kBackupSettingsDenylistPrefixes`). It lives in
 /// this non-UI module so both the editor screen and `BackupService` can share
 /// it without a data→UI dependency.
 const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
+
+/// The draft key for [id] under [kDanceEditorDraftKeyPrefix]: a dance's id,
+/// or for a dance not yet saved, an id made from [kNewDanceDraftIdPrefix].
+String danceEditorDraftKey(String id) => '$kDanceEditorDraftKeyPrefix$id';
+
+/// The draft id every new dance shared before each new dance got its own
+/// (AUTH-10). A draft still stored under it is read as one more new dance's.
+const String kLegacyNewDanceDraftId = 'new';
+
+/// How the draft id of a dance not yet saved starts: each new-dance editor
+/// writes under this plus its own id, so two new dances never share a draft.
+const String kNewDanceDraftIdPrefix = '$kLegacyNewDanceDraftId:';
+
+/// Whether [key] holds the draft of a dance not yet saved, under either the
+/// per-editor form or the legacy shared id.
+bool isNewDanceEditorDraftKey(String key) {
+  if (!key.startsWith(kDanceEditorDraftKeyPrefix)) return false;
+  final id = key.substring(kDanceEditorDraftKeyPrefix.length);
+  return id == kLegacyNewDanceDraftId || id.startsWith(kNewDanceDraftIdPrefix);
+}
 
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeDraft] checks this and rejects
@@ -58,7 +80,53 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// when the dance is eventually saved.
 ///
 /// v12 -> v13: adds recursive structural-container children to figure drafts.
-const _kDraftVersion = 13;
+/// A later `sequence` container kind needed no new version: a build that
+/// predates it rejects the unknown `containerKind` as malformed, which is
+/// what it does with an unknown version too.
+///
+/// v13 -> v14: adds the optional per-figure `compound` object, a row that is
+/// one of the user's own compound figures not yet expanded (#709). Only a
+/// draft holding such a row is stamped v14 (see [encodeDraft]): an older build
+/// would read the row as an empty one and drop it unseen, so it treats that
+/// draft as unreadable instead — and, as for any unknown version, deletes it
+/// when the editor opens — while every other draft stays v13 and still
+/// restores there.
+///
+/// Added without a version bump, because a build that ignores them still
+/// restores the draft without losing anything (AUTH-5, AUTH-10, AUTH-17):
+/// - per-figure `beatsTouched` (bool). A draft without it reads each figure as
+///   touched when it carries a `beats` count, except a group whose count is 0,
+///   which follows its sides (AUTH-11).
+/// - `savedAt` and `baseUpdatedAt` (ISO-8601 UTC timestamps, omitted when
+///   unknown): when the draft was written, and the stored dance's `updatedAt`
+///   it was edited from.
+/// - `textRoles` (role id → `{singular, plural}`, as [RoleTerm.toJson]): the
+///   role terms of the dialect the figure notes and custom-figure text are
+///   written in, which stay as typed. A restore under other role terms
+///   converts them; an older build reads them as before.
+/// - `meter`, `musicalKey`, `improper`, `interpreterIds` and `interpretedOn`
+///   (ADR-006 §12.1 F2 and F3, §9.2 point 7), each omitted when empty, false
+///   or unset. A build that ignores them predates the database version that
+///   stores them (v42), and a database of that version cannot be opened by
+///   it, so no older build ever restores a draft that holds them. The other
+///   way round, a draft written before them decodes them as empty, and Save
+///   writes that over the stored dance; such a draft predates v42, so the
+///   dance can hold them only if sync has brought them since, which the
+///   restore prompt reports as a change to the dance (AUTH-10).
+///
+/// - `spanStated` (true, or omitted) on a sequence that states its own span
+///   (ADR-006 §5.5). A sequence's `beatsTouched` is read from it alone, since
+///   a build before spans wrote `beatsTouched` on every sequence it loaded.
+///   A build that ignores it counts the sequence's steps, as it always did.
+///
+/// An older build does look for a new dance's draft under the shared key
+/// `editor_draft:new` only, so after a downgrade it does not
+/// offer a draft written under a per-editor key. The draft is
+/// not deleted, and is offered again once the newer build is back.
+const _kDraftVersion = 14;
+
+/// The version a draft without a compound placeholder is stamped with.
+const _kDraftVersionWithoutCompounds = 13;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -67,19 +135,26 @@ const _kDraftVersion = 13;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v13):
+/// Schema (v14; v13 when no row is a compound placeholder):
 /// ```jsonc
 /// {
-///   "v": 13,
+///   "v": 14,
+///   "savedAt": "2026-10-28T15:04:05.000Z",
+///   "baseUpdatedAt": "2026-10-27T09:00:00.000Z",
+///   "textRoles": {"role1": {"singular": "lark", "plural": "larks"},
+///                 "role2": {"singular": "robin", "plural": "robins"}},
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
-///   "form": "contra", "formationShape": "dupleImproper",
+///   "meter": "3/2", "musicalKey": "G minor",
+///   "form": "contra", "formationShape": "dupleImproper", "improper": true,
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false, "mixer": false,
 ///   "rating": 4,
 ///   "composedOn": "1989", "revisedOn": "2004-03-15",
-///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
+///   "interpretedOn": "1975",
+///   "authorIds": ["..."], "interpreterIds": ["..."],
+///   "tagIds": ["..."], "tunes": ["..."],
 ///   "stagedTags": [{"id":"...","name":"...","color":4294901760}],
 ///   "links": [
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
@@ -93,27 +168,46 @@ const _kDraftVersion = 13;
 ///   "figureDrafts": [
 ///     {"id":"...", "move":"swing",
 ///      "params":{"who":"partners","beats":16},
-///      "note":"", "progression":false, "sv":1,
-///      "walkthroughOverride":"Swing them."}
+///      "note":"", "progression":false, "sv":1, "beatsTouched":true,
+///      "walkthroughOverride":"Swing them."},
+///     {"id":"...", "move":null, "params":{}, "note":"", "progression":false,
+///      "sv":1, "beatsTouched":false,
+///      "compound":{"id":"...","name":"grand right and left",
+///                  "args":{"hand":"right"},"beats":8}}
 ///   ]
 /// }
 /// ```
-/// `move` may be `null` for an incomplete draft row.
+/// `move` may be `null` for an incomplete draft row, and is for a compound
+/// placeholder.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
-/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset.
+/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset, as
+/// are `savedAt`, `baseUpdatedAt` and `textRoles`.
 /// `sourceCitations` is omitted when empty; per-citation `page`/`number` are
 /// omitted when null.
 String encodeDraft(EditorSnapshot snapshot) {
   return jsonEncode({
-    'v': _kDraftVersion,
+    'v': snapshot.figureDrafts.any((d) => d.compound != null)
+        ? _kDraftVersion
+        : _kDraftVersionWithoutCompounds,
+    if (snapshot.savedAt case final savedAt?)
+      'savedAt': savedAt.toUtc().toIso8601String(),
+    if (snapshot.baseUpdatedAt case final base?)
+      'baseUpdatedAt': base.toUtc().toIso8601String(),
+    if (snapshot.textDialect case final dialect?)
+      'textRoles': {
+        for (final e in dialect.roles.entries) e.key: e.value.toJson(),
+      },
     'title': snapshot.title,
     'hook': snapshot.hook,
     'notes': snapshot.notes,
     if (snapshot.walkthrough.isNotEmpty) 'walkthrough': snapshot.walkthrough,
     'phrase': snapshot.phrase,
     'formationDetail': snapshot.formationDetail,
+    if (snapshot.meter.isNotEmpty) 'meter': snapshot.meter,
+    if (snapshot.musicalKey.isNotEmpty) 'musicalKey': snapshot.musicalKey,
     'form': snapshot.form.name,
     'formationShape': snapshot.formationShape.name,
+    if (snapshot.improper) 'improper': true,
     'progression': snapshot.progression.name,
     'status': snapshot.status.name,
     if (snapshot.level != null) 'level': snapshot.level!.id,
@@ -124,7 +218,11 @@ String encodeDraft(EditorSnapshot snapshot) {
       'composedOn': snapshot.composedOn!.serialize(),
     if (snapshot.revisedOn != null)
       'revisedOn': snapshot.revisedOn!.serialize(),
+    if (snapshot.interpretedOn case final interpretedOn?)
+      'interpretedOn': interpretedOn.serialize(),
     'authorIds': snapshot.authorIds,
+    if (snapshot.interpreterIds.isNotEmpty)
+      'interpreterIds': snapshot.interpreterIds,
     'tagIds': snapshot.tagIds,
     'tunes': snapshot.tunes,
     if (snapshot.stagedTags.isNotEmpty)
@@ -170,7 +268,7 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Deserialises a draft JSON value (as returned by [SettingsRepository.get])
 /// back into an [EditorSnapshot].
 ///
-/// Accepts drafts with schema versions **v1 through v13** (forward-compatible
+/// Accepts drafts with schema versions **v1 through v14** (forward-compatible
 /// read):
 /// - v1 has URL-kind links only (no `targetDanceId`). Since v1 couldn't create
 ///   relatedDance links, missing `targetDanceId` fields decode as `null` —
@@ -211,11 +309,14 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     walkthrough: _str(json, 'walkthrough'),
     phrase: _str(json, 'phrase'),
     formationDetail: _str(json, 'formationDetail'),
+    meter: _str(json, 'meter'),
+    musicalKey: _str(json, 'musicalKey'),
     form: _parseEnum(DanceForm.values, _str(json, 'form')),
     formationShape: _parseEnum(
       FormationShape.values,
       _str(json, 'formationShape'),
     ),
+    improper: _bool(json, 'improper'),
     progression: _parseEnum(Progression.values, _str(json, 'progression')),
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
     level: _parseDifficulty(json['level'], levels ?? DifficultyLevel.shipped),
@@ -224,7 +325,9 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     rating: _parseNullableRating(json['rating']),
     composedOn: _parseNullablePartialDate(json['composedOn']),
     revisedOn: _parseNullablePartialDate(json['revisedOn']),
+    interpretedOn: _parseNullablePartialDate(json['interpretedOn']),
     authorIds: _strList(json, 'authorIds'),
+    interpreterIds: _strList(json, 'interpreterIds'),
     tagIds: _strList(json, 'tagIds'),
     tunes: _strList(json, 'tunes'),
     stagedTags: _parseStagedTags(json['stagedTags']),
@@ -232,8 +335,33 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     sourceCitations: _parseSourceCitations(json['sourceCitations']),
     customValues: _parseCustomValues(json['customValues']),
     figureDrafts: _parseFigureDrafts(json['figureDrafts']),
+    textDialect: _parseTextRoles(json['textRoles']),
+    savedAt: _parseNullableTimestamp(json['savedAt']),
+    baseUpdatedAt: _parseNullableTimestamp(json['baseUpdatedAt']),
   );
 }
+
+/// Reads the optional `textRoles` as a dialect holding just those role terms,
+/// which is all the conversion between dialects reads. Tolerant, like the
+/// timestamps: an absent or unreadable value reads as `null`, and the text is
+/// then taken to be in the active dialect, as before the key existed.
+Dialect? _parseTextRoles(Object? raw) {
+  if (raw is! Map) return null;
+  final roles = <String, RoleTerm>{};
+  for (final entry in raw.entries) {
+    final value = entry.value;
+    if (value is! Map) return null;
+    final term = RoleTerm.fromJson(value.cast<String, Object?>());
+    if (term == null) return null;
+    roles[entry.key.toString()] = term;
+  }
+  return Dialect(name: 'Draft text', roles: roles);
+}
+
+/// Reads an optional ISO-8601 timestamp. Tolerant: the draft is still worth
+/// restoring without one, so an absent or unreadable value reads as `null`.
+DateTime? _parseNullableTimestamp(Object? raw) =>
+    raw is String ? DateTime.tryParse(raw)?.toUtc() : null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -439,8 +567,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
   }
   final containerKind = m['containerKind'];
   if (containerKind != null &&
-      containerKind != meanwhileMove &&
-      containerKind != modifierMove) {
+      (containerKind is! String || !isContainerMove(containerKind))) {
     throw FormatException(
       'figureDraft.containerKind is invalid: $containerKind',
     );
@@ -460,13 +587,16 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     throw const FormatException('figureDraft container depth is too deep');
   }
   if (containerKind != null && containerKind == parentContainerKind) {
-    throw const FormatException('figureDraft containers must alternate kinds');
+    throw const FormatException(
+      'figureDraft containers may not nest their own kind',
+    );
   }
-  if (containerKind != null &&
+  if (containerKind is String &&
       children is List &&
-      children.length > kMaxMeanwhileSides) {
+      children.length > maxContainerChildren(containerKind)) {
     throw FormatException(
-      'figureDraft.children exceeds the $kMaxMeanwhileSides-child limit',
+      'figureDraft.children exceeds the '
+      '${maxContainerChildren(containerKind)}-child limit',
     );
   }
   final parsedChildren = children is List
@@ -492,10 +622,21 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
   if (sv is! int) {
     throw FormatException('figureDraft.sv must be an int: $sv');
   }
+  final compound = _parseCompound(m['compound']);
+  if (compound != null && (rawMove != null || containerKind != null)) {
+    throw const FormatException(
+      'figureDraft.compound cannot have a move or children',
+    );
+  }
+  if (compound != null && containerDepth > 0) {
+    throw const FormatException(
+      'figureDraft.compound is allowed only at the top level',
+    );
+  }
 
   final normalized = rawMove == null
       ? null
-      : contraTaxonomy.normalizeFigureV35(
+      : shippedTaxonomies.anyForm.normalizeFigureV35(
           Figure(move: rawMove, params: parsedParams),
         );
   return FigureDraftSnapshot(
@@ -505,6 +646,20 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     note: note,
     progression: progression,
     schemaVersion: sv,
+    // Additive/tolerant (AUTH-5): a draft from before the flag was written
+    // reads a stored count as the caller's, except a group's 0, which
+    // follows its sides (AUTH-11).
+    // A sequence's flag marks a span of its own (ADR-006 §5.5), which only
+    // `spanStated` records: a build before spans wrote `beatsTouched` on
+    // every sequence it loaded, over a count it never kept up to date.
+    beatsTouched: switch (m['beatsTouched']) {
+      _ when containerKind == sequenceMove => m['spanStated'] == true,
+      final bool touched => touched,
+      _ => _legacyBeatsTouched(
+        normalized?.params ?? parsedParams,
+        isContainer: containerKind != null,
+      ),
+    },
     // Additive/tolerant (#460): absent or non-bool → not assumed.
     assumedSubject: m['assumedSubject'] == true,
     // Additive/tolerant (#419): only the string 'importGap' flags a parser-gap
@@ -517,11 +672,44 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     wordingOverride: _optSnippet(m['wordingOverride']),
     meanwhileSides: containerKind == meanwhileMove ? parsedChildren : null,
     modifierFigures: containerKind == modifierMove ? parsedChildren : null,
+    sequenceFigures: containerKind == sequenceMove ? parsedChildren : null,
+    compound: compound,
+  );
+}
+
+/// Reads a figure draft's optional `compound` object (v14).
+CompoundPlaceholder? _parseCompound(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! Map) {
+    throw const FormatException('figureDraft.compound must be an object');
+  }
+  final id = raw['id'];
+  final name = raw['name'];
+  final args = raw['args'];
+  final beats = raw['beats'] ?? 0;
+  if (id is! String || id.isEmpty) {
+    throw const FormatException('figureDraft.compound.id is required');
+  }
+  if (name is! String) {
+    throw const FormatException('figureDraft.compound.name must be a string');
+  }
+  if (args is! Map) {
+    throw const FormatException('figureDraft.compound.args must be an object');
+  }
+  if (beats is! int || beats < 0) {
+    throw FormatException('figureDraft.compound.beats is invalid: $beats');
+  }
+  return CompoundPlaceholder(
+    id: id,
+    name: name,
+    args: {for (final e in args.entries) e.key.toString(): e.value},
+    beats: beats,
   );
 }
 
 Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
-  final children = draft.meanwhileSides ?? draft.modifierFigures;
+  final children =
+      draft.meanwhileSides ?? draft.modifierFigures ?? draft.sequenceFigures;
   final params = Map<String, Object?>.of(draft.params);
   if (children != null) {
     params.remove('figures');
@@ -533,6 +721,11 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
     'note': draft.note,
     'progression': draft.progression,
     'sv': draft.schemaVersion,
+    'beatsTouched': draft.beatsTouched,
+    if (draft.sequenceFigures != null &&
+        draft.beatsTouched &&
+        draft.params['beats'] is int)
+      'spanStated': true,
     if (draft.assumedSubject) 'assumedSubject': true,
     if (draft.customOrigin == CustomOrigin.importGap)
       'customOrigin': 'importGap',
@@ -542,10 +735,19 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
     if (draft.wordingOverride != null &&
         draft.wordingOverride!.trim().isNotEmpty)
       'wordingOverride': draft.wordingOverride,
+    if (draft.compound case final compound?)
+      'compound': {
+        'id': compound.id,
+        'name': compound.name,
+        'args': compound.args,
+        'beats': compound.beats,
+      },
     if (children != null) ...{
-      'containerKind': draft.modifierFigures == null
-          ? meanwhileMove
-          : modifierMove,
+      'containerKind': draft.modifierFigures != null
+          ? modifierMove
+          : draft.sequenceFigures != null
+          ? sequenceMove
+          : meanwhileMove,
       'children': [for (final child in children) _figureDraftJson(child)],
     },
   };
@@ -558,4 +760,15 @@ String? _optSnippet(Object? raw) {
   return raw.length > kMaxWalkthroughSnippetLength
       ? raw.substring(0, kMaxWalkthroughSnippetLength)
       : raw;
+}
+
+/// [FigureDraftSnapshot.beatsTouched] for a draft written before the flag
+/// was: a stored count is the caller's, except a group's 0 (AUTH-11).
+bool _legacyBeatsTouched(
+  Map<String, Object?> params, {
+  required bool isContainer,
+}) {
+  if (!params.containsKey('beats')) return false;
+  final beats = params['beats'];
+  return !isContainer || (beats is int && beats > 0);
 }

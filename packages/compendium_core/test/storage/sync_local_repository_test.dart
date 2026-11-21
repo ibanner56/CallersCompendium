@@ -1,11 +1,43 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
-    show BaselineStateCompanion;
-import 'package:drift/drift.dart' show Value;
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
+    show BaselineEntriesCompanion, BaselineStateCompanion;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
+
+class _SqliteBindLimitGuard extends QueryInterceptor {
+  static const maxVariables = 999;
+
+  void _check(List<Object?> args) {
+    if (args.length > maxVariables) {
+      throw StateError(
+        'test SQLite bind limit exceeded: ${args.length} > $maxVariables',
+      );
+    }
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runSelect(executor, statement, args);
+  }
+
+  @override
+  Future<int> runUpdate(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runUpdate(executor, statement, args);
+  }
+}
 
 void main() {
   group('SyncLocalRepository schema', () {
@@ -85,6 +117,77 @@ void main() {
     );
   });
 
+  test(
+    'distinguishes legacy full-body hashes from W9 comparison hashes',
+    () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      final address = (kind: SyncRecordKind.dance, recordId: 'legacy');
+
+      await db
+          .into(db.baselineEntries)
+          .insert(
+            BaselineEntriesCompanion.insert(
+              kind: address.kind,
+              recordId: address.recordId,
+              wireHash: 'legacy-wire',
+              bodyHash: const Value('legacy-full-body'),
+            ),
+          );
+
+      final legacy = (await repository.snapshotBaseline()).values.single;
+      expect(legacy.bodyHash, 'legacy-full-body');
+      expect(
+        legacy.bodyHashVersion,
+        SyncBaselineBodyHashVersion.legacyFullBody,
+      );
+
+      await repository.replaceBaseline(
+        epoch: 'epoch-legacy',
+        entries: [legacy],
+      );
+      final replacedLegacy =
+          (await repository.snapshotBaseline()).values.single;
+      expect(replacedLegacy.bodyHash, 'legacy-full-body');
+      expect(
+        replacedLegacy.bodyHashVersion,
+        SyncBaselineBodyHashVersion.legacyFullBody,
+      );
+
+      await repository.advanceBaseline(
+        epoch: 'epoch-legacy',
+        entries: [legacy],
+      );
+      final advancedLegacy =
+          (await repository.snapshotBaseline()).values.single;
+      expect(advancedLegacy.bodyHash, 'legacy-full-body');
+      expect(
+        advancedLegacy.bodyHashVersion,
+        SyncBaselineBodyHashVersion.legacyFullBody,
+      );
+
+      await repository.replaceBaseline(
+        epoch: 'epoch-1',
+        entries: [
+          SyncBaselineEntry(
+            kind: address.kind,
+            recordId: address.recordId,
+            wireHash: 'comparison-wire',
+            bodyHash: 'comparison-body',
+          ),
+        ],
+      );
+
+      final comparison = (await repository.snapshotBaseline()).values.single;
+      expect(comparison.bodyHash, 'comparison-body');
+      expect(
+        comparison.bodyHashVersion,
+        SyncBaselineBodyHashVersion.comparison,
+      );
+    },
+  );
+
   test('fresh empty baseline retains its epoch', () async {
     final db = openTestDatabase();
     addTearDown(db.close);
@@ -97,6 +200,141 @@ void main() {
       '9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f',
     );
     expect(await repository.listBaselineEntries(), isEmpty);
+  });
+
+  group('kept peer manifests (sync-spec §5.2)', () {
+    late CompendiumDatabase db;
+    late SyncLocalRepository repository;
+    const kept = (epoch: 'epoch-a', etag: '"v1"', body: '{"m":1}');
+
+    setUp(() async {
+      db = openTestDatabase();
+      repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-a');
+    });
+    tearDown(() => db.close());
+
+    test('reads back, replaces and forgets one peer', () async {
+      await repository.putPeerManifest('peer', kept);
+      expect(await repository.peerManifest('peer'), kept);
+      expect(await repository.peerManifest('other'), isNull);
+
+      const replaced = (epoch: 'epoch-a', etag: '"v2"', body: '{"m":2}');
+      await repository.putPeerManifest('peer', replaced);
+      expect(await repository.peerManifest('peer'), replaced);
+
+      await repository.removePeerManifest('peer');
+      expect(await repository.peerManifest('peer'), isNull);
+    });
+
+    test('keeps only listed peers in the given epoch', () async {
+      await repository.putPeerManifest('listed', kept);
+      await repository.putPeerManifest('unlisted', kept);
+      await repository.putPeerManifest('old', (
+        epoch: 'epoch-old',
+        etag: '"v1"',
+        body: '{}',
+      ));
+
+      await repository.retainPeerManifests(
+        epoch: 'epoch-a',
+        peerIds: {'listed', 'old'},
+      );
+
+      expect(await repository.peerManifest('listed'), kept);
+      expect(await repository.peerManifest('unlisted'), isNull);
+      expect(await repository.peerManifest('old'), isNull);
+
+      await repository.retainPeerManifests(epoch: 'epoch-a', peerIds: {});
+      expect(await repository.peerManifest('listed'), isNull);
+    });
+
+    test('goes with the baseline: epoch reset, detach and restore', () async {
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearBaseline();
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.resetEpoch(epoch: 'epoch-b');
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearOnDetach();
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearForRestore(restoredRecords: const []);
+      expect(await repository.peerManifest('peer'), isNull);
+    });
+  });
+
+  group('published manifest record (sync-spec §6.3 step 8)', () {
+    late CompendiumDatabase db;
+    late SyncLocalRepository repository;
+    final verifiedAt = DateTime.utc(2026, 10, 13, 9, 30);
+
+    setUp(() async {
+      db = openTestDatabase();
+      repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-a');
+    });
+    tearDown(() => db.close());
+
+    test('reads back what was recorded for the same epoch', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), (
+        hash: 'manifest-hash',
+        verifiedAt: verifiedAt,
+      ));
+      expect(await repository.publishedManifest(epoch: 'epoch-b'), isNull);
+    });
+
+    test('is not written against another epoch', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-b',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+      expect(await repository.publishedManifest(epoch: 'epoch-b'), isNull);
+    });
+
+    test('is forgotten when cleared, and with the baseline', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.setPublishedManifest(epoch: 'epoch-a', published: null);
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.replaceBaseline(epoch: 'epoch-a');
+      expect(
+        await repository.publishedManifest(epoch: 'epoch-a'),
+        isNull,
+        reason: 'a replaced baseline starts with nothing published',
+      );
+
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.advanceBaseline(epoch: 'epoch-a');
+      expect(
+        await repository.publishedManifest(epoch: 'epoch-a'),
+        isNotNull,
+        reason: 'advancing the baseline is not a new publication',
+      );
+      await repository.clearBaseline();
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+    });
   });
 
   test(
@@ -165,6 +403,7 @@ void main() {
         reason: 'collision',
         candidateBlob: '{"id":"d1"}',
         candidateHash: 'c1',
+        localHash: 'local-h1',
         queuedAt: DateTime.utc(2026, 1, 1),
       );
       await repository.markPublished(
@@ -250,6 +489,33 @@ void main() {
       },
     );
 
+    test('detach erases every capability record, leaving no tombstone '
+        '(#709)', () async {
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final own = syncCapabilityRecordKey('device-a');
+      final peer = syncCapabilityRecordKey('device-b');
+      await repos.settings.set(own, syncCapabilityRecordValue({'x.v1'}));
+      await repos.settings.set(peer, syncCapabilityRecordValue({'x.v1'}));
+      // Published, so an ordinary removal would only tombstone it.
+      await repository.markPublishedAll([
+        (kind: SyncRecordKind.setting, recordId: peer),
+      ]);
+      // A key that merely shares the letters, and an ordinary setting.
+      await repos.settings.set('sync_capabilitiesX', 1);
+      // The prefix must start the key, not merely appear in it.
+      await repos.settings.set('x$peer', 1);
+      await repos.settings.set('theme_mode', 'dark');
+
+      await repository.clearOnDetach();
+
+      final keys = {
+        for (final row in await db.select(db.settings).get()) row.key,
+      };
+      expect(keys, isNot(contains(own)));
+      expect(keys, isNot(contains(peer)));
+      expect(keys, containsAll(['sync_capabilitiesX', 'x$peer', 'theme_mode']));
+    });
+
     test(
       'transaction composition rolls back a coupled lifecycle failure',
       () async {
@@ -273,7 +539,215 @@ void main() {
     );
   });
 
+  group('baseline writes (#1948)', () {
+    const comparisonPrefix = 'comparison-v1:';
+    const epoch = 'epoch-a';
+    const kept = SyncBaselineEntry(
+      kind: SyncRecordKind.dance,
+      recordId: 'kept',
+      wireHash: 'wire-kept',
+      bodyHash: 'body-kept',
+    );
+    // An update of a stored row, a legacy row, a row with no body hash, and
+    // the same address twice, where the later entry has always won.
+    const entries = [
+      SyncBaselineEntry(
+        kind: SyncRecordKind.dance,
+        recordId: 'updated',
+        wireHash: 'wire-new',
+        bodyHash: 'body-new',
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.tag,
+        recordId: 'legacy',
+        wireHash: 'wire-legacy',
+        bodyHash: 'legacy-full-body',
+        bodyHashVersion: SyncBaselineBodyHashVersion.legacyFullBody,
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.setting,
+        recordId: 'no-body',
+        wireHash: 'wire-no-body',
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.program,
+        recordId: 'twice',
+        wireHash: 'wire-first',
+        bodyHash: 'body-first',
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.program,
+        recordId: 'twice',
+        wireHash: 'wire-second',
+        bodyHash: 'body-second',
+      ),
+    ];
+    // The rows the per-entry loop these writes replaced produced, as stored.
+    final written = {
+      ('dance', 'updated', 'wire-new', '${comparisonPrefix}body-new'),
+      ('tag', 'legacy', 'wire-legacy', 'legacy-full-body'),
+      ('setting', 'no-body', 'wire-no-body', null),
+      ('program', 'twice', 'wire-second', '${comparisonPrefix}body-second'),
+    };
+
+    Future<Set<(String, String, String, String?)>> rows(
+      SyncLocalRepository repository,
+    ) async => {
+      for (final row in await repository.listBaselineEntries())
+        (row.kind.name, row.recordId, row.wireHash, row.bodyHash),
+    };
+
+    test('advancing writes the same rows as one write per entry did', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(
+        epoch: epoch,
+        entries: [
+          kept,
+          const SyncBaselineEntry(
+            kind: SyncRecordKind.dance,
+            recordId: 'updated',
+            wireHash: 'wire-old',
+            bodyHash: 'body-old',
+          ),
+          const SyncBaselineEntry(
+            kind: SyncRecordKind.dance,
+            recordId: 'dropped',
+            wireHash: 'wire-dropped',
+          ),
+        ],
+      );
+
+      await repository.advanceBaseline(
+        epoch: epoch,
+        entries: entries,
+        drop: [(kind: SyncRecordKind.dance, recordId: 'dropped')],
+      );
+
+      expect(await rows(repository), {
+        ('dance', 'kept', 'wire-kept', '${comparisonPrefix}body-kept'),
+        ...written,
+      });
+      expect((await repository.getBaselineState())!.epoch, epoch);
+    });
+
+    test('replacing writes exactly the given rows and epoch', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-old', entries: [kept]);
+
+      await repository.replaceBaseline(epoch: epoch, entries: entries);
+
+      expect(await rows(repository), written);
+      expect((await repository.getBaselineState())!.epoch, epoch);
+    });
+
+    test(
+      'advancing and replacing each write their rows in one batch',
+      () async {
+        final counter = _TableBatchCounter('baseline_entries');
+        final db = openCountingTestDatabase(counter);
+        addTearDown(db.close);
+        final repository = SyncLocalRepository(db);
+        counter.reset();
+
+        await repository.replaceBaseline(epoch: epoch, entries: entries);
+        await repository.advanceBaseline(epoch: epoch, entries: entries);
+        await repository.advanceBaseline(epoch: epoch);
+
+        expect(counter.batchedSqlCounts, [1, 1]);
+        expect(counter.individualInserts, 0);
+      },
+    );
+
+    test('an entry has the same hashes only when all three match', () {
+      const other = SyncBaselineEntry(
+        kind: SyncRecordKind.tag,
+        recordId: 'elsewhere',
+        wireHash: 'wire-kept',
+        bodyHash: 'body-kept',
+      );
+      expect(kept.hasSameHashesAs(other), isTrue, reason: 'address ignored');
+      SyncBaselineEntry changed({
+        String wireHash = 'wire-kept',
+        String? bodyHash = 'body-kept',
+        SyncBaselineBodyHashVersion version =
+            SyncBaselineBodyHashVersion.comparison,
+      }) => SyncBaselineEntry(
+        kind: kept.kind,
+        recordId: kept.recordId,
+        wireHash: wireHash,
+        bodyHash: bodyHash,
+        bodyHashVersion: version,
+      );
+      expect(kept.hasSameHashesAs(changed(wireHash: 'wire-new')), isFalse);
+      expect(kept.hasSameHashesAs(changed(bodyHash: 'body-new')), isFalse);
+      expect(kept.hasSameHashesAs(changed(bodyHash: null)), isFalse);
+      expect(
+        kept.hasSameHashesAs(
+          changed(version: SyncBaselineBodyHashVersion.legacyFullBody),
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('SyncLocalRepository remapping and review queue', () {
+    test(
+      'remaps a large alias closure without exceeding SQLite bind limits',
+      () async {
+        final db = CompendiumDatabase(
+          NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+        );
+        addTearDown(db.close);
+        final repository = SyncLocalRepository(db);
+        const total = 1001;
+
+        await repository.transaction((tx) async {
+          for (var i = 0; i < total; i++) {
+            await tx.upsertAlias(
+              kind: SyncRecordKind.dance,
+              losingId: 'alias-${i.toString().padLeft(4, '0')}',
+              survivingId: 'alias-${(i + 1).toString().padLeft(4, '0')}',
+            );
+          }
+          await tx.markPublished(
+            kind: SyncRecordKind.dance,
+            recordId: 'alias-0000',
+          );
+        });
+
+        await repository.remapIdentity(
+          kind: SyncRecordKind.dance,
+          losingId: 'alias-1001',
+          survivingId: 'survivor',
+        );
+
+        expect(
+          await repository.resolveAlias(
+            kind: SyncRecordKind.dance,
+            recordId: 'alias-0000',
+          ),
+          'survivor',
+        );
+        expect(
+          await repository.isPublished(
+            kind: SyncRecordKind.dance,
+            recordId: 'survivor',
+          ),
+          isTrue,
+        );
+        expect(
+          (await repository.listAliases())
+              .where((row) => row.kind == SyncRecordKind.dance)
+              .every((row) => row.survivingId == 'survivor'),
+          isTrue,
+        );
+      },
+    );
+
     test(
       'remap unions publication markers and rewrites aliases to a fixed point',
       () async {
@@ -283,53 +757,52 @@ void main() {
 
         await repository.upsertAlias(
           kind: SyncRecordKind.dance,
-          losingId: 'older',
-          survivingId: 'losing',
+          losingId: 'a',
+          survivingId: 'b',
         );
         await repository.upsertAlias(
           kind: SyncRecordKind.dance,
-          losingId: 'oldest',
-          survivingId: 'older',
+          losingId: 'b',
+          survivingId: 'c',
+        );
+        expect(
+          await repository.resolveAlias(
+            kind: SyncRecordKind.dance,
+            recordId: 'a',
+          ),
+          'c',
         );
         await repository.markPublished(
           kind: SyncRecordKind.dance,
-          recordId: 'oldest',
-        );
-        await repository.markPublished(
-          kind: SyncRecordKind.dance,
-          recordId: 'older',
-        );
-        await repository.markPublished(
-          kind: SyncRecordKind.dance,
-          recordId: 'losing',
+          recordId: 'a',
         );
 
         await repository.remapIdentity(
           kind: SyncRecordKind.dance,
-          losingId: 'losing',
+          losingId: 'c',
           survivingId: 'survivor',
         );
 
         expect(
           await repository.isPublished(
             kind: SyncRecordKind.dance,
-            recordId: 'losing',
+            recordId: 'a',
           ),
           isTrue,
         );
         expect(
           await repository.isPublished(
             kind: SyncRecordKind.dance,
-            recordId: 'older',
+            recordId: 'b',
           ),
-          isTrue,
+          isFalse,
         );
         expect(
           await repository.isPublished(
             kind: SyncRecordKind.dance,
-            recordId: 'oldest',
+            recordId: 'c',
           ),
-          isTrue,
+          isFalse,
         );
         expect(
           await repository.isPublished(
@@ -340,9 +813,9 @@ void main() {
         );
         final aliases = await repository.listAliases();
         expect(aliases.map((row) => (row.losingId, row.survivingId)).toSet(), {
-          ('oldest', 'survivor'),
-          ('older', 'survivor'),
-          ('losing', 'survivor'),
+          ('a', 'survivor'),
+          ('b', 'survivor'),
+          ('c', 'survivor'),
         });
       },
     );
@@ -359,6 +832,7 @@ void main() {
         reason: 'first',
         candidateBlob: '{"v":1}',
         candidateHash: 'h1',
+        localHash: 'local-h1',
         queuedAt: DateTime.utc(2026, 1, 1),
       );
       await repository.enqueueReview(
@@ -368,6 +842,7 @@ void main() {
         reason: 'second',
         candidateBlob: '{"v":2}',
         candidateHash: 'h2',
+        localHash: 'local-h2',
         queuedAt: DateTime.utc(2026, 1, 2),
       );
 
@@ -375,6 +850,7 @@ void main() {
       expect(rows, hasLength(1));
       expect(rows.single.reason, 'first');
       expect(rows.single.candidateHash, 'h1');
+      expect(rows.single.localHash, 'local-h1');
 
       await repository.markPublished(
         kind: SyncRecordKind.dance,
@@ -393,5 +869,137 @@ void main() {
         isTrue,
       );
     });
+
+    test('marks publication records with one database batch', () async {
+      final counter = _TableBatchCounter('published_records');
+      final db = openCountingTestDatabase(counter);
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      counter.reset();
+
+      await repository.markPublishedAll([
+        for (var index = 0; index < 3; index++)
+          (kind: SyncRecordKind.dance, recordId: 'dance-$index'),
+      ]);
+
+      expect(counter.batchedSqlCounts, [1]);
+      expect(counter.individualInserts, 0);
+      expect(await repository.listPublishedRecords(), hasLength(3));
+    });
   });
+
+  test('retires aliases by peer-manifest content without markers', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repository = SyncLocalRepository(db);
+
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'old-tag',
+      survivingId: 'new-tag',
+    );
+    await repository.markPublished(
+      kind: SyncRecordKind.tag,
+      recordId: 'old-tag',
+    );
+
+    await repository.retireAliases(
+      peerAddresses: const {
+        (kind: SyncRecordKind.tag, recordId: 'unrelated-tag'),
+      },
+    );
+
+    expect(await repository.listAliases(), isEmpty);
+    expect(
+      await repository.isPublished(
+        kind: SyncRecordKind.tag,
+        recordId: 'old-tag',
+      ),
+      isTrue,
+    );
+  });
+
+  test('retains aliases named by a current peer manifest', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repository = SyncLocalRepository(db);
+
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'old-tag',
+      survivingId: 'new-tag',
+    );
+
+    await repository.retireAliases(
+      peerAddresses: const {(kind: SyncRecordKind.tag, recordId: 'old-tag')},
+    );
+
+    expect(await repository.listAliases(), hasLength(1));
+  });
+
+  test('retains every alias in a peer-advertised alias chain', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repository = SyncLocalRepository(db);
+
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'a-tag',
+      survivingId: 'b-tag',
+    );
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'b-tag',
+      survivingId: 'c-tag',
+    );
+
+    await repository.retireAliases(
+      peerAddresses: const {(kind: SyncRecordKind.tag, recordId: 'a-tag')},
+    );
+
+    expect(
+      (await repository.listAliases())
+          .map((alias) => (alias.losingId, alias.survivingId))
+          .toSet(),
+      {('a-tag', 'b-tag'), ('b-tag', 'c-tag')},
+    );
+  });
+}
+
+/// Counts the statements that write [table], batched and individual.
+final class _TableBatchCounter extends QueryInterceptor {
+  _TableBatchCounter(this.table);
+
+  final String table;
+  final batchedSqlCounts = <int>[];
+  int individualInserts = 0;
+
+  void reset() {
+    batchedSqlCounts.clear();
+    individualInserts = 0;
+  }
+
+  bool _matches(String statement) => statement.toLowerCase().contains(table);
+
+  @override
+  Future<void> runBatched(
+    QueryExecutor executor,
+    BatchedStatements statements,
+  ) {
+    final matchingStatements = statements.statements.where(_matches).length;
+    if (matchingStatements > 0) {
+      batchedSqlCounts.add(matchingStatements);
+    }
+    return super.runBatched(executor, statements);
+  }
+
+  @override
+  Future<int> runInsert(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_matches(statement)) individualInserts++;
+    return super.runInsert(executor, statement, args);
+  }
 }

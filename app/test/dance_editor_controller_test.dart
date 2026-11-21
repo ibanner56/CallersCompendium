@@ -1,12 +1,16 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/validation_issue_labels.dart';
 import 'package:compendium_app/src/screens/dance_editor/dance_editor_controller.dart';
 
 import 'support/test_repositories.dart';
+import 'support/new_dance_draft.dart';
+import 'figures_support.dart';
 
 /// Pure-Dart unit tests for [DanceEditorController]: they construct the
 /// controller directly (no widget tree) and drive its mutation methods to
@@ -14,15 +18,22 @@ import 'support/test_repositories.dart';
 /// complements the widget-level `editor_autosave_undo_test.dart` by exercising
 /// the extracted controller in isolation.
 ///
-/// The controller's debounce timers are real 500 ms [Timer]s, so tests wait a
-/// little past that window (`settleDebounce`) to let them fire.
+/// The controller's debounce timers are real [Timer]s, so tests build it with a
+/// short [testDebounce] and wait a little past that window (`settleDebounce`)
+/// to let them fire.
 void main() {
+  const testDebounce = Duration(milliseconds: 10);
   final now = DateTime.utc(2026, 1, 1);
 
-  Dance sampleDance({String id = 'd1', String title = 'My Dance'}) => Dance(
+  Dance sampleDance({
+    String id = 'd1',
+    String title = 'My Dance',
+    List<String> tunes = const [],
+  }) => Dance(
     id: id,
     title: title,
     figures: const [],
+    tunes: tunes,
     createdAt: now,
     updatedAt: now,
   );
@@ -34,17 +45,16 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
+      debounce: testDebounce,
     );
     await controller.load(dance: null, fieldDefs: const []);
     return controller;
   }
 
-  /// Waits past the 500 ms undo/autosave debounce window, then lets the async
-  /// draft write settle.
-  Future<void> settleDebounce() async {
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-  }
+  /// Waits past the injected undo/autosave [testDebounce] window, then lets the
+  /// async draft write settle.
+  Future<void> settleDebounce() => Future<void>.delayed(testDebounce * 2);
 
   /// Polls until the autosave draft exists (or times out), tolerating the async
   /// db write kicked off by the debounce timer.
@@ -55,6 +65,116 @@ void main() {
     }
     return false;
   }
+
+  group('an undecodable transcription survives editing (#1347)', () {
+    /// Loads a dance whose [column] holds text the decoder cannot read.
+    /// Parameterised because the figures and tunes preservation rules are two
+    /// separate pieces of code (`_preserveStoredFigures`, `_preserveStoredTunes`)
+    /// with the same hazard: corrupting only `figures_json` leaves the tune
+    /// half of the contract untested.
+    Future<DanceEditorController> loadUnreadable(
+      CompendiumRepositories repos, {
+      String column = 'figures_json',
+      String raw = '[{"kind":',
+    }) async {
+      await repos.dances.create(
+        sampleDance(id: 'd1', title: 'Corrupt', tunes: const ['Placeholder']),
+      );
+      await repos.ensureMigrated();
+      await repos.db.customStatement(
+        'UPDATE dances SET $column = ? WHERE id = ?',
+        [raw, 'd1'],
+      );
+      final loaded = await repos.dances.getById('d1');
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      await controller.load(dance: loaded, fieldDefs: const []);
+      return controller;
+    }
+
+    test('a title edit does not replace the stored transcription', () async {
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(repos);
+      addTearDown(controller.dispose);
+
+      controller.titleController.text = 'Renamed';
+      final built = controller.buildDance();
+
+      expect(built.figuresSource, isA<UnreadableFigures>());
+    });
+
+    test('undo after adding a figure restores the preservation', () async {
+      // `EditorSnapshot` captures `figureDrafts` and `tunes` as plain lists and
+      // restores them with `..addAll(...)` — the exact shape that would have
+      // destroyed the stored text on the Collection Undo path. It is safe here
+      // only because `_preserveStoredFigures` is computed from LIVE content
+      // rather than from a captured flag, so restoring an empty list turns
+      // preservation back on. This pins that property rather than the current
+      // implementation of it: a refactor to a snapshot-captured flag would fail
+      // here.
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(repos);
+      addTearDown(controller.dispose);
+
+      controller.addFigure();
+      controller.undo();
+      controller.titleController.text = 'Renamed';
+
+      expect(controller.buildDance().figuresSource, isA<UnreadableFigures>());
+    });
+
+    test('pressing Add figure does not replace it either', () async {
+      // The placeholder trap: `addFigure()` makes `figureDrafts` non-empty
+      // while the draft still yields no figure, so a guard keyed on the draft
+      // list stops protecting the bytes the moment the button is pressed.
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(repos);
+      addTearDown(controller.dispose);
+
+      controller.addFigure();
+      controller.titleController.text = 'Renamed';
+      final built = controller.buildDance();
+
+      expect(
+        built.figuresSource,
+        isA<UnreadableFigures>(),
+        reason: 'an empty placeholder is not an authored transcription',
+      );
+    });
+
+    test('undo after adding a tune restores the preservation', () async {
+      // The tune half of the undo hazard above, and a separate piece of code:
+      // `_preserveStoredTunes` reads `tunes.isEmpty`, and `EditorSnapshot`
+      // restores `tunes` with `..addAll(...)` from a plain `List<String>` that
+      // never held the stored bytes. Preservation therefore has to come back on
+      // by itself when the list empties again. A refactor that captured the
+      // unreadable state into the snapshot instead would pass the figures tests
+      // and silently overwrite the stored tune text here.
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(
+        repos,
+        column: 'tunes_json',
+        raw: '[1,2,3]',
+      );
+      addTearDown(controller.dispose);
+
+      expect(
+        controller.buildDance().tunesSource,
+        isA<UnreadableTunes>(),
+        reason: 'precondition: the editor opened on an unreadable tune list',
+      );
+
+      controller.tuneController.text = 'Whiskey Before Breakfast';
+      controller.addTune();
+      controller.undo();
+      controller.titleController.text = 'Renamed';
+
+      expect(controller.buildDance().tunesSource, isA<UnreadableTunes>());
+    });
+  });
 
   test('load seeds a new dance with a single initial undo entry', () async {
     final repos = openTestRepositories();
@@ -119,13 +239,78 @@ void main() {
     expect(controller.titleController.text, isEmpty);
   });
 
+  test('undo during the typing debounce undoes the typing, not the step '
+      'before it (AUTH-6)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.setStatus(DanceStatus.deprecated);
+    controller.titleController.text = 'Petronella Mixer';
+    controller.onTextEdited();
+
+    // Before the debounce has pushed the typing.
+    controller.undo();
+    expect(controller.titleController.text, isEmpty);
+    expect(controller.status, DanceStatus.deprecated);
+
+    controller.redo();
+    expect(controller.titleController.text, 'Petronella Mixer');
+  });
+
+  test('redo during the typing debounce keeps the typing (AUTH-6)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.setStatus(DanceStatus.deprecated);
+    controller.undo();
+    expect(controller.canRedo, isTrue);
+    controller.titleController.text = 'Typed after undo';
+    controller.onTextEdited();
+
+    var notified = 0;
+    controller.addListener(() => notified++);
+
+    // The typing is newer than the redo entry, so redo has nothing to do.
+    controller.redo();
+    expect(controller.titleController.text, 'Typed after undo');
+    expect(controller.status, DanceStatus.active);
+    // The Undo and Redo buttons hear that the typing is now undoable and
+    // there is nothing left to redo.
+    expect(controller.canUndo, isTrue);
+    expect(controller.canRedo, isFalse);
+    expect(notified, greaterThan(0));
+  });
+
+  test('the injected debounce governs the autosave timer', () async {
+    final repos = openTestRepositories();
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: null,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
+      debounce: const Duration(milliseconds: 10),
+    );
+    await controller.load(dance: null, fieldDefs: const []);
+    addTearDown(controller.dispose);
+
+    controller.titleController.text = 'Quick';
+    controller.onTextEdited();
+    expect(await hasNewDanceDraft(repos), isFalse);
+
+    // Well inside the 500 ms default, so only the injected value can have
+    // fired the timer.
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(await hasNewDanceDraft(repos), isTrue);
+  });
+
   group('initialTitle seed (issue #881 program-slot "create a dance")', () {
     test('seeds a new dance\'s title field', () async {
       final repos = openTestRepositories();
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         initialTitle: 'Petronella',
       );
       addTearDown(controller.dispose);
@@ -139,7 +324,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         initialTitle: '',
       );
       addTearDown(controller.dispose);
@@ -155,7 +340,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         initialTitle: 'Should Not Apply',
       );
       addTearDown(controller.dispose);
@@ -168,43 +353,38 @@ void main() {
     });
 
     test(
-      'a restored autosave draft overrides the seed (draft precedence)',
+      'a seeded new dance is not offered another new dance\'s draft (AUTH-10)',
       () async {
         final repos = openTestRepositories();
 
-        // Stage a pending draft under the shared new-dance draft key, exactly
-        // as a prior abandoned new-dance session would have left it.
-        final seeded = DanceEditorController(
+        // An abandoned new dance leaves its draft behind.
+        final abandoned = DanceEditorController(
           repositories: repos,
           danceId: null,
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
-        await seeded.load(dance: null, fieldDefs: const []);
-        seeded.titleController.text = 'Old Draft Title';
-        seeded.onTextEdited();
-        await draftPersisted(repos, 'editor_draft:new');
-        seeded.dispose();
+        await abandoned.load(dance: null, fieldDefs: const []);
+        abandoned.titleController.text = 'Old Draft Title';
+        abandoned.onTextEdited();
+        expect(await draftPersisted(repos, abandoned.draftKey), isTrue);
+        abandoned.dispose();
 
+        // A dance started from a program slot is that dance, not the
+        // abandoned one: it offers no draft, and leaves the old one stored
+        // for the next plain new dance.
         final controller = DanceEditorController(
           repositories: repos,
           danceId: null,
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
           initialTitle: 'New Seed Title',
         );
         addTearDown(controller.dispose);
         await controller.load(dance: null, fieldDefs: const []);
 
-        // Before the restore prompt resolves, the seed is what's showing —
-        // this is the pre-existing shared-key hazard the plan calls out,
-        // not something this change fixes.
         expect(controller.titleController.text, 'New Seed Title');
-        expect(controller.pendingDraft, isNotNull);
-
-        final draft = controller.pendingDraft!;
-        controller.clearPendingDraft();
-        controller.applyRestoredDraft(draft);
-
-        expect(controller.titleController.text, 'Old Draft Title');
+        expect(controller.pendingDraft, isNull);
+        expect(controller.draftKey, isNot(abandoned.draftKey));
+        expect(await repos.settings.contains(abandoned.draftKey), isTrue);
       },
     );
   });
@@ -216,25 +396,90 @@ void main() {
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
 
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
 
       controller.titleController.text = 'Autosaved Title';
       controller.onTextEdited();
 
       expect(
-        await draftPersisted(repos, 'editor_draft:new'),
+        await draftPersisted(repos, controller.draftKey),
         isTrue,
         reason: 'the debounced autosave should persist a draft',
       );
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.title, 'Autosaved Title');
 
       await controller.clearDraft();
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     },
   );
+
+  test(
+    'shutdown flush writes the newest edit before the debounce fires',
+    () async {
+      final delayed = openTestRepositoriesWithDelayedSettings();
+      final controller = await newDanceController(delayed.repos);
+
+      controller.titleController.text = 'Final title';
+      controller.onTextEdited();
+      delayed.settings.holdNextWrite();
+
+      final flush = controller.prepareShutdownFlush()();
+      var completed = false;
+      final observed = flush.whenComplete(() => completed = true);
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(
+        delayed.settings.writesStarted,
+        1,
+        reason:
+            'shutdown must enqueue the pending snapshot immediately instead '
+            'of waiting for the autosave timer',
+      );
+      expect(completed, isFalse);
+
+      controller.dispose();
+      delayed.settings.releaseWrite();
+      await observed;
+
+      final draft = decodeDraft(await newDanceDraft(delayed.repos));
+      expect(draft.title, 'Final title');
+    },
+  );
+
+  test('a pending-autosave flush writes the edit now and leaves autosave '
+      'running (PLAT-19)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    await controller.flushPendingAutosave();
+    expect(
+      await repos.settings.contains(controller.draftKey),
+      isFalse,
+      reason: 'nothing was waiting on the debounce, so nothing is written',
+    );
+
+    controller.titleController.text = 'Backgrounded title';
+    controller.onTextEdited();
+    // Awaited directly, with no time for the debounce to fire.
+    await controller.flushPendingAutosave();
+    expect(
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
+      'Backgrounded title',
+    );
+
+    // Not a final flush: an edit after resuming still autosaves.
+    controller.titleController.text = 'Resumed title';
+    controller.onTextEdited();
+    await settleDebounce();
+    expect(
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
+      'Resumed title',
+    );
+  });
 
   test('clearDraft awaits an in-flight autosave so it cannot resurrect the '
       'draft afterwards (issue #616)', () async {
@@ -249,7 +494,7 @@ void main() {
     // right after starting, simulating a write already "in flight" when
     // cleanup runs.
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
     await delayed.settings.writeStarted;
 
     // Fire the cleanup while the autosave write is still suspended. If
@@ -260,7 +505,7 @@ void main() {
     await clearFuture;
 
     expect(
-      await delayed.repos.settings.contains('editor_draft:new'),
+      await hasNewDanceDraft(delayed.repos),
       isFalse,
       reason:
           'the draft must stay removed even though an autosave write was '
@@ -281,13 +526,12 @@ void main() {
     // Autosave was scheduled before the discard; clearDraft cancels the
     // timer, so waiting past the debounce window must not resurrect it.
     await settleDebounce();
-    expect(await repos.settings.contains('editor_draft:new'), isFalse);
+    expect(await hasNewDanceDraft(repos), isFalse);
   });
 
   test('autosave preserves staged tags for restored drafts', () async {
     final repos = openTestRepositories();
     final controller = await newDanceController(repos);
-    addTearDown(controller.dispose);
 
     controller.stageTag(
       Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
@@ -295,15 +539,17 @@ void main() {
     controller.addTag('provisional');
 
     expect(
-      await draftPersisted(repos, 'editor_draft:new'),
+      await draftPersisted(repos, controller.draftKey),
       isTrue,
       reason: 'the staged tag draft should be persisted',
     );
+    // An editor still open keeps its draft to itself.
+    controller.dispose();
 
     final restored = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(restored.dispose);
     await restored.load(dance: null, fieldDefs: const []);
@@ -329,7 +575,7 @@ void main() {
     controller.titleController.text = 'First Edit';
     controller.onTextEdited();
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
     await delayed.settings.writeStarted;
 
     // While the first write is still suspended, make a second edit. Its
@@ -340,7 +586,7 @@ void main() {
     controller.titleController.text = 'Second Edit';
     controller.onTextEdited();
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
 
     // The second write is queued behind the still-suspended first write,
     // so it hasn't started yet.
@@ -354,7 +600,7 @@ void main() {
     await clearFuture;
 
     expect(
-      await delayed.repos.settings.contains('editor_draft:new'),
+      await hasNewDanceDraft(delayed.repos),
       isFalse,
       reason:
           'the draft must stay removed even though an earlier autosave '
@@ -383,7 +629,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -402,6 +648,45 @@ void main() {
     expect(dance.createdAt, now);
   });
 
+  test('a stored whole number opens in its box as "3", not "3.0"', () async {
+    final repos = openTestRepositories();
+    final def = CustomFieldDef(
+      id: 'f-num',
+      key: 'number',
+      label: 'Number',
+      type: CustomFieldType.number,
+    );
+    for (final (stored, shown) in [
+      (3.0, '3'),
+      (2.5, '2.5'),
+      (1e20, '100000000000000000000'),
+    ]) {
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: Dance(
+          id: 'd1',
+          title: 'Numbered',
+          customFields: [CustomFieldValue(fieldId: 'f-num', value: stored)],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+        fieldDefs: [def],
+      );
+      expect(
+        controller.customTextControllers['f-num']!.text,
+        shown,
+        reason: '$stored',
+      );
+      // Opening it is no edit: the box parses back to the stored value.
+      expect(controller.collectCustomFields().single.value, stored);
+    }
+  });
+
   test('collectCustomFields ignores non-finite number input', () async {
     final repos = openTestRepositories();
     final def = CustomFieldDef(
@@ -413,7 +698,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: [def]);
@@ -431,7 +716,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: const []);
@@ -465,7 +750,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: const []);
@@ -513,7 +798,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -550,7 +835,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -575,7 +860,50 @@ void main() {
 
     // Saving without edits round-trips back to the same canonical storage.
     final rebuilt = controller.buildDance();
-    expect(rebuilt.figures.single.note, 'Open role2s chain to neighbor');
+    expect(figuresOf(rebuilt).single.note, 'Open role2s chain to neighbor');
+  });
+
+  test('load renders a group title into the active dialect, nested too, and '
+      'buildDance canonicalizes it back', () async {
+    final repos = openTestRepositories();
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: 'd1',
+      dialects: DialectsByForm.all(Dialect.larksRobins),
+    );
+    addTearDown(controller.dispose);
+
+    Figure step(String move) =>
+        testFigure(move: move, params: const {'beats': 4});
+    final stored = sampleDance(id: 'd1').copyWith(
+      figures: [
+        Figure.sequence(
+          beats: 8,
+          figures: [step('balance'), step('swing')],
+          title: 'Open role2s chain to neighbor',
+        ),
+        Figure.meanwhile(
+          beats: 8,
+          figures: [
+            Figure.sequence(
+              beats: 8,
+              figures: [step('balance'), step('swing')],
+              title: 'role1s lead',
+            ),
+            Figure(move: 'orbit', params: const {'beats': 8}),
+          ],
+        ),
+      ],
+    );
+    await controller.load(dance: stored, fieldDefs: const []);
+
+    final [sequence, meanwhile] = controller.figureDrafts;
+    expect(sequence.containerTitle, 'Open robins chain to neighbor');
+    expect(meanwhile.meanwhileSides!.first.containerTitle, 'larks lead');
+
+    final [top, nested] = figuresOf(controller.buildDance());
+    expect(top.containerTitle, 'Open role2s chain to neighbor');
+    expect(nested.subFigures.first.containerTitle, 'role1s lead');
   });
 
   test('buildDance canonicalizes a typed figure note before persistence '
@@ -592,7 +920,7 @@ void main() {
     controller.onTextEdited();
 
     final dance = controller.buildDance();
-    expect(dance.figures.last.note, 'Open role2s chain to neighbor');
+    expect(figuresOf(dance).last.note, 'Open role2s chain to neighbor');
   });
 
   test('a figure note typed as a legacy synonym canonicalizes to the correct '
@@ -605,7 +933,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.leadsFollows,
+      dialects: DialectsByForm.all(Dialect.leadsFollows),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: const []);
@@ -618,7 +946,118 @@ void main() {
     controller.onTextEdited();
 
     final dance = controller.buildDance();
-    expect(dance.figures.last.note, 'role2s chain to neighbor');
+    expect(figuresOf(dance).last.note, 'role2s chain to neighbor');
+  });
+
+  // parser-1 / #715: role words that are also move words are not rewritten
+  // in figure notes and custom text — the move name "mad robin" in every
+  // dialect, and the verbs "lead"/"follow" under Leads/Follows — while the
+  // same words used as roles are still canonicalised.
+  group('move words in notes and custom text survive a save (parser-1)', () {
+    Future<DanceEditorController> controllerIn(Dialect dialect) async {
+      final controller = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: null,
+        dialects: DialectsByForm.all(dialect),
+        debounce: testDebounce,
+      );
+      await controller.load(dance: null, fieldDefs: const []);
+      return controller;
+    }
+
+    for (final (dialect, typed, stored) in [
+      (Dialect.larksRobins, 'then mad robin twice', 'then mad robin twice'),
+      (Dialect.leadsFollows, 'then mad robin twice', 'then mad robin twice'),
+      (
+        Dialect.leadsFollows,
+        'Ones lead down the hall, leads turn alone',
+        'Ones lead down the hall, role1s turn alone',
+      ),
+      (
+        Dialect.leadsFollows,
+        'Twos follow the ones down',
+        'Twos follow the ones down',
+      ),
+    ]) {
+      test('note "$typed" in ${dialect.name}', () async {
+        final controller = await controllerIn(dialect);
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = 'allemande';
+        draft.note = typed;
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(figuresOf(controller.buildDance()).last.note, stored);
+      });
+    }
+
+    test('custom "Ones lead down the hall" keeps the verb under '
+        'Leads/Follows and reads the same under Larks/Robins', () async {
+      final controller = await controllerIn(Dialect.leadsFollows);
+      addTearDown(controller.dispose);
+      controller.addFigure();
+      final draft = controller.figureDrafts.last;
+      draft.move = customMove;
+      draft.params['text'] = 'Ones lead down the hall four abreast';
+      controller.titleController.text = 'Some Dance';
+      controller.onTextEdited();
+      final saved = figuresOf(controller.buildDance()).last;
+      expect(saved.params['text'], 'Ones lead down the hall four abreast');
+
+      final again = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      addTearDown(again.dispose);
+      await again.load(
+        dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+        fieldDefs: const [],
+      );
+      expect(
+        again.figureDrafts.first.params['text'],
+        'Ones lead down the hall four abreast',
+      );
+    });
+  });
+
+  // Copilot review of #1699: a custom dialect whose move substitution holds a
+  // role word ("robins chain") must not shield that word on a no-edit save,
+  // so the text still follows a later dialect switch.
+  test('a no-edit save under a custom move substitution keeps custom text '
+      'canonical across a dialect switch', () async {
+    final custom = Dialect.larksRobins.copyWith(
+      name: 'Custom',
+      moves: {'chain': 'robins chain'},
+    );
+    final stored = sampleDance(id: 'd1').copyWith(
+      figures: [
+        testFigure(move: 'custom', params: {'text': 'role2s chain wide'}),
+      ],
+    );
+    final controller = DanceEditorController(
+      repositories: openTestRepositories(),
+      danceId: 'd1',
+      dialects: DialectsByForm.all(custom),
+    );
+    addTearDown(controller.dispose);
+    await controller.load(dance: stored, fieldDefs: const []);
+    expect(controller.figureDrafts.first.params['text'], 'robins chain wide');
+    final saved = figuresOf(controller.buildDance()).first;
+    expect(saved.params['text'], 'role2s chain wide');
+
+    final again = DanceEditorController(
+      repositories: openTestRepositories(),
+      danceId: 'd1',
+      dialects: DialectsByForm.all(Dialect.leadsFollows),
+    );
+    addTearDown(again.dispose);
+    await again.load(
+      dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+      fieldDefs: const [],
+    );
+    expect(again.figureDrafts.first.params['text'], 'follows chain wide');
   });
 
   test('a figure note round-trips canonical -> render -> canonicalize '
@@ -627,7 +1066,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -643,7 +1082,7 @@ void main() {
     );
     await controller.load(dance: stored, fieldDefs: const []);
     final rebuilt = controller.buildDance();
-    expect(rebuilt.figures.single.note, canonicalNote);
+    expect(figuresOf(rebuilt).single.note, canonicalNote);
   });
 
   test(
@@ -653,7 +1092,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
 
@@ -667,7 +1106,7 @@ void main() {
       expect(controller.figureDrafts.single.note, plainNote);
 
       final rebuilt = controller.buildDance();
-      expect(rebuilt.figures.single.note, plainNote);
+      expect(figuresOf(rebuilt).single.note, plainNote);
     },
   );
 
@@ -678,7 +1117,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
 
@@ -703,7 +1142,59 @@ void main() {
       expect(group.meanwhileSides!.first.note, 'robins lead');
 
       final rebuilt = controller.buildDance();
-      expect(rebuilt.figures.single.subFigures.first.note, 'role2s lead');
+      expect(figuresOf(rebuilt).single.subFigures.first.note, 'role2s lead');
+    },
+  );
+
+  test(
+    'a sequence step note renders and canonicalizes, nested too (#715)',
+    () async {
+      final repos = openTestRepositories();
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      addTearDown(controller.dispose);
+
+      Figure noted(String move, String note) =>
+          testFigure(move: move, params: const {'beats': 8}, note: note);
+      final stored = sampleDance(id: 'd1').copyWith(
+        figures: [
+          Figure.sequence(
+            beats: 16,
+            figures: [
+              noted('balance', 'role2s lead'),
+              Figure(move: 'swing', params: const {'beats': 8}),
+            ],
+          ),
+          Figure.meanwhile(
+            beats: 16,
+            figures: [
+              Figure.sequence(
+                beats: 16,
+                figures: [
+                  noted('balance', 'role1s wait'),
+                  Figure(move: 'swing', params: const {'beats': 8}),
+                ],
+              ),
+              Figure(move: 'orbit', params: const {'beats': 16}),
+            ],
+          ),
+        ],
+      );
+      await controller.load(dance: stored, fieldDefs: const []);
+
+      final [sequence, meanwhile] = controller.figureDrafts;
+      expect(sequence.sequenceFigures!.first.note, 'robins lead');
+      expect(
+        meanwhile.meanwhileSides!.first.sequenceFigures!.first.note,
+        'larks wait',
+      );
+
+      final [top, nested] = figuresOf(controller.buildDance());
+      expect(top.subFigures.first.note, 'role2s lead');
+      expect(nested.subFigures.first.subFigures.first.note, 'role1s wait');
     },
   );
 
@@ -725,13 +1216,226 @@ void main() {
     expect(controller.figureDrafts.last.note, 'robins allemande right 1/2');
   });
 
+  group(
+    'custom figure text is canonical on save, dialect on read (DIA-02)',
+    () {
+      Dance customDance() => sampleDance(id: 'd1').copyWith(
+        figures: [
+          Figure(move: 'custom', params: const {'text': 'role1s chain wide'}),
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'custom', params: const {'text': 'role2s wait'}),
+              Figure(move: 'swing'),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+
+      for (final (dialect, first, nested) in [
+        (Dialect.larksRobins, 'larks chain wide', 'robins wait'),
+        (Dialect.leadsFollows, 'leads chain wide', 'follows wait'),
+      ]) {
+        test('load renders stored text in ${dialect.name}', () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialects: DialectsByForm.all(dialect),
+          );
+          addTearDown(controller.dispose);
+          await controller.load(dance: customDance(), fieldDefs: const []);
+          expect(controller.figureDrafts.first.params['text'], first);
+          expect(
+            controller.figureDrafts.last.meanwhileSides!.first.params['text'],
+            nested,
+          );
+          // Saving round-trips to the canonical form.
+          final rebuilt = figuresOf(controller.buildDance());
+          expect(rebuilt.first.params['text'], 'role1s chain wide');
+          expect(rebuilt.last.subFigures.first.params['text'], 'role2s wait');
+        });
+      }
+
+      test('typed custom text is saved canonically', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        draft.params['text'] = 'Larks chain wide';
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(
+          figuresOf(controller.buildDance()).last.params['text'],
+          'role1s chain wide',
+        );
+      });
+
+      // Role words in typed custom text are stored lowercase, whatever case
+      // they were typed in. This is the accepted behaviour (parser-2,
+      // maintainer decision 2026-10-06): imports already store `role1s`, and
+      // preserving the caller's case (`Role1s`, `ROLE2S`) would give the same
+      // words different canonical bytes, so `figureCanonicalKey` — the
+      // line-level dedupe/diff identity — would split a typed figure from the
+      // identical imported one.
+      //
+      // The import side is the real import scrub (`scrubFigureText`), not the
+      // editor's own expected bytes. It agrees for role words and for the
+      // move name "mad robin", which both sides store in lowercase
+      // (maintainer choice B, 2026-10-06), so an all-caps "MAD ROBIN" line
+      // dedupes with its imported twin too.
+      for (final (typed, stored, shown, matchesImport) in [
+        ('Larks chain wide', 'role1s chain wide', 'larks chain wide', true),
+        ('LADIES chain', 'role2s chain', 'robins chain', true),
+        (
+          'MAD ROBIN, LADIES IN',
+          'mad robin, role2s IN',
+          'mad robin, robins IN',
+          true,
+        ),
+      ]) {
+        test('typed "$typed" stores role words lowercase (parser-2)', () async {
+          final controller = await newDanceController(openTestRepositories());
+          addTearDown(controller.dispose);
+          controller.addFigure();
+          final draft = controller.figureDrafts.last;
+          draft.move = customMove;
+          draft.params['text'] = typed;
+          controller.titleController.text = 'Some Dance';
+          controller.onTextEdited();
+          final saved = figuresOf(controller.buildDance()).last;
+          expect(saved.params['text'], stored);
+          // Dedupe identity against what an import of the same text stores.
+          final imported = testFigure(
+            move: 'custom',
+            params: {'text': scrubFigureText(typed)},
+          );
+          final sameKey =
+              figureCanonicalKey(saved, contraTaxonomy) ==
+              figureCanonicalKey(imported, contraTaxonomy);
+          expect(sameKey, matchesImport);
+          // Read back in the dialect: role words come back lowercase.
+          final again = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialects: DialectsByForm.all(Dialect.larksRobins),
+          );
+          addTearDown(again.dispose);
+          await again.load(
+            dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+            fieldDefs: const [],
+          );
+          expect(again.figureDrafts.first.params['text'], shown);
+        });
+      }
+
+      // "mad robin" is a move name, not the role, so saving custom text must
+      // not rewrite it to "mad role2" (which reads "mad follow" under
+      // Leads/Follows). It is stored in lowercase, as the import scrub stores
+      // it, so typed and imported text deduplicate (maintainer choice B,
+      // 2026-10-06; this reverses #1678's "kept as typed").
+      for (final dialect in [Dialect.larksRobins, Dialect.leadsFollows]) {
+        test(
+          'the move name "mad robin" survives a save in ${dialect.name}',
+          () async {
+            final controller = DanceEditorController(
+              repositories: openTestRepositories(),
+              danceId: null,
+              dialects: DialectsByForm.all(dialect),
+              debounce: testDebounce,
+            );
+            await controller.load(dance: null, fieldDefs: const []);
+            addTearDown(controller.dispose);
+            controller.addFigure();
+            final draft = controller.figureDrafts.last;
+            draft.move = customMove;
+            draft.params['text'] = 'Mad robin twice, then MAD ROBINS';
+            controller.titleController.text = 'Some Dance';
+            controller.onTextEdited();
+            final saved = figuresOf(
+              controller.buildDance(),
+            ).last.params['text'];
+            expect(saved, 'mad robin twice, then mad robins');
+            // And it stays put on the next load and save.
+            final again = DanceEditorController(
+              repositories: openTestRepositories(),
+              danceId: 'd1',
+              dialects: DialectsByForm.all(dialect),
+            );
+            addTearDown(again.dispose);
+            await again.load(
+              dance: sampleDance(id: 'd1').copyWith(
+                figures: [
+                  testFigure(move: 'custom', params: {'text': saved}),
+                ],
+              ),
+              fieldDefs: const [],
+            );
+            expect(again.figureDrafts.first.params['text'], saved);
+            expect(figuresOf(again.buildDance()).first.params['text'], saved);
+          },
+        );
+      }
+
+      // The shield swaps each "mad robin" for a placeholder and swaps it
+      // back afterwards; text that already contains placeholder-shaped
+      // words must come through untouched rather than be rewritten or crash.
+      test('placeholder-shaped text beside "mad robin" is kept', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        const text = 'xmadrobinx1x, mad robin, XMADROBINX0X';
+        draft.params['text'] = text;
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(figuresOf(controller.buildDance()).last.params['text'], text);
+      });
+
+      test('role words beside "mad robin" are still canonicalized', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        draft.params['text'] = 'mad robin, larks in the middle';
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(
+          figuresOf(controller.buildDance()).last.params['text'],
+          'mad robin, role1s in the middle',
+        );
+      });
+
+      test(
+        'insertFreeTextFigures shows custom text in the active dialect',
+        () async {
+          final controller = await newDanceController(openTestRepositories());
+          addTearDown(controller.dispose);
+          controller.insertFreeTextFigures([
+            Figure(
+              move: 'custom',
+              params: const {'text': 'role1s chain wide'},
+              customOrigin: CustomOrigin.importGap,
+            ),
+          ]);
+          expect(
+            controller.figureDrafts.last.params['text'],
+            'larks chain wide',
+          );
+        },
+      );
+    },
+  );
+
   test('duplicateFigure preserves the assumed-subject marker on the copy '
       '(#460)', () async {
     final repos = openTestRepositories();
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -766,8 +1470,8 @@ void main() {
 
     // And it survives assembly back into the immutable dance.
     final dance = controller.buildDance();
-    expect(dance.figures, hasLength(2));
-    expect(dance.figures.every((f) => f.assumedSubject), isTrue);
+    expect(figuresOf(dance), hasLength(2));
+    expect(figuresOf(dance).every((f) => f.assumedSubject), isTrue);
   });
 
   group('meanwhile grouping (#590/#593)', () {
@@ -791,7 +1495,10 @@ void main() {
       expect(group.meanwhileSides, hasLength(2));
       expect(group.meanwhileSides![0].move, 'balance');
       expect(group.meanwhileSides![1].move, 'swing');
-      expect(group.beats, 4);
+      // The sides are danced at once, so the group takes the longer one's
+      // count (AUTH-11), not the first side's.
+      expect(group.beats, 8);
+      expect(group.beatsTouched, isFalse);
     });
 
     test(
@@ -818,7 +1525,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -858,8 +1565,8 @@ void main() {
         // existing `_figures` getter already flattens via toFigure(), so this
         // falls out of the design without controller-side beat math.
         final dance = controller.buildDance();
-        expect(dance.figures, hasLength(2));
-        expect(dance.figures[0].isMeanwhile, isTrue);
+        expect(figuresOf(dance), hasLength(2));
+        expect(figuresOf(dance)[0].isMeanwhile, isTrue);
       },
     );
 
@@ -870,7 +1577,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -910,7 +1617,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -950,7 +1657,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
       await controller.load(
@@ -989,7 +1696,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -1032,7 +1739,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
       await controller.load(
@@ -1080,7 +1787,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(
         dance: Dance(
@@ -1105,12 +1812,73 @@ void main() {
       );
 
       expect(controller.figureDrafts, hasLength(1));
-      final built = controller.buildDance().figures.single;
+      final built = figuresOf(controller.buildDance()).single;
       expect(built.move, 'swing');
       expect(built.params['who'], 'neighbors');
       expect(built.customOrigin, CustomOrigin.userEntered);
       // An insert is undoable.
       expect(controller.canUndo, isTrue);
+    });
+
+    test('a line with no stated count reads its derived beats and keeps '
+        're-deriving them (#1820)', () async {
+      final repos = openTestRepositories();
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+
+      controller.insertFreeTextFigures(
+        parseFreeTextFigureEntry('neighbor balance & swing'),
+      );
+
+      final draft = controller.figureDrafts.single;
+      expect(draft.beats, 16);
+      expect(draft.beatsTouched, isFalse);
+      expect(figuresOf(controller.buildDance()).single.beats, 16);
+
+      // The count was a default fill, not an override: a prefix change still
+      // re-derives it.
+      draft.move = applyParamChange(
+        contraTaxonomy,
+        move: draft.move!,
+        params: draft.params,
+        key: 'prefix',
+        value: 'none',
+        beatsTouched: draft.beatsTouched,
+        aggressiveBeats: false,
+      );
+      expect(draft.beats, 8);
+    });
+
+    test('a typed figure 8 stores no `double` key unless it is double', () {
+      final plain = FigureDraft.fromFreeTextFigure(
+        Figure(move: 'figure_8', params: {'where': 'above'}),
+        contraTaxonomy,
+      );
+      expect(plain.params.containsKey('double'), isFalse);
+      expect(plain.params.containsKey(fractionAmountParam), isFalse);
+      final dbl = FigureDraft.fromFreeTextFigure(
+        Figure(move: 'figure_8', params: {'double': true}),
+        contraTaxonomy,
+      );
+      expect(dbl.params['double'], isTrue);
+    });
+
+    test('children of a container line get their derived beats (#1820)', () {
+      final draft = FigureDraft.fromFreeTextFigure(
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'custom'),
+          ],
+          beats: 8,
+        ),
+        contraTaxonomy,
+      );
+      expect(draft.meanwhileSides![0].beats, 8);
+      expect(draft.meanwhileSides![0].beatsTouched, isFalse);
+      // A custom is left to its own seeding.
+      expect(draft.meanwhileSides![1].params.containsKey('beats'), isFalse);
+      expect(draft.beats, 8);
     });
 
     test('a `;`-compound appends one row per clause', () async {
@@ -1123,7 +1891,7 @@ void main() {
       );
 
       expect(controller.figureDrafts, hasLength(2));
-      final figures = controller.buildDance().figures;
+      final figures = figuresOf(controller.buildDance());
       expect(figures[0].move, 'circle');
       expect(figures[1].move, 'turn_alone');
     });
@@ -1139,7 +1907,7 @@ void main() {
       );
 
       expect(controller.figureDrafts, hasLength(1));
-      final built = controller.buildDance().figures.single;
+      final built = figuresOf(controller.buildDance()).single;
       expect(built.isCustom, isTrue);
       // The parser-gap origin is NOT laundered off by the editor round-trip,
       // so the saved custom keeps its #398 marker and stays reparse-eligible.
@@ -1155,6 +1923,339 @@ void main() {
 
       expect(controller.figureDrafts, isEmpty);
       expect(controller.canUndo, isFalse);
+    });
+
+    test('a typed line replaces its row in place, undoably, with derived '
+        'beats (#1177)', () async {
+      final repos = openTestRepositories();
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+      controller.insertFreeTextFigures([
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+        Figure(move: 'turn_alone', params: const {'beats': 4}),
+      ]);
+      final replaced = controller.figureDrafts[1];
+
+      final count = controller.replaceWithFreeTextFigures(
+        replaced,
+        parseFreeTextFigureEntry('neighbor balance & swing; circle left'),
+      );
+
+      expect(count, 2);
+      final figures = figuresOf(controller.buildDance());
+      expect(figures.map((f) => f.move), [
+        'stand_still',
+        'swing',
+        'circle',
+        'turn_alone',
+      ]);
+      expect(figures[1].beats, 16);
+      expect(controller.figureDrafts[1].beatsTouched, isFalse);
+
+      controller.undo();
+      expect(controller.figureDrafts.map((d) => d.move), [
+        'stand_still',
+        'stand_still',
+        'turn_alone',
+      ]);
+    });
+
+    test(
+      'replacing a row no longer in the list changes nothing (#1177)',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await emptyExistingController(repos);
+        addTearDown(controller.dispose);
+
+        final count = controller.replaceWithFreeTextFigures(
+          FigureDraft(),
+          parseFreeTextFigureEntry('Neighbor swing'),
+        );
+
+        expect(count, 0);
+        expect(controller.figureDrafts, isEmpty);
+        expect(controller.canUndo, isFalse);
+      },
+    );
+  });
+
+  // October behaviour audit, batch F3: every way of making a row behaves the
+  // same as picking its move.
+  group('typed rows behave as picked ones', () {
+    Future<DanceEditorController> controllerWith(
+      CompendiumRepositories repos, {
+      List<Figure> figures = const [],
+    }) async {
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      await controller.load(
+        dance: Dance(
+          id: 'd1',
+          title: 'My Dance',
+          figures: figures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+        fieldDefs: const [],
+      );
+      return controller;
+    }
+
+    group('Move defaults (AUTH-7)', () {
+      const fullHey = {
+        'hey': {'length': 'full', 'beats': 16},
+        // Not the parser's own assumption for a bare `swing` (partners).
+        'swing': {'who': 'neighbors'},
+      };
+
+      test('fill what a typed line leaves unstated', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = fullHey;
+
+        for (final line in ['hey', 'swing']) {
+          controller.insertFreeTextFigures(parseFreeTextFigureEntry(line));
+        }
+
+        final [hey, swing] = controller.figureDrafts;
+        expect(hey.params['length'], 'full');
+        expect(hey.beats, 16);
+        // A default count is the user's own, as when the move is picked.
+        expect(hey.beatsTouched, isTrue);
+        expect(swing.params['who'], 'neighbors');
+        // The default is the user's stated choice, not one the parser
+        // assumed, as when the move is picked (#460).
+        expect(swing.assumedSubject, isFalse);
+      });
+
+      test('never override what the line states', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = fullHey;
+
+        for (final line in ['half hey', 'partners swing', '12 hey']) {
+          controller.insertFreeTextFigures(parseFreeTextFigureEntry(line));
+        }
+
+        final [half, swing, counted] = controller.figureDrafts;
+        expect(half.params['length'], 'half');
+        // The default 16 went with the full hey the line overruled.
+        expect(half.beats, 8);
+        expect(half.beatsTouched, isFalse);
+        expect(swing.params['who'], 'partners');
+        expect(counted.params['length'], 'full');
+        expect(counted.beats, 12);
+      });
+
+      test('a default without a count derives one', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = const {
+          'hey': {'length': 'full'},
+        };
+
+        controller.insertFreeTextFigures(parseFreeTextFigureEntry('hey'));
+
+        final hey = controller.figureDrafts.single;
+        expect(hey.beats, 16);
+        expect(hey.beatsTouched, isFalse);
+      });
+
+      test('apply to a row retyped in its Move box, and to a group\'s '
+          'sides', () async {
+        final controller = await controllerWith(
+          openTestRepositories(),
+          figures: [
+            Figure(move: 'turn_alone', params: const {'beats': 4}),
+          ],
+        );
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = fullHey;
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('circle left || swing'),
+        );
+
+        final group = controller.figureDrafts.single;
+        expect(group.meanwhileSides![1].params['who'], 'neighbors');
+      });
+    });
+
+    group('a retyped row keeps what it had beside its move (AUTH-9)', () {
+      Future<DanceEditorController> marked() async {
+        final controller = await controllerWith(
+          openTestRepositories(),
+          figures: [
+            Figure(
+              move: 'stand_still',
+              params: const {'beats': 8},
+              note: 'to new neighbors',
+              progression: true,
+              walkthroughOverride: 'wait for it',
+            ),
+          ],
+        );
+        addTearDown(controller.dispose);
+        return controller;
+      }
+
+      test('its note and walkthrough step on the first row, its '
+          'progression mark on the last', () async {
+        final controller = await marked();
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('neighbor balance & swing; circle left'),
+        );
+
+        final figures = figuresOf(controller.buildDance());
+        expect(figures.map((f) => f.move), ['swing', 'circle']);
+        expect(figures.first.note, 'to new neighbors');
+        expect(figures.first.walkthroughOverride, 'wait for it');
+        expect(figures.first.progression, isFalse);
+        expect(figures.last.progression, isTrue);
+        expect(figures.last.note, isNull);
+      });
+
+      test('after a note typed with the line', () async {
+        final controller = await marked();
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('neighbors swing slowly'),
+        );
+
+        expect(controller.figureDrafts.single.note, 'slowly; to new neighbors');
+      });
+
+      test('from a shorthand\'s rows too', () async {
+        final controller = await marked();
+
+        controller.placeShorthandDrafts([
+          FigureDraft(move: 'balance', params: {'beats': 4}),
+          FigureDraft(move: 'swing', params: {'beats': 12}),
+        ], replacing: controller.figureDrafts.single);
+
+        final [first, last] = controller.figureDrafts;
+        expect(first.note, 'to new neighbors');
+        expect(last.progression, isTrue);
+      });
+
+      test('undo brings the row back as it was', () async {
+        final controller = await marked();
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('neighbors swing'),
+        );
+        controller.undo();
+
+        final row = controller.figureDrafts.single;
+        expect(row.move, 'stand_still');
+        expect(row.progression, isTrue);
+      });
+    });
+
+    group('a group\'s shared count follows its sides (AUTH-11)', () {
+      test('a typed group with no count of its own', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+
+        for (final line in [
+          'circle left || neighbor balance and swing',
+          'long lines while roll away',
+        ]) {
+          controller.insertFreeTextFigures(parseFreeTextFigureEntry(line));
+        }
+
+        final [meanwhile, modifier] = controller.figureDrafts;
+        // The longer side: the balance and swing.
+        expect(meanwhile.beats, 16);
+        expect(meanwhile.beatsTouched, isFalse);
+        // The core: long lines.
+        expect(modifier.beats, 8);
+      });
+
+      test('a count typed for the group is kept', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+
+        controller.insertFreeTextFigures(
+          parseFreeTextFigureEntry('12 circle left || neighbor swing'),
+        );
+
+        final group = controller.figureDrafts.single;
+        expect(group.beats, 12);
+        expect(group.beatsTouched, isTrue);
+      });
+
+      test('grouping with next takes the longer side, and a modifier its '
+          'core', () async {
+        final controller = await controllerWith(
+          openTestRepositories(),
+          figures: [
+            Figure(move: 'balance', params: const {'beats': 4}),
+            Figure(move: 'swing', params: const {'beats': 12}),
+            Figure(move: 'long_lines', params: const {'beats': 8}),
+            Figure(move: 'roll_away', params: const {'beats': 4}),
+          ],
+        );
+        addTearDown(controller.dispose);
+
+        controller.groupFigureWithNext(controller.figureDrafts[0]);
+        controller.groupFigureWithNextAsModifier(controller.figureDrafts[1]);
+
+        final [meanwhile, modifier] = controller.figureDrafts;
+        expect(meanwhile.beats, 12);
+        expect(modifier.beats, 8);
+
+        // Converting changes which rule applies.
+        controller.convertContainerToModifier(meanwhile);
+        expect(meanwhile.beats, 4);
+      });
+
+      test('a saved group whose count matches its sides still follows them '
+          'when the dance is reopened; one typed apart does not', () {
+        FigureDraft reopened(int beats) => FigureDraft.fromFigure(
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'circle', params: const {'beats': 8}),
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+            beats: beats,
+          ),
+        );
+        expect(reopened(16).beatsTouched, isFalse);
+        expect(reopened(12).beatsTouched, isTrue);
+        // A side keeps its own stated count.
+        expect(reopened(16).meanwhileSides!.first.beatsTouched, isTrue);
+      });
+
+      test('a group saved with no count follows its sides when one '
+          'changes', () async {
+        final group = FigureDraft.fromFigure(
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'circle', params: const {'beats': 8}),
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+            beats: 0,
+          ),
+        );
+        expect(group.beatsTouched, isFalse);
+        expect(group.syncContainerBeats(), isTrue);
+        expect(group.beats, 16);
+
+        group.beatsTouched = true;
+        group.meanwhileSides![0].params['beats'] = 32;
+        expect(group.syncContainerBeats(), isFalse);
+        expect(group.beats, 16);
+      });
     });
   });
 
@@ -1177,7 +2278,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(dance: null, fieldDefs: [def]);
       return controller;
@@ -1197,6 +2298,40 @@ void main() {
       // Persisted to the repository so it round-trips like any other option.
       final stored = await repos.customFieldDefs.getById('adj');
       expect(stored!.choices, ['driving', 'lyrical']);
+    });
+
+    test('keeps every other flag, including a private field private', () async {
+      final repos = openTestRepositories();
+      // Every flag off its constructor default, so a property dropped from the
+      // rebuilt definition shows up as a difference.
+      final def = CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving'],
+        showInList: true,
+        searchable: false,
+        shareable: false,
+      );
+      final controller = await controllerWith(repos, def);
+      addTearDown(controller.dispose);
+
+      final result = await controller.addChoiceOption('adj', 'lyrical');
+
+      expect(result, AddChoiceResult.added);
+      final expected = CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving', 'lyrical'],
+        showInList: true,
+        searchable: false,
+        shareable: false,
+      );
+      expect(controller.fieldDefs.single, expected);
+      expect(await repos.customFieldDefs.getById('adj'), expected);
     });
 
     test('rejects a case-sensitive duplicate without persisting', () async {
@@ -1234,6 +2369,1241 @@ void main() {
       expect(result, AddChoiceResult.added);
       final added = controller.fieldDefs.single.choices!.last;
       expect(added.length, kMaxCustomFieldChoiceLength);
+    });
+  });
+
+  group('new-dance starting figures with free-text entry (#1177)', () {
+    Future<DanceEditorController> load(
+      CompendiumRepositories repos, {
+      required bool freeTextEntry,
+    }) async {
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: null,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: null,
+        fieldDefs: const [],
+        freeTextEntry: freeTextEntry,
+      );
+      return controller;
+    }
+
+    test('on, with no saved template: no figures', () async {
+      final controller = await load(
+        openTestRepositories(),
+        freeTextEntry: true,
+      );
+      expect(controller.figureDrafts, isEmpty);
+    });
+
+    test('on, with an unreadable template: no figures', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFiguresTemplateKey, 'not json');
+      final controller = await load(repos, freeTextEntry: true);
+      expect(controller.figureDrafts, isEmpty);
+    });
+
+    test('on, with a saved template: the template', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+      );
+      final controller = await load(repos, freeTextEntry: true);
+      expect(controller.figureDrafts.single.move, 'stand_still');
+    });
+
+    test('off, with no saved template: eight stand stills', () async {
+      final controller = await load(
+        openTestRepositories(),
+        freeTextEntry: false,
+      );
+      expect(controller.figureDrafts, hasLength(8));
+      expect(
+        controller.figureDrafts.every((d) => d.move == 'stand_still'),
+        isTrue,
+      );
+    });
+  });
+
+  group('snapshots and drafts round-trip what the editor holds (F2)', () {
+    /// A dialect whose role words are not among the always-on legacy
+    /// synonyms, so text in it canonicalizes only against this dialect.
+    final ravens = Dialect(
+      name: 'Ravens',
+      roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('crow')},
+    );
+
+    Dance noteDance() => sampleDance(id: 'd1').copyWith(
+      figures: [
+        Figure(
+          move: 'allemande',
+          params: const {'beats': 8},
+          note: 'role1s go first',
+        ),
+        Figure(move: 'custom', params: const {'text': 'role2s wait'}),
+      ],
+    );
+
+    test('undo keeps a typed beat count protected (AUTH-5)', () async {
+      final controller = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(dance: noteDance(), fieldDefs: const []);
+      expect(controller.figureDrafts.first.beatsTouched, isTrue);
+
+      controller.titleController.text = 'Renamed';
+      controller.onTextEdited();
+      await settleDebounce();
+      controller.undo();
+
+      expect(controller.figureDrafts.first.beatsTouched, isTrue);
+    });
+
+    test('a restored draft keeps which counts were typed (AUTH-5)', () async {
+      final repos = openTestRepositories();
+      final first = await newDanceController(repos);
+      first.addFigure();
+      first.figureDrafts.last
+        ..move = 'swing'
+        ..params['beats'] = 12
+        ..beatsTouched = true;
+      first.addFigure();
+      first.figureDrafts.last
+        ..move = 'swing'
+        ..params['beats'] = 8
+        ..beatsTouched = false;
+      first.onFiguresChanged();
+      expect(await draftPersisted(repos, first.draftKey), isTrue);
+      await settleDebounce();
+      first.dispose();
+
+      final second = await newDanceController(repos);
+      addTearDown(second.dispose);
+      second.applyRestoredDraft(second.pendingDraft!);
+      final touched = [
+        for (final d in second.figureDrafts)
+          if (d.move == 'swing') d.beatsTouched,
+      ];
+      expect(touched, [true, false]);
+    });
+
+    test('a draft records when it was saved and the dance version it was '
+        'edited from (AUTH-10)', () async {
+      final repos = openTestRepositories();
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      await controller.load(dance: noteDance(), fieldDefs: const []);
+      final before = DateTime.now().toUtc();
+      controller.titleController.text = 'Draft title';
+      controller.onTextEdited();
+      expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+      controller.dispose();
+
+      final draft = decodeDraft(await repos.settings.get('editor_draft:d1'));
+      expect(draft.baseUpdatedAt, now);
+      expect(draft.savedAt, isNotNull);
+      expect(
+        draft.savedAt!.isBefore(before.subtract(const Duration(seconds: 1))),
+        isFalse,
+      );
+
+      // Reopened unchanged: the draft is for the dance as it still is.
+      final same = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      addTearDown(same.dispose);
+      await same.load(dance: noteDance(), fieldDefs: const []);
+      expect(same.pendingDraft, isNotNull);
+      expect(same.danceChangedSince(same.pendingDraft!), isFalse);
+      expect(same.pendingDraftIsAnotherNewDance, isFalse);
+
+      // Changed since, by a bulk tag, a rating, a sync or a re-check.
+      final changed = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      addTearDown(changed.dispose);
+      await changed.load(
+        dance: noteDance().copyWith(
+          rating: 5,
+          updatedAt: now.add(const Duration(hours: 1)),
+        ),
+        fieldDefs: const [],
+      );
+      expect(changed.danceChangedSince(changed.pendingDraft!), isTrue);
+    });
+
+    test('a draft from before baselines does not claim a change', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        'editor_draft:d1',
+        '{"v":13,"title":"Old","form":"contra",'
+            '"formationShape":"dupleImproper","progression":"single",'
+            '"status":"active","figureDrafts":[]}',
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: noteDance().copyWith(
+          updatedAt: now.add(const Duration(days: 1)),
+        ),
+        fieldDefs: const [],
+      );
+      expect(controller.pendingDraft?.title, 'Old');
+      expect(controller.pendingDraft?.savedAt, isNull);
+      expect(controller.danceChangedSince(controller.pendingDraft!), isFalse);
+    });
+
+    group('each new dance has its own draft (AUTH-10)', () {
+      test('two new dances never share a draft key', () async {
+        final repos = openTestRepositories();
+        final a = await newDanceController(repos);
+        addTearDown(a.dispose);
+        final b = await newDanceController(repos);
+        addTearDown(b.dispose);
+        expect(
+          a.draftKey,
+          startsWith(danceEditorDraftKey(kNewDanceDraftIdPrefix)),
+        );
+        expect(
+          b.draftKey,
+          startsWith(danceEditorDraftKey(kNewDanceDraftIdPrefix)),
+        );
+        expect(a.draftKey, isNot(b.draftKey));
+
+        a.titleController.text = 'First';
+        a.onTextEdited();
+        b.titleController.text = 'Second';
+        b.onTextEdited();
+        expect(await draftPersisted(repos, a.draftKey), isTrue);
+        expect(await draftPersisted(repos, b.draftKey), isTrue);
+        await settleDebounce();
+        expect(
+          decodeDraft(await repos.settings.get(a.draftKey)).title,
+          'First',
+        );
+        expect(
+          decodeDraft(await repos.settings.get(b.draftKey)).title,
+          'Second',
+        );
+      });
+
+      test('an open new dance\'s draft is not offered to another', () async {
+        final repos = openTestRepositories();
+        final open = await newDanceController(repos);
+        addTearDown(open.dispose);
+        open.titleController.text = 'Still editing';
+        open.onTextEdited();
+        expect(await draftPersisted(repos, open.draftKey), isTrue);
+
+        final other = await newDanceController(repos);
+        addTearDown(other.dispose);
+        expect(other.pendingDraft, isNull);
+      });
+
+      test('an abandoned new dance is offered as itself; restoring continues '
+          'it under its own key, and saving clears it', () async {
+        final repos = openTestRepositories();
+        final abandoned = await newDanceController(repos);
+        abandoned.titleController.text = 'Abandoned';
+        abandoned.onTextEdited();
+        expect(await draftPersisted(repos, abandoned.draftKey), isTrue);
+        await settleDebounce();
+        final abandonedKey = abandoned.draftKey;
+        abandoned.dispose();
+
+        final next = await newDanceController(repos);
+        addTearDown(next.dispose);
+        expect(next.pendingDraft?.title, 'Abandoned');
+        expect(next.pendingDraftIsAnotherNewDance, isTrue);
+
+        final draft = next.pendingDraft!;
+        next.clearPendingDraft();
+        next.applyRestoredDraft(draft);
+        expect(next.draftKey, abandonedKey);
+        expect(next.pendingDraftIsAnotherNewDance, isFalse);
+
+        next.titleController.text = 'Abandoned, finished';
+        next.onTextEdited();
+        await settleDebounce();
+        await settleDebounce();
+        expect(await newDanceDraftKeys(repos), [abandonedKey]);
+        expect(
+          decodeDraft(await repos.settings.get(abandonedKey)).title,
+          'Abandoned, finished',
+        );
+
+        await next.clearDraft();
+        expect(await hasNewDanceDraft(repos), isFalse);
+      });
+
+      test('a draft one editor is offering is not offered to another until '
+          'that editor lets it go', () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          danceEditorDraftKey(kLegacyNewDanceDraftId),
+          '{"v":13,"title":"Legacy","form":"contra",'
+          '"formationShape":"dupleImproper","progression":"single",'
+          '"status":"active","figureDrafts":[]}',
+        );
+        final offering = await newDanceController(repos);
+        expect(offering.pendingDraft?.title, 'Legacy');
+
+        final second = await newDanceController(repos);
+        addTearDown(second.dispose);
+        expect(second.pendingDraft, isNull);
+
+        // Closed without an answer: the draft is free for the next editor.
+        offering.dispose();
+        final third = await newDanceController(repos);
+        addTearDown(third.dispose);
+        expect(third.pendingDraft?.title, 'Legacy');
+      });
+
+      test(
+        'discarding removes the abandoned draft, not this editor\'s',
+        () async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            danceEditorDraftKey(kLegacyNewDanceDraftId),
+            '{"v":13,"title":"Legacy","form":"contra",'
+            '"formationShape":"dupleImproper","progression":"single",'
+            '"status":"active","figureDrafts":[]}',
+          );
+          final controller = await newDanceController(repos);
+          addTearDown(controller.dispose);
+          expect(controller.pendingDraft?.title, 'Legacy');
+          expect(controller.pendingDraftIsAnotherNewDance, isTrue);
+          controller.clearPendingDraft();
+          await controller.discardPendingDraft();
+          expect(await hasNewDanceDraft(repos), isFalse);
+        },
+      );
+
+      test('of several abandoned new dances, the newest is offered', () async {
+        final repos = openTestRepositories();
+        String draftJson(String title, String? savedAt) =>
+            '{"v":13,"title":"$title",'
+            '${savedAt == null ? '' : '"savedAt":"$savedAt",'}'
+            '"form":"contra","formationShape":"dupleImproper",'
+            '"progression":"single","status":"active","figureDrafts":[]}';
+        await repos.settings.set(
+          danceEditorDraftKey(kLegacyNewDanceDraftId),
+          draftJson('Undated', null),
+        );
+        await repos.settings.set(
+          '${danceEditorDraftKey(kNewDanceDraftIdPrefix)}a',
+          draftJson('Newest', '2026-10-28T12:00:00.000Z'),
+        );
+        await repos.settings.set(
+          '${danceEditorDraftKey(kNewDanceDraftIdPrefix)}b',
+          draftJson('Older', '2026-10-27T12:00:00.000Z'),
+        );
+        final controller = await newDanceController(repos);
+        addTearDown(controller.dispose);
+        expect(controller.pendingDraft?.title, 'Newest');
+      });
+    });
+
+    group('figure text follows the dialect it was written in (AUTH-17)', () {
+      test(
+        'a draft restored under another dialect saves the right roles',
+        () async {
+          final repos = openTestRepositories();
+          final first = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialects: DialectsByForm.all(ravens),
+            debounce: testDebounce,
+          );
+          await first.load(dance: noteDance(), fieldDefs: const []);
+          expect(first.figureDrafts.first.note, 'ravens go first');
+          first.titleController.text = 'Edited';
+          first.onTextEdited();
+          expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+          await settleDebounce();
+          first.dispose();
+
+          // Crash, change dialect, Restore, Save.
+          final second = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialects: DialectsByForm.all(Dialect.larksRobins),
+          );
+          addTearDown(second.dispose);
+          await second.load(dance: noteDance(), fieldDefs: const []);
+          second.applyRestoredDraft(second.pendingDraft!);
+
+          expect(second.figureDrafts.first.note, 'larks go first');
+          expect(second.figureDrafts.last.params['text'], 'robins wait');
+          final saved = figuresOf(second.buildDance());
+          expect(saved.first.note, 'role1s go first');
+          expect(saved.last.params['text'], 'role2s wait');
+        },
+      );
+
+      test(
+        'a group title restored under another dialect saves the right roles',
+        () async {
+          Dance titleDance() => sampleDance(id: 'd1').copyWith(
+            figures: [
+              Figure.sequence(
+                beats: 8,
+                figures: [
+                  Figure(move: 'balance', params: const {'beats': 4}),
+                  Figure(move: 'swing', params: const {'beats': 4}),
+                ],
+                title: 'role1s flutterwheel',
+              ),
+            ],
+          );
+          final repos = openTestRepositories();
+          final first = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialects: DialectsByForm.all(ravens),
+            debounce: testDebounce,
+          );
+          await first.load(dance: titleDance(), fieldDefs: const []);
+          expect(
+            first.figureDrafts.single.containerTitle,
+            'ravens flutterwheel',
+          );
+          first.titleController.text = 'Edited';
+          first.onTextEdited();
+          expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+          await settleDebounce();
+          first.dispose();
+
+          final second = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialects: DialectsByForm.all(Dialect.larksRobins),
+          );
+          addTearDown(second.dispose);
+          await second.load(dance: titleDance(), fieldDefs: const []);
+          second.applyRestoredDraft(second.pendingDraft!);
+
+          expect(
+            second.figureDrafts.single.containerTitle,
+            'larks flutterwheel',
+          );
+          expect(
+            figuresOf(second.buildDance()).single.containerTitle,
+            'role1s flutterwheel',
+          );
+        },
+      );
+
+      test(
+        'a draft restored under the same dialect keeps the text as typed',
+        () async {
+          final repos = openTestRepositories();
+          final first = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialects: DialectsByForm.all(Dialect.larksRobins),
+            debounce: testDebounce,
+          );
+          await first.load(dance: noteDance(), fieldDefs: const []);
+          // A legacy synonym, which Save would canonicalize to role2s.
+          first.figureDrafts.first.note = 'Ladies wait';
+          first.onFiguresChanged();
+          expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+          await settleDebounce();
+          first.dispose();
+
+          final second = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialects: DialectsByForm.all(Dialect.larksRobins),
+          );
+          addTearDown(second.dispose);
+          await second.load(dance: noteDance(), fieldDefs: const []);
+          second.applyRestoredDraft(second.pendingDraft!);
+          expect(second.figureDrafts.first.note, 'Ladies wait');
+        },
+      );
+
+      test(
+        'a dialect change while editing re-renders the figure text',
+        () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialects: DialectsByForm.all(ravens),
+            debounce: testDebounce,
+          );
+          addTearDown(controller.dispose);
+          await controller.load(dance: noteDance(), fieldDefs: const []);
+
+          controller.updateDialects(DialectsByForm.all(Dialect.leadsFollows));
+
+          expect(controller.figureDrafts.first.note, 'leads go first');
+          expect(controller.figureDrafts.last.params['text'], 'follows wait');
+          final saved = figuresOf(controller.buildDance());
+          expect(saved.first.note, 'role1s go first');
+          expect(saved.last.params['text'], 'role2s wait');
+          expect(controller.dirty, isFalse);
+        },
+      );
+
+      test('a dialect change re-renders a group title when nothing else names '
+          'a role', () async {
+        final controller = DanceEditorController(
+          repositories: openTestRepositories(),
+          danceId: 'd1',
+          dialects: DialectsByForm.all(ravens),
+          debounce: testDebounce,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: sampleDance(id: 'd1').copyWith(
+            figures: [
+              Figure.sequence(
+                beats: 8,
+                figures: [
+                  testFigure(move: 'balance', params: const {'beats': 4}),
+                  testFigure(move: 'swing', params: const {'beats': 4}),
+                ],
+                title: 'role1s flutterwheel',
+              ),
+            ],
+          ),
+          fieldDefs: const [],
+        );
+        expect(
+          controller.figureDrafts.single.containerTitle,
+          'ravens flutterwheel',
+        );
+
+        controller.updateDialects(DialectsByForm.all(Dialect.larksRobins));
+
+        expect(
+          controller.figureDrafts.single.containerTitle,
+          'larks flutterwheel',
+        );
+        expect(
+          figuresOf(controller.buildDance()).single.containerTitle,
+          'role1s flutterwheel',
+        );
+      });
+
+      test(
+        'a dialect change re-renders sequence step text, nested too',
+        () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialects: DialectsByForm.all(ravens),
+            debounce: testDebounce,
+          );
+          addTearDown(controller.dispose);
+          final [note, text] = figuresOf(noteDance());
+          final sequence = Figure.sequence(figures: [note, text], beats: 8);
+          await controller.load(
+            dance: noteDance().copyWith(
+              figures: [
+                sequence,
+                Figure.meanwhile(
+                  figures: [
+                    sequence,
+                    testFigure(move: 'orbit', params: const {'beats': 8}),
+                  ],
+                  beats: 8,
+                ),
+              ],
+            ),
+            fieldDefs: const [],
+          );
+
+          controller.updateDialects(DialectsByForm.all(Dialect.leadsFollows));
+
+          final [top, meanwhile] = controller.figureDrafts;
+          final nested = meanwhile.meanwhileSides!.first;
+          for (final steps in [top.sequenceFigures!, nested.sequenceFigures!]) {
+            expect(steps.first.note, 'leads go first');
+            expect(steps.last.params['text'], 'follows wait');
+          }
+          final [savedTop, savedMeanwhile] = figuresOf(controller.buildDance());
+          expect(savedTop.subFigures.first.note, 'role1s go first');
+          expect(
+            savedMeanwhile.subFigures.first.subFigures.last.params['text'],
+            'role2s wait',
+          );
+        },
+      );
+
+      test(
+        'undo across a dialect change shows the text in the new dialect',
+        () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialects: DialectsByForm.all(ravens),
+            debounce: testDebounce,
+          );
+          addTearDown(controller.dispose);
+          await controller.load(dance: noteDance(), fieldDefs: const []);
+          controller.titleController.text = 'Renamed';
+          controller.onTextEdited();
+          await settleDebounce();
+
+          controller.updateDialects(DialectsByForm.all(Dialect.larksRobins));
+          controller.undo();
+
+          expect(controller.figureDrafts.first.note, 'larks go first');
+          expect(
+            figuresOf(controller.buildDance()).first.note,
+            'role1s go first',
+          );
+        },
+      );
+    });
+  });
+
+  // October behaviour audit, AUTH-2, maintainer decision
+  // AUTH-2-incomplete-rows = (b): a row Save leaves out is listed under
+  // Warnings, read from the drafts, since the built figures no longer hold it.
+  group('rows Save leaves out are warned about (AUTH-2)', () {
+    List<int?> incompletePositions(DanceEditorController controller) => [
+      for (final w in controller.warnings)
+        if (w.code == incompleteFigureValidationCode)
+          w.data['position'] as int?,
+    ];
+
+    Future<DanceEditorController> withRows(List<FigureDraft> rows) async {
+      final controller = await newDanceController(openTestRepositories());
+      addTearDown(controller.dispose);
+      controller.figureDrafts
+        ..clear()
+        ..addAll(rows);
+      controller.onFiguresChanged();
+      return controller;
+    }
+
+    FigureDraft swing() => FigureDraft.fromFigure(
+      testFigure(move: 'swing', params: const {'who': 'neighbors', 'beats': 8}),
+    );
+
+    test('a meanwhile with one side filled in, until both are', () async {
+      final group = FigureDraft(meanwhileSides: [swing(), FigureDraft()]);
+      final controller = await withRows([swing(), group]);
+      expect(incompletePositions(controller), [2]);
+      expect(controller.builtFigures, hasLength(1));
+
+      group.meanwhileSides![1].move = 'balance';
+      controller.onFiguresChanged();
+      expect(incompletePositions(controller), isEmpty);
+    });
+
+    test('a modifier group with no Core, though its other figure is filled '
+        'in', () async {
+      final controller = await withRows([
+        FigureDraft(modifierFigures: [FigureDraft(), swing()]),
+      ]);
+      expect(incompletePositions(controller), [1]);
+    });
+
+    test('a phrase warning numbers the same rows, not the figures Save '
+        'builds', () async {
+      FigureDraft step() => FigureDraft.fromFigure(
+        testFigure(move: 'swing', params: const {'beats': 16}),
+      );
+      final controller = await withRows([
+        FigureDraft(meanwhileSides: [swing(), FigureDraft()]),
+        FigureDraft(sequenceFigures: [step(), step()]),
+      ]);
+      final long = controller.warnings.singleWhere(
+        (w) => w.code == 'sequence_exceeds_phrase',
+      );
+      expect(incompletePositions(controller), [1]);
+      expect(long.data['position'], 2);
+    });
+
+    test('not a blank row, which has nothing to lose', () async {
+      final controller = await withRows([swing(), FigureDraft()]);
+      expect(incompletePositions(controller), isEmpty);
+    });
+
+    test('even while the phrase structure does not parse', () async {
+      final group = FigureDraft(meanwhileSides: [swing(), swing()]);
+      final controller = await withRows([group]);
+      controller.phraseController.text = 'not a phrase';
+      controller.recomputeWarnings();
+      expect(incompletePositions(controller), isEmpty);
+
+      group.meanwhileSides![1] = FigureDraft();
+      controller.onFiguresChanged();
+      expect(incompletePositions(controller), [1]);
+    });
+  });
+
+  group('replaceAuthors (an author merge, T3)', () {
+    test('credits the survivor in the draft and in every undo step, dropping '
+        'the duplicate', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addAuthor('loser');
+      controller.addAuthor('other');
+      controller.addAuthor('survivor');
+
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      // The draft already credits the survivor, so it keeps its place and the
+      // merged-away credit goes, as the stored dance's join rows do.
+      expect(controller.authorIds, ['other', 'survivor']);
+
+      // Undoing past the merge must not bring the merged-away id back.
+      controller.undo();
+      expect(controller.authorIds, ['survivor', 'other']);
+      controller.undo();
+      expect(controller.authorIds, ['survivor']);
+      controller.redo();
+      controller.redo();
+      expect(controller.authorIds, ['other', 'survivor']);
+
+      // The merge's Undo puts the draft and its history back.
+      controller.restoreAuthors(replacement);
+      expect(controller.authorIds, ['loser', 'other', 'survivor']);
+      controller.undo();
+      expect(controller.authorIds, ['loser', 'other']);
+    });
+
+    test('credits the survivor among the interpreters too, in the draft and '
+        'its undo history, and the merge\'s Undo puts them back', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addInterpreter('loser');
+      controller.addInterpreter('other');
+
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      expect(controller.interpreterIds, ['survivor', 'other']);
+
+      // Undoing past the merge must not bring the merged-away id back.
+      controller.undo();
+      expect(controller.interpreterIds, ['survivor']);
+      controller.redo();
+
+      controller.restoreAuthors(replacement);
+      expect(controller.interpreterIds, ['loser', 'other']);
+      controller.undo();
+      expect(controller.interpreterIds, ['loser']);
+    });
+
+    test('an existing dance\'s interpreters follow the merge on save, and '
+        'its Undo', () async {
+      final repos = openTestRepositories();
+      for (final id in ['loser', 'survivor', 'other']) {
+        final _ = await repos.choreographers.upsert(
+          Choreographer(id: id, name: id),
+        );
+      }
+      await repos.dances.create(
+        sampleDance(
+          id: 'd1',
+          title: 'Interpreted',
+        ).copyWith(interpreterIds: const ['other', 'loser']),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+      );
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      addTearDown(controller.dispose);
+
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      expect(controller.buildDance().interpreterIds, ['other', 'survivor']);
+
+      controller.restoreAuthors(replacement);
+      expect(controller.buildDance().interpreterIds, ['other', 'loser']);
+    });
+
+    test(
+      'leaves the draft in the order the merge leaves the stored dance',
+      () async {
+        // Ids sort in this order, so `s` survives every merge here.
+        const s = '00000000-0000-4000-8000-00000000000a';
+        const l1 = '00000000-0000-4000-8000-00000000000b';
+        const l2 = '00000000-0000-4000-8000-00000000000c';
+        const x = '00000000-0000-4000-8000-00000000000d';
+        final cases = <({List<String> credits, Set<String> merged})>[
+          (credits: [l1, x, s], merged: {l1}),
+          (credits: [s, x, l1], merged: {l1}),
+          (credits: [l2, x, l1], merged: {l1, l2}),
+          (credits: [l1, x, l2], merged: {l1, l2}),
+          (credits: [l2, s, x, l1], merged: {l1, l2}),
+        ];
+        for (final c in cases) {
+          final repos = openTestRepositories();
+          final t0 = DateTime.utc(2026, 10, 1);
+          for (final (id, name) in [
+            (s, 'Ann'),
+            (l1, 'Bea'),
+            (l2, 'Cat'),
+            (x, 'Dot'),
+          ]) {
+            // ignore: unused_result
+            await repos.choreographers.upsert(
+              Choreographer(id: id, name: name),
+              at: t0,
+            );
+          }
+          await repos.dances.create(
+            Dance(
+              id: 'd',
+              title: 'D',
+              authorIds: c.credits,
+              createdAt: t0,
+              updatedAt: t0,
+            ),
+          );
+          // ignore: unused_result
+          await repos.references.merge(
+            ReferenceKind.author,
+            intoId: s,
+            otherIds: c.merged,
+          );
+          final stored = (await repos.dances.getById('d'))!.authorIds;
+
+          final controller = await newDanceController(repos);
+          addTearDown(controller.dispose);
+          for (final id in c.credits) {
+            controller.addAuthor(id);
+          }
+          final _ = controller.replaceAuthors(c.merged, s);
+          expect(controller.authorIds, stored, reason: '${c.credits}');
+        }
+      },
+    );
+
+    test('a draft restored after its author was merged or deleted credits '
+        'who is live now', () async {
+      const s = '00000000-0000-4000-8000-00000000000a';
+      const l = '00000000-0000-4000-8000-00000000000b';
+      const gone = '00000000-0000-4000-8000-00000000000c';
+      const tagKeep = '00000000-0000-4000-8000-0000000000aa';
+      const tagLose = '00000000-0000-4000-8000-0000000000ab';
+      const tagStaged = '00000000-0000-4000-8000-0000000000ac';
+      final repos = openTestRepositories();
+      final t0 = DateTime.utc(2026, 10, 1);
+      for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (gone, 'Cat')]) {
+        // ignore: unused_result
+        await repos.choreographers.upsert(
+          Choreographer(id: id, name: name),
+          at: t0,
+        );
+      }
+      for (final (id, name) in [(tagKeep, 'easy'), (tagLose, 'Easy one')]) {
+        // ignore: unused_result
+        await repos.tags.upsert(
+          Tag(id: id, name: name),
+          at: t0,
+        );
+      }
+
+      // The session that saved the draft credits l and gone, and the two
+      // tags, plus one staged in the draft.
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.addAuthor(l);
+      controller.addAuthor(gone);
+      controller.addAuthor(s);
+      controller.addTag(tagLose);
+      controller.stageTag(Tag(id: tagStaged, name: 'new'));
+      controller.addTag(tagStaged);
+      final draft = controller.captureSnapshot();
+
+      // Before this session restores it, the managers merge l into s and the
+      // tags together, and delete gone.
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.author,
+        intoId: s,
+        otherIds: [l],
+      );
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.tag,
+        intoId: tagKeep,
+        otherIds: [tagLose],
+      );
+      // ignore: unused_result
+      await repos.references.deleteUnused(ReferenceKind.author, gone);
+
+      final current = await controller.withLiveReferences(draft);
+      expect(current.authorIds, [s]);
+      expect(current.tagIds, [tagKeep, tagStaged]);
+      // Nothing else in the draft changes.
+      expect(current.title, draft.title);
+      expect(current.stagedTags, draft.stagedTags);
+    });
+
+    test(
+      'a restored draft orders a merged author as the merge left the dance',
+      () async {
+        const s = '00000000-0000-4000-8000-00000000000a';
+        const l = '00000000-0000-4000-8000-00000000000b';
+        const x = '00000000-0000-4000-8000-00000000000c';
+        final repos = openTestRepositories();
+        for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (x, 'Cat')]) {
+          // ignore: unused_result
+          await repos.choreographers.upsert(Choreographer(id: id, name: name));
+        }
+        final controller = await newDanceController(repos);
+        addTearDown(controller.dispose);
+        for (final id in [l, x, s]) {
+          controller.addAuthor(id);
+        }
+        final draft = controller.captureSnapshot();
+        // ignore: unused_result
+        await repos.references.merge(
+          ReferenceKind.author,
+          intoId: s,
+          otherIds: [l],
+        );
+        // The dance already credits s, so s keeps its place and l goes, as the
+        // stored dance's rows and an open editor's replaceAuthors do.
+        expect((await controller.withLiveReferences(draft)).authorIds, [x, s]);
+      },
+    );
+
+    test('a restored draft credits a merged interpreter\'s survivor and drops '
+        'a deleted one', () async {
+      const s = '00000000-0000-4000-8000-00000000000a';
+      const l = '00000000-0000-4000-8000-00000000000b';
+      const x = '00000000-0000-4000-8000-00000000000c';
+      final repos = openTestRepositories();
+      for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (x, 'Cat')]) {
+        // ignore: unused_result
+        await repos.choreographers.upsert(Choreographer(id: id, name: name));
+      }
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.addInterpreter(l);
+      controller.addInterpreter(x);
+      final draft = controller.captureSnapshot();
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.author,
+        intoId: s,
+        otherIds: [l],
+      );
+      // ignore: unused_result
+      await repos.references.deleteUnused(ReferenceKind.author, x);
+
+      final current = await controller.withLiveReferences(draft);
+      expect(current.interpreterIds, [s]);
+    });
+
+    test('a draft whose references are all live comes back as it is', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      const a = '00000000-0000-4000-8000-00000000000a';
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: a, name: 'Ann'));
+      controller.addAuthor(a);
+      final draft = controller.captureSnapshot();
+      expect(
+        identical(await controller.withLiveReferences(draft), draft),
+        isTrue,
+      );
+    });
+
+    test('restoreAuthors leaves a draft edited since the merge', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addAuthor('loser');
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      controller.addAuthor('new');
+
+      controller.restoreAuthors(replacement);
+      expect(controller.authorIds, ['survivor', 'new']);
+    });
+
+    test('leaves a draft that credits none of them', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addAuthor('other');
+      final _ = controller.replaceAuthors({'loser'}, 'survivor');
+      expect(controller.authorIds, ['other']);
+    });
+  });
+
+  group('timing by dance form (ADR-006 §5.5)', () {
+    Future<DanceEditorController> openEcd(
+      CompendiumRepositories repos,
+      List<Figure> figures,
+    ) async {
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'English',
+          form: DanceForm.ecd,
+          figures: figures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      return controller;
+    }
+
+    final spanned = Figure.sequence(
+      figures: [
+        Figure(move: 'ecd_lead', params: const {'beats': 4}),
+        Figure(move: 'ecd_set', params: const {}),
+      ],
+      beats: 8,
+    );
+
+    test(
+      'an English sequence keeps its span and its untimed step on save',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, [spanned]);
+        addTearDown(controller.dispose);
+
+        expect(controller.figureDrafts.single.sequenceSpanStated, isTrue);
+        final saved = figuresOf(controller.buildDance()).single;
+        expect(saved.beats, 8);
+        expect(stepStatesTiming(saved.subFigures[1]), isFalse);
+      },
+    );
+
+    test('changing the dance to contra counts its steps again, and Undo '
+        'brings the span back', () async {
+      final repos = openTestRepositories();
+      final controller = await openEcd(repos, [spanned]);
+      addTearDown(controller.dispose);
+
+      controller.setForm(DanceForm.contra);
+      final sequence = controller.figureDrafts.single;
+      expect(sequence.sequenceSpanStated, isFalse);
+      // The untimed step takes its move's default count (ecd_set: 4).
+      expect(sequence.sequenceFigures![1].params['beats'], 4);
+      expect(sequence.beats, 8);
+
+      controller.undo();
+      expect(controller.form, DanceForm.ecd);
+      expect(controller.figureDrafts.single.sequenceSpanStated, isTrue);
+      expect(
+        controller.figureDrafts.single.sequenceFigures![1].untimed,
+        isTrue,
+      );
+    });
+
+    test(
+      'steps that miss the span are warned about, with their figure',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, [
+          Figure(move: 'ecd_honor', params: const {'beats': 4}),
+          Figure.sequence(
+            figures: [
+              Figure(move: 'ecd_lead', params: const {'beats': 4}),
+              Figure(move: 'ecd_set', params: const {'beats': 4}),
+            ],
+            beats: 12,
+          ),
+        ]);
+        addTearDown(controller.dispose);
+
+        final issue = controller.warnings.singleWhere(
+          (w) => w.code == 'sequence_span_mismatch',
+        );
+        expect(issue.data['position'], 2);
+        expect(issue.data['actual'], 8);
+        expect(issue.data['expected'], 12);
+      },
+    );
+
+    group('a typed English sequence', () {
+      List<Figure> typed(String line) => parseFreeTextFigureEntry(
+        line,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+      );
+
+      test('with a count of its own keeps the steps the line gave none '
+          'untimed under it, with no warning', () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, const []);
+        addTearDown(controller.dispose);
+        final figures = typed(
+          '1st corners set forward and turn single back to place (16)',
+        );
+        // A control: the parser reads a span over untimed steps.
+        expect(figures.single.isSequence, isTrue);
+        expect(figures.single.beats, 16);
+        expect(figures.single.subFigures.any(stepStatesTiming), isFalse);
+
+        controller.insertFreeTextFigures(figures);
+
+        final sequence = controller.figureDrafts.single;
+        expect(sequence.sequenceSpanStated, isTrue);
+        expect(sequence.beats, 16);
+        expect(sequence.sequenceFigures!.every((s) => s.untimed), isTrue);
+        expect(
+          controller.warnings.where((w) => w.code == 'sequence_span_mismatch'),
+          isEmpty,
+        );
+      });
+
+      test('with no count counts its steps at the user\'s Move defaults '
+          'too', () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, const []);
+        addTearDown(controller.dispose);
+        final figures = typed(
+          '1st corners set forward and turn single back to place',
+        );
+        final setMove = figures.single.subFigures.first.move;
+        // A control: the line's first step is a set, at its default count.
+        expect(setMove, 'ecd_set');
+        controller.moveParamDefaults = const {
+          'ecd_set': {'beats': 8},
+        };
+
+        controller.insertFreeTextFigures(figures);
+
+        final sequence = controller.figureDrafts.single;
+        expect(sequence.sequenceSpanStated, isFalse);
+        expect(sequence.sequenceFigures!.first.params['beats'], 8);
+        expect(sequence.sequenceFigures!.any((s) => s.untimed), isFalse);
+      });
+
+      test('with no count counts its steps at their defaults', () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, const []);
+        addTearDown(controller.dispose);
+
+        controller.insertFreeTextFigures(
+          typed('1st corners set forward and turn single back to place'),
+        );
+
+        final sequence = controller.figureDrafts.single;
+        expect(sequence.sequenceSpanStated, isFalse);
+        expect(sequence.sequenceFigures!.any((s) => s.untimed), isFalse);
+        expect(
+          sequence.beats,
+          sequence.sequenceFigures!.fold(0, (sum, s) => sum + s.beats),
+        );
+        expect(
+          controller.warnings.where((w) => w.code == 'sequence_span_mismatch'),
+          isEmpty,
+        );
+      });
+    });
+
+    test(
+      'figures of another form are warned about after the form changes',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, [
+          Figure(move: 'ecd_honor', params: const {'beats': 4}),
+          Figure(move: 'ecd_lead', params: const {'beats': 4}),
+          Figure(move: 'custom', params: const {'text': 'x', 'beats': 4}),
+        ]);
+        addTearDown(controller.dispose);
+        expect(
+          controller.warnings.where((w) => w.code == 'other_form_figures'),
+          isEmpty,
+        );
+
+        controller.setForm(DanceForm.contra);
+        final issue = controller.warnings.singleWhere(
+          (w) => w.code == 'other_form_figures',
+        );
+        expect(issue.data, {
+          'count': 2,
+          'figureForm': 'ecd',
+          'danceForm': 'contra',
+          'pickerForm': 'contra',
+        });
+
+        // A square dance uses contra's figures, so contra ones are its own.
+        final square = await openEcd(openTestRepositories(), [
+          Figure(move: 'swing', params: const {'beats': 8}),
+        ]);
+        addTearDown(square.dispose);
+        square.setForm(DanceForm.square);
+        expect(
+          square.warnings.where((w) => w.code == 'other_form_figures'),
+          isEmpty,
+        );
+
+        // English figures in a square dance: its picker offers contra's.
+        final squareEcd = await openEcd(openTestRepositories(), [
+          Figure(move: 'ecd_lead', params: const {'beats': 4}),
+        ]);
+        addTearDown(squareEcd.dispose);
+        squareEcd.setForm(DanceForm.square);
+        expect(
+          squareEcd.warnings
+              .singleWhere((w) => w.code == 'other_form_figures')
+              .data,
+          {
+            'count': 1,
+            'figureForm': 'ecd',
+            'danceForm': 'square',
+            'pickerForm': 'contra',
+          },
+        );
+      },
+    );
+
+    test('ungrouping a spanned sequence times its untimed steps', () async {
+      final repos = openTestRepositories();
+      final controller = await openEcd(repos, [spanned]);
+      addTearDown(controller.dispose);
+
+      controller.ungroupContainer(controller.figureDrafts.single);
+      expect(controller.figureDrafts, hasLength(2));
+      expect(controller.figureDrafts[1].untimed, isFalse);
+      expect(figuresOf(controller.buildDance())[1].beats, 4);
     });
   });
 }

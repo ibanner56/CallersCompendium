@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -45,7 +46,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
@@ -74,7 +78,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
@@ -98,12 +105,35 @@ void main() {
     expect(validationError(), findsNothing);
   });
 
+  testWidgets('an English dialect previews English figures (ADR-006 W5)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          form: DanceForm.ecd,
+          initial: Dialect.larksRobins,
+        ),
+      ),
+    );
+    await reveal(tester, preview());
+    final text = previewText(tester).toLowerCase();
+    expect(text, contains('lead up'));
+    expect(text, isNot(contains('swing')));
+    expect(text, isNot(contains('do si do')));
+  });
+
   testWidgets('the preview reflects role-term edits live', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
@@ -136,6 +166,7 @@ void main() {
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
           home: DialectEditorScreen(
+            form: DanceForm.contra,
             initial: Dialect(
               name: 'Wording',
               moves: const {'swing': 'twirl'},
@@ -156,6 +187,25 @@ void main() {
       );
       expect(find.textContaining('Unknown slots are empty'), findsOneWidget);
       expect(
+        find.byKey(const ValueKey('dialect-wording-force-help')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('like {!hand}, to always show'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-wording-swing')),
+        '{!who} {move}',
+      );
+      await tester.pump();
+      expect(find.textContaining('Unknown slots are empty'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-wording-swing')),
+        '{who} {move} {future}',
+      );
+      await tester.pump();
+      expect(
         tester
             .widget<Text>(
               find.byKey(const ValueKey('dialect-wording-preview-swing')),
@@ -168,11 +218,14 @@ void main() {
         '{who',
       );
       await tester.pump();
+      // The message says what is wrong, where, and how to fix it.
       expect(
-        find.text(
-          'This template is invalid, so the normal wording will be used.',
-        ),
-        findsOneWidget,
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('dialect-wording-error-swing')),
+            )
+            .data,
+        'The "{" in "{who" isn\'t closed. Add "}" after the name, like {who}.',
       );
 
       final restore = find.byKey(const ValueKey('dialect-wordings-restore'));
@@ -204,6 +257,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Wording',
             moveWordings: const {'swing': '{who} {move}'},
@@ -239,6 +293,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(name: 'Terms', discouragedTerms: const ['avoid']),
         ),
       ),
@@ -284,8 +339,10 @@ void main() {
             onPressed: () async {
               popped = await Navigator.of(context).push<Dialect>(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      DialectEditorScreen(initial: Dialect.canonical),
+                  builder: (_) => DialectEditorScreen(
+                    form: DanceForm.contra,
+                    initial: Dialect.canonical,
+                  ),
                 ),
               );
             },
@@ -322,8 +379,10 @@ void main() {
             onPressed: () async {
               await Navigator.of(context).push<Dialect>(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      DialectEditorScreen(initial: Dialect.canonical),
+                  builder: (_) => DialectEditorScreen(
+                    form: DanceForm.contra,
+                    initial: Dialect.canonical,
+                  ),
                 ),
               );
               didReturn = true;
@@ -349,7 +408,7 @@ void main() {
     expect(didReturn, isTrue);
   });
 
-  testWidgets('sections use uppercase expansion headers and action colors', (
+  testWidgets('sections keep case in expansion headers and use action colors', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -357,6 +416,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Sections',
             moves: const {'swing': 'twirl'},
@@ -367,16 +427,16 @@ void main() {
     );
 
     for (final entry in [
-      ('dialect-roles-toggle', 'ROLE TERMS'),
-      ('dialect-moves-toggle', 'MOVE SUBSTITUTIONS'),
-      ('dialect-dancers-toggle', 'DANCER SUBSTITUTIONS'),
-      ('dialect-wordings-toggle', 'MOVE WORDING TEMPLATES'),
-      ('dialect-discouraged-toggle', 'DISCOURAGED TERMS'),
+      ('dialect-roles-toggle', 'Role terms'),
+      ('dialect-moves-toggle', 'Move substitutions'),
+      ('dialect-dancers-toggle', 'Dancer substitutions'),
+      ('dialect-wordings-toggle', 'Move wording templates'),
+      ('dialect-discouraged-toggle', 'Discouraged terms'),
     ]) {
       expect(find.byKey(ValueKey(entry.$1)), findsOneWidget);
       expect(find.text(entry.$2), findsOneWidget);
     }
-    expect(find.text('PREVIEW'), findsOneWidget);
+    expect(find.text('Preview'), findsOneWidget);
     expect(find.byType(ExpansionTile), findsNWidgets(5));
 
     final wordingsToggle = find.byKey(
@@ -420,11 +480,11 @@ void main() {
     await reveal(tester, moveToggle);
     await tester.tap(moveToggle);
     await tester.pumpAndSettle();
-    final moves = tester.widget<DropdownButton<String>>(
+    final moves = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move')),
     );
     moves.onChanged!(
-      moves.items!
+      moves.entries
           .map((item) => item.value)
           .firstWhere((id) => id == 'balance'),
     );
@@ -437,6 +497,138 @@ void main() {
     );
   });
 
+  testWidgets('long lines keeps its own move row and wording row', (
+    tester,
+  ) async {
+    // Long lines is an alias of forward and back since taxonomy v39, but a
+    // dialect still names it on its own, as it did when it was a move.
+    await setScreenSize(tester, const Size(1200, 2400));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect(name: 'Lines', moves: const {'long_lines': 'lines'}),
+        ),
+      ),
+    );
+
+    final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+    await reveal(tester, movesToggle);
+    await tester.tap(movesToggle);
+    await tester.pumpAndSettle();
+    final row = find.byKey(const ValueKey('dialect-move-long_lines'));
+    expect(row, findsOneWidget);
+    expect(tester.widget<TextField>(row).controller!.text, 'lines');
+    expect(find.text('long lines'), findsWidgets);
+    final moves = tester.widget<AppDropdownField<String?>>(
+      find.byKey(const ValueKey('dialect-add-move')),
+    );
+    final offered = moves.entries.map((item) => item.value).toSet();
+    expect(offered, contains('forward_and_back'));
+    expect(offered, isNot(contains('long_lines')));
+
+    final wordingsToggle = find.byKey(
+      const ValueKey('dialect-wordings-toggle'),
+    );
+    await reveal(tester, wordingsToggle);
+    await tester.tap(wordingsToggle);
+    await tester.pumpAndSettle();
+    final wordings = tester.widget<AppDropdownField<String?>>(
+      find.byKey(const ValueKey('dialect-add-move-wording')),
+    );
+    expect(
+      wordings.entries.map((item) => item.value),
+      containsAll(['long_lines', 'forward_and_back']),
+    );
+  });
+
+  testWidgets(
+    "an English dialect offers English figures only and names contra's entries as contra's",
+    (tester) async {
+      // An English dialect's taxonomy lays English figures over contra's.
+      // Offering both would list "circle" and "hand cast" twice with nothing
+      // to tell them apart, so only English figures are offered; an entry
+      // the dialect already holds for a contra figure names its form.
+      await setScreenSize(tester, const Size(1200, 2400));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DialectEditorScreen(
+            form: DanceForm.ecd,
+            initial: Dialect(
+              name: 'English',
+              moves: const {'circle': 'ring', 'ecd_circle': 'round'},
+            ),
+          ),
+        ),
+      );
+
+      final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+      await reveal(tester, movesToggle);
+      await tester.tap(movesToggle);
+      await tester.pumpAndSettle();
+      // Each row's label is shown twice: as its title and its field's label.
+      expect(find.text('circle · Contra'), findsWidgets);
+      expect(find.text('circle'), findsWidgets);
+      expect(find.textContaining('English (ECD)'), findsNothing);
+      final moves = tester.widget<AppDropdownField<String?>>(
+        find.byKey(const ValueKey('dialect-add-move')),
+      );
+      final offered = moves.entries.map((item) => item.value!).toList();
+      expect(offered, contains('ecd_hand_cast'));
+      expect(offered.where((id) => !id.startsWith('ecd_')), isEmpty);
+
+      final wordingsToggle = find.byKey(
+        const ValueKey('dialect-wordings-toggle'),
+      );
+      await reveal(tester, wordingsToggle);
+      await tester.tap(wordingsToggle);
+      await tester.pumpAndSettle();
+      final wordings = tester.widget<AppDropdownField<String?>>(
+        find.byKey(const ValueKey('dialect-add-move-wording')),
+      );
+      final worded = wordings.entries.map((item) => item.value!).toList();
+      expect(worded, containsAll(['ecd_circle', 'ecd_hand_cast']));
+      expect(worded.where((id) => !id.startsWith('ecd_')), isEmpty);
+    },
+  );
+
+  testWidgets('a forward and back wording previews a forward and back', (
+    tester,
+  ) async {
+    // At its defaults a forward and back is a long lines, which never takes
+    // forward and back's wording, so the preview shows another formation.
+    await setScreenSize(tester, const Size(1200, 2400));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect(
+            name: 'Worded',
+            moveWordings: const {'forward_and_back': 'all {formation} {move}'},
+          ),
+        ),
+      ),
+    );
+    final toggle = find.byKey(const ValueKey('dialect-wordings-toggle'));
+    await reveal(tester, toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    final preview = find.byKey(
+      const ValueKey('dialect-wording-preview-forward_and_back'),
+    );
+    await reveal(tester, preview);
+    expect(
+      tester.widget<Text>(preview).data,
+      'Preview: all in squares forward & back',
+    );
+  });
+
   testWidgets('move substitution hints wrap on narrow surfaces', (
     tester,
   ) async {
@@ -446,6 +638,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(name: 'Narrow', moves: const {'swing': 'twirl'}),
         ),
       ),
@@ -471,6 +664,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(name: 'Wording', moves: const {'swing': 'twirl'}),
         ),
       ),
@@ -481,11 +675,11 @@ void main() {
     await tester.tap(toggle);
     await tester.pumpAndSettle();
 
-    final menu = tester.widget<DropdownButton<String>>(
+    final menu = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move-wording')),
     );
     menu.onChanged!(
-      menu.items!
+      menu.entries
           .map((item) => item.value)
           .firstWhere((value) => value == 'swing'),
     );
@@ -504,18 +698,21 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
     await tester.tap(find.byKey(const ValueKey('dialect-wordings-toggle')));
     await tester.pumpAndSettle();
 
-    final menu = tester.widget<DropdownButton<String>>(
+    final menu = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move-wording')),
     );
     expect(
-      menu.items!.map((item) => item.value),
+      menu.entries.map((item) => item.value),
       containsAll(['form_a_long_wave', 'promenade', 'circle']),
     );
     expect(
@@ -528,7 +725,7 @@ void main() {
     );
 
     menu.onChanged!(
-      menu.items!
+      menu.entries
           .map((item) => item.value)
           .firstWhere((value) => value == 'form_a_long_wave'),
     );
@@ -551,11 +748,11 @@ void main() {
       findsNothing,
     );
 
-    final updatedMenu = tester.widget<DropdownButton<String>>(
+    final updatedMenu = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move-wording')),
     );
     updatedMenu.onChanged!(
-      updatedMenu.items!
+      updatedMenu.entries
           .map((item) => item.value)
           .firstWhere((value) => value == 'circle'),
     );
@@ -578,6 +775,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Wording',
             moveWordings: const {
@@ -615,6 +813,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Wording',
             moveWordings: const {'swing': '{move}'},
@@ -656,6 +855,7 @@ void main() {
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
           home: DialectEditorScreen(
+            form: DanceForm.contra,
             initial: Dialect(
               name: 'Invalid wording',
               moveWordings: {'swing': template},
@@ -699,6 +899,7 @@ void main() {
                     popped = await Navigator.of(context).push<Dialect>(
                       MaterialPageRoute(
                         builder: (_) => DialectEditorScreen(
+                          form: DanceForm.contra,
                           initial: Dialect(
                             name: 'Conditional',
                             moveWordingBranches: const {
@@ -750,8 +951,10 @@ void main() {
                 onPressed: () async {
                   popped = await Navigator.of(context).push<Dialect>(
                     MaterialPageRoute(
-                      builder: (_) =>
-                          DialectEditorScreen(initial: Dialect.canonical),
+                      builder: (_) => DialectEditorScreen(
+                        form: DanceForm.contra,
+                        initial: Dialect.canonical,
+                      ),
                     ),
                   );
                   didPop = true;
@@ -803,7 +1006,7 @@ void main() {
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
-          home: DialectEditorScreen(initial: dialect),
+          home: DialectEditorScreen(form: DanceForm.contra, initial: dialect),
         ),
       );
 
@@ -860,7 +1063,7 @@ void main() {
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
-          home: DialectEditorScreen(initial: initial),
+          home: DialectEditorScreen(form: DanceForm.contra, initial: initial),
         ),
       );
       final toggle = find.byKey(const ValueKey('dialect-dancers-toggle'));
@@ -875,52 +1078,61 @@ void main() {
     ({List<String?> values, List<String?> labels}) addMenu(
       WidgetTester tester,
     ) {
-      final dropdown = tester.widget<DropdownButton<String>>(
+      final dropdown = tester.widget<AppDropdownField<String?>>(
         find.byKey(const ValueKey('dialect-add-dancer')),
       );
       return (
-        values: [for (final i in dropdown.items!) i.value],
-        labels: [for (final i in dropdown.items!) (i.child as Text).data],
+        values: [for (final i in dropdown.entries) i.value],
+        labels: [for (final i in dropdown.entries) i.label],
       );
     }
 
-    testWidgets('the add menu offers all four, labelled by dialect', (
-      tester,
-    ) async {
-      await openDancers(tester, Dialect.larksRobins);
-      final menu = addMenu(tester);
+    testWidgets(
+      'the add menu offers every single dancer, labelled by dialect',
+      (tester) async {
+        await openDancers(tester, Dialect.larksRobins);
+        final menu = addMenu(tester);
 
-      expect(menu.values, containsAll(ParamVocab.singleDancers));
-      // THE TRAP: labelled through the dialect, never as the raw token.
-      expect(
-        menu.labels,
-        containsAll([
-          'first lark',
-          'first robin',
-          'second lark',
-          'second robin',
-        ]),
-      );
-      for (final raw in [
-        'ones role1',
-        'ones role2',
-        'twos role1',
-        'twos role2',
-      ]) {
+        expect(menu.values, containsAll(ParamVocab.singleDancers));
+        // THE TRAP: labelled through the dialect, never as the raw token.
         expect(
           menu.labels,
-          isNot(contains(raw)),
-          reason: 'the raw token "$raw" must never reach the settings UI',
+          containsAll([
+            'first lark',
+            'first robin',
+            'second lark',
+            'second robin',
+            'third lark',
+            'third robin',
+            'fourth lark',
+            'fourth robin',
+          ]),
         );
-      }
+        for (final raw in [
+          'ones role1',
+          'ones role2',
+          'twos role1',
+          'twos role2',
+          'threes role1',
+          'threes role2',
+          'fours role1',
+          'fours role2',
+        ]) {
+          expect(
+            menu.labels,
+            isNot(contains(raw)),
+            reason: 'the raw token "$raw" must never reach the settings UI',
+          );
+        }
 
-      // The group dancer sets are still there, still humanized.
-      expect(menu.values, containsAll(['neighbors', 'nextNeighbors']));
-      expect(menu.labels, contains('next neighbors'));
-      // Role-driven tokens stay excluded (role-term substitution owns them).
-      expect(menu.values, isNot(contains('role1s')));
-      expect(menu.values, isNot(contains('role2s')));
-    });
+        // The group dancer sets are still there, still humanized.
+        expect(menu.values, containsAll(['neighbors', 'nextNeighbors']));
+        expect(menu.labels, contains('next neighbors'));
+        // Role-driven tokens stay excluded (role-term substitution owns them).
+        expect(menu.values, isNot(contains('role1s')));
+        expect(menu.values, isNot(contains('role2s')));
+      },
+    );
 
     testWidgets('an existing identity row is labelled by dialect', (
       tester,
@@ -989,8 +1201,10 @@ void main() {
                 onPressed: () async {
                   popped = await Navigator.of(context).push<Dialect>(
                     MaterialPageRoute(
-                      builder: (_) =>
-                          DialectEditorScreen(initial: Dialect.larksRobins),
+                      builder: (_) => DialectEditorScreen(
+                        form: DanceForm.contra,
+                        initial: Dialect.larksRobins,
+                      ),
                     ),
                   );
                 },
@@ -1012,11 +1226,11 @@ void main() {
       // that the entry is never laid out, so tapping it is not reachable.
       // The value comes FROM the menu, so this is red when the menu does not
       // offer the token rather than reaching a state the UI cannot produce.
-      final menu = tester.widget<DropdownButton<String>>(
+      final menu = tester.widget<AppDropdownField<String?>>(
         find.byKey(const ValueKey('dialect-add-dancer')),
       );
       menu.onChanged!(
-        menu.items!.map((i) => i.value).firstWhere((v) => v == 'twosRole2'),
+        menu.entries.map((i) => i.value).firstWhere((v) => v == 'twosRole2'),
       );
       await tester.pumpAndSettle();
 

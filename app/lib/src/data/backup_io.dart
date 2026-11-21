@@ -1,11 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import 'backup_volume_channel.dart';
+import 'file_dialog_labels.dart';
+import 'picker_extensions.dart';
 
 /// Delivers a finished backup [json] to the user as a file named
 /// [suggestedFileName]. Returns `true` if the backup was delivered/saved, or
@@ -27,26 +32,109 @@ typedef BackupPicker = Future<String?> Function();
 bool Function() isDesktopPlatform = () =>
     Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
-const _jsonTypeGroup = XTypeGroup(
-  label: 'Backup (JSON)',
-  extensions: ['json'],
+/// Test seam for the OS share sheet used by the mobile branches of
+/// [saveBackupToFile] and the diagnostics-log saver; defaults to `share_plus`.
+/// Overridable so tests can return a chosen [ShareResult] without a platform
+/// channel.
+Future<ShareResult> Function(ShareParams params) shareFilesViaSheet =
+    (params) => SharePlus.instance.share(params);
+
+/// Test seam for macOS detection; defaults to the real `dart:io` getter.
+///
+/// macOS is the one desktop platform whose sandbox forces the direct
+/// exact-path backup write (see [writeDesktopBackup]); Windows and Linux get
+/// the atomic replacement. Overridable so tests can drive both branches of that
+/// routing without depending on the host OS.
+bool Function() isMacOsPlatform = () => Platform.isMacOS;
+
+/// Test seam for the free-space query the in-place macOS write makes before it
+/// overwrites an existing backup ([writeDesktopBackup]); defaults to the
+/// native [BackupVolumeChannel]. Returns `null` when the answer is unknown.
+Future<int?> Function(String path) backupVolumeAvailableBytes = (path) =>
+    BackupVolumeChannel().availableBytes(path);
+
+/// Room the in-place macOS write needs beyond the backup's own bytes before it
+/// truncates an existing backup: filesystem blocks are allocated whole, and
+/// the file's metadata takes space too.
+const int kInPlaceBackupHeadroomBytes = 1024 * 1024;
+
+/// Thrown by [writeDesktopBackup] on macOS when the volume does not have room
+/// for the new backup, before the existing file at that path is touched. Only
+/// that in-place write can destroy an earlier backup by running out of space;
+/// the atomic write elsewhere leaves it untouched on failure. No user-facing
+/// text: the export flow builds its translated message from [requiredBytes]
+/// and [availableBytes]; [toString] is for logs only.
+class BackupDiskFullException implements Exception {
+  const BackupDiskFullException({
+    required this.requiredBytes,
+    required this.availableBytes,
+  });
+
+  /// The bytes the write needs, [kInPlaceBackupHeadroomBytes] included.
+  final int requiredBytes;
+
+  /// The bytes the volume reported free.
+  final int availableBytes;
+
+  @override
+  String toString() =>
+      'BackupDiskFullException: backup needs $requiredBytes bytes; '
+      '$availableBytes bytes free';
+}
+
+/// The file-type filter behind the backup save and restore dialogs.
+@visibleForTesting
+XTypeGroup backupJsonTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: FileDialogLabels.current.fileDialogTypeBackupJson,
+  extensions: pickerExtensions(['json'], isLinux),
   uniformTypeIdentifiers: ['public.json'],
   mimeTypes: ['application/json'],
 );
 
 /// Maximum size, in bytes, of a backup file the restore path will read into
-/// memory (~50 MiB).
+/// memory (50 MiB).
 ///
-/// Backups are JSON text and even a very large collection serializes to a few
-/// megabytes, so this is generous headroom for legitimate files while refusing
-/// one large enough to exhaust memory. The restore reads the whole file into a
-/// `String`, so an unbounded read of an untrusted/corrupt file is an
-/// uncontrolled resource-consumption risk (OWASP A04/A05); this ceiling caps it.
+/// What it protects: the restore reads the whole file into a `String`, so an
+/// unbounded read of an untrusted or corrupt file is an uncontrolled
+/// resource-consumption risk (OWASP A04/A05).
+///
+/// It is not "a few megabytes of headroom": a lean 20,000-dance library encodes
+/// to roughly 30 MiB, and the cap is reached somewhere around 30,000-40,000
+/// dances (audit figures; v7 tombstoned tags make the real number lower).
+/// Export therefore refuses to write past it ([BackupExportTooLargeException]),
+/// so the app never produces a backup its own restore would reject.
 const int kMaxBackupFileBytes = 50 * 1024 * 1024;
 
+/// Thrown by `BackupService.exportToJson` when the encoded backup would exceed
+/// the restore cap, so the app never writes a file its own restore refuses.
+/// Nothing is handed to the saver. No user-facing text: the export flow builds
+/// its translated message from [sizeBytes] and [maxBytes]; [toString] is for
+/// logs only.
+class BackupExportTooLargeException implements Exception {
+  const BackupExportTooLargeException({
+    required this.sizeBytes,
+    required this.maxBytes,
+  });
+
+  /// The encoded backup's size in bytes.
+  final int sizeBytes;
+
+  /// The enforced ceiling ([kMaxBackupFileBytes] by default) in bytes.
+  final int maxBytes;
+
+  @override
+  String toString() =>
+      'BackupExportTooLargeException: backup is $sizeBytes bytes; '
+      'limit $maxBytes bytes';
+}
+
+/// A byte count as mebibytes with one decimal ("60.0"), the figure the "too
+/// large" messages quote beside the "MB" unit in their translations.
+String backupMegabytes(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
+
 /// Thrown by [pickBackupFile] when the chosen file exceeds
-/// [kMaxBackupFileBytes]. Carries a friendly, user-facing [message] so the UI
-/// can explain the refusal without surfacing internals or a stack trace.
+/// [kMaxBackupFileBytes]. No user-facing text: the restore dialog builds its
+/// translated message from [sizeBytes] and [maxBytes]; [toString] is for logs.
 class BackupFileTooLargeException implements Exception {
   const BackupFileTooLargeException({
     required this.sizeBytes,
@@ -59,16 +147,10 @@ class BackupFileTooLargeException implements Exception {
   /// The enforced ceiling ([kMaxBackupFileBytes]) in bytes.
   final int maxBytes;
 
-  /// User-facing explanation (no stack traces / internals).
-  String get message =>
-      'That file is too large to be a Caller\u2019s Compendium backup '
-      '(${_mib(sizeBytes)} MB; limit ${_mib(maxBytes)} MB). '
-      'Your data is unchanged.';
-
   @override
-  String toString() => 'BackupFileTooLargeException: $message';
-
-  static String _mib(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
+  String toString() =>
+      'BackupFileTooLargeException: file is ${backupMegabytes(sizeBytes)} MB; '
+      'limit ${backupMegabytes(maxBytes)} MB';
 }
 
 /// Atomically writes [contents] to [path].
@@ -79,17 +161,26 @@ class BackupFileTooLargeException implements Exception {
 /// good copy while the new one is incomplete — potentially losing both
 /// (issue #438).
 ///
-/// Instead we write to a sibling temp file `<path>.tmp`, flush it to disk
-/// (`flush: true` performs an `fsync`, so the bytes are durable before we
-/// touch the target), then atomically `rename` it over [path]. `dart:io`'s
-/// [File.rename] is an atomic same-volume replace on every target platform
-/// (`rename(2)` on POSIX; `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING` on
-/// Windows), and keeping the temp beside the target guarantees they share a
-/// volume. So the target is only ever swapped for a fully-written file — a
-/// failed write leaves the old backup untouched.
+/// Instead we write to a sibling temp file, flush it to disk (`flush: true`
+/// performs an `fsync`, so the bytes are durable before we touch the target),
+/// then atomically `rename` it over [path]. `dart:io`'s [File.rename] is an
+/// atomic same-volume replace on every target platform (`rename(2)` on POSIX;
+/// `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING` on Windows), and keeping the
+/// temp beside the target guarantees they share a volume. So the target is only
+/// ever swapped for a fully-written file — a failed write leaves the old backup
+/// untouched.
+///
+/// The sibling temp is created under an **unpredictable** name via an exclusive,
+/// no-follow create (see [_createSecureSiblingTemp]). [writeDesktopBackup]
+/// routes user-selected desktop destinations here, and those directories are
+/// not app-private — a fixed, guessable temp name (`<path>.tmp`) could be
+/// pre-planted as a symlink so the write followed it and clobbered the link
+/// target (CWE-59/377). An unpredictable name the writer creates exclusively
+/// closes that vector, mirroring the update downloader's hardening
+/// (`app/lib/src/update/artifact_downloader.dart`).
 ///
 /// On any failure the temp file is removed on a best-effort basis (so a failed
-/// write leaves no `.tmp` litter) and the error is rethrown. The pre-existing
+/// write leaves no temp litter) and the error is rethrown. The pre-existing
 /// file at [path] is never modified unless the rename succeeds.
 ///
 /// [debugSimulateFailure], if supplied, is awaited *after* the temp file has
@@ -102,36 +193,90 @@ Future<void> writeStringAtomically(
   String contents, {
   Future<void> Function()? debugSimulateFailure,
 }) async {
-  final tmp = File('$path.tmp');
+  final tmp = await _createSecureSiblingTemp(File(path));
   try {
+    // The temp is a regular file we just created exclusively, so this write
+    // cannot be redirected through a pre-planted symlink. `flush: true` fsyncs
+    // before the rename so the bytes are durable.
     await tmp.writeAsString(contents, flush: true);
     if (debugSimulateFailure != null) await debugSimulateFailure();
     await tmp.rename(path);
   } catch (_) {
-    // diagnostics: silent — write/rename failed; cleans up .tmp then rethrows to caller.
+    // diagnostics: silent — write/rename failed; cleans up the temp then rethrows to caller.
     try {
       if (await tmp.exists()) await tmp.delete();
     } catch (_) {
-      // diagnostics: silent — .tmp cleanup failed; original write/rename failure is what matters.
+      // diagnostics: silent — temp cleanup failed; original write/rename failure is what matters.
     }
     rethrow;
   }
+}
+
+final Random _secureRandom = Random.secure();
+
+/// Creates an empty temp file beside [target] under an unpredictable name,
+/// returning it for the caller to write and then `rename` over [target].
+///
+/// Keeping the temp in [target]'s own directory guarantees a same-volume (hence
+/// atomic) rename. The name is drawn from [Random.secure] and the file is
+/// created with an exclusive, no-follow create so a local attacker cannot
+/// pre-plant a symlink at the path and have our write follow it (CWE-59/377):
+///
+/// 1. `FileSystemEntity.type(..., followLinks: false)` rejects any entity —
+///    file, directory, or symlink (dangling or not) — already at the raw path,
+///    without following a link.
+/// 2. `create(exclusive: true)` (an `O_EXCL`-equivalent) then fails closed if
+///    anything appears between that check and the create (TOCTOU), rather than
+///    writing through it.
+///
+/// The unpredictable name makes a collision astronomically unlikely; the retry
+/// loop only exists so a freak collision retries instead of throwing.
+Future<File> _createSecureSiblingTemp(File target) async {
+  final dir = target.parent.path;
+  for (var attempt = 0; attempt < 8; attempt++) {
+    final suffix = List<int>.generate(
+      16,
+      (_) => _secureRandom.nextInt(16),
+    ).map((n) => n.toRadixString(16)).join();
+    final tmp = File('$dir${Platform.pathSeparator}.cc-backup-$suffix.tmp');
+    if (await FileSystemEntity.type(tmp.path, followLinks: false) !=
+        FileSystemEntityType.notFound) {
+      continue;
+    }
+    try {
+      await tmp.create(exclusive: true);
+      return tmp;
+    } on FileSystemException {
+      // diagnostics: silent — a raced name is retried; exhaustion throws below.
+      // Something raced us to this name (TOCTOU) — pick another and retry.
+      continue;
+    }
+  }
+  throw FileSystemException(
+    'could not create a secure temporary backup file',
+    dir,
+  );
 }
 
 /// Default [BackupSaver].
 ///
 /// On desktop (macOS/Windows/Linux) a backup is a "save a file" action: this
 /// shows a native Save As dialog (via `file_selector`'s [getSaveLocation]) and
-/// writes [json] directly to the chosen path. On sandboxed macOS, the save
-/// panel grants access only to that exact path, not to an atomic writer's
-/// sibling `<path>.tmp` file.
+/// then writes [json] to the chosen path via [writeDesktopBackup] — atomically
+/// on Windows and Linux (so an interrupted write can't destroy the previous
+/// good backup), and directly on sandboxed macOS, where the save panel grants
+/// access only to that exact path and not to an atomic writer's sibling
+/// `<path>.tmp` file.
 /// Returns `false` without writing anything if the user cancels the dialog.
 ///
 /// On mobile (iOS/Android) a backup is a "share to another app" action: this
 /// writes [json] to a temp file (via `path_provider`, also atomically) and
-/// hands it to the OS share sheet (via `share_plus`), returning `true` once the
-/// sheet has been invoked (share-sheet completion isn't reliably observable on
-/// those platforms).
+/// hands it to the OS share sheet (via `share_plus`), which returns when the
+/// sheet closes. Returns `false` if the sheet was dismissed without choosing a
+/// destination ([ShareResultStatus.dismissed]), so callers neither report an
+/// export nor stamp the last-backup time. Any other status counts as exported:
+/// `success`, and also `unavailable`, which some platforms report because they
+/// can't tell what the user did (so a dismissal there can't be detected).
 ///
 /// [json] is the finished backup container (issue #536): plain backup JSON with
 /// a SHA-256 integrity checksum, always saved with a `.json` extension.
@@ -139,10 +284,10 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   if (isDesktopPlatform()) {
     final location = await getSaveLocation(
       suggestedName: suggestedFileName,
-      acceptedTypeGroups: const [_jsonTypeGroup],
+      acceptedTypeGroups: [backupJsonTypeGroup()],
     );
     if (location == null) return false;
-    await writeStringToUserSelectedPath(location.path, json);
+    await writeDesktopBackup(location.path, json);
     return true;
   }
 
@@ -154,17 +299,82 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await writeStringAtomically(file.path, json);
-  await SharePlus.instance.share(
+  final result = await shareFilesViaSheet(
     ShareParams(
       files: [XFile(file.path, mimeType: 'application/json')],
       fileNameOverrides: [suggestedFileName],
       subject: suggestedFileName,
     ),
   );
-  return true;
+  return result.status != ShareResultStatus.dismissed;
 }
 
-/// Writes to the exact path authorized by a native desktop Save As panel.
+/// Writes a finished backup to the [path] a native desktop Save As panel
+/// returned, choosing the safest write the platform's sandbox allows.
+///
+/// On Windows and Linux there is no sandbox restriction on the chosen path's
+/// directory, so this writes atomically ([writeStringAtomically]): the bytes go
+/// to a flushed sibling `<path>.tmp` that is then `rename`d over [path], so an
+/// interrupted write (crash, power loss, disk-full) leaves the previous good
+/// backup untouched instead of a truncated half-file.
+///
+/// On macOS the app is sandboxed (`com.apple.security.app-sandbox`, see
+/// `macos/Runner/Release.entitlements`) and the save panel grants a security
+/// scope for the *exact* selected path only, not for the sibling `<path>.tmp`
+/// the atomic writer needs. There this intentionally writes in place via
+/// [writeStringToUserSelectedPath], accepting that an interrupted write can
+/// still truncate the prior backup — the sandbox leaves no atomic alternative
+/// for a user-selected destination.
+///
+/// A full disk is the one such interruption that can be seen coming. So when
+/// [path] already holds a file, the macOS branch first asks how much space the
+/// volume has free ([backupVolumeAvailableBytes]) and, when that is less than
+/// the backup plus [kInPlaceBackupHeadroomBytes], throws
+/// [BackupDiskFullException] without touching the file. The check is
+/// conservative: it does not count the space the old file would free, so it
+/// can refuse a save that would just have fitted. It is not a guarantee
+/// either: another app can fill the disk between the check and the write, and
+/// an unknown answer (`null`) lets the write go ahead unchecked, as before.
+///
+/// [debugSimulateFailure] is forwarded to [writeStringAtomically] on the
+/// Windows/Linux path (a test-only seam proving an interrupted write can't harm
+/// the previous backup); the in-place macOS path has no such protection to
+/// exercise and ignores it. Production callers never pass it.
+@visibleForTesting
+Future<void> writeDesktopBackup(
+  String path,
+  String contents, {
+  Future<void> Function()? debugSimulateFailure,
+}) {
+  if (isMacOsPlatform()) {
+    return _writeInPlaceIfRoom(path, contents);
+  }
+  return writeStringAtomically(
+    path,
+    contents,
+    debugSimulateFailure: debugSimulateFailure,
+  );
+}
+
+/// The macOS branch of [writeDesktopBackup]: refuses with
+/// [BackupDiskFullException] before overwriting an existing file the volume
+/// has no room to replace, then writes in place.
+Future<void> _writeInPlaceIfRoom(String path, String contents) async {
+  if (await File(path).exists()) {
+    final available = await backupVolumeAvailableBytes(path);
+    final required = utf8.encode(contents).length + kInPlaceBackupHeadroomBytes;
+    if (available != null && available < required) {
+      throw BackupDiskFullException(
+        requiredBytes: required,
+        availableBytes: available,
+      );
+    }
+  }
+  await writeStringToUserSelectedPath(path, contents);
+}
+
+/// Writes in place to the exact path authorized by a native desktop Save As
+/// panel. This is the sandboxed-macOS branch of [writeDesktopBackup].
 ///
 /// macOS sandbox permissions for the selected destination do not extend to
 /// sibling paths, so this intentionally cannot use [writeStringAtomically].
@@ -178,7 +388,7 @@ Future<void> writeStringToUserSelectedPath(String path, String contents) {
 /// text (subject to the [kMaxBackupFileBytes] size cap). Returns `null` when the
 /// user cancels.
 Future<String?> pickBackupFile() async {
-  final file = await openFile(acceptedTypeGroups: const [_jsonTypeGroup]);
+  final file = await openFile(acceptedTypeGroups: [backupJsonTypeGroup()]);
   if (file == null) return null;
   return readBackupFile(file);
 }

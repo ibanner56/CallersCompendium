@@ -1,0 +1,12 @@
+{
+  "id": "row-dropdown-menus",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In High contrast, the lists that open from the small drop-downs at the end of a row in Settings, and from the drop-downs in the dialect editor, import and advanced search, now have an outline like other menus.",
+      "In the dialect editor, the lists for adding a move to rename or reword let you type to narrow them, as other long lists do.",
+      "A figure's detail drop-downs (direction, hand, who and the like) are now as wide as their longest choice, so a choice such as \"counterclockwise\" is shown in full. With large text on a narrow screen the field takes the whole line, and its clear button moves underneath it.",
+      "With text larger than twice the default size, a Settings row's drop-down sits on its own line under the row's label, even on a wide screen."
+    ]
+  }
+}

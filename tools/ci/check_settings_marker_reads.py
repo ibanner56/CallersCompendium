@@ -36,6 +36,32 @@ trailing space inside the first literal:
     'SELECT 1 FROM settings WHERE key = ? '
     'AND deleted_at IS NULL'
 
+Escape sequences take their Dart meaning: `\\n` becomes a newline, `\\t` a
+tab, `\\'`, `\\"`, `\\\\`, `\\$` the character itself, and `\\uXXXX`,
+`\\u{X...}`, `\\xXX` the named Unicode code point. An earlier revision
+appended the escaped letter raw, so 'WHERE\\nkey' joined to WHEREnkey -- no
+word boundary for either pattern -- and an unfiltered read written with an
+escape between its clauses vanished from the checker entirely. `\\u`/`\\x`
+were the same bug in a second form: left undecoded, `WHERE\\u000Akey`
+joined to WHEREu000Akey, hiding the same word boundary.
+
+Scope: which reads count
+------------------------
+A read is in scope when one SQL literal group contains SELECT, then FROM the
+settings table, then a WHERE clause that mentions `key`. The table may be
+spelled bare (`FROM settings`), double-quoted (`FROM "settings"`), or as a Dart
+interpolation of the drift table's name (`FROM ${db.settings.actualTableName}`
+-- the spelling every DELETE in repositories.dart already uses), with or
+without an alias; `key` may sit anywhere in the WHERE clause, quoted or
+alias-qualified (`s.key`, `"key"`, `(key = ?)`, `... AND key = ?`). The
+original pattern accepted only the canonical `FROM settings … WHERE key`, and
+each of the other spellings was a complete bypass; none is used by live code.
+
+A SELECT with no WHERE clause is not a by-key read and is out of scope -- see
+"Deliberate exceptions" for the one such read that exists on purpose. So is a
+WHERE that does not mention `key`. Both fail open by design: the invariant is
+about marker reads *by key*, and a table scan judges tombstones itself.
+
 Filter scoping
 --------------
 The filter check is restricted to the joined content of the SQL literal
@@ -49,13 +75,28 @@ Raw (r'...') and triple-quoted forms are not parsed. They are detected and
 flagged as _BOUNDARY_UNKNOWN with a message explaining why and naming the
 way out, rather than silently passing or claiming the filter is missing.
 
-Deliberate exception
---------------------
+Deliberate exceptions
+---------------------
 repositories.dart performs a hard DELETE FROM settings WHERE key = ? to
 clear the rebuild marker. That is intentionally a DELETE, not a SELECT.
 _SELECT_FROM_SETTINGS_RE requires SELECT, so the DELETE never matches.
-_NOTED_EXCEPTIONS documents this by name per the kUpdateManifestPublicKey
-precedent in AGENTS.md: name exceptions rather than narrowing patterns.
+_NOTED_EXCEPTIONS documents this by name per the trust-anchor precedent in
+.github/instructions/privacy-registry.instructions.md: name exceptions rather
+than narrowing patterns.
+
+The same file also reads one settings row **by key without the filter, on
+purpose** (#1346): the normalisation pass's retry re-attempts a recorded
+settings value, and the scan half whose work it continues walks
+`SELECT key, value_json FROM settings` unfiltered, so both halves judge
+tombstoned rows — a tombstone still carries a value. That read uses drift's
+typed API, so no SQL literal exists for this checker to find, and it is
+recorded here because passing by not being raw SQL is not the same as having
+been considered. **Do not "fix" it by rewriting it as raw SQL plus the
+filter**: that would make the retry disagree with the scan about the same row
+and discharge a tombstoned key's entry without ever re-attempting it.
+
+This checker's subject is raw marker reads, and that limit is a property of
+what it parses rather than a claim about every read in a named file.
 
 Exit codes: 0 = all compliant, 1 = at least one violation, 2 = bad input.
 """
@@ -76,15 +117,20 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # repositories.dart contains a hard DELETE of the rebuild marker with no
 # deleted_at IS NULL filter — correct for a DELETE statement. Because
 # _SELECT_FROM_SETTINGS_RE requires SELECT, the DELETE never matches.
-# This dict names the exception explicitly (per the kUpdateManifestPublicKey
-# precedent in AGENTS.md: name exceptions rather than narrowing patterns)
+# This dict names the exception explicitly (per the trust-anchor precedent in
+# .github/instructions/privacy-registry.instructions.md: name exceptions rather
+# than narrowing patterns)
 # and is validated at startup: if the file no longer exists, main() fails
 # loudly so a rename cannot silently orphan this documentation.
 _NOTED_EXCEPTIONS: dict[str, str] = {
     "packages/compendium_core/lib/src/storage/repositories/repositories.dart": (
         "deliberate hard DELETE of the rebuild marker — "
         "absence of deleted_at IS NULL is correct for a DELETE; "
-        "SELECT reads in the same file all comply"
+        "every raw SELECT-by-key read in this file carries the filter, and the "
+        "one by-key read that deliberately does NOT (the normalisation pass's "
+        "retry, #1346, which must see tombstoned rows because the scan half it "
+        "continues does) is written through drift's typed API — so it is "
+        "invisible to this checker by construction, not by oversight"
     ),
 }
 
@@ -92,10 +138,62 @@ _NOTED_EXCEPTIONS: dict[str, str] = {
 # Patterns
 # --------------------------------------------------------------------------
 
+# See "Scope: which reads count" in the module docstring. `settings\b` is
+# load-bearing: `settings_history` would be a different table. The `${…}`
+# alternative accepts any interpolation whose text names the settings table,
+# so `db.settings.actualTableName` counts; a `}` cannot appear inside the
+# interpolation, which bounds it. The bare `$identifier` alternative covers
+# Dart's other interpolation form -- no braces, so a hypothetical
+# `$settingsTable` alias needs its own pattern rather than reusing `${…}`.
 _SELECT_FROM_SETTINGS_RE = re.compile(
-    r"\bSELECT\b[^;]*\bFROM\s+settings\b[^;]*\bWHERE\s+key\b",
+    r"\bSELECT\b[^;]*\bFROM\s+"
+    r'(?:"settings"|settings\b|\$\{[^}]*\bsettings\b[^}]*\}|\$\w*settings\w*)'
+    r"[^;]*\bWHERE\b[^;]*\bkey\b",
     re.IGNORECASE,
 )
+
+# Dart escape sequences that produce a character other than the one written.
+# Anything else (`\'`, `\"`, `\\`, `\$`) produces the escaped character itself.
+_ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f", "v": "\v"}
+
+_HEX_DIGITS = "0123456789abcdefABCDEF"
+
+
+def _unescape(escaped: str) -> str:
+    """The character a Dart `\\<escaped>` sequence produces."""
+    return _ESCAPES.get(escaped, escaped)
+
+
+def _decode_escape(text: str, start: int, n: int) -> tuple[str, int]:
+    """Decode one Dart escape sequence, given *start* = the index right
+    after the backslash. Returns (decoded characters, index of the first
+    unconsumed character).
+
+    `\\uXXXX` (exactly 4 hex digits) and `\\u{X...}` (1-6 hex digits) decode
+    to the named Unicode code point; `\\xXX` (exactly 2 hex digits) decodes
+    to the named byte value. Left undecoded, `\\u000A`/`\\x0A` leave the
+    literal letters `u000A`/`x0A` behind, which merges into whatever
+    keyword precedes them (`WHERE\\u000Akey` -> `WHEREu000Akey`) and hides
+    the word boundary `_SELECT_FROM_SETTINGS_RE` and
+    `_DELETED_AT_FILTER_RE` require -- Dart itself renders both escapes as
+    whitespace-equivalent characters, so the SQL they produce is exactly
+    the split-clause form those patterns already look for. Anything else
+    falls back to the single-character table in `_unescape`.
+    """
+    if start >= n:
+        return "", start
+    ch = text[start]
+    if ch == "u" and start + 1 < n and text[start + 1] == "{":
+        end = text.find("}", start + 2)
+        if end != -1:
+            digits = text[start + 2 : end]
+            if digits and all(d in _HEX_DIGITS for d in digits):
+                return chr(int(digits, 16)), end + 1
+    elif ch == "u" and start + 5 <= n and all(d in _HEX_DIGITS for d in text[start + 1 : start + 5]):
+        return chr(int(text[start + 1 : start + 5], 16)), start + 5
+    elif ch == "x" and start + 3 <= n and all(d in _HEX_DIGITS for d in text[start + 1 : start + 3]):
+        return chr(int(text[start + 1 : start + 3], 16)), start + 3
+    return _unescape(ch), start + 1
 
 _DELETED_AT_FILTER_RE = re.compile(
     # The leading \s+AND is required, not cosmetic. Dart adjacent string literals
@@ -283,10 +381,8 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                         while j2 < n:
                             ch2 = text[j2]
                             if ch2 == "\\":
-                                j2 += 1
-                                if j2 < n:
-                                    group_content += text[j2]
-                                j2 += 1
+                                decoded, j2 = _decode_escape(text, j2 + 1, n)
+                                group_content += decoded
                                 continue
                             if ch2 == aq2:
                                 j2 += 1
@@ -306,10 +402,8 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
         while j < n:
             ch = text[j]
             if ch == "\\":
-                j += 1
-                if j < n:
-                    content_chars.append(text[j])
-                j += 1
+                decoded, j = _decode_escape(text, j + 1, n)
+                content_chars.append(decoded)
                 continue
             if ch == q:
                 j += 1
@@ -395,10 +489,8 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
             while j2 < n:
                 ch = text[j2]
                 if ch == "\\":
-                    j2 += 1
-                    if j2 < n:
-                        adj_chars.append(text[j2])
-                    j2 += 1
+                    decoded, j2 = _decode_escape(text, j2 + 1, n)
+                    adj_chars.append(decoded)
                     continue
                 if ch == aq:
                     j2 += 1

@@ -12,7 +12,7 @@ which question, and [docs/dev/agents/](docs/dev/agents/) for the chapters below.
 
 | Read | When |
 | --- | --- |
-| [docs/dev/agents/code-review.md](docs/dev/agents/code-review.md) | Requesting or reading a Copilot review, or answering findings |
+| [docs/dev/agents/code-review.md](docs/dev/agents/code-review.md) | Requesting or reading a review (Copilot or Claude), or answering findings |
 | [docs/dev/agents/merging.md](docs/dev/agents/merging.md) | Merging: review/CI freshness, unresolved threads, what the PR closes |
 | [docs/dev/agents/verification.md](docs/dev/agents/verification.md) | Proving a guard test can fail; any red run that mutates the tree |
 | [docs/dev/agents/triage.md](docs/dev/agents/triage.md) | Triaging or scoping an issue |
@@ -35,6 +35,10 @@ A clean `dart test` is not the same as a clean gate run: some ratchets — figur
 fixtures against the taxonomy, most notably — are not exercised by the test
 suites at all.
 
+A full run peaks above 5 GB, so its Dart steps take a machine-wide lock and a
+second run queues. Subagents verify their own edits with `--fast` or `--only`;
+the session that owns the change runs the full preflight once, on the final tree.
+
 Copilot cloud sessions created after `.github/workflows/copilot-setup-steps.yml`
 reaches `main` receive the pinned Flutter SDK; it cannot provision a session
 that has already started.
@@ -45,10 +49,20 @@ Before merging, run:
 python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
 ```
 
-which checks review freshness against the reviewer's own latest entry,
+which checks review freshness against the reviewer's own latest review,
 unresolved threads (with `totalCount`, so truncation is visible), CI status on
 the current head, and that the PR closes exactly the issues you named. Details
 and failure modes: [docs/dev/agents/merging.md](docs/dev/agents/merging.md).
+
+## A UI change ships with a screenshot
+
+An external contributor's PR that changes anything a user can see carries
+before/after screenshots (or a recording, for motion) in its body before review
+— see [CONTRIBUTING.md](CONTRIBUTING.md#screenshots-for-ui-changes). A PR opened
+by the maintainer (@ibanner56), or by an agent session working for them under
+any account, is exempt. No device? A golden from
+`fvm flutter test --update-goldens` is acceptable if it covers the whole
+surface that changed; say so.
 
 ## Documentation is part of the change
 
@@ -89,9 +103,8 @@ the build.
 
 The axis most often got wrong is the **subject**: venue contacts and
 choreographers never touch this app and cannot consent to a transfer they do not
-know about. Record **why** in the entry's `note` whenever the call is not
-self-evident — a classification with no stated reason is indistinguishable from
-a guess.
+know about. Record **why** in the entry's `note`; a test fails without one on
+every core entry that is not `shareable`, is about a person, or is third-party.
 
 How to choose each axis, and what separates `deviceLocal` from `deviceScoped`,
 is in `.github/instructions/privacy-registry.instructions.md`, which loads

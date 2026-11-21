@@ -1,0 +1,10 @@
+{
+  "id": "form-dropdown-menus",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The drop-down fields in editors, dialogs and the Collection's search now look like the text fields beside them, and in High contrast the lists they open have an outline like other menus.",
+      "Drop-down fields with a long list (a dozen entries or more) or one you add to (your dialects, tags, difficulty levels, custom fields and their options, figures) let you type to narrow the list."
+    ]
+  }
+}

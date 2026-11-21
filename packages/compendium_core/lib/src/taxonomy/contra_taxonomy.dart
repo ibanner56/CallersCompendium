@@ -1,5 +1,6 @@
 import '../model/enums.dart';
 import '../model/figure.dart' show customMoveId;
+import 'cast_vocabulary.dart';
 import 'gate_facing.dart';
 import 'move_def.dart';
 import 'param_types.dart';
@@ -19,7 +20,11 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 35;
+///
+/// Bump only when the current value has shipped in a release. While it has
+/// not, a taxonomy change joins that version and amends its entry instead
+/// (CONTRIBUTING.md, "Versioned formats").
+const int contraTaxonomyVersion = 40;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -45,6 +50,13 @@ const _downTheHallEnders = [
 // single-dancer identity can't be selected as a "pair".
 const _heyPass2Choices = [...ParamVocab.pairDancerSets, ParamVocab.unspecified];
 
+// circular_hey's `who2` (v37): the group passed second, from the same pair
+// vocabulary as hey's `pass2`, plus the `unspecified` default.
+const _circularHeyWho2Choices = [
+  ...ParamVocab.pairDancerSets,
+  ParamVocab.unspecified,
+];
+
 // hey's `meetTarget` (issue #576): which pair you run a partial hey until you
 // meet. ContraDB's `dancer%%N` meeting target is drawn from `chooser_pairz`
 // (pairs only — never single dancers, and NOT `everyone`/`centers`, which are
@@ -52,28 +64,42 @@ const _heyPass2Choices = [...ParamVocab.pairDancerSets, ParamVocab.unspecified];
 // chooser_pairz = pairDancerSets minus {everyone, centers}, so we spell it out
 // rather than derive it, keeping the domain explicit and stable.
 //
+// Extended again at v38 (#1975) with `thirdCorners` and `opposites`, which
+// ContraDB does not have either, so a square's hey can run until you meet
+// them. The tokens are the maintainer's; offering them here is the author's
+// call, as v24's was for the partner series.
+//
 // EXTENDED beyond ContraDB at v24 (issue #732, orchestrating-session decision):
 // the five mixer partner-series tokens (`prevPartners`/`nextPartners`/
 // `thirdPartners`/`fourthPartners`/`fifthPartners`) are included even though
 // they do not exist in ContraDB. Without them a mixer's partial hey cannot name
 // the partner it runs until you meet (e.g. a hey that runs until P2). The param
 // defaults to `unspecified`, so existing data is unaffected.
+//
+// Extended at v40 with `threes` and `fours`, which ContraDB does not have
+// either: a hey in a three- or four-couple set can run until the threes meet,
+// as it can until the ones meet. The tokens are the maintainer's; offering
+// them here is the author's call, as v24's and v38's were.
 const _heyMeetTargetChoices = [
   'role1s',
   'role2s',
   'ones',
   'twos',
+  'threes',
+  'fours',
   'partners',
   'neighbors',
   'sameRoles',
-  'firstCorners',
-  'secondCorners',
   'shadows',
   'secondShadows',
   'prevNeighbors',
   'nextNeighbors',
   'thirdNeighbors',
   'fourthNeighbors',
+  'firstCorners',
+  'secondCorners',
+  'thirdCorners',
+  'opposites',
   'prevPartners',
   'nextPartners',
   'thirdPartners',
@@ -82,8 +108,28 @@ const _heyMeetTargetChoices = [
   ParamVocab.unspecified,
 ];
 
-// The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
-// role), for moves that name an individual dancer.
+/// `forward_and_back.formation` (v39): the formation dancers go forward and
+/// back in. Each token humanizes to its label ("lines of three", "in a
+/// ring"); `longLines` is the default and the value the `long_lines` alias
+/// pins.
+const List<String> forwardAndBackFormations = [
+  'longLines',
+  'inSquares',
+  'linesOfThree',
+  'linesOfFour',
+  'linesOfFive',
+  'linesOfSix',
+  'asCouples',
+  'headCouples',
+  'sideCouples',
+  'inARing',
+  'inLinesAtHeads',
+  'inLinesAtSides',
+];
+
+// The single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
+// role, which v39 extends with the 3rd and 4th couples'), for moves that name
+// an individual dancer.
 const _singleDancers = ParamVocab.singleDancers;
 
 // v20 (issue #295): the pair relationship named by a TCB line, or the
@@ -249,7 +295,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.5),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {hand} {travel}',
@@ -283,16 +329,25 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'box_the_gnat',
       displayName: 'box the gnat',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         // v10: a preceding balance line folds in here via the CallersBox
         // cross-line merge (swat_the_flea inherits this through its target).
+        // A single `<who> balance & box the gnat` line, the display's own
+        // wording, also reads as balanced; typed with no count, free-text
+        // entry gives it 8 beats (`withBalancedBoxBeats`, #2121).
         // No paramBeats: box_the_gnat's beats stay on the deferral list.
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        // Entry seeds a balanced, 8-beat box (v38): authors usually balance. A
+        // figure that omits `balance` is still unbalanced.
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
       },
       renderTemplate: '{who} {move}',
-      goodBeats: [4],
+      goodBeats: [4, 8],
     ),
     // ContraDB `box circulate` (figure.js): params who / balance / hand (right
     // hand spin) / beats, boxCirculateGoodBeats `beats === (bal ? 8 : 4)`.
@@ -308,11 +363,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        // Entry seeds a balanced, 8-beat box circulate (v38); see box_the_gnat.
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
       },
       renderTemplate: '{who} {move}',
-      goodBeats: [4],
+      goodBeats: [4, 8],
     ),
     const MoveDef(
       id: 'shoulder_round',
@@ -340,14 +400,30 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // ContraDB petronellaGoodBeats: `beats === (balance ? 8 : 4)`.
       paramBeats: ParamBeats(param: 'balance', byValue: {true: 8, false: 4}),
     ),
+    // v39: forward and back in any formation. `long_lines` (a move until v38)
+    // is now its alias, pinning `formation: longLines`, so it carries exactly
+    // the params `long_lines` had plus `formation`. The default is
+    // `longLines`, so a forward and back that states no formation is long
+    // lines, and the alias routes both ways on that value
+    // ([MoveAlias.inversePairId]): a long lines whose formation is changed
+    // becomes a forward and back, and a forward and back left in long lines
+    // is stored as long lines, keeping long lines' canonical text.
     const MoveDef(
-      id: 'long_lines',
-      displayName: 'long lines',
+      id: 'forward_and_back',
+      displayName: 'forward and back',
       params: {
+        'formation': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'longLines',
+          choices: forwardAndBackFormations,
+        ),
         'goBack': ParamSpec(ParamKind.flag, defaultValue: true),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{move}',
+      // Canonical: the formation, then the name. The `long_lines` alias blanks
+      // its pinned formation and reads "long lines", as that move always did.
+      // `goBack` is in neither, as it never was for long lines.
+      renderTemplate: '{formation} {move}',
       goodBeats: [4, 8],
       // ContraDB longLinesChange/GoodBeats: `beats = goBack ? 8 : 4`.
       paramBeats: ParamBeats(param: 'goBack', byValue: {true: 8, false: 4}),
@@ -392,8 +468,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // `chainChange`, `figure.js:256-263`, exists at the taxonomy layer).
         // The role-implied side is instead written explicitly, by
         // [chainHandForWho], at every write site that actually reads a role
-        // word: both parsers, the editor's `_selectMove` (×2) and its `who`
-        // reaction in `_applyNonBeatsParamChange`, and the one-time backfill
+        // word: both parsers, core's `seedChainHand` (`param_change_rules.dart`,
+        // behind the editor's `_selectMove` ×2, the meanwhile side editor's
+        // `who` edit, and every `who` edit through `applyParamChange`), and
+        // the one-time backfill
         // sweep — never here. `unspecified` remains the taxonomy default only
         // so pre-release figures (and any bare, role-less chain — #976
         // §6.1.3) keep a defined effective value.
@@ -454,11 +532,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: ParamVocab.unspecified,
           choices: _dancerOrUnspecified,
         ),
-        // The rotation sense. A courtesy turn wheels clockwise by construction,
-        // and all 10 corpus lines that state a direction say `clockwise` —
-        // `counterclockwise` is unattested — so `clockwise` is a REAL default
-        // rather than a fabricated one, and the display renderer says nothing
-        // when it holds.
+        // The rotation sense. v37: the default is `counterclockwise` (it was
+        // `clockwise` through v36). The ordinary courtesy turn — after a
+        // role2s' chain, a right and left through or a promenade across —
+        // wheels counterclockwise, the left-hand dancer backing up (TCB
+        // glossary, "Courtesy turn"). Clockwise is the mirrored turn, chiefly
+        // after a role1s' chain (maintainer, on the PR that made this change).
+        // The 10 corpus lines that state a direction all say `clockwise`
+        // because a source only names the rotation when it is the unusual one;
+        // they are the mirrored case, not evidence for the default. The
+        // display renderer says nothing when the default holds.
         //
         // ⚠️ DELIBERATELY NO `unspecified` SENTINEL — but only because this
         // move has no semantic need for one, NOT because a sentinel would be
@@ -488,11 +571,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // includes `mirror`, which no typed kind can express (see
         // `_gateDirectionOrUnspecified`). THIS param keeps the honest
         // `ParamKind.spinDirection` and no sentinel because a courtesy turn
-        // wheels clockwise by construction, so `clockwise` is a real default
-        // rather than a fabricated one.
+        // has a real default rotation (counterclockwise, since v37) rather
+        // than a fabricated one.
         'direction': ParamSpec(
           ParamKind.spinDirection,
-          defaultValue: 'clockwise',
+          defaultValue: 'counterclockwise',
         ),
         // ⚠️ THIS IS A DANCER, NOT A FACING — do not read it as `swing.endFacing`.
         // The names match; the domains do not. `swing.endFacing` (issue #543)
@@ -527,13 +610,13 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // Canonical (dedupe/FTS) line, deliberately FLAT — a `renderTemplate`
       // cannot express a conditional. The maintainer's stated wording
       // (`{who} courtesy turn {whom, when present} {direction, when not
-      // clockwise} {"to face" + endFacing, when set}`) is the DISPLAY render
+      // the default} {"to face" + endFacing, when set}`) is the DISPLAY render
       // and lives in `renderer.dart`'s `_displayBaseRenderers`, exactly as the
       // merged `gate`'s "to face …" clause does. `whom`/`endFacing` are the
       // `unspecified` sentinel unless stated and render as the empty string, so
-      // an imported line reads "partners courtesy turn clockwise" — carrying
-      // the default direction the same way `right_left_through` carries its
-      // default `across`. `direction` stays IN the canonical text (rather than
+      // an imported line reads "partners courtesy turn counterclockwise" —
+      // carrying the default direction the same way `right_left_through`
+      // carries its default `across`. `direction` stays IN the canonical text (rather than
       // being display-only like `swing.endFacing`) because that omission was a
       // byte-stability concession a brand-new move does not need, and without
       // it a counterclockwise courtesy turn would dedupe as identical to a
@@ -639,7 +722,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'roll_away',
       displayName: 'roll away',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
         // ContraDB roll_away's `whom` (chooser_pairs_or_ones_or_twos): the
         // relationship being rolled away.
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
@@ -687,7 +770,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'arch_and_dive',
       displayName: 'arch and dive',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'twos'),
         'beats': _beats4,
       },
       renderTemplate: '{who} {move}',
@@ -728,6 +811,62 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{who} {move}',
       goodBeats: [4],
+    ),
+    // v40 (issue #770): a dancer turns out of the set and travels on the
+    // outside. Every param admits the `unspecified` sentinel and defaults to
+    // it, because The Caller's Box writes casts with every part optional
+    // ("Cast back", "Ones cast down", "Men cast clockwise behind partner"),
+    // and a default would claim a direction, distance or endpoint the source
+    // did not state. The maintainer decided (2026-11-19) that this shape and
+    // ECD's `ecd_cast` be one; `ecd_cast` takes this shape (ADR-006 §9.4),
+    // and `cast_test.dart` pins that the two agree.
+    //
+    // "Cast off" is `down` with `places` 1 unless the line states a number:
+    // the maintainer could see no difference between The Caller's Box's
+    // "Cast off" ("ones peel down the outside into second place") and "cast
+    // down one place". Whether the cast is assisted is deliberately NOT a
+    // param: the glossary says it "depends on your community".
+    const MoveDef(
+      id: 'cast',
+      displayName: 'cast',
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        'direction': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: [...castDirections, ParamVocab.unspecified],
+        ),
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified],
+        ),
+        // Who the cast goes around ("cast around neighbor").
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        'destination': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: [...castDestinations, ParamVocab.unspecified],
+        ),
+        'beats': _beats4,
+      },
+      // Canonical (search and dedupe) line. Every unstated slot renders empty.
+      // The display wording ("cast back", "cast back right", "around …",
+      // "to …") is the renderer's.
+      renderTemplate: '{who} {move} {direction} {places} {whom} {destination}',
+      searchKeywords: ['cast off', 'cast down', 'cast up', 'cast back'],
+      // The beats of the 1,481 casts read from the 1,563 public Caller's Box
+      // dances that mention one (2026-11-19): 4 on 1,018, 8 on 191, 2 on 128,
+      // 3 on 75, 6 on 46, and no other count above 3.
+      goodBeats: [2, 3, 4, 6, 8],
     ),
     const MoveDef(
       id: 'stand_still',
@@ -839,7 +978,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'orbit',
       displayName: 'orbit',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
         'direction': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'clockwise',
@@ -930,8 +1069,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: _gateDirectionOrUnspecified,
         ),
         // Turn fraction in full turns (1/2 -> 0.5, 3/4 -> 0.75, 1 -> 1.0,
-        // "1 & 1/4" -> 1.25). The one ParamKind.rotation that opts into the
-        // `unspecified` sentinel (see ParamSpec.validate): ContraDB's gate has
+        // "1 & 1/4" -> 1.25). A ParamKind.rotation that opts into the
+        // `unspecified` sentinel (see ParamSpec.validate; so, since v39, do
+        // the fraction `amount` params): ContraDB's gate has
         // no amount param at all, so any numeric default would fabricate one
         // for every ContraDB import.
         'travel': ParamSpec(
@@ -996,13 +1136,18 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
         // `give` == false is ContraDB's "take only". Like other beat-shaping
-        // flags (roll_away.halfSashay, long_lines.goBack) it is not a render
+        // flags (roll_away.halfSashay, forward_and_back.goBack) it is not a render
         // token; the give/take wording is a display nuance, not canonical text.
         'give': ParamSpec(ParamKind.flag, defaultValue: true),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {whom}',
-      searchKeywords: ['give and take', 'take'],
+      // No bare `take` keyword: `canonicalizeMoveSearchText` would rewrite
+      // every query containing the word (e.g. "take hands four") to
+      // "give & take …" and stop it matching the prose it was typed for. Any
+      // row whose canonical text holds "give & take" already holds the token
+      // `take`, so a bare query needs no rewrite to find it.
+      searchKeywords: ['give and take'],
       // ContraDB range is give -> 4-8, take-only -> 2-4. Issue #634's
       // real-render fixtures confirm take-only at BOTH ends of that range (2
       // beats: The Erik Effect #570; 4 beats: Green Lake Twirl #548), so `2`
@@ -1063,21 +1208,21 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'down the hall',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'everyone'),
-        // Who moves; ContraDB couples this to `who` (everyone <-> all).
-        'moving': ParamSpec(
+        'ender': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'all',
-          choices: ['all', 'center', 'outsides'],
+          defaultValue: 'turnCouple',
+          choices: _downTheHallEnders,
         ),
         'facing': ParamSpec(
           ParamKind.choice,
           defaultValue: 'forward',
           choices: ['forward', 'forwardThenBackward', 'backward'],
         ),
-        'ender': ParamSpec(
+        // Who moves; ContraDB couples this to `who` (everyone <-> all).
+        'moving': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'turnCouple',
-          choices: _downTheHallEnders,
+          defaultValue: 'all',
+          choices: ['all', 'center', 'outsides'],
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1089,20 +1234,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'up the hall',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'everyone'),
-        'moving': ParamSpec(
+        'ender': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'all',
-          choices: ['all', 'center', 'outsides'],
+          defaultValue: 'circle',
+          choices: _downTheHallEnders,
         ),
         'facing': ParamSpec(
           ParamKind.choice,
           defaultValue: 'forward',
           choices: ['forward', 'forwardThenBackward', 'backward'],
         ),
-        'ender': ParamSpec(
+        'moving': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'circle',
-          choices: _downTheHallEnders,
+          defaultValue: 'all',
+          choices: ['all', 'center', 'outsides'],
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1129,6 +1274,32 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{who} {move} {slide}',
       goodBeats: [6],
+    ),
+    // v39: a zig zag's path without hands, the dancers arcing out of the set
+    // past `travel` couples and back in on the side they started. Not in
+    // ContraDB or The Caller's Box: its params, defaults and wording are those
+    // of the maintainer's figure of their own of that name, added at their
+    // request, with `travel` a plain number rather than places. `goodBeats` is
+    // the author's, from that figure's 8 default beats. `travel`
+    // counts couples passed, not places around a ring, so it renders as the
+    // digits alone ("around 2").
+    const MoveDef(
+      id: 'starburst',
+      displayName: 'starburst',
+      params: {
+        'direction': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'counterclockwise',
+        ),
+        'travel': ParamSpec(ParamKind.number, defaultValue: 1),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        'whom': ParamSpec(ParamKind.dancerPair, defaultValue: 'partners'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate:
+          '{move} {direction} around {travel}, {who} lead {whom} out of the set',
+      searchKeywords: ['dolphin loop'],
+      goodBeats: [8],
     ),
     const MoveDef(
       id: 'slice',
@@ -1192,38 +1363,64 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'figure 8',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
-        // Default "none": structured, not a render token.
+        // Default "above" (v38): the mode in both ContraDB and The Caller's Box.
+        // "none" stays a valid stored value ("no direction stated").
         'where': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'none',
+          defaultValue: 'above',
           choices: ['none', 'above', 'below', 'across'],
         ),
         // Single-dancer lead (ContraDB "first ladle" = ones' role2).
         'lead': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'onesRole2',
-          choices: ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'],
+          choices: _singleDancers,
         ),
         'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        // The amount an `other` fraction states (v39, #2120): read only while
+        // the fraction is `other`. See [fractionAmountParam] for why it is a
+        // sibling param and not a numeric fraction.
+        fractionAmountParam: ParamSpec(
+          ParamKind.rotation,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified],
+        ),
+        // A double figure 8: `who` lead it between the other pair and that
+        // pair casts the mirror way round the outside. Wording only (display
+        // line); canonical text and beats are untouched. Stored only while
+        // true (see [figure8DoubleParam]), so a figure 8 that is not double
+        // carries no key an older build would reject.
+        figure8DoubleParam: ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {fraction} {move}',
       // ContraDB figure8GoodBeats: `beats === half_or_full * 16` (an exact
       // equality, and figure8Change auto-sets it on a fraction flip): half
-      // (0.5) -> 8, full (1.0) -> 16.
+      // (0.5) -> 8, full (1.0) -> 16. The same 16 a full amount carries past
+      // `full` for an `other` fraction's stated amount (v39): 1½ -> 24.
+      // ContraDB itself has no amount beyond full, so that rule is ours.
       goodBeats: [8, 16],
       paramBeats: ParamBeats(
         param: 'fraction',
         byValue: {'half': 8, 'full': 16},
+        beatsPerAmount: 16,
       ),
     ),
     const MoveDef(
       id: 'poussette',
       displayName: 'poussette',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        // The amount an `other` fraction states (v39, #2120): read only while
+        // the fraction is `other`. See [fractionAmountParam] for why it is a
+        // sibling param and not a numeric fraction.
+        fractionAmountParam: ParamSpec(
+          ParamKind.rotation,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified],
+        ),
         'direction': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'clockwise',
@@ -1264,7 +1461,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
     // --- Roadmap 2.4a: places family (PR4) ---
     // Moves whose travel is measured in "places" around a ring/star
-    // (ParamKind.places, int 1..10). Each move keeps a simple typical-beats
+    // (ParamKind.places, int 1..10; circle and star may also leave it
+    // unstated, v39). Each move keeps a simple typical-beats
     // list in goodBeats, but ContraDB's *conditional* rules — square through's
     // 2-4 place restriction and the moves' param-dependent places/beats ratios
     // — are intentionally not encoded/enforced (they can't be captured by the
@@ -1288,7 +1486,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'left',
           choices: ['left', 'right'],
         ),
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        // v39: a dance may leave the distance unstated (the sentinel renders
+        // as nothing: "circle left"). The default stays 3, so a figure that
+        // omits the param, and a new one in the editor, still read 3 places.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 3,
+          choices: [ParamVocab.unspecified],
+        ),
         // Issue #634: ContraDB free text occasionally renders a single-file
         // circulation around the ring as "promenade single file around the
         // circle N places" (real render: Travels with Rick and Kim #455) — a
@@ -1322,14 +1527,21 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'star',
       displayName: 'star',
       params: {
-        // ContraDB forces a hand selection (no default); 'right' is the
-        // community default.
-        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        // ContraDB forces a hand selection (no default); the
+        // editor offers 'left'.
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
+        // v39: may be left unstated, as `circle.places` may.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 4,
+          choices: [ParamVocab.unspecified],
+        ),
         // grip is a canonical render token since taxonomy v27 (issue #749):
         // emitted in ALL render paths (render / renderVerbose / renderSummary /
         // renderCanonical) as a " - wrist grip - " / " - hands across - " clause
-        // (ContraDB `starWords` parity). 'none' is the unspecified value — no
+        // (ContraDB `starWords` parity); with no count to lead into (places
+        // unstated, v39) the closing dash is dropped. 'none' is the unspecified
+        // value — no
         // clause in any render path. The FTS inclusion makes stars searchable
         // by "wrist grip" or "hands across".
         'grip': ParamSpec(
@@ -1367,11 +1579,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         // ContraDB restricts to 2-4 places; that restriction is typical-only
         // (the domain stays the full 1..10), not enforced.
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+        'places': ParamSpec(ParamKind.places, defaultValue: 2),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {places}',
-      goodBeats: [16],
+      goodBeats: [8, 16],
     ),
     // --- Roadmap 2.4a: hey / wave family (PR5) — completes the 2.4a set ---
     // The heys and wave-formations. All fit the existing ParamKind set (no new
@@ -1457,12 +1669,88 @@ final Taxonomy contraTaxonomy = Taxonomy(
         },
       ),
     ),
+    // v36: the four-dancer circular hey. ADR-006 §7.4 is the starting point,
+    // but this is defined for contra on its own terms (ADR-006 §2: ECD owns
+    // its definitions), so ECD's `whom` and `slow` are not carried over. `who`
+    // is the group that passes first, mirroring `square_through.who`.
+    // `changes` counts the passes and, like `circle.places`, is any whole
+    // number 1..10 ([ParamKind.places]). Beats are the counts specified in the request that added this move:
+    // 1 -> 2, 2 -> 4, 3 -> 8, 4 -> 12 (the full circuit, the default) and 5
+    // or more -> 16. Above six changes 16 is only a placeholder: the caller is
+    // expected to set their own `beats`.
+    const MoveDef(
+      id: 'circular_hey',
+      displayName: 'circular hey',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'changes': ParamSpec(ParamKind.places, defaultValue: 4),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        // v37: the group passed second (by the other shoulder), like `hey`'s
+        // `pass2`. The Caller's Box states it in its pass lists
+        // (`(NR;SL)` = neighbors by the right, then shadows by the left).
+        // Defaults to the `unspecified` sentinel, which renders as nothing, so
+        // a v36 figure displays exactly as before; like `pass2`, it stays out
+        // of the canonical template, so no stored canonical text changes.
+        'who2': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _circularHeyWho2Choices,
+        ),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 12),
+      },
+      renderTemplate: '{who} {move} {changes} {shoulder} {where}',
+      searchKeywords: ['square hey'],
+      goodBeats: [2, 4, 8, 12, 16],
+      paramBeats: ParamBeats(
+        param: 'changes',
+        byValue: {
+          1: 2,
+          2: 4,
+          3: 8,
+          4: 12,
+          5: 16,
+          6: 16,
+          7: 16,
+          8: 16,
+          9: 16,
+          10: 16,
+        },
+      ),
+    ),
     const MoveDef(
       id: 'dolphin_hey',
       displayName: 'dolphin hey',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
         // The lead (dolphin) dancer — a single-dancer identity.
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'onesRole1',
+          choices: _singleDancers,
+        ),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+      },
+      renderTemplate: '{who} {move} {shoulder}',
+      goodBeats: [16],
+    ),
+    // v39: a hey for three, added at the maintainer's request with
+    // `dolphin_hey`'s params, beats and wording, except that `who` (the dancer
+    // who starts) is one dancer, offering the single-dancer list `whom` offers,
+    // where `dolphin_hey.who` takes any dancers. Its default is the author's:
+    // `dolphin_hey`'s `ones` is not one dancer, so `who` takes `twosRole2`,
+    // keeping `whom`'s default and so not starting the hey by passing
+    // themselves. Not in ContraDB or The Caller's Box's grammar.
+    const MoveDef(
+      id: 'hey_for_three',
+      displayName: 'hey for three',
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'twosRole2',
+          choices: _singleDancers,
+        ),
         'whom': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'onesRole1',
@@ -1516,9 +1804,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // the flag set (either by folding a trailing balance into a preceding
         // form line, or by promoting the standalone balance line). Default
         // false, so no existing figure's output changes.
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        // Entry seeds a balanced long wave, 4 beats (v38): the 0-beat formation
+        // label plus the balance's own 4. A figure that omits `balance` is still
+        // the bare, unbalanced formation.
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
         // A formation label: 0 beats is valid and typical.
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 0),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 0, entryDefault: 4),
       },
       renderTemplate: '{who} {move}',
       searchKeywords: ['long waves'],
@@ -1549,8 +1844,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // with "pass the ocean" (the pass-through-to-a-wave figure). Both new moves
     // inherit `form_an_ocean_wave`'s sourced param set MINUS `passThru`: the
     // pass-through is intrinsic to `pass_the_ocean` and intrinsically absent
-    // from the short wave. Neither invents a beat count — they mirror the
-    // legacy move's flat, param-dependent (unencoded) beats exactly.
+    // from the short wave. `pass_the_ocean` invents no beat count, mirroring
+    // the legacy move's flat, param-dependent (unencoded) beats; since v38
+    // `form_short_waves` encodes its own (4 with a balance, 0 without, #1975).
     // `form_an_ocean_wave` itself was REMOVED at taxonomy v14 (CompendiumDatabase
     // schema v12 migrates stored figures onto these two moves by `passThru`).
     // v21 RENAMED this move from `form_a_short_wave` to `form_short_waves`
@@ -1568,7 +1864,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        // Without a balance it is a formation, 0 beats; with one, the
+        // balance's 4 (maintainer decision on #1975, v38). The default stays
+        // no balance, so a figure that states neither is 0 beats.
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 0),
       },
       renderTemplate: '{move}',
       searchKeywords: [
@@ -1580,7 +1879,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // this move under the name it used to render with.
         'form a wave',
       ],
-      // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
+      // Beats follow the balance (v38, #1975): 4 with it, 0 without. 8 stays
+      // typical for The Caller's Box's folded `(4) Form a wave` + `(4) Balance
+      // the wave`.
+      goodBeats: [0, 4, 8],
+      paramBeats: ParamBeats(param: 'balance', byValue: {true: 4, false: 0}),
     ),
     const MoveDef(
       id: 'pass_the_ocean',
@@ -1589,11 +1892,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // Same sourced param set as form_an_ocean_wave minus `passThru`, which
         // is intrinsic to this figure (dancers pass through to the wave).
         'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        // Entry seeds a balanced, 8-beat pass the ocean (v38).
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
       },
       renderTemplate: '{move}',
       searchKeywords: [
@@ -1602,6 +1910,42 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'pass through to an ocean wave',
       ],
       // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
+    ),
+    // v39: the Modern Western Square Dance call, from short waves: everyone
+    // steps forward, turns to face the other way, and trades places with the
+    // dancer facing the same way, passing right shoulders, to reform short
+    // waves facing the other direction with centers and ends swapped. Its
+    // params are those of the figure of the user's own it was added from
+    // (trade_the_wave_test.dart reproduces it), key for key, so a switch from
+    // a figure of your own with the same keys maps one to one; like
+    // `form_short_waves`, `center`, `centerHand` and `sides` name the wave
+    // the figure ENDS in, and the side hand is the other one. Its defaults are
+    // that figure's, which are also what trading `form_short_waves`' default
+    // wave gives (role2s by the left and neighbors become role1s by the right
+    // and neighbors), and match The Caller's Box glossary's sample notation
+    // (partners trade; neighbors by the left, role1s by the right in the
+    // center). The balance is stored off and seeded on, as `pass_the_ocean`'s
+    // is, so a figure that states none (a typed bare name) never asserts one.
+    const MoveDef(
+      id: 'trade_the_wave',
+      displayName: 'trade the wave',
+      params: {
+        'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'axis': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
+      },
+      renderTemplate: '{move}',
+      searchKeywords: ['trade wave'],
+      // 4 for the trade, 4 more for the balance.
+      goodBeats: [4, 8],
+      paramBeats: ParamBeats(param: 'balance', byValue: {true: 8, false: 4}),
     ),
     const MoveDef(
       id: customMoveId,
@@ -1640,6 +1984,37 @@ final Taxonomy contraTaxonomy = Taxonomy(
       targetMove: 'box_the_gnat',
       pinnedParams: {'hand': 'left'},
       inversePairId: 'box_the_gnat',
+    ),
+    // v39: a move until v38, kept as an alias so stored `long_lines` figures,
+    // the importers that produce it and the dialects keyed on it are
+    // unchanged. Routes to `forward_and_back` when the formation leaves long
+    // lines, and back again when it returns.
+    const MoveAlias(
+      id: 'long_lines',
+      displayName: 'long lines',
+      targetMove: 'forward_and_back',
+      pinnedParams: {'formation': 'longLines'},
+      inversePairId: 'forward_and_back',
+      // Dialects hold names and wordings keyed on it from when it was a move,
+      // and its name is the formation where its target's is the direction.
+      listedAsMove: true,
+    ),
+    // v40 (issue #770): The Caller's Box's "Hand cast" is a gate. Its glossary
+    // calls it "a cast off figure done with hands… very similar to a gate",
+    // and its Gate entry says the reverse; the maintainer ruled (2026-11-19)
+    // that it is an alias of `gate`, with `gate` the primary figure. Nothing is
+    // pinned: a hand cast states none of a gate's params, so it is stored under
+    // its own id (and shown under its own name) with every gate param at the
+    // gate's own `unspecified` default.
+    //
+    // Listed as a move for the reasons `long_lines` is: its figures are stored
+    // under its own id, so a search must be able to name it, and a dialect's
+    // name or wording for `gate` must not turn a hand cast into a gate.
+    const MoveAlias(
+      id: 'hand_cast',
+      displayName: 'hand cast',
+      targetMove: 'gate',
+      listedAsMove: true,
     ),
     const MoveAlias(
       id: 'meltdown_swing',

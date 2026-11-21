@@ -12,7 +12,9 @@ site/
 ├── index.html      # the page
 ├── styles.css      # styling (dark-mode aware, responsive, a11y-minded)
 ├── app.js          # fetches beta.json and renders the download cards
-└── assets/         # logo, favicon, social card, (future) screenshots
+├── CNAME           # the custom domain
+├── privacy/        # the privacy policy page
+└── assets/         # logo, favicon, social card, screenshots
 ```
 
 ## The user guides are generated
@@ -36,7 +38,8 @@ python3 tools/site/render_user_docs.py --out build/site
 ```
 
 A broken cross-link, an `#anchor` with no matching heading, two headings that
-collide on one anchor, a stale `guide/…` link on the landing page, or any GitHub
+collide on one anchor, an image with no alt text or a missing image file, a
+stale `guide/…` link on the landing page, or any GitHub
 repo URL in the built site whose path is missing or has the wrong `blob`/`tree`
 form all **fail the build**; the same check runs on every PR that touches
 `docs/user/` via `.github/workflows/docs-bundle-check.yml`.
@@ -52,8 +55,8 @@ that branch, and they are designed to coexist without clobbering each other:
 
 | Writer | Trigger | Publishes | Preserves |
 | --- | --- | --- | --- |
-| `.github/workflows/pages-site.yml` → `tools/site/render_user_docs.py` → `tools/release/publish_pages_site.sh` | push to `main` touching `site/**`, `docs/user/**` or `tools/site/**`, or manual dispatch | everything in `site/` **plus** the rendered `guide/` | the `*.json` manifests + `.nojekyll` |
-| `release.yml` `pages` job → `tools/release/publish_pages_manifest.sh` | tagged release | the current channel's `*.json` | the landing page, the guides + the other channel |
+| `.github/workflows/pages-site.yml` → `tools/site/render_user_docs.py` → `tools/release/publish_pages_site.sh` | push to `main` touching `site/**`, `docs/user/**`, `tools/site/**`, `tools/ci/sync_user_docs.py`, the publish script or the workflow itself, or manual dispatch | everything in `site/` **plus** the rendered `guide/` | the `*.json` manifests and their `*.json.sig` signatures, `CNAME` + `.nojekyll` |
+| `release.yml` `pages` job → `tools/release/publish_pages_manifest.sh` | tagged release | each channel manifest the tag refreshes, with its signature: `beta.json` for a `-beta` tag, `stable.json` and `beta.json` for a stable one | the landing page, the guides + any channel the tag does not refresh |
 
 Both scripts start from the existing `gh-pages` content and rewrite only their
 own files, so a site deploy never erases a manifest and a release never erases

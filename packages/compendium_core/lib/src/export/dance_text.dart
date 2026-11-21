@@ -1,9 +1,11 @@
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
+import '../model/bar_count.dart';
 import '../model/dance.dart';
-import '../model/enums.dart';
 import '../model/phrase_structure.dart';
-import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart';
+import 'dance_card_content.dart';
+import 'dance_share_fields.dart';
 import 'export_labels.dart';
 
 /// Renders a single [Dance] as a clean, human-readable plain-text card — the
@@ -12,8 +14,10 @@ import 'export_labels.dart';
 ///
 /// Like the program renderer this lives in `compendium_core` and is
 /// intentionally **pure Dart** (no Flutter/intl): it can be unit-tested and is
-/// reused by the app's share/copy path and by the PDF layout (which mirrors the
-/// same field ordering).
+/// reused by the app's share/copy path. It serialises a [DanceCardContent];
+/// the PDF builders lay out the same [DanceCardContent], so the field gating
+/// and the dialect rendering of the notes, walkthrough and tunes are computed
+/// in one place.
 ///
 /// Unlike a program set list, a dance card *is* dance-card territory, so the
 /// figure table is rendered in full and **dialect-aware** using the same core
@@ -36,7 +40,19 @@ import 'export_labels.dart';
 ///   the Level line is omitted. The Status line is omitted for an active dance.
 ///
 /// [renderer] supplies the dialect rendering engine; when omitted a default
-/// `FigureRenderer(contraTaxonomy)` is used (the same taxonomy the app wires).
+/// `FigureRenderer` over `TaxonomyRegistry.anyForm` is used, as the app
+/// wires it.
+///
+/// [sourceLines] are the already-resolved published-source citation lines (one
+/// per citation, built by the app from its localized strings); they appear
+/// only when [DanceShareField.sources] is in [fields].
+///
+/// [fields] selects which non-figures fields appear (issue #1434); figures
+/// are controlled separately (unaffected by this parameter). Defaults to
+/// [DanceShareField.allExceptTunes], matching every block this renderer
+/// emitted before the picker existed — so a caller that doesn't pass [fields]
+/// (every call site before this parameter was added) sees no change, and
+/// tunes stays off until explicitly selected.
 ///
 /// Layout:
 /// ```
@@ -46,7 +62,8 @@ import 'export_labels.dart';
 /// Level: <levelLabel>
 /// Mixer
 /// Status: <statusLabel>
-/// Phrase: <phraseStructure notation>
+/// Phrase: <phrase structure, see phraseStructureText>
+/// Hook: <hook>
 ///
 /// Figures:
 /// A1  <rendered figure> (16 beats) ¶
@@ -55,6 +72,15 @@ import 'export_labels.dart';
 ///
 /// Calling notes:
 /// <rendered notes>
+///
+/// Walkthrough:
+/// <rendered walkthrough>
+///
+/// Tunes:
+/// <tune, tune, ...>
+///
+/// Sources:
+/// <one resolved citation per line>
 /// ```
 /// Absent parts are omitted. A dance with no figures renders the header (and
 /// notes, if any) only.
@@ -68,41 +94,58 @@ String danceToPlainText(
   FigureRenderer? renderer,
   DanceExportLabels labels = const DanceExportLabels(),
   bool canonicalizeDiscouragedTerms = false,
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  List<String> sourceLines = const [],
 }) {
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
+  final content = DanceCardContent.build(
+    dance,
+    dialect: dialect,
+    authorNames: authorNames,
+    formationLabel: formationLabel,
+    levelLabel: levelLabel,
+    statusLabel: statusLabel,
+    renderer: fig,
+    labels: labels,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    fields: fields,
+    sourceLines: sourceLines,
+  );
+  final cardDialect = content.dialect;
   String renderText(String text) => canonicalizeDiscouragedTerms
-      ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
-      : fig.renderFreeText(text, dialect);
+      ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, cardDialect)
+      : fig.renderFreeText(text, cardDialect);
   final lines = <String>[];
 
-  lines.add(dance.title.trim());
+  lines.add(content.title);
 
-  final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
-  if (names.isNotEmpty) lines.add(names.join(', '));
-
-  if (_has(formationLabel)) {
-    lines.add('${labels.formation}: ${formationLabel.trim()}');
-  }
-  if (_has(levelLabel)) lines.add('${labels.level}: ${levelLabel!.trim()}');
-  if (dance.mixer && _has(labels.mixer)) lines.add(labels.mixer.trim());
-  // Mirror the on-screen card, which only surfaces a status banner for a
-  // non-active dance; an active dance omits the Status line entirely.
-  if (dance.status != DanceStatus.active && _has(statusLabel)) {
-    lines.add('${labels.status}: ${statusLabel.trim()}');
-  }
-  if (_has(dance.phraseStructure.raw)) {
-    lines.add('${labels.phrase}: ${dance.phraseStructure.raw.trim()}');
+  if (content.authorNames.isNotEmpty) {
+    lines.add(content.authorNames.join(', '));
   }
 
-  if (dance.figures.isNotEmpty) {
+  lines.addAll(content.metaLines);
+
+  if (content.hook case final hook?) {
+    lines.add('${labels.hook}: $hook');
+  }
+
+  if (content.figures.isNotEmpty) {
     lines.add('');
     lines.add('${labels.figures}:');
-    final sectioned = deriveSections(dance.figures, dance.phraseStructure);
+    final sectioned = deriveSections(content.figures, dance.phraseStructure);
+    final beatsPerBar = danceBeatsPerBar(
+      dance.form,
+      dance.phraseStructure,
+      meter: dance.meter,
+    );
     for (final sf in sectioned) {
       final text = canonicalizeDiscouragedTerms
-          ? fig.renderSummaryWithCanonicalDiscouragedTerms(sf.figure, dialect)
-          : fig.renderSummary(sf.figure, dialect);
-      final beatsLabel = labels.beats(sf.figure.beats);
+          ? fig.renderSummaryWithCanonicalDiscouragedTerms(
+              sf.figure,
+              cardDialect,
+            )
+          : fig.renderSummary(sf.figure, cardDialect);
+      final beatsLabel = labels.count(sf.figure.beats, beatsPerBar);
       final marker = sf.figure.progression ? ' ¶' : '';
       lines.add('${sf.label}  $text ($beatsLabel)$marker');
       final note = sf.figure.note?.trim();
@@ -113,19 +156,29 @@ String danceToPlainText(
     }
   }
 
-  if (_has(dance.callingNotes)) {
+  if (content.callingNotes case final notes?) {
     lines.add('');
     lines.add('${labels.callingNotes}:');
-    lines.add(renderText(dance.callingNotes.trim()));
+    lines.add(notes);
   }
 
-  if (_has(dance.walkthrough)) {
+  if (content.walkthrough case final walkthrough?) {
     lines.add('');
     lines.add('${labels.walkthrough}:');
-    lines.add(renderText(dance.walkthrough.trim()));
+    lines.add(walkthrough);
+  }
+
+  if (content.tuneNames.isNotEmpty) {
+    lines.add('');
+    lines.add('${labels.tunes}:');
+    lines.add(content.tuneNames.join(', '));
+  }
+
+  if (content.sourceLines.isNotEmpty) {
+    lines.add('');
+    lines.add('${labels.sources}:');
+    lines.addAll(content.sourceLines);
   }
 
   return lines.join('\n');
 }
-
-bool _has(String? value) => value != null && value.trim().isNotEmpty;

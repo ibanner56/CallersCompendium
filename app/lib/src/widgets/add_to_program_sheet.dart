@@ -2,15 +2,31 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/date_format_scope.dart';
-import '../data/regional_formats.dart';
+import '../editor/program_slot_rebase.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
+import 'add_to_program_list.dart';
 
 /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
 /// user can append the dance identified by [danceId] as a new slot at the end
-/// of one of them (`docs/design/ux.md` §2 add-to-program). Programs are ordered
-/// most-recently-updated first. When there are no programs yet, a teaching
-/// empty state offers to create a new program seeded with this dance.
+/// of one of them (`docs/design/ux.md` §2 add-to-program). A pinned first row
+/// creates a new program seeded with this dance, in every state; when there are
+/// no programs yet, a teaching empty state sits beneath it.
+///
+/// The programs are an [AddToProgramList]: open programs first, soonest event
+/// first, Performed ones collapsed beneath, a status on each row and a search
+/// field once the list is long (`docs/design/add-to-program-sheet.md`
+/// §4.1–§4.2). A program that already holds the dance, as a primary or an
+/// alternate ([Program.danceSlotCount]), shows an "In this program" marker, and
+/// tapping it asks before adding the dance again (§4.3).
+///
+/// The sheet is sized from the height the screen has left once the on-screen
+/// keyboard is up, so the pinned row, the search field and a few rows stay
+/// visible while the caller types. With the keyboard up the title is dropped
+/// and the New row's label is held to two lines, so the row stays visible at
+/// any text size; the 45% cap on that header is only a backstop (§4.5, "As
+/// built").
 ///
 /// Extracted from `DanceDetailScreen` so the Collection list's row action menu
 /// ([DanceListTile]) and the detail screen share the exact same flow (identical
@@ -25,9 +41,23 @@ Future<void> showAddToProgramSheet(
   required String danceId,
   required String danceTitle,
 }) async {
-  final programs = await repositories.programs.listAll();
+  // An archived program is not offered: archiving takes it out of the
+  // Programs list, and adding a dance to it would be adding to a list the
+  // caller has put away. Unarchive it to add to it again.
+  final all = await repositories.programs.listAll();
+  final programs = [
+    for (final program in all)
+      if (!program.isArchived) program,
+  ];
+  final allArchived = programs.isEmpty && all.isNotEmpty;
   if (!context.mounted) return;
-  programs.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  // Venue labels are resolved beside the rows, as on the Programs list, and the
+  // search matches them. The catalogue is read only when a program links one;
+  // the sheet reads once on open and does not follow later edits (§4.6).
+  final venuesById = programs.any((p) => p.venueId != null)
+      ? {for (final v in await repositories.venues.listAll()) v.id: v}
+      : const <String, Venue>{};
+  if (!context.mounted) return;
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
@@ -39,160 +69,225 @@ Future<void> showAddToProgramSheet(
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // With the keyboard up the sheet may take all the height above it, which
+    // would reach under the status bar or a notch without this.
+    useSafeArea: true,
     showDragHandle: true,
     builder: (sheetContext) {
-      final maxHeight = MediaQuery.of(sheetContext).size.height * 0.7;
-      return SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    l10n.commonAddToProgram,
-                    style: Theme.of(sheetContext).textTheme.titleMedium,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: programs.isEmpty
-                    ? _buildEmptyPrograms(
-                        sheetContext,
-                        sheetContext,
-                        repositories: repositories,
-                        danceId: danceId,
-                        danceTitle: danceTitle,
-                        messenger: messenger,
-                        l10n: l10n,
-                      )
-                    : ListView.builder(
-                        itemCount: programs.length,
-                        itemBuilder: (context, index) => _buildProgramPickRow(
-                          context,
-                          sheetContext,
-                          programs[index],
-                          repositories: repositories,
-                          danceId: danceId,
-                          danceTitle: danceTitle,
-                          messenger: messenger,
-                          accessibleNavigation: accessibleNavigation,
-                          l10n: l10n,
-                        ),
+      final media = MediaQuery.of(sheetContext);
+      // The route does not lift a sheet above the keyboard, so pad by its inset
+      // and the sheet gets the height left above it, below the status bar
+      // (`useSafeArea`). With the keyboard up the sheet takes all of that
+      // rather than 70% of the screen, since 70% of what a 640 px phone has
+      // left fits too little (§4.5); the padding is what bounds it.
+      final keyboard = media.viewInsets.bottom;
+      final maxHeight = keyboard > 0
+          ? double.infinity
+          : media.size.height * 0.7;
+      return Padding(
+        padding: EdgeInsets.only(bottom: keyboard),
+        child: SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Column(
+                children: [
+                  // The title and the pinned New row, capped so that a large text
+                  // scale with the keyboard up cannot push the list and search
+                  // field out of the sheet. With the keyboard up the title is
+                  // dropped, so the New row keeps its room and is always in
+                  // view (N3-5); the cap is then only a backstop.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: constraints.maxHeight * 0.45,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          if (keyboard == 0)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.md,
+                                0,
+                                AppSpacing.md,
+                                AppSpacing.xs,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  l10n.commonAddToProgram,
+                                  style: Theme.of(
+                                    sheetContext,
+                                  ).textTheme.titleMedium,
+                                ),
+                              ),
+                            ),
+                          _buildCreateRow(
+                            sheetContext,
+                            repositories: repositories,
+                            danceId: danceId,
+                            danceTitle: danceTitle,
+                            messenger: messenger,
+                            l10n: l10n,
+                            keyboardUp: keyboard > 0,
+                          ),
+                        ],
                       ),
+                    ),
+                  ),
+                  Expanded(
+                    child: programs.isEmpty
+                        ? _buildEmptyPrograms(
+                            sheetContext,
+                            l10n: l10n,
+                            allArchived: allArchived,
+                          )
+                        : AddToProgramList(
+                            programs: programs,
+                            venuesById: venuesById,
+                            danceId: danceId,
+                            danceTitle: danceTitle,
+                            onSelect: (program, heldCount) async {
+                              if (heldCount > 0 &&
+                                  !await _confirmAddAgain(
+                                    sheetContext,
+                                    danceTitle: danceTitle,
+                                    programTitle: program.title,
+                                    count: heldCount,
+                                    l10n: l10n,
+                                  )) {
+                                return;
+                              }
+                              if (!sheetContext.mounted) return;
+                              await _selectProgram(
+                                sheetContext,
+                                program,
+                                repositories: repositories,
+                                danceId: danceId,
+                                danceTitle: danceTitle,
+                                messenger: messenger,
+                                accessibleNavigation: accessibleNavigation,
+                                l10n: l10n,
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       );
     },
+    sheetAnimationStyle: AppMotion.styleFor(context),
   );
 }
 
-/// One selectable program row: a single merged-semantics button exposing the
-/// program's title, event date (if any), and slot count.
-Widget _buildProgramPickRow(
-  BuildContext context,
-  BuildContext sheetContext,
-  Program program, {
-  required CompendiumRepositories repositories,
-  required String danceId,
-  required String danceTitle,
-  required ScaffoldMessengerState messenger,
-  required bool accessibleNavigation,
-  required AppLocalizations l10n,
-}) {
-  final slotCount = program.slots.length;
-  final dateLabel = program.eventDate == null
-      ? null
-      : formatEventDate(
-          program.eventDate!,
-          DateFormatScope.of(context),
-          MaterialLocalizations.of(context),
-          l10n,
-        );
-  final countLabel = l10n.collectionDanceCount(slotCount);
-  final subtitleParts = [?dateLabel, countLabel];
-  return MergeSemantics(
-    child: Semantics(
-      button: true,
-      label: l10n.programsAddDanceToProgramSemantic(
-        danceTitle,
-        program.title,
-        subtitleParts.join(', '),
-      ),
-      child: ListTile(
-        key: ValueKey('program-pick-${program.id}'),
-        title: ExcludeSemantics(child: Text(program.title)),
-        subtitle: ExcludeSemantics(child: Text(subtitleParts.join(' · '))),
-        onTap: () => _selectProgram(
-          sheetContext,
-          program,
-          repositories: repositories,
-          danceId: danceId,
-          danceTitle: danceTitle,
-          messenger: messenger,
-          accessibleNavigation: accessibleNavigation,
-          l10n: l10n,
-        ),
-      ),
-    ),
-  );
-}
-
-/// Teaching empty state shown when no programs exist yet, with an affordance
-/// to create a brand-new program seeded with this dance.
-Widget _buildEmptyPrograms(
-  BuildContext context,
+/// The pinned first row, outside the scrolling list so it stays in reach with a
+/// long list or the keyboard up, at any text size (N3-5; with the keyboard up
+/// the sheet drops its title to make room, see [showAddToProgramSheet]):
+/// creates a new program seeded with this dance.
+Widget _buildCreateRow(
   BuildContext sheetContext, {
   required CompendiumRepositories repositories,
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
   required AppLocalizations l10n,
+  required bool keyboardUp,
+}) {
+  return ListTile(
+    key: const ValueKey('add-to-program-create'),
+    leading: const Icon(Icons.add),
+    // At 200% text the label alone wraps taller than the room above a phone's
+    // keyboard, so with it up the row is held to two lines (the Text's semantics
+    // still carry the whole string).
+    title: Text(
+      l10n.programsCreateWithDance,
+      maxLines: keyboardUp ? 2 : null,
+      overflow: keyboardUp ? TextOverflow.ellipsis : null,
+    ),
+    onTap: () => _createProgramWith(
+      sheetContext,
+      repositories: repositories,
+      danceId: danceId,
+      danceTitle: danceTitle,
+      messenger: messenger,
+      l10n: l10n,
+    ),
+  );
+}
+
+/// Teaching empty state shown when no programs exist yet, beneath the pinned
+/// create row. When programs exist but every one is archived ([allArchived]),
+/// it says so instead of claiming there are none.
+Widget _buildEmptyPrograms(
+  BuildContext context, {
+  required AppLocalizations l10n,
+  required bool allArchived,
 }) {
   final theme = Theme.of(context);
   return ListView(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.all(AppSpacing.lg),
     children: [
       const SizedBox(height: 16),
       Text(
-        l10n.programsEmptyTitle,
+        allArchived ? l10n.programsAllArchivedTitle : l10n.programsEmptyTitle,
         key: const ValueKey('add-to-program-empty'),
         style: theme.textTheme.titleMedium,
         textAlign: TextAlign.center,
       ),
       const SizedBox(height: 8),
       Text(
-        l10n.programsAddToProgramEmptyBody,
+        allArchived
+            ? l10n.programsAllArchivedBody
+            : l10n.programsAddToProgramEmptyBody,
         style: theme.textTheme.bodyMedium,
         textAlign: TextAlign.center,
-      ),
-      const SizedBox(height: 20),
-      Center(
-        child: FilledButton.icon(
-          key: const ValueKey('add-to-program-create'),
-          onPressed: () => _createProgramWith(
-            sheetContext,
-            repositories: repositories,
-            danceId: danceId,
-            danceTitle: danceTitle,
-            messenger: messenger,
-            l10n: l10n,
-          ),
-          icon: const Icon(Icons.add),
-          label: Text(l10n.programsCreateWithDance),
-        ),
       ),
     ],
   );
 }
 
+/// Asks whether to add a dance a program already holds. **Add again** is the
+/// primary button; **Cancel** (and a dismissal) returns false and leaves the
+/// sheet open so the caller can pick another program. Adding a dance is
+/// undoable, so this is a named exception to the confirm-only-without-Undo rule
+/// (`docs/design/ux.md` §1), not a destructive confirm.
+Future<bool> _confirmAddAgain(
+  BuildContext sheetContext, {
+  required String danceTitle,
+  required String programTitle,
+  required int count,
+  required AppLocalizations l10n,
+}) async {
+  final again = await showDialog<bool>(
+    context: sheetContext,
+    builder: (dialogContext) => AlertDialog(
+      key: const ValueKey('add-again-dialog'),
+      title: Text(l10n.programsAddAgainTitle),
+      content: Text(l10n.programsAddAgainBody(danceTitle, programTitle, count)),
+      actions: [
+        TextButton(
+          key: const ValueKey('add-again-cancel'),
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          key: const ValueKey('add-again-confirm'),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(l10n.programsAddAgain),
+        ),
+      ],
+    ),
+    animationStyle: AppMotion.styleFor(sheetContext),
+  );
+  return again ?? false;
+}
+
 /// Appends this dance as a new slot at the end of [program], persists it,
-/// closes the sheet, and confirms with an Undo snackbar that restores the
-/// program's previous slot list (soft/undoable per project convention).
+/// closes the sheet, and confirms with an Undo snackbar that takes the added
+/// slot back out (soft/undoable per project convention).
 Future<void> _selectProgram(
   BuildContext sheetContext,
   Program program, {
@@ -216,8 +311,9 @@ Future<void> _selectProgram(
     position: fresh.slots.length,
     danceId: danceId,
   );
+  final addedSlots = [...fresh.slots, newSlot];
   await repositories.programs.update(
-    fresh.copyWith(slots: [...fresh.slots, newSlot], updatedAt: now),
+    fresh.copyWith(slots: addedSlots, updatedAt: now),
   );
   // The dance's calling history and its "called N times" badge are both derived
   // from program slots (issue #768, gaps 1 and 2). Neither this write nor its
@@ -229,16 +325,34 @@ Future<void> _selectProgram(
     key: const ValueKey('added-to-program-snackbar'),
     message: l10n.programsAddedToProgramSnack(danceTitle, fresh.title),
     undoLabel: l10n.commonUndo,
+    undoFailedMessage: l10n.commonUndoFailed,
     accessibleNavigation: accessibleNavigation,
+    // The prompt can stay up indefinitely with accessible navigation, so the
+    // program may have been edited since (GIG-19). The Undo takes out only the
+    // slot it added, and writes as a compare-and-replace against the program
+    // it read, so an edit made in between, or landing during the Undo, is
+    // kept rather than overwritten with the slot list from before the add.
     onUndo: () async {
-      final current = await repositories.programs.getById(fresh.id);
-      if (current == null) return;
-      await repositories.programs.update(
-        current.copyWith(
-          slots: previousSlots,
+      for (var attempt = 0; attempt < 5; attempt++) {
+        final current = await repositories.programs.getById(fresh.id);
+        if (current == null) return;
+        final replaced = await repositories.programs.replaceIfUnchanged(
+          expected: current,
+          replacement: current.copyWith(
+            slots: renumberSlots(
+              rebaseSlotEdits(
+                before: addedSlots,
+                after: previousSlots,
+                onto: current.slots,
+              ),
+            ),
+          ),
           updatedAt: DateTime.now().toUtc(),
-        ),
-      );
+        );
+        if (replaced) return;
+      }
+      // Reported by showUndoSnackBar as a failed Undo.
+      throw StateError('program "${fresh.id}" kept changing during the Undo');
     },
   );
 }

@@ -267,7 +267,10 @@ def _cases() -> None:
         assert written["bomFormat"] == "CycloneDX"
         assert written["specVersion"] == "1.5"
         assert written["serialNumber"].startswith("urn:uuid:")
-        assert len(written["components"]) == 6
+        # Six pub packages plus the two pdfium builds the desktop releases ship
+        # (no --msvc-runtime given, so no MSVC runtime components).
+        assert len(written["components"]) == 8
+        assert sum(c["name"] == "pdfium" for c in written["components"]) == 2
 
     # 13. main() also reads deps from stdin when --deps is '-'.
     import io
@@ -295,8 +298,122 @@ def _cases() -> None:
         assert json.loads(out_path.read_text(encoding="utf-8"))["specVersion"] == "1.5"
 
 
+ROOT = Path(__file__).resolve().parents[2]
+PIN_FILE = ROOT / "packaging" / "pdfium" / "pdfium.cmake"
+
+# What the Windows release job writes after staging the MSVC runtime
+# (release.yml, "Stage the MSVC runtime beside the app").
+MSVC_MANIFEST = {
+    "redist_version": "14.44.35112",
+    "crt_folder": "Microsoft.VC143.CRT",
+    "dlls": [
+        {"name": "vcruntime140.dll", "file_version": "14.44.35112.1", "sha256": "a" * 64},
+        {"name": "vcruntime140_1.dll", "file_version": "14.44.35112.1", "sha256": "b" * 64},
+        {"name": "msvcp140.dll", "file_version": "14.44.35112.1", "sha256": "c" * 64},
+    ],
+}
+
+
+def _prop(component: dict, name: str) -> str:
+    for p in component.get("properties", []):
+        if p["name"] == name:
+            return p["value"]
+    raise AssertionError(f"no {name} property on {component['bom-ref']}")
+
+
+def _native_cases() -> None:
+    """Native components the pub graph cannot see (audit finding platform-5)."""
+    import pdfium_pin
+
+    pin = pdfium_pin.read(PIN_FILE)
+
+    # 14. pdfium: one component per shipped desktop build, carrying the pinned
+    #     version and the SHA-256 of the exact release archive.
+    native = g.native_components(pin)
+    pdfium = {_prop(c, "compendium:platform"): c for c in native if c["name"] == "pdfium"}
+    assert set(pdfium) == {"linux-x64", "win-x64"}, sorted(pdfium)
+    for target, comp in pdfium.items():
+        entry = pin.targets[target]
+        url = (
+            "https://github.com/bblanchon/pdfium-binaries/releases/download/"
+            f"chromium/{pin.version}/pdfium-{target}.tgz"
+        )
+        assert comp["type"] == "library"
+        assert comp["version"] == pin.full_version
+        assert comp["hashes"] == [{"alg": "SHA-256", "content": entry.archive_sha256}]
+        assert {"type": "distribution", "url": url} in comp["externalReferences"]
+        assert comp["purl"].startswith(f"pkg:generic/pdfium@{pin.full_version}?")
+        assert f"checksum=sha256:{entry.archive_sha256}" in comp["purl"]
+        # ECMA-427 (purl) 5.4 / Annex B: a download_url value is
+        # percent-encoded; ':' stays as is, '/' becomes %2F.
+        encoded = url.replace("/", "%2F")
+        assert comp["purl"].endswith(f"&download_url={encoded}"), comp["purl"]
+        assert comp["purl"].startswith("pkg:generic/pdfium@") and "https:%2F%2Fgithub.com" in comp["purl"]
+        assert comp["bom-ref"] == comp["purl"]
+        assert _prop(comp, "compendium:shipped-file:sha256") == entry.library_sha256
+        assert _prop(comp, "pdfium-binaries:release") == f"chromium/{pin.version}"
+        ids = {l["license"].get("id") for l in comp["licenses"]}
+        assert "BSD-3-Clause" in ids, comp["licenses"]
+    assert pdfium["linux-x64"]["purl"] != pdfium["win-x64"]["purl"]
+    assert _prop(pdfium["linux-x64"], "compendium:shipped-file") == "lib/libpdfium.so"
+    assert _prop(pdfium["win-x64"], "compendium:shipped-file") == "pdfium.dll"
+
+    # 15. MSVC runtime: one component per DLL the Windows build staged, with
+    #     the file version and SHA-256 recorded on the runner.
+    native = g.native_components(pin, msvc_runtime=MSVC_MANIFEST)
+    msvc = {c["name"]: c for c in native if c["name"].endswith(".dll")}
+    assert set(msvc) == {"vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll"}
+    for entry in MSVC_MANIFEST["dlls"]:
+        comp = msvc[entry["name"]]
+        assert comp["version"] == entry["file_version"]
+        assert comp["hashes"] == [{"alg": "SHA-256", "content": entry["sha256"]}]
+        assert comp["supplier"] == {"name": "Microsoft Corporation"}
+        assert comp["purl"] == f"pkg:generic/microsoft/{entry['name']}@{entry['file_version']}"
+        assert _prop(comp, "compendium:platform") == "win-x64"
+        assert _prop(comp, "msvc:redist-version") == "14.44.35112"
+
+    # 16. A malformed manifest fails loudly instead of yielding a thin SBOM.
+    bad_manifests = [
+        {**MSVC_MANIFEST, "dlls": []},
+        {**MSVC_MANIFEST, "redist_version": ""},
+        {**MSVC_MANIFEST, "dlls": [{**MSVC_MANIFEST["dlls"][0], "sha256": "xyz"}]},
+        {**MSVC_MANIFEST, "dlls": [{**MSVC_MANIFEST["dlls"][0], "file_version": ""}]},
+        {**MSVC_MANIFEST, "dlls": [MSVC_MANIFEST["dlls"][0], MSVC_MANIFEST["dlls"][0]]},
+    ]
+    for bad in bad_manifests:
+        try:
+            g.native_components(pin, msvc_runtime=bad)
+        except SystemExit:
+            continue
+        raise AssertionError(f"accepted a malformed MSVC manifest: {bad}")
+
+    # 17. End to end: main() reads the pin from the repo and the manifest from
+    #     --msvc-runtime; components stay sorted and the serial covers them.
+    with tempfile.TemporaryDirectory() as td:
+        deps_path = Path(td) / "deps.json"
+        manifest_path = Path(td) / "msvc-runtime.json"
+        out_path = Path(td) / "sbom.cdx.json"
+        deps_path.write_text(json.dumps(DEPS), encoding="utf-8")
+        manifest_path.write_text(json.dumps(MSVC_MANIFEST), encoding="utf-8")
+        args = ["--deps", str(deps_path), "--version", "0.1.0", "--output", str(out_path),
+                "--timestamp", FIXED_TS]
+        assert g.main(args + ["--msvc-runtime", str(manifest_path)]) == 0
+        written = json.loads(out_path.read_text(encoding="utf-8"))
+        names = [c["name"] for c in written["components"]]
+        assert names.count("pdfium") == 2
+        assert {"vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll"} <= set(names)
+        assert len(names) == 6 + 2 + 3
+        purls = [c["purl"] for c in written["components"]]
+        assert purls == sorted(purls)
+        with_msvc = written["serialNumber"]
+        assert g.main(args) == 0
+        without = json.loads(out_path.read_text(encoding="utf-8"))
+        assert without["serialNumber"] != with_msvc
+
+
 def main() -> int:
     _cases()
+    _native_cases()
     print("OK: all gen_sbom tests passed")
     return 0
 

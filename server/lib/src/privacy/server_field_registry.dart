@@ -64,6 +64,61 @@ const Map<String, DataClassification> serverFieldClassifications = {
     egress: EgressClass.shareable,
     note: 'Contains only the protocol manifest, not record content.',
   ),
+  'manifest_refs.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Copy of manifests.id_key; the GC index is keyed per store.',
+  ),
+  'manifest_refs.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'manifest_refs.device_id': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.protocolIdentifier,
+    isIdentity: true,
+    note:
+        'Copy of manifests.device_id, so it is the same linkable routing '
+        'identifier (§7.3) and is classified identically.',
+  ),
+  'manifest_refs.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'A blob hash already present in the shareable manifests.body it was '
+        'read from; indexing it discloses nothing the body does not.',
+  ),
+  'indexed_manifests.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'indexed_manifests.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'indexed_manifests.device_id': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.protocolIdentifier,
+    isIdentity: true,
+    note:
+        'Copy of manifests.device_id, so it is the same linkable routing '
+        'identifier (§7.3) and is classified identically.',
+  ),
+  'indexed_manifests.etag': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'Copy of manifests.etag, recording which body the index was read '
+        'from; classified as the value it copies.',
+  ),
   'blob_refs.id_key': DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
@@ -134,6 +189,52 @@ const Map<String, DataClassification> serverFieldClassifications = {
         'the next hourly sweep.',
   ),
   'break_glass_access.accessed_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Retained audit timestamp without a linkable store key.',
+  ),
+  'break_glass_reads.kind': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Whether a break-glass read was a manifest or a blob; retained with '
+        'the timestamp after the linkable columns are nulled.',
+  ),
+  'break_glass_reads.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Same peppered store key as break_glass_access.id_key; nulled with it '
+        'by the sweep after 30 days.',
+  ),
+  'break_glass_reads.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Random store epoch read; nulled with id_key after 30 days.',
+  ),
+  'break_glass_reads.device_id': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Random per-connection device ID whose manifest was read. Unlike the '
+        'protocolIdentifier copies in manifest_refs and indexed_manifests, '
+        'this audit copy is never served or used to route a request, so it is '
+        'deviceScoped; nulled with id_key after 30 days.',
+  ),
+  'break_glass_reads.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Hash of the blob read, never its content. Nulled with id_key after 30 '
+        'days because a content hash can confirm a guessed record.',
+  ),
+  'break_glass_reads.accessed_at': DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,

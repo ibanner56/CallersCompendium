@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 // ---------------------------------------------------------------------------
 // Test helpers for end-to-end adapter tests.
@@ -44,9 +45,9 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('Part 1 — balance.hand param', () {
-    test('contraTaxonomyVersion is 35', () {
-      expect(contraTaxonomyVersion, 35);
-      expect(tax.version, 35);
+    test('contraTaxonomyVersion is 40', () {
+      expect(contraTaxonomyVersion, 40);
+      expect(tax.version, 40);
     });
 
     test('balance exposes a hand param defaulting to unspecified', () {
@@ -318,7 +319,7 @@ void main() {
             ),
           ),
         );
-        final a1 = draft.dance.figures;
+        final a1 = figuresOf(draft.dance);
         // The two lines must fold into a single figure.
         expect(a1, hasLength(1), reason: 'balance + box should fold into one');
         final merged = a1.single;
@@ -343,7 +344,7 @@ void main() {
             ),
           ),
         );
-        final merged = draft.dance.figures.single;
+        final merged = figuresOf(draft.dance).single;
         expect(merged.move, 'swat_the_flea');
         expect(merged.params['balance'], true);
         expect(merged.params['hand'], 'left');
@@ -362,9 +363,9 @@ void main() {
             ),
           ),
         );
-        final merged = draft.dance.figures
-            .where((f) => f.move == 'petronella')
-            .single;
+        final merged = figuresOf(
+          draft.dance,
+        ).where((f) => f.move == 'petronella').single;
         expect(merged.params['balance'], true);
         expect(
           merged.params.containsKey('hand'),
@@ -415,20 +416,30 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('alias enumeration', () {
-    test('exactly five aliases in the contra taxonomy', () {
-      expect(tax.aliases.length, 5);
+    test('exactly seven aliases in the contra taxonomy', () {
+      // v40 (#770) added `hand_cast`, an alias of `gate` with no inverse pair.
+      expect(tax.aliases.length, 7);
     });
 
-    test('exactly two handedness inverse pairs', () {
+    test('exactly three inverse pairs: two handedness, one formation', () {
       final pairs = tax.aliases.values
           .where((a) => a.inversePairId != null)
           .toList();
-      expect(pairs.length, 2);
-      expect(pairs.map((a) => a.id).toSet(), {'swat_the_flea', 'see_saw'});
+      expect(pairs.length, 3);
+      expect(pairs.map((a) => a.id).toSet(), {
+        'swat_the_flea',
+        'see_saw',
+        'long_lines',
+      });
     });
 
     test('meltdown_swing has no inverse pair', () {
       expect(tax.aliases['meltdown_swing']?.inversePairId, isNull);
+    });
+
+    test('hand_cast has no inverse pair and pins nothing', () {
+      expect(tax.aliases['hand_cast']?.inversePairId, isNull);
+      expect(tax.aliases['hand_cast']?.pinnedParams, isEmpty);
     });
   });
 }
