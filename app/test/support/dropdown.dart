@@ -1,10 +1,13 @@
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Opens the dropdown [field] (an `AppDropdownField`, or anything that opens
-/// a `DropdownMenu` on tap) and picks the entry labelled [label].
+/// a `DropdownMenu` on tap) and picks the entry labelled [label], each with a
+/// [press]: a mouse click on a desktop, a touch elsewhere.
 ///
 /// The open menu's entries are the only [MenuItemButton]s carrying the label,
 /// so the closed field's own text (which may show the same label) is never
@@ -16,13 +19,56 @@ Future<void> pickDropdownEntry(
 ) async {
   await tester.ensureVisible(field);
   await tester.pumpAndSettle();
-  await tester.tap(field);
+  await press(tester, field);
   await tester.pumpAndSettle();
   final entry = dropdownEntry(label);
   await tester.ensureVisible(entry);
   await tester.pumpAndSettle();
-  await tester.tap(entry);
+  await press(tester, entry);
   await tester.pumpAndSettle();
+}
+
+/// Presses [target] and lets a frame pass before releasing it, as a real
+/// click or tap does; [kind] defaults to a mouse on a desktop platform and a
+/// touch elsewhere.
+///
+/// `tester.tap` sends the press and the release with no frame between them,
+/// so whatever the press sets off (a field losing focus, a menu closing) has
+/// not yet been built when the release arrives, and the tap lands on what is
+/// no longer there for a user. That hid #2292's menu that shut on a mouse
+/// press before the click could pick.
+///
+/// Fails if something else is over [target]'s centre, so the press would
+/// land on that instead.
+Future<void> press(
+  WidgetTester tester,
+  Finder target, {
+  PointerDeviceKind? kind,
+}) async {
+  final at = tester.getCenter(target);
+  final hit = tester.hitTestOnBinding(at);
+  final element = target.evaluate().single;
+  expect(
+    hit.path.any((entry) => entry.target == element.renderObject),
+    isTrue,
+    reason: 'a press at $at would not reach $target',
+  );
+  final gesture = await tester.createGesture(
+    kind:
+        kind ??
+        switch (defaultTargetPlatform) {
+          TargetPlatform.linux ||
+          TargetPlatform.macOS ||
+          TargetPlatform.windows => PointerDeviceKind.mouse,
+          TargetPlatform.android ||
+          TargetPlatform.iOS ||
+          TargetPlatform.fuchsia => PointerDeviceKind.touch,
+        },
+  );
+  await gesture.down(at);
+  await tester.pump(const Duration(milliseconds: 50));
+  await gesture.up();
+  await gesture.removePointer();
 }
 
 /// The open dropdown menu's entry labelled [label].
