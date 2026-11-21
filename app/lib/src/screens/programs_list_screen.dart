@@ -521,7 +521,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// can list every program with a contra dance even when none is contra
   /// only. A form every program with dances has gets a chip too, though it
   /// hides only programs with no dances, so that no type present goes
-  /// missing from the row (Hudson, 2026-11-21).
+  /// missing from the row (Hudson, 21 November 2026).
   List<Set<DanceForm>> _formChoiceSets() {
     final mixes = _distinctMixes();
     if (mixes.length < 2) return const [];

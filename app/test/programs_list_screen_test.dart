@@ -1012,6 +1012,8 @@ void _formFilterTests() {
         ],
       ),
     );
+    // A program with no dances: the only one the English chip can hide.
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
     await _pump(tester, repos);
     final contraChip = find.byKey(const ValueKey('programs-form-contra'));
     expect(contraChip, findsNothing, reason: 'no program is contra only');
