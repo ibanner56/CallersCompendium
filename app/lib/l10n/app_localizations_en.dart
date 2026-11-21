@@ -2132,6 +2132,76 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appThemeGroupDark => 'Dark';
 
   @override
+  String get themeScreenSearchHint => 'Search themes…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Clear search';
+
+  @override
+  String get themeScreenNoMatches => 'No themes match your search.';
+
+  @override
+  String get themeScreenNewCustomTheme => 'Custom theme';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'New custom theme';
+
+  @override
+  String get appThemeKeywordRed => 'red, crimson, scarlet, coral';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, amber, copper';
+
+  @override
+  String get appThemeKeywordYellow => 'yellow, gold, mustard';
+
+  @override
+  String get appThemeKeywordGreen => 'green, sage, olive, forest';
+
+  @override
+  String get appThemeKeywordTeal => 'teal, cyan, turquoise, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blue, navy, azure, sky';
+
+  @override
+  String get appThemeKeywordPurple => 'purple, violet, lilac, lavender, mauve';
+
+  @override
+  String get appThemeKeywordPink => 'pink, magenta, rose, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'brown, beige, tan, cream, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grey, gray, charcoal, slate, silver';
+
+  @override
+  String get appThemeKeywordWarm => 'warm, cozy, earthy';
+
+  @override
+  String get appThemeKeywordCool => 'cool, cold, icy, arctic, frosty';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, soft, candy';
+
+  @override
+  String get appThemeKeywordVivid => 'vivid, saturated, neon, bold';
+
+  @override
+  String get appThemeKeywordMuted => 'muted, subdued, calm, gentle';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, classic';
+
+  @override
+  String get appThemeKeywordAccessible =>
+      'accessible, legible, readable, contrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatic, auto, device, follow';
+
+  @override
   String get appThemeLabelSystem => 'System';
 
   @override
@@ -2465,14 +2535,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Body text sample';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'New custom theme';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'My theme';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {

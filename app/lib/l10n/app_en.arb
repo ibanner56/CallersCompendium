@@ -2646,47 +2646,139 @@
   },
   "settingsAppearanceThemeHeader": "Theme",
   "@settingsAppearanceThemeHeader": {
-    "description": "Section header above the built-in theme gallery in Appearance settings."
+    "description": "Section header above the theme row in Appearance settings, the title of that row (the theme in use is shown under it), and the title of the Theme screen it opens."
   },
   "settingsAppearanceCustomThemesHeader": "Custom themes",
   "@settingsAppearanceCustomThemesHeader": {
-    "description": "Section header above the user's saved custom themes in Appearance settings."
+    "description": "Heading above the user's saved custom themes on the Theme screen. Also names the custom-themes setting in sync conflict lists."
   },
   "appThemeGroupSystem": "System",
   "@appThemeGroupSystem": {
-    "description": "Section heading above the \"System\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"System\" themes on the Theme screen (Settings > Appearance > Theme)."
   },
   "appThemeGroupDefault": "Default",
   "@appThemeGroupDefault": {
-    "description": "Section heading above the \"Default\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"Default\" themes on the Theme screen (Settings > Appearance > Theme)."
   },
   "appThemeGroupLight": "Light",
   "@appThemeGroupLight": {
-    "description": "Section heading above the \"Light\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"Light\" themes on the Theme screen (Settings > Appearance > Theme)."
   },
   "appThemeGroupDark": "Dark",
   "@appThemeGroupDark": {
-    "description": "Section heading above the \"Dark\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"Dark\" themes on the Theme screen (Settings > Appearance > Theme)."
+  },
+  "themeScreenSearchHint": "Search themes…",
+  "@themeScreenSearchHint": {
+    "description": "Hint in the search box at the top of the Theme screen. Themes can be found by name or by color and character words."
+  },
+  "themeScreenClearSearchTooltip": "Clear search",
+  "@themeScreenClearSearchTooltip": {
+    "description": "Tooltip for the button that clears the Theme screen search box."
+  },
+  "themeScreenNoMatches": "No themes match your search.",
+  "@themeScreenNoMatches": {
+    "description": "Shown on the Theme screen when no theme matches the search."
+  },
+  "themeScreenNewCustomTheme": "Custom theme",
+  "@themeScreenNewCustomTheme": {
+    "description": "Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use."
+  },
+  "themeScreenNewCustomThemeSemantic": "New custom theme",
+  "@themeScreenNewCustomThemeSemantic": {
+    "description": "What a screen reader says for the floating \"Custom theme\" button on the Theme screen. Keep the visible button text (themeScreenNewCustomTheme) inside it, so voice control can still find the button by what it shows."
+  },
+  "appThemeKeywordRed": "red, crimson, scarlet, coral",
+  "@appThemeKeywordRed": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as red. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordOrange": "orange, amber, copper",
+  "@appThemeKeywordOrange": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as orange. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordYellow": "yellow, gold, mustard",
+  "@appThemeKeywordYellow": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as yellow. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordGreen": "green, sage, olive, forest",
+  "@appThemeKeywordGreen": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as green. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordTeal": "teal, cyan, turquoise, aqua, mint",
+  "@appThemeKeywordTeal": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as teal or cyan. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordBlue": "blue, navy, azure, sky",
+  "@appThemeKeywordBlue": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as blue. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordPurple": "purple, violet, lilac, lavender, mauve",
+  "@appThemeKeywordPurple": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as purple. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordPink": "pink, magenta, rose, fuchsia",
+  "@appThemeKeywordPink": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pink. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordBrown": "brown, beige, tan, cream, sepia",
+  "@appThemeKeywordBrown": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as brown or cream. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordGrey": "grey, gray, charcoal, slate, silver",
+  "@appThemeKeywordGrey": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as grey. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordWarm": "warm, cozy, earthy",
+  "@appThemeKeywordWarm": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as warm. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordCool": "cool, cold, icy, arctic, frosty",
+  "@appThemeKeywordCool": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as cool. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordPastel": "pastel, soft, candy",
+  "@appThemeKeywordPastel": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pastel. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordVivid": "vivid, saturated, neon, bold",
+  "@appThemeKeywordVivid": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as vivid. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordMuted": "muted, subdued, calm, gentle",
+  "@appThemeKeywordMuted": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as muted. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordRetro": "retro, vintage, classic",
+  "@appThemeKeywordRetro": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as retro. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordAccessible": "accessible, legible, readable, contrast",
+  "@appThemeKeywordAccessible": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as accessible (high-contrast). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordAutomatic": "automatic, auto, device, follow",
+  "@appThemeKeywordAutomatic": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as automatic (following the device setting). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
   },
   "appThemeLabelSystem": "System",
   "@appThemeLabelSystem": {
-    "description": "Name of the built-in \"System\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"System\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelLight": "Light",
   "@appThemeLabelLight": {
-    "description": "Name of the built-in \"Light\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Light\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelDark": "Dark",
   "@appThemeLabelDark": {
-    "description": "Name of the built-in \"Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Dark\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelSoftDark": "Soft dark",
   "@appThemeLabelSoftDark": {
-    "description": "Name of the built-in \"Soft dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Soft dark\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelHighContrast": "High contrast",
   "@appThemeLabelHighContrast": {
-    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeDescriptionSystem": "Match the device light/dark setting",
   "@appThemeDescriptionSystem": {
@@ -3080,17 +3172,9 @@
   "@settingsAppearancePreviewBody": {
     "description": "Sample body text shown in a theme preview swatch."
   },
-  "settingsAppearanceNewThemeButton": "New custom theme",
-  "@settingsAppearanceNewThemeButton": {
-    "description": "Button that starts creating a new custom theme from the active theme."
-  },
   "settingsAppearanceNewThemeDefaultName": "My theme",
   "@settingsAppearanceNewThemeDefaultName": {
     "description": "Default name a brand-new custom theme is seeded with before the user renames it."
-  },
-  "settingsAppearanceCustomThemesEmpty": "Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.",
-  "@settingsAppearanceCustomThemesEmpty": {
-    "description": "Helper text shown when the user has no saved custom themes yet."
   },
   "settingsAppearanceCustomThemeSemantic": "Custom theme {name}",
   "@settingsAppearanceCustomThemeSemantic": {

@@ -2174,6 +2174,76 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appThemeGroupDark => 'Sombre';
 
   @override
+  String get themeScreenSearchHint => 'Rechercher des thèmes…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Effacer la recherche';
+
+  @override
+  String get themeScreenNoMatches =>
+      'Aucun thème ne correspond à votre recherche.';
+
+  @override
+  String get themeScreenNewCustomTheme => 'Thème personnalisé';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Nouveau thème personnalisé';
+
+  @override
+  String get appThemeKeywordRed => 'rouge, cramoisi, écarlate, corail';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, ambre, cuivre';
+
+  @override
+  String get appThemeKeywordYellow => 'jaune, or, doré, moutarde';
+
+  @override
+  String get appThemeKeywordGreen => 'vert, sauge, olive, forêt';
+
+  @override
+  String get appThemeKeywordTeal => 'sarcelle, cyan, turquoise, aqua, menthe';
+
+  @override
+  String get appThemeKeywordBlue => 'bleu, marine, azur, ciel';
+
+  @override
+  String get appThemeKeywordPurple => 'violet, pourpre, lilas, lavande, mauve';
+
+  @override
+  String get appThemeKeywordPink => 'rose, magenta, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'marron, brun, beige, crème, sépia';
+
+  @override
+  String get appThemeKeywordGrey => 'gris, anthracite, ardoise, argent';
+
+  @override
+  String get appThemeKeywordWarm => 'chaud, chaleureux, terreux';
+
+  @override
+  String get appThemeKeywordCool => 'froid, frais, glacé, arctique, givré';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, doux, bonbon';
+
+  @override
+  String get appThemeKeywordVivid => 'vif, éclatant, saturé, néon, intense';
+
+  @override
+  String get appThemeKeywordMuted => 'sourd, atténué, calme, discret';
+
+  @override
+  String get appThemeKeywordRetro => 'rétro, vintage, classique';
+
+  @override
+  String get appThemeKeywordAccessible => 'accessible, lisible, contraste';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatique, auto, appareil, suivre';
+
+  @override
   String get appThemeLabelSystem => 'Système';
 
   @override
@@ -2524,14 +2594,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Exemple de texte courant';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'Nouveau thème personnalisé';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mon thème';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés se synchronisent avec vos autres appareils lorsque la synchronisation est activée.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {

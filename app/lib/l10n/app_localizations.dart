@@ -3072,67 +3072,205 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get settingsDialectNameLabel;
 
-  /// Section header above the built-in theme gallery in Appearance settings.
+  /// Section header above the theme row in Appearance settings, the title of that row (the theme in use is shown under it), and the title of the Theme screen it opens.
   ///
   /// In en, this message translates to:
   /// **'Theme'**
   String get settingsAppearanceThemeHeader;
 
-  /// Section header above the user's saved custom themes in Appearance settings.
+  /// Heading above the user's saved custom themes on the Theme screen. Also names the custom-themes setting in sync conflict lists.
   ///
   /// In en, this message translates to:
   /// **'Custom themes'**
   String get settingsAppearanceCustomThemesHeader;
 
-  /// Section heading above the "System" themes in the Appearance theme gallery.
+  /// Section heading above the "System" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'System'**
   String get appThemeGroupSystem;
 
-  /// Section heading above the "Default" themes in the Appearance theme gallery.
+  /// Section heading above the "Default" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'Default'**
   String get appThemeGroupDefault;
 
-  /// Section heading above the "Light" themes in the Appearance theme gallery.
+  /// Section heading above the "Light" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'Light'**
   String get appThemeGroupLight;
 
-  /// Section heading above the "Dark" themes in the Appearance theme gallery.
+  /// Section heading above the "Dark" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'Dark'**
   String get appThemeGroupDark;
 
-  /// Name of the built-in "System" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Hint in the search box at the top of the Theme screen. Themes can be found by name or by color and character words.
+  ///
+  /// In en, this message translates to:
+  /// **'Search themes…'**
+  String get themeScreenSearchHint;
+
+  /// Tooltip for the button that clears the Theme screen search box.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get themeScreenClearSearchTooltip;
+
+  /// Shown on the Theme screen when no theme matches the search.
+  ///
+  /// In en, this message translates to:
+  /// **'No themes match your search.'**
+  String get themeScreenNoMatches;
+
+  /// Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme'**
+  String get themeScreenNewCustomTheme;
+
+  /// What a screen reader says for the floating "Custom theme" button on the Theme screen. Keep the visible button text (themeScreenNewCustomTheme) inside it, so voice control can still find the button by what it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom theme'**
+  String get themeScreenNewCustomThemeSemantic;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as red. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'red, crimson, scarlet, coral'**
+  String get appThemeKeywordRed;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as orange. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'orange, amber, copper'**
+  String get appThemeKeywordOrange;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as yellow. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'yellow, gold, mustard'**
+  String get appThemeKeywordYellow;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as green. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'green, sage, olive, forest'**
+  String get appThemeKeywordGreen;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as teal or cyan. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'teal, cyan, turquoise, aqua, mint'**
+  String get appThemeKeywordTeal;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as blue. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'blue, navy, azure, sky'**
+  String get appThemeKeywordBlue;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as purple. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'purple, violet, lilac, lavender, mauve'**
+  String get appThemeKeywordPurple;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pink. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'pink, magenta, rose, fuchsia'**
+  String get appThemeKeywordPink;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as brown or cream. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'brown, beige, tan, cream, sepia'**
+  String get appThemeKeywordBrown;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as grey. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'grey, gray, charcoal, slate, silver'**
+  String get appThemeKeywordGrey;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as warm. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'warm, cozy, earthy'**
+  String get appThemeKeywordWarm;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as cool. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'cool, cold, icy, arctic, frosty'**
+  String get appThemeKeywordCool;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pastel. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'pastel, soft, candy'**
+  String get appThemeKeywordPastel;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as vivid. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'vivid, saturated, neon, bold'**
+  String get appThemeKeywordVivid;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as muted. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'muted, subdued, calm, gentle'**
+  String get appThemeKeywordMuted;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as retro. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'retro, vintage, classic'**
+  String get appThemeKeywordRetro;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as accessible (high-contrast). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'accessible, legible, readable, contrast'**
+  String get appThemeKeywordAccessible;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as automatic (following the device setting). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'automatic, auto, device, follow'**
+  String get appThemeKeywordAutomatic;
+
+  /// Name of the built-in "System" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'System'**
   String get appThemeLabelSystem;
 
-  /// Name of the built-in "Light" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Light" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Light'**
   String get appThemeLabelLight;
 
-  /// Name of the built-in "Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Dark'**
   String get appThemeLabelDark;
 
-  /// Name of the built-in "Soft dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Soft dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Soft dark'**
   String get appThemeLabelSoftDark;
 
-  /// Name of the built-in "High contrast" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "High contrast" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'High contrast'**
@@ -3726,23 +3864,11 @@ abstract class AppLocalizations {
   /// **'Body text sample'**
   String get settingsAppearancePreviewBody;
 
-  /// Button that starts creating a new custom theme from the active theme.
-  ///
-  /// In en, this message translates to:
-  /// **'New custom theme'**
-  String get settingsAppearanceNewThemeButton;
-
   /// Default name a brand-new custom theme is seeded with before the user renames it.
   ///
   /// In en, this message translates to:
   /// **'My theme'**
   String get settingsAppearanceNewThemeDefaultName;
-
-  /// Helper text shown when the user has no saved custom themes yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.'**
-  String get settingsAppearanceCustomThemesEmpty;
 
   /// Screen-reader label for a saved custom-theme card.
   ///

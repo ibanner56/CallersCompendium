@@ -22,7 +22,7 @@ Map<String, String> _enStrings() {
 
 /// British spellings the app has used, as whole-word patterns. A string that
 /// shows text the user types (a search token, a shorthand) is exempt by being
-/// listed in [_userTypedKeys]; none needs it today.
+/// listed in [_userTypedKeys].
 final _british = <RegExp>[
   RegExp(r'\bcolou?r\w*', caseSensitive: false), // matched, then filtered below
   RegExp(r'\b(un)?recognis\w*', caseSensitive: false),
@@ -39,7 +39,11 @@ final _british = <RegExp>[
 ];
 
 /// Keys whose value is text the user types, so its spelling is theirs.
-const _userTypedKeys = <String>{};
+const _userTypedKeys = <String>{
+  // Theme-search words (never shown): "grey" sits beside "gray" so a caller
+  // who spells it the British way still finds the grey themes.
+  'appThemeKeywordGrey',
+};
 
 /// Capitalized feature and product names. A string made of these is a name,
 /// not Title Case, so it is masked before the case check.

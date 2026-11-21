@@ -2160,6 +2160,76 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appThemeGroupDark => 'Dunkel';
 
   @override
+  String get themeScreenSearchHint => 'Designs suchen…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Suche löschen';
+
+  @override
+  String get themeScreenNoMatches => 'Keine Designs entsprechen Ihrer Suche.';
+
+  @override
+  String get themeScreenNewCustomTheme => 'Eigenes Design';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Neues eigenes Design';
+
+  @override
+  String get appThemeKeywordRed => 'rot, karmin, scharlach, koralle';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, bernstein, kupfer';
+
+  @override
+  String get appThemeKeywordYellow => 'gelb, gold, senf';
+
+  @override
+  String get appThemeKeywordGreen => 'grün, salbei, oliv, wald';
+
+  @override
+  String get appThemeKeywordTeal => 'petrol, cyan, türkis, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blau, marine, azur, himmelblau';
+
+  @override
+  String get appThemeKeywordPurple => 'lila, violett, flieder, lavendel, mauve';
+
+  @override
+  String get appThemeKeywordPink => 'rosa, pink, magenta, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'braun, beige, sand, creme, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grau, anthrazit, schiefer, silber';
+
+  @override
+  String get appThemeKeywordWarm => 'warm, gemütlich, erdig';
+
+  @override
+  String get appThemeKeywordCool => 'kühl, kalt, eisig, arktisch, frostig';
+
+  @override
+  String get appThemeKeywordPastel => 'pastell, sanft, zart';
+
+  @override
+  String get appThemeKeywordVivid => 'lebhaft, leuchtend, kräftig, neon, satt';
+
+  @override
+  String get appThemeKeywordMuted => 'gedämpft, dezent, ruhig, sanft';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, klassisch';
+
+  @override
+  String get appThemeKeywordAccessible =>
+      'barrierefrei, lesbar, gut lesbar, kontrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatisch, auto, gerät, folgen';
+
+  @override
   String get appThemeLabelSystem => 'System';
 
   @override
@@ -2507,15 +2577,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Beispiel Fließtext';
 
   @override
-  String get settingsAppearanceNewThemeButton =>
-      'Neues benutzerdefiniertes Design';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mein Design';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden mit Ihren anderen Geräten synchronisiert, wenn die Synchronisierung aktiviert ist.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {

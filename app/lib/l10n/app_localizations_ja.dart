@@ -2047,6 +2047,75 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appThemeGroupDark => 'ダーク';
 
   @override
+  String get themeScreenSearchHint => 'テーマを検索…';
+
+  @override
+  String get themeScreenClearSearchTooltip => '検索をクリア';
+
+  @override
+  String get themeScreenNoMatches => '検索に一致するテーマがありません。';
+
+  @override
+  String get themeScreenNewCustomTheme => 'カスタムテーマ';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => '新しいカスタムテーマ';
+
+  @override
+  String get appThemeKeywordRed => '赤, 赤い, 紅, 深紅, コーラル, レッド';
+
+  @override
+  String get appThemeKeywordOrange => 'オレンジ, だいだい色, アンバー, 銅';
+
+  @override
+  String get appThemeKeywordYellow => '黄, 黄色, 金, 金色, からし色, イエロー';
+
+  @override
+  String get appThemeKeywordGreen => '緑, 緑色, セージ, オリーブ, 森, グリーン';
+
+  @override
+  String get appThemeKeywordTeal => '青緑, シアン, ターコイズ, 水色, ミント, ティール';
+
+  @override
+  String get appThemeKeywordBlue => '青, 青い, 紺, 藍, 空色, ブルー';
+
+  @override
+  String get appThemeKeywordPurple => '紫, 紫色, すみれ色, ライラック, ラベンダー, パープル';
+
+  @override
+  String get appThemeKeywordPink => 'ピンク, 桃色, マゼンタ, ローズ';
+
+  @override
+  String get appThemeKeywordBrown => '茶, 茶色, ベージュ, クリーム, セピア, ブラウン';
+
+  @override
+  String get appThemeKeywordGrey => '灰, 灰色, グレー, チャコール, 銀';
+
+  @override
+  String get appThemeKeywordWarm => '暖かい, 温かみ, 暖色, ウォーム';
+
+  @override
+  String get appThemeKeywordCool => '涼しい, 冷たい, 寒色, 氷, クール';
+
+  @override
+  String get appThemeKeywordPastel => 'パステル, 淡い, やわらかい';
+
+  @override
+  String get appThemeKeywordVivid => '鮮やか, ビビッド, ネオン';
+
+  @override
+  String get appThemeKeywordMuted => '落ち着いた, くすんだ, 穏やか, 控えめ';
+
+  @override
+  String get appThemeKeywordRetro => 'レトロ, ヴィンテージ, クラシック';
+
+  @override
+  String get appThemeKeywordAccessible => 'アクセシブル, 読みやすい, 見やすい, コントラスト';
+
+  @override
+  String get appThemeKeywordAutomatic => '自動, オート, デバイス, 端末';
+
+  @override
   String get appThemeLabelSystem => 'システム';
 
   @override
@@ -2360,14 +2429,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAppearancePreviewBody => '本文テキストのサンプル';
 
   @override
-  String get settingsAppearanceNewThemeButton => '新しいカスタムテーマ';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'マイテーマ';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      '現在のテーマをコピーして色を調整できます。カスタムテーマは、同期がオンのとき、他のデバイスと同期されます。';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {

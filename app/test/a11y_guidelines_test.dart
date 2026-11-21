@@ -225,15 +225,17 @@ void _screen(
   });
 }
 
-/// Scrolls the first scrollable on screen to its end in steps, collecting every
-/// framework error on the way. A lazy list builds only what is on screen, so a
-/// sweep that looks at the first screenful says nothing about the rest. It
-/// fails if the list does not scroll at all, because then it swept nothing new.
+/// Scrolls the first scrollable on screen ([list], when the first is not it,
+/// such as a search field's) to its end in steps, collecting every framework
+/// error on the way. A lazy list builds only what is on screen, so a sweep that
+/// looks at the first screenful says nothing about the rest. It fails if the
+/// list does not scroll at all, because then it swept nothing new.
 Future<List<String>> _scrollThrough(
   WidgetTester tester, {
   bool mustScroll = true,
+  Finder? list,
 }) async {
-  final scrollable = find.byType(Scrollable).first;
+  final scrollable = list ?? find.byType(Scrollable).first;
   ScrollPosition position() =>
       tester.state<ScrollableState>(scrollable).position;
   final start = position().pixels;
@@ -400,6 +402,34 @@ void main() {
       },
     );
   }
+
+  // Settings > Appearance > Theme, a page of its own: the card gallery under a
+  // search box, with a floating Custom theme button over it.
+  _screen(
+    'Settings, appearance, Theme',
+    (tester) async {
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+      await _tapKey(tester, 'settings-nav-appearance');
+      await _tapKey(tester, 'appearance-theme');
+    },
+    landedOn: find.byKey(const ValueKey('theme-search')),
+    atLargeText: (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      await tester.pumpAndSettle();
+      expect(
+        await _scrollThrough(
+          tester,
+          list: find.descendant(
+            of: find.byKey(const ValueKey('theme-list')),
+            matching: find.byType(Scrollable),
+          ),
+        ),
+        isEmpty,
+        reason: 'Theme, scrolled to the end at 2.0x',
+      );
+    },
+  );
 
   _screen('Tags manager', (tester) async {
     Navigator.of(

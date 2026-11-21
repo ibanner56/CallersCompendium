@@ -19,6 +19,35 @@ enum AppThemeGroup {
   final String label;
 }
 
+/// A search keyword for the Theme screen's "Search themes…" box: a color word
+/// or a character word a caller might reach for instead of a palette's name
+/// ("purple", "warm", "retro"). Each theme carries a few, chosen by hand from
+/// its palette (see [AppThemeSelection.keywords]).
+///
+/// Plain data, like [AppThemeGroup]: the words a user types are localized by
+/// `appThemeKeywordTerms` in `app_theme_labels_l10n.dart`, each keyword
+/// resolving to a short list of synonyms in the active language.
+enum AppThemeKeyword {
+  red,
+  orange,
+  yellow,
+  green,
+  teal,
+  blue,
+  purple,
+  pink,
+  brown,
+  grey,
+  warm,
+  cool,
+  pastel,
+  vivid,
+  muted,
+  retro,
+  accessible,
+  automatic,
+}
+
 /// The user's theme choice. High-contrast is not a [ThemeMode] value, and the
 /// gallery palettes each pin a concrete scheme, so we model explicit selections
 /// rather than reusing [ThemeMode] directly (`docs/design/ux-modernization.md`
@@ -136,6 +165,177 @@ enum AppThemeSelection {
     AppThemeSelection.noctisLilac ||
     AppThemeSelection.ayuLight => AppThemeGroup.light,
     _ => AppThemeGroup.dark,
+  };
+
+  /// The search keywords for this theme on the Theme screen, beyond its name,
+  /// its gallery section and its brightness (which the search matches anyway).
+  ///
+  /// Chosen by hand from each palette's identity colors (`palette_schemes.dart`,
+  /// `color_schemes.dart`) — mostly its primary accent and the character of its
+  /// canvas — so a search for a color finds the themes that read as that color,
+  /// not every theme that uses it somewhere.
+  Set<AppThemeKeyword> get keywords => switch (this) {
+    AppThemeSelection.system => const {AppThemeKeyword.automatic},
+    AppThemeSelection.light => const {
+      AppThemeKeyword.warm,
+      AppThemeKeyword.orange,
+      AppThemeKeyword.brown,
+    },
+    AppThemeSelection.dark => const {
+      AppThemeKeyword.warm,
+      AppThemeKeyword.orange,
+      AppThemeKeyword.brown,
+    },
+    AppThemeSelection.softDark => const {
+      AppThemeKeyword.warm,
+      AppThemeKeyword.orange,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.highContrast => const {AppThemeKeyword.accessible},
+    AppThemeSelection.blulocoLight => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.vivid,
+      AppThemeKeyword.cool,
+    },
+    AppThemeSelection.githubLight => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.cool,
+    },
+    AppThemeSelection.catppuccinLatte => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.pastel,
+    },
+    AppThemeSelection.gruvboxLight => const {
+      AppThemeKeyword.orange,
+      AppThemeKeyword.brown,
+      AppThemeKeyword.warm,
+      AppThemeKeyword.retro,
+    },
+    AppThemeSelection.everforestLight => const {
+      AppThemeKeyword.green,
+      AppThemeKeyword.warm,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.rosePineDawn => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.pink,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.ayuLight => const {
+      AppThemeKeyword.orange,
+      AppThemeKeyword.vivid,
+    },
+    AppThemeSelection.tokyoNightLight => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.purple,
+      AppThemeKeyword.cool,
+    },
+    AppThemeSelection.nordLight => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.cool,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.kanagawaLotus => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.warm,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.noctisLilac => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.green,
+      AppThemeKeyword.pink,
+    },
+    AppThemeSelection.vitesseLight => const {
+      AppThemeKeyword.green,
+      AppThemeKeyword.teal,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.oneDarkPro => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.grey,
+      AppThemeKeyword.cool,
+    },
+    AppThemeSelection.monokai => const {
+      AppThemeKeyword.red,
+      AppThemeKeyword.green,
+      AppThemeKeyword.vivid,
+    },
+    AppThemeSelection.noctis => const {
+      AppThemeKeyword.teal,
+      AppThemeKeyword.green,
+      AppThemeKeyword.cool,
+    },
+    AppThemeSelection.dracula => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.vivid,
+    },
+    AppThemeSelection.nord => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.cool,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.tokyoNight => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.cool,
+    },
+    AppThemeSelection.gruvboxDark => const {
+      AppThemeKeyword.orange,
+      AppThemeKeyword.yellow,
+      AppThemeKeyword.warm,
+      AppThemeKeyword.retro,
+    },
+    AppThemeSelection.catppuccinMocha => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.pastel,
+    },
+    AppThemeSelection.githubDark => const {
+      AppThemeKeyword.blue,
+      AppThemeKeyword.cool,
+    },
+    AppThemeSelection.everforestDark => const {
+      AppThemeKeyword.green,
+      AppThemeKeyword.warm,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.rosePine => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.pink,
+      AppThemeKeyword.muted,
+    },
+    AppThemeSelection.ayuMirage => const {
+      AppThemeKeyword.yellow,
+      AppThemeKeyword.orange,
+      AppThemeKeyword.blue,
+    },
+    AppThemeSelection.cutiePro => const {
+      AppThemeKeyword.pink,
+      AppThemeKeyword.teal,
+    },
+    AppThemeSelection.pinkAsHeck => const {
+      AppThemeKeyword.pink,
+      AppThemeKeyword.vivid,
+    },
+    AppThemeSelection.zenburn => const {
+      AppThemeKeyword.green,
+      AppThemeKeyword.grey,
+      AppThemeKeyword.muted,
+      AppThemeKeyword.retro,
+    },
+    AppThemeSelection.shadesOfPurple => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.yellow,
+      AppThemeKeyword.vivid,
+    },
+    AppThemeSelection.catppuccinFrappe => const {
+      AppThemeKeyword.purple,
+      AppThemeKeyword.pastel,
+    },
+    AppThemeSelection.synthwave84 => const {
+      AppThemeKeyword.pink,
+      AppThemeKeyword.purple,
+      AppThemeKeyword.vivid,
+      AppThemeKeyword.retro,
+    },
   };
 
   /// The [ThemeMode] used to pick between `theme` and `darkTheme` on

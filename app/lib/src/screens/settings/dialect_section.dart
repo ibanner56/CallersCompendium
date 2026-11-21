@@ -93,8 +93,9 @@ class _DialectSectionState extends State<DialectSection> {
 ///
 /// Presets can't be edited in place (a custom dialect may not reuse a preset
 /// name); "Edit terms" on a preset offers to duplicate it for customizing.
-/// Mirrors `_CustomThemesSection`'s list + dialog CRUD idiom. Live preview,
-/// collision validation, and dance-card/perform quick-switch are a later PR.
+/// Mirrors the custom-theme cards' CRUD idiom on the Theme screen
+/// (`theme_screen.dart`). Live preview, collision validation, and
+/// dance-card/perform quick-switch are a later PR.
 class _DialectLibrarySection extends StatelessWidget {
   const _DialectLibrarySection({super.key, required this.controller});
 

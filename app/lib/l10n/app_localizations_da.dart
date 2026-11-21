@@ -2147,6 +2147,76 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appThemeGroupDark => 'Mørk';
 
   @override
+  String get themeScreenSearchHint => 'Søg temaer…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Ryd søgning';
+
+  @override
+  String get themeScreenNoMatches => 'Ingen temaer matcher din søgning.';
+
+  @override
+  String get themeScreenNewCustomTheme => 'Brugerdefineret tema';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Nyt brugerdefineret tema';
+
+  @override
+  String get appThemeKeywordRed => 'rød, karminrød, skarlagen, koral';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, rav, kobber';
+
+  @override
+  String get appThemeKeywordYellow => 'gul, guld, sennep';
+
+  @override
+  String get appThemeKeywordGreen => 'grøn, salvie, oliven, skov';
+
+  @override
+  String get appThemeKeywordTeal => 'blågrøn, cyan, turkis, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blå, marineblå, azur, himmelblå';
+
+  @override
+  String get appThemeKeywordPurple => 'lilla, violet, syren, lavendel';
+
+  @override
+  String get appThemeKeywordPink => 'lyserød, pink, magenta, rosa, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'brun, beige, sand, creme, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grå, koksgrå, skifer, sølv';
+
+  @override
+  String get appThemeKeywordWarm => 'varm, hyggelig, jordfarvet';
+
+  @override
+  String get appThemeKeywordCool => 'kølig, kold, iskold, arktisk, frostklar';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, blød, sart';
+
+  @override
+  String get appThemeKeywordVivid => 'levende, mættet, neon, kraftig';
+
+  @override
+  String get appThemeKeywordMuted => 'dæmpet, afdæmpet, rolig, mild';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, klassisk';
+
+  @override
+  String get appThemeKeywordAccessible =>
+      'tilgængelig, læselig, letlæselig, kontrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatisk, auto, enhed, følg';
+
+  @override
   String get appThemeLabelSystem => 'System';
 
   @override
@@ -2485,14 +2555,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Eksempel på brødtekst';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'Nyt brugerdefineret tema';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mit tema';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer synkroniseres til dine andre enheder, når synkronisering er slået til.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
