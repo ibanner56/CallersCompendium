@@ -29,6 +29,7 @@ void main() {
     String name = 'swing',
     List<Map<String, Object?>>? params,
     String template = '{who} [{prefix}] {move}',
+    String? form,
   }) => UserGlossaryEntry(
     id: 'mine',
     kindName: UserGlossaryEntryKind.customFigure.name,
@@ -36,6 +37,7 @@ void main() {
     definition: 'Mine.',
     description: 'Of my own.',
     payload: {
+      'form': ?form,
       'template': template,
       'defaultBeats': 8,
       'params':
@@ -117,6 +119,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // A figure of the user's is listed under its own form.
+    if (glossaryEntryForm((entry ?? mine()).payload) == DanceForm.ecd.name) {
+      await tester.tap(find.byKey(const ValueKey('glossary-form-ecd')));
+      await tester.pumpAndSettle();
+    }
     await tester.enterText(
       find.byKey(const ValueKey('glossary-search')),
       (entry ?? mine()).name,
@@ -177,6 +184,25 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('glossary-custom-rename-mine')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('compound-editor')), findsOneWidget);
+  });
+
+  testWidgets('an English figure named like a shipped figure is marked Rename '
+      'needed, not offered a switch to contra\'s', (tester) async {
+    // English has a swing too, so the name is taken in its own form; the
+    // switch maps onto contra's figures only.
+    await pump(tester, entry: mine(form: DanceForm.ecd.name));
+    expect(
+      find.byKey(const ValueKey('glossary-custom-rename-needed')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-shipped-name')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+      findsNothing,
+    );
   });
 
   testWidgets('a figure no shipped figure is named is offered no switch', (

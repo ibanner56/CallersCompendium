@@ -86,7 +86,6 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
     // Each is checked for a rename against every entry, terms included.
     final all = resolveCustomGlossary(
       _entries,
-      taxonomy: contraTaxonomy,
       dialects: [
         dialect,
         ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,

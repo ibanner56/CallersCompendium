@@ -68,10 +68,7 @@ void main() {
     );
     expect(result.reports, isEmpty);
 
-    final items = resolveCustomGlossary(
-      await reader.userGlossary.listAll(),
-      taxonomy: contraTaxonomy,
-    );
+    final items = resolveCustomGlossary(await reader.userGlossary.listAll());
     final flagged = {
       for (final item in items)
         if (item.renameNeeded) item.entry.id,

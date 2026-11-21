@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/show_custom_figures_scope.dart';
+import '../glossary/custom_figures.dart';
 import '../glossary/cc_term_import.dart';
 import '../glossary/user_figure_import.dart';
 import '../theme/app_spacing.dart';
@@ -2433,7 +2434,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         if (item.kind != UserFigureImportKind.same &&
             glossaryNameCollisions(
               item.incoming.name,
-              taxonomy: contraTaxonomy,
+              taxonomy: glossaryEntryNameTaxonomy(item.incoming.payload),
               dialects: dialects,
               shorthandTokens: tokens,
               // Taking theirs replaces the figure with the same id, so its
