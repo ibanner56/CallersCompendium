@@ -6506,8 +6506,14 @@
   "@exportNamedPhrases": {
     "description": "An English country dance's named phrases on a printed or shared dance card, after the Phrase label: {order} is the phrases in playing order, such as AAB (letters, not translated); {bars} is each phrase's length, such as \"A 4 bars, B 8 bars\", joined by exportNamedPhraseSeparator. Use the locale's parentheses.",
     "placeholders": {
-      "order": {"type": "String", "example": "AAB"},
-      "bars": {"type": "String", "example": "A 4 bars, B 8 bars"}
+      "order": {
+        "type": "String",
+        "example": "AAB"
+      },
+      "bars": {
+        "type": "String",
+        "example": "A 4 bars, B 8 bars"
+      }
     }
   },
   "exportNamedPhraseSeparator": ", ",

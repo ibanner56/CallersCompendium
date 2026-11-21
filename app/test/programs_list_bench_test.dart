@@ -34,119 +34,127 @@ void main() {
   final count = int.tryParse(Platform.environment['PROGRAMS_BENCH'] ?? '');
   final now = DateTime.utc(2026, 1, 1);
 
-  testWidgets('programs list with $count programs', (tester) async {
-    final n = count!;
-    final repos = openTestRepositories();
-    await tester.runAsync(() async {
-      for (var i = 0; i < 48; i++) {
-        await repos.dances.create(
-          Dance(
-            id: 'd$i',
-            title: 'Dance $i',
-            form: i < 24 ? DanceForm.contra : DanceForm.ecd,
-            createdAt: now,
-            updatedAt: now,
+  testWidgets(
+    'programs list with ${count ?? 'PROGRAMS_BENCH'} programs',
+    (tester) async {
+      final n = count!;
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      await tester.runAsync(() async {
+        for (var i = 0; i < 48; i++) {
+          await repos.dances.create(
+            Dance(
+              id: 'd$i',
+              title: 'Dance $i',
+              form: i < 24 ? DanceForm.contra : DanceForm.ecd,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+        }
+        for (var p = 0; p < n; p++) {
+          // A third contra, a third English, a third both.
+          final kind = p % 3;
+          String danceFor(int slot) => switch (kind) {
+            0 => 'd${slot % 24}',
+            1 => 'd${24 + slot % 24}',
+            _ => slot.isEven ? 'd${slot % 24}' : 'd${24 + slot % 24}',
+          };
+          await repos.programs.create(
+            Program(
+              id: 'p$p',
+              title: 'Program ${p.toString().padLeft(4, '0')}',
+              slots: [
+                for (var s = 0; s < 16; s++)
+                  ProgramSlot(id: 'p$p-s$s', position: s, danceId: danceFor(s)),
+              ],
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+        }
+      });
+
+      final results = <String, Duration>{};
+      Future<void> timed(String label, Future<void> Function() body) async {
+        final watch = Stopwatch()..start();
+        await body();
+        watch.stop();
+        results[label] = watch.elapsed;
+      }
+
+      Future<void> settle() async {
+        // Let the database's stream deliver, then lay out.
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pumpAndSettle();
+      }
+
+      await tester.binding.setSurfaceSize(const Size(600, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await timed('open the list', () async {
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            builder: (context, child) =>
+                RepositoriesScope(repositories: repos, child: child!),
+            home: const ProgramsListScreen(),
           ),
         );
-      }
-      for (var p = 0; p < n; p++) {
-        // A third contra, a third English, a third both.
-        final kind = p % 3;
-        String danceFor(int slot) => switch (kind) {
-          0 => 'd${slot % 24}',
-          1 => 'd${24 + slot % 24}',
-          _ => slot.isEven ? 'd${slot % 24}' : 'd${24 + slot % 24}',
-        };
-        await repos.programs.create(
-          Program(
-            id: 'p$p',
-            title: 'Program ${p.toString().padLeft(4, '0')}',
-            slots: [
-              for (var s = 0; s < 16; s++)
-                ProgramSlot(id: 'p$p-s$s', position: s, danceId: danceFor(s)),
-            ],
-            createdAt: now,
-            updatedAt: now,
+        await settle();
+      });
+      expect(find.byType(ProgramListTile), findsWidgets);
+      final built = tester
+          .widgetList(find.byType(ProgramListTile, skipOffstage: false))
+          .length;
+
+      // The first tap also pays for first use (hit testing, the chip's
+      // animation), so it reads high at any size.
+      await timed('first chip tap, one frame', () async {
+        await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+        await tester.pump();
+      });
+      await tester.pumpAndSettle();
+      var frames = 0;
+      await timed('clear it, until it settles', () async {
+        await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+        frames = await tester.pumpAndSettle();
+      });
+      final settleFrames = frames;
+      await timed('choose the Contra chip', () async {
+        await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+        await tester.pumpAndSettle();
+      });
+      await timed('switch to Includes', () async {
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(const ValueKey('programs-form-match')),
+            matching: find.text('Includes'),
           ),
         );
-      }
-    });
+        await tester.pumpAndSettle();
+      });
+      await timed('a dance changes type, until the list settles', () async {
+        final dance = (await tester.runAsync(
+          () => repos.dances.getById('d0'),
+        ))!;
+        await tester.runAsync(
+          () => repos.dances.update(dance.copyWith(form: DanceForm.ecd)),
+        );
+        await settle();
+      });
 
-    final results = <String, Duration>{};
-    Future<void> timed(String label, Future<void> Function() body) async {
-      final watch = Stopwatch()..start();
-      await body();
-      watch.stop();
-      results[label] = watch.elapsed;
-    }
-
-    Future<void> settle() async {
-      // Let the database's stream deliver, then lay out.
-      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-      await tester.pumpAndSettle();
-    }
-
-    await tester.binding.setSurfaceSize(const Size(600, 1200));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await timed('open the list', () async {
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: testLocalizationsDelegates,
-          supportedLocales: testSupportedLocales,
-          builder: (context, child) =>
-              RepositoriesScope(repositories: repos, child: child!),
-          home: const ProgramsListScreen(),
-        ),
-      );
-      await settle();
-    });
-    expect(find.byType(ProgramListTile), findsWidgets);
-    final built = tester
-        .widgetList(find.byType(ProgramListTile, skipOffstage: false))
-        .length;
-
-    // The first tap also pays for first use (hit testing, the chip's
-    // animation), so it reads high at any size.
-    await timed('first chip tap, one frame', () async {
-      await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
-      await tester.pump();
-    });
-    await tester.pumpAndSettle();
-    var frames = 0;
-    await timed('clear it, until it settles', () async {
-      await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
-      frames = await tester.pumpAndSettle();
-    });
-    final settleFrames = frames;
-    await timed('choose the Contra chip', () async {
-      await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
-      await tester.pumpAndSettle();
-    });
-    await timed('switch to Includes', () async {
-      await tester.tap(
-        find.descendant(
-          of: find.byKey(const ValueKey('programs-form-match')),
-          matching: find.text('Includes'),
-        ),
-      );
-      await tester.pumpAndSettle();
-    });
-    await timed('a dance changes type, until the list settles', () async {
-      final dance = (await tester.runAsync(() => repos.dances.getById('d0')))!;
-      await tester.runAsync(
-        () => repos.dances.update(dance.copyWith(form: DanceForm.ecd)),
-      );
-      await settle();
-    });
-
-    // ignore: avoid_print
-    print(
-      'Programs list, $n programs x 16 slots ($built rows built; a chip '
-      'settles in $settleFrames frames):',
-    );
-    for (final MapEntry(:key, :value) in results.entries) {
       // ignore: avoid_print
-      print('  ${key.padRight(48)} ${value.inMilliseconds} ms');
-    }
-  }, skip: count == null);
+      print(
+        'Programs list, $n programs x 16 slots ($built rows built; a chip '
+        'settles in $settleFrames frames):',
+      );
+      for (final MapEntry(:key, :value) in results.entries) {
+        // ignore: avoid_print
+        print('  ${key.padRight(48)} ${value.inMilliseconds} ms');
+      }
+    },
+    // testWidgets takes no skip reason; the name says how to run it.
+    skip: count == null,
+  );
 }

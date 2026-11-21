@@ -205,6 +205,23 @@ void main() {
     );
   });
 
+  testWidgets('an English figure named like one of contra\'s figures is '
+      'offered the switch, since English dances use them too', (tester) async {
+    // English ships no allemande of its own, so the name matches contra's.
+    await pump(
+      tester,
+      entry: mine(name: 'allemande', form: DanceForm.ecd.name),
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-shipped-name')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a figure no shipped figure is named is offered no switch', (
     tester,
   ) async {

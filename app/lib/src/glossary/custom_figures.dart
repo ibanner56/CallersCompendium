@@ -158,3 +158,43 @@ Map<String, Object?>? previewArguments(
   }
   return args;
 }
+
+/// The ids, as they came, of the shared figures in [items] whose name is
+/// taken here (#1023): by one of the app's figures for the figure's own form
+/// ([glossaryEntryNameTaxonomy]), a dialect name, a shorthand, one of the
+/// user's entries in [live], or another figure the file brings. A figure
+/// already here as it came is never listed.
+Set<String> importedFiguresWithTakenNames(
+  List<UserFigureImportItem> items, {
+  required List<UserGlossaryEntry> live,
+  Iterable<Dialect> dialects = const [],
+  Iterable<String> shorthandTokens = const [],
+}) {
+  return {
+    for (final item in items)
+      if (item.kind != UserFigureImportKind.same &&
+          glossaryNameCollisions(
+            item.incoming.name,
+            taxonomy: glossaryEntryNameTaxonomy(item.incoming.payload),
+            dialects: dialects,
+            shorthandTokens: shorthandTokens,
+            // Taking theirs replaces the figure with the same id, so its
+            // name is not a clash; a copy's id belongs to another entry.
+            userEntryNames: [
+              for (final entry in live)
+                if (item.kind != UserFigureImportKind.differs ||
+                    entry.id != item.incoming.id)
+                  entry.name,
+              // Another figure this file brings may take the name too.
+              for (final other in items)
+                if (other.kind != UserFigureImportKind.same &&
+                    !identical(other, item))
+                  other.incoming.name,
+            ],
+            exceptUserFigureId: item.kind == UserFigureImportKind.copy
+                ? null
+                : item.incoming.id,
+          ).isNotEmpty)
+        item.incoming.id,
+  };
+}

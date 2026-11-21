@@ -983,8 +983,9 @@ The Glossary lists them too, when it is shown. While it is on:
   figures for its own dance form: an English figure of yours named *Siding*
   needs a new name, a contra one doesn't.
 - If a later version of the app comes with a figure that has the name of one
-  of your new contra figures, your figure's page says so, with two choices. (A
-  figure of another form is marked **Rename needed** instead.)
+  of your new figures, your figure's page says so, with two choices. (When the
+  app's figure is one of its English figures, such as *Swing* for an English
+  figure of yours, yours is marked **Rename needed** instead.)
   **Rename mine** opens it to give it another name. **Switch to the app's figure**
   opens a page where you choose which of the app's figure's parameters each of
   yours becomes, and which of its values each of your options becomes; where a

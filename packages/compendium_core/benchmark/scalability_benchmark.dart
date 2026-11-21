@@ -385,7 +385,6 @@ Future<void> main() async {
       );
     }
 
-    // 3. Whole-collection author sort (match-all filter).
     // 2d. The programs list (ADR-006 program types): what it reads on open
     // and after every write. It lists every program and, beside them, each
     // program's dance forms in one query; a dance edit re-runs only the
@@ -427,6 +426,7 @@ Future<void> main() async {
       );
     }
 
+    // 3. Whole-collection author sort (match-all filter).
     if (wants('author')) {
       results.add(
         await _measure(dbPath, 'Author sort — whole collection', (

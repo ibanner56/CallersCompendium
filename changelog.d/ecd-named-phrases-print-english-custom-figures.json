@@ -5,7 +5,7 @@
     "changed": [
       "Printed cards, PDFs and copied text show an English dance's named phrases the way callers write them, such as AAB (A 4 bars, B 8 bars), instead of A:2*4*2 + B:1*8*2, with your language's punctuation (full-width in Japanese).",
       "A combination made for English dances offers English figures, can be saved with them, shows in the Glossary as usable, and can be picked in English dances and given a shorthand.",
-      "The Glossary marks an English figure of yours Rename needed when one of the app's English figures has its name, as the editor already warned; only a contra figure is offered the switch to the app's figure."
+      "The Glossary marks an English figure of yours Rename needed when one of the app's English figures has its name, as the editor already warned, instead of offering to switch it to a contra figure of that name."
     ]
   },
   "core": {

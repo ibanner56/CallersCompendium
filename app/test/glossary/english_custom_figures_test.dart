@@ -70,5 +70,27 @@ void main() {
       ]).single;
       expect(item.renameNeeded, isTrue);
     });
+
+    test('a shared figure being imported is checked against its own form '
+        'too', () {
+      expect(
+        importedFiguresWithTakenNames([
+          UserFigureImportItem(
+            incoming: figureNamed('english', 'Siding', DanceForm.ecd),
+            kind: UserFigureImportKind.add,
+          ),
+        ], live: const []),
+        {'english'},
+      );
+      expect(
+        importedFiguresWithTakenNames([
+          UserFigureImportItem(
+            incoming: figureNamed('contra', 'Siding', DanceForm.contra),
+            kind: UserFigureImportKind.add,
+          ),
+        ], live: const []),
+        isEmpty,
+      );
+    });
   });
 }
