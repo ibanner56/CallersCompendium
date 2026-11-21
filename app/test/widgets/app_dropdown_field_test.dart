@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/widgets/app_shortcuts.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -401,6 +402,33 @@ void main() {
       expect(_shown(tester), 'Bravo');
     });
 
+    // On every platform a mouse press outside a focused text field would take
+    // its focus, so a filterable field (focused while it filters) would lose
+    // it to the press on an entry even on a tablet with a mouse, and the
+    // blur would close the menu and put the filter back under the pointer.
+    testWidgets('a mouse click picks from the filtered menu', (tester) async {
+      String? picked = 'a';
+      await _pump(
+        tester,
+        value: 'a',
+        filterable: true,
+        onChanged: (v) => picked = v,
+      );
+      await press(tester, find.byKey(_fieldKey), kind: PointerDeviceKind.mouse);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(_fieldKey), 'rav');
+      await tester.pumpAndSettle();
+      expect(find.text('None'), findsNothing, reason: 'the menu is filtered');
+      await press(
+        tester,
+        dropdownEntry('Bravo'),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      expect(picked, 'b');
+      expect(_shown(tester), 'Bravo');
+    }, variant: TargetPlatformVariant.all());
+
     testWidgets('a scroll the user makes closes the menu for good', (
       tester,
     ) async {
@@ -577,6 +605,119 @@ void main() {
         ),
       );
       expect(field.focusNode.hasFocus, isFalse);
+    }, variant: TargetPlatformVariant.desktop());
+
+    // A text field drops its focus on a press outside itself, and the menu
+    // is outside it. Had the press on an entry taken the field's focus, the
+    // menu, which closes on that blur, would be gone before the release, and
+    // no click would pick anything (#2292).
+    testWidgets('a mouse click picks an entry, and the field keeps the '
+        'focus', (tester) async {
+      String? picked = 'a';
+      await _pump(tester, value: 'a', onChanged: (v) => picked = v);
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      await press(tester, dropdownEntry('Bravo'));
+      await tester.pumpAndSettle();
+      expect(picked, 'b');
+      expect(_shown(tester), 'Bravo');
+      expect(find.byType(MenuItemButton), findsNothing);
+      final field = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(field.focusNode.hasFocus, isTrue);
+    }, variant: TargetPlatformVariant.desktop());
+
+    // A press inside the menu that picks nothing (a right-click, the menu's
+    // padding, a press dragged off its entry) leaves the menu open. It must
+    // leave the field its focus too, or Esc would go back past a menu still
+    // on screen and Tab would leave it open over the next field.
+    testWidgets('a press in the menu that picks nothing leaves the keys with '
+        'the menu', (tester) async {
+      final pageEsc = await _pumpWithPageEsc(tester);
+      final field = find.descendant(
+        of: find.byKey(_fieldKey),
+        matching: find.byType(EditableText),
+      );
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      final rightClick = await tester.createGesture(
+        kind: PointerDeviceKind.mouse,
+        buttons: kSecondaryMouseButton,
+      );
+      await rightClick.down(tester.getCenter(dropdownEntry('Bravo')));
+      await tester.pump();
+      await rightClick.up();
+      await rightClick.removePointer();
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets, reason: 'still open');
+      expect(tester.widget<EditableText>(field).focusNode.hasFocus, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsNothing);
+      expect(pageEsc(), 0, reason: 'Esc closed the menu, not the page');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(pageEsc(), 1);
+    }, variant: TargetPlatformVariant.desktop());
+
+    testWidgets('a press on the menu\'s padding, then Tab, leaves no menu '
+        'open', (tester) async {
+      await _pump(tester, value: 'a', onChanged: (_) {});
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      // Just inside the menu's top edge, above its first entry.
+      final menu = tester.getRect(
+        find
+            .ancestor(
+              of: dropdownEntry('None'),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      final first = tester.getRect(dropdownEntry('None'));
+      expect(first.top, greaterThan(menu.top), reason: 'the menu has padding');
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await gesture.down(Offset(first.center.dx, (menu.top + first.top) / 2));
+      await tester.pump();
+      await gesture.up();
+      await gesture.removePointer();
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets, reason: 'still open');
+      expect(
+        tester
+            .widget<EditableText>(
+              find.descendant(
+                of: find.byKey(_fieldKey),
+                matching: find.byType(EditableText),
+              ),
+            )
+            .focusNode
+            .hasFocus,
+        isTrue,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsNothing);
+    }, variant: TargetPlatformVariant.desktop());
+
+    testWidgets('the window losing focus closes the menu', (tester) async {
+      await _pump(tester, value: 'a', onChanged: (_) {});
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      addTearDown(
+        () => tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsNothing);
     }, variant: TargetPlatformVariant.desktop());
 
     testWidgets('Tab away closes an open menu', (tester) async {

@@ -497,12 +497,12 @@ still occupies the key, so the repair is still owed and still blocked.
 *Write the unfiltered lookup first — it does not exist, and the accessor you
 will reach for is wrong.* Telling a tombstone from a hard-deleted row needs a
 read that ignores `deleted_at`, and all three in-scope repositories filter:
-`choreographer_repository.dart:67`, `tag_repository.dart:82` and
-`custom_field_repository.dart:74` each `where` on `deletedAt.isNull()`, and none
+`ChoreographerRepository.getById`, `TagRepository.getById` and
+`CustomFieldDefRepository.getById` each `where` on `deletedAt.isNull()`, and none
 takes an `includeDeleted` parameter. Both states come back `null`, so the
 natural implementation retires the entries the spec forbids retiring and drops
 owed repairs with no error anywhere. `DanceRepository.getById` *does* take
-`includeDeleted` (`dance_repository.dart:685`), which makes the pattern look
+`includeDeleted` (`DanceRepository.getById`), which makes the pattern look
 uniform when it is not. The same lookup serves retry's value read, since a
 recorded row may legitimately be a tombstone. Three outcomes, not two: live,
 tombstoned, absent.
