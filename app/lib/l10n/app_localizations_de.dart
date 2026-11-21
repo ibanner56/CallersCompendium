@@ -2169,6 +2169,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeScreenNoMatches => 'Keine Designs entsprechen Ihrer Suche.';
 
   @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Designs',
+      one: '1 Design',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeScreenNewCustomTheme => 'Eigenes Design';
 
   @override

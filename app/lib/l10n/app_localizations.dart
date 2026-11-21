@@ -3126,6 +3126,12 @@ abstract class AppLocalizations {
   /// **'No themes match your search.'**
   String get themeScreenNoMatches;
 
+  /// How many themes match the Theme screen search, shown above the results and read out by screen readers as the search changes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 theme} other{{count} themes}}'**
+  String themeScreenResultCount(int count);
+
   /// Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use.
   ///
   /// In en, this message translates to:

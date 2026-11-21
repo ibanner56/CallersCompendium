@@ -4,9 +4,10 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart' show SystemChannels;
+import 'package:flutter/services.dart' show LogicalKeyboardKey, SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
@@ -64,6 +65,7 @@ import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 import 'package:compendium_app/src/screens/theme_editor_screen.dart';
 import 'package:compendium_app/src/theme/app_breakpoints.dart';
+import 'package:compendium_app/src/widgets/hardware_keyboard_presence.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1881,6 +1883,100 @@ void main() {
       expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
       expect(shownBuiltIns(tester), isEmpty);
       expect(find.byKey(const ValueKey('theme-group-custom')), findsNothing);
+    });
+
+    testWidgets('the search box takes focus on arrival where a keyboard is '
+        'assumed (desktop)', (tester) async {
+      HardwareKeyboardPresence.debugReset();
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      try {
+        await _pumpSettings(tester, section: 'appearance');
+        await _openThemeScreen(tester);
+        final field = tester.widget<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('theme-search')),
+            matching: find.byType(EditableText),
+          ),
+        );
+        expect(field.focusNode.hasFocus, isTrue);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('on a phone the search box waits for a tap, so no on-screen '
+        'keyboard covers the gallery', (tester) async {
+      HardwareKeyboardPresence.debugReset();
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await _pumpSettings(tester, section: 'appearance');
+        await _openThemeScreen(tester);
+        final field = tester.widget<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('theme-search')),
+            matching: find.byType(EditableText),
+          ),
+        );
+        expect(field.focusNode.hasFocus, isFalse);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('a tablet whose hardware keyboard has been used focuses the '
+        'search box too', (tester) async {
+      HardwareKeyboardPresence.debugReset();
+      addTearDown(HardwareKeyboardPresence.debugReset);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await _pumpSettings(tester, section: 'appearance');
+        // The app shell starts the listener at launch; this harness has no
+        // shell, so start it here, as the shell would.
+        HardwareKeyboardPresence.ensureListening();
+        // A letter key only a hardware keyboard sends.
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+        await tester.pumpAndSettle();
+        await _openThemeScreen(tester);
+        final field = tester.widget<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('theme-search')),
+            matching: find.byType(EditableText),
+          ),
+        );
+        expect(field.focusNode.hasFocus, isTrue);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('a search announces how many themes match', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      // No count until there is a search to count.
+      expect(find.byKey(const ValueKey('theme-result-count')), findsNothing);
+      await search(tester, 'nord');
+      final count = find.byKey(const ValueKey('theme-result-count'));
+      expect(tester.widget<Text>(count).data, '2 themes');
+      expect(
+        tester.getSemantics(count),
+        isSemantics(label: '2 themes', isLiveRegion: true),
+      );
+      await search(tester, 'frappe');
+      expect(tester.widget<Text>(count).data, '1 theme');
+      handle.dispose();
+    });
+
+    testWidgets('no match is announced too', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'zzzz');
+      expect(
+        tester.getSemantics(find.text('No themes match your search.')),
+        isSemantics(label: 'No themes match your search.', isLiveRegion: true),
+      );
+      handle.dispose();
     });
 
     testWidgets('no match says so, and clearing brings the headings back', (
