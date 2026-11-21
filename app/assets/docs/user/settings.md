@@ -387,7 +387,9 @@ There's a **High contrast** theme for maximum legibility — see the
 
 Type in **Search themes…** to find a theme by its name, or by a color or
 character word such as *purple*, *green*, *warm*, *pastel*, *muted* or *retro*.
-The headings give way to just the matching themes. Every word you type has to
+On a computer the box is ready to type in as soon as the screen opens; on a
+phone, tap it first. The headings give way to just the matching themes, with a
+count of them above, which a screen reader reads out as you type. Every word you type has to
 match, so *dark purple* finds the dark themes that are purple, and accents are
 optional: *frappe* finds *Catppuccin Frappé*.
 
