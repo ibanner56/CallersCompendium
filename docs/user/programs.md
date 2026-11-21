@@ -32,9 +32,15 @@ both), event date, venue, dance count, and a status label (**Draft**,
 first line of its details, and the status is a plain line under the title.
 Every dance counts toward the types, alternates included, but not a dance you
 have deleted. When your programs have more than one mix of types, chips above
-the list show only the programs of exactly that mix: **Contra** leaves out a
-program that also has English dances. The program you have open stays in the
-list whatever its types. Tap the chip again to show every program.
+the list filter it by type. With **Only** (the default) beside them, there is
+a chip for each mix, and it shows the programs of exactly that mix:
+**Contra** leaves out a program that also has English dances. With
+**Includes**, there is a chip for each type, and it shows every program that
+has that type: **Contra** lists contra programs and programs with both. A
+type that every program with dances has gets no chip there, since it would
+hide nothing.
+The program you have open stays in the list whatever its types. Tap the chip
+again to show every program.
 Searching programs finds them by their types too, so `english` lists every
 program with an English dance. The dance count is
 the number of dances the evening is planned for, so alternates and breaks are
