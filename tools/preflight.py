@@ -332,6 +332,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "doc-line-citations",
+        "docs' `file.dart:N` line citations still land on code (count ceiling)",
+        (
+            py("tools/ci/test_check_doc_line_citations.py"),
+            py("tools/ci/check_doc_line_citations.py"),
+        ),
+    ),
+    Step(
         "kdf-override",
         "no production code assigns the test-only sync KDF iteration override",
         (

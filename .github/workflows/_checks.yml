@@ -141,6 +141,15 @@ jobs:
         run: python3 tools/ci/test_check_stale_comment_refs.py
       - name: Guard comment citations (count ceiling)
         run: python3 tools/ci/check_stale_comment_refs.py
+      # Ratchet: `file.dart:N` line citations in docs/**/*.md (not docs/dev/audits/)
+      # must land on a code line; a citation that slid onto a blank line, a
+      # comment or past the end of the file is stale. Count ceiling:
+      # tools/ci/doc_line_citations_ceiling.json holds the backlog, which may only
+      # shrink -- and must be lowered in the same change that shrinks it.
+      - name: Test the doc line citation ceiling
+        run: python3 tools/ci/test_check_doc_line_citations.py
+      - name: Guard doc line citations (count ceiling)
+        run: python3 tools/ci/check_doc_line_citations.py
       # Ratchet: `syncIdentityKdfIterations` is a @visibleForTesting mutable
       # global in lib/ that lowers the sync identity PBKDF2 cost for tests. No
       # production file (app, packages, or server lib/ and bin/) may assign it, and its default must stay the private
