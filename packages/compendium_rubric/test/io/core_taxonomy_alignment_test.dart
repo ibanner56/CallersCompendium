@@ -148,28 +148,45 @@ void main() {
       }
     });
 
-    test('a pinned parameter is not overridable by the record', () {
-      // The pins *are* the alias: a see saw whose record also said
-      // `shoulder: right` would not be a see saw.
+    test('a stated value wins over a pin, as upstream reads it', () {
+      // `Taxonomy.effectiveParams` lets a stated param win and uses the pin
+      // only when it is absent; `resolvedMoveId` then routes the figure to the
+      // target move. So an alias stating a contradicting value must build
+      // exactly what the target builds from the same params -- for
+      // `long_lines` stating `formation: inARing`, a deferral, not long lines.
+      // Each contradiction is a real value in the param's domain: a value
+      // outside it would refuse for its own reason and prove nothing.
+      var checked = 0;
       for (final entry in core.contraTaxonomy.aliases.entries) {
-        if (entry.key == 'pull_by_dancers' ||
-            entry.key == 'pull_by_direction') {
-          continue;
+        final target = entry.value.targetMove;
+        final def = core.contraTaxonomy.moves[target]!;
+        for (final pin in entry.value.pinnedParams.entries) {
+          final spec = def.params[pin.key]!;
+          final contradiction = switch (pin.value) {
+            'left' => 'right',
+            'right' => 'left',
+            _ => spec.choices?.firstWhere(
+              (choice) => choice != pin.value && choice != 'unspecified',
+            ),
+          };
+          if (contradiction == null) continue;
+          final stated = {pin.key: contradiction};
+          checked++;
+          expect(
+            buildFigure(entry.key, stated),
+            equals(buildFigure(target, stated)),
+            reason:
+                '${entry.key} stating ${pin.key}: $contradiction should read '
+                'as $target does',
+          );
         }
-        final pins = entry.value.pinnedParams;
-        if (pins.isEmpty) continue;
-        if (buildFigure(entry.value.targetMove, const {}) == null) continue;
-
-        final contradicted = {
-          for (final pin in pins.entries)
-            pin.key: pin.value == 'left' ? 'right' : 'left',
-        };
-        expect(
-          buildFigure(entry.key, contradicted),
-          equals(buildFigure(entry.key, const {})),
-          reason: '${entry.key} let a record override its pinned $pins',
-        );
       }
+      // Every pinned alias but none of them skipped silently.
+      expect(checked, greaterThanOrEqualTo(6));
+    });
+
+    test('long_lines in another formation is not danced as long lines', () {
+      expect(buildFigure('long_lines', const {'formation': 'inARing'}), isNull);
     });
 
     test('the v35 pull-by migration aliases preserve explicit values', () {

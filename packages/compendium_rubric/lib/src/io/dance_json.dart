@@ -866,23 +866,22 @@ OperationInvocation _parseFigure(Object? raw, int index) {
     ...(params as Map<String, Object?>?) ?? const {},
   };
   if (alias != null) {
-    if (move == 'pull_by_dancers' || move == 'pull_by_direction') {
-      // Migration pins fill only values the v34 record did not state. `dir`
-      // is the legacy spelling of `where`, so either key suppresses the
-      // direction alias's default while preserving source-key diagnostics.
-      for (final pin in alias.pinnedParams.entries) {
-        if (move == 'pull_by_direction' &&
-            pin.key == 'where' &&
-            (figureParams.containsKey('where') ||
-                figureParams.containsKey('dir'))) {
-          continue;
-        }
-        figureParams.putIfAbsent(pin.key, () => pin.value);
+    // A pin fills only a value the record does not state, exactly as
+    // `Taxonomy.effectiveParams` reads it upstream. A stated value that
+    // contradicts the pin is not this alias any more: core routes it to the
+    // target move (`resolvedMoveId`), so a `long_lines` stating
+    // `formation: inARing` is a forward and back in a ring, and a `see_saw`
+    // stating `shoulder: right` is a plain do si do. Building the target from
+    // the stated value is that same reading.
+    for (final pin in alias.pinnedParams.entries) {
+      // `dir` is the legacy spelling of `where`, so either key suppresses the
+      // direction alias's pin while preserving source-key diagnostics.
+      if (move == 'pull_by_direction' &&
+          pin.key == 'where' &&
+          figureParams.containsKey('dir')) {
+        continue;
       }
-    } else {
-      // For semantic aliases the pins *are* the alias: a `see_saw` whose
-      // record also said `shoulder:right` is still a see saw.
-      figureParams.addAll(alias.pinnedParams);
+      figureParams.putIfAbsent(pin.key, () => pin.value);
     }
   }
 
