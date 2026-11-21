@@ -201,7 +201,7 @@ final class CourtesyTurn extends Operation {
   const CourtesyTurn({
     this.who = WhoSet.partners,
     this.whom,
-    this.direction = SpinDirection.clockwise,
+    this.direction = SpinDirection.counterclockwise,
     this.endFacing,
   });
 
@@ -212,8 +212,9 @@ final class CourtesyTurn extends Operation {
   /// `null` is the upstream `unspecified` sentinel; no source populates it.
   final WhoSet? whom;
 
-  /// The wheel's sense. A courtesy turn is clockwise by construction, and a
-  /// 180° wheel lands the same either way, so this has no positional effect.
+  /// The wheel's sense. The ordinary courtesy turn is counterclockwise
+  /// (taxonomy v37) and the mirrored one clockwise; a 180° wheel lands the
+  /// same either way, so this has no positional effect.
   final SpinDirection direction;
 
   /// ⚠️ A **dancer relationship**, not a cardinal facing — despite the name it

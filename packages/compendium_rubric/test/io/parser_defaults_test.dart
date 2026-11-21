@@ -34,43 +34,47 @@ Operation parseFigure(String move, [Map<String, Object?> params = const {}]) {
 }
 
 /// Every registered move, and the figure a bare record must build.
+///
+/// Where `compendium_core`'s taxonomy default differs from the figure class's
+/// own constructor default (taxonomy v37 and v38 moved several), the value is
+/// stated here, so the table pins the taxonomy's meaning rather than ours.
 const Map<String, Operation> defaults = {
-  'allemande': Allemande(),
+  'allemande': Allemande(turn: 1.5),
   'balance': Balance(),
   'balance_the_ring': BalanceTheRing(),
   'box_circulate': BoxCirculate(who: WhoSet.role2s),
-  'box_the_gnat': BoxTheGnat(),
+  'box_the_gnat': BoxTheGnat(who: WhoSet.neighbors),
   'california_twirl': CaliforniaTwirl(),
   'chain': Chain(who: WhoSet.role2s),
-  'circle': Circle(turn: CircleDirection.left, places: 4),
+  'circle': Circle(turn: CircleDirection.left, places: 3),
   'courtesy_turn': CourtesyTurn(),
   'cross_trails': CrossTrails(),
   'do_si_do': DoSiDo(who: WhoSet.neighbors),
   'down_the_hall': DownTheHall(),
   'facing_star': FacingStar(),
-  'figure_8': FigureEight(lead: 'onesRole2'),
+  'figure_8': FigureEight(dir: FigureEightDir.above, lead: 'onesRole2'),
   'form_a_long_wave': FormALongWave(),
   'form_long_waves': FormLongWaves(who: WhoSet.role1s),
   'form_short_waves': FormShortWaves(centerHand: Hand.left),
+  'forward_and_back': LongLines(),
   'gate': Gate(),
   'give_and_take': GiveAndTake(),
   'hey': HeyForFour(pass1: WhoSet.role2s, length: HeyLength.half),
-  'long_lines': LongLines(),
   'mad_robin': MadRobin(who: WhoSet.role2s),
-  'orbit': Orbit(),
+  'orbit': Orbit(who: WhoSet.role1s),
   'pass_by': PassBy(),
   'pass_the_ocean': PassTheOcean(centerHand: Hand.left),
   'pass_through': PassThrough(),
   'petronella': Petronella(),
-  'poussette': Poussette(),
+  'poussette': Poussette(who: WhoSet.role1s),
   'right_left_through': RightLeftThrough(),
-  'roll_away': RollAway(),
+  'roll_away': RollAway(who: WhoSet.role1s),
   'rory_o_more': RoryOMore(),
   'shoulder_round': ShoulderRound(),
   'slide_along_set': SlideAlongSet(slide: SlideDirection.left),
-  'square_through': SquareThrough(),
+  'square_through': SquareThrough(places: 2),
   'stand_still': StandStill(),
-  'star': Star(hand: Hand.right, places: 4),
+  'star': Star(hand: Hand.left, places: 4),
   'star_promenade': StarPromenade(),
   'star_through': StarThrough(),
   'swing': Swing(who: WhoSet.partners),
@@ -83,11 +87,13 @@ const Map<String, Operation> defaults = {
   // `compendium_core`'s aliases: a target move with some params pinned. They
   // are parseable, so they are pinned here on the same footing as the rest --
   // each expectation is the target's own defaults with the pin applied.
+  'hand_cast': Gate(),
+  'long_lines': LongLines(),
   'meltdown_swing': Swing(who: WhoSet.partners, prefix: 'meltdown'),
   'pull_by_dancers': PullByDancers(),
   'pull_by_direction': PullByDirection(),
   'see_saw': DoSiDo(who: WhoSet.neighbors, shoulder: Hand.left),
-  'swat_the_flea': BoxTheGnat(hand: Hand.left),
+  'swat_the_flea': BoxTheGnat(who: WhoSet.neighbors, hand: Hand.left),
 };
 
 void main() {
@@ -227,9 +233,9 @@ void main() {
     // default is right almost everywhere, so a builder that ignored the key
     // would look correct until a left-handed record arrived.
     const lefties = <String, Operation>{
-      'allemande': Allemande(hand: Hand.left),
+      'allemande': Allemande(hand: Hand.left, turn: 1.5),
       'box_circulate': BoxCirculate(who: WhoSet.role2s, hand: Hand.left),
-      'box_the_gnat': BoxTheGnat(hand: Hand.left),
+      'box_the_gnat': BoxTheGnat(who: WhoSet.neighbors, hand: Hand.left),
       'pull_by_dancers': PullByDancers(hand: Hand.left),
       'pull_by_direction': PullByDirection(hand: Hand.left),
     };
@@ -237,6 +243,15 @@ void main() {
       test('$move reads hand:left', () {
         expect(parseFigure(move, const {'hand': 'left'}), expected);
       });
+    });
+
+    // A star's omitted hand is the left (taxonomy v38), so the same mutation
+    // shows only on a right-handed record.
+    test('star reads hand:right', () {
+      expect(
+        parseFigure('star', const {'hand': 'right'}),
+        const Star(hand: Hand.right, places: 4),
+      );
     });
 
     test('canonical pull_by reads hand:left with a stated selector', () {
@@ -279,7 +294,7 @@ void main() {
     test('a spin direction on orbit', () {
       expect(
         parseFigure('orbit', const {'turn': 'counterclockwise'}),
-        const Orbit(turn: SpinDirection.counterclockwise),
+        const Orbit(who: WhoSet.role1s, turn: SpinDirection.counterclockwise),
       );
     });
 

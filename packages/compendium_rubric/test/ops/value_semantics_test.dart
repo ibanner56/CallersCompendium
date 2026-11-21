@@ -206,7 +206,7 @@ void main() {
   checkValueSemantics(const CourtesyTurn(), const CourtesyTurn(), {
     'who': const CourtesyTurn(who: WhoSet.neighbors),
     'whom': const CourtesyTurn(whom: WhoSet.partners),
-    'direction': const CourtesyTurn(direction: SpinDirection.counterclockwise),
+    'direction': const CourtesyTurn(direction: SpinDirection.clockwise),
     'endFacing': const CourtesyTurn(endFacing: WhoSet.neighbors),
   });
 

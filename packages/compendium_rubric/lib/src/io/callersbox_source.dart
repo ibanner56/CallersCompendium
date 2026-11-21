@@ -274,7 +274,10 @@ DanceRun _adapterFailure(String label, Object error, {String? sourceId}) =>
 DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   final dance = draft.dance;
   final sourceId = draft.raw.externalId;
-  final moves = {for (final figure in dance.figures) figure.move};
+  final figures = decodedFigures(dance);
+  final moves = {
+    for (final figure in figures ?? const <core.Figure>[]) figure.move,
+  };
 
   DanceRun finish(
     DanceOutcome outcome, {
@@ -296,7 +299,16 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
     assumedProgressionAt: assumedAt,
   );
 
-  if (dance.figures.isEmpty) {
+  if (figures == null) {
+    // Not reachable from the Caller's Box adapter, which only ever builds a
+    // decoded transcription; said rather than assumed, because the type allows
+    // it and an empty list here would misreport the dance as `empty`.
+    return finish(
+      DanceOutcome.adapterFailed,
+      detail: 'the transcription could not be decoded',
+    );
+  }
+  if (figures.isEmpty) {
     return finish(DanceOutcome.empty, detail: 'the source carried no figures');
   }
   if (draft.quality.customFigures > 0) {
@@ -427,7 +439,8 @@ BridgedDance bridgeCoreDance(
   core.Dance dance, {
   bool useNextNeighborsFallback = false,
 }) {
-  final flagged = dance.figures.any((figure) => figure.progression);
+  final figures = _requireDecoded(dance);
+  final flagged = figures.any((figure) => figure.progression);
   final assumedAt = flagged
       ? null
       : (useNextNeighborsFallback
@@ -440,7 +453,7 @@ BridgedDance bridgeCoreDance(
         opIndex: assumedAt,
         detail:
             'the source flagged no figure as the progression, so figure '
-            '${assumedAt + 1} (${dance.figures[assumedAt].move}) was assumed '
+            '${assumedAt + 1} (${figures[assumedAt].move}) was assumed '
             'to be it'
             '${useNextNeighborsFallback ? ', because the positional rule did '
                       'not compile and this is the figure before the first '
@@ -455,11 +468,11 @@ BridgedDance bridgeCoreDance(
       'formation': {'shape': dance.formation.shape.name},
       'progression': dance.progression.name,
       'figures': [
-        for (var index = 0; index < dance.figures.length; index++)
+        for (var index = 0; index < figures.length; index++)
           {
-            'move': dance.figures[index].move,
-            'params': dance.figures[index].params,
-            if (dance.figures[index].progression || index == assumedAt)
+            'move': figures[index].move,
+            'params': figures[index].params,
+            if (figures[index].progression || index == assumedAt)
               'progression': true,
           },
       ],
@@ -490,21 +503,22 @@ BridgedDance bridgeCoreDance(
 ///
 /// Returns `null` only for a dance with no figures. *(User-ruled.)*
 int? assumedProgressionIndex(core.Dance dance) {
-  if (dance.figures.isEmpty) return null;
+  final figures = _requireDecoded(dance);
+  if (figures.isEmpty) return null;
 
   final shape = dance.formation.shape;
   final isBecket =
       shape == core.FormationShape.becketCw ||
       shape == core.FormationShape.becketCcw;
   if (isBecket) {
-    final opener = dance.figures.first;
+    final opener = figures.first;
     // `slide` defaults to `left` upstream, so an unparameterised slide is a
     // slide left and must be read as one.
     final slide = opener.params['slide'] ?? 'left';
     if (opener.move == 'slide_along_set' && slide == 'left') return 0;
   }
 
-  return dance.figures.length - 1;
+  return figures.length - 1;
 }
 
 /// The one alternative placement the *record itself* suggests, for when the
@@ -524,8 +538,9 @@ int? assumedProgressionIndex(core.Dance dance) {
 /// Returns `null` when no figure mentions `nextNeighbors`, or when the first
 /// mention is the opening figure and so has nothing before it.
 int? nextNeighborsProgressionIndex(core.Dance dance) {
-  for (var index = 0; index < dance.figures.length; index++) {
-    final mentions = dance.figures[index].params.values.any(
+  final figures = _requireDecoded(dance);
+  for (var index = 0; index < figures.length; index++) {
+    final mentions = figures[index].params.values.any(
       (value) => value == 'nextNeighbors' || value == 'nextNeighbor',
     );
     if (!mentions) continue;
@@ -533,3 +548,23 @@ int? nextNeighborsProgressionIndex(core.Dance dance) {
   }
   return null;
 }
+
+/// [dance]'s figures when its transcription decoded, or `null` when it did not.
+///
+/// `compendium_core` holds a transcription as a sealed [core.FigureSource]
+/// rather than a bare list, so that an undecodable one cannot be read as an
+/// empty dance by accident; this keeps that distinction instead of flattening
+/// it.
+List<core.Figure>? decodedFigures(core.Dance dance) =>
+    switch (dance.figuresSource) {
+      core.DecodedFigures(:final figures) => figures,
+      core.UnreadableFigures() => null,
+    };
+
+List<core.Figure> _requireDecoded(core.Dance dance) =>
+    decodedFigures(dance) ??
+    (throw ArgumentError.value(
+      dance.title,
+      'dance',
+      'has an undecodable transcription',
+    ));

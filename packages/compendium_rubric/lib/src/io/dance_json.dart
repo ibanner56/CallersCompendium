@@ -186,6 +186,25 @@ class _Params {
 /// Builds one figure from its `params` object.
 typedef _FigureBuilder = Operation Function(_Params params);
 
+/// The count of a `circle` or `star`, which since taxonomy v39 a dance may
+/// leave explicitly unstated.
+///
+/// Omitted, `places` means the taxonomy default; stated as `unspecified`, it
+/// means the source gave no count, and the taxonomy keeps those apart on
+/// purpose. A ring's landing depends on nothing else, so guessing the default
+/// would answer for a dance the record does not describe: the figure is
+/// deferred instead. No importer writes the sentinel today.
+int _statedPlaces(_Params p, String move, int fallback) {
+  if (p._raw['places'] == _Params._unspecified) {
+    p._fail(
+      'places',
+      '$move with an unstated number of places is deferred',
+      deferred: true,
+    );
+  }
+  return p.intOr(['places'], fallback);
+}
+
 /// The name → constructor registry (`docs/architecture.md` §9).
 ///
 /// The single boundary between the external record's `move` string and the
@@ -213,10 +232,10 @@ const Map<String, _FigureBuilder> _registry = {
   'form_a_long_wave': _buildFormALongWave,
   'form_long_waves': _buildFormLongWaves,
   'form_short_waves': _buildFormShortWaves,
+  'forward_and_back': _buildForwardAndBack,
   'gate': _buildGate,
   'give_and_take': _buildGiveAndTake,
   'hey': _buildHey,
-  'long_lines': _buildLongLines,
   'mad_robin': _buildMadRobin,
   'orbit': _buildOrbit,
   'pass_by': _buildPassBy,
@@ -262,13 +281,16 @@ Operation _buildCircle(_Params p) => Circle(
     CircleDirection.fromKey,
     CircleDirection.left,
   ),
-  places: p.intOr(['places'], 4),
+  // Taxonomy v38 moved the omitted count from 4 to 3; v39 lets a dance state
+  // `unspecified`, which is not the same as omitting it (see [_statedPlaces]).
+  places: _statedPlaces(p, 'circle', 3),
   singleFile: p.boolOr(['singleFile'], false),
 );
 
 Operation _buildStar(_Params p) => Star(
-  hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
-  places: p.intOr(['places'], 4),
+  // Taxonomy v38: an omitted hand is the left.
+  hand: p.enumOr(['hand'], Hand.fromKey, Hand.left),
+  places: _statedPlaces(p, 'star', 4),
   // Upstream spells "no stated grip" as the choice `none`; we carry it as an
   // absent value, since grip has no end-state effect either way.
   grip: switch (p.optionalString(['grip'])) {
@@ -344,7 +366,8 @@ Operation _buildHey(_Params p) => HeyForFour(
 Operation _buildAllemande(_Params p) => Allemande(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
   hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
-  turn: p.numberOr(['travel', 'turn'], 1),
+  // Taxonomy v38: an omitted travel is once and a half.
+  turn: p.numberOr(['travel', 'turn'], 1.5),
 );
 
 Operation _buildTwoHandTurn(_Params p) => TwoHandTurn(
@@ -366,7 +389,8 @@ Operation _buildMadRobin(_Params p) => MadRobin(
 );
 
 Operation _buildOrbit(_Params p) => Orbit(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
+  // Taxonomy v38: `ones` -> `role1s`.
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
   turn: p.enumOr(
     ['direction', 'turn'],
     SpinDirection.fromKey,
@@ -419,10 +443,12 @@ Operation _buildTurnAsCouples(_Params p) =>
 Operation _buildCourtesyTurn(_Params p) => CourtesyTurn(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
   whom: p.optionalEnum(['whom'], WhoSet.fromKey),
+  // Taxonomy v37: the ordinary courtesy turn is counterclockwise; a source
+  // states `clockwise` only for the mirrored one.
   direction: p.enumOr(
     ['direction'],
     SpinDirection.fromKey,
-    SpinDirection.clockwise,
+    SpinDirection.counterclockwise,
   ),
   // A dancer relationship despite the name it shares with `swing.endFacing`.
   endFacing: p.optionalEnum(['endFacing'], WhoSet.fromKey),
@@ -431,7 +457,8 @@ Operation _buildCourtesyTurn(_Params p) => CourtesyTurn(
 // --- Pair swaps ------------------------------------------------------------
 
 Operation _buildRollAway(_Params p) => RollAway(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
+  // Taxonomy v38: `neighbors` -> `role1s`.
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
   whom: p.enumOr(['whom'], WhoSet.fromKey, WhoSet.partners),
   halfSashay: p.boolOr(['halfSashay'], false),
 );
@@ -463,7 +490,8 @@ Operation _buildPassBy(_Params p) => PassBy(
 );
 
 Operation _buildBoxTheGnat(_Params p) => BoxTheGnat(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
+  // Taxonomy v38: `partners` -> `neighbors` (and so `swat_the_flea`).
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
   hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
   balance: p.boolOr(['balance'], false),
 );
@@ -482,7 +510,9 @@ Operation _buildZigZag(_Params p) => ZigZag(
 );
 
 Operation _buildPoussette(_Params p) => Poussette(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
+  // Taxonomy v38: `ones` -> `role1s`. A v39 `amount` is read only under
+  // `fraction: other`, which [Poussette] already refuses.
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
   whom: p.enumOr(['whom'], WhoSet.fromKey, WhoSet.neighbors),
   half: p.enumOr(['fraction', 'half'], TurnFraction.fromKey, TurnFraction.half),
   turn: p.enumOr(
@@ -504,7 +534,8 @@ Operation _buildSquareThrough(_Params p) => SquareThrough(
   who2: p.enumOr(['who2'], WhoSet.fromKey, WhoSet.neighbors),
   balance: p.boolOr(['balance'], true),
   hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
-  places: p.intOr(['places'], 4),
+  // Taxonomy v38: an omitted count is 2 places (8 beats).
+  places: p.intOr(['places'], 2),
 );
 
 // --- Stationary ------------------------------------------------------------
@@ -518,8 +549,24 @@ Operation _buildBalance(_Params p) => Balance(
 
 Operation _buildBalanceTheRing(_Params p) => const BalanceTheRing();
 
-Operation _buildLongLines(_Params p) =>
-    LongLines(goBack: p.boolOr(['goBack'], true));
+/// `forward_and_back` (taxonomy v39), of which `long_lines` is now the alias
+/// pinning `formation: longLines`.
+///
+/// Only long lines is modelled. Every other formation (`inARing`,
+/// `linesOfThree`, …) is a different shape on the floor, so it is deferred
+/// rather than danced as long lines.
+Operation _buildForwardAndBack(_Params p) {
+  final formation = p.optionalString(['formation']) ?? 'longLines';
+  if (formation != 'longLines') {
+    p._fail(
+      'formation',
+      'forward_and_back is modelled in long lines only; '
+          'formation:$formation is deferred',
+      deferred: true,
+    );
+  }
+  return LongLines(goBack: p.boolOr(['goBack'], true));
+}
 
 Operation _buildTurnAlone(_Params p) => TurnAlone(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.everyone),
@@ -576,9 +623,21 @@ Operation _buildGiveAndTake(_Params p) => GiveAndTake(
   give: p.boolOr(['give'], true),
 );
 
-Operation _buildFigureEight(_Params p) => FigureEight(
+Operation _buildFigureEight(_Params p) {
+  // Taxonomy v39's `double` (stored only while true) sends both couples round
+  // the weave. Ignoring it, as an unknown key would be, would dance a single
+  // figure 8 and compare that against the oracle; it is deferred instead.
+  if (p.boolOr(['double'], false)) {
+    p._fail('double', 'a double figure_8 is deferred', deferred: true);
+  }
+  return _buildSingleFigureEight(p);
+}
+
+Operation _buildSingleFigureEight(_Params p) => FigureEight(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
-  dir: p.enumOr(['where', 'dir'], FigureEightDir.fromKey, FigureEightDir.none),
+  // Taxonomy v38: an omitted `where` is `above`. `none` stays a valid stored
+  // value; neither has an effect on the landing.
+  dir: p.enumOr(['where', 'dir'], FigureEightDir.fromKey, FigureEightDir.above),
   // `lead` names a single dancer (`onesRole2`), which is outside our `who`
   // vocabulary, so it is carried verbatim rather than resolved. It is
   // descriptive only -- no net effect on the landing -- but the taxonomy gives

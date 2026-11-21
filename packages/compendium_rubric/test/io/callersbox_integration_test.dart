@@ -80,7 +80,7 @@ void main() {
         // one could never test a compile at all.
         expect(draft.quality.customFigures, 0);
         expect(draft.quality.totalFigures, 7);
-        expect(draft.dance.figures.map((figure) => figure.move), [
+        expect(decodedFigures(draft.dance)!.map((figure) => figure.move), [
           'box_the_gnat',
           'allemande',
           'swing',
@@ -99,7 +99,10 @@ void main() {
       // If this ever starts failing, the assumption below has become
       // unnecessary and should be deleted rather than kept as a fallback.
       final draft = await _draft();
-      expect(draft.dance.figures.any((figure) => figure.progression), isFalse);
+      expect(
+        decodedFigures(draft.dance)!.any((figure) => figure.progression),
+        isFalse,
+      );
     });
   });
 
@@ -156,7 +159,7 @@ void main() {
       // one that succeeds must be the one the rule picks.
       final dance = (await _draft()).dance;
       final outcomes = <int, DanceOutcome>{};
-      for (var index = 0; index < dance.figures.length; index++) {
+      for (var index = 0; index < decodedFigures(dance)!.length; index++) {
         final record = bridgeCoreDance(dance).record;
         final figures = record['figures']! as List<Object?>;
         for (var i = 0; i < figures.length; i++) {

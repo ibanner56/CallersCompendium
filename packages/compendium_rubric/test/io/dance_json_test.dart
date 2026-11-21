@@ -271,7 +271,7 @@ void main() {
       final circle = dance.figures.single.operation as Circle;
 
       expect(circle.turn, CircleDirection.left);
-      expect(circle.places, 4);
+      expect(circle.places, 3);
     });
 
     test('the `unspecified` sentinel is treated as absent', () {
@@ -645,6 +645,54 @@ void main() {
 
       expect(error.path, 'figures[0].params.who');
       expect(error.deferred, isTrue);
+    });
+
+    group('taxonomy v39 parameters this compiler does not model', () {
+      // Each is a value an unknown-key-tolerant reader would otherwise drop or
+      // read as the default, compiling a different dance than the record says.
+      test('a forward and back outside long lines is deferred', () {
+        final error = _parseErr(
+          _record(
+            '{"move": "forward_and_back", "params": {"formation": "inARing"}}',
+          ),
+        );
+
+        expect(error.path, 'figures[0].params.formation');
+        expect(error.deferred, isTrue);
+      });
+
+      test('a forward and back in long lines is long lines', () {
+        final dance = _parseOk(
+          _record(
+            '{"move": "forward_and_back", '
+            '"params": {"formation": "longLines", "goBack": false}}',
+          ),
+        );
+
+        expect(dance.figures.single.operation, const LongLines(goBack: false));
+      });
+
+      test('a double figure 8 is deferred, not danced single', () {
+        final error = _parseErr(
+          _record('{"move": "figure_8", "params": {"double": true}}'),
+        );
+
+        expect(error.path, 'figures[0].params.double');
+        expect(error.deferred, isTrue);
+      });
+
+      for (final move in ['circle', 'star']) {
+        test('a $move with its places stated unspecified is deferred', () {
+          // Omitting `places` means the default; stating `unspecified` means
+          // the source gave no count, and v39 keeps the two apart.
+          final error = _parseErr(
+            _record('{"move": "$move", "params": {"places": "unspecified"}}'),
+          );
+
+          expect(error.path, 'figures[0].params.places');
+          expect(error.deferred, isTrue);
+        });
+      }
     });
 
     test('a malformed value is NOT deferred, however it fails', () {
