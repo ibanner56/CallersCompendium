@@ -5086,6 +5086,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsMoreActions => 'More actions';
 
   @override
+  String get programsFormMatchLabel => 'Match types';
+
+  @override
+  String get programsFormMatchOnly => 'Only';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programs of only the chosen types';
+
+  @override
+  String get programsFormMatchIncludes => 'Includes';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programs that have the chosen type';
+
+  @override
   String get danceSectionFigures => 'Figures';
 
   @override

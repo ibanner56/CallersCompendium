@@ -145,10 +145,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Map<String, Set<DanceForm>> _formsById = const {};
   StreamSubscription<Map<String, Set<DanceForm>>>? _formsSub;
 
-  /// The type filter: only programs whose dances are of exactly these forms
-  /// ([sameForms]), and the open program whatever its forms. Null shows every
-  /// program. Dropped once no listed program matches it. Not saved.
+  /// The type filter: only programs whose dances are of these forms, compared
+  /// as [_formMatch] says ([formsMatch]), and the open program whatever its
+  /// forms. Null shows every program. Dropped once it is no longer one of the
+  /// chips. Not saved.
   Set<DanceForm>? _formFilter;
+
+  /// Whether the type filter keeps programs of only the chosen forms or every
+  /// program that includes them. Not saved, like the filter.
+  FormMatch _formMatch = FormMatch.only;
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
@@ -181,7 +186,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     _closeHiddenSelection();
   }
 
-  /// Clears [_formFilter] once no listed program matches it, so it can't
+  /// Clears [_formFilter] once it is no longer one of the chips, so it can't
   /// come back on its own when a later program does. Call within setState.
   void _dropStaleFormFilter() {
     if (_activeFormFilter == null) _formFilter = null;
@@ -489,7 +494,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       for (final program in _unfilteredPrograms)
         if (filter == null ||
             program.id == open ||
-            sameForms(_formsById[program.id], filter))
+            formsMatch(_formsById[program.id], filter, _formMatch))
           program,
     ];
   }
@@ -499,16 +504,36 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       .where((p) => _showArchived || !p.isArchived);
 
   /// [_formFilter] while it is still one of the chips; null once it is not
-  /// (its last program changed, or was archived or deleted, or no second mix
-  /// is left to offer chips at all), so a filter is never on without a chip
-  /// to show it and clear it.
+  /// (its last program changed, or was archived or deleted, no second mix is
+  /// left to offer chips at all, or the switch between Only and Includes
+  /// changed the chips), so a filter is never on without a chip to show it
+  /// and clear it.
   Set<DanceForm>? get _activeFormFilter {
     final filter = _formFilter;
     if (filter == null) return null;
+    return _formChoiceSets().any((m) => sameForms(m, filter)) ? filter : null;
+  }
+
+  /// The sets of forms the type filter offers as chips, in no particular
+  /// order; empty unless there are at least two mixes among the programs
+  /// shown with no type filter. With [FormMatch.only], each mix is a chip.
+  /// With [FormMatch.includes], each form in some of them but not all is
+  /// one, so Contra can list every program with a contra dance even when
+  /// none is contra only; a form every program with dances has would hide
+  /// nothing, so it gets no chip. Two different mixes always differ by a
+  /// form, so there is at least one.
+  List<Set<DanceForm>> _formChoiceSets() {
     final mixes = _distinctMixes();
-    return mixes.length >= 2 && mixes.any((m) => sameForms(m, filter))
-        ? filter
-        : null;
+    if (mixes.length < 2) return const [];
+    return switch (_formMatch) {
+      FormMatch.only => mixes,
+      FormMatch.includes => [
+        for (final form in DanceForm.values)
+          if (mixes.any((m) => m.contains(form)) &&
+              !mixes.every((m) => m.contains(form)))
+            {form},
+      ],
+    };
   }
 
   /// Each distinct set of forms among the programs shown with no type
@@ -523,15 +548,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     return mixes.values.toList();
   }
 
-  /// The type filter's chips: each distinct set of forms among the programs
-  /// shown with no type filter, in the order of their labels. Empty unless
-  /// there are two to choose between.
+  /// The type filter's chips ([_formChoiceSets]) in the order of their
+  /// labels.
   List<Set<DanceForm>> _formChoices(AppLocalizations l10n) {
     final choices = <String, Set<DanceForm>>{
-      for (final forms in _distinctMixes())
+      for (final forms in _formChoiceSets())
         programFormsLabel(l10n, forms)!: forms,
     };
-    if (choices.length < 2) return const [];
     final labels = choices.keys.toList()..sort();
     return [for (final label in labels) choices[label]!];
   }
@@ -550,7 +573,35 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           child: Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xxs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              Semantics(
+                container: true,
+                label: l10n.programsFormMatchLabel,
+                child: SegmentedButton<FormMatch>(
+                  key: const ValueKey('programs-form-match'),
+                  segments: [
+                    ButtonSegment(
+                      value: FormMatch.only,
+                      label: Text(l10n.programsFormMatchOnly),
+                      tooltip: l10n.programsFormMatchOnlyTooltip,
+                    ),
+                    ButtonSegment(
+                      value: FormMatch.includes,
+                      label: Text(l10n.programsFormMatchIncludes),
+                      tooltip: l10n.programsFormMatchIncludesTooltip,
+                    ),
+                  ],
+                  selected: {_formMatch},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) => setState(() {
+                    _formMatch = selection.single;
+                    // A chip that the other mode doesn't offer is dropped,
+                    // such as Contra + English (ECD) under Includes.
+                    _dropStaleFormFilter();
+                  }),
+                ),
+              ),
               for (final forms in choices)
                 FilterChip(
                   key: ValueKey(

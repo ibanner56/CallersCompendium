@@ -5168,6 +5168,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMoreActions => 'Weitere Aktionen';
 
   @override
+  String get programsFormMatchLabel => 'Typ-Übereinstimmung';
+
+  @override
+  String get programsFormMatchOnly => 'Nur';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programme nur mit den gewählten Typen';
+
+  @override
+  String get programsFormMatchIncludes => 'Enthält';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programme mit dem gewählten Typ';
+
+  @override
   String get danceSectionFigures => 'Figuren';
 
   @override
