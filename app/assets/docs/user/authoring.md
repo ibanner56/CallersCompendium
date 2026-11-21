@@ -683,7 +683,8 @@ nothing in it to lose.
   only an English dance can be saved with them.
   Printed cards, PDFs and copied text show named phrases the way English
   callers write them: A=4 played twice and B=8 once prints as
-  `AAB (A 4 bars, B 8 bars)`.
+  `AAB (A 4 bars, B 8 bars)`, with your language's punctuation (in
+  Japanese, `AAB（A 4小節、B 8小節）`).
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types.

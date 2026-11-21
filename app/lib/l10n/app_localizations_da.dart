@@ -5110,6 +5110,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order ($bars)';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => ', ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,

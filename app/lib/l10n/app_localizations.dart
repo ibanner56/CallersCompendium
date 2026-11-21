@@ -7862,6 +7862,18 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat} other{{beats} beats}}'**
   String danceFigureBeats(int beats);
 
+  /// An English country dance's named phrases on a printed or shared dance card, after the Phrase label: {order} is the phrases in playing order, such as AAB (letters, not translated); {bars} is each phrase's length, such as "A 4 bars, B 8 bars", joined by exportNamedPhraseSeparator. Use the locale's parentheses.
+  ///
+  /// In en, this message translates to:
+  /// **'{order} ({bars})'**
+  String exportNamedPhrases(String order, String bars);
+
+  /// Between two phrases' lengths inside exportNamedPhrases, such as the comma and space in "A 4 bars, B 8 bars". Use the locale's list separator; keep any trailing space it needs.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get exportNamedPhraseSeparator;
+
   /// A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).
   ///
   /// In en, this message translates to:
