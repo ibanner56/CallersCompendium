@@ -19,7 +19,8 @@ are stubbed for the future.
 Pure Dart (Flutter-free), matching the
 [CallersCompendium](https://github.com/ibanner56/CallersCompendium) toolchain:
 
-- **Flutter 3.44.6 / Dart 3.12** pinned via [FVM](https://fvm.app) (`.fvmrc`).
+- Flutter and Dart pinned via [FVM](https://fvm.app) from the repository's `.fvmrc`
+  (Flutter 3.47.0 / Dart 3.13 at the time of writing).
 - Strict analyzer settings; `dart format` clean; `dart test` with coverage.
 
 ### Common commands

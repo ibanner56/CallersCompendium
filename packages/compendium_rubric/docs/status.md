@@ -5,6 +5,15 @@
 > The corpus is the 24,107-file local Caller's Box mirror described in
 > [`implementation.md`](implementation.md). These numbers are a snapshot:
 > re-run the corpus harness after figure, parser, or `compendium_core` changes.
+>
+> **Stale since the taxonomy-v40 sync.** `main` was merged again at `a5281105`
+> (taxonomy v40), which changed what an omitted parameter means for ten
+> figures (v37, v38), made `long_lines` an alias of `forward_and_back` (v39),
+> added `hand_cast` as an alias of `gate` (v40), and added five moves this
+> compiler defers (`circular_hey`, `trade_the_wave`, `starburst`,
+> `hey_for_three`, `cast`), on top of many Caller's Box adapter changes. The
+> figures below have not been re-measured since; see `implementation.md` §15
+> for the current vocabulary.
 
 The compiler implements 45 canonical figures. Twenty-four have no deliberately
 deferred parameter values, 21 have an implemented core with explicit

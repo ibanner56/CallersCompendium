@@ -437,8 +437,9 @@ To be defined later with worked examples.
   four.
 - **params** (meets CallersCompendium baseline `{direction, places, singleFile, beats}`):
   - `direction` — enum {`left`, `right`}. `left` = clockwise, `right` = counter-clockwise.
-  - `places` — int [1–10], baseline default 4. Position-steps around the ring; effective rotation
-    is `places mod 4` (4 = full turn = identity).
+  - `places` — int [1–10], baseline default 3 (4 until taxonomy v38). Position-steps around the
+    ring; effective rotation is `places mod 4` (4 = full turn = identity). Stated `unspecified`
+    (taxonomy v39) is **deferred**, not read as the default: the source gave no count.
   - `singleFile` — flag, default `false`. Dancers circulate the ring **single-file** rather than
     hand-in-hand (Compendium v27/v30: a "single file promenade … (circle, clockwise)"). **Styling
     only** — the ring positions and the rotation rule are unchanged.
@@ -541,8 +542,10 @@ To be defined later with worked examples.
 - **summary:** With the stated hand in the center, the four dancers rotate around the hands
   four in the direction they're facing.
 - **params:**
-  - `hand` — enum {`left`, `right`}. Which hand is in the center (sets the rotation direction).
-  - `places` — int [1–10]. Position-steps around the ring; effective = `places mod 4`.
+  - `hand` — enum {`left`, `right`}, default `left` (taxonomy v38; `right` before). Which hand is in
+    the center (sets the rotation direction).
+  - `places` — int [1–10], default 4. Position-steps around the ring; effective = `places mod 4`.
+    Stated `unspecified` (taxonomy v39) is deferred, as for `circle`.
   - `grip` — enum {`wrist_grip`, `hands_across`}. Handhold style; **no effect on end-state**.
   - `beats` — int [0–16]. Timing (universal); no effect on end-state.
 - **preconditions:** none — no required input facing (a **Flexible** input is accepted).
@@ -733,7 +736,7 @@ To be defined later with worked examples.
   - `hand` — enum {`left`, `right`}. Which hand/arm is given; **right = clockwise, left =
     counter-clockwise**. (Doesn't change whole/half end positions; sets direction for the
     quarter/wave case.)
-  - `travel` — rotation number **[0.25 .. 2.5], step 0.25**, default `1.0`. (Same concept as
+  - `travel` — rotation number **[0.25 .. 2.5], step 0.25**, default `1.5` (`1.0` until taxonomy v38). (Same concept as
     `do_si_do`'s `circling`.)
   - `beats` — int, default 8.
 - **preconditions:** `who` validated (relaxed like `do_si_do` — the `who` dancer may be in a
@@ -920,7 +923,8 @@ To be defined later with worked examples.
 - **summary:** Two facing dancers (each `who`-pair) join hands and **trade places** — one turns
   under (the "gnat") — ending facing each other with places exchanged.
 - **params** (meets CallersCompendium baseline `{who, hand, balance, beats}`):
-  - `who` — dancer set, default `partners`. Which pair trades (both pairs in the h4 participate).
+  - `who` — dancer set, default `neighbors` (`partners` until taxonomy v38). Which pair trades (both
+    pairs in the h4 participate).
   - `hand` — enum {`left`, `right`}, default `right`. Turning hand; **no end-position effect**
     (`hand:left` is the `swat_the_flea` alias).
   - `balance` — flag, default `false`. Optional balance lead-in; **no end-state effect**.
@@ -1020,6 +1024,10 @@ To be defined later with worked examples.
 
 ### `long_lines`
 
+> Since taxonomy v39 `long_lines` is `compendium_core`'s alias of `forward_and_back` pinning
+> `formation: longLines`; the parser builds this figure for either name. A `forward_and_back` in
+> any other formation (`inARing`, `linesOfThree`, …) is deferred.
+
 - **summary:** The long lines (the two side lines of the set — the `c0` and `c4` columns) go
   **forward and back** — a **positional no-op** for the standard (go-and-return) case.
 - **params** (meets CallersCompendium baseline `{goBack, beats}`):
@@ -1080,7 +1088,7 @@ To be defined later with worked examples.
 - **summary:** Two dancers of the `whom` pair **trade places**, one rolling across in front of
   the other (optionally with a half sashay).
 - **params** (meets CallersCompendium baseline `{who, whom, halfSashay, beats}`):
-  - `who` — dancer set, default `neighbors`. Descriptive/actor context; **no end-position
+  - `who` — dancer set, default `role1s` (`neighbors` until taxonomy v38). Descriptive/actor context; **no end-position
     effect**.
   - `whom` — dancer set, default `partners`. **The relationship that trades** — names the
     swapping pair.
@@ -1424,12 +1432,14 @@ To be defined later with worked examples.
   **full** 8 returns everyone home; a **half** ends the two actives swapped within their own row.
 - **params** (meets CallersCompendium baseline `{who, where, lead, fraction, beats}`):
   - `who` — dancer set, default `ones`. The active couple that weaves.
-  - `where` — enum {`none`, `above`, `below`, `across`}, default `none`. Which way the loop is
+  - `where` — enum {`none`, `above`, `below`, `across`}, default `above` (`none` until taxonomy v38). Which way the loop is
     traced first; **path/styling only — no net effect** on the half's landing. `across` is
     **deferred** (degenerate/out of scope).
   - `lead` — dancer set, default `onesRole2` (choices onesRole1/onesRole2/twosRole1/twosRole2).
     Which single dancer leads the weave; **descriptive — no net effect**.
   - `fraction` — default `half`. `half` (0.5) = one loop; `full` (1.0) = complete 8.
+  - `double` — flag (taxonomy v39), stored only while true: both couples weave. **Deferred**; it is
+    refused rather than ignored, since ignoring it would dance a single figure 8.
   - `beats` — int, default 8 (baseline: `half`→8, `full`→16).
 - **preconditions:** a completed h4 (the `who` couple weaves around the other, stationary couple).
 - **effect:**
@@ -1456,7 +1466,8 @@ To be defined later with worked examples.
 - **summary:** Two couples join hands and push/pull each other as units around a shared center. A
   **full** poussette returns home; a **half** trades the two couples' places.
 - **params** (meets CallersCompendium baseline `{who, whom, fraction, direction, beats}`):
-  - `who` — dancer set, default `ones`. One of the two couples that poussette.
+  - `who` — dancer set, default `role1s` (`ones` until taxonomy v38). One of the two couples that
+    poussette.
   - `whom` — dancer set, default `neighbors`. The other couple (the one `who` poussettes with).
   - `fraction` — default `half`. `half` (0.5) = trade places; `full` (1.0) = full box home.
   - `direction` — spin direction, default `clockwise`. **Irrelevant for a half** (180° lands the same
@@ -1526,9 +1537,9 @@ To be defined later with worked examples.
     **along** → row swap).
   - `balance` — flag, default true. Optional balance lead‑in; **styling / beats only**.
   - `hand` — handedness, default right. Which hand pulls; **no position effect** (styling).
-  - `places` — int [1–10] (typically 2–4), default 4. Number of pull‑bys; effective net =
+  - `places` — int [1–10] (typically 2–4), default 2 (4 until taxonomy v38). Number of pull‑bys; effective net =
     `places mod 4`.
-  - `beats` — int, default 16 (baseline good=[16]).
+  - `beats` — int, default 8 (taxonomy v38; 16 before; good=[8, 16]).
 - **preconditions:** a completed h4 with dancers facing to begin the first pull‑by (DI: partners
   facing across).
 - **effect:** alternate pull‑bys starting with the `who` axis (across / column swap), then the
@@ -1695,9 +1706,10 @@ To be defined later with worked examples.
     on every line: partner ×53, neighbor ×39, N2 neighbor ×13). Selects the couples that wheel.
   - `whom` — dancer set, default **`unspecified`**. The dancer **being turned**, when a source
     names a turner *and* a turnee. **No source does** — it exists for manual authoring only.
-  - `direction` — spin direction, default `clockwise`. A courtesy turn wheels clockwise **by
-    construction**; `counterclockwise` is unattested in the corpus. **No net-position effect** (a
-    180° wheel lands the same either way).
+  - `direction` — spin direction, default `counterclockwise` (taxonomy v37). The ordinary courtesy
+    turn wheels counterclockwise; a source states `clockwise` only for the mirrored turn, chiefly
+    after a role1s' chain (v37 withdrew v23's "clockwise by construction" reading). **No
+    net-position effect** (a 180° wheel lands the same either way).
   - `endFacing` — ⚠️ **a DANCER, not a cardinal.** Default `unspecified`. Do **not** read it as
     `swing.endFacing` or `gate.face` — the names match, the domains do not. It holds a dancer
     relationship (`nextNeighbors` / `thirdNeighbors` / `prevNeighbors`) answering *whom* you end up
@@ -1796,7 +1808,7 @@ To be defined later with worked examples.
   the h4 centre — typically while the other dancers turn in the middle. First-class as of
   CallersCompendium v19.
 - **params** (meets CallersCompendium baseline `{who, direction, travel, beats}`):
-  - `who` — dancer set, default `ones`. The orbiting dancers.
+  - `who` — dancer set, default `role1s` (`ones` until taxonomy v38). The orbiting dancers.
   - `direction` — **spin direction** {`clockwise`, `counterclockwise`}, default `clockwise`.
     `orbit` is one of four moves that use this spin-direction domain, alongside
     `facing_star`, `poussette`, and `promenade`. **No net-position effect** for whole/half amounts

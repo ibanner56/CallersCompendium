@@ -665,10 +665,10 @@ rest cannot pass for the wrong reason.
 
 ## 14. Environment
 
-- **`dart` is not on PATH — always `fvm dart`.** Dart 3.12.2, pinned via
-  `.fvmrc` to Flutter 3.44.6 (the CallersCompendium integration target's
-  toolchain — see `architecture.md` §7).
-- **Python is not installed.** Use PowerShell.
+- **Use `fvm dart`.** The toolchain is pinned by the repository's `.fvmrc`
+  (Flutter 3.47.0 / Dart 3.13 when last checked; see `architecture.md` §7).
+- **The repository's gates are Python** (`python3 tools/preflight.py` from the
+  repository root runs this package's analyzer and suite among them).
 - **This package lives inside the CallersCompendium repository** — the pub
   workspace at `packages/compendium_rubric`, on branch `rubric`. Run `analyze`,
   `format` and `test` from **inside the package directory**, not the repo root.
@@ -688,8 +688,12 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,015 tests green; `analyze` clean; `format` clean.**
-- **46 figures registered**, plus 3 upstream aliases resolved to them.
+- **1,033 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+  `analyze` clean; `format` clean** — after merging `main` at `a5281105`
+  (`compendium_core` taxonomy v40).
+- **45 figures registered**, plus 7 upstream aliases resolved to them
+  (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,
+  `pull_by_dancers`, `pull_by_direction`, `see_saw`, `swat_the_flea`).
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
   default matches the taxonomy's. The check is deliberately mapping-free: it

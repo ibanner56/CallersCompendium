@@ -246,8 +246,8 @@ beside `compendium_core` later.
 
 | Aspect | Value |
 |---|---|
-| Flutter | **3.44.6** (stable), single-sourced from `.fvmrc` via FVM |
-| Dart | **3.12.x** (`environment: sdk: ^3.12.0`) |
+| Flutter | single-sourced from the repository's `.fvmrc` via FVM (3.47.0 stable when last checked) |
+| Dart | the SDK that Flutter ships (3.13.x when last checked); `environment: sdk: ^3.12.0` |
 | Core purity | **ADR-001: domain core must be Flutter-free** — our package takes **no** Flutter dep; tested with **`dart test`** (not `flutter test`) |
 | Analyzer | strict workspace settings: `strict-casts`, `strict-inference`, `strict-raw-types`; `missing_required_param`/`missing_return` = error; each package layers its own lints |
 | Format | `dart format --output=none --set-exit-if-changed .` must be clean |
