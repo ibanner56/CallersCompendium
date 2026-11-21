@@ -2680,6 +2680,16 @@
   "@themeScreenNoMatches": {
     "description": "Shown on the Theme screen when no theme matches the search."
   },
+  "themeScreenResultCount": "{count, plural, =1{1 theme} other{{count} themes}}",
+  "@themeScreenResultCount": {
+    "description": "How many themes match the Theme screen search, shown above the results and read out by screen readers as the search changes.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
   "themeScreenNewCustomTheme": "Custom theme",
   "@themeScreenNewCustomTheme": {
     "description": "Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use."

@@ -2008,6 +2008,10 @@
   "@themeScreenNoMatches": {
     "x-sourceSha256": "32c5f0cd590d2ee36063a7db9d610bcd10d3236c04877c33ae755d8ff1235695"
   },
+  "themeScreenResultCount": "{count, plural, other{{count}件のテーマ}}",
+  "@themeScreenResultCount": {
+    "x-sourceSha256": "2933f82c1e64269711caa57b6ac3a996e45c91f2bef60a4e12ca1e6ab06f73e6"
+  },
   "themeScreenNewCustomTheme": "カスタムテーマ",
   "@themeScreenNewCustomTheme": {
     "x-sourceSha256": "70a67d05f9bcdd1e499cecf43d11ce6455bb106d8c11101653cfdc622eb8b398"

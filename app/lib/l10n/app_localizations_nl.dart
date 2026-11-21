@@ -2166,6 +2166,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geen thema\'s komen overeen met je zoekopdracht.';
 
   @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count thema\'s',
+      one: '1 thema',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeScreenNewCustomTheme => 'Aangepast thema';
 
   @override

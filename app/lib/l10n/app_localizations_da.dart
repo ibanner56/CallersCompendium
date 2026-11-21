@@ -2156,6 +2156,17 @@ class AppLocalizationsDa extends AppLocalizations {
   String get themeScreenNoMatches => 'Ingen temaer matcher din søgning.';
 
   @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count temaer',
+      one: '1 tema',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeScreenNewCustomTheme => 'Brugerdefineret tema';
 
   @override

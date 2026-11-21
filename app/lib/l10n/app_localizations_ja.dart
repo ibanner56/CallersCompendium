@@ -2056,6 +2056,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get themeScreenNoMatches => '検索に一致するテーマがありません。';
 
   @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のテーマ',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeScreenNewCustomTheme => 'カスタムテーマ';
 
   @override
