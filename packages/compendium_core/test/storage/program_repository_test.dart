@@ -86,6 +86,38 @@ void main() {
         'contra': {DanceForm.contra},
       });
     });
+
+    test('is one statement however many programs there are', () async {
+      // The programs list re-reads it on every dance write (ADR-006), so it
+      // must not fan out per program as the library grows.
+      final counter = QueryCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final programs = ProgramRepository(countingDb);
+      final library = DanceRepository(countingDb, contraTaxonomy);
+      await library.create(dance('c', DanceForm.contra));
+      await library.create(dance('e', DanceForm.ecd));
+      Future<int> statementsFor(int count) async {
+        for (var i = 0; i < count; i++) {
+          await programs.create(
+            sampleProgram(
+              id: 'n$count-$i',
+              slots: [
+                ProgramSlot(id: 'n$count-$i-a', position: 0, danceId: 'c'),
+                ProgramSlot(id: 'n$count-$i-b', position: 1, danceId: 'e'),
+              ],
+            ),
+          );
+        }
+        counter.reset();
+        final forms = await programs.formsByProgram();
+        expect(forms.values.every((f) => f.length == 2), isTrue);
+        return counter.count;
+      }
+
+      expect(await statementsFor(3), 1);
+      expect(await statementsFor(200), 1);
+    });
   });
 
   group('create / getById', () {
