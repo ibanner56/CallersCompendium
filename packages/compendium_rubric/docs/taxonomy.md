@@ -93,9 +93,11 @@ hand-written fixture can set it, but an upstream record never exercises it.
 
 The `unspecified` sentinel is handled once, centrally, rather than per figure:
 its value is read as **no stated value**, while the authored canonical key
-still wins precedence over legacy aliases. Upstream is explicit that the set
-of params admitting the sentinel is a moving target, so enumerating them here
-would drift.
+still wins precedence over legacy aliases. The exception is a param that admits
+the sentinel but keeps a concrete default (since taxonomy v39, `circle.places`
+and `star.places`): there a stated `unspecified` is deferred, because omitting
+the count and stating that none was given mean different things upstream.
+`core_taxonomy_alignment_test.dart` fails if upstream adds another such param.
 
 > Defaults are recorded per figure rather than here, because upstream's default and ours
 > occasionally differ and the difference is only meaningful next to the figure it belongs to. The

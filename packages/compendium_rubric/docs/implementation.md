@@ -433,28 +433,36 @@ authority. Implementation notes:
 `io/dance_json.dart` is the single place raw maps exist. Past it, everything is
 typed.
 
-- **`_registry`** maps `move` string -> builder. **46 entries.** A move not in the
+- **`_registry`** maps `move` string -> builder. **45 entries.** A move not in the
   table is an error, never a skip: silently dropping a figure would change the
   dance and then compare the result against the oracle anyway.
 - **`_Params`** helpers: `enumOr` (with default), `optionalEnum` (no default),
   `intOr`, `numberOr`, `boolOr`, `optionalString`, `optionalNumber`.
-- **The `unspecified` sentinel** is handled centrally in `_first`, so *every*
-  param gets it for free. Upstream is explicit that the set of params admitting
-  it is a moving target, so enumerating them would drift.
+- **The `unspecified` sentinel** is handled centrally in `_first` as "not
+  stated", which falls back to the default. A param that admits the sentinel
+  but keeps a concrete default (since taxonomy v39, `circle.places` and
+  `star.places`) is the exception: a stated `unspecified` is deferred
+  (`_statedPlaces`), and the alignment test fails when upstream adds another.
 - **Alias lists** let a wire spelling and our own name both be accepted
   (`['turn', 'circling']`, `['endFacing', 'face']`). `_blameKey` reports the
   spelling **the author actually wrote**, so a refusal points at a key that is
   really in their file.
 - **`_parseFormation(raw, warnings)`** warns and falls back to `dupleImproper` on
   an unknown shape *(user-ruled)*, rather than refusing.
-- **Aliases are resolved, not reimplemented.** `compendium_core` names three
-  moves as aliases of others with parameters pinned — `see_saw` → `do_si_do`
-  `{shoulder: left}`, `swat_the_flea` → `box_the_gnat` `{hand: left}`,
-  `meltdown_swing` → `swing` `{prefix: meltdown}`. `_parseFigure` reads
-  `contraTaxonomy.aliases` directly rather than keeping a table of its own, and
-  the pinned params **overwrite** the record's: the pins *are* the alias, so a
-  `see_saw` that also said `shoulder: right` would not be one. `supportedMoves`
-  lists aliases alongside the registry.
+- **Aliases are resolved, not reimplemented.** `compendium_core` names seven
+  moves as aliases of others, most with parameters pinned — `see_saw` →
+  `do_si_do` `{shoulder: left}`, `swat_the_flea` → `box_the_gnat` `{hand: left}`,
+  `meltdown_swing` → `swing` `{prefix: meltdown}`, `long_lines` →
+  `forward_and_back` `{formation: longLines}`, `hand_cast` → `gate` (no pins),
+  and the two v35 pull-by migration aliases. `_parseFigure` reads
+  `contraTaxonomy.aliases` directly rather than keeping a table of its own.
+  A pin fills only a param the record leaves unstated, as
+  `Taxonomy.effectiveParams` does upstream: a stated value that contradicts the
+  pin is read as the target move with that value (core's `resolvedMoveId`
+  routes it there), so a `long_lines` stating `formation: inARing` is a forward
+  and back in a ring, and deferred. Until the taxonomy-v40 sync the pins
+  overwrote the record instead; that was changed to match upstream (the sync
+  session's call). `supportedMoves` lists aliases alongside the registry.
 - **Upstream defaults govern what an omitted parameter means** *(user-ruled)*.
   Where `compendium_core`'s taxonomy states a `defaultValue`, this parser
   supplies it — even where a better value is available and even where the
@@ -688,7 +696,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,033 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,035 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — after merging `main` at `a5281105`
   (`compendium_core` taxonomy v40).
 - **45 figures registered**, plus 7 upstream aliases resolved to them
@@ -739,13 +747,18 @@ rest cannot pass for the wrong reason.
   required to refuse with `unresolvableDancerSet` rather than pick one.
 - **Deferred, with worked examples still needed** (Held table): `promenade`,
   `butterfly_whirl`, `arch_and_dive` (progression half only), `revolving_door`,
-  `slice`, `contra_corners`, `dolphin_hey`, `orbit` couple-`who` (the
+  `slice`, `contra_corners`, `dolphin_hey`, and the moves taxonomy v36–v40
+  added (`circular_hey`, `trade_the_wave`, `starburst`, `hey_for_three`,
+  `cast`), `orbit` couple-`who` (the
   **meanwhile** mechanism), hall `ender` values `cozy`/`cloverleaf`/
   `threadNeedle`/`rightHandHigh`, and hall `moving` values `center`/`outsides`.
-- **Deferred param values inside implemented figures** all raise
+- **Deferred param values inside implemented figures** raise
   `unsupportedParam` — notably diagonal and `along` `right_left_through`,
   `chain dir:along`, `swing where:center`, `long_lines goBack:false`, and
-  `hey`'s partial lengths and non-`across` `dir`.
+  `hey`'s partial lengths and non-`across` `dir`. Three taxonomy v39 values are
+  refused earlier, at parse time, as a deferred `DanceParseError`: a
+  `forward_and_back` outside long lines, a `figure_8` marked `double`, and a
+  `circle` or `star` whose `places` is stated `unspecified`.
 - **`hey` diagonals are blocked on a decision:** the user asked for them to follow
   diagonal `right_left_through`, which **is not implemented**. That figure must
   land first.

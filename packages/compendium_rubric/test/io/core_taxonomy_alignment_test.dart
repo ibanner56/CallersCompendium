@@ -185,6 +185,39 @@ void main() {
       expect(checked, greaterThanOrEqualTo(6));
     });
 
+    test('a stated `unspecified` is not read as a concrete default', () {
+      // `_Params` reads the sentinel as "not stated", which falls back to the
+      // default. That is wrong for a param that admits the sentinel yet keeps a
+      // concrete default (v39's circle and star `places`): omitting it means
+      // the default, stating it means no value was given. Any such param on a
+      // move this compiler builds must refuse rather than guess.
+      final found = <String>[];
+      for (final move in core.contraTaxonomy.moves.entries) {
+        if (buildFigure(move.key, const {}) == null) continue;
+        for (final param in move.value.params.entries) {
+          final spec = param.value;
+          final admits = spec.choices?.contains('unspecified') ?? false;
+          if (!admits || spec.defaultValue == 'unspecified') continue;
+          final id = '${move.key}.${param.key}';
+          found.add(id);
+          // The in-front pair of a mad robin is descriptive: the figure lands
+          // the same whoever steps in front, so its default cannot mislead.
+          if (id == 'mad_robin.who') continue;
+          expect(
+            buildFigure(move.key, {param.key: 'unspecified'}),
+            isNull,
+            reason:
+                '${move.key}.${param.key} read a stated unspecified as its '
+                'default ${spec.defaultValue}',
+          );
+        }
+      }
+      expect(
+        found,
+        containsAll(<String>['circle.places', 'star.places', 'mad_robin.who']),
+      );
+    });
+
     test('long_lines in another formation is not danced as long lines', () {
       expect(buildFigure('long_lines', const {'formation': 'inARing'}), isNull);
     });

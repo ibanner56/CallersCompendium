@@ -84,11 +84,14 @@ class _Params {
 
   /// The upstream sentinel meaning "the source states nothing here".
   ///
-  /// Treated as **absent**, which is exactly what it means: the parameter falls
-  /// back to its documented default. Handling it here rather than per-figure
-  /// means every parameter gets the behaviour for free, including the ones that
-  /// opt into the sentinel later — upstream is explicit that the set of params
-  /// admitting it is a moving target, so enumerating them here would drift.
+  /// Treated as **absent**: the parameter falls back to its documented
+  /// default. That is right for a param whose taxonomy default *is* the
+  /// sentinel, which is nearly all of them. It is wrong for one that admits the
+  /// sentinel but keeps a concrete default — since taxonomy v39,
+  /// `circle.places` and `star.places` — because there omitting means the
+  /// default and stating `unspecified` means no count was given. Those are
+  /// handled per figure ([_statedPlaces]), and
+  /// `core_taxonomy_alignment_test.dart` fails when upstream adds another.
   static const String _unspecified = 'unspecified';
 
   /// The value under the first authored key, so canonical spellings win even

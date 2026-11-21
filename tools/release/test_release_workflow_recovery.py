@@ -349,9 +349,11 @@ def main() -> None:
         checks_text,
         re.MULTILINE,
     ), "_checks.yml must declare a checkout_ref input defaulting to the triggering ref"
-    assert checks_text.count("ref: ${{ inputs.checkout_ref }}") == 4, (
-        "every _checks.yml job (validate, core, app, server) must check out "
-        "the passed-in ref"
+    checkouts = checks_text.count("uses: actions/checkout@")
+    assert checkouts >= 5, "expected the validate, core, rubric, app and server jobs"
+    assert checks_text.count("ref: ${{ inputs.checkout_ref }}") == checkouts, (
+        "every _checks.yml checkout must check out the passed-in ref, so a "
+        "job added later cannot validate the dispatch ref instead"
     )
     assert text.count("needs.meta.outputs.is_release == 'true'") == 5, (
         "draft, mobile, server deploy, provenance verification, and Pages must "
