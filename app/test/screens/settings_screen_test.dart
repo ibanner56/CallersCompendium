@@ -7,7 +7,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart' show SystemChannels;
+import 'package:flutter/services.dart' show LogicalKeyboardKey, SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
@@ -65,6 +65,7 @@ import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 import 'package:compendium_app/src/screens/theme_editor_screen.dart';
 import 'package:compendium_app/src/theme/app_breakpoints.dart';
+import 'package:compendium_app/src/widgets/hardware_keyboard_presence.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1886,6 +1887,7 @@ void main() {
 
     testWidgets('the search box takes focus on arrival where a keyboard is '
         'assumed (desktop)', (tester) async {
+      HardwareKeyboardPresence.debugReset();
       debugDefaultTargetPlatformOverride = TargetPlatform.linux;
       try {
         await _pumpSettings(tester, section: 'appearance');
@@ -1904,6 +1906,7 @@ void main() {
 
     testWidgets('on a phone the search box waits for a tap, so no on-screen '
         'keyboard covers the gallery', (tester) async {
+      HardwareKeyboardPresence.debugReset();
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         await _pumpSettings(tester, section: 'appearance');
@@ -1915,6 +1918,32 @@ void main() {
           ),
         );
         expect(field.focusNode.hasFocus, isFalse);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('a tablet whose hardware keyboard has been used focuses the '
+        'search box too', (tester) async {
+      HardwareKeyboardPresence.debugReset();
+      addTearDown(HardwareKeyboardPresence.debugReset);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await _pumpSettings(tester, section: 'appearance');
+        // The app shell starts the listener at launch; this harness has no
+        // shell, so start it here, as the shell would.
+        HardwareKeyboardPresence.ensureListening();
+        // A letter key only a hardware keyboard sends.
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+        await tester.pumpAndSettle();
+        await _openThemeScreen(tester);
+        final field = tester.widget<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('theme-search')),
+            matching: find.byType(EditableText),
+          ),
+        );
+        expect(field.focusNode.hasFocus, isTrue);
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }
