@@ -87,8 +87,8 @@ back on exit.
 online results with a local selection behind them.
 
 **Delete exists only per row.** `_softDeleteFromList` (`:2446`) is reached from
-the row's ⋮ menu (`:3108-3115`, gated by `confirmDeleteIfEnabled`,
-`confirmDeleteIfEnabled` in `utils/confirm_delete.dart`) and from the swipe action (`:3172`). Selection
+the row's ⋮ menu (`:3108-3115`, gated by `confirmDeleteIfEnabled`
+(`utils/confirm_delete.dart`)) and from the swipe action (the row `Slidable` in `dance_list_screen.dart`). Selection
 mode turns the swipe off (`:3161-3165`). The function has no `try`/`catch`, and
 its Undo calls the full `_boot()` reload (`:2461`).
 

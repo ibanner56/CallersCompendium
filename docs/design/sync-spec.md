@@ -1162,7 +1162,7 @@ not an existing accessor, and the distinction is the difference between the two
 rules above working and one of them silently destroying repairs. All three
 in-scope repositories expose a `getById` that filters on `deleted_at`
 (`ChoreographerRepository.getById`, `TagRepository.getById`,
-`CustomFieldRepository.getById`), and none takes an `includeDeleted`
+`CustomFieldDefRepository.getById`), and none takes an `includeDeleted`
 parameter. Such a lookup returns `null` for a tombstone *and* for a hard-deleted
 row, so an implementer reaching for the obvious accessor retires exactly the
 entries the rule above forbids retiring — the quiet loss this section is written
@@ -1315,7 +1315,7 @@ library inside a write-locked transaction.
 declared in `database.dart` — and MUST NOT be a flag private to this pass.
 This is the load-bearing half of the rule, because the repair does not come from
 the sweep that sets the flag. It comes from an unconditional, pass-independent
-check at the top of the migration path (`Repositories._runMigration` in `repositories.dart`) that
+check at the top of the migration path (`CompendiumRepositories._runMigration` in `repositories.dart`) that
 runs *before any sweep*, rebuilds whenever the key is set, and clears
 it. A private flag reproduces the shape while leaving the mechanism behind, and
 it reopens the exact gap this rule exists to close: a pass that checks and

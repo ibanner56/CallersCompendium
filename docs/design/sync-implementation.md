@@ -498,7 +498,7 @@ still occupies the key, so the repair is still owed and still blocked.
 will reach for is wrong.* Telling a tombstone from a hard-deleted row needs a
 read that ignores `deleted_at`, and all three in-scope repositories filter:
 `ChoreographerRepository.getById`, `TagRepository.getById` and
-`CustomFieldRepository.getById` each `where` on `deletedAt.isNull()`, and none
+`CustomFieldDefRepository.getById` each `where` on `deletedAt.isNull()`, and none
 takes an `includeDeleted` parameter. Both states come back `null`, so the
 natural implementation retires the entries the spec forbids retiring and drops
 owed repairs with no error anywhere. `DanceRepository.getById` *does* take

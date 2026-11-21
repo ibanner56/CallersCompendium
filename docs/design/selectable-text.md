@@ -75,7 +75,7 @@ each gesture the audit named:
 | Gesture | Where it lives | Conflict? |
 | --- | --- | --- |
 | Tap-to-filter tag chip | the `TagChip` in `DanceDetailScreen._buildBody`, `tag_chip.dart` | **Yes, a small one.** The chip's `Text` label would register as selectable, so a drag that starts on it selects the tag name. Wrap the tag row in `SelectionContainer.disabled`. |
-| Long-press preview | `widgets/preview_hold_listener.dart`, used only by `program_slot_list_editor.dart` and `collection_picker.dart:1024,1172` | **No.** None of those screens is in the selectable region. |
+| Long-press preview | `widgets/preview_hold_listener.dart`, used only by `program_slot_list_editor.dart` and `collection_picker.dart` (two uses) | **No.** None of those screens is in the selectable region. |
 | Row swipe actions | `Slidable` in `dance_list_screen.dart` and `programs_list_screen.dart` | **No.** They live on list rows, outside the detail and summary panes. |
 | Long-press to enter batch selection | the row `onLongPress` in `dance_list_screen.dart` | **No.** Same reason. |
 | Cross-reference links | `_CrossReferenceText` in `dance_detail_screen.dart` | **Probably not, but untested.** The link is an `InkWell` in a `WidgetSpan`, and the `Text` inside it is its own selectable. Selection across a `WidgetSpan` is the least-exercised path in the framework. The implementation PR must test that a drag across a link copies the link text once, and a click still opens the dance. |

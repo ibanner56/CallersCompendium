@@ -74,8 +74,8 @@ Four details shape every proposal below.
    editor never removes the tag. It now erases only a *bare* row (see
    [The purge GC](#the-purge-gc-life-5-option-c)).
 
-Two comments in the code describe a feature that does not exist. Both get
-fixed in the first branch below:
+Two comments in the code described a feature that did not exist; the first
+branch below fixed both:
 
 - The `TagRepository.delete` doc comment said the tombstoning delete "is what
   the tag manager calls". No tag manager existed.
@@ -241,7 +241,7 @@ The steps run in one transaction:
      user merge is made on one device, so its peers learn of it only through
      the tombstone.
 6. **Record the alias, loser to survivor,** through
-   `SyncLocalRepository.remapIdentity` (`SyncLocalRepository.remapIdentity`).
+   `SyncLocalRepository.remapIdentity` (`sync_local_repository.dart`).
    Use that, not the bare `upsertAlias`: it also collapses alias chains,
    moves retained sync fields, and unions publication markers, as §6.6
    requires (`sync-spec.md:3433-3440`).
