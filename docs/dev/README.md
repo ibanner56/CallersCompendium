@@ -60,7 +60,10 @@ whose only record is on a branch loses its provenance with it. So:
   no longer resolves (missing, or no longer unique), against
   `tools/ci/doc_line_citations_ceiling.json` (`docs/dev/audits/` is excluded:
   dated records). The ceiling is exact: a new stale citation fails, and so does
-  a cleanup that does not lower the ceiling in the same PR.
+  a cleanup that does not lower the ceiling in the same PR. It runs in
+  `_checks.yml` (code PRs can move cited lines) and in its own
+  `.github/workflows/doc-line-citations.yml` (`ci.yml` skips `_checks.yml` for
+  a Markdown-only PR); the latter is not a required check.
 - To say where work was done, cite the merged PR (`#N`) or a commit SHA that
   is on `main`, not the branch it was built on. A GitHub link pins such a SHA
   or `main`, never a branch. A SHA that exists only on a branch is a branch
