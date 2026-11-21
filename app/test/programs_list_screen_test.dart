@@ -1012,6 +1012,8 @@ void _formFilterTests() {
         ],
       ),
     );
+    // A program with no dances: the only one the English chip can hide.
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
     await _pump(tester, repos);
     final contraChip = find.byKey(const ValueKey('programs-form-contra'));
     expect(contraChip, findsNothing, reason: 'no program is contra only');
@@ -1026,9 +1028,11 @@ void _formFilterTests() {
     await tester.tap(contraChip);
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['Mixed night']);
-    // Every program with dances has an English one, so an English chip would
-    // hide nothing: Includes offers none.
-    expect(find.byKey(const ValueKey('programs-form-ecd')), findsNothing);
+    // Every program with dances has an English one. Its chip is offered all
+    // the same, so no type present goes missing from the row.
+    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night', 'Mixed night']);
   });
 
   testWidgets('an Includes filter left without a chip is dropped, not '
@@ -1047,32 +1051,18 @@ void _formFilterTests() {
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
 
-    // The English program gains a contra dance: every program now has
-    // contra, so the Contra chip goes and every program is listed.
-    final english = (await repos.programs.getById('p-ecd'))!;
-    await repos.programs.update(
-      english.copyWith(
-        slots: [
-          ...english.slots,
-          ProgramSlot(id: 's5', position: 1, danceId: 'c'),
-        ],
-      ),
-    );
+    // The only contra dance is deleted: every program with a live dance is
+    // English only, so the chips go and every program is listed.
+    await repos.dances.softDelete('c', at: _now);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('programs-form-contra')), findsNothing);
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
     expect(_titlesInOrder(tester), hasLength(3));
 
-    // A new English-only program brings the chip back, but not the filter.
-    await repos.programs.create(
-      _program(
-        id: 'p-ecd2',
-        title: 'Another English night',
-        slots: [ProgramSlot(id: 's6', position: 0, danceId: 'e')],
-      ),
-    );
+    // Restoring it brings the chip back, but not the filter.
+    await repos.dances.restore('c', at: _now);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('programs-form-contra')), findsOneWidget);
-    expect(_titlesInOrder(tester), hasLength(4));
+    expect(_titlesInOrder(tester), hasLength(3));
   });
 
   testWidgets('a deleted dance stops counting at once', (tester) async {

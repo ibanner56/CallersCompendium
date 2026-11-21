@@ -517,11 +517,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// The sets of forms the type filter offers as chips, in no particular
   /// order; empty unless there are at least two mixes among the programs
   /// shown with no type filter. With [FormMatch.only], each mix is a chip.
-  /// With [FormMatch.includes], each form in some of them but not all is
-  /// one, so Contra can list every program with a contra dance even when
-  /// none is contra only; a form every program with dances has would hide
-  /// nothing, so it gets no chip. Two different mixes always differ by a
-  /// form, so there is at least one.
+  /// With [FormMatch.includes], each form in any of them is one, so Contra
+  /// can list every program with a contra dance even when none is contra
+  /// only. A form every program with dances has gets a chip too, though it
+  /// hides only programs with no dances, so that no type present goes
+  /// missing from the row (Hudson, 21 November 2026).
   List<Set<DanceForm>> _formChoiceSets() {
     final mixes = _distinctMixes();
     if (mixes.length < 2) return const [];
@@ -529,9 +529,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       FormMatch.only => mixes,
       FormMatch.includes => [
         for (final form in DanceForm.values)
-          if (mixes.any((m) => m.contains(form)) &&
-              !mixes.every((m) => m.contains(form)))
-            {form},
+          if (mixes.any((m) => m.contains(form))) {form},
       ],
     };
   }
