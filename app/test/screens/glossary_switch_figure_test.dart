@@ -205,6 +205,24 @@ void main() {
     );
   });
 
+  testWidgets('an English figure named like a figure both forms ship is '
+      'marked Rename needed, whichever id sorts first', (tester) async {
+    // Contra's `circle` sorts before `ecd_circle`, unlike `ecd_swing` and
+    // `swing`; English's own circle still takes the name.
+    await pump(
+      tester,
+      entry: mine(name: 'circle', form: DanceForm.ecd.name),
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-rename-needed')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+      findsNothing,
+    );
+  });
+
   testWidgets('an English figure named like one of contra\'s figures is '
       'offered the switch, since English dances use them too', (tester) async {
     // English ships no allemande of its own, so the name matches contra's.

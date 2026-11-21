@@ -582,21 +582,21 @@ class _GlossaryCustomFigureDetailState
     // A later version of the app shipped a figure of this one's name (#1023,
     // maintainer decision 5): rename it, or switch to the app's. Only a
     // figure of your own that can be used can switch. (With Custom Figures
-    // off, the Glossary lists none.) The name is matched among the figure's
-    // own form's figures. Switching maps onto contra's figures, so it is
-    // offered only when the match is one of contra's (which English and
-    // square dances use too); a match among English's own figures, such as
-    // an English figure named Swing, is marked Rename needed instead.
-    final nameMatch = figure != null && !item.unsupported
-        ? shippedFigureNamed(
-            entry.name,
-            glossaryEntryNameTaxonomy(entry.payload),
-          )
-        : null;
+    // off, the Glossary lists none.) Switching maps onto contra's figures,
+    // which English and square dances use too, so it is offered when one of
+    // contra's figures has the name. A name one of the figure's own form's
+    // figures has, such as Swing or Circle for an English figure, is marked
+    // Rename needed instead, whether or not contra has it too.
+    final nameForm = glossaryEntryNameTaxonomy(entry.payload).form;
+    final ownFigures = nameForm == DanceForm.contra
+        ? null
+        : shippedTaxonomies.ownTaxonomy(nameForm);
     final shippedTarget =
-        nameMatch != null &&
-            shippedTaxonomies.formOfMoveId(nameMatch) == DanceForm.contra
-        ? nameMatch
+        figure != null &&
+            !item.unsupported &&
+            (ownFigures == null ||
+                shippedFigureNamed(entry.name, ownFigures) == null)
+        ? shippedFigureNamed(entry.name, contraTaxonomy)
         : null;
     final example = figure == null ? null : _exampleOf(entry, figure, dialect);
     final args = definition == null
