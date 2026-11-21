@@ -40,11 +40,11 @@ they write immediately with Undo, and they create nothing.
 
 | | Tags | Authors | Sources |
 | --- | --- | --- | --- |
-| Table | `tags` (`tables.dart:390-410`) | `choreographers` (`tables.dart:154-179`) | `published_sources` (`tables.dart:450-467`) |
+| Table | `tags` (`Tags` in `tables.dart`) | `choreographers` (`Choreographers` in `tables.dart`) | `published_sources` (`PublishedSources` in `tables.dart`) |
 | Natural key | `name`, `UNIQUE` | `name`, `UNIQUE` | none. `title` is not unique |
-| Join | `dance_tags` (`:414-422`) | `dance_authors`, ordered (`:184-198`) | `dance_sources`, ordered, with `page` and `number` (`:473-489`) |
+| Join | `dance_tags` (`DanceTags`) | `dance_authors`, ordered (`DanceAuthors`) | `dance_sources`, ordered, with `page` and `number` (`DanceSources`) |
 | Rename in the app | nowhere | the author details dialog, refused on a collision (`dance_editor_screen.dart:744-779`) | the source details dialog (`dance_editor_screen.dart:837-842`) |
-| Delete in the app | only an Undo of batch tagging removes an *unused* tag it created (`dance_list_screen.dart:1516-1538`) | nowhere | nowhere |
+| Delete in the app | only an Undo of batch tagging removes an *unused* tag it created (`dance_list_screen.dart`, the batch-tag Undo) | nowhere | nowhere |
 | Merge in the app | only the sync review queue (`settings.md:1200-1225`) | the same | nowhere |
 | Purge GC | erased with the last dance, unless it holds a detail (`_garbageCollectOrphanedRefs`) | the same | the same |
 
@@ -52,20 +52,19 @@ Four details shape every proposal below.
 
 1. **Name matching is wider than the index.** The `UNIQUE` index compares
    bytes, but `naturalKeyMatchKey` folds case and composes NFC
-   (`shareable_text.dart:40-53`), and `TagRepository.idByName` uses it
-   (`tag_repository.dart:260-280`). So "Flowy" and "flowy" can both be stored,
+   (`naturalKeyMatchKey` in `shareable_text.dart`), and `TagRepository.idByName` uses it. So "Flowy" and "flowy" can both be stored,
    and the app treats them as the same name.
 2. **A tag delete keeps its join rows.** `TagRepository.delete` tombstones the
    tag and leaves `dance_tags` alone, so a revived tag comes back with its
-   dances (`tag_repository.dart:459-534`). Dance reads hide the tombstoned tag
+   dances (`TagRepository.delete`). Dance reads hide the tombstoned tag
    (`dance_repository.dart:3386-3410`), and a dance write leaves those rows in
    place (`:726-751`). Re-creating a tag under a deleted tag's name adopts the
    tombstone's id but **clears its join rows** (`existence.dart:385-400`), so
    the old dances do not get it back. Only a revival under the same id keeps
    them.
 3. **Author and source deletes are guarded.** Both refuse while a *live*
-   dance cites the row (`choreographer_repository.dart:267-291`,
-   `published_source_repository.dart:143-161`). Dances in Recently deleted do
+   dance cites the row (`ChoreographerRepository.delete`,
+   `PublishedSourceRepository.delete`). Dances in Recently deleted do
    not count, which already matches trash-policy (b).
 4. **The GC erased silently and only sometimes (LIFE-5; fixed by T4).** The
    retention purge used to erase any author, source or tag that the purged
@@ -75,13 +74,15 @@ Four details shape every proposal below.
    editor never removes the tag. It now erases only a *bare* row (see
    [The purge GC](#the-purge-gc-life-5-option-c)).
 
-Two comments in the code describe a feature that does not exist. Both get
-fixed in the first branch below:
+Two comments in the code described a feature that did not exist; the first
+branch below fixed both:
 
-- `tag_repository.dart:465` says the tombstoning delete "is what the tag manager
-  calls". No tag manager exists.
-- `tag_colors_screen.dart:24-27` and `display_defaults.dart:158` both say
+- The `TagRepository.delete` doc comment said the tombstoning delete "is what
+  the tag manager calls". No tag manager existed.
+- The comments in `tag_colors_screen.dart` and `display_defaults.dart` said
   nothing renames a tag. Those comments become false when this work lands.
+  (`tag_colors_screen.dart` is gone, and the `display_defaults.dart` comment
+  now describes the rewrite in `tag_edits.dart`.)
 
 ## One model for all three kinds
 
@@ -92,25 +93,25 @@ screen writes join rows itself.
 ### Rename
 
 A rename is an ordinary edit of the row's name. Its existing `upsert` path
-already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
-`choreographer_repository.dart:65-200`).
+already handles normalisation and sync stamping (`TagRepository.upsert`,
+`ChoreographerRepository.upsert`).
 
 - **Collision test.** Before writing, find **every** row, live or
   tombstoned, whose `naturalKeyMatchKey` equals the new name's, other than
   the row itself. That needs a new all-matches lookup; `idByName` will not
   do.
   - `idByName` returns a single id, with live rows sorted first
-    (`tag_repository.dart:260-280`). On a case-only rename of a live "flowy"
+    (`TagRepository.idByName`). On a case-only rename of a live "flowy"
     to "Flowy", it returns the row itself. That hides a tombstone holding the
     exact bytes "Flowy", and `upsert` then throws on it
-    (`tag_repository.dart:98-100`, `duplicate_natural_key.dart:97-104`). It
+    (`TagRepository.upsert`, `DuplicateNaturalKeyError` in `duplicate_natural_key.dart`). It
     also hides a live case-variant whose id sorts after the renamed row, so
     the merge offer never appears.
   - A case-only rename is a plain rename only when that lookup finds
     nothing.
-  - The default `idByName` skips tombstones (`tag_repository.dart:260-266`).
+  - The default `idByName` skips tombstones (`TagRepository.idByName`).
     A rename onto a name a tombstone holds would then reach `upsert` and
-    throw `DuplicateNaturalKeyError` (`existence.dart:368-383`).
+    throw `DuplicateNaturalKeyError` (`raiseExistenceAbove` in `existence.dart`).
   - **Recommendation:** free **every** tombstone the lookup finds before
     anything writes the name, using the name-only tombstone write described
     under Merge. This applies whether or not a live match also exists: a
@@ -119,9 +120,9 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
     Rejected alternative: refuse, which would block a name the user can no
     longer see anywhere.
   - That write must not go through `upsert`. `applyUpsertExistence` clears
-    `deleted_at` on every upsert (`existence.dart:250-256`), and with
+    `deleted_at` on every upsert (`applyUpsertExistence` in `existence.dart`), and with
     `localUserEdit` the upsert also cancels pending deletions
-    (`tag_repository.dart:190-199`). Renaming a tombstone through `upsert`
+    (`TagRepository.upsert`). Renaming a tombstone through `upsert`
     would therefore bring it back to life.
 - **On a collision, offer a merge.** Don't refuse. The dialog says:
   "'Flowy' already exists. Merge 'Flowing' into it?", with **Keep editing**
@@ -148,12 +149,12 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
     no Undo, and a merge has an Undo (below).
   - Button order follows D-1's pattern for the discard dialog.
 - **Undo** writes the old name back. A snackbar through `showUndoSnackBar`
-  (`undo_snack_bar.dart:52`) offers it.
+  (`undo_snack_bar.dart`) offers it.
 - **Sources have no natural key,** so a source rename never collides.
 - **Authors:** `ChoreographerRepository._refreshAuthorIndex`
-  (`choreographer_repository.dart:203-222`) already keeps the search index's
+  (`choreographer_repository.dart`) already keeps the search index's
   `authors` column in step with a rename. `PublishedSourceRepository` has no
-  counterpart for the index's `sources` column (`database.dart:25-31`). I did
+  counterpart for the index's `sources` column (the `dance_fts` table in `database.dart`). I did
   not check whether another path rebuilds that column after a source edit.
   The source branch must check, and fix it if the column goes stale.
   *T1 checked (2026-10-30):* nothing did, so any edit of a source's title or
@@ -202,7 +203,7 @@ The steps run in one transaction:
    - **The survivor can't take the name.** When the smaller id belongs to
      "Flowing", the survivor needs "Flowy", which the loser holds.
    - **Re-creating the name adopts the merged-away row.** Typing "Bouncey"
-     again would adopt the merged-away tombstone (`existence.dart:401-436`),
+     again would adopt the merged-away tombstone (`adoptTombstonedNaturalKey` in `existence.dart`),
      while the alias still sends every inbound reference to that id onto the
      survivor.
    - **A peer's own record gets queued.** A peer that created the name on its
@@ -221,9 +222,9 @@ The steps run in one transaction:
      would let the two drift.
    - The method does no search-index refresh, so the merge must rebuild the
      index rows of every affected dance itself.
-3. **Bump every affected dance** (`sync-spec.md` §6.5 I1, `:3093-3094`). Its
+3. **Bump every affected dance** (`sync-spec.md` §6.5 I1). Its
    serialised `tagIds`, `authorIds` or `sourceCitations` changed. The same
-   helper already does this (`sync_storage.dart:5408-5424`).
+   helper already does this (`sync_storage.dart`).
 4. **Write the survivor's fields.** It gets the chosen name, and fields
    combined as described under
    [Merging two authors' private details](#merging-two-authors-private-details)
@@ -240,14 +241,14 @@ The steps run in one transaction:
      user merge is made on one device, so its peers learn of it only through
      the tombstone.
 6. **Record the alias, loser to survivor,** through
-   `SyncLocalRepository.remapIdentity` (`sync_local_repository.dart:752-802`).
+   `SyncLocalRepository.remapIdentity` (`sync_local_repository.dart`).
    Use that, not the bare `upsertAlias`: it also collapses alias chains,
    moves retained sync fields, and unions publication markers, as §6.6
    requires (`sync-spec.md:3433-3440`).
    - Sync rewrites each inbound record through the aliases before applying it:
      both its references and its **own** id (`_rewriteCandidate`,
-     `sync_storage.dart:4012-4033`; `rewriteSyncInboundReferences`,
-     `sync_reconciliation.dart:60-110`).
+     `sync_storage.dart`; `rewriteSyncInboundReferences`,
+     `sync_reconciliation.dart`).
    - So when a peer that tagged a dance with the loser *while offline* syncs,
      this device files the tag under the survivor, bumps the dance and
      re-uploads it. The peer then drops its last citation, and its pending
@@ -271,7 +272,7 @@ The steps run in one transaction:
    - the new alias is removed, and the `id_aliases` rows its chain collapse
      rewrote are restored;
    - the `retained_sync_fields` of both ids are restored
-     (`moveRetainedSyncFields`, `sync_local_repository.dart:657-684`, deletes
+     (`SyncLocalRepository.moveRetainedSyncFields` deletes
      the loser's and may copy them to the survivor);
    - the survivor's `published_records` marker **stays**. §6.6 says a marker
      is never dropped (`sync-spec.md:3433-3440`), and a pass between the
@@ -282,8 +283,8 @@ The steps run in one transaction:
 
 If a sync pass ran in between, the revival stamps above the tombstone (§6.4,
 `sync-spec.md:3036-3040`), so peers converge on the undone state as ordinary
-edits. Sync itself removes aliases only by retirement (`retireAliases`,
-`sync_local_repository.dart:804-833`) and by clearing the baseline (`:522`).
+edits. Sync itself removes aliases only by retirement (`retireAliases` in
+`sync_local_repository.dart`) and by clearing the baseline.
 Reversing `remapIdentity` is new; T1 adds it.
 
 **This needs no wire change and no capability.** A merge adds no record kind
@@ -399,7 +400,7 @@ does today** (D-N2-7 = N2-7 (a), 2026-10-30, as recommended). The reason is sync
   body (`dance_repository.dart:726-732`), so its serialised content changes
   and I1 requires a bump. A peer applying the bumped dance writes `tagIds`
   without the tag while the tag is still live there, so it deletes the join
-  (`dance_repository.dart:736-741`). This holds whatever the apply order,
+  (`DanceRepository.upsert`'s tag-join write). This holds whatever the apply order,
   because the peer's pending deletion keeps the tag live until those dances
   arrive (§6.8).
 - Keeping the joins here therefore leaves the devices holding different
@@ -460,7 +461,7 @@ delete is already permanent (`settings.md:128-133`).
 
 - **Rename** in the details dialog stops refusing a taken name. Today a
   collision shows `danceEditorChoreographerDuplicate` and saves nothing
-  (`dance_editor_screen.dart:759-777`). Instead it offers the merge dialog,
+  (the author-details rename in `dance_editor_screen.dart`). Instead it offers the merge dialog,
   from the dance editor as well as from the manager.
 - **Merge** re-points `dance_authors`. A dance credited to both keeps the
   survivor at its own position. The search index's `authors` column must
@@ -568,7 +569,7 @@ nothing to the Collection toolbar, which B14 and B15 are already changing.
 
 **Tag colours move into the Tags manager** (FIND-3). `TagColorsScreen` is
 retired. The manager lists live tags through `TagRepository.watchAll`
-(`tag_repository.dart:451-456`), as that screen does today.
+(`tag_repository.dart`), as that screen does today.
 
 **Show dances (built).** A tag row's ⋮ menu and row sheet also hold **Show
 dances**, which leaves Settings and opens Collection with that one tag added to
@@ -697,11 +698,11 @@ default, not only the retention purge; the import-undo path passes
 ## The import-tags setting
 
 `default_import_tag_names` stores tag **names**, so that it survives sync
-re-identification (`display_defaults.dart:153-162`,
+re-identification (`kDefaultImportTagNamesKey` in `display_defaults.dart`,
 `settings_registry.dart:269-278`). A rename or merge must rewrite it; a delete
 should drop the name.
 
-- **Where.** The key is defined in the app (`display_defaults.dart:162`), so
+- **Where.** The key is defined in the app (`kDefaultImportTagNamesKey` in `display_defaults.dart`), so
   the rewrite runs in the app's controller, inside the same
   `repos.transaction` as the core operation, as `_undoBatchTag` does
   (`dance_list_screen.dart:1520-1538`). Moving the key into core is the
@@ -726,7 +727,7 @@ should drop the name.
 settings key and no data-entry surface's classification:
 
 - the managers edit fields that are already classified
-  (`field_registry.dart:454-496`, `:623-658`);
+  (`field_registry.dart`);
 - the alias goes in `id_aliases`, which sync already owns;
 - GC option (b) reads existing columns.
 
@@ -870,13 +871,13 @@ merged; B7 is in flight; B8 and B13 have not started). In the audit record's
     loser's name with the suffix.
   - The alias through `remapIdentity`, and an Undo that restores what
     `remapIdentity` wrote to `id_aliases` and `retained_sync_fields`
-    (`sync_local_repository.dart:752-802`), keeping the publication marker
+    (`SyncLocalRepository.remapIdentity`), keeping the publication marker
     as described under [Merge](#merge).
   - A search-index rebuild for every dance a merge touches, plus the
     `sources` column after a source rename if the check above finds it
     stale.
-  - The stale comments at `tag_repository.dart:465`,
-    `tag_colors_screen.dart:24-27` and `display_defaults.dart:158`.
+  - The stale comments on `TagRepository.delete`, in `tag_colors_screen.dart`
+    and in `display_defaults.dart`.
 - **Tests:**
   - every step of each operation, and its Undo;
   - Undo after a merge whose loser had a prior alias chain, and one whose
@@ -915,8 +916,8 @@ merged; B7 is in flight; B8 and B13 have not started). In the audit record's
 
 - **Scope:**
   - the Authors and Sources managers, built on T2's widget;
-  - the merge offer in place of the refusal at
-    `dance_editor_screen.dart:759-777`;
+  - the merge offer in place of the refusal in
+    the author-details rename in `dance_editor_screen.dart`;
   - the private-details merge dialog;
   - citation page and number fill.
 - **UI text:** ARB keys, and a changelog fragment. The new strings say
@@ -929,7 +930,7 @@ merged; B7 is in flight; B8 and B13 have not started). In the audit record's
 ### T4 `fix/purge-gc-spares-details`
 
 - **Scope:** the candidate filter in `_garbageCollectOrphanedRefs`
-  (`dance_repository.dart:2251-2316`), following D-N2-6 (b): spare a row that
+  (`dance_repository.dart`), following D-N2-6 (b): spare a row that
   holds any detail in the table under [The purge GC](#the-purge-gc-life-5-option-c).
 - **Tests:** the existing `dance_hard_delete_test.dart` watcher guard still
   passes, and a new test shows a coloured tag surviving the purge.

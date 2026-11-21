@@ -47,13 +47,13 @@ app cannot express either today:
 - `CalledFilter` has only `called`, `callerFilter`, `performedOnly` and
   `requireEventDate`. It has no venue or date scope
   (`packages/compendium_core/lib/src/search/filter.dart:224-247`, compiled at
-  `filter_compiler.dart:356-379`).
+  `filter_compiler.dart`).
 - The Filters panel offers only a Called / Not called pair
-  (`app/lib/src/widgets/facet_panel.dart:282-307`). It becomes a `CalledFilter`
-  at `app/lib/src/search/collection_query.dart:412-421`.
+  (the `call-status-called` and `call-status-not-called` chips in `app/lib/src/widgets/facet_panel.dart`). It becomes a `CalledFilter`
+  in `app/lib/src/search/collection_query.dart`.
 - The picker rows show "called ×N" and "in program ×N", but not when or where
-  (`app/lib/src/widgets/collection_picker.dart:1005`,
-  `app/lib/src/widgets/dance_list_tile.dart:116`).
+  (`app/lib/src/widgets/collection_picker.dart`,
+  `DanceListTile`'s `called-count-` chip in `app/lib/src/widgets/dance_list_tile.dart`).
 - Venue repeats appear only on the dance detail page, after the caller has
   already picked a candidate (`docs/user/collection.md:284-285`).
 
@@ -61,7 +61,7 @@ app cannot express either today:
 gives the picker Collection's sort control, which includes **Last called**. That
 is FIND-1's option (d), so this note does not repeat it. When this note was
 written the picker searched with no `sort:` argument
-(`collection_picker.dart:374-379`); B14 has since added it.
+(`collection_picker.dart`); B14 has since added it.
 
 **Out of scope:**
 
@@ -81,15 +81,15 @@ this note cites by bare name are in the same directory.
 
 1. **One meaning of "called".** Every history surface applies the same five rules:
    - **the alternate rule:** `callingHistoryAlternateClause`
-     (`packages/compendium_core/lib/src/storage/calling_history_scope.dart:33-34`),
+     (`packages/compendium_core/lib/src/storage/calling_history_scope.dart`),
      with its Dart twin `ProgramSlot.countsTowardCallingHistory`;
-   - **the caller scope:** `callingHistoryCallerClause` (`:15-21`, #583);
-   - **the event-date rule:** `callingHistoryEventDateClause` (`:47-50`);
+   - **the caller scope:** `callingHistoryCallerClause` (#583);
+   - **the event-date rule:** `callingHistoryEventDateClause`;
    - **the performed rule:** `performed_at IS NOT NULL`. It has no shared helper
-     and is written inline at `filter_compiler.dart:364-366`,
-     `program_repository.dart:1194` and `dance_repository.dart:3104`;
+     and is written inline in `filter_compiler.dart`,
+     `program_repository.dart` and `dance_repository.dart`;
    - **non-deleted programs only:** `p.deleted_at IS NULL`
-     (`filter_compiler.dart:376`).
+     (`filter_compiler.dart`).
 
    A venue or recency scope **narrows the set of slots** these rules select. It
    never builds a second definition of "called".
@@ -101,16 +101,16 @@ this note cites by bare name are in the same directory.
    `90fe5e8`):* B1 put the expression in one helper, `callingHistoryDateSql`
    (`packages/compendium_core/lib/src/storage/calling_history_scope.dart:47-52`;
    the event-date clause in constraint 1 is now at `:65-68`).
-   History order (`program_repository.dart:1263`) and the Last-called sort
-   (`dance_repository.dart:3126`) read it. It has two Dart copies, each with
+   History order (`ProgramRepository._callingHistoryRows`) and the Last-called sort
+   (`DanceRepository._sortByLastCalled`) read it. It has two Dart copies, each with
    its own `eventDate ?? performedAt ?? programUpdatedAt` chain:
-   `DanceCallingRecord.effectiveDate` (`program_repository.dart:82`), which
+   `DanceCallingRecord.effectiveDate` (`program_repository.dart`), which
    orders the detail page's rows, and the detail page's display date,
    `callingHistoryDisplayDate`
-   (`app/lib/src/screens/dance_detail/calling_history_section.dart:399-403`).
+   (`app/lib/src/screens/dance_detail/calling_history_section.dart`).
 
    A further date, `last_called` in the bulk counts
-   (`program_repository.dart:1110-1114`), is not this order. After B1 it is still
+   (`program_repository.dart`), is not this order. After B1 it is still
    the newest **performed** slot only, now dated
    `COALESCE(event_date, performed_at)`, with a `last_called_dated` variant for
    "Require an event date". So with the default settings, Collection's
@@ -120,7 +120,7 @@ this note cites by bare name are in the same directory.
    dance's history by `id:<venueId>` when the program links a venue record, and
    otherwise by `text:<typed venue>`. The typed text is trimmed, its whitespace
    runs are collapsed and it is lower-cased in Dart
-   (`program_repository.dart:1222-1254`). A typed "Grange" and a record named
+   (`callingHistoryVenueText` in `calling_history_scope.dart`). A typed "Grange" and a record named
    "Grange" are therefore two venues today.
 4. **GIG-7 = (b).** The maintainer chose "Offer to link old programs" over
    "Merge by the displayed name" (`maintainer-decisions-2026-10-29.md`,
@@ -136,12 +136,12 @@ this note cites by bare name are in the same directory.
    reconciliation (`docs/design/sync-spec.md:3449-3450`), so two devices can each
    create a "Grange" record. A dangling `programs.venue_id` is kept verbatim
    (`sync-spec.md:3682-3684`). The label then falls back to the typed text
-   (`app/lib/src/data/venue_label.dart:21-33`).
+   (`resolveVenueLabelParts` in `app/lib/src/data/venue_label.dart`).
 6. **Dates.** `programs.event_date` holds UTC midnight of the calendar day the
-   caller picked (`app/lib/src/screens/program_editor_screen.dart:4342`).
+   caller picked (the event-date picker in `app/lib/src/screens/program_editor_screen.dart`).
    `updated_at` and most `performed_at` values are instants. Status → Performed
    is the exception: it copies the event date into `performed_at`
-   (`calling_history_section.dart:398-414`).
+   (`callingHistoryDisplayDate` in `calling_history_section.dart`).
 7. **`ux.md`'s rules:**
    - undo everywhere, and confirm only where Undo is impossible
      (`docs/design/ux.md:201-202`);
@@ -185,8 +185,8 @@ every option below.
 
 | Route | For | Against |
 | --- | --- | --- |
-| **A Dart SQL function** (recommended) | `applyCompendiumSqliteSetup` registers a function, `cc_venue_key(text)`, on every connection (`packages/compendium_core/lib/src/storage/database_setup.dart:37-40`). Both connections the app opens use that setup: the app's (`app/lib/src/data/app_database.dart:152`) and the sync isolate's (`app/lib/src/sync/sync_isolate.dart:466`). The compiler emits `AND p.venue_id IS NULL AND cc_venue_key(p.venue) = ?`. The summary calls the same Dart function. One rule, exact, no extra query. | Every connection must register it, and today only the two production ones run the setup. The test databases (`packages/compendium_core/test/storage/test_database.dart:8`, `:155`; `app/test/support/test_repositories.dart:29`) and the core tools and benchmarks (`packages/compendium_core/tool/write_head_database.dart:55`, `packages/compendium_core/benchmark/search_benchmark.dart:59` and `scalability_benchmark.dart:482`) open without it, and would fail with "no such function". Only a search with a `text:` venue scope would fail there with "no such function" (since then the same setup also registers `cc_fold`, which an All fields or Author search calls; see [search.md](search.md)), and many more test files open their own connection. So H1 passes the setup in the two shared test helpers and the tools above (WAL is a no-op in memory, `database_setup.dart:33-35`). Venue-scope tests use those helpers, and one test per production path asserts the function exists. An open-time check was rejected: it would break every other connection site, whether or not it searches by venue. |
-| Resolve to program ids first | `DanceRepository.search` lists live programs and folds their venues in Dart before compiling, so the compiler stays pure. | An extra query on every search. An `IN (…)` list that grows with the venue's history and needs chunking past the bind limit (`_chunkIds`, `dance_repository.dart:3094`). |
+| **A Dart SQL function** (recommended) | `applyCompendiumSqliteSetup` registers a function, `cc_venue_key(text)`, on every connection (`packages/compendium_core/lib/src/storage/database_setup.dart`). Both connections the app opens use that setup: the app's (`app/lib/src/data/app_database.dart`) and the sync isolate's (`app/lib/src/sync/sync_isolate.dart`). The compiler emits `AND p.venue_id IS NULL AND cc_venue_key(p.venue) = ?`. The summary calls the same Dart function. One rule, exact, no extra query. | Every connection must register it, and today only the two production ones run the setup. The test databases (`openTestDatabase` in `packages/compendium_core/test/storage/test_database.dart`, and a second connection there; `app/test/support/test_repositories.dart:29`) and the core tools and benchmarks (`packages/compendium_core/tool/write_head_database.dart:55`, `packages/compendium_core/benchmark/search_benchmark.dart:59` and `scalability_benchmark.dart:482`) open without it, and would fail with "no such function". Only a search with a `text:` venue scope would fail there with "no such function" (since then the same setup also registers `cc_fold`, which an All fields or Author search calls; see [search.md](search.md)), and many more test files open their own connection. So H1 passes the setup in the two shared test helpers and the tools above (WAL is a no-op in memory, `applyCompendiumSqliteSetup` in `database_setup.dart`). Venue-scope tests use those helpers, and one test per production path asserts the function exists. An open-time check was rejected: it would break every other connection site, whether or not it searches by venue. |
+| Resolve to program ids first | `DanceRepository.search` lists live programs and folds their venues in Dart before compiling, so the compiler stays pure. | An extra query on every search. An `IN (…)` list that grows with the venue's history and needs chunking past the bind limit (`_chunkIds` in `dance_repository.dart`). |
 | A stored folded column | Plain indexed SQL. | A schema bump, a migration, a registry entry and a sync review, all to fix a whitespace rule. |
 
 **B3's role.** The scope works without B3. B3 makes it more useful: once old
@@ -312,7 +312,7 @@ recency scope and the H3 chip read that variant.
 ## Q3. Should the picker exclude or flag dances called at this venue?
 
 The picker knows the program it is adding to only through `addedDanceCounts`
-(`collection_picker.dart:84-89`). It does not know the program's id, venue or
+(`CollectionPicker.addedDanceCounts` in `collection_picker.dart`). It does not know the program's id, venue or
 date. Perform's sheet passes no program at all.
 
 **Decided: flag, plus a one-tap filter that starts off** (N1-5 = (a),
@@ -338,7 +338,7 @@ called here". The "exactly one polarity" rule in
 this chip.
 
 **The program being edited.** A primary slot counts the moment the dance is in a
-program (#583; `calling_history_scope.dart:26-29`). Without an exception, a dance
+program (#583; `callingHistoryAlternateClause` in `calling_history_scope.dart`). Without an exception, a dance
 added to tonight's program would at once read as "called here, tonight".
 - **Decided: leave out the whole program** (N1-6 = (c), 2026-10-30). *This
   differs from this note's recommendation, which left out only the program's
@@ -364,10 +364,10 @@ so nothing in the picker reads the program's date. Rejected: passing it anyway
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.
 - Four of the mounts are edited to pass it:
-  - `program_editor_screen.dart:3287`, `:3756` and `:3874`;
-  - `perform_adjust_sheet.dart:273`, because a live swap at the venue asks the
+  - the three `CollectionPicker` mounts in `program_editor_screen.dart`;
+  - the `CollectionPicker` mount in `perform_adjust_sheet.dart`, because a live swap at the venue asks the
     same question.
-- `settings/defaults_section.dart:616` has no program and passes nothing.
+- The `CollectionPicker` mount in `settings/defaults_section.dart` has no program and passes nothing.
 - Because the editor mounts are edited, H3 waits for F10, F11 and U7. F10
   (#2022) and U7 (#2033) have merged; F11 (#2040) is open.
 
@@ -409,7 +409,7 @@ without `lastCalled`, so the chip stays hidden for them until they turn it on
 hidden-facets key, a deny-list "so a filter added later is visible by default"
 (`app/lib/src/data/settings_keys.dart:140-146`).
 - The key is a shareable `_preference`
-  (`packages/compendium_core/lib/src/privacy/settings_registry.dart:135`). An
+  (`packages/compendium_core/lib/src/privacy/settings_registry.dart`). An
   older build ignores the unknown name, but if that build saves the setting, it
   writes back only the names it knows. One toggle there removes `lastCalled` on
   every synced device.
@@ -435,7 +435,7 @@ instead, so the paragraph is corrected here.)*
   "called ×N" counts. It honours both settings the way `countFor` does
   (`lastCalledFor(performedOnly, requireEventDate:)`), and adds a
   `currentProgramId` variant of the bulk counts for the picker. These are new columns in `_programDerivedRows` and fields on
-  `DanceCallCounts` (`program_repository.dart:1042-1061`).
+  `DanceCallCounts` (`program_repository.dart`).
 - FIND-2's evidence also notes that no screen shows the value the Last-called
   sort orders by. The chip shows it, with one exception. The sort keeps B1's
   `updated_at` fallback, because it needs a date for every called dance. So
@@ -467,7 +467,7 @@ These hold on every surface.
 
 **When the panel's scopes apply:**
 - They apply only when **exactly one** of Called / Not called is chosen. With
-  neither or both chosen, `collection_query.dart:412` builds no `CalledFilter`,
+  neither or both chosen, `collection_query.dart` builds no `CalledFilter`,
   so a scope would do nothing.
 - A scope stays set when its polarity is cleared, but it goes inert. It shows the
   hint "Applies with Called or Not called", and the active count leaves it out.
@@ -482,7 +482,7 @@ These hold on every surface.
   never hides an active narrowing.
 
 **Deleted programs:**
-- Programs in Recently deleted never count (`filter_compiler.dart:376`).
+- Programs in Recently deleted never count (`filter_compiler.dart`).
   trash-policy (b) does not change this.
 
 ## Privacy and sync
@@ -499,7 +499,7 @@ These hold on every surface.
   program, so no key is needed. (Remembering an "off" choice was a sub-question
   of the exclude-by-default option, which was not chosen.)
 - **Recommendation: don't persist a chosen venue.** A venue name is classified
-  `subject: none` (`field_registry.dart:501-508`, `:550-555`), so privacy does not
+  `subject: none` (`field_registry.dart`), so privacy does not
   forbid it. But a remembered venue would be per-device working state with no use
   on a peer.
 - **The SQL function** (Q1) is code, not data. It changes no schema and no
@@ -582,7 +582,7 @@ there these branches are N1-H1, N1-H2 and N1-H3.
 | # | Branch | Items | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
 | H1 | `feat/called-filter-scopes` | `CalledFilter` gains `venue`, `since` and `currentProgramId` (the whole program, N1-6). The `cc_venue_key` function, registered per connection and used by the summary too. The recency date variant of B1's `callingHistoryDateSql`, without `updated_at` (N1-3). A query that lists the venue keys with a counted call. Lockstep tests: the venue scope against the repeated-venues summary, the recency scope against the call date, and SQL against the Dart `effectiveDate`. `search.md`. | `filter.dart`, `filter_compiler.dart`, `calling_history_scope.dart`, `database_setup.dart`, `dance_repository.dart`, `program_repository.dart`, the test-database helpers and core tools listed in Q1 | L (~450) | Opus: it changes the one definition of "called". | B1 (merged, #2032). Hot files: after B7 → B13 on `dance_repository.dart` (B11 and B12 have merged), and in the `program_repository.dart` chain after B9 and B3, before B4 (B9 → B3 → **H1** → B4 → B5). No ARB, no changelog. |
-| H2 | `feat/history-filter-controls` | The Filters panel's Calling history section gains **At venue** and **Within** (1 month, 3 months, 6 months, Since a date…, and the never-called choice, N1-2), with the inert state and hint. The venue chooser. Active counts. ARB keys in all six files. `collection.md`. Changelog fragment. Both surfaces get it, because `FacetPanel` is shared (`dance_list_screen.dart:2738`, `collection_picker.dart:834`). | `facet_panel.dart`, `collection_query.dart`, `collection_data.dart`, and both `FacetPanel` hosts: `dance_list_screen.dart` (venue keys) and `collection_picker.dart` (wiring). ARBs. | M (~400) | Sonnet | H1. After B14 → B15, which own both host files. |
+| H2 | `feat/history-filter-controls` | The Filters panel's Calling history section gains **At venue** and **Within** (1 month, 3 months, 6 months, Since a date…, and the never-called choice, N1-2), with the inert state and hint. The venue chooser. Active counts. ARB keys in all six files. `collection.md`. Changelog fragment. Both surfaces get it, because `FacetPanel` is shared (`dance_list_screen.dart`, `collection_picker.dart`). | `facet_panel.dart`, `collection_query.dart`, `collection_data.dart`, and both `FacetPanel` hosts: `dance_list_screen.dart` (venue keys) and `collection_picker.dart` (wiring). ARBs. | M (~400) | Sonnet | H1. After B14 → B15, which own both host files. |
 | H3 | `feat/picker-history-context` | `programContext` (id and venue, no date: N1-4). The Not called here chip. `currentProgramId` on the picker's scopes, row values and "called ×N" (N1-6). `lastCalledFor` and the bulk-count variants. `CollectionTileField.lastCalled` (allow-list unchanged, N1-8) and the here marker. ARBs. `programs.md` and `settings.md`. Changelog fragment saying where to turn the chip on. | `collection_picker.dart`, `dance_list_tile.dart`, `collection_tile_fields_scope.dart`, `dance_list_entry.dart`, `collection_data.dart`, `program_repository.dart`, `program_editor_screen.dart` (three mounts), `perform_adjust_sheet.dart` | L (~500) | Sonnet: read-only aggregates and widgets, with no transaction, sync or schema change (the work plan's model rule; the note first said Opus). | H1, H2, B14. F11 (#2040) for the editor mounts, so W3. Hot files: one open PR in the `program_editor_screen.dart` group (B4 → B5, B24, B29), and after B5 in the `program_repository.dart` chain. |
 
 H1 can start now: B1 has landed. It merges after B3. H2 follows H1 and B15. H3
