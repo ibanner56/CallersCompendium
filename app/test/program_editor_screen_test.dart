@@ -4668,6 +4668,46 @@ void main() {
     );
   });
 
+  testWidgets('a dance in Recently deleted makes no mix (ADR-006 S5)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Contra Dance',
+        figures: [Figure(move: 'swing')],
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd2',
+        title: 'English Dance',
+        figures: [Figure(move: 'ecd_honor')],
+      ).copyWith(form: DanceForm.ecd),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Contra night',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+      ),
+    );
+    await repos.dances.softDelete('d2', at: DateTime.utc(2026, 2));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+    expect(find.byKey(const ValueKey('slot-s2')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('slot-s1')),
+        matching: find.textContaining('Contra · '),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('a contra figure shared by squares reads in the squares\' '
       'dialect when only squares use it, and in contra\'s when forms mix '
       '(ADR-006 S5)', (tester) async {

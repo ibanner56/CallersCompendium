@@ -100,6 +100,76 @@ void main() {
     );
   });
 
+  testWidgets('finds a program by the forms of its dances (ADR-006)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('c1', 'Chorus Jig'));
+    await repos.dances.create(
+      _dance('e1', 'Hole in the Wall').copyWith(form: DanceForm.ecd),
+    );
+    await repos.programs.create(
+      _program('contra', 'Friday').copyWith(
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c1')],
+      ),
+    );
+    await repos.programs.create(
+      _program('mixed', 'Saturday').copyWith(
+        slots: [
+          ProgramSlot(id: 's2', position: 0, danceId: 'c1'),
+          ProgramSlot(id: 's3', position: 1, danceId: 'e1'),
+        ],
+      ),
+    );
+    await repos.programs.create(_program('empty', 'Sunday'));
+    await _openPalette(tester, repos);
+    expect(find.text('Program · Contra + English (ECD)'), findsOneWidget);
+
+    Future<Set<String>> programsFor(String query) async {
+      await tester.enterText(
+        find.byKey(const ValueKey('command-palette-field')),
+        query,
+      );
+      await tester.pumpAndSettle();
+      return {
+        for (final id in ['contra', 'mixed', 'empty'])
+          if (find
+              .byKey(ValueKey('command-result-program-$id'))
+              .evaluate()
+              .isNotEmpty)
+            id,
+      };
+    }
+
+    expect(await programsFor('english'), {'mixed'});
+    expect(await programsFor('contra'), {'contra', 'mixed'});
+    expect(await programsFor('ECD'), {'mixed'});
+    expect(await programsFor('contra eng'), {'mixed'});
+    expect(await programsFor('ontra'), isEmpty);
+  });
+
+  testWidgets('a program matched by its title comes before one matched by '
+      'its forms', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('c1', 'Chorus Jig'));
+    await repos.programs.create(
+      _program('forms', 'Aardvark Night').copyWith(
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'c1')],
+      ),
+    );
+    await repos.programs.create(_program('title', 'Zany Contra Ball'));
+    await _openPalette(tester, repos);
+    await tester.enterText(
+      find.byKey(const ValueKey('command-palette-field')),
+      'contra',
+    );
+    await tester.pumpAndSettle();
+    double top(String id) => tester
+        .getTopLeft(find.byKey(ValueKey('command-result-program-$id')))
+        .dy;
+    expect(top('title'), lessThan(top('forms')));
+  });
+
   testWidgets('arrow keys move the highlight and Enter selects the result', (
     tester,
   ) async {

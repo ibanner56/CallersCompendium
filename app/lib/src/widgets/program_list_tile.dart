@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
+import '../data/program_forms.dart';
 import '../data/regional_formats.dart';
 import '../data/venue_label.dart';
 import '../theme/app_spacing.dart';
@@ -21,6 +22,7 @@ class ProgramListTile extends StatelessWidget {
     super.key,
     required this.program,
     this.venuesById = const {},
+    this.forms,
     this.onTap,
     this.selected = false,
     this.onDelete,
@@ -35,6 +37,10 @@ class ProgramListTile extends StatelessWidget {
   /// display name. Defaults to empty (callers that don't supply it fall back to
   /// the free-text [Program.venue], preserving back-compat).
   final Map<String, Venue> venuesById;
+
+  /// The forms of the program's dances ([ProgramRepository.formsByProgram]),
+  /// named first on the row; null or empty names none.
+  final Set<DanceForm>? forms;
   final VoidCallback? onTap;
   final bool selected;
 
@@ -75,6 +81,7 @@ class ProgramListTile extends StatelessWidget {
 
     final venue = resolveVenueLabel(program, venuesById);
     final subtitleParts = <String>[
+      ?programFormsLabel(l10n, forms),
       ?dateLabel,
       if (venue != null && venue.isNotEmpty) venue,
       l10n.programsDanceCount(danceCount),

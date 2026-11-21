@@ -25,9 +25,18 @@ have programs, **New program** floats at the bottom of the list, and a strip acr
 each day that has a program's event date; to choose which day the week starts
 on, see [Settings ▸ Language & region](./settings.md#formats).
 
-Each program in the list shows its title, event date, venue, dance count, and a
-status label (**Draft**, **Finalized**, or **Performed**); on the program's own
-page the status is a plain line under the title. The dance count is
+Each program in the list shows its title, the types of its dances (such as
+*Contra*, *English (ECD)*, or *Contra + English (ECD)* for a program with
+both), event date, venue, dance count, and a status label (**Draft**,
+**Finalized**, or **Performed**); on the program's own page the types are the
+first line of its details, and the status is a plain line under the title.
+Every dance counts toward the types, alternates included, but not a dance you
+have deleted. When your programs have more than one mix of types, chips above
+the list show only the programs of exactly that mix: **Contra** leaves out a
+program that also has English dances. The program you have open stays in the
+list whatever its types. Tap the chip again to show every program.
+Searching programs finds them by their types too, so `english` lists every
+program with an English dance. The dance count is
 the number of dances the evening is planned for, so alternates and breaks are
 not counted; a free-text slot such as a waltz counts, because it stands in for
 a dance. The same count appears in the builder beside **Slots**, in the
