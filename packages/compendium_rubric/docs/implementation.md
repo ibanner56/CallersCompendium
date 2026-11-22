@@ -186,13 +186,13 @@ operation.apply(...)                       the figure's own transform
 ```
 
 - **`servedRound` is read from the state the figure *started* in.** Only
-  `slide_along_set` can tell the difference — it sets its own waiting-out state,
+  `slide_along_set` (and `slice`, which dances it) can tell the difference — it sets its own waiting-out state,
   and reading the served list afterwards would retire the couples it had just
   sent out.
 - **A reaching figure that is also flagged advances twice.** Stepping out to the
   next neighbours is itself movement along the set; the flag names more.
-  `slide_along_set` is exempt via `isItsOwnProgression`, because for it the
-  displacement *is* the progression.
+  `slide_along_set` and `slice` are exempt via `isItsOwnProgression`, because
+  for them the displacement *is* the progression.
 
 ### 4.3 `Operation.apply` — `ops/operation.dart`
 
@@ -560,9 +560,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `Figure.progression` — the Caller's Box records do not carry it. Rather than
 > refuse every imported dance, `assumedProgressionIndex` assumes a placement:
 > the **last figure**, except in a Becket dance whose first figure is
-> `slide_along_set` sliding left, where it is the **first**. (Core's
-> `slide_along_set.slide` defaults to `left`, so a bare slide takes the Becket
-> branch.) The assumption **always warns**, with `assumedProgression`, even when
+> `slide_along_set` sliding left, or a `slice` left (which lands exactly like
+> one, user-ruled 2026-11-22), where it is the **first**. (Core's
+> `slide_along_set.slide` and `slice.slice` both default to `left`, so a bare
+> slide or slice takes the Becket branch.) The assumption **always warns**, with `assumedProgression`, even when
 > the dance compiles — a green result resting on a guess must not read like a
 > green result resting on the record.
 >
@@ -739,7 +740,7 @@ rest cannot pass for the wrong reason.
 - **1,113 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
-- **46 figures registered**, plus 7 upstream aliases resolved to them
+- **49 figures registered**, plus 7 upstream aliases resolved to them
   (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,
   `pull_by_dancers`, `pull_by_direction`, `see_saw`, `swat_the_flea`).
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
@@ -788,8 +789,8 @@ rest cannot pass for the wrong reason.
 - **Deferred, with worked examples still needed** (the Held table, and the
   deferrals in each figure's `docs/taxonomy.md` entry): `promenade`
   beyond `where: across` (single-file, whole-set, and stated destinations),
-  `butterfly_whirl`, `arch_and_dive` (progression half only), `revolving_door`,
-  `slice`, `contra_corners`, `dolphin_hey`, and the moves taxonomy v36–v40
+  `arch_and_dive` (progression half only), `slice` by a single dancer or
+  with no return, `contra_corners`, `dolphin_hey`, and the moves taxonomy v36–v40
   added (`circular_hey`, `trade_the_wave`, `starburst`, `hey_for_three`,
   `cast`), `orbit` couple-`who` (the
   **meanwhile** mechanism), hall `ender` values `cozy`/`cloverleaf`/
