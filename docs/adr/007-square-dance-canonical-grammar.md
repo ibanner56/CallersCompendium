@@ -117,7 +117,9 @@ From the maintainer's review on 22 November 2026:
 - On calls named "Dixie": **"Use a plain descriptive name. We’ll probably
   draw flak for it but I’m not super comfortable publishing an app with the
   word Dixie in it by default. If someone cares they can update their
-  dialect."** §7.5 gives the names.
+  dialect."** §7.5 gives the names. Asked whether the parser should still
+  read the old names: **"Yes, we should still recognize the input, I just
+  don't want to endorse the phrase by shipping it in the editor."**
 
 ### 1.2 The proposal in brief
 
@@ -873,17 +875,17 @@ and a caller who wants the source's word sets it in their dialect.
 | Source name | ID | Display name | Why this name |
 | --- | --- | --- | --- |
 | Dixie Style to a Wave | `pull_by_to_a_wave` | pull by to a wave | The first dancers pull by, then all join the next hand into a wave. |
-| Dixie Grand | `pull_by_grand` | pull by grand | Three pull bys with alternating hands along a grand right and left's path. Out of scope today (§7.3); the name is reserved if it is ever added. |
+| Dixie Grand | `pull_by_grand` | pull by grand | Three pull bys with alternating hands (right, left, right) along a grand right and left's path, 6 beats. CALLERLAB's Plus definition (25 August 2026) has each hand pull by, with no turn, so it is not a series of allemandes. Out of scope today (§7.3); the name is reserved if it is ever added. |
 | Dixie Chain, Dixie Twirl | none | named when added | Neither is in the registry. The same rule applies. |
 
 No established replacement was found: CALLERLAB and Ceder.net still use the
 old names, and "Thread the Needle" names a different figure in English
 dancing. So the names are the Compendium's own. Text and imports that use the old names are
 still read: the square parser and importer accept them on input and store
-the plain call, as contra's parser treats "gypsy" (this ADR author's call).
-⚠ That puts the old names in shipped parser tables, though never in what
-the app shows. The alternative is to leave such lines as custom text for the
-caller to re-enter.
+the plain call, as contra's parser treats "gypsy" (the maintainer's decision,
+22 November 2026, §1.1). The old names live only in the parser's input
+tables. The editor never shows or suggests them: they are not display
+names, aliases, search keywords or shorthand.
 
 ## 8. Dance structure, entry, glossary and import
 
