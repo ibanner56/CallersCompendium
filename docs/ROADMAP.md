@@ -234,3 +234,5 @@ Motivating plugins (concrete asks driving the design):
 - **Choreography validation integration** - dance "compiler" that lets the user
   know whether the choreography entered progresses correctly the expected number
   of times, baked into the dance view as a warning alongside the beat counter.
+  Direction, including showing the formation after each figure, repair
+  suggestions and dance generation: [ADR-008](adr/008-rubric-choreography-assistance.md).
