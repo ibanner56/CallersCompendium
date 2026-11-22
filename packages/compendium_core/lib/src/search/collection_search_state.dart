@@ -160,7 +160,7 @@ class FacetSelections {
   /// tag-name lookups).
   bool untagged = false;
 
-  /// Selected source facet: ids of cited [PublishedSource]s the user picked,
+  /// Selected source facet: ids of cited `PublishedSource`s the user picked,
   /// each emitted as an identity-based [SourceIdFilter]. Multi-select, OR-ed
   /// within the facet — a pick-a-source chooser mirroring the Author facet
   /// (which is likewise id-based via [AuthorFilter]). Kept by id (not title)
@@ -190,7 +190,7 @@ class FacetSelections {
   }
 
   /// Meter facet: the meters picked, as the Meter section offers them
-  /// ([CollectionData.meters]). OR-ed within the facet; each is a whole-value
+  /// (`CollectionData.meters` in the app). OR-ed within the facet; each is a whole-value
   /// match that ignores case and accents ([MeterFilter]).
   final Set<String> meters = {};
 
@@ -417,7 +417,7 @@ DateTime calendarMonthsBefore(DateTime today, int months) {
 
 /// The user's "By phrase" selections — a Caller's Box-style per-phrase figure
 /// search. For each canonical section label (the standard 4 phrases A1/A2/B1/B2,
-/// but keyed generically so any [PhraseStructure] works) the caller lists moves
+/// but keyed generically so any `PhraseStructure` works) the caller lists moves
 /// that MUST occur in that phrase ([match]) and moves that must NOT ([exclude]).
 ///
 /// Semantics (folded in [buildCollectionFilter]):

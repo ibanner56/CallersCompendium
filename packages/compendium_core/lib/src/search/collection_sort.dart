@@ -40,7 +40,7 @@ CollectionSort? collectionSortFromName(Object? stored) {
 
 /// The sorts a Collection-style list offers for the current query, in menu
 /// order. [CollectionSort.relevance] is offered only while [bareFullText] —
-/// see [isBareFullText] — so the Collection and the program picker offer the
+/// see `isBareFullText` (in `collection_search_state.dart`) — so the Collection and the program picker offer the
 /// same set (FIND-7).
 List<CollectionSort> availableCollectionSorts({required bool bareFullText}) => [
   if (bareFullText) CollectionSort.relevance,
