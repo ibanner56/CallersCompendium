@@ -520,11 +520,12 @@ required to support.
   are outside the set's scope (§3.5), not failures.
 - "Passing" means Compiled. A core-set dance that Rubric cannot check yet
   counts as not passing, because "can't check yet" is not support.
-- **"The core set passes" means every in-scope, matched entry compiles**,
-  apart from entries the maintainer has removed.
+- **"The core set passes" means every in-scope entry compiles**, apart
+  from entries the maintainer has removed.
 - An entry that matches no corpus record, or more than one, is reported by
-  name as unmatched. It is neither passing nor out of scope until it is
-  resolved, by finding its record or by the maintainer's decision.
+  name as unmatched. It counts as not passing, so it blocks the core set
+  until it is resolved, by finding its record or by the maintainer's
+  decision.
 
 ### 6.3 Debts accepted knowingly
 
