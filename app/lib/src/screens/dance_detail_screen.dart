@@ -1177,6 +1177,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     style: theme.textTheme.headlineMedium,
                   ),
                 ),
+                if (dance.alternateTitles.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  SelectableLine(
+                    child: Text(
+                      l10n.danceAlsoKnownAs(
+                        dance.alternateTitles.join(
+                          l10n.danceAlsoKnownAsSeparator,
+                        ),
+                      ),
+                      key: const ValueKey('dance-alternate-titles'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
                 if (detail.authorNames.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xxs),
                   SelectableLine(
@@ -1457,6 +1473,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     DecodedTunes(:final tunes) => tunes,
                     UnreadableTunes() => const <String>[],
                   }.join(', '),
+          ),
+        ],
+        if (dance.barnesReference.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionBarnes,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          SelectableLine(
+            child: Text(
+              dance.barnesReference,
+              key: const ValueKey('dance-barnes-reference'),
+            ),
           ),
         ],
         if (visibleLinks.isNotEmpty) ...[

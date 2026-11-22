@@ -660,9 +660,20 @@ List<String>? _clampChoices(List<String>? choices) {
   return out;
 }
 
+/// A dance's `alternateTitles`, bounded as untrusted input is: each title
+/// clamped to [kMaxAlternateTitleLength], then blanks and repeats dropped
+/// ([normalizeAlternateTitles]), then the first [kMaxAlternateTitles] kept.
+/// A missing key holds none.
+List<String> _alternateTitlesFromJson(Map<String, Object?> m) =>
+    normalizeAlternateTitles([
+      for (final title in _stringList(m, 'alternateTitles'))
+        _clampLength(title, kMaxAlternateTitleLength),
+    ]).take(kMaxAlternateTitles).toList();
+
 Dance _danceFromJson(Map<String, Object?> m) => Dance(
   id: _str(m, 'id'),
   title: _str(m, 'title'),
+  alternateTitles: _alternateTitlesFromJson(m),
   authorIds: _stringList(m, 'authorIds'),
   form: _enumByNameOr(DanceForm.values, m['form'], DanceForm.contra, 'form'),
   formation: _formationFromJson(m['formation']),
@@ -696,6 +707,10 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   // Short untrusted labels: clamped like the walkthrough, never rejected.
   meter: _clampLength(_strOr(m, 'meter', ''), kMaxMusicLabelLength),
   musicalKey: _clampLength(_strOr(m, 'musicalKey', ''), kMaxMusicLabelLength),
+  barnesReference: _clampLength(
+    _strOr(m, 'barnesReference', ''),
+    kMaxBarnesReferenceLength,
+  ),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],

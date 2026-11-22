@@ -4252,6 +4252,30 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'z. B. g-Moll';
 
   @override
+  String get danceEditorAlternateTitlesLabel => 'Weitere Titel';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      'Einer pro Zeile. Die Titelsuche findet den Tanz unter jedem davon.';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes-Verweis';
+
+  @override
+  String get danceEditorBarnesReferenceHint => 'z. B. BIII p. 92 oder NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return 'Auch bekannt als $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '; ';
+
+  @override
+  String get danceSectionBarnes => 'Barnes-Bücher';
+
+  @override
   String get commonMixedLevel => 'Gemischtes Niveau';
 
   @override

@@ -4213,6 +4213,30 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'f.eks. g-mol';
 
   @override
+  String get danceEditorAlternateTitlesLabel => 'Andre titler';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      'Én pr. linje. En titelsøgning finder dansen under dem alle.';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes-henvisning';
+
+  @override
+  String get danceEditorBarnesReferenceHint => 'f.eks. BIII p. 92 eller NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return 'Også kendt som $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '; ';
+
+  @override
+  String get danceSectionBarnes => 'Barnes-bøgerne';
+
+  @override
   String get commonMixedLevel => 'Blandet niveau';
 
   @override

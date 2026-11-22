@@ -249,8 +249,8 @@ class FilterCompiler {
         "AND (' ' || $_figuresTextWithoutRoleTokens) LIKE ? ESCAPE '\\'",
       );
     }
-    // The meter, key and interpreters are not in the text index
-    // ([_musicAndInterpreterMatch]); a dance found only by them has no bm25
+    // The meter, key, Barnes reference, other titles and interpreters are
+    // not in the text index ([_musicAndInterpreterMatch]); a dance found only by them has no bm25
     // score and takes 0, the worst a score can be (bm25 is never above 0):
     // last in the default direction, first when it is flipped.
     branches.add(
@@ -679,7 +679,9 @@ class FilterCompiler {
 
     switch (scope) {
       case FullTextScope.title:
-        return columnMatch('title', rawTextQuery);
+        // A dance's other titles count as its title here.
+        final title = columnMatch('title', rawTextQuery);
+        return '($title OR ${_alternateTitleMatch(raw, isPrefix, binds)})';
       case FullTextScope.author:
         // The people who interpreted the dance count as its authors here.
         final authors = columnMatch('authors', rawTextQuery);
@@ -716,8 +718,9 @@ class FilterCompiler {
   }
 
   /// One word of an All fields search ([raw], as typed) against the dance's
-  /// meter, its key and the names of the people who interpreted it, in a
-  /// dance of any form (ADR-006 §9.2, F3: "meter and key MUST be
+  /// meter, its key, its Barnes reference, its other titles
+  /// ([_alternateTitleMatch]) and the names of the people who interpreted it,
+  /// in a dance of any form (ADR-006 §9.2, F3: "meter and key MUST be
   /// searchable"). These are read from the dance's own row and its live
   /// interpreters, not from the text index, so they need no index rebuild and
   /// follow a rename at once.
@@ -741,6 +744,7 @@ class FilterCompiler {
     String value(String column) => _foldedValue(column, prefix);
     binds
       ..add(pattern)
+      ..add(pattern)
       ..add(pattern);
     // Two `id IN` subqueries, like the text-index branches beside them, so
     // SQLite evaluates each once per word and probes its result, rather than
@@ -750,9 +754,28 @@ class FilterCompiler {
     // 0.47 ms before this match, 5.7 ms with the branches tested per row and
     // 2.5 ms in this shape.
     return "(id IN (SELECT id FROM dances WHERE (meter <> '' OR "
-        "musical_key <> '') AND (${value('meter')} LIKE ? ESCAPE '\\' "
-        "OR ${value('musical_key')} LIKE ? ESCAPE '\\')) "
+        "musical_key <> '' OR barnes_reference <> '') "
+        "AND (${value('meter')} LIKE ? ESCAPE '\\' "
+        "OR ${value('musical_key')} LIKE ? ESCAPE '\\' "
+        "OR ${value('barnes_reference')} LIKE ? ESCAPE '\\')) "
+        'OR ${_alternateTitleMatch(raw, prefix, binds)} '
         'OR ${_interpreterMatch(raw, prefix, binds)})';
+  }
+
+  /// One word of a search ([raw], as typed) against a dance's other titles
+  /// (`Dance.alternateTitles`), matched as [_musicAndInterpreterMatch] matches
+  /// a meter. The column holds one title per line; each line break is read as
+  /// a space, so a short word can start the second title as it can the first.
+  /// The Title scope and All fields both read it. Like the meter, the titles
+  /// are read from the dance's own row rather than the text index, so no
+  /// index rebuild is needed.
+  String _alternateTitleMatch(String raw, bool prefix, List<Object?> binds) {
+    final pattern = _foldedLikePattern(raw, prefix);
+    if (pattern == null) return '0';
+    binds.add(pattern);
+    return "id IN (SELECT id FROM dances WHERE alternate_titles <> '' "
+        "AND ${_foldedValue("replace(alternate_titles, char(10), ' ')", prefix)} "
+        "LIKE ? ESCAPE '\\')";
   }
 
   /// One word of a search ([raw], as typed) against the names of the people

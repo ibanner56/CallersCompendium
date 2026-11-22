@@ -5313,6 +5313,40 @@
   "@danceEditorMusicalKeyHint": {
     "description": "Hint in the dance editor's key field: an example of a musical key."
   },
+  "danceEditorAlternateTitlesLabel": "Other titles",
+  "@danceEditorAlternateTitlesLabel": {
+    "description": "Label of the dance editor field for other names the dance is known by, entered one per line."
+  },
+  "danceEditorAlternateTitlesHelper": "One per line. A title search finds the dance by any of them.",
+  "@danceEditorAlternateTitlesHelper": {
+    "description": "Helper text under the dance editor's other-titles field: enter one title per line, and a title search finds the dance by any of them."
+  },
+  "danceEditorBarnesReferenceLabel": "Barnes reference",
+  "@danceEditorBarnesReferenceLabel": {
+    "description": "Label of the dance editor field for where the dance's tune is printed in the Barnes books (a set of English country dance tune books), as free text with the book and page in one value."
+  },
+  "danceEditorBarnesReferenceHint": "e.g. BIII p. 92, or NiB",
+  "@danceEditorBarnesReferenceHint": {
+    "description": "Hint in the dance editor's Barnes field: examples of a Barnes book reference. 'BIII p. 92' is book III, page 92; 'NiB' means Not in Barnes. Keep both examples untranslated."
+  },
+  "danceAlsoKnownAs": "Also known as {titles}",
+  "@danceAlsoKnownAs": {
+    "description": "Line under a dance's title on the dance detail screen, listing the other names the dance is known by.",
+    "placeholders": {
+      "titles": {
+        "type": "String",
+        "example": "Monymusk"
+      }
+    }
+  },
+  "danceAlsoKnownAsSeparator": "; ",
+  "@danceAlsoKnownAsSeparator": {
+    "description": "Text placed between two of a dance's other titles in the 'Also known as' line."
+  },
+  "danceSectionBarnes": "Barnes books",
+  "@danceSectionBarnes": {
+    "description": "Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books)."
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."

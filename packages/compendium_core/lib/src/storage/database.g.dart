@@ -577,6 +577,30 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _alternateTitlesMeta = const VerificationMeta(
+    'alternateTitles',
+  );
+  @override
+  late final GeneratedColumn<String> alternateTitles = GeneratedColumn<String>(
+    'alternate_titles',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _barnesReferenceMeta = const VerificationMeta(
+    'barnesReference',
+  );
+  @override
+  late final GeneratedColumn<String> barnesReference = GeneratedColumn<String>(
+    'barnes_reference',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<DanceStatus, String> status =
       GeneratedColumn<String>(
@@ -742,6 +766,8 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     walkthrough,
     meter,
     musicalKey,
+    alternateTitles,
+    barnesReference,
     status,
     levelId,
     mixedLevel,
@@ -851,6 +877,24 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       context.handle(
         _musicalKeyMeta,
         musicalKey.isAcceptableOrUnknown(data['musical_key']!, _musicalKeyMeta),
+      );
+    }
+    if (data.containsKey('alternate_titles')) {
+      context.handle(
+        _alternateTitlesMeta,
+        alternateTitles.isAcceptableOrUnknown(
+          data['alternate_titles']!,
+          _alternateTitlesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('barnes_reference')) {
+      context.handle(
+        _barnesReferenceMeta,
+        barnesReference.isAcceptableOrUnknown(
+          data['barnes_reference']!,
+          _barnesReferenceMeta,
+        ),
       );
     }
     if (data.containsKey('level_id')) {
@@ -1006,6 +1050,14 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}musical_key'],
       )!,
+      alternateTitles: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alternate_titles'],
+      )!,
+      barnesReference: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}barnes_reference'],
+      )!,
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -1112,6 +1164,18 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
   /// reserves.
   final String musicalKey;
+
+  /// The dance's other titles, `Dance.alternateTitles`, one per line in the
+  /// order entered; `''` when it has none. One line per title is safe because
+  /// a title never holds a line break (`normalizeAlternateTitles`), and it
+  /// keeps the value plain text that cannot fail to decode. Added in schema
+  /// v42 while v42 was unreleased.
+  final String alternateTitles;
+
+  /// Where the tune is printed in the Barnes books, `Dance.barnesReference`,
+  /// as free text ("BIII p. 92", "NiB"); `''` when not given. Added in schema
+  /// v42 while v42 was unreleased.
+  final String barnesReference;
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
@@ -1177,6 +1241,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.walkthrough,
     required this.meter,
     required this.musicalKey,
+    required this.alternateTitles,
+    required this.barnesReference,
     required this.status,
     this.levelId,
     required this.mixedLevel,
@@ -1220,6 +1286,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['walkthrough'] = Variable<String>(walkthrough);
     map['meter'] = Variable<String>(meter);
     map['musical_key'] = Variable<String>(musicalKey);
+    map['alternate_titles'] = Variable<String>(alternateTitles);
+    map['barnes_reference'] = Variable<String>(barnesReference);
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -1272,6 +1340,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       walkthrough: Value(walkthrough),
       meter: Value(meter),
       musicalKey: Value(musicalKey),
+      alternateTitles: Value(alternateTitles),
+      barnesReference: Value(barnesReference),
       status: Value(status),
       levelId: levelId == null && nullToAbsent
           ? const Value.absent()
@@ -1328,6 +1398,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       walkthrough: serializer.fromJson<String>(json['walkthrough']),
       meter: serializer.fromJson<String>(json['meter']),
       musicalKey: serializer.fromJson<String>(json['musicalKey']),
+      alternateTitles: serializer.fromJson<String>(json['alternateTitles']),
+      barnesReference: serializer.fromJson<String>(json['barnesReference']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -1369,6 +1441,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'walkthrough': serializer.toJson<String>(walkthrough),
       'meter': serializer.toJson<String>(meter),
       'musicalKey': serializer.toJson<String>(musicalKey),
+      'alternateTitles': serializer.toJson<String>(alternateTitles),
+      'barnesReference': serializer.toJson<String>(barnesReference),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -1402,6 +1476,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     String? walkthrough,
     String? meter,
     String? musicalKey,
+    String? alternateTitles,
+    String? barnesReference,
     DanceStatus? status,
     Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
@@ -1432,6 +1508,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     walkthrough: walkthrough ?? this.walkthrough,
     meter: meter ?? this.meter,
     musicalKey: musicalKey ?? this.musicalKey,
+    alternateTitles: alternateTitles ?? this.alternateTitles,
+    barnesReference: barnesReference ?? this.barnesReference,
     status: status ?? this.status,
     levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1482,6 +1560,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       musicalKey: data.musicalKey.present
           ? data.musicalKey.value
           : this.musicalKey,
+      alternateTitles: data.alternateTitles.present
+          ? data.alternateTitles.value
+          : this.alternateTitles,
+      barnesReference: data.barnesReference.present
+          ? data.barnesReference.value
+          : this.barnesReference,
       status: data.status.present ? data.status.value : this.status,
       levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
@@ -1523,6 +1607,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('walkthrough: $walkthrough, ')
           ..write('meter: $meter, ')
           ..write('musicalKey: $musicalKey, ')
+          ..write('alternateTitles: $alternateTitles, ')
+          ..write('barnesReference: $barnesReference, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1556,6 +1642,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     walkthrough,
     meter,
     musicalKey,
+    alternateTitles,
+    barnesReference,
     status,
     levelId,
     mixedLevel,
@@ -1588,6 +1676,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.walkthrough == this.walkthrough &&
           other.meter == this.meter &&
           other.musicalKey == this.musicalKey &&
+          other.alternateTitles == this.alternateTitles &&
+          other.barnesReference == this.barnesReference &&
           other.status == this.status &&
           other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
@@ -1618,6 +1708,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<String> walkthrough;
   final Value<String> meter;
   final Value<String> musicalKey;
+  final Value<String> alternateTitles;
+  final Value<String> barnesReference;
   final Value<DanceStatus> status;
   final Value<String?> levelId;
   final Value<bool> mixedLevel;
@@ -1647,6 +1739,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.walkthrough = const Value.absent(),
     this.meter = const Value.absent(),
     this.musicalKey = const Value.absent(),
+    this.alternateTitles = const Value.absent(),
+    this.barnesReference = const Value.absent(),
     this.status = const Value.absent(),
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1677,6 +1771,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.walkthrough = const Value.absent(),
     this.meter = const Value.absent(),
     this.musicalKey = const Value.absent(),
+    this.alternateTitles = const Value.absent(),
+    this.barnesReference = const Value.absent(),
     required DanceStatus status,
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1714,6 +1810,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? walkthrough,
     Expression<String>? meter,
     Expression<String>? musicalKey,
+    Expression<String>? alternateTitles,
+    Expression<String>? barnesReference,
     Expression<String>? status,
     Expression<String>? levelId,
     Expression<bool>? mixedLevel,
@@ -1744,6 +1842,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (walkthrough != null) 'walkthrough': walkthrough,
       if (meter != null) 'meter': meter,
       if (musicalKey != null) 'musical_key': musicalKey,
+      if (alternateTitles != null) 'alternate_titles': alternateTitles,
+      if (barnesReference != null) 'barnes_reference': barnesReference,
       if (status != null) 'status': status,
       if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -1776,6 +1876,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<String>? walkthrough,
     Value<String>? meter,
     Value<String>? musicalKey,
+    Value<String>? alternateTitles,
+    Value<String>? barnesReference,
     Value<DanceStatus>? status,
     Value<String?>? levelId,
     Value<bool>? mixedLevel,
@@ -1806,6 +1908,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       walkthrough: walkthrough ?? this.walkthrough,
       meter: meter ?? this.meter,
       musicalKey: musicalKey ?? this.musicalKey,
+      alternateTitles: alternateTitles ?? this.alternateTitles,
+      barnesReference: barnesReference ?? this.barnesReference,
       status: status ?? this.status,
       levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1874,6 +1978,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (musicalKey.present) {
       map['musical_key'] = Variable<String>(musicalKey.value);
     }
+    if (alternateTitles.present) {
+      map['alternate_titles'] = Variable<String>(alternateTitles.value);
+    }
+    if (barnesReference.present) {
+      map['barnes_reference'] = Variable<String>(barnesReference.value);
+    }
     if (status.present) {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status.value),
@@ -1938,6 +2048,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('walkthrough: $walkthrough, ')
           ..write('meter: $meter, ')
           ..write('musicalKey: $musicalKey, ')
+          ..write('alternateTitles: $alternateTitles, ')
+          ..write('barnesReference: $barnesReference, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -16963,6 +17075,8 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<String> walkthrough,
       Value<String> meter,
       Value<String> musicalKey,
+      Value<String> alternateTitles,
+      Value<String> barnesReference,
       required DanceStatus status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -16994,6 +17108,8 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<String> walkthrough,
       Value<String> meter,
       Value<String> musicalKey,
+      Value<String> alternateTitles,
+      Value<String> barnesReference,
       Value<DanceStatus> status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -17305,6 +17421,16 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get musicalKey => $composableBuilder(
     column: $table.musicalKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get alternateTitles => $composableBuilder(
+    column: $table.alternateTitles,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get barnesReference => $composableBuilder(
+    column: $table.barnesReference,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17722,6 +17848,16 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get alternateTitles => $composableBuilder(
+    column: $table.alternateTitles,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get barnesReference => $composableBuilder(
+    column: $table.barnesReference,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -17874,6 +18010,16 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumn<String> get musicalKey => $composableBuilder(
     column: $table.musicalKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get alternateTitles => $composableBuilder(
+    column: $table.alternateTitles,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get barnesReference => $composableBuilder(
+    column: $table.barnesReference,
     builder: (column) => column,
   );
 
@@ -18251,6 +18397,8 @@ class $$DancesTableTableManager
                 Value<String> walkthrough = const Value.absent(),
                 Value<String> meter = const Value.absent(),
                 Value<String> musicalKey = const Value.absent(),
+                Value<String> alternateTitles = const Value.absent(),
+                Value<String> barnesReference = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -18280,6 +18428,8 @@ class $$DancesTableTableManager
                 walkthrough: walkthrough,
                 meter: meter,
                 musicalKey: musicalKey,
+                alternateTitles: alternateTitles,
+                barnesReference: barnesReference,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -18311,6 +18461,8 @@ class $$DancesTableTableManager
                 Value<String> walkthrough = const Value.absent(),
                 Value<String> meter = const Value.absent(),
                 Value<String> musicalKey = const Value.absent(),
+                Value<String> alternateTitles = const Value.absent(),
+                Value<String> barnesReference = const Value.absent(),
                 required DanceStatus status,
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -18340,6 +18492,8 @@ class $$DancesTableTableManager
                 walkthrough: walkthrough,
                 meter: meter,
                 musicalKey: musicalKey,
+                alternateTitles: alternateTitles,
+                barnesReference: barnesReference,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,

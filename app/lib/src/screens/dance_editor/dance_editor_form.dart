@@ -788,7 +788,8 @@ class DanceEditorForm extends StatelessWidget {
     ];
   }
 
-  /// The tune's written meter and key, side by side.
+  /// The tune's written meter and key, side by side, and below them where the
+  /// tune is printed in the Barnes books.
   Widget _musicFields(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     Widget field({
@@ -821,7 +822,7 @@ class DanceEditorForm extends StatelessWidget {
         ),
       ],
     );
-    return Row(
+    final meterAndKey = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
@@ -840,6 +841,19 @@ class DanceEditorForm extends StatelessWidget {
             label: l10n.danceEditorMusicalKeyLabel,
             hint: l10n.danceEditorMusicalKeyHint,
           ),
+        ),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        meterAndKey,
+        const SizedBox(height: AppSpacing.sm),
+        field(
+          key: 'barnes-reference',
+          textController: controller.barnesReferenceController,
+          label: l10n.danceEditorBarnesReferenceLabel,
+          hint: l10n.danceEditorBarnesReferenceHint,
         ),
       ],
     );
@@ -886,6 +900,26 @@ class DanceEditorForm extends StatelessWidget {
           builder: (context) => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Other names the dance goes by, one per line; a title search
+              // finds the dance by any of them.
+              TextFormField(
+                key: const ValueKey('alternate-titles-field'),
+                controller: controller.alternateTitlesController,
+                minLines: 1,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorAlternateTitlesLabel,
+                  helperText: l10n.danceEditorAlternateTitlesHelper,
+                ),
+                onChanged: (_) => controller.onTextEdited(),
+              ),
+              LingoDiscouragedHint(
+                controller: controller.alternateTitlesController,
+                dialect: dialect,
+                fieldKey: 'alternate-titles',
+              ),
+              const SizedBox(height: AppSpacing.md),
               EnumDropdown<DanceStatus>(
                 fieldKey: 'status',
                 label: l10n.danceEditorStatusLabel,

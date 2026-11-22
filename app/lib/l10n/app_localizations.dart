@@ -6574,6 +6574,48 @@ abstract class AppLocalizations {
   /// **'e.g. G minor'**
   String get danceEditorMusicalKeyHint;
 
+  /// Label of the dance editor field for other names the dance is known by, entered one per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Other titles'**
+  String get danceEditorAlternateTitlesLabel;
+
+  /// Helper text under the dance editor's other-titles field: enter one title per line, and a title search finds the dance by any of them.
+  ///
+  /// In en, this message translates to:
+  /// **'One per line. A title search finds the dance by any of them.'**
+  String get danceEditorAlternateTitlesHelper;
+
+  /// Label of the dance editor field for where the dance's tune is printed in the Barnes books (a set of English country dance tune books), as free text with the book and page in one value.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes reference'**
+  String get danceEditorBarnesReferenceLabel;
+
+  /// Hint in the dance editor's Barnes field: examples of a Barnes book reference. 'BIII p. 92' is book III, page 92; 'NiB' means Not in Barnes. Keep both examples untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. BIII p. 92, or NiB'**
+  String get danceEditorBarnesReferenceHint;
+
+  /// Line under a dance's title on the dance detail screen, listing the other names the dance is known by.
+  ///
+  /// In en, this message translates to:
+  /// **'Also known as {titles}'**
+  String danceAlsoKnownAs(String titles);
+
+  /// Text placed between two of a dance's other titles in the 'Also known as' line.
+  ///
+  /// In en, this message translates to:
+  /// **'; '**
+  String get danceAlsoKnownAsSeparator;
+
+  /// Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books).
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes books'**
+  String get danceSectionBarnes;
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:

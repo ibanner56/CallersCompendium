@@ -4304,6 +4304,40 @@
   "@danceEditorMusicalKeyHint": {
     "x-sourceSha256": "f4b6292e746248db6dcdf014a506b1ebbdfa323e4761c71b7eeda3e64eb5166b"
   },
+  "danceEditorAlternateTitlesLabel": "Andre titler",
+  "@danceEditorAlternateTitlesLabel": {
+    "description": "Label of the dance editor field for other names the dance is known by, entered one per line."
+  },
+  "danceEditorAlternateTitlesHelper": "Én pr. linje. En titelsøgning finder dansen under dem alle.",
+  "@danceEditorAlternateTitlesHelper": {
+    "description": "Helper text under the dance editor's other-titles field: enter one title per line, and a title search finds the dance by any of them."
+  },
+  "danceEditorBarnesReferenceLabel": "Barnes-henvisning",
+  "@danceEditorBarnesReferenceLabel": {
+    "description": "Label of the dance editor field for where the dance's tune is printed in the Barnes books (a set of English country dance tune books), as free text with the book and page in one value."
+  },
+  "danceEditorBarnesReferenceHint": "f.eks. BIII p. 92 eller NiB",
+  "@danceEditorBarnesReferenceHint": {
+    "description": "Hint in the dance editor's Barnes field: examples of a Barnes book reference. 'BIII p. 92' is book III, page 92; 'NiB' means Not in Barnes. Keep both examples untranslated."
+  },
+  "danceAlsoKnownAs": "Også kendt som {titles}",
+  "@danceAlsoKnownAs": {
+    "description": "Line under a dance's title on the dance detail screen, listing the other names the dance is known by.",
+    "placeholders": {
+      "titles": {
+        "type": "String",
+        "example": "Monymusk"
+      }
+    }
+  },
+  "danceAlsoKnownAsSeparator": "; ",
+  "@danceAlsoKnownAsSeparator": {
+    "description": "Text placed between two of a dance's other titles in the 'Also known as' line."
+  },
+  "danceSectionBarnes": "Barnes-bøgerne",
+  "@danceSectionBarnes": {
+    "description": "Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books)."
+  },
   "commonMixedLevel": "Blandet niveau",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"

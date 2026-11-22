@@ -218,7 +218,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**257 columns**: 176 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
+**259 columns**: 178 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -304,6 +304,8 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_substring_fts` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_tags` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_tags` | `tag_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dances` | `alternate_titles` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `barnes_reference` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `calling_notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `composed_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |

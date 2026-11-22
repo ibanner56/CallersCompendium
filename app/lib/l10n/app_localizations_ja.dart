@@ -4015,6 +4015,30 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => '例: ト短調';
 
   @override
+  String get danceEditorAlternateTitlesLabel => '別名';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      '1行に1つずつ。タイトル検索でどの名前からも見つかります。';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes 掲載箇所';
+
+  @override
+  String get danceEditorBarnesReferenceHint => '例: BIII p. 92、NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return '別名: $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '、';
+
+  @override
+  String get danceSectionBarnes => 'Barnes 曲集';
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override

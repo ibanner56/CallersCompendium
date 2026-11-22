@@ -2914,6 +2914,37 @@ void main() {
       expect(saved.composedOn, PartialDate(1695));
     });
 
+    testWidgets('other titles and the Barnes reference load, and save '
+        'one title per line with blanks and repeats dropped', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Money Musk',
+        ).copyWith(alternateTitles: ['Monymusk'], barnesReference: 'NiB'),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final titles = find.byKey(const ValueKey('alternate-titles-field'));
+      final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+      expect(tester.widget<TextFormField>(titles).controller?.text, 'Monymusk');
+      expect(tester.widget<TextFormField>(barnes).controller?.text, 'NiB');
+
+      await tester.enterText(
+        titles,
+        'Monymusk\n\n  Sir Archibald Grant  \nMonymusk',
+      );
+      await tester.enterText(barnes, ' BIII p. 92 ');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.alternateTitles, ['Monymusk', 'Sir Archibald Grant']);
+      expect(saved.barnesReference, 'BIII p. 92');
+    });
+
     testWidgets('an interpreter is picked from the people list', (
       tester,
     ) async {

@@ -53,8 +53,9 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 ///   mode only, and only when a tombstoned tag exists. See
 ///   [archiveSchemaVersionDeletedTags].
 /// * **v8** — adds a dance's `meter` and `musicalKey`, `formation.improper`,
-///   and the ECD formation shapes (ADR-006 §12, F2 and F3). Stamped only when
-///   a dance carries one of them. See [archiveSchemaVersionEcdDanceFields].
+///   and the ECD formation shapes (ADR-006 §12, F2 and F3), its interpreters,
+///   its `alternateTitles` and its `barnesReference`. Stamped only when a
+///   dance carries one of them. See [archiveSchemaVersionEcdDanceFields].
 ///
 /// **Not versioned:** a shared archive's `userFigures` section, the
 /// definitions of the user's own new figures its dances use (#1023, see
@@ -137,11 +138,12 @@ const int archiveSchemaVersionDeletedTags = 7;
 /// to a dance (ADR-006 §12, F2 and F3, and §9.2's interpreter credits):
 /// `meter`, `musicalKey`, `formation.improper`, `interpreterIds`,
 /// `interpretedOn`, and the formation shapes from [FormationShape.dupleMinor]
-/// on.
+/// on; and two fields any dance can have, `alternateTitles` and
+/// `barnesReference`, which joined v8 while it was unreleased.
 ///
-/// A pre-v8 reader ignores the five keys, so without the bump it would
-/// restore the dance without its meter, key or interpreters, and as proper,
-/// and report success. A new shape it cannot read at all, and it skips that dance with a
+/// A pre-v8 reader ignores the seven keys, so without the bump it would
+/// restore the dance without its meter, key, interpreters, other titles or
+/// Barnes reference, and as proper, and report success. A new shape it cannot read at all, and it skips that dance with a
 /// warning; the stamp also makes a backup holding one refuse to restore there
 /// rather than restore without it. Stamped only when a dance carries one of
 /// them, so a library with none still writes its earlier version
@@ -156,6 +158,8 @@ bool _hasEcdDanceFields(Dance dance) =>
     dance.formation.improper ||
     dance.interpreterIds.isNotEmpty ||
     dance.interpretedOn != null ||
+    dance.alternateTitles.isNotEmpty ||
+    dance.barnesReference.isNotEmpty ||
     // Every shape before ECD's is one contra offers; any other is newer.
     !contraFormationShapes.contains(dance.formation.shape);
 

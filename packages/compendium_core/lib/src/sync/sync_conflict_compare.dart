@@ -217,6 +217,8 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'walkthrough',
     'meter',
     'musicalKey',
+    'alternateTitles',
+    'barnesReference',
     'difficultyLevelId',
     'mixedLevel',
     'mixer',

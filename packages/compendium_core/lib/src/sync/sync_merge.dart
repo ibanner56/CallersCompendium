@@ -346,11 +346,17 @@ Map<String, Object?> _mergeDanceBodies(
       body[key] = latest.blob.body[key];
     }
   }
-  // Left out of the choreography fingerprint (`dedupe.dart`), so the copies
-  // merged here may differ in them; the latest copy's wins. Each is omitted
+  // Left out of the choreography fingerprint (`dedupe.dart`): a build older
+  // than schema v42 never sees them, so including them would split one dance
+  // into two fingerprints. The copies merged here may differ in them; the latest copy's wins. Each is omitted
   // from a body when it holds its default, so a missing key is the default,
   // not "keep the survivor's".
-  for (final key in const ['meter', 'musicalKey', 'interpretedOn']) {
+  for (final key in const [
+    'meter',
+    'musicalKey',
+    'barnesReference',
+    'interpretedOn',
+  ]) {
     if (latest.blob.body.containsKey(key)) {
       body[key] = latest.blob.body[key];
     } else {
@@ -377,6 +383,14 @@ Map<String, Object?> _mergeDanceBodies(
     body.remove('interpreterIds');
   } else {
     body['interpreterIds'] = interpreterIds;
+  }
+  // Every copy's other titles are kept, as interpreters are; omitted when
+  // there are none.
+  final alternateTitles = _unionStrings(candidates, 'alternateTitles');
+  if (alternateTitles.isEmpty) {
+    body.remove('alternateTitles');
+  } else {
+    body['alternateTitles'] = alternateTitles;
   }
   body['tagIds'] = _unionStrings(candidates, 'tagIds');
   body['customFields'] = _unionObjects(

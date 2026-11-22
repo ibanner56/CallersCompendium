@@ -215,6 +215,24 @@ class Dances extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<String> alternateTitles = GeneratedColumn<String>(
+    'alternate_titles',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<String> barnesReference = GeneratedColumn<String>(
+    'barnes_reference',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
     'status',
     aliasedName,
@@ -338,6 +356,8 @@ class Dances extends Table with TableInfo {
     walkthrough,
     meter,
     musicalKey,
+    alternateTitles,
+    barnesReference,
     status,
     levelId,
     mixedLevel,
