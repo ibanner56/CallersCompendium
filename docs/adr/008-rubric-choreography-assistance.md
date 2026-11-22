@@ -253,7 +253,8 @@ in review.
 The fourth use builds new dances from the taxonomy: a caller gives a
 formation, a progression and constraints (figures to include or avoid, a
 difficulty, a figure to feature), and Rubric proposes dances that compile.
-Everything in this section is the *author's call*.
+Everything in this section is the *author's call*, except the fuzzy check,
+which *the maintainer decided* in review.
 
 - **Generate, then verify.** Candidates are assembled figure by figure and
   each partial dance is compiled as it grows, so a branch that cannot be
@@ -270,9 +271,14 @@ Everything in this section is the *author's call*.
   the caller's collection, and the app records that it was generated. That
   record is a persisted field and is classified in the privacy registry in
   the change that adds it.
-- Before offering a dance, the app checks the caller's own collection for a
-  dance with the same figure sequence and says so, so a caller does not
-  unknowingly present an existing dance as new.
+- **Before offering a dance, the app runs a fuzzy check** for existing
+  dances "nearby" the generated one, in the caller's own collection and in
+  online sources, and says what it found, so a caller does not unknowingly
+  present an existing dance as new. *(The maintainer decided, in review.)*
+  The online part is a lookup the caller starts, as the app's online
+  imports already are; it is never needed for generation itself, and what
+  it sends is classified in the privacy registry in the change that adds
+  it.
 
 ### 3.5 Out of scope
 
