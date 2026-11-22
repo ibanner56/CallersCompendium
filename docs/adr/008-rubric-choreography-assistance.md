@@ -215,7 +215,7 @@ checker-mover gives a square dance caller.
 
 The third use answers a Mismatch or a refusal with **suggestions**: small
 edits that make the dance compile. Everything in this section is the
-*author's call*, except the diagnosis bullet, which *the maintainer decided*
+*author's call*, except the diagnosis rule, which *the maintainer decided*
 in review.
 
 - A suggestion is a single bounded edit: change one parameter of one figure
@@ -228,16 +228,23 @@ in review.
   suggests a figure that swaps that pair, or replaces a figure that swaps
   one pair with one that swaps the other. For example, a circle left ¾, or
   a robins allemande 1½ in place of a larks allemande 1½. *(The maintainer
-  decided, in review.)* Adding a figure changes the dance's length, so once
-  the phrasing warnings in §5.4 exist, an added figure that breaks the
-  phrasing ranks below one that does not.
+  decided, in review.)*
 - Every suggestion is **compiled in full** before it is shown. Rubric never
   suggests an edit it has not verified.
 - Suggestions are **shown, never applied**. The caller chooses one, and the
   change is an ordinary edit to their dance.
-- Suggestions are ranked by how little they change: one parameter before one
-  figure, a figure in the failing phrase before one elsewhere. Ties keep the
-  dance's own order, so the same dance gives the same suggestions every time.
+- Suggestions are ranked by how little they change: a parameter change,
+  then a figure replaced, then the progression flag moved, then a figure
+  added. Within each kind, an edit in the failing phrase comes before one
+  elsewhere. Ties keep the dance's own order, and an added figure is
+  ordered by its place in the dance and then by the taxonomy's order of
+  moves, so the same dance gives the same suggestions every time.
+- Adding a figure changes the dance's length, so once the phrasing warnings
+  in §5.4 exist, an added figure that breaks the phrasing ranks below one
+  that does not. The rejected alternative was ranking additions by size
+  alone, which would put first a fix the caller then has to re-phrase.
+- Additions are the largest part of the search, since any figure could go at
+  any place, so they are tried only for the pairs the diagnosis names.
 - The decision the maintainer should look at most closely: **this is a
   search, and Rubric's rules forbid searching to decide what a record
   means.** The importer's progression rule tries two placements and no more,
@@ -275,10 +282,11 @@ which *the maintainer decided* in review.
   dances "nearby" the generated one, in the caller's own collection and in
   online sources, and says what it found, so a caller does not unknowingly
   present an existing dance as new. *(The maintainer decided, in review.)*
-  The online part is a lookup the caller starts, as the app's online
-  imports already are; it is never needed for generation itself, and what
-  it sends is classified in the privacy registry in the change that adds
-  it.
+- The online part of that check is a lookup the caller starts, as the app's
+  online imports already are. It is never needed for generation itself, and
+  what it sends is classified in the privacy registry in the change that
+  adds it. The rejected alternative was checking online automatically,
+  which would make generation depend on the network.
 
 ### 3.5 Out of scope
 
