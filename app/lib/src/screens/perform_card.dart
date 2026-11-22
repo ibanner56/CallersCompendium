@@ -138,7 +138,8 @@ bool scrollPerformBy(
 }
 
 /// Large-print card body for a dance-backed slot: header (title / authors /
-/// formation / level / status) + section-grouped figures + calling notes.
+/// formation / level / meter and key / status) + section-grouped figures +
+/// calling notes.
 ///
 /// Applies the composed large-print [textScale] to its subtree so it renders
 /// the same whether shown by the single-dance or program Perform view.
@@ -994,6 +995,24 @@ class _Header extends StatelessWidget {
             text: danceLevelLabel(l10n, level),
           ),
         ],
+        if (meterAndKeyLabel(
+              l10n,
+              dance,
+              render: (value) => canonicalizeDiscouragedTerms
+                  ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      value,
+                      dialect,
+                    )
+                  : renderer.renderFreeText(value, dialect),
+            )
+            case final tuneDetails?) ...[
+          SizedBox(height: AppSpacing.xs * chromeScale),
+          _MetaRow(
+            key: const ValueKey('perform-tune-details'),
+            icon: tuneDetailsIcon,
+            text: tuneDetails,
+          ),
+        ],
         if (dance.status != DanceStatus.active) ...[
           SizedBox(height: AppSpacing.md * chromeScale),
           _atLeastOsBodySize(
@@ -1008,7 +1027,12 @@ class _Header extends StatelessWidget {
 }
 
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.icon, required this.text, this.highlightColor});
+  const _MetaRow({
+    super.key,
+    required this.icon,
+    required this.text,
+    this.highlightColor,
+  });
 
   final IconData icon;
   final String text;

@@ -4304,6 +4304,14 @@
   "@danceEditorMusicalKeyHint": {
     "x-sourceSha256": "f4b6292e746248db6dcdf014a506b1ebbdfa323e4761c71b7eeda3e64eb5166b"
   },
+  "danceMeterValue": "Taktart: {meter}",
+  "@danceMeterValue": {
+    "x-sourceSha256": "43c115395c78332e54a364e9a0a3c253895a121a1a2336b736f9d6cb2a690444"
+  },
+  "danceMusicalKeyValue": "Tonart: {key}",
+  "@danceMusicalKeyValue": {
+    "x-sourceSha256": "6b357327c5acbabfff1178e4daac82bbb3fe5f0f5a86396aae46b961bb628dd1"
+  },
   "commonMixedLevel": "Gemischtes Niveau",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
