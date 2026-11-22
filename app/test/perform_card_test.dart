@@ -839,4 +839,65 @@ void main() {
       expect(find.textContaining('Gypsy'), findsNothing);
     });
   });
+
+  group('credits with years', () {
+    Future<void> pumpCard(
+      WidgetTester tester,
+      Dance dance, {
+      List<String> authorNames = const [],
+      List<String> interpreterNames = const [],
+    }) async {
+      final c = await _controllerWith(null);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: FormationColorsScope(
+              controller: c,
+              child: PerformCard(
+                dance: dance,
+                renderer: _renderer,
+                dialect: Dialect.larksRobins,
+                textScale: 1.0,
+                authorNames: authorNames,
+                interpreterNames: interpreterNames,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('shows the authors with the composed year and the '
+        'interpreters with the interpreted year', (tester) async {
+      await pumpCard(
+        tester,
+        _dance().copyWith(
+          composedOn: PartialDate(1651),
+          interpretedOn: PartialDate(1916, 5),
+        ),
+        authorNames: const ['John Playford'],
+        interpreterNames: const ['Cecil Sharp', 'George Butterworth'],
+      );
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('perform-authors'))).data,
+        'John Playford (1651)',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('perform-interpreters')))
+            .data,
+        'Interpreted by Cecil Sharp, George Butterworth (1916)',
+      );
+    });
+
+    testWidgets('has no interpreter line without interpreters or a year', (
+      tester,
+    ) async {
+      await pumpCard(tester, _dance(), authorNames: const ['Pat Shaw']);
+      expect(find.text('Pat Shaw'), findsOneWidget);
+      expect(find.byKey(const ValueKey('perform-interpreters')), findsNothing);
+    });
+  });
 }

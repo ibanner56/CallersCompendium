@@ -83,8 +83,10 @@ class DanceReimportFiguresUnavailableException implements Exception {
 
 /// Builds a deliberately sparse preview for a parsed JSON dance. Its local-only
 /// fields are not committed, so showing them would imply they will be replaced.
+/// A re-import never changes the composed or interpreted dates
+/// (`withReimportedChoreography`), so the preview leaves them out too.
 DanceDetailData reimportPreviewData(Dance dance) => DanceDetailData(
-  dance: dance,
+  dance: dance.copyWith(clearComposedOn: true, clearInterpretedOn: true),
   authorNames: const [],
   tagNames: const [],
   customFields: const [],

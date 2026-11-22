@@ -6574,6 +6574,36 @@ abstract class AppLocalizations {
   /// **'e.g. G minor'**
   String get danceEditorMusicalKeyHint;
 
+  /// On the dance detail screen and the Perform card: the dance's authors followed by the year it was composed. {names} is the authors' names joined with commas; {year} is a four-digit year such as 1951, shown as written (not a formatted number).
+  ///
+  /// In en, this message translates to:
+  /// **'{names} ({year})'**
+  String danceAuthorsWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has a composed year but no authors: the year it was composed. {year} is a four-digit year such as 1651.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed {year}'**
+  String danceComposedYear(String year);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source. {names} is the interpreters' names joined with commas.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names}'**
+  String danceInterpretedBy(String names);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source, and the year they did. {names} is the interpreters' names joined with commas; {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names} ({year})'**
+  String danceInterpretedByWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has an interpretation year but no interpreters: the year it was reconstructed from its original source. {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted {year}'**
+  String danceInterpretedYear(String year);
+
   /// On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.
   ///
   /// In en, this message translates to:
