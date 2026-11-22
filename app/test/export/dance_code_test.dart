@@ -272,7 +272,7 @@ void main() {
     test('a payload that is not unpadded Base64url', () {
       final payload = good.substring(danceLinkPrefix.length);
       expect(
-        _failureOf('${danceLinkPrefix}$payload='),
+        _failureOf('$danceLinkPrefix$payload='),
         DanceLinkFailure.malformedBase64,
       );
       expect(
