@@ -422,10 +422,13 @@ verification must not refuse them for it. *Author's call* on the shape:
 
 - The dance's length against its phrase structure. Core already derives
   phrase sections from a dance's configurable phrase structure and warns on
-  overflow and underflow, and Rubric reads that rather than counting again.
-- A figure that crosses a phrase boundary. Core does not warn about that
-  today, so this warning is new work, and it belongs in core if the dance
-  editor should show it too.
+  overflow and underflow, and on a `sequence` container longer than one
+  phrase (`sequence_exceeds_phrase`). Rubric reads those rather than
+  counting again.
+- A figure that starts in one phrase and ends in the next. Core warns about
+  that only for an over-long `sequence`, by length rather than position, so
+  this warning is new work. It must not repeat `sequence_exceeds_phrase` for
+  that case, and it belongs in core if the dance editor should show it too.
 
 Generation (§3.4) is the one use that treats these warnings as constraints.
 
