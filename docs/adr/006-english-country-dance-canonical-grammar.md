@@ -1266,7 +1266,13 @@ recommendation; the answer is quoted.
    version. Answer: "Go with your recommendation." They are stored as
    `Dance.interpreterIds` and `Dance.interpretedOn` (storage.md, v42). The
    dance editor shows them, with the Composed date, beside the authors for
-   an English dance, and in More details for other forms.
+   an English dance, and in More details for other forms. On 22 November
+   2026 the maintainer added: "ECD composed/interpreted is a year. No one
+   needs month/day granularity. If possible, have author + year share a
+   line, as well as interpreted + year." So for an English dance the editor
+   takes both dates as a year, each beside its names where the screen has
+   room. The stored type is unchanged (a year is a partial date), and a
+   month and day already stored stay until the year is edited.
 8. **Named phrases** (20 November 2026). ECD music is not always the
    standard A1 A2 B1 B2: the maintainer's cards give bars per phrase and
    say whether a phrase repeats ("A=4, B=4, C=8", or "A=4, B=8" with an A1,

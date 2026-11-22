@@ -346,6 +346,15 @@ class DanceEditorController extends ChangeNotifier {
     debugLabel: 'interpreted-on',
   );
 
+  /// Keys for the Authors and Interpreted by pickers, so a picker keeps its
+  /// typed search text and focus when an English dance's credit line flips
+  /// between names beside the year and names above it (a window resize or a
+  /// text size change), or moves when the form changes.
+  final GlobalKey authorsPickerKey = GlobalKey(debugLabel: 'authors-picker');
+  final GlobalKey interpretersPickerKey = GlobalKey(
+    debugLabel: 'interpreters-picker',
+  );
+
   /// Whether the interpretation credits (Interpreted by, Interpreted in) and
   /// the Composed date are shown up front, beside the authors, rather than
   /// in More details: for ECD, where most dances credit both an original and

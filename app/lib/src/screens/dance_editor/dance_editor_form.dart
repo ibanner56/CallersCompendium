@@ -330,26 +330,14 @@ class DanceEditorForm extends StatelessWidget {
                   fieldKey: 'title',
                 ),
                 const SizedBox(height: AppSpacing.md),
-                FieldLabel(l10n.danceEditorAuthorsLabel),
-                NamePicker(
-                  fieldKey: 'author',
-                  selectedIds: controller.authorIds,
-                  namesById: choreographerNames,
-                  options: authorOptions,
-                  onAdd: onAddAuthor,
-                  onRemove: controller.removeAuthor,
-                  onCreate: onCreateChoreographer,
-                  onEdit: onEditChoreographer,
-                  sheetSemanticLabel: l10n.danceEditorAuthorsLabel,
-                ),
                 // An English dance usually credits its original and a later
-                // interpretation, so both are entered here, up front
-                // (ADR-006 §9.2, point 7). Other forms keep them in More
-                // details.
-                if (controller.showsCreditsUpFront) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  ..._creditFields(context),
-                ],
+                // interpretation, so both are entered here, up front, each
+                // name beside its year (ADR-006 §9.2, point 7). Other forms
+                // keep the dates and interpreters in More details.
+                if (controller.showsCreditsUpFront)
+                  ..._upFrontCredits(context)
+                else
+                  ..._authorsField(context),
                 const SizedBox(height: AppSpacing.md),
                 AppDropdownField<DanceForm>(
                   key: const ValueKey('form-field'),
@@ -750,9 +738,126 @@ class DanceEditorForm extends StatelessWidget {
         : BarTimingScope(beatsPerBar: beatsPerBar, child: child);
   }
 
-  /// The Composed date, then who interpreted the dance and when: in More
-  /// details, or up front for a form whose dances usually credit both
-  /// ([DanceEditorController.showsCreditsUpFront]).
+  /// The Authors label and picker.
+  List<Widget> _authorsField(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      FieldLabel(l10n.danceEditorAuthorsLabel),
+      NamePicker(
+        key: controller.authorsPickerKey,
+        fieldKey: 'author',
+        selectedIds: controller.authorIds,
+        namesById: choreographerNames,
+        options: authorOptions,
+        onAdd: onAddAuthor,
+        onRemove: controller.removeAuthor,
+        onCreate: onCreateChoreographer,
+        onEdit: onEditChoreographer,
+        sheetSemanticLabel: l10n.danceEditorAuthorsLabel,
+      ),
+    ];
+  }
+
+  /// The Interpreted by label and picker.
+  List<Widget> _interpretersField(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      FieldLabel(l10n.danceEditorInterpretedByLabel),
+      NamePicker(
+        key: controller.interpretersPickerKey,
+        fieldKey: 'interpreter',
+        selectedIds: controller.interpreterIds,
+        namesById: choreographerNames,
+        options: authorOptions,
+        onAdd: onAddInterpreter,
+        onRemove: controller.removeInterpreter,
+        onCreate: onCreateChoreographer,
+        onEdit: onEditChoreographer,
+        sheetSemanticLabel: l10n.danceEditorInterpretedByLabel,
+      ),
+    ];
+  }
+
+  /// The year box's width beside a people picker, at normal text size.
+  static const double _creditYearWidth = 112;
+
+  /// The narrowest a people picker is left beside a year box, at normal text
+  /// size; below it the year goes under the names instead.
+  static const double _creditNamesMinWidth = 200;
+
+  /// An English dance's credits, up front: Authors with the Composed year on
+  /// one line, then Interpreted by with the Interpreted in year. Each year
+  /// sits beside its names where the screen has room, and under them where
+  /// it does not (a narrow window or large text).
+  List<Widget> _upFrontCredits(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    // Both widths grow with the body text's scale. Scaling the widths
+    // themselves would barely move them under Android 14's nonlinear text
+    // scaling, which enlarges a large number far less than a body font size.
+    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    final yearWidth = _creditYearWidth * textScale;
+    final namesMinWidth = _creditNamesMinWidth * textScale;
+    final composed = PartialDateField(
+      key: controller.composedOnFieldKey,
+      fieldKey: 'composed-on',
+      label: l10n.danceEditorComposedLabel,
+      helperText: l10n.danceEditorComposedHelper,
+      value: controller.composedOn,
+      onChanged: controller.setComposedOn,
+      yearOnly: true,
+    );
+    final interpreted = PartialDateField(
+      key: controller.interpretedOnFieldKey,
+      fieldKey: 'interpreted-on',
+      label: l10n.danceEditorInterpretedOnLabel,
+      helperText: l10n.danceEditorInterpretedOnHelper,
+      value: controller.interpretedOn,
+      onChanged: controller.setInterpretedOn,
+      yearOnly: true,
+    );
+    // Measured from the form's own width, not the window's: the editor can
+    // share a wide window with the list beside it.
+    Widget line(List<Widget> names, Widget year) => LayoutBuilder(
+      builder: (context, constraints) =>
+          constraints.maxWidth - yearWidth - AppSpacing.sm >= namesMinWidth
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: names,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                SizedBox(width: yearWidth, child: year),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ...names,
+                const SizedBox(height: AppSpacing.md),
+                year,
+              ],
+            ),
+    );
+    return [
+      KeyedSubtree(
+        key: const ValueKey('authors-credit-line'),
+        child: line(_authorsField(context), composed),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      KeyedSubtree(
+        key: const ValueKey('interpreters-credit-line'),
+        child: line(_interpretersField(context), interpreted),
+      ),
+    ];
+  }
+
+  /// The Composed date, then who interpreted the dance and when, in More
+  /// details, for a form whose credits are not up front
+  /// ([DanceEditorController.showsCreditsUpFront] is false).
   List<Widget> _creditFields(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return [
@@ -765,18 +870,7 @@ class DanceEditorForm extends StatelessWidget {
         onChanged: controller.setComposedOn,
       ),
       const SizedBox(height: AppSpacing.md),
-      FieldLabel(l10n.danceEditorInterpretedByLabel),
-      NamePicker(
-        fieldKey: 'interpreter',
-        selectedIds: controller.interpreterIds,
-        namesById: choreographerNames,
-        options: authorOptions,
-        onAdd: onAddInterpreter,
-        onRemove: controller.removeInterpreter,
-        onCreate: onCreateChoreographer,
-        onEdit: onEditChoreographer,
-        sheetSemanticLabel: l10n.danceEditorInterpretedByLabel,
-      ),
+      ..._interpretersField(context),
       const SizedBox(height: AppSpacing.md),
       PartialDateField(
         key: controller.interpretedOnFieldKey,
