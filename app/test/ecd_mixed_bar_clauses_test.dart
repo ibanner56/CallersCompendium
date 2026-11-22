@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,10 +10,7 @@ import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
-import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
-import 'package:compendium_app/src/screens/glossary/compound_editor_screen.dart';
-import 'package:compendium_app/src/screens/shorthand_mappings_screen.dart';
 
 import 'figures_support.dart';
 import 'support/l10n_harness.dart';
