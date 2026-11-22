@@ -34,16 +34,18 @@ bool whoMatches(Formation formation, DancerId a, DancerId b, WhoSet who) {
       a.coupleIndex != b.coupleIndex &&
           a.role != b.role &&
           stateA.number != stateB.number,
-    // Opposite role, different couple, and the SAME number: a partner offset
-    // by a hands four rather than a neighbour. Read from the current numbers,
-    // which the end of the set flips (§10.3), so a couple that has just turned
-    // round at an end shares its number with its neighbours and they are its
-    // shadows there. *(User-ruled 2026-11-22: "at the end, when a couple
-    // isn't out, your shadow is your neighbor".)*
+    // Opposite role, different couple, and the SAME number: your partner's
+    // counterpart one hands four along. Read from the current numbers, which
+    // the end of the set flips (§10.3), so a couple waiting out at an end has
+    // the 1s or 2s beside it as its shadows. At an end with no couple out,
+    // the shadow wraps round to your neighbour. *(User-ruled 2026-11-22: "If
+    // there's a couple out at the top, then that's your shadow. If there's no
+    // one out at the top, then it wraps around to your neighbor.")*
     WhoSet.shadows =>
       a.coupleIndex != b.coupleIndex &&
           a.role != b.role &&
-          stateA.number == stateB.number,
+          (stateA.number == stateB.number ||
+              _wrapsAtAnEnd(formation, stateA.row, stateB.row)),
     WhoSet.role1s => a.role == Role.lark && b.role == Role.lark,
     WhoSet.role2s => a.role == Role.robin && b.role == Role.robin,
     WhoSet.ones =>
@@ -52,6 +54,20 @@ bool whoMatches(Formation formation, DancerId a, DancerId b, WhoSet who) {
       stateA.number == CoupleNumber.two && stateB.number == CoupleNumber.two,
     WhoSet.everyone => true,
   };
+}
+
+/// Whether rows [rowA] and [rowB] both lie in the hands four at an end of the set
+/// with no couple waiting out beyond it, where a shadow wraps to a neighbour.
+bool _wrapsAtAnEnd(Formation formation, int rowA, int rowB) {
+  final bands = handsFourBands(formation);
+  if (bands.isEmpty) return false;
+  final waiting = waitingOutRows(formation);
+  bool holds(({int topRow, int bottomRow}) band) =>
+      {band.topRow, band.bottomRow}.containsAll({rowA, rowB});
+  final top = bands.first;
+  final bottom = bands.last;
+  return (holds(top) && waiting.every((row) => row > top.topRow)) ||
+      (holds(bottom) && waiting.every((row) => row < bottom.bottomRow));
 }
 
 /// Whether [id] is one of the dancers [who] names.

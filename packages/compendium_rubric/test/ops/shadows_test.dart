@@ -4,8 +4,9 @@ import 'package:test/test.dart';
 // `shadows`, as ruled by the user on 2026-11-22: the dancer of the opposite
 // role and the same couple number in a neighbouring hands four -- your
 // partner's counterpart one grouping up or down. Numbers are read as they
-// stand, so they toggle at the ends of the set, and at an end where a couple
-// is not out its shadow is its neighbour. A figure naming shadows pairs
+// stand, so they toggle at the ends of the set: a couple out at an end is
+// the shadow there, and with nobody out the shadow wraps round to the
+// neighbour. A figure naming shadows pairs
 // whoever is standing together, in whichever band phase they stand together.
 
 Formation duple(List<String> rows) =>
@@ -36,14 +37,15 @@ Position at(Formation formation, DancerId id) => formation.stateOf(id).position;
 
 void main() {
   group('whoMatches: shadows', () {
-    // Two hands four with the 2s of the upper one and the 1s of the lower one
-    // having traded places, so each row holds one couple and B stands beside
-    // D, both 2s.
+    // Three hands four with the 2s of the top one and the 1s of the middle
+    // one having traded places, so B stands beside D, both 2s.
     final formation = duple([
       'L1-A . . . R1-A',
       'L2-B . . . R2-B',
       'R2-D . . . L2-D',
       'R1-C . . . L1-C',
+      'L1-E . . . R1-E',
+      'L2-F . . . R2-F',
     ]);
 
     test('opposite role, different couple, same number', () {
@@ -52,7 +54,7 @@ void main() {
         isTrue,
       );
       expect(
-        whoMatches(formation, lark('A'), robin('C'), WhoSet.shadows),
+        whoMatches(formation, lark('C'), robin('E'), WhoSet.shadows),
         isTrue,
       );
     });
@@ -64,9 +66,9 @@ void main() {
       );
     });
 
-    test('a neighbour (the other number) is not a shadow', () {
+    test('a neighbour in the middle of the set is not a shadow', () {
       expect(
-        whoMatches(formation, lark('A'), robin('B'), WhoSet.shadows),
+        whoMatches(formation, lark('D'), robin('C'), WhoSet.shadows),
         isFalse,
       );
     });
@@ -77,26 +79,54 @@ void main() {
         isFalse,
       );
     });
+  });
 
-    test('at an end, a couple that is not out has its neighbour as shadow', () {
-      // A has turned round at the top and taken the 2s' number, so it now
-      // shares a number with its neighbours B: B is its shadow, not its
-      // neighbour, until it is back in the set.
-      final atTheTop = duple([
-        'R2-A . . . L2-A',
-        'L2-B . . . R2-B',
-        'L1-C . . . R1-C',
-        'L2-D . . . R2-D',
+  group('whoMatches: shadows at the ends of the set', () {
+    // User-ruled 2026-11-22: "If there's a couple out at the top, then that's
+    // your shadow. If there's no one out at the top, then it wraps around to
+    // your neighbor."
+
+    test('with nobody out at an end, the shadow wraps to the neighbour', () {
+      // B has come back in at the top as a 1s couple, with D (2s) as its
+      // neighbours and no hands four above it.
+      final backIn = duple([
+        'L1-B . . . R1-B',
+        'R2-D . . . L2-D',
+        'L1-A . . . R1-A',
+        'R2-C . . . L2-C',
+        'L1-F . . . R1-F',
+        'R2-E . . . L2-E',
       ]);
 
+      expect(whoMatches(backIn, lark('B'), robin('D'), WhoSet.shadows), isTrue);
+      // The same holds at the bottom.
+      expect(whoMatches(backIn, lark('F'), robin('E'), WhoSet.shadows), isTrue);
+      // But not for the neighbours in the middle.
       expect(
-        whoMatches(atTheTop, lark('A'), robin('B'), WhoSet.shadows),
-        isTrue,
-      );
-      expect(
-        whoMatches(atTheTop, lark('A'), robin('B'), WhoSet.neighbors),
+        whoMatches(backIn, lark('A'), robin('C'), WhoSet.shadows),
         isFalse,
       );
+    });
+
+    test('with a couple out at an end, that couple is the shadow', () {
+      // B is out at the top, having taken the 1s' number, beside A (1s). The
+      // hands four below it holds A and its neighbours D.
+      final bOut = markWaitingOut(
+        duple([
+          'L1-B . . . R1-B',
+          'R1-A . . . L1-A',
+          'L2-D . . . R2-D',
+          'R1-C . . . L1-C',
+          'L2-F . . . R2-F',
+          'L1-E . . . R1-E',
+        ]),
+        rows: [0, 5],
+      );
+
+      expect(whoMatches(bOut, lark('A'), robin('B'), WhoSet.shadows), isTrue);
+      // A's neighbours D are not its shadows: A is not at the end of the set,
+      // B is.
+      expect(whoMatches(bOut, robin('A'), lark('D'), WhoSet.shadows), isFalse);
     });
   });
 
@@ -142,13 +172,16 @@ void main() {
 
     test('danced one phase over when that is where they stand, then '
         'handed back', () {
-      // B and D (both 2s) stand together across the settled boundary, in
-      // rows 1 and 2; no settled band holds a pair of the same number.
+      // B and D (both 2s) stand together across the settled boundary in rows
+      // 1 and 2, and C and E (both 1s) in rows 3 and 4. The middle settled
+      // band, D beside C, holds no shadow pair.
       final input = duple([
         'L1-A . . . R1-A',
         'L2-B . . . R2-B',
         'R2-D . . . L2-D',
         'R1-C . . . L1-C',
+        'L1-E . . . R1-E',
+        'L2-F . . . R2-F',
       ]);
 
       final after = applyOk(
@@ -158,22 +191,29 @@ void main() {
 
       expect(bandRows(after), bandRows(input));
       expect(waitingOutRows(after), isEmpty);
-      for (final (a, b) in [(lark('B'), robin('D')), (robin('B'), lark('D'))]) {
+      for (final (a, b) in [
+        (lark('B'), robin('D')),
+        (robin('B'), lark('D')),
+        (lark('C'), robin('E')),
+        (robin('C'), lark('E')),
+      ]) {
         expect(at(after, a), at(input, b), reason: '$a takes $b\'s place');
         expect(at(after, b), at(input, a), reason: '$b takes $a\'s place');
       }
-      // A and C are at the ends while the set is one phase over, so the
+      // A and F are at the ends while the set is one phase over, so the
       // figure leaves them where they stand.
-      for (final id in [lark('A'), robin('A'), lark('C'), robin('C')]) {
+      for (final id in [lark('A'), robin('A'), lark('F'), robin('F')]) {
         expect(at(after, id), at(input, id), reason: '$id');
       }
     });
 
     test('refused when no phase has shadows standing together', () {
       // An allemande has no who check of its own that could refuse first.
+      // Three hands four, because in two every band is at an end, where the
+      // shadows wrap to the neighbours.
       final error = applyErr(
         const Allemande(who: WhoSet.shadows, turn: 0.5),
-        startingFormation(FormationType.dupleImproper, handsFour: 2),
+        startingFormation(FormationType.dupleImproper, handsFour: 3),
       );
 
       expect(error.kind, ErrorKind.whoMismatch);
@@ -272,6 +312,21 @@ void main() {
         final expected = before.isEven ? before + 1 : before - 1;
         expect(at(after, lark(couple)).row, expected, reason: couple);
       }
+    });
+  });
+
+  group('sizing', () {
+    test('a figure naming shadows asks for a middle hands four', () {
+      // With two hands four every band is at an end, where shadows wrap to the
+      // neighbours, so the two could never be told apart.
+      Dance dance(WhoSet who) => Dance(
+        formation: FormationType.dupleImproper,
+        success: const ProgressionCriterion(),
+        figures: [OperationInvocation(Swing(who: who))],
+      );
+
+      expect(dance(WhoSet.neighbors).requiredHandsFour, 2);
+      expect(dance(WhoSet.shadows).requiredHandsFour, 3);
     });
   });
 

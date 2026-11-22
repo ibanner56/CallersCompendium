@@ -337,8 +337,11 @@ user's ruling that nothing ties the two sets together). Only `dancerSets` choose
 parser defers `shadows` in slots that cannot choose it: `hey.pass2`/
 `meetTarget` and `form_long_waves.who`/`whom` (outside it) and
 `courtesy_turn.endFacing` (whom you face afterwards). `whoMatches`
-reads the numbers as they stand, so at an end a couple that has turned round has
-its neighbour as its shadow. The rulings and a worked example are in
+reads the numbers as they stand, so a couple waiting out at an end has the
+same-number couple beside it as its shadows; with nobody out at an end, the
+neighbours in that end hands four are shadows too. A dance naming shadows is
+sized with at least three hands four (`Dance._widestReach`), so the set has a
+middle where the two differ. The rulings and a worked example are in
 `docs/taxonomy.md`, "Shadows".
 
 ---
@@ -733,7 +736,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,109 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,113 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **46 figures registered**, plus 7 upstream aliases resolved to them

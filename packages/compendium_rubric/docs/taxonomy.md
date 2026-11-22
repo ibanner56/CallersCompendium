@@ -410,9 +410,12 @@ rather than from your neighbor. Two further rules come with it:
 
 - **Numbers are read as they stand**, so they toggle at the top and bottom of the set (§10.3 of
   `fundamentals.md`).
-- **At an end, when a couple is not out, its shadow is its neighbor.** A couple that has just
-  turned round at an end shares its number with the couple beside it, so that couple's
-  opposite-role dancer is its shadow there.
+- **At an end, the shadow is the couple out there, or wraps to the neighbor.** In the user's
+  words: "If there's a couple out at the top, then that's your shadow. If there's no one out at
+  the top, then it wraps around to your neighbor." A couple waiting out has taken its end number,
+  so it shares a number with the couple beside it and the same-number test already finds it.
+  With nobody out at an end, the dancers of that end hands four count their neighbors as their
+  shadows too.
 
 **Pairing.** *(User-ruled.)* A figure naming `shadows` pairs whoever is standing next to you, and
 is refused if there is no choice or more than one. It does not reach a fixed distance. (This is
@@ -445,6 +448,9 @@ R1-C . . . L1-C
   together in the other one, the couples waiting out at the ends are brought in and dance, and
   the hand-back marks whoever then stands at the ends as out. This is the same mechanics as a
   distance set's reach.
+- **Set size.** A dance naming shadows is sized with at least three hands four, as one reaching
+  the next neighbors is. In two, every hands four is at an end, where shadows wrap to the
+  neighbors, so the two sets could never be told apart.
 - **The progression flag.** A flagged figure that reached along the set advances it a second
   time; a flagged shadows figure does not, even when it was danced one phase over.
 - **How far apart.** `shadows` checks only the relationship (opposite role, different couple, same
@@ -664,8 +670,8 @@ To be defined later with worked examples.
     `nextNeighbors` / `thirdNeighbors` / `fourthNeighbors` reach one, two and three groupings
     **on**. See "The neighbor-distance sets" for how they resolve and why the sign matters.
   - `shadows` = opposite role, different couple, and the **same** number, read as the numbers
-    stand (e.g. `L1-A`'s shadow is `R1-C`; at the top, once A has turned round and taken the 2s'
-    number, `R2-B` is its shadow too). See "Shadows" for how a figure finds them.
+    stand (e.g. `L1-A`'s shadow is `R1-C`), or the neighbor in a hands four at an end with nobody
+    out beyond it. See "Shadows" for the end rules and how a figure finds them.
 - **preconditions — `who` is a precondition (not the pairing):** the swing pairs whoever is
   physically in swing position; `who` validates their relationship, else
   `CompileError(whoMismatch)`.
