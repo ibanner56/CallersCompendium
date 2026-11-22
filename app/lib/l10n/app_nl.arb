@@ -4332,6 +4332,14 @@
   "@danceSectionBarnes": {
     "x-sourceSha256": "49a8e8a9f8339a6e0ce62b696d610c4a164ecc6268d021da155f11944946b95a"
   },
+  "danceMeterValue": "Maatsoort: {meter}",
+  "@danceMeterValue": {
+    "x-sourceSha256": "43c115395c78332e54a364e9a0a3c253895a121a1a2336b736f9d6cb2a690444"
+  },
+  "danceMusicalKeyValue": "Toonsoort: {key}",
+  "@danceMusicalKeyValue": {
+    "x-sourceSha256": "6b357327c5acbabfff1178e4daac82bbb3fe5f0f5a86396aae46b961bb628dd1"
+  },
   "commonMixedLevel": "Gemengd niveau",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"

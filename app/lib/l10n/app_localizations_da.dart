@@ -4237,6 +4237,16 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceSectionBarnes => 'Barnes-bøgerne';
 
   @override
+  String danceMeterValue(String meter) {
+    return 'Taktart: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Toneart: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Blandet niveau';
 
   @override

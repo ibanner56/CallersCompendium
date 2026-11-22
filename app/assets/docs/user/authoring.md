@@ -691,7 +691,8 @@ nothing in it to lose.
   Japanese, `AAB（A 4小節、B 8小節）`).
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
-  in **More details** for other types.
+  in **More details** for other types. The dance's detail view and its Perform
+  card show them on one line, such as *Meter: 6/8 · Key: G minor*.
 - **Barnes reference** — where the tune is printed in the Barnes books, book and
   page in one line, such as `BIII p. 92`, or `NiB` when it is not in them. It
   sits under **Meter** and **Key**.

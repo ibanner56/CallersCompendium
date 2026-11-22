@@ -5347,6 +5347,26 @@
   "@danceSectionBarnes": {
     "description": "Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books)."
   },
+  "danceMeterValue": "Meter: {meter}",
+  "@danceMeterValue": {
+    "description": "On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.",
+    "placeholders": {
+      "meter": {
+        "type": "String",
+        "example": "6/8"
+      }
+    }
+  },
+  "danceMusicalKeyValue": "Key: {key}",
+  "@danceMusicalKeyValue": {
+    "description": "On the dance detail screen and the Perform card: the musical key of the dance's tune, labelled. {key} is free text the caller typed, such as G minor. Shown beside the meter, separated by a middle dot.",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "G minor"
+      }
+    }
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."

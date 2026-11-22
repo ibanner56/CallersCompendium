@@ -4266,6 +4266,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceSectionBarnes => 'Barnes-boeken';
 
   @override
+  String danceMeterValue(String meter) {
+    return 'Maatsoort: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Toonsoort: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override

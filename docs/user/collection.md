@@ -456,8 +456,9 @@ your dialect and neutral wording.*
 The detail view brings together:
 
 - **A header** — title, authors, formation and progression (and **Mixer**, if
-  the dance is one), plus a status banner if the dance is flagged (for example,
-  deprecated or broken), a line saying where an imported dance came from, and
+  the dance is one), the tune's **Meter** and **Key** on one line when either is
+  filled in (such as *Meter: 6/8 · Key: G minor*), plus a status banner if the
+  dance is flagged (for example, deprecated or broken), a line saying where an imported dance came from, and
   its **Hook**, the one line on why you would call it.
 - **The figures**, laid out by section (A1, A2, B1, B2), each with a beats column
   and a marker showing where the [progression](./glossary.md#progression) happens.

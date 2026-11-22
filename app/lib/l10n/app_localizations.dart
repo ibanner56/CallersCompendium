@@ -6616,6 +6616,18 @@ abstract class AppLocalizations {
   /// **'Barnes books'**
   String get danceSectionBarnes;
 
+  /// On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter: {meter}'**
+  String danceMeterValue(String meter);
+
+  /// On the dance detail screen and the Perform card: the musical key of the dance's tune, labelled. {key} is free text the caller typed, such as G minor. Shown beside the meter, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Key: {key}'**
+  String danceMusicalKeyValue(String key);
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:

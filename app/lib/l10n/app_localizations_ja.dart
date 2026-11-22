@@ -4039,6 +4039,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceSectionBarnes => 'Barnes 曲集';
 
   @override
+  String danceMeterValue(String meter) {
+    return '拍子：$meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return '調：$key';
+  }
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override
