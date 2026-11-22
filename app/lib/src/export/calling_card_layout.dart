@@ -252,7 +252,7 @@ meta size=7
 rule
 figures size=9 dividers=off
 walkthrough size=8 lines=6
-notes size=8 italic label="Calling notes: "
+notes size=8 italic
 ''',
 };
 

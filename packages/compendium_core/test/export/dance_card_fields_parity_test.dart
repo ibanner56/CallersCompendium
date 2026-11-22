@@ -65,9 +65,9 @@ void main() {
         fields: fields,
       ),
       if (fields.contains(DanceShareField.hook))
-        '${labels.hook}: ${dance.hook}',
-      if (tunes.isNotEmpty) ...['${labels.tunes}:', tunes.join(', ')],
-      if (sources.isNotEmpty) ...['${labels.sources}:', ...sources],
+        '${labels.labelled(labels.hook)}${dance.hook}',
+      if (tunes.isNotEmpty) ...[labels.heading(labels.tunes), tunes.join(', ')],
+      if (sources.isNotEmpty) ...[labels.heading(labels.sources), ...sources],
     ];
   }
 

@@ -26,9 +26,9 @@ List<String> danceCardMetaLines(
   required Set<DanceShareField> fields,
 }) => [
   if (fields.contains(DanceShareField.formation) && _has(formationLabel))
-    '${labels.formation}: ${formationLabel.trim()}',
+    '${labels.labelled(labels.formation)}${formationLabel.trim()}',
   if (fields.contains(DanceShareField.level) && _has(levelLabel))
-    '${labels.level}: ${levelLabel!.trim()}',
+    '${labels.labelled(labels.level)}${levelLabel!.trim()}',
   if (fields.contains(DanceShareField.mixer) &&
       dance.mixer &&
       _has(labels.mixer))
@@ -38,10 +38,10 @@ List<String> danceCardMetaLines(
   if (fields.contains(DanceShareField.status) &&
       dance.status != DanceStatus.active &&
       _has(statusLabel))
-    '${labels.status}: ${statusLabel.trim()}',
+    '${labels.labelled(labels.status)}${statusLabel.trim()}',
   if (fields.contains(DanceShareField.phraseStructure) &&
       _has(dance.phraseStructure.raw))
-    '${labels.phrase}: ${phraseStructureText(dance.phraseStructure, labels)}',
+    '${labels.labelled(labels.phrase)}${phraseStructureText(dance.phraseStructure, labels)}',
 ];
 
 /// How a card prints [structure]. Named phrases (an English dance's A, B and

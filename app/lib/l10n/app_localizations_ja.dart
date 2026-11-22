@@ -4881,6 +4881,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportNamedPhraseSeparator => '、';
 
   @override
+  String get exportLabelSeparator => '：';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -6602,7 +6605,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String exportSlotAuthorSuffix(String names) {
-    return '作: $names';
+    return '作：$names';
   }
 
   @override

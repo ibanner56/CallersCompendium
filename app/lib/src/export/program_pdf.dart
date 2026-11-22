@@ -343,7 +343,9 @@ List<pw.Widget> programAppendixWidgets(
                 content.hook != null ||
                 content.sourceLines.isNotEmpty));
     if (!hasBody) continue;
-    final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';
+    final titlePrefix = entry.isAlternate
+        ? labels.labelled(labels.alternate)
+        : '';
     widgets.add(pw.SizedBox(height: 10));
     widgets.add(
       pw.Text(
@@ -366,7 +368,7 @@ List<pw.Widget> programAppendixWidgets(
       if (content.hook case final hook?) {
         widgets.add(
           pw.Text(
-            '${danceLabels.hook}: $hook',
+            '${danceLabels.labelled(danceLabels.hook)}$hook',
             style: const pw.TextStyle(fontSize: 11),
           ),
         );
@@ -488,7 +490,7 @@ List<pw.Widget> _slotWidgets(
       widgets.add(pw.SizedBox(height: 1));
       widgets.add(
         pw.Text(
-          '${labels.alt}: $alternate',
+          '${labels.labelled(labels.alt)}$alternate',
           style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
           overflow: pw.TextOverflow.span,
         ),
@@ -542,11 +544,12 @@ List<pw.Widget> _slotWidgets(
 List<String> _venueLines(Venue venue, ProgramExportLabels labels) {
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
-    if (_has(venue.time)) '${labels.time}: ${venue.time}',
+    if (_has(venue.time)) '${labels.labelled(labels.time)}${venue.time}',
     if (_has(venue.genericSchedule))
-      '${labels.schedule}: ${venue.genericSchedule}',
-    if (_has(venue.price)) '${labels.price}: ${venue.price}',
-    if (_has(venue.sponsor)) '${labels.sponsor}: ${venue.sponsor}',
+      '${labels.labelled(labels.schedule)}${venue.genericSchedule}',
+    if (_has(venue.price)) '${labels.labelled(labels.price)}${venue.price}',
+    if (_has(venue.sponsor))
+      '${labels.labelled(labels.sponsor)}${venue.sponsor}',
     if (_has(venue.website)) venue.website!,
   ];
 

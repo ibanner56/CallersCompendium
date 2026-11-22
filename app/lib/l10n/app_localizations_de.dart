@@ -5162,6 +5162,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportNamedPhraseSeparator => ', ';
 
   @override
+  String get exportLabelSeparator => ': ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,

@@ -78,7 +78,9 @@ and switching dialect does not change them. The rest of your dialect still
 applies — see [Good to know](./dialects.md#good-to-know).
 
 The field labels around the content — *Formation*, *Level*, *Figures*, *Calling
-notes*, and so on — follow the app's language setting, not your dialect.
+notes*, and so on — follow the app's language setting, not your dialect, and so
+does the punctuation after them (in Japanese, a full-width colon:
+`フレーズ：AAB`).
 
 A dance *file* (**Share dance file** or **Export dance as JSON**) is different: it
 carries the dance itself rather than your wording of it, so it opens in the

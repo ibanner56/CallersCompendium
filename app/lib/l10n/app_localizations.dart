@@ -7874,6 +7874,12 @@ abstract class AppLocalizations {
   /// **', '**
   String get exportNamedPhraseSeparator;
 
+  /// Between a field's label and its value on a printed or shared dance card or set list, such as the colon and space in "Phrase: AAB" or "Band: The Moving Violations". A section heading uses it without the trailing space, such as "Figures:". Use the locale's punctuation; keep any space it needs.
+  ///
+  /// In en, this message translates to:
+  /// **': '**
+  String get exportLabelSeparator;
+
   /// A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).
   ///
   /// In en, this message translates to:

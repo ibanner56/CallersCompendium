@@ -5168,6 +5168,10 @@
   "@exportNamedPhraseSeparator": {
     "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
   },
+  "exportLabelSeparator": " : ",
+  "@exportLabelSeparator": {
+    "x-sourceSha256": "45822f54a0d0e030f75698c9252f1345982e743c9466806048f542467b3ca4f9"
+  },
   "danceFigureBars": "{halfBars, plural, =1{{bars} mesure} =2{{bars} mesure} other{{bars} mesures}}",
   "@danceFigureBars": {
     "x-sourceSha256": "032e08ee5ee7e58a2100ce26ef840a137682a824c2dcbe8f36fefbae76971c86"
