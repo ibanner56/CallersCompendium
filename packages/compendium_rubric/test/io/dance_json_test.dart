@@ -699,7 +699,7 @@ void main() {
       test('a rotation with no stated where is a promenade across', () {
         // The taxonomy's default `where`, which ContraDB's "partners promenade
         // on the left" relies on. Caller's Box's where-less promenades are
-        // deferred on its own path, before they reach this parser.
+        // stopped on its own path, before they reach this parser.
         final dance = _parseOk(
           _record(
             '{"move": "promenade", "params": {"direction": "clockwise"}}',

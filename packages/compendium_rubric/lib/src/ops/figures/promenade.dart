@@ -13,8 +13,9 @@ part of '../operation.dart';
 /// Only `where: across` with partnered pairs is modelled. A single-file
 /// promenade, any other `where`, and a stated `destination` raise
 /// [ErrorKind.unsupportedParam]. A Caller's Box promenade that states no
-/// `where` (a whole-set or around-a-dancer promenade there) is deferred before
-/// it reaches this operation, by `runCoreDance` (`io/callersbox_source.dart`).
+/// `where` (a whole-set or around-a-dancer promenade there) is stopped before
+/// it reaches this operation and reported as `unstructured`, an import
+/// problem, by `runCoreDance` (`io/callersbox_source.dart`).
 final class Promenade extends Operation {
   const Promenade({
     this.who = WhoSet.partners,

@@ -128,7 +128,7 @@ void _writeSummary(CorpusReport report) {
     '(${_percent(report.inScopeRate)})',
   );
   stdout.writeln(
-    '  parsed dances with no free text and nothing deferred; '
+    '  dances the import structured fully, parsed, nothing deferred; '
     '${report.deferred} excluded as deferred',
   );
   stdout.writeln(
@@ -170,8 +170,8 @@ dance, and reports what compiled and which moves are still unimplemented.
 A directory expands to the .json files directly inside it.
 
 The headline is the in-scope rate: how many compiled out of the dances this
-compiler is aiming at, which is everything that parsed minus the ones a
-deferred figure blocked. The all-attempted rate follows it.
+compiler is aiming at, which is everything that imported cleanly and parsed,
+minus the ones a deferred figure blocked. The all-attempted rate follows it.
 
 Options:
   -q, --quiet    summary only
