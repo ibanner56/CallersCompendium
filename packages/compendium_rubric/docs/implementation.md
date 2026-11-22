@@ -498,9 +498,22 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   it as a compiler failure would be a lie)*, then bridges, parses, and compiles.
   The `compile` call sits in a `try`/`catch`: a figure that throws lands in
   `crashed` rather than taking a 24,000-file sweep down with it.
+- **`dancedFigures`** is the figure list every later stage reads: the decoded
+  transcription with each top-level `sequence` container spliced into its
+  children. Core defines a sequence as figures danced one after another and
+  shown on one line, so splicing is that definition read literally, and doing it
+  first means the progression rules below see the figures actually danced. A
+  sequence flagged as the progression hands the flag to its last child *(agent's
+  call, unratified; the alternative was refusing it)*. `meanwhile` and
+  `modifier` containers, and anything inside them, are left alone and stay
+  deferred. Every figure index reported from here on (warnings, a refusal's
+  "figure N", `assumedProgressionAt`) counts danced figures, not source lines,
+  so after a sequence it can run past `totalFigures` *(agent's call,
+  unratified; the alternative was mapping each index back to a source line)*.
 - **`bridgeCoreDance`** rewrites a `core.Dance` into the record this package's
   parser reads: `title`, `form`, `formation.shape`, `progression` (the success
-  criterion — single or double — not the flag), and `figures`, each carrying its
+  criterion — single or double — not the flag), and `figures` (the danced
+  figures above), each carrying its
   `move` and `params`, plus `progression: true` on the one figure that
   progresses. That flag is the only field the bridge *adds* rather than
   translates, and where the assumed-progression rule below takes effect.
