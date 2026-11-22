@@ -54,6 +54,27 @@ void main() {
       );
     });
 
+    test('in Becket, the women lead and the men trade places', () {
+      // The Becket start: partners share a side, the role2s on the diagonal.
+      final becket = startingFormation(FormationType.becketCw, handsFour: 1);
+      expect(becket.toRolesNotation(), ['L2-B . . . R1-A', 'R2-B . . . L1-A']);
+      expect(applyOk(const RevolvingDoor(), becket).toRolesNotation(), [
+        'L1-A . . . R1-A',
+        'R2-B . . . L2-B',
+      ]);
+    });
+
+    test('leaders sharing a row have no centre to star across', () {
+      final result = const RevolvingDoor().apply(
+        di(const ['R1-A . . . R2-B', 'L2-B . . . L1-A']),
+      );
+      expect(result, isA<Err<Formation, OpError>>());
+      expect(
+        (result as Err<Formation, OpError>).error.kind,
+        ErrorKind.unresolvableDancerSet,
+      );
+    });
+
     test('a who naming two pairs has no single pair to carry', () {
       final result = const RevolvingDoor(who: WhoSet.partners).apply(di(base));
       expect(result, isA<Err<Formation, OpError>>());

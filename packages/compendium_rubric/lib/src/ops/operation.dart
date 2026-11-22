@@ -74,7 +74,7 @@ sealed class Operation {
   /// carrying its flag.
   ///
   /// `slide_along_set` is one, and `slice`, which dances one or two slides, is
-  /// the other: the slide's own displacement is what carries dancers on to the
+  /// the other (a flagged diagonal slice is a known limit, see [Slice]): the slide's own displacement is what carries dancers on to the
   /// next couple, so flagging it as the progression
   /// names the movement that has already happened. Every other figure that
   /// re-bands the set — a figure danced with the next neighbours — is *not* a

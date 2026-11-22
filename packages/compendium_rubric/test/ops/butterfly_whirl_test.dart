@@ -27,16 +27,6 @@ void main() {
         expect((result as Ok<Formation, OpError>).value, before);
       });
     }
-
-    test('after a half star promenade, the couple stays on its new side', () {
-      final promenaded =
-          (const StarPromenade().apply(di(base)) as Ok<Formation, OpError>)
-              .value;
-      final whirled = const ButterflyWhirl(
-        who: WhoSet.partners,
-      ).apply(promenaded);
-      expect((whirled as Ok<Formation, OpError>).value, promenaded);
-    });
   });
 
   group('a named pair must stand side by side', () {

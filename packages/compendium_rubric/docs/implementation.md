@@ -737,7 +737,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,113 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,165 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **49 figures registered**, plus 7 upstream aliases resolved to them
@@ -893,8 +893,9 @@ post-taxonomy-v35 snapshot.
 - **Vocabulary coverage is high**: 44 of the 49 moves this package advertises are
   exercised by real choreography. The genuine backlog named by the corpus is
   `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
-  *(Since then `promenade` across is built; its other forms are still
-  deferred.)*
+  *(Since then `promenade` across is built, its other forms still deferred,
+  and `butterfly_whirl`, `revolving_door` and `slice` are built on user
+  rulings of 2026-11-22.)*
 - **`rory_o_more` appears in none of the 24,107 dances**, which is not credible
   for a figure this common — the likely explanation is that core's adapter does
   not recognise its wording. Worth confirming; it would be an upstream finding.

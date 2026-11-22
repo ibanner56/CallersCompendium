@@ -11,12 +11,19 @@ part of '../operation.dart';
 ///
 /// In every hands four exactly one `who` pair must be found; anything else
 /// (no leaders, or a `who` such as `partners` that names two pairs) has no
-/// single "other pair" to carry and is refused rather than guessed.
+/// single "other pair" to carry and is refused rather than guessed. The
+/// leaders must also stand on the diagonal of the hands four, since they join
+/// hands across its centre. *(Agent's call, 2026-11-22, not yet ruled: the
+/// alternative was dancing leaders who share a row or column, where the
+/// written-out star promenade and allemande would move them and this net
+/// would not.)*
 ///
-/// `hand` and `whom` are carried for fidelity and have no positional effect:
-/// the carried pair trades places whichever hand the leaders join and whoever
-/// they started out holding. (The Caller's Box import does not recover `whom`
-/// from its written-out lines, so it usually arrives as the default.)
+/// `hand` is carried for fidelity and has no positional effect. `whom` does not
+/// change who trades places either, but like every dancer set a figure names
+/// it chooses which hands four the figure is danced in: a `whom` reaching the
+/// next neighbours or the shadows re-bands the set first, exactly as it would
+/// for any other figure. (The Caller's Box import does not recover `whom` from
+/// its written-out lines, so it usually arrives as the default.)
 final class RevolvingDoor extends Operation {
   const RevolvingDoor({
     this.who = WhoSet.role2s,
@@ -61,6 +68,21 @@ final class RevolvingDoor extends Operation {
         );
       }
       final leader = leaders.single;
+      // The leaders join hands across the middle of the hands four, so they
+      // must stand on its diagonal: two dancers sharing a row or a column are
+      // on one side of the centre, with no star to make.
+      final a = formation.stateOf(leader.a).position;
+      final b = formation.stateOf(leader.b).position;
+      if (a.row == b.row || a.col == b.col) {
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            'revolving_door needs the ${who.key} leading it to stand on the '
+            'diagonal of the hands four, but ${leader.a} and ${leader.b} '
+            'share a ${a.row == b.row ? 'row' : 'column'}',
+          ),
+        );
+      }
       final rest = [
         ...formation.dancersInRow(band.topRow),
         ...formation.dancersInRow(band.bottomRow),

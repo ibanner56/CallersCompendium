@@ -680,6 +680,19 @@ void main() {
       },
     );
 
+    test('a Becket dance opening with a double slice does not', () {
+      // A diagonal return is two slides; a flag on it is not ruled, so the
+      // bridge does not assume one there.
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('slice', {'slice': 'left', 'return': 'diagonal'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
     test('a Becket dance slicing right does not', () {
       final dance = _shapedLike(
         shape: core.FormationShape.becketCw,

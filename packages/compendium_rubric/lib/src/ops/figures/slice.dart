@@ -50,6 +50,14 @@ enum SliceReturn {
 /// Like the slide, the slice **is** the progression when it carries the flag:
 /// its own displacement is the movement that hands each couple on.
 ///
+/// **Known limit:** a diagonal return is two slides, but the engine runs a
+/// progression's end-normalization once per flag, so a progression-flagged
+/// diagonal slice compiles as a mismatch. What a flag on a double slice means
+/// (one progression or two) is not ruled; the Caller's Box bridge therefore
+/// never assumes one (`assumedProgressionIndex`), and in the corpus the
+/// double slices are mid-dance shifts to the shadows rather than the
+/// progression.
+///
 /// **Deferred:** `by: dancer` (a shift of a single dancer, which leaves a shape
 /// the slide does not model) and `return: none` (the couples stop in the
 /// middle, facing the couple on the diagonal rather than standing on the side).

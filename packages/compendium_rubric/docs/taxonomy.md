@@ -1044,11 +1044,16 @@ To be defined later with worked examples.
 - **normalization / facing:** as `slide_along_set`.
 - **interaction scope:** cross-h4, like the slide.
 - **h4 contribution** (D7): **+1** per slide, so +1 straight and +2 diagonal.
-- **progression-eligible:** yes, and it is **its own progression**, like the slide: a flag on it
-  names the shift it has already made.
-- **assumed progression (Caller's Box):** a Becket dance that **opens with a slice left** is
-  assumed to progress on it, exactly as one opening with a slide left is (user-ruled
-  2026-11-22, extending the slide rule in `callersbox_source.dart`).
+- **progression-eligible:** yes, and it is **its own progression**, like the slide: a flag on a
+  straight slice names the shift it has already made. ⚠️ **Known limit:** a diagonal return is
+  two slides, but a flag end-normalizes once, so a progression-flagged diagonal slice compiles
+  as a mismatch. Whether a flag on a double slice means one progression or two is not ruled. In
+  the Caller's Box corpus every "Double slice" (21 dances) is a mid-dance shift to the shadows,
+  not the progression.
+- **assumed progression (Caller's Box):** a Becket dance that **opens with a slice left** and a
+  straight return is assumed to progress on it, exactly as one opening with a slide left is
+  (user-ruled 2026-11-22, extending the slide rule in `callersbox_source.dart`). A diagonal
+  return is not, for the reason above.
 - **sources:** user ruling 2026-11-22 (slice = slide; straight one couple, diagonal two;
   measured on the Caller's Box mirror before the ruling was asked); CallersCompendium taxonomy
   `slice` MoveDef. The prior verifier's "swap rows" fallback is not followed.
@@ -1450,8 +1455,9 @@ To be defined later with worked examples.
   - `beats` — int, default 4.
 - **preconditions:** **user-ruled:** each named pair must be standing side by side (adjacent),
   refused (`UnresolvableDancerSet`) otherwise. A pair that has just star-promenaded nearly
-  always is, since the promenade checks the same thing. An unstated `who` names nobody and is
-  not checked.
+  always is. Note that this compiler's `star_promenade` does **not** itself check that its
+  couples stand together (its only precondition is a whole or half turn), so this is the one
+  adjacency guard on the pair. An unstated `who` names nobody and is not checked.
 - **effect:** the identity. The half star promenade before it has already carried each couple
   to its new side, so the whirl only turns the pair to face in. Asked with evidence: on the
   Caller's Box mirror the no-move reading compiled 122 of the dances it unblocked, against 105
@@ -1472,13 +1478,17 @@ To be defined later with worked examples.
 - **params** (meets CallersCompendium baseline `{who, hand, whom, beats}`):
   - `who` — dancer set, default `role2s`. The leaders, who join hands in the centre.
   - `hand` — handedness, default `right`. Styling; no positional effect.
-  - `whom` — dancer set, default `partners`. Whom the leaders carry. Descriptive: the carried
-    pair trades places whoever they started out holding. (The Caller's Box import does not
+  - `whom` — dancer set, default `partners`. Whom the leaders carry. It does not change who
+    trades places, but like any named set it picks the hands four: a `whom` reaching the next
+    neighbours or the shadows re-bands the set first. (The Caller's Box import does not
     recover `whom` from its written-out lines, so it usually arrives as the default.)
   - `beats` — int, default 8.
 - **preconditions:** exactly one `who` pair in each hands four, with two other dancers to carry;
   anything else (no leaders, or a `who` such as `partners` that names two pairs) is refused
-  (`UnresolvableDancerSet`) rather than guessed.
+  (`UnresolvableDancerSet`) rather than guessed. The leaders must stand on the **diagonal** of
+  the hands four, since they join hands across its centre; leaders sharing a row or column are
+  refused. *(Agent's call, not yet ruled; it changed no corpus outcome. Only on the diagonal
+  does the net below equal the written-out promenade and allemande.)*
 - **effect:** in each hands four, the two dancers who are not the `who` pair **swap places**;
   the `who` pair stays put. *Worked check:* from the base ring
   `R1-A . . . L1-A / L2-B . . . R2-B`, role2s leading land `R1-A . . . L2-B / L1-A . . . R2-B`,
@@ -1486,7 +1496,7 @@ To be defined later with worked examples.
   Caller's Box writes the figure out.
 - **normalization:** none.
 - **facing (output):** unchanged (flexible).
-- **interaction scope:** within the hands four.
+- **interaction scope:** within the hands four (the one `who`/`whom` names).
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.
 - **sources:** user ruling 2026-11-22; Caller's Box decomposition ("star promenade 1/2; women

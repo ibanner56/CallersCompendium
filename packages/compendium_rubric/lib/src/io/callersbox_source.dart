@@ -551,7 +551,11 @@ int? assumedProgressionIndex(core.Dance dance) {
     // carried under `slice` rather than `slide`, defaulting to `left` as well.
     final direction = switch (opener.move) {
       'slide_along_set' => opener.params['slide'] ?? 'left',
-      'slice' => opener.params['slice'] ?? 'left',
+      // Only a straight return, which is one slide. A diagonal return is two
+      // (a "Double slice"), and what a progression flag on that means is not
+      // ruled, so it is not assumed here.
+      'slice' when (opener.params['return'] ?? 'straight') == 'straight' =>
+        opener.params['slice'] ?? 'left',
       _ => null,
     };
     if (direction == 'left') return 0;
