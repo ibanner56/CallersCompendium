@@ -637,10 +637,10 @@ void main() {
     });
 
     test('a vocabulary value with no reading here is deferred', () {
-      // `shadows` is the corpus's largest one: a real dancer set this compiler
-      // does not model, on a figure it otherwise implements.
+      // `sameRoles` is a real dancer set this compiler does not model, on a
+      // figure it otherwise implements.
       final error = _parseErr(
-        _record('{"move": "swing", "params": {"who": "shadows"}}'),
+        _record('{"move": "swing", "params": {"who": "sameRoles"}}'),
       );
 
       expect(error.path, 'figures[0].params.who');

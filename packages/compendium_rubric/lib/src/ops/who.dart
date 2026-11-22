@@ -34,6 +34,16 @@ bool whoMatches(Formation formation, DancerId a, DancerId b, WhoSet who) {
       a.coupleIndex != b.coupleIndex &&
           a.role != b.role &&
           stateA.number != stateB.number,
+    // Opposite role, different couple, and the SAME number: a partner offset
+    // by a hands four rather than a neighbour. Read from the current numbers,
+    // which the end of the set flips (§10.3), so a couple that has just turned
+    // round at an end shares its number with its neighbours and they are its
+    // shadows there. *(User-ruled 2026-11-22: "at the end, when a couple
+    // isn't out, your shadow is your neighbor".)*
+    WhoSet.shadows =>
+      a.coupleIndex != b.coupleIndex &&
+          a.role != b.role &&
+          stateA.number == stateB.number,
     WhoSet.role1s => a.role == Role.lark && b.role == Role.lark,
     WhoSet.role2s => a.role == Role.robin && b.role == Role.robin,
     WhoSet.ones =>
@@ -59,6 +69,7 @@ bool whoIncludes(Formation formation, DancerId id, WhoSet who) {
     WhoSet.everyone ||
     WhoSet.partners ||
     WhoSet.neighbors ||
+    WhoSet.shadows ||
     WhoSet.prevNeighbors ||
     WhoSet.nextNeighbors ||
     WhoSet.thirdNeighbors ||

@@ -206,6 +206,7 @@ numbered** — matching the form real dance records arrive in:
 | `twos` | the **#2 couples** | `2s`, `two` |
 | `partners` | each dancer with their partner | `partner` |
 | `neighbors` | each dancer with their current neighbor | `neighbor` |
+| `shadows` | each dancer with their **shadow**: the opposite-role, same-number dancer in a neighbouring hands four — paired by who is standing together (see "Shadows") | `shadow` |
 | `prevNeighbors` | the couple **one grouping back** against the direction of travel — a **cross-h4** reference (see "Interaction scope") | `prevNeighbor` |
 | `nextNeighbors` | the couple **one grouping on** in the direction of travel — a **cross-h4** reference (see "Interaction scope") | `nextNeighbor` |
 | `thirdNeighbors` | the couple **two groupings on** — a **cross-h4** reference (see "Interaction scope") | `thirdNeighbor` |
@@ -218,7 +219,7 @@ numbered** — matching the form real dance records arrive in:
 > and `twos`, and they stay.
 
 Aliases are resolved **at the JSON parse boundary**, so the pure core only ever sees canonical
-tokens. Shadow sets (`shadow_*`) and corner sets (`firstCorners`, `secondCorners`) are not yet
+tokens. `secondShadows` and the corner sets (`firstCorners`, `secondCorners`) are not yet
 specified — see the deferred items.
 
 ## Interaction scope (within-h4 vs. cross-h4)
@@ -232,7 +233,8 @@ A figure reaches **outside its hands four** only when it:
 1. **progresses** — carries the progression flag / moves couples on to new neighbors (§10 of
    `fundamentals.md`),
 2. **interacts with future/past neighbors or shadows** — couples in adjacent groups met as the
-   dance progresses (a *shadow* is a secondary cross-group partner; no figure uses it yet), or
+   dance progresses (a *shadow* is your partner's counterpart in an adjacent hands four; see
+   "Shadows"), or
 3. **acts along a diagonal** — reaches into an adjacent grouping (e.g. `chain`
    `leftDiagonal` / `rightDiagonal`).
 
@@ -398,6 +400,50 @@ The sign is load-bearing, not decorative. Reaching stands the same two couples t
 whichever direction is named, so only the sign distinguishes the meeting the choreographer wrote
 from a mistake — naming `nextNeighbors` in either of those dances is refused, and naming
 `prevNeighbors` against the *Sleepless* fixture is refused too.
+
+### Shadows (`shadows`) — **ruled**
+
+*(User-ruled 2026-11-22.)* Your shadow is the dancer of the **opposite role and the same couple
+number in a neighbouring hands four**: your partner's counterpart one grouping up or down the
+set. Shadows are like the previous and next neighbors, except that you offset from your partner
+rather than from your neighbor. Two further rules come with it:
+
+- **Numbers are read as they stand**, so they toggle at the top and bottom of the set (§10.3 of
+  `fundamentals.md`).
+- **At an end, when a couple is not out, its shadow is its neighbor.** A couple that has just
+  turned round at an end shares its number with the couple beside it, so that couple's
+  opposite-role dancer is its shadow there.
+
+**Pairing.** A figure naming `shadows` pairs whoever is standing together, as `swing` does for
+every set: it does not reach a fixed distance. Shadows stand in different hands fours, so the
+figure is danced in the **band phase in which every hands four holds a shadow pair** — the phase
+it was handed or the other one — and the phase it was handed is given back afterwards, as a
+distance set's reach is. If neither phase has shadows standing together the figure is refused
+with `whoMismatch`; if both do it is refused with `unresolvableDancerSet`, because two different
+sets of dancers could be the shadows and choosing one would be a guess. *(User-ruled: "pair
+whoever is next to you; refuse if neither or both".)*
+
+Worked example (`test/ops/shadows_test.dart`). With B and D, both 2s, standing beside each other
+across the settled band boundary, only the shifted phase holds a shadow pair, so an allemande
+with the shadows is danced there and the end couples A and C sit it out:
+
+```
+L1-A . . . R1-A      bands as handed: (0,1) A+B, (2,3) D+C — no same-number pair
+L2-B . . . R2-B      shifted phase:   (1,2) B+D — L2-B with R2-D, R2-B with L2-D
+R2-D . . . L2-D
+R1-C . . . L1-C
+```
+
+*Agent's calls, not ratified:*
+
+- `shadows` checks only the relationship (opposite role, different couple, same number), not how
+  many hands fours apart the pair started. The user noted that shadows can lie beyond the
+  neighbouring hands four; those are named by their own sets (`secondShadows` and further), which
+  are not modelled yet and are refused at parse time as an unmodelled vocabulary value. The
+  alternative, checking home grouping the way `crossHandsFourRefusal` does for the distance sets,
+  was not taken because no worked example yet says which grouping a shadow is measured from.
+- A figure naming both `shadows` and a distance set is refused with `unresolvableDancerSet`: each
+  picks its own band phase, and a figure is danced in one.
 
 ---
 
@@ -579,8 +625,8 @@ To be defined later with worked examples.
     `partners`, `neighbors`, `role1s`, `role2s`, `ones`, `twos` (the last two typically swung
     **in the center**), and the distance sets `prevNeighbors` / `nextNeighbors` /
     `thirdNeighbors` / `fourthNeighbors`. Singular and role-name legacy spellings (`partner`,
-    `neighbor`, `larks`, `robins`, `1s`, `2s`) are accepted and normalized. _(Shadows and
-    first / second `corners` **deferred** — see the `who` semantics below.)_
+    `neighbor`, `larks`, `robins`, `1s`, `2s`) are accepted and normalized. `shadows` is accepted
+    too (see "Shadows"). _(`secondShadows` and first / second `corners` **deferred**.)_
   - `prefix` — enum {`none`, `balance`, `meltdown`}. Optional lead-in. **`prefix:meltdown` is the
     `meltdown_swing` alias.** (Baseline beats key off it: `none`→8, `balance`/`meltdown`→16.)
   - `where` — enum {`center`, `sides`}. Where the swing resolves; with `face`, fixes the
@@ -602,11 +648,9 @@ To be defined later with worked examples.
   - `prevNeighbors` = the neighbors one grouping **back** against the direction of travel;
     `nextNeighbors` / `thirdNeighbors` / `fourthNeighbors` reach one, two and three groupings
     **on**. See "The neighbor-distance sets" for how they resolve and why the sign matters.
-  - `shadow_1..N` — ⚠️ **not implemented, and not a spelling the parser accepts.** Described
-    here as domain knowledge only: the same-number, opposite-role dancer in the h4 above/below;
-    bidirectional and **wraps** at the ends with the end number-flip (e.g. `L1-A`'s shadow is
-    `R1-C`; wrapping the top also makes `R2-B` a shadow). It needs a worked example the way the
-    distance sets did before it can be enabled.
+  - `shadows` = opposite role, different couple, and the **same** number, read as the numbers
+    stand (e.g. `L1-A`'s shadow is `R1-C`; at the top, once A has turned round and taken the 2s'
+    number, `R2-B` is its shadow too). See "Shadows" for how a figure finds them.
 - **preconditions — `who` is a precondition (not the pairing):** the swing pairs whoever is
   physically in swing position; `who` validates their relationship, else
   `CompileError(whoMismatch)`.
@@ -623,7 +667,8 @@ To be defined later with worked examples.
     Within the *current* h4 the invariant still holds: **no one swings with someone outside the
     hands four they are standing in.** Reaching a distance set moves the band grid first, so the
     figure still runs inside a band — it is just a different band.
-  - **shadows:** not implemented; see the `who` semantics above.
+  - **shadows:** validated like any other set, in the band phase where shadows stand together;
+    see "Shadows".
   - **`where:center`:** precondition depends on alignment (aligned / not-aligned) — _PENDING_.
 - **core rule:** a swing is a **normalizing figure** — the swinging pair(s) finish
   **lark-left / robin-right relative to `face`** (§7 geometry). Placement is set by
@@ -663,8 +708,8 @@ To be defined later with worked examples.
 - **interaction scope:** within the **current hands four** — a swing always resolves inside it
   (invariant: no one swings with someone outside the hands four they are standing in). A
   distance-set `who` does not break that invariant: the band grid moves first, so the figure
-  still runs inside a band. The unimplemented cross-h4 labels (`shadow_*`) are choreographic and
-  are set up by prior positioning, not a reach outside during the swing itself.
+  still runs inside a band. `shadows` does not break it either: the swing is danced in the band
+  phase where the shadows stand together, which prior positioning has set up.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (a swing may be marked `progression:true`).
 - **forward ref:** a **line of four** is a formation/figure to be defined later; the `sides`
@@ -677,7 +722,7 @@ To be defined later with worked examples.
 - **params** (meets CallersCompendium baseline `{who, shoulder, travel, beats}`;
   `circling` is our internal name for `travel` — see "Spelling", above):
   - `who` — **same value set as `swing`** (`partners`, `neighbors`, `ones`/`twos`,
-    `role1s`/`role2s`, and the distance sets; shadows and corners deferred). Acts as a
+    `role1s`/`role2s`, the distance sets, and `shadows`; `secondShadows` and corners deferred). Acts as a
     precondition.
   - `shoulder` — enum {`left`, `right`}. Which shoulder dancers pass (sets the orbit direction).
     **`shoulder:left` is the `see_saw` alias** (CallersCompendium `MoveAlias` `see_saw` →

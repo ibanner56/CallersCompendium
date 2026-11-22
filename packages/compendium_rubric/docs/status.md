@@ -140,6 +140,11 @@ from this table because the compiler never ran against them. **Pass rate** is
 - Diagonal `hey` is deferred behind diagonal `right_left_through`, which it
   must agree with.
 
+### Dancer sets
+
+- `shadows` is modelled (`taxonomy.md`, "Shadows"). `secondShadows` and the
+  corner sets are still refused at parse time as unmodelled vocabulary values.
+
 ### Amounts and fractions
 
 - `poussette` and `figure_8` support half and full amounts only.

@@ -205,9 +205,20 @@ sealed class Operation {
         ),
       );
     }
+    final namesShadows = dancerSets.contains(WhoSet.shadows);
+    if (namesShadows && reaching.isNotEmpty) {
+      return Err<Formation, OpError>(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          '$name names shadows and ${reaching.single.key}; each picks its own '
+          'band phase, and a figure can only be danced in one',
+        ),
+      );
+    }
     if (reaching.isNotEmpty) {
       return _applyReaching(settled, reaching.single, progressions);
     }
+    if (namesShadows) return _applyWithShadows(settled);
 
     final failure = checkPreconditions(settled);
     if (failure != null) return Err<Formation, OpError>(failure);
@@ -266,6 +277,63 @@ sealed class Operation {
     return perform(
       shifted,
     ).map((next) => stepsOut ? toggleBandPhase(next) : next);
+  }
+
+  /// Runs a figure that names `shadows`.
+  ///
+  /// A dancer's shadows stand in a neighbouring hands four, so whether they
+  /// are together depends on the dance so far, not on a fixed distance. The
+  /// rule is the one `swing` uses for every set: pair whoever is standing
+  /// together, and check the relationship. *(User-ruled 2026-11-22.)* Here
+  /// that means picking the **band phase** in which every hands four holds a
+  /// shadow pair: the phase the figure was handed, or the other one. The
+  /// figure is danced there and the phase it was given is handed back, as
+  /// [_applyReaching] does.
+  ///
+  /// Neither phase is refused with `whoMismatch`: no shadows are standing
+  /// together. Both is refused as `unresolvableDancerSet`: two different sets
+  /// of dancers could be the shadows, and choosing one would be a guess.
+  Result<Formation, OpError> _applyWithShadows(Formation formation) {
+    final over = toggleBandPhase(formation);
+    final here = _shadowsStandTogether(formation);
+    final there = _shadowsStandTogether(over);
+    if (here && there) {
+      return Err<Formation, OpError>(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          '$name names shadows, and shadow pairs stand together in both band '
+          'phases; which pairs dance would be a guess',
+        ),
+      );
+    }
+    if (!here && !there) {
+      return Err<Formation, OpError>(
+        OpError(
+          ErrorKind.whoMismatch,
+          '$name names shadows, but no band phase has a shadow pair standing '
+          'together in every hands four',
+        ),
+      );
+    }
+    final phase = here ? formation : over;
+    final failure = checkPreconditions(phase);
+    if (failure != null) return Err<Formation, OpError>(failure);
+    final danced = perform(phase);
+    return here ? danced : danced.map(toggleBandPhase);
+  }
+
+  /// Whether every hands four of [formation] holds at least one shadow pair.
+  static bool _shadowsStandTogether(Formation formation) {
+    final bands = handsFourBands(formation);
+    return bands.isNotEmpty &&
+        bands.every(
+          (band) => resolveWhoPairs(
+            formation,
+            WhoSet.shadows,
+            topRow: band.topRow,
+            bottomRow: band.bottomRow,
+          ).isNotEmpty,
+        );
   }
 
   /// The distinct cross-hands-four sets this figure names, empty for a figure
