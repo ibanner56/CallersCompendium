@@ -13593,6 +13593,12 @@ abstract class AppLocalizations {
     String pickerForm,
   );
 
+  /// Editor warning on a square dance for a figure whose beats run past the end of a phrase, so that phrase's calls do not fill it exactly (traditional squares are phrased call by call). {position} is the figure's number in the dance. {label} is the phrase's name from the dance's phrase structure, such as 'A1'.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} runs past the end of {label}. In a square dance, the calls of each phrase should fill it exactly.'**
+  String validationFigureCrossesPhrase(int position, String label);
+
   /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
   ///
   /// In en, this message translates to:

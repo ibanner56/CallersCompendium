@@ -9219,6 +9219,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figur $position reicht über das Ende von $label hinaus. In einem Square Dance sollten die Calls jeder Phrase sie genau füllen.';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'Figur $position ist nicht vollständig, daher lässt Speichern sie weg.';
   }

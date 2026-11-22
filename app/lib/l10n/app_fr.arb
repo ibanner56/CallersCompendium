@@ -8946,6 +8946,10 @@
   "@validationOtherFormFigures": {
     "x-sourceSha256": "c9ecc275ac684f779261f8efede22076a2dd84f87b5d8b0f4ec812630fbc8e77"
   },
+  "validationFigureCrossesPhrase": "La figure {position} dépasse la fin de {label}. Dans un square dance, les appels de chaque phrase doivent la remplir exactement.",
+  "@validationFigureCrossesPhrase": {
+    "x-sourceSha256": "30e0b45cbe0c7888f4176602ea75398eb936512e6ddb481cd4f98626fc9d1ba7"
+  },
   "validationIncompleteFigure": "La figure {position} n’est pas complète : Enregistrer la laisse de côté.",
   "@validationIncompleteFigure": {
     "x-sourceSha256": "3c52fdb408c5114d40e661e2abc28520d0663fd0e7ff50a1096a901c31915a3a"

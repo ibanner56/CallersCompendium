@@ -28,6 +28,7 @@ const Set<String> mappedValidationCodes = {
   'sequence_span_mismatch',
   incompleteFigureValidationCode,
   otherFormFiguresValidationCode,
+  figureCrossesPhraseCode,
   'orphaned_alt',
   'empty_substitution',
   'dialect_collision',
@@ -150,6 +151,11 @@ String? _localizedValidation(
         danceFormLabel(l10n, figureForm),
         danceFormLabel(l10n, pickerForm),
       );
+    case figureCrossesPhraseCode:
+      final position = data['position'];
+      final label = data['label'];
+      if (position is! int || label is! String) return null;
+      return l10n.validationFigureCrossesPhrase(position, label);
     case 'orphaned_alt':
       final position = data['position'];
       if (position is! int) return null;
