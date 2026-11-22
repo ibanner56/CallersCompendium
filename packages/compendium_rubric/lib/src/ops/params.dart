@@ -100,9 +100,14 @@ enum WhoSet {
   /// (`-1`).
   final int? distance;
 
-  /// Whether this set names dancers **outside** the current hands four.
+  /// Whether this set names dancers a **fixed distance** along the set,
+  /// outside the current hands four.
   ///
-  /// A cross-hands-four reference cannot be resolved from a single band, so
+  /// `shadows` also names dancers in another hands four, but has no distance:
+  /// it is re-banded by whichever phase its pairs stand together in, not by
+  /// parity, so it is not one of these.
+  ///
+  /// A distance reference cannot be resolved from a single band, so
   /// [Operation.apply] re-bands the set before the figure runs rather than
   /// letting the band-scoped resolvers return the empty set — which would turn
   /// the figure into a silent no-op and then compare the result against the

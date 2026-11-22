@@ -672,6 +672,7 @@ void main() {
 
           expect(error.path, 'figures[0].params.$key');
           expect(error.deferred, isTrue);
+          expect(error.message, contains('does not choose the band phase'));
         });
       }
     });
