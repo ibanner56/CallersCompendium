@@ -123,7 +123,10 @@ List<pw.Widget> danceCardWidgets(
     for (final line in content.metaLines)
       pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
     if (content.hook case final hook?)
-      pw.Text('${labels.hook}: $hook', style: const pw.TextStyle(fontSize: 12)),
+      pw.Text(
+        '${labels.labelled(labels.hook)}$hook',
+        style: const pw.TextStyle(fontSize: 12),
+      ),
     if (content.figures.isNotEmpty) ...[
       pw.SizedBox(height: 12),
       heading(labels.figures),

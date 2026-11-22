@@ -60,6 +60,7 @@ class DanceExportLabels {
     this.bars = _englishBars,
     this.namedPhrases = _englishNamedPhrases,
     this.namedPhraseSeparator = ', ',
+    this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
   });
 
@@ -103,6 +104,17 @@ class DanceExportLabels {
   /// in Japanese.
   final String namedPhraseSeparator;
 
+  /// Between a field's label and its value, such as `Phrase: AAB`: `": "` in
+  /// English, the full-width `"："` in Japanese.
+  final String labelSeparator;
+
+  /// [label] followed by [labelSeparator], to put before a field's value.
+  String labelled(String label) => '$label$labelSeparator';
+
+  /// [label] as a section heading with the field's value on the lines below,
+  /// such as `Figures:`: [labelSeparator] without a trailing space.
+  String heading(String label) => '$label${labelSeparator.trimRight()}';
+
   /// A figure's count of [beats] as an export shows it: in bars of
   /// [beatsPerBar] beats for a dance timed in bars ([danceBeatsPerBar]), or in
   /// beats where [beatsPerBar] is null or the count is not a whole number of
@@ -141,6 +153,7 @@ class ProgramExportLabels {
     this.figures = 'Figures',
     this.alternate = 'Alternate',
     this.by = _englishBy,
+    this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
   });
 
@@ -171,6 +184,17 @@ class ProgramExportLabels {
   /// guest/minutes suffixes, only when the caller resolves at
   /// least one non-blank author name for that slot's dance.
   final String Function(String names) by;
+
+  /// Between a field's label and its value, such as `Phrase: AAB`: `": "` in
+  /// English, the full-width `"："` in Japanese.
+  final String labelSeparator;
+
+  /// [label] followed by [labelSeparator], to put before a field's value.
+  String labelled(String label) => '$label$labelSeparator';
+
+  /// [label] as a section heading with the field's value on the lines below,
+  /// such as `Figures:`: [labelSeparator] without a trailing space.
+  String heading(String label) => '$label${labelSeparator.trimRight()}';
 
   /// Page footer of the set-list PDF, e.g. `"Page 2 of 3"`.
   final String Function(int page, int pages) pageOf;

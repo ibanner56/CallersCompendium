@@ -126,12 +126,12 @@ String danceToPlainText(
   lines.addAll(content.metaLines);
 
   if (content.hook case final hook?) {
-    lines.add('${labels.hook}: $hook');
+    lines.add('${labels.labelled(labels.hook)}$hook');
   }
 
   if (content.figures.isNotEmpty) {
     lines.add('');
-    lines.add('${labels.figures}:');
+    lines.add(labels.heading(labels.figures));
     final sectioned = deriveSections(content.figures, dance.phraseStructure);
     final beatsPerBar = danceBeatsPerBar(
       dance.form,
@@ -158,25 +158,25 @@ String danceToPlainText(
 
   if (content.callingNotes case final notes?) {
     lines.add('');
-    lines.add('${labels.callingNotes}:');
+    lines.add(labels.heading(labels.callingNotes));
     lines.add(notes);
   }
 
   if (content.walkthrough case final walkthrough?) {
     lines.add('');
-    lines.add('${labels.walkthrough}:');
+    lines.add(labels.heading(labels.walkthrough));
     lines.add(walkthrough);
   }
 
   if (content.tuneNames.isNotEmpty) {
     lines.add('');
-    lines.add('${labels.tunes}:');
+    lines.add(labels.heading(labels.tunes));
     lines.add(content.tuneNames.join(', '));
   }
 
   if (content.sourceLines.isNotEmpty) {
     lines.add('');
-    lines.add('${labels.sources}:');
+    lines.add(labels.heading(labels.sources));
     lines.addAll(content.sourceLines);
   }
 

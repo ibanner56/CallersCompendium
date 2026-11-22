@@ -6520,6 +6520,10 @@
   "@exportNamedPhraseSeparator": {
     "description": "Between two phrases' lengths inside exportNamedPhrases, such as the comma and space in \"A 4 bars, B 8 bars\". Use the locale's list separator; keep any trailing space it needs."
   },
+  "exportLabelSeparator": ": ",
+  "@exportLabelSeparator": {
+    "description": "Between a field's label and its value on a printed or shared dance card or set list, such as the colon and space in \"Phrase: AAB\" or \"Band: The Moving Violations\". A section heading uses it without the trailing space, such as \"Figures:\". Use the locale's punctuation; keep any space it needs."
+  },
   "danceFigureBars": "{halfBars, plural, =1{{bars} bar} =2{{bars} bar} other{{bars} bars}}",
   "@danceFigureBars": {
     "description": "A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).",
