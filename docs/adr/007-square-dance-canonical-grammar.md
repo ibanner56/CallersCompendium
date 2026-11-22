@@ -119,8 +119,8 @@ decision.
   phrase-filling practice, and the check that matters is that each phrase
   adds up, which needs a new per-phrase check (§5.3).
 - **Squares use the existing containers**, `meanwhile` above all, because
-  traditional figures often have two groups dancing at once (§5.6).
-- **A dance is a phrased figure, a break or free-form patter** (§8.1), with
+  traditional squares often have two groups dancing at once (§5.6).
+- **A dance is a phrased main part, a break or free-form patter** (§8.1), with
   contra-style phrase labels, a repeat order, and who becomes the new
   partner.
 - **Squares join the glossary's dance-form selector** that ADR-006 built
@@ -128,32 +128,38 @@ decision.
 
 ## 2. Background: traditional squares
 
-The squares callers will store in the app are traditional ones: figures
+The squares callers will store in the app are traditional ones: dances
 written by contra and New England choreographers, danced to reels and jigs,
 and printed beside contras. They differ from club (MWSD) square dancing in
 ways that drive this design:
 
-1. **A square is a fixed, phrased figure, repeated.** The figure is danced
+In this ADR a **figure** is one line of a dance (one call with its beats), as
+everywhere else in the app. The part of a square that is danced several
+times through, which callers colloquially call "the figure" or "the main
+figure", is the **main part**: an ordered list of figures, like a contra
+(the maintainer's wording, 22 November 2026).
+
+1. **A square's main part is fixed, phrased and repeated.** It is danced
    several times through, usually twice with the heads leading and twice
    with the sides, or four times with everyone active. Club calling is mostly
    improvised patter, with phrasing only in singing calls.
-2. **Figures are labelled and timed like contras.** Sources print phrase
-   labels (A1, A2, B1, B2, and C1, C2 for longer figures) and a beat count
-   for each line. Most figures are 64 beats; some are 96.
+2. **Squares are labelled and timed like contras.** Sources print phrase
+   labels (A1, A2, B1, B2, and C1, C2 for longer squares) and a beat count
+   for each line. Most main parts are 64 beats; some are 96.
 3. **Timing fills the phrase.** A forward and back is "always a full eight
    beats in New England" (Parkes); CALLERLAB also gives 8, but 4 for lines
    close together. Where the two differ, the traditional count is usually
    longer: a ¾ circle of four is 8 (CALLERLAB 6), and a do-si-do or right
    and left through between facing couples is 8 (CALLERLAB 6). It can be
    shorter too: Lavender Moon dances a square through 2 in 4 (CALLERLAB 5).
-4. **Most figures change partners**, and the source says who the new
+4. **Most squares change partners**, and the source says who the new
    partner is: usually the corner.
 5. **The vocabulary overlaps contra.** Heys, gypsies (shoulder rounds), pull
    bys, balances and single-file moves appear beside square terms. Club calls
    (zoom, box the gnat, square through, even allemande thar) are borrowed
-   knowingly, sometimes with a note that they are club figures.
+   knowingly, sometimes with a note that they are club calls.
 6. **Sources describe; callers call.** Books print descriptions of the
-   figure with beat counts, not the words a caller says.
+   main part with beat counts, not the words a caller says.
 
 ## 3. Where the app stands today
 
@@ -277,7 +283,7 @@ anywhere reachable, so they are not counted.
 
 What the 19 show:
 
-- **Kinds.** Every one is a phrased figure repeated to reels or jigs. None
+- **Kinds.** Every one is a phrased main part repeated to reels or jigs. None
   is a club patter sequence or a singing call.
 - **Length.** 14 of the 18 with a known length are 64 beats. Four are 96:
   Masters' Quadrille, Southern Nights, Parallel Dried Alfalfa and Lavender
@@ -481,7 +487,7 @@ the Caller's Companion importer stops using `other` + "Square".
 For borrowed club calls, the registry records CALLERLAB's usual starting
 formations as glossary information. These are shipped data, not stored on
 figures. **The app does not track or simulate dancer positions.** It does
-not check that a figure resolves, and it does not warn that a call is
+not check that a square resolves, and it does not warn that a call is
 improper from the previous call's formation. A position simulator is out of
 scope (§11).
 
@@ -533,7 +539,7 @@ Their limits (2–6 children for `meanwhile` and `modifier`, at most 4 in a
 `sequence`, two levels of nesting, and no container directly inside one of its
 own kind) are enough for every held square except one. Interface Jig overlaps
 three actions with stated start offsets ("After 4 beats", "12, of which 4 fall
-in A.1 and 8 fall in A.2"). Offsets are not modelled; such a figure is stored
+in A.1 and 8 fall in A.2"). Offsets are not modelled; such a square is stored
 as `meanwhile` lines with the offsets in their notes (Q12).
 
 Optional lines ("the sides can swing as well", "everybody can swing") are
@@ -735,7 +741,7 @@ The same sources show Mainstream calls in contras (Box the Gnat, Star Thru,
 Square Thru, Flutterwheel, Circulate, Spin the Top, Swing Thru), which §7.2
 already covers. They also show traditional square calls outside CALLERLAB that
 no held square uses: Allemande X, Catch All Eight, Mountain-style Do-si-do,
-grand chains for either role, Birdie in the Cage and other Southern figures.
+grand chains for either role, Birdie in the Cage and other Southern calls.
 Those wait for a held square that uses them (§11).
 
 ## 8. Dance structure, entry, glossary and import
@@ -747,11 +753,11 @@ A square dance has one of three kinds, held in a new `squareKind` field
 
 | Kind | What it holds | Phrasing |
 | --- | --- | --- |
-| `figure` | A phrased figure that is danced several times through | Phrased |
+| `main` | The main part: a phrased list of figures danced several times through (callers' "main figure") | Phrased |
 | `break` | An intro, middle break or ending | Phrased by default |
 | `patter` | A free-form sequence or module | Free form by default |
 
-A singing call is a `figure` with a new `singing` flag; its song goes in
+A singing call is a `main` with a new `singing` flag; its song goes in
 the existing `tunes` field.
 
 **Phrasing.** A phrased square uses the existing `phraseStructure` and its
@@ -767,7 +773,7 @@ has a `freeForm` flag that the editor shows as a toggle. It defaults on for
 is on, the editor does not derive section labels or check phrase lengths,
 shows only a total beat count, and keeps but ignores `phraseStructure`.
 
-**Repeat order.** A new optional field, `order`, records how the figure is
+**Repeat order.** A new optional field, `order`, records how the main part is
 repeated:
 
 - `HHSS`: twice with the heads leading, twice with the sides;
@@ -779,7 +785,7 @@ repeated:
 Caller's Companion's `SubType` (for example "Keeper, H S H S") already
 carries the order, and the importer can read it.
 
-**New partner.** Most traditional figures change partners, and the source
+**New partner.** Most traditional squares change partners, and the source
 says who the new partner is. A new optional field, `newPartner`, records it:
 `none`, `corner`, `rightHandRole2`, `opposite`, `other` (with text), or
 `unstated`. The existing `mixer` flag stays as the yes/no class that
@@ -824,12 +830,12 @@ needed. The comments in `formation.dart` that call `square` and `circle`
 ECD shapes change with the list.
 
 **Breaks.** Breaks are their own records (`squareKind=break`), as the
-maintainer decided (Q6). A figure and its usual break are linked with the
+maintainer decided (Q6). A main part and its usual break are linked with the
 existing `DanceLink`. The editor can copy a break's calls into another dance
 at the cursor, as ordinary lines, so no new structure is needed; later edits
 to the break do not change the copy. A live reference that follows the
-break's edits is left for later. The order of intro, figures, break and
-ending around a figure (which the syllabi describe and the books do not) goes
+break's edits is left for later. The order of intro, main part, break and
+ending around a main part (which the syllabi describe and the books do not) goes
 in the dance's notes.
 
 ### 8.2 Entering calls
@@ -1086,7 +1092,7 @@ selector.
   stems differ go in a short list of extra pairs (§5.1).
 
 **Explicitly out of scope:** club (MWSD) calling beyond the borrowed calls in
-§7.2, simulating dancer positions, checking that a figure resolves,
+§7.2, simulating dancer positions, checking that a square resolves,
 animations, and any code, data or text from Taminations.
 
 **Revisit when:**
@@ -1168,20 +1174,27 @@ Sequence: Twice for heads, twice for sides.
 ```
 
 ```text
-squareKind=figure  freeForm=false  phraseStructure=""  order=HHSS  newPartner=corner
+squareKind=main  freeForm=false  phraseStructure=""  order=HHSS  newPartner=corner
 
 A1  sq_circle            who=heads  direction=left  fraction=threeQuarters  size=4  beats=8
     sq_swing             who=heads  whom=opposites  beats=8
-A2  sq_circle_to_a_line  who=heads  beats=8
+A2  sequence  beats=8
+      sq_lead              who=heads  direction=right
+      sq_circle_to_a_line  who=everyone
     sq_forward_and_back  who=everyone  beats=8
 B1  sq_circle            who=everyone  direction=left  fraction=threeQuarters  size=4  beats=8
     sq_swing             who=everyone  whom=corners  beats=8
 B2  sq_promenade         who=everyone  variant=couples  destination=role1Place  beats=16
 ```
 
-- The A1 circle's "forward" and the A2 "lead to the right and circle four"
-  are kept in the lines' notes. "Break to a line" is the alias that reads as
-  `circle_to_a_line`.
+- In A2 the heads lead out to the couple on their right and circle four
+  with them, so all eight dance the circle and both lines form at once
+  (the maintainer's correction, 22 November 2026). The source gives one
+  count for the whole line, so it is a `sequence` with that count and
+  untimed steps, as Q10 recommends; until that span is open to squares,
+  the fallback is `sq_circle_to_a_line who=everyone` with "heads lead to
+  the right" in its note. "Break to a line" is the alias that reads as
+  `circle_to_a_line`, and the A1 circle's "forward" is kept in its note.
 - The phrases total 16 each, so the per-phrase check (§5.3) gives no
   warning.
 - Parkes gives a ¾ circle of four 8 beats. Under CALLERLAB's 6 this would
@@ -1208,12 +1221,12 @@ The `meanwhile` holds the one shared beat count. "The one you meet" is the
 because it describes who that dancer is rather than how the dancers find
 them.
 
-### A.3 A 96-beat figure
+### A.3 A 96-beat main part
 
 Masters' Quadrille (Parkes) runs A.1 to C.2: `phraseStructure=6*8*2` gives
 the same six labels, and the per-phrase check (§5.3) checks each 16-beat
 phrase. Parkes notes
-that the figure suits 48-measure tunes and otherwise runs against the music
+that the main part suits 48-measure tunes and otherwise runs against the music
 on purpose; that goes in the dance's notes.
 
 ## Appendix B: sources
