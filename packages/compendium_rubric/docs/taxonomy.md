@@ -427,15 +427,18 @@ progression, so there is no rule tying the two sets together to refuse on. *(Age
 following from that.)* The distance set picks the band phase as it always does, the shadows
 pairing rule above is not applied, and the figure's own `who` checks still are.
 
-Worked example (`test/ops/shadows_test.dart`). With B and D, both 2s, standing beside each other
-across the settled band boundary, only the shifted phase holds a shadow pair, so an allemande
-with the shadows is danced there and the end couples A and C sit it out:
+Worked example (`test/ops/shadows_test.dart`). B and D (both 2s) stand beside each other across
+the settled boundary, and so do C and E (both 1s). The middle settled band holds no shadow pair,
+so only the shifted phase has one in every hands four: an allemande with the shadows is danced
+there, and the end couples A and F sit it out.
 
 ```
-L1-A . . . R1-A      bands as handed: (0,1) A+B, (2,3) D+C — no same-number pair
-L2-B . . . R2-B      shifted phase:   (1,2) B+D — L2-B with R2-D, R2-B with L2-D
+L1-A . . . R1-A      bands as handed: (0,1) A+B, (2,3) D+C, (4,5) E+F — none in the middle
+L2-B . . . R2-B      shifted phase:   (1,2) B+D and (3,4) C+E — every band a shadow pair
 R2-D . . . L2-D
 R1-C . . . L1-C
+L1-E . . . R1-E
+L2-F . . . R2-F
 ```
 
 *Agent's calls, not ratified:*
@@ -448,6 +451,15 @@ R1-C . . . L1-C
   together in the other one, the couples waiting out at the ends are brought in and dance, and
   the hand-back marks whoever then stands at the ends as out. This is the same mechanics as a
   distance set's reach.
+- **Limitation: a half hands four at an end does not wrap.** The wrap is read in the band phase
+  the figure is danced in. When that is the shifted phase, the end rows are outside every band
+  and sit the figure out, even where nobody is really out and the ruling would wrap them to
+  their neighbors (a Becket set started with shadows standing together is the case found). A
+  single-row band is not something the band model has, so this is left unmodelled.
+- **Refusal order.** The phase choice is refused before the figure's own preconditions run, so
+  a figure with an unsupported parameter can report a `who` error instead. Running the
+  preconditions first was tried and rejected: some `unsupportedParam` refusals depend on the
+  phase, and checking them in the wrong one lost 7 dances that compile today.
 - **Set size.** A dance naming shadows is sized with at least three hands four, as one reaching
   the next neighbors is. In two, every hands four is at an end, where shadows wrap to the
   neighbors, so the two sets could never be told apart.
