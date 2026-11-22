@@ -212,6 +212,12 @@ and **Advanced** for ContraDB; each is grayed out for the archive that cannot
 use it. A source selector appears under the row so you can choose which archive
 to search.
 
+The row of buttons, and the count of matching dances above the list, stay at
+the top of the list as you scroll, so you can always see how many dances match
+and change your search without scrolling back up. An open panel scrolls away
+between the two. On a short screen with very large text, where they would take
+up more than half of the list, they scroll with it instead.
+
 On ContraDB, **Advanced** searches the archive with the same **All of**,
 **Any of**, and **None of** groups of **Has figure** and **Sequence (then)**
 conditions you use on your own library, and its results must also match any

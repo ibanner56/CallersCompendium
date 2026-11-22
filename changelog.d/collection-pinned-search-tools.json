@@ -1,0 +1,9 @@
+{
+  "id": "collection-pinned-search-tools",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In the Collection, the Filters, By phrase and Advanced buttons and the count of matching dances now stay at the top of the list as you scroll."
+    ]
+  }
+}
