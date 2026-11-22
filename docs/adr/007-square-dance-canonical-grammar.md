@@ -1,15 +1,19 @@
 # ADR-007: Square dance canonical call grammar
 
-- **Status**: Proposed (12 November 2026; reworked 20 November 2026 for
-  traditional squares). For maintainer review before anything is
-  implemented.
+- **Status**: Accepted (22 November 2026) for a pilot implementation.
+  Proposed 12 November 2026, reworked 20 November 2026 for traditional
+  squares, and revised 22 November 2026 after the maintainer's review
+  (§1.1). Q1, Q4, Q8, Q10, Q11 and Q12 stay open on acceptance; until the
+  maintainer answers them, the pilot follows each recommendation (this
+  ADR author's call), and for Q11, which has none, an 8-beat default.
 - **Roadmap item**: "ECD and Squares support" (Later milestones in
   [ROADMAP.md](../ROADMAP.md))
 - **Deciders**: Maintainers
 
-**What we're asking the reviewer for:** a decision on each principle in §5,
-corrections to the registry in §7, and answers to the
-[open questions](#10-open-questions).
+**Feedback is still welcome.** The open questions in §10 are still open,
+and corrections or missing calls can change the square taxonomy later
+through the versioning process in
+[figure-taxonomy.md](../design/figure-taxonomy.md).
 
 In the template's terms: §2–§4 are the *context*, §5–§8 the proposed
 *decision*, §5 the *rationale*, and §9–§11 the *consequences* and *revisit
@@ -123,6 +127,10 @@ From the maintainer's review on 22 November 2026:
   maintainer replaced both rulings: **"Just omit figures with "Dixie" in the
   name for now and I'll find someone to help me pick a direction on the
   subject before we include them."** §7.5 records the deferral.
+
+Later on 22 November 2026 the maintainer accepted the ADR: **"I think this
+proposal is good enough for now to approve and begin our pilot
+implementation."**
 
 ### 1.2 The proposal in brief
 
