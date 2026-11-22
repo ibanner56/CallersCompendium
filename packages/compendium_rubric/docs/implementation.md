@@ -261,10 +261,13 @@ to two hands four where a nominal reading would demand three and then refuse.
 
 Which way "on down the set" points for one dancer. **Duple Improper:** by
 number, 1s `+1` (down), 2s `-1`. **Becket:** by line and Becket sense — under CW
-the c4 line shifts down, CCW mirrors.
+the c4 line shifts down, CCW mirrors. The line is read from the dancer's
+**number** (c4 = 1s line, c0 = 2s line, `fundamentals.md` §10.2.2), never from
+their current column: mid-dance a couple can stand across the set.
 
-Shared deliberately between the progression oracle and the distance-named dancer
-sets, so "on down the set" cannot come to mean two different things.
+Shared deliberately between the progression oracle, the distance-named dancer
+sets and `form_long_waves`' distance check, so "on down the set" cannot come to
+mean two different things.
 
 ### 5.3 Rings
 
@@ -737,7 +740,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,165 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,167 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **49 figures registered**, plus 7 upstream aliases resolved to them
@@ -808,15 +811,15 @@ rest cannot pass for the wrong reason.
 - `FormLongWaves.hand` **without** `whom` currently asserts nothing falsifiable.
   Deliberate and documented in its test; revisit if a record turns up that means
   something by it.
-- **Two `give_and_take` crashes are open.** *The Digital Divide* and *Road to
-  Rochester* throw a cell collision at `r0,c0`, consistent with the closure in
-  `ops/figures/give_and_take.dart`. A third crash, *Gypsy for Chris & Sara*,
-  collides separately at `r0,c2` in centre-line choreography and has not yet
-  been isolated to an operation. The `crashed` outcome keeps a sweep alive
-  through all three. The two give-and-take cases still need a ruling: whether
-  the collision is geometry the figure should **refuse** with an `OpError`, or
-  evidence that the permutation is wrong. See `status.md` for the measured
-  records.
+- **One crash is open.** *Gypsy for Chris & Sara* collides at `r0,c2` in
+  centre-line choreography and has not yet been isolated to an operation. The
+  `crashed` outcome keeps a sweep alive through it. The two former
+  `give_and_take` crashes, *The Digital Divide* and *Road to Rochester*, put
+  both takers of a hands four on one side of the set; `give_and_take` now
+  refuses that with an `OpError` instead of colliding. *(Agent's call,
+  2026-11-22, not yet ratified.)* Both dances progress mid-dance, so the
+  same-side state looks like the result of a misplaced progression rather
+  than a wrong permutation; see `status.md`.
 - **A hey may open on the side, and now does.** `pass1` names the first pass,
   which is not always the centre one. Which it is gets read off the floor: a
   pair standing one on each side of the set can only meet in the middle, and two

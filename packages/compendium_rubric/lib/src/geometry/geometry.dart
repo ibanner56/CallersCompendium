@@ -246,22 +246,28 @@ Formation toggleBandPhase(Formation formation) => isShiftedBandPhase(formation)
 ///   and the direction is set by the Becket sense (§10.6): under CW the c4 line
 ///   shifts down and the c0 line up; CCW is the mirror.
 ///
+///   Which line a dancer belongs to is read from their **number**, not from
+///   the column they happen to be standing in: c4 is the 1s line and c0 the
+///   2s line (§10.2.2), and a couple changes line and number together at an
+///   end. The column only says where the dancer is *now*, and mid-dance that
+///   can be the wrong side of the set entirely — after a `circle` 3/4 a couple
+///   stands across the set, one partner in each line's column, though both
+///   still travel with the line they belong to.
+///
 /// This says nothing about whether the dancer *is* travelling right now — only
 /// which way "on down the set" points for them. It is what makes "the grouping
 /// ahead of you" well defined for both the progression oracle and the
 /// cross-hands-four dancer sets.
 ///
-/// A dancer standing in a short-wave offset (`docs/fundamentals.md` §8.5.1)
-/// still belongs to the line they stepped out of: `c3` is the east line's
-/// offset, as `c1` is the west line's. A figure that keeps wave offsets while
-/// reaching along the set (a quarter `allemande`, §8.5.7) reads them here.
-/// The centre column is read as the west line, as it always was.
+/// Reading the line from the number also means a dancer standing in a
+/// short-wave offset (`docs/fundamentals.md` §8.5.1), or in the centre column,
+/// travels with their own line without any column arithmetic.
 int travelDirection(Formation formation, DancerId id) {
   final state = formation.stateOf(id);
   if (!formation.type.couplesShareColumn) {
     return state.number == CoupleNumber.one ? 1 : -1;
   }
-  final onEastLine = state.position.col > kColumnCount ~/ 2;
+  final onEastLine = state.number == CoupleNumber.one;
   final eastGoesDown = formation.type == FormationType.becketCw;
   return onEastLine == eastGoesDown ? 1 : -1;
 }

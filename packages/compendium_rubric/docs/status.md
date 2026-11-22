@@ -62,8 +62,9 @@ seven aliases resolve onto the 49 canonical implementations:
 - `long_lines` resolves to `forward_and_back`, which the table above lists as
   `long_lines` because only its long-lines formation is built.
 
-\* `give_and_take` has no deliberate parameter deferral, but it has a known
-runtime defect described under [Known crashes](#known-crashes).
+\* `give_and_take` has no deliberate parameter deferral, but it refuses a
+hands four whose two takers stand on the same side of the set; see
+[Known crashes](#known-crashes).
 
 ## Corpus results by implemented figure
 
@@ -243,18 +244,31 @@ reported as `unstructured`, an import-pipeline problem, not as a deferral.
 
 ## Known crashes
 
-Three dances currently escape the operation error channel and throw a cell
+The tables and headline above were measured before the change below, so they
+still count three crashes.
+
+One dance currently escapes the operation error channel and throws a cell
 collision:
 
 | Caller's Box id | Dance | Collision | Current attribution |
 | ---: | --- | --- | --- |
-| 12771 | The Digital Divide | `r0,c0` | Contains `give_and_take`; consistent with the known give-and-take collision |
-| 4292 | Road to Rochester | `r0,c0` | Contains `give_and_take`; consistent with the known give-and-take collision |
 | 9779 | Gypsy for Chris & Sara | `r0,c2` | Separate centre-cell collision in a dance containing long-wave and simultaneous-figure choreography; exact operation not yet isolated |
 
-Earlier implementation notes attributed all three crashes to `give_and_take`.
-The current evidence corrects that: `give_and_take` accounts for two of the
-three. The third needs a separate investigation.
+*The Digital Divide* (12771) and *Road to Rochester* (4292) used to collide at
+`r0,c0` inside `give_and_take`: both takers of one hands four stood on the same
+side of the set, so each slid along that column into the cell the other's
+taken partner was entering. `give_and_take` now refuses that state as an
+`unresolvableDancerSet` before moving anyone. *(Agent's call, 2026-11-22, not
+yet ratified: a refusal rather than a crash.)* Measured in a local corpus
+sweep on 2026-11-22: both dances now end `FIGUREREFUSED` at their
+`give_and_take`. The evidence so far points at an earlier wrong position rather
+than at the permutation: both dances progress mid-dance (*The Digital Divide*
+repeats its 64 beats with N2; *Road to Rochester* walks forward to N2 in A1),
+the importer places the progression on a late figure, and a step trace of *The
+Digital Divide* shows that after the N2 swing the original band phase is handed
+back, so its first hands four holds two 2s couples when the second
+`give_and_take` runs. Neither dance is checked in as a regression case, because the
+committed Caller's Box corpus is deliberately one dance.
 
 ## Coverage blind spots
 
