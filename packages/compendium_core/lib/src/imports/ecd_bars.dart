@@ -4,6 +4,7 @@
 /// the dance's meter (Hudson, 19 November 2026: "the meter is the rule").
 library;
 
+import '../model/bar_timing.dart';
 import '../model/phrase_structure.dart';
 
 /// How many beats one bar of [meter] holds, and whether [meter] stated it.
@@ -135,6 +136,8 @@ final RegExp _barRange = RegExp(
 ({int beats, String rest, bool several})? ecdBarCount(
   String line, {
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
   final range = splitEcdBarRange(line);
   if (range == null) return null;

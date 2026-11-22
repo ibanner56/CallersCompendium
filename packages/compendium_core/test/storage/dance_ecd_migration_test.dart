@@ -181,4 +181,35 @@ void main() {
       expect(figure.params['beats'], 12, reason: id);
     }
   });
+
+  test('a re-read bar range counts by the phrase it falls in when the '
+      'phrases differ in beats per bar', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repo = repoFor(db);
+    await repo.create(
+      sampleDance(
+        id: 'mixed',
+        title: 'mixed',
+        figures: [
+          customFigure('1-4 circle left', origin: CustomOrigin.importGap),
+          customFigure('5-8 circle left', origin: CustomOrigin.importGap),
+          customFigure('9-12 circle left', origin: CustomOrigin.importGap),
+        ],
+      ).copyWith(
+        form: DanceForm.ecd,
+        phraseStructure: 'A:2*4*3 + B:1*8*2',
+        formation: const Formation(FormationShape.dupleMinor),
+      ),
+    );
+    await repo.migrateEcdDances(
+      ['mixed'],
+      migrate: migrateEcdDanceForStorage,
+      now: now,
+    );
+    final figures =
+        ((await repo.getById('mixed'))!.figuresSource as DecodedFigures)
+            .figures;
+    expect([for (final f in figures) f.params['beats']], [12, 12, 8]);
+  });
 }

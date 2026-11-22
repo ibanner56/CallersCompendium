@@ -2,6 +2,7 @@ import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart' show FigureRenderer;
 import '../model/enums.dart';
+import '../model/bar_timing.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../taxonomy/contra_taxonomy.dart';
@@ -411,6 +412,8 @@ List<Figure> parseFreeTextFigureEntry(
   Dialect? dialect,
   FormationShape? formationShape,
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
   final ring = ecdRingDancers(formationShape);
   final trimmed = input.trim();

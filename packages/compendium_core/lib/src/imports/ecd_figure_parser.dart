@@ -45,6 +45,7 @@
 /// role words read the same way.
 library;
 
+import '../model/bar_timing.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../taxonomy/ecd_taxonomy.dart';
@@ -116,6 +117,8 @@ Figure? parseEcdFigureLine(
   int? ringDancers,
   String Function(String)? scrub,
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
   var safeBeats = beats < 0 ? 0 : beats;
   var lineText = rawText;
