@@ -69,6 +69,14 @@ enum WhoSet {
   twos('twos', aliases: {'2s', 'two'}),
   partners('partners', aliases: {'partner'}),
   neighbors('neighbors', aliases: {'neighbor'}),
+
+  /// Your partner's counterpart one hands four up or down the set: the dancer
+  /// of the opposite role and the same couple number in a neighbouring hands
+  /// four. *(User-ruled 2026-11-22.)* Not a distance set: a figure naming
+  /// shadows pairs whoever stands together, in whichever band phase they
+  /// stand together in, unless it also names a distance set, which then picks
+  /// the phase ([Operation.apply]).
+  shadows('shadows', aliases: {'shadow'}),
   prevNeighbors('prevNeighbors', aliases: {'prevNeighbor'}, distance: -1),
   nextNeighbors('nextNeighbors', aliases: {'nextNeighbor'}, distance: 1),
   thirdNeighbors('thirdNeighbors', aliases: {'thirdNeighbor'}, distance: 2),
@@ -92,9 +100,14 @@ enum WhoSet {
   /// (`-1`).
   final int? distance;
 
-  /// Whether this set names dancers **outside** the current hands four.
+  /// Whether this set names dancers a **fixed distance** along the set,
+  /// outside the current hands four.
   ///
-  /// A cross-hands-four reference cannot be resolved from a single band, so
+  /// `shadows` also names dancers in another hands four, but has no distance:
+  /// it is re-banded by whichever phase its pairs stand together in, not by
+  /// parity, so it is not one of these.
+  ///
+  /// A distance reference cannot be resolved from a single band, so
   /// [Operation.apply] re-bands the set before the figure runs rather than
   /// letting the band-scoped resolvers return the empty set — which would turn
   /// the figure into a silent no-op and then compare the result against the

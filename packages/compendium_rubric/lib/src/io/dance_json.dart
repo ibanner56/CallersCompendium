@@ -178,6 +178,37 @@ class _Params {
     return value;
   }
 
+  /// [optionalEnum] of [WhoSet], for a slot that cannot name `shadows` yet.
+  ///
+  /// A figure naming shadows is danced in the band phase where they stand
+  /// together, chosen from [Operation.dancerSets]. That is right for a slot
+  /// naming the dancers you are with during the figure, and wrong for the rest:
+  ///
+  /// - `hey.pass2` and `meetTarget`, and `form_long_waves.who` and `whom`, are
+  ///   outside `dancerSets`, so they are resolved in whatever phase the figure
+  ///   was handed, or (`form_long_waves`) by membership with no phase check.
+  /// - `courtesy_turn.endFacing` is in `dancerSets` but names whom you face
+  ///   *after* the figure, so it would choose the phase from the wrong dancers.
+  ///
+  /// `shadows` in those slots is deferred rather than read in the wrong place.
+  /// *(Agent's call, 2026-11-22.)*
+  WhoSet? optionalWhoBesidesShadows(List<String> keys) {
+    final who = optionalEnum(keys, WhoSet.fromKey);
+    if (who == WhoSet.shadows) {
+      _fail(
+        _blameKey(keys),
+        'shadows is deferred here: this slot does not choose the band phase',
+        deferred: true,
+      );
+    }
+    return who;
+  }
+
+  /// [enumOr] of [WhoSet], for a slot that cannot name `shadows` yet; see
+  /// [optionalWhoBesidesShadows].
+  WhoSet whoBesidesShadowsOr(List<String> keys, WhoSet fallback) =>
+      optionalWhoBesidesShadows(keys) ?? fallback;
+
   /// A number with no default, for the same reason as [optionalEnum].
   double? optionalNumber(List<String> keys) {
     final value = _first(keys);
@@ -395,8 +426,8 @@ Operation _buildHey(_Params p) => HeyForFour(
   // which `_Params` already reads as absent. `pass2` is an anchor and
   // `meetTarget` only speaks to the deferred partial lengths, so neither
   // selects anybody.
-  pass2: p.optionalEnum(['pass2'], WhoSet.fromKey),
-  meetTarget: p.optionalEnum(['meetTarget'], WhoSet.fromKey),
+  pass2: p.optionalWhoBesidesShadows(['pass2']),
+  meetTarget: p.optionalWhoBesidesShadows(['meetTarget']),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
   dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   rico1: p.boolOr(['rico1'], false),
@@ -495,7 +526,7 @@ Operation _buildCourtesyTurn(_Params p) => CourtesyTurn(
     SpinDirection.counterclockwise,
   ),
   // A dancer relationship despite the name it shares with `swing.endFacing`.
-  endFacing: p.optionalEnum(['endFacing'], WhoSet.fromKey),
+  endFacing: p.optionalWhoBesidesShadows(['endFacing']),
 );
 
 // --- Pair swaps ------------------------------------------------------------
@@ -645,8 +676,8 @@ Operation _buildFormLongWaves(_Params p) => FormLongWaves(
   // Core's stated default. The figure keeps `null` as a distinct state for
   // records that fix the geometry by naming the hold instead, but a record
   // parsed from core's schema never reaches it.
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
-  whom: p.optionalEnum(['whom'], WhoSet.fromKey),
+  who: p.whoBesidesShadowsOr(['who'], WhoSet.role1s),
+  whom: p.optionalWhoBesidesShadows(['whom']),
   hand: p.optionalEnum(['whomHand', 'hand'], Hand.fromKey),
   balance: p.boolOr(['balance'], false),
 );

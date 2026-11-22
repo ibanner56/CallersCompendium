@@ -5,6 +5,7 @@ import '../domain/formation_type.dart';
 import '../domain/starting_formations.dart';
 import '../ops/diagnostics.dart';
 import '../ops/operation.dart';
+import '../ops/params.dart';
 // For the §8.5.4 settler used to compare a dance that ends standing in a wave.
 import '../ops/transforms.dart';
 import 'compile_result.dart';
@@ -82,6 +83,12 @@ class Dance {
     for (final figure in figures) {
       final reach = figure.operation.reachAfter(progressions);
       if (reach > widest) widest = reach;
+      // Shadows stand one hands four along, and at an end with nobody out they
+      // wrap round to the neighbours. A set of two hands four is all ends, so
+      // its shadows could never be told from its neighbours: give it a middle.
+      if (widest < 1 && figure.operation.dancerSets.contains(WhoSet.shadows)) {
+        widest = 1;
+      }
       if (figure.progression) progressions++;
     }
     return widest;

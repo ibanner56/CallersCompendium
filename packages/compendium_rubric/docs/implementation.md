@@ -200,7 +200,10 @@ operation.apply(...)                       the figure's own transform
 1. settle wave offsets      unless preservesWaveOffsets
 2. reaching sets            if the figure names a cross-hands-four set:
                               - more than one distinct set -> unresolvableDancerSet
-                              - exactly one -> _applyReaching (see §6.3)
+                              - exactly one -> _applyReaching (see §6.3), even
+                                when the figure also names shadows (§6.4)
+   shadows                  else, if the figure names shadows ->
+                              _applyWithShadows (see §6.4)
 3. checkPreconditions       -> Err short-circuits
 4. perform                  the figure's transform (@protected)
 ```
@@ -321,6 +324,25 @@ and second, and each must land in the phase its own label names.
 **`homeGrouping`**, not against where they are standing now. An earlier version
 read the grouping off the formation and had to be abandoned — half way through a
 grand right and left the third neighbours stand *one* grouping apart, not two.
+
+### 6.4 Shadows
+
+`shadows` has no distance: `Operation.apply` routes a figure naming it through
+`_applyWithShadows`, which dances it in whichever band phase has a shadow pair
+standing together in every hands four, and hands the original phase back.
+Neither phase is `whoMismatch`; both is `unresolvableDancerSet`. A figure
+that also names a distance set is danced in the phase the distance picks, and
+the shadows pairing rule is not applied (the agent's call, following the
+user's ruling that nothing ties the two sets together). Only `dancerSets` choose the phase, so the
+parser defers `shadows` in slots that cannot choose it: `hey.pass2`/
+`meetTarget` and `form_long_waves.who`/`whom` (outside it) and
+`courtesy_turn.endFacing` (whom you face afterwards). `whoMatches`
+reads the numbers as they stand, so a couple waiting out at an end has the
+same-number couple beside it as its shadows; with nobody out at an end, the
+neighbours in that end hands four are shadows too. A dance naming shadows is
+sized with at least three hands four (`Dance._widestReach`), so the set has a
+middle where the two differ. The rulings and a worked example are in
+`docs/taxonomy.md`, "Shadows".
 
 ---
 
@@ -714,7 +736,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,090 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,113 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **46 figures registered**, plus 7 upstream aliases resolved to them
@@ -887,7 +909,8 @@ post-taxonomy-v35 snapshot.
   harness stops at the first, so each of these is a floor): unimplemented moves
   1,082, led by `promenade` 547, `butterfly_whirl` 175, `slice` 146,
   `meanwhile` 132, `revolving_door` 42 and `contra_corners` 40; unmodelled
-  vocabulary values 310, almost all the `shadows` who-value at 305; and
+  vocabulary values 310, almost all the `shadows` who-value at 305 (since
+  modelled: `docs/taxonomy.md`, "Shadows"); and
   `unsupportedParam` refusals 332, led by `hey` 191 (105 side-opening non-full,
   59 partial length, 27 diagonal) and `right_left_through` 78. *(This
   bullet and the `swing` one above predate `promenade` across. Its Caller's Box
