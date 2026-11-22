@@ -645,13 +645,15 @@ nothing in it to lose.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Type to find an existing author or create a new one.
 - For an **English (ECD)** dance, the credits for its original and its
-  interpretation come next: **Composed**, **Interpreted by** and
-  **Interpreted in**. Many English dances were published long ago and
-  reconstructed later, as in "Walsh, 1731, Pat Shaw version": put the
-  original's author or publisher in **Authors** and its year in **Composed**, and
-  the person who reconstructed it, and when, in the other two. **Interpreted
-  by** draws on the same list of people as **Authors**. For other types these
-  three fields are in **More details**.
+  interpretation come next, each as names with a year beside them: **Authors**
+  with **Composed**, then **Interpreted by** with **Interpreted in**. Many
+  English dances were published long ago and reconstructed later, as in
+  "Walsh, 1731, Pat Shaw version": put the original's author or publisher in
+  **Authors** and its year in **Composed**, and the person who reconstructed
+  it, and the year, in the other two. On a narrow screen, or with large text,
+  each year goes under its names. **Interpreted by** draws on the same list of
+  people as **Authors**. For other types the dates and **Interpreted by** are in **More
+  details**, where a date can also have a month and day.
 - **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
   the dance's row in your collection and what the **Type** filter finds. A new
   dance starts with your default type (see
@@ -733,8 +735,8 @@ updates the default used everywhere.
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
-| **Composed** / **Revised** | A year, optionally with a month and day; Composed is up front for an English dance |
-| **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; up front for an English dance |
+| **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
+| **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
 | **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
