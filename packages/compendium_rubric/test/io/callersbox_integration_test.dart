@@ -504,6 +504,102 @@ void main() {
     });
   });
 
+  group('a Caller\'s Box promenade that states no where', () {
+    // Caller's Box writes every promenade across with `where: across`; the
+    // lines it imports with no `where` are whole-set, counter-rotating,
+    // around-a-dancer and mixer promenades. The parser's `across` default
+    // would dance them as a promenade across, so this path defers them first.
+    Future<core.StructuredDraft> withPromenadeAt(
+      int index,
+      Map<String, Object?> params, {
+      bool inSequence = false,
+    }) async {
+      final draft = await _draft();
+      final figures = [...decodedFigures(draft.dance)!];
+      final promenade = core_test.testFigure(move: 'promenade', params: params);
+      figures[index] = inSequence
+          ? core.Figure.sequence(
+              figures: [
+                core_test.testFigure(move: 'swing'),
+                promenade,
+              ],
+              beats: 8,
+            )
+          : promenade;
+      return core.StructuredDraft(
+        dance: draft.dance.copyWith(figures: figures),
+        raw: draft.raw,
+      );
+    }
+
+    for (final params in <Map<String, Object?>>[
+      {'who': 'partners', 'direction': 'counterclockwise'},
+      {'who': 'partners'},
+    ]) {
+      test('$params is deferred before it is bridged', () async {
+        final run = runCoreDance(await withPromenadeAt(2, params));
+        expect(run.outcome, DanceOutcome.unsupported);
+        expect(run.blockedByDeferral, isTrue);
+        expect(run.detail, startsWith('figure 3 (promenade) states no where'));
+      });
+    }
+
+    test('one inside a sequence is found among the danced figures', () async {
+      final run = runCoreDance(
+        await withPromenadeAt(2, {'who': 'partners'}, inSequence: true),
+      );
+      expect(run.blockedByDeferral, isTrue);
+      expect(run.detail, startsWith('figure 4 (promenade) states no where'));
+    });
+
+    for (final params in <Map<String, Object?>>[
+      {'who': 'partners', 'where': 'across'},
+      {'who': 'partners', 'where': 'across', 'direction': 'clockwise'},
+    ]) {
+      test('$params reaches the compiler', () async {
+        final run = runCoreDance(await withPromenadeAt(2, params));
+        // Every figure dances, the promenade included; the set then lands
+        // where the fixture's own figure 3 would not have taken it.
+        expect(run.outcome, DanceOutcome.mismatch);
+      });
+    }
+
+    Future<core.StructuredDraft> withMoveAt(
+      core.StructuredDraft draft,
+      int index,
+      String move,
+    ) async {
+      final figures = [...decodedFigures(draft.dance)!];
+      figures[index] = core_test.testFigure(move: move);
+      return core.StructuredDraft(
+        dance: draft.dance.copyWith(figures: figures),
+        raw: draft.raw,
+      );
+    }
+
+    test('an earlier parse-time deferral is still the first blocker', () async {
+      final draft = await withMoveAt(
+        await withPromenadeAt(4, {'who': 'partners'}),
+        1,
+        'butterfly_whirl',
+      );
+      final run = runCoreDance(draft);
+      expect(run.blockedByDeferral, isTrue);
+      expect(run.detail, startsWith('figures[1]'));
+    });
+
+    test('a later parse-time deferral is not', () async {
+      final draft = await withMoveAt(
+        await withPromenadeAt(1, {'who': 'partners'}),
+        4,
+        'butterfly_whirl',
+      );
+      final run = runCoreDance(draft);
+      expect(run.blockedByDeferral, isTrue);
+      expect(run.detail, startsWith('figure 2 (promenade) states no where'));
+    });
+  });
+
   group('which figure the import assumes progresses', () {
     // The rule itself, stated over shapes rather than over choreography. These
     // are not golden dances and are never compiled: they exist to pin the

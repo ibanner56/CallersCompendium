@@ -25,6 +25,7 @@ part 'figures/hall.dart';
 part 'figures/hey.dart';
 part 'figures/pair_swaps.dart';
 part 'figures/petronella.dart';
+part 'figures/promenade.dart';
 part 'figures/right_left_through.dart';
 part 'figures/rings.dart';
 part 'figures/slide_along_set.dart';

@@ -95,8 +95,10 @@ The `unspecified` sentinel is handled once, centrally, rather than per figure:
 its value is read as **no stated value**, while the authored canonical key
 still wins precedence over legacy aliases. The exception is a param that admits
 the sentinel but keeps a concrete default (since taxonomy v39, `circle.places`
-and `star.places`): there a stated `unspecified` is deferred, because omitting
-the count and stating that none was given mean different things upstream.
+and `star.places`; and `promenade.direction`, which the editor sets to the
+sentinel when `where` moves off `across`): there a stated `unspecified` is
+deferred, because omitting the value and stating that none was given mean
+different things upstream.
 `core_taxonomy_alignment_test.dart` fails if upstream adds another such param.
 
 > Defaults are recorded per figure rather than here, because upstream's default and ours
@@ -112,7 +114,7 @@ parameter kind rather than applying one global vocabulary.
 | Key | On | Means | Domain |
 |---|---|---|---|
 | `direction` | `circle`, `zig_zag` | rotation/slide direction | move-specific left/right choice |
-| `direction` | `orbit`, `poussette`, `facing_star` | spin direction | clockwise/counterclockwise |
+| `direction` | `orbit`, `poussette`, `facing_star`, `promenade` | spin direction | clockwise/counterclockwise |
 | `endFacing` | `swing` | the finishing **facing** | cardinal — {`up`, `down`, `in`, `out`} |
 | `endFacing` | `courtesy_turn` | the dancer you finish **facing** | a **dancer set**, not a cardinal |
 | `endFacing` | `gate` | the finishing facing | cardinal, including `along` |
@@ -418,7 +420,6 @@ To be defined later with worked examples.
 
 | Figure | Why held |
 |---|---|
-| `promenade` | Prior verifier conflates `promenade across` (vertical/Becket couples) with `right_left_through across` (horizontal couples) — different formations — and no-ops every other promenade (around / single-file / home). Multi-meaning; needs examples. |
 | `butterfly_whirl` | Prior verifier reduces it to no-op + reorient to lark-left/robin-right facing in. No `who` param, so scope (which couples) and "facing in" resolution are under-specified; real choreography unconfirmed. Needs a directed conversation with examples. |
 | `arch_and_dive` | Prior verifier makes it an unconditional row swap `(r0,c)↔(r1,c)` with **baked-in progression** and **ignores `who`**. **User-ruled: the unconditional row swap is correct** — this is the one place the prior verifier's reading governs over ours (§1.1 waived by explicit confirmation). Still held on the **progression** half: their baked-in progression conflicts with our explicit-flag model, and `who` needs a reading. Needs a worked example for those two points only. |
 | `revolving_door` | **No verifier implementation** to consult. Net permutation ambiguous (Larks-swap-across-with-Robins-pivoting vs. a 180° half-star-promenade → diagonal swap); Compendium decomposition leans on `star_promenade` (undefined) + "drop off on far side". Needs a worked example. |
@@ -797,6 +798,63 @@ To be defined later with worked examples.
   flag, and a user-supplied Becket dance demonstrates petronella carrying the progression.*
 - **sources:** ContraDanceVerifier `TryPetronella` (rotate one place); CallersCompendium
   taxonomy `petronella` MoveDef.
+
+### `promenade`
+
+- **summary:** Each `who` pair, side by side on one side of the hands four, walks **across** the
+  set together, passes the other pair by the left shoulder, and wheels as a couple to face back in.
+  **User-ruled 2026-11-22: it lands like a `right_left_through`** — every dancer ends diagonally
+  across the hands four, facing in.
+- **params** (meets CallersCompendium baseline `{who, where, singleFile, destination, direction,
+  beats}`):
+  - `who` — dancer set, default `partners`. The pairs that travel together.
+  - `where` — direction, default `across`. **Only `across` is modelled**; any other value is
+    deferred (`unsupportedParam`).
+  - `direction` — **spin direction**, default `counterclockwise`: the wheel's sense. **No
+    net-position effect** — a 180° wheel lands the same either way, as for `courtesy_turn`.
+  - `singleFile` — flag, default `false`. A single-file promenade is **deferred**.
+  - `destination` — dancer set, default `unspecified`. A stated destination names travel past the
+    hands four and is **deferred**.
+  - `beats` — int, default 8.
+- **parse-time deferral** (`io/dance_json.dart` `_buildPromenade`): a `direction` stated
+  `unspecified` is deferred rather than read as its `counterclockwise` default. The editor writes
+  that sentinel when `where` moves to `in`/`out`/`up`/`down` and does not restore it when `where`
+  comes back to `across`. *(Agent's call, unratified; the alternative was an exemption like
+  `mad_robin.who`'s, since the wheel's sense has no positional effect.)* An omitted `where` reads
+  as the `across` default, which ContraDB's `partners promenade on the left` relies on.
+- **Caller's Box deferral** (`io/callersbox_source.dart` `runCoreDance`): a Caller's Box
+  promenade that states **no `where`** defers the dance before it is bridged. That source writes
+  every promenade across as `… promenade across`, which imports with `where: across`; its lines
+  that import with none are the ones its vocabulary cannot name (`Partner promenade
+  counterclockwise around the major set`, counter-rotating rings, `… 3/4 around neighbor`, the
+  mixers' `P2 partner promenade counterclockwise`). *(Agent's call, unratified; the alternative
+  was the parser's default, which would compile those lines as a promenade across.)* It ranks as a
+  parse-time deferral at its own figure, so a parse error at an earlier figure is still reported
+  as the first blocker.
+- **preconditions:** in **every** hands four, the two `who` pairs stand **side by side in the two
+  side columns**, one pair per side (column-mates spanning the band's two rows). Otherwise
+  `whoMismatch`. Facing is **not** checked, as `right_left_through` does not check it *(agent's
+  call)*: the landing is positional, and the dancers' facing before the figure is often
+  undetermined after a ring or a hey.
+- **effect:** the `right_left_through` **diagonal swap** — `(r0,c0) ↔ (r1,c4)` and
+  `(r0,c4) ↔ (r1,c0)` in each band. Derivation: the pair crosses keeping its sides, then the wheel
+  is a half turn about the couple's own centre, which turns the pair end for end, so the dancer
+  who crossed on the top row lands on the bottom one.
+  - Worked example (the ruling's) — after a partner swing in Becket,
+    `[[L1-A,0,0,0,R2-B],[R1-A,0,0,0,L2-B]]` → `[[L2-B,0,0,0,R1-A],[R2-B,0,0,0,L1-A]]`.
+- **normalization:** none beyond the wheel — like `right_left_through`, handedness is preserved,
+  not imposed.
+- **facing (output):** **into the set** (across).
+- **interaction scope:** within the hands four; `nextNeighbors` and other distance sets reach as
+  for every figure (`dancerSets`).
+- **h4 contribution** (D7): 0.
+- **progression-eligible:** no.
+- **still deferred:** single-file promenades, whole-set and around-a-dancer promenades (above),
+  stated destinations, and every `where` but `across`. The prior verifier's conflation of
+  `promenade across` with `right_left_through across` for *row* couples does not arise here: a
+  pair that is not side by side in a side column is refused.
+- **sources:** user ruling, 2026-11-22; CallersCompendium taxonomy `promenade` MoveDef;
+  ContraDanceVerifier (conflated, see above).
 
 ### `right_left_through`
 

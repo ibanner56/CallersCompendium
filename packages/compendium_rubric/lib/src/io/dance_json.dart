@@ -88,9 +88,10 @@ class _Params {
   /// default. That is right for a param whose taxonomy default *is* the
   /// sentinel, which is nearly all of them. It is wrong for one that admits the
   /// sentinel but keeps a concrete default — since taxonomy v39,
-  /// `circle.places` and `star.places` — because there omitting means the
-  /// default and stating `unspecified` means no count was given. Those are
-  /// handled per figure ([_statedPlaces]), and
+  /// `circle.places` and `star.places`, and `promenade.direction` — because
+  /// there omitting means the default and stating `unspecified` means none was
+  /// given. Those are handled per figure ([_statedPlaces], [_buildPromenade]),
+  /// and
   /// `core_taxonomy_alignment_test.dart` fails when upstream adds another.
   static const String _unspecified = 'unspecified';
 
@@ -246,6 +247,7 @@ const Map<String, _FigureBuilder> _registry = {
   'pass_through': _buildPassThrough,
   'petronella': _buildPetronella,
   'poussette': _buildPoussette,
+  'promenade': _buildPromenade,
   'pull_by': _buildPullBy,
   'right_left_through': _buildRightLeftThrough,
   'roll_away': _buildRollAway,
@@ -327,6 +329,45 @@ Operation _buildDoSiDo(_Params p) => DoSiDo(
   circling: p.numberOr(['travel', 'turn', 'circling'], 1),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
 );
+
+/// A `direction` stated as `unspecified` is deferred rather than read as its
+/// `counterclockwise` default (the v39 rule that
+/// `core_taxonomy_alignment_test.dart` enforces).
+///
+/// The wheel's sense has no positional effect across, so reading it would land
+/// the same. The editor can write the sentinel with `where: across`: it clears
+/// `direction` when `where` moves to `in`/`out`/`up`/`down`, and does not
+/// restore it when `where` comes back. *(Agent's call, unratified; the
+/// alternative was the exemption the alignment test gives `mad_robin.who`.)*
+///
+/// An omitted `where` reads as the `across` default here, as the taxonomy says.
+/// The Caller's Box path defers its own where-less promenades before they reach
+/// this parser (`callersbox_source.dart`), because in that source alone they
+/// are never a promenade across.
+Operation _buildPromenade(_Params p) {
+  // Canonical spellings first, then the legacy v34 ones (`docs/taxonomy.md`,
+  // "Legacy `turn`").
+  const rotationKeys = ['direction', 'turn'];
+  final rotationKey = p._blameKey(rotationKeys);
+  if (p._raw[rotationKey] == _Params._unspecified) {
+    p._fail(
+      rotationKey,
+      'a promenade with its rotation stated unspecified is deferred',
+      deferred: true,
+    );
+  }
+  return Promenade(
+    who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
+    where: p.optionalString(['where', 'dir']) ?? 'across',
+    direction: p.enumOr(
+      rotationKeys,
+      SpinDirection.fromKey,
+      SpinDirection.counterclockwise,
+    ),
+    singleFile: p.boolOr(['singleFile'], false),
+    destination: p.optionalEnum(['destination'], WhoSet.fromKey),
+  );
+}
 
 Operation _buildRightLeftThrough(_Params p) =>
     RightLeftThrough(dir: p.optionalString(['where', 'dir']) ?? 'across');

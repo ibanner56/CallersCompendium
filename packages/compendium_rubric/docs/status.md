@@ -16,9 +16,9 @@
 > figures below have not been re-measured since; see `implementation.md` §15
 > for the current vocabulary.
 
-The compiler implements 45 canonical figures. Twenty-four have no deliberately
-deferred parameter values, 21 have an implemented core with explicit
-deferrals, and seven current `compendium_core` taxonomy figures remain entirely
+The compiler implements 46 canonical figures. Twenty-four have no deliberately
+deferred parameter values, 22 have an implemented core with explicit
+deferrals, and six current `compendium_core` taxonomy figures remain entirely
 deferred. The `meanwhile` and `modifier` structural containers are also
 deferred, but they are not normal taxonomy moves and are therefore counted
 separately. A `sequence` container is danced as the figures it holds
@@ -39,17 +39,20 @@ the implementation may have a defect.
 | Status | Count | Figures |
 | --- | ---: | --- |
 | **Full parameter surface** | 24 | `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `california_twirl`, `circle`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
-| **Implemented with explicit deferrals** | 21 | `allemande`, `chain`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `pull_by`, `right_left_through`, `shoulder_round`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
-| **Entirely deferred canonical figures** | 7 | `arch_and_dive`, `butterfly_whirl`, `contra_corners`, `dolphin_hey`, `promenade`, `revolving_door`, `slice` |
+| **Implemented with explicit deferrals** | 22 | `allemande`, `chain`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
+| **Entirely deferred canonical figures** | 6 | `arch_and_dive`, `butterfly_whirl`, `contra_corners`, `dolphin_hey`, `revolving_door`, `slice` |
 | **Deferred structural constructs** | 2 | `meanwhile`, which represents simultaneous figures, and `modifier`, which changes a core figure with ordered modifier figures; neither is an ordinary taxonomy move |
 
-The external vocabulary reports 50 supported names because five aliases
-resolve onto the 45 canonical implementations:
+The external vocabulary (`supportedMoves`) reports 53 supported names because
+seven aliases resolve onto the 46 canonical implementations:
 
 - `meltdown_swing` resolves to `swing`;
 - `pull_by_dancers` and `pull_by_direction` resolve to `pull_by`;
 - `see_saw` resolves to `do_si_do`;
-- `swat_the_flea` resolves to `box_the_gnat`.
+- `swat_the_flea` resolves to `box_the_gnat`;
+- `hand_cast` resolves to `gate`;
+- `long_lines` resolves to `forward_and_back`, which the table above lists as
+  `long_lines` because only its long-lines formation is built.
 
 \* `give_and_take` has no deliberate parameter deferral, but it has a known
 runtime defect described under [Known crashes](#known-crashes).
@@ -130,6 +133,11 @@ from this table because the compiler never ran against them. **Pass rate** is
 - `cross_trails`, `right_left_through`, and `form_short_waves` support across
   only.
 - `chain dir:along` is deferred as four-facing-four choreography.
+- `promenade` supports `where: across` for side-by-side pairs only. Single-file
+  promenades, stated destinations, every other `where`, and a `direction`
+  stated `unspecified` are deferred. A Caller's Box promenade that states no
+  `where` (its whole-set, counter-rotating, around-a-dancer and mixer
+  promenades) defers the dance on that source's path.
 - Diagonal `hey` is deferred behind diagonal `right_left_through`, which it
   must agree with.
 
@@ -185,7 +193,6 @@ opportunity.
 
 | Deferred surface | Dances mentioning it | First unsupported blocker |
 | --- | ---: | ---: |
-| `promenade` | 1,194 | **546** |
 | `butterfly_whirl` | 322 | **175** |
 | `slice` | 260 | **146** |
 | `meanwhile` structural container | 1,540 | **131** |
@@ -193,6 +200,11 @@ opportunity.
 | `contra_corners` | 201 | **40** |
 | `arch_and_dive` | 0 | 0 |
 | `dolphin_hey` | 0 | 0 |
+
+`promenade` left this table when its `across` form was built. Its remaining
+forms still block dances: on the Caller's Box mirror, 82 dances are first
+blocked by a promenade that states no `where` (whole-set, counter-rotating,
+around-a-dancer and mixer promenades).
 
 ## Overall corpus state
 

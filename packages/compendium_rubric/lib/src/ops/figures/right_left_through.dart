@@ -37,33 +37,8 @@ final class RightLeftThrough extends Operation {
   }
 
   @override
-  Result<Formation, OpError> perform(Formation formation) {
-    const west = 0;
-    const east = kColumnCount - 1;
-    final changes = <DancerId, DancerState>{};
-
-    for (final band in handsFourBands(formation)) {
-      final diagonals = [
-        (Position(band.topRow, west), Position(band.bottomRow, east)),
-        (Position(band.topRow, east), Position(band.bottomRow, west)),
-      ];
-      for (final (from, to) in diagonals) {
-        final a = formation.dancerAt(from);
-        final b = formation.dancerAt(to);
-        if (a == null || b == null) continue;
-        changes[a] = formation
-            .stateOf(a)
-            .copyWith(position: to, facing: _facingIn(to.col));
-        changes[b] = formation
-            .stateOf(b)
-            .copyWith(position: from, facing: _facingIn(from.col));
-      }
-    }
-    return Ok(formation.withUpdates(changes));
-  }
-
-  /// Dancers finish facing back **across, into the set**.
-  Facing _facingIn(int col) => col == 0 ? Facing.acrossEast : Facing.acrossWest;
+  Result<Formation, OpError> perform(Formation formation) =>
+      Ok(_tradeDiagonallyFacingIn(formation));
 
   @override
   bool operator ==(Object other) =>
@@ -74,4 +49,40 @@ final class RightLeftThrough extends Operation {
 
   @override
   String toString() => 'right_left_through($dir)';
+}
+
+/// Each dancer trades with the one **diagonally across** their hands four and
+/// faces back into the set: `(top, west) ↔ (bottom, east)` and
+/// `(top, east) ↔ (bottom, west)` in every band.
+///
+/// The landing `right_left_through` and `promenade` across share. Both carry a
+/// pair over to the far side and finish with a rigid 180° couple wheel, and a
+/// wheel turns the pair end for end, so whoever crossed on the top row lands
+/// on the bottom one (`docs/taxonomy.md`, both entries). A cell with nobody in
+/// it leaves its diagonal untouched.
+Formation _tradeDiagonallyFacingIn(Formation formation) {
+  const west = 0;
+  const east = kColumnCount - 1;
+  Facing facingIn(int col) =>
+      col == west ? Facing.acrossEast : Facing.acrossWest;
+  final changes = <DancerId, DancerState>{};
+
+  for (final band in handsFourBands(formation)) {
+    final diagonals = [
+      (Position(band.topRow, west), Position(band.bottomRow, east)),
+      (Position(band.topRow, east), Position(band.bottomRow, west)),
+    ];
+    for (final (from, to) in diagonals) {
+      final a = formation.dancerAt(from);
+      final b = formation.dancerAt(to);
+      if (a == null || b == null) continue;
+      changes[a] = formation
+          .stateOf(a)
+          .copyWith(position: to, facing: facingIn(to.col));
+      changes[b] = formation
+          .stateOf(b)
+          .copyWith(position: from, facing: facingIn(from.col));
+    }
+  }
+  return formation.withUpdates(changes);
 }

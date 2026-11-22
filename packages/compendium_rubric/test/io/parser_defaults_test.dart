@@ -67,6 +67,7 @@ const Map<String, Operation> defaults = {
   'pass_through': PassThrough(),
   'petronella': Petronella(),
   'poussette': Poussette(who: WhoSet.role1s),
+  'promenade': Promenade(),
   'right_left_through': RightLeftThrough(),
   'roll_away': RollAway(who: WhoSet.role1s),
   'rory_o_more': RoryOMore(),

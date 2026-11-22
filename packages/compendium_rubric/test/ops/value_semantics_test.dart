@@ -161,6 +161,14 @@ void main() {
     'balance': const Petronella(balance: false),
   });
 
+  checkValueSemantics(const Promenade(), const Promenade(), {
+    'who': const Promenade(who: WhoSet.neighbors),
+    'where': const Promenade(where: 'along'),
+    'direction': const Promenade(direction: SpinDirection.clockwise),
+    'singleFile': const Promenade(singleFile: true),
+    'destination': const Promenade(destination: WhoSet.nextNeighbors),
+  });
+
   checkValueSemantics(const RightLeftThrough(), const RightLeftThrough(), {
     'dir': const RightLeftThrough(dir: 'leftDiagonal'),
   });

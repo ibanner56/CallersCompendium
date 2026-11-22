@@ -710,10 +710,10 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,035 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
-  `analyze` clean; `format` clean** — after merging `main` at `a5281105`
-  (`compendium_core` taxonomy v40).
-- **45 figures registered**, plus 7 upstream aliases resolved to them
+- **1,090 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+  `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
+  with `promenade` across built.
+- **46 figures registered**, plus 7 upstream aliases resolved to them
   (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,
   `pull_by_dancers`, `pull_by_direction`, `see_saw`, `swat_the_flea`).
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
@@ -759,7 +759,9 @@ rest cannot pass for the wrong reason.
   a *selector* rather than an anchor: after that allemande both role pairs span
   the set, so nothing but `pass2` can choose the centres, and removing it is
   required to refuse with `unresolvableDancerSet` rather than pick one.
-- **Deferred, with worked examples still needed** (Held table): `promenade`,
+- **Deferred, with worked examples still needed** (the Held table, and the
+  deferrals in each figure's `docs/taxonomy.md` entry): `promenade`
+  beyond `where: across` (single-file, whole-set, and stated destinations),
   `butterfly_whirl`, `arch_and_dive` (progression half only), `revolving_door`,
   `slice`, `contra_corners`, `dolphin_hey`, and the moves taxonomy v36–v40
   added (`circular_hey`, `trade_the_wave`, `starburst`, `hey_for_three`,
@@ -864,6 +866,8 @@ post-taxonomy-v35 snapshot.
 - **Vocabulary coverage is high**: 44 of the 49 moves this package advertises are
   exercised by real choreography. The genuine backlog named by the corpus is
   `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
+  *(Since then `promenade` across is built; its other forms are still
+  deferred.)*
 - **`rory_o_more` appears in none of the 24,107 dances**, which is not credible
   for a figure this common — the likely explanation is that core's adapter does
   not recognise its wording. Worth confirming; it would be an upstream finding.
@@ -881,7 +885,9 @@ post-taxonomy-v35 snapshot.
   `meanwhile` 132, `revolving_door` 42 and `contra_corners` 40; unmodelled
   vocabulary values 310, almost all the `shadows` who-value at 305; and
   `unsupportedParam` refusals 332, led by `hey` 191 (105 side-opening non-full,
-  59 partial length, 27 diagonal) and `right_left_through` 78.
+  59 partial length, 27 diagonal) and `right_left_through` 78. *(This
+  bullet and the `swing` one above predate `promenade` across; its remaining
+  forms are the promenade blockers now.)*
 - **The assumed-progression rule's cost was measured, and it is a minority
   one.** ⚠️ *Measured at the 3,516-attempted / 1,606-compiled baseline, before
   the core merge; the shape of the finding survives but the absolute figures do

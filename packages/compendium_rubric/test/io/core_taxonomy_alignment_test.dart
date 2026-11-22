@@ -214,7 +214,12 @@ void main() {
       }
       expect(
         found,
-        containsAll(<String>['circle.places', 'star.places', 'mad_robin.who']),
+        containsAll(<String>[
+          'circle.places',
+          'star.places',
+          'mad_robin.who',
+          'promenade.direction',
+        ]),
       );
     });
 
