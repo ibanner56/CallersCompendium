@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "In an English dance whose phrases have different beats to the bar, such as an A in 3/4 and a B in 6/8, a typed or re-checked bar range such as \"1-4 circle left\" counts each bar by the phrase it falls in, from where the line is placed, instead of two beats a bar. Convert English dances counts it the same way."
+      "In an English dance whose phrases have different beats to the bar, such as an A in 3/4 and a B in 6/8, a typed or re-checked bar range such as \"1-4 circle left\" counts each bar by the phrase it falls in, from where the line is placed, instead of by one beats-to-the-bar count for the whole dance. Convert English dances counts it the same way."
     ]
   },
   "core": {

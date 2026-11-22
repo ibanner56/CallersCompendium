@@ -2320,7 +2320,9 @@ ECD dance.
   position (Caller's Companion numbers bars within each section). The start is
   the end of the figures before the line, as stored or as re-read; for a
   sequence's steps the end of the steps before it, for a meanwhile's sides and
-  a modifier's parts the container's start. The typed entry, Re-check and
+  a modifier's parts the container's start. A line Re-check keeps as text (several ranges, or a count in beats as well)
+  keeps its stored count and is not recounted, and that count carries into the
+  start of the figures after it. The typed entry, Re-check and
   Convert English dances count this way; Caller's Companion import does not, since
   it builds the phrase structure from the counted lines (#2365). A range that runs backwards, spans more than 32 bars, would come to
   more than 64 beats, or has nothing after it is not one, and a lone number is

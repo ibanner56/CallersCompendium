@@ -229,11 +229,14 @@ class DanceEditorForm extends StatelessWidget {
     // from where it will start: the figures before the line, then the rows its
     // earlier clauses become (not the beats the parser gave, which leave out
     // the count a row takes by default).
-    final lineStart = figureStartBeat(
-      replacing == null
-          ? controller.figureDrafts
-          : controller.figureDrafts.takeWhile((d) => d != replacing),
-    );
+    final timing = _barTimingForBars;
+    final lineStart = timing == null
+        ? 0
+        : figureStartBeat(
+            replacing == null
+                ? controller.figureDrafts
+                : controller.figureDrafts.takeWhile((d) => d != replacing),
+          );
     for (final clause in clauses) {
       final draft = _shorthandDraft(clause);
       if (draft != null) {
@@ -250,8 +253,8 @@ class DanceEditorForm extends StatelessWidget {
         dialect: dialect,
         formationShape: controller.formationShape,
         meter: _meterForBars,
-        timing: _barTimingForBars,
-        startBeat: lineStart + figureStartBeat(drafts),
+        timing: timing,
+        startBeat: timing == null ? 0 : lineStart + figureStartBeat(drafts),
       );
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
@@ -752,10 +755,7 @@ class DanceEditorForm extends StatelessWidget {
   /// How a typed bar range is counted where the tune's phrases differ in
   /// beats per bar (#2303), else null: [_meterForBars] counts it.
   BarTiming? get _barTimingForBars =>
-      controller.form == DanceForm.ecd &&
-          controller.phraseStructure.hasMixedMeter
-      ? BarTiming.byPhrase(controller.phraseStructure)
-      : null;
+      barTimingForMixedMeter(controller.form, controller.phraseStructure);
 
   /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
   /// an English dance whose tune has one meter throughout.

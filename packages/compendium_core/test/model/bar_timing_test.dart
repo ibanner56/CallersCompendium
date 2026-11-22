@@ -16,6 +16,25 @@ void main() {
     });
   });
 
+  group('barTimingForMixedMeter', () {
+    test('counts by phrase only an English dance whose phrases differ', () {
+      final mixed = PhraseStructure.parse('A:2*4*3 + B:1*8*2');
+      expect(barTimingForMixedMeter(DanceForm.ecd, mixed), timing);
+      expect(barTimingForMixedMeter(DanceForm.contra, mixed), isNull);
+      expect(
+        barTimingForMixedMeter(
+          DanceForm.ecd,
+          PhraseStructure.parse('A:2*4*3 + B:1*8*3'),
+        ),
+        isNull,
+      );
+      expect(
+        barTimingForMixedMeter(DanceForm.ecd, PhraseStructure.standard),
+        isNull,
+      );
+    });
+  });
+
   group('BarTiming.beatsPerBarAt', () {
     test('is the beats per bar of the phrase the bar starts in', () {
       expect(
@@ -37,11 +56,6 @@ void main() {
       expect(timing.beatsForHalfBars(0, 8), 12, reason: 'bars 1-4, in A1');
       expect(timing.beatsForHalfBars(12, 8), 12, reason: 'bars 5-8, in A2');
       expect(timing.beatsForHalfBars(24, 8), 8, reason: 'bars 9-12, in B');
-    });
-
-    test('counts from the figure\'s start, wherever the numbers say', () {
-      expect(timing.beatsForHalfBars(0, 8), 12);
-      expect(timing.beatsForHalfBars(24, 8), 8);
     });
 
     test('a figure that runs across the change counts each bar by its own '
@@ -102,8 +116,9 @@ void main() {
     });
 
     test('from a start between bar lines, bars are counted from the start', () {
-      // Beat 22 is inside A2's bar 24-21..24; the bar there is 3 beats, so the
-      // first bar runs 22-25 across the change, and the next is B's.
+      // Beat 22 is not on a bar line (A2's bars start at 21 and 24). The bar
+      // counted from there is A's 3 beats, so it runs 22-25 across the
+      // change, and the next bar is B's.
       expect(timing.beatsForHalfBars(22, 2), 3);
       expect(timing.beatsForHalfBars(22, 4), 5);
       expect(timing.barsTextAt(22, 3), (text: '1', halfBars: 2));

@@ -1,6 +1,16 @@
 import 'package:meta/meta.dart';
 
+import 'enums.dart';
 import 'phrase_structure.dart';
+
+/// How a typed bar range in a dance of [form] set to [structure] is counted
+/// by phrase (#2303), or null where one count of bars serves: any form but
+/// English, and a tune whose phrases all have the same beats per bar, which a
+/// meter (or the structure's one beats per bar) counts as it always has.
+BarTiming? barTimingForMixedMeter(DanceForm form, PhraseStructure structure) =>
+    form == DanceForm.ecd && structure.hasMixedMeter
+    ? BarTiming.byPhrase(structure)
+    : null;
 
 /// How an English dance's bars are counted when its phrases differ in beats
 /// per bar (ADR-006 §5.5; #2303): each bar is as long as the phrase it starts
@@ -9,7 +19,8 @@ import 'phrase_structure.dart';
 class BarTiming {
   /// One bar length everywhere.
   const BarTiming.fixed(int beatsPerBar)
-    : _fixed = beatsPerBar,
+    : assert(beatsPerBar > 0, 'a bar holds at least one beat'),
+      _fixed = beatsPerBar,
       _structure = null;
 
   /// Each bar as long as the phrase of [structure] it starts in.

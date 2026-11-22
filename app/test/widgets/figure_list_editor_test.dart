@@ -4202,6 +4202,35 @@ void main() {
       expect(typed.single.params['beats'], 10);
     });
 
+    testWidgets('a Move-box replace counts from the rows before the row it '
+        'replaces, not its own', (tester) async {
+      final typed = <Figure>[];
+      // 18 beats, then the row replaced (6 beats), then another.
+      final drafts = [figureOf(18), figureOf(6), figureOf(4)];
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        phrase: structure,
+        barTiming: timing,
+        freeTextReplacer: (_, figures) {
+          typed.addAll(figures);
+          return figures.length;
+        },
+      );
+      await _openFigure(tester, 1);
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-1-move-input')),
+        '1-2 circle left',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      // From 18: bars of 3 and 3, not from 24 (2 and 2).
+      expect(typed.single.params['beats'], 6);
+    });
+
     testWidgets('a row Save would not write does not move the start', (
       tester,
     ) async {

@@ -153,13 +153,17 @@ FigureReparseOutcome reparseImportGapFigures(
             startBeat: childStart,
           );
     final replacement = result?.figure;
-    if (figure.isSequence) childStart += (replacement ?? child).beats;
-    if (replacement == null ||
+    final declined =
+        replacement == null ||
         (replacement.isContainer &&
             (containerDepth >= kMaxContainerDepth ||
-                !_isLegalContainerChild(figure, replacement)))) {
-      continue;
+                !_isLegalContainerChild(figure, replacement)));
+    // The next step starts where this one ends as it will be saved: a
+    // replacement that is declined leaves the step as it was.
+    if (figure.isSequence) {
+      childStart += (declined ? child : replacement).beats;
     }
+    if (declined) continue;
     newChildren ??= List<Figure>.of(children);
     newChildren[i] = replacement;
     upgraded += result!.count;

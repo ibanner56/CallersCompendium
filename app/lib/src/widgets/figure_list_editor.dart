@@ -802,6 +802,7 @@ class _FigureListEditorState extends State<FigureListEditor>
     final shorthandRows =
         widget.onSubmitCompoundShorthand?.call(_freeTextController.text) ?? 0;
     if (shorthandRows > 0) return shorthandRows;
+    final timing = widget.barTimingOf?.call();
     final figures = parseFreeTextFigureEntry(
       _freeTextController.text,
       taxonomy: widget.taxonomy,
@@ -809,8 +810,8 @@ class _FigureListEditorState extends State<FigureListEditor>
       dialect: _dialect,
       formationShape: widget.formationShape,
       meter: widget.meterOf?.call(),
-      timing: widget.barTimingOf?.call(),
-      startBeat: figureStartBeat(widget.drafts),
+      timing: timing,
+      startBeat: timing == null ? 0 : figureStartBeat(widget.drafts),
     );
     if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
@@ -876,6 +877,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       _afterRowReplaced(draft, index, shorthandRows);
       return true;
     }
+    final timing = widget.barTimingOf?.call();
     final figures = parseFreeTextFigureEntry(
       line,
       taxonomy: widget.taxonomy,
@@ -883,8 +885,10 @@ class _FigureListEditorState extends State<FigureListEditor>
       dialect: _dialect,
       formationShape: widget.formationShape,
       meter: widget.meterOf?.call(),
-      timing: widget.barTimingOf?.call(),
-      startBeat: figureStartBeat(widget.drafts.take(index)),
+      timing: timing,
+      startBeat: timing == null
+          ? 0
+          : figureStartBeat(widget.drafts.take(index)),
     );
     if (figures.isEmpty) return false;
     final acceptedCount = onReplace(draft, figures);

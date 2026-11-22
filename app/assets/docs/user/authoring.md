@@ -106,7 +106,9 @@ of the phrase structure, as the **Bars** field does. Where the phrase
 structure's phrases differ in beats per bar (`A:2*4*3 + B:1*8*2`, an A in 3/4
 and a B in 6/8), the Meter does not decide it: each bar is as long as the
 phrase it falls in, and the bars count from where the line is placed in the
-dance, so the numbers you type give how many bars, not where they sit. In that
+dance (this holds for a Meter that names none or several meters, such as
+"3/4 and 6/8"; while the Meter field states one meter, editing it sets every
+named phrase to that meter's beats to the bar), so the numbers you type give how many bars, not where they sit. In that
 example `1-4` placed first is 12 beats, and `9-12` placed after the two A
 phrases is 8. A line that runs across the change counts each bar by its own
 phrase.

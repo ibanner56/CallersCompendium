@@ -183,6 +183,28 @@ void main() {
       expect([for (final f in out.figures) f.params['beats']], [12, 12, 8]);
     });
 
+    test('re-check starts every side of a meanwhile with the meanwhile', () {
+      // Both sides are danced together from the end of A2's bar at 18, so each
+      // counts its two bars from there (3 + 3), not the second after the first.
+      final meanwhile = Figure.meanwhile(
+        figures: [
+          customFigure('1-2 circle left', origin: CustomOrigin.importGap),
+          customFigure('1-2 circle right', origin: CustomOrigin.importGap),
+        ],
+        beats: 6,
+      );
+      final out = reparseImportGapFigures(
+        [customFigure('stand', beats: 18), meanwhile],
+        taxonomy: ecd,
+        meter: '',
+        phraseStructure: structure,
+      );
+      expect(
+        [for (final f in out.figures[1].subFigures) f.params['beats']],
+        [6, 6],
+      );
+    });
+
     test('a stated Meter does not override phrases that differ', () {
       final out = reparseImportGapFigures(
         [customFigure('1-4 circle left', origin: CustomOrigin.importGap)],

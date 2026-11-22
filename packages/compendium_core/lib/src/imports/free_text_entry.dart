@@ -1,8 +1,8 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart' show FigureRenderer;
-import '../model/enums.dart';
 import '../model/bar_timing.dart';
+import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../taxonomy/contra_taxonomy.dart';
@@ -441,8 +441,8 @@ List<Figure> parseFreeTextFigureEntry(
   // An English line that starts with a bar range (`1-4 partners set`) counts
   // in bars of the dance's [meter] (ADR-006 W6; Hudson: "the meter is the
   // rule"), or by [timing] from [startBeat] where the dance's phrases differ
-  // in beats per bar (#2303): the rest is read, and one figure read in full takes the bars as
-  // its count. Anything else, a rest that also states a count in beats or a
+  // in beats per bar (#2303): the rest is read, and one figure read in full
+  // takes the bars as its count. Anything else, a rest that also states a count in beats or a
   // line of several ranges (`(5-8) X (9-12) Y`, counted across all of them)
   // included, keeps the line whole as typed, with that count.
   final bars = _isEcd(taxonomy)

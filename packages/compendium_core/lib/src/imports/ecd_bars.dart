@@ -44,8 +44,10 @@ int? _beatsPerBar(String topText, String bottomText) {
 /// The meter is the rule (Hudson, 19 November 2026) for a structure whose
 /// parts agree; the phrase structure is the fallback, so the editor's bar
 /// timing and a typed or re-checked bar range count a bar the same way. A
-/// structure whose parts differ in beats per bar is not counted by a meter at
-/// all: its bars are counted by [BarTiming.byPhrase] (#2303).
+/// structure whose parts differ in beats per bar is counted by
+/// [BarTiming.byPhrase] (#2303) where a caller gives [ecdBarCount] that
+/// `timing`; this function is then not asked, and still returns a stated
+/// meter for it.
 String ecdMeterForBars(String? meter, PhraseStructure structure) {
   if (ecdBeatsPerBar(meter).stated) return meter!;
   final perBar = {for (final c in structure.components) c.beatsPerBar};
