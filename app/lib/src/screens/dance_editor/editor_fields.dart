@@ -178,6 +178,11 @@ class LevelDropdown extends StatelessWidget {
 /// via [onChanged] — `null` when the year is blank/invalid. A raw date picker
 /// is deliberately avoided: it would force full year/month/day, but composition
 /// dates are frequently known only to the year (or year+month).
+///
+/// With [yearOnly] it is just the Year box under its label, with no helper
+/// text, for an English dance's credits, which are years. A stored month and
+/// day are neither shown nor dropped until the year is edited: an edit emits
+/// the year alone.
 class PartialDateField extends StatefulWidget {
   const PartialDateField({
     super.key,
@@ -186,6 +191,7 @@ class PartialDateField extends StatefulWidget {
     required this.helperText,
     required this.value,
     required this.onChanged,
+    this.yearOnly = false,
   });
 
   final String fieldKey;
@@ -193,6 +199,7 @@ class PartialDateField extends StatefulWidget {
   final String helperText;
   final PartialDate? value;
   final ValueChanged<PartialDate?> onChanged;
+  final bool yearOnly;
 
   @override
   State<PartialDateField> createState() => _PartialDateFieldState();
@@ -263,6 +270,40 @@ class _PartialDateFieldState extends State<PartialDateField> {
     final showYearError = yearText.isNotEmpty && year == null;
     final dayEnabled = year != null && _month != null;
     final maxDay = dayEnabled ? _daysIn(year, _month!) : 31;
+
+    if (widget.yearOnly) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Styled as the people picker's label beside it, so the two line up.
+          ExcludeSemantics(child: FieldLabel(widget.label)),
+          Semantics(
+            label: widget.label,
+            child: TextField(
+              key: ValueKey('${widget.fieldKey}-year'),
+              controller: _yearController,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              decoration: InputDecoration(
+                labelText: l10n.danceEditorYearLabel,
+                hintText: l10n.danceEditorYearHint,
+                counterText: '',
+                errorText: showYearError
+                    ? l10n.danceEditorYearRangeError
+                    : null,
+              ),
+              onChanged: (_) => setState(() {
+                // The year is all this field offers, so an edit stores the
+                // year alone, dropping a month and day it never showed.
+                _month = null;
+                _day = null;
+                _emit();
+              }),
+            ),
+          ),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
