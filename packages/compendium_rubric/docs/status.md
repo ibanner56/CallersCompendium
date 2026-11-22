@@ -135,9 +135,8 @@ from this table because the compiler never ran against them. **Pass rate** is
 - `chain dir:along` is deferred as four-facing-four choreography.
 - `promenade` supports `where: across` for side-by-side pairs only. Single-file
   promenades, stated destinations, every other `where`, and a `direction`
-  stated `unspecified` are deferred. A Caller's Box promenade that states no
-  `where` (its whole-set, counter-rotating, around-a-dancer and mixer
-  promenades) defers the dance on that source's path.
+  stated `unspecified` are deferred. (A Caller's Box promenade that imports
+  with no `where` is not a deferral: see "Entirely deferred impact".)
 - Diagonal `hey` is deferred behind diagonal `right_left_through`, which it
   must agree with.
 
@@ -201,10 +200,10 @@ opportunity.
 | `arch_and_dive` | 0 | 0 |
 | `dolphin_hey` | 0 | 0 |
 
-`promenade` left this table when its `across` form was built. Its remaining
-forms still block dances: on the Caller's Box mirror, 82 dances are first
-blocked by a promenade that states no `where` (whole-set, counter-rotating,
-around-a-dancer and mixer promenades).
+`promenade` left this table when its `across` form was built. On the Caller's
+Box mirror, 98 more dances hold a promenade that imports with no `where`
+(whole-set, counter-rotating, around-a-dancer and mixer promenades). They are
+reported as `unstructured`, an import-pipeline problem, not as a deferral.
 
 ## Overall corpus state
 

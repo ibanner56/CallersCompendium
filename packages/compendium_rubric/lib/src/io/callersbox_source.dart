@@ -53,11 +53,17 @@ enum DanceOutcome {
   /// progression tier it does not model, a non-contra form.
   unsupported,
 
-  /// The adapter left at least one figure as free text.
+  /// The adapter left at least one figure as free text, or structured one
+  /// with less than the line said.
   ///
   /// Never compiled, by standing rule: a `custom` figure has no semantics, so
   /// running the dance around it would produce a confident answer about
-  /// choreography nobody described. *(User-ruled.)*
+  /// choreography nobody described. *(User-ruled.)* The same holds for a
+  /// Caller's Box promenade that imports with no `where`: the line named a
+  /// whole-set, counter-rotating, around-a-dancer or mixer promenade, and the
+  /// import kept only the rotation. A line that does not import cleanly is the
+  /// import pipeline's problem, not this compiler's. *(User-ruled
+  /// 2026-11-22.)*
   unstructured,
 
   /// The adapter produced no figures at all.
@@ -333,26 +339,14 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
 
   final unreadPromenade = _promenadeWithNoWhere(figures);
   if (unreadPromenade != null) {
-    // Ranked as a parse-time deferral at its own figure: a parse error at an
-    // earlier figure (or at the dance itself) is still the first blocker, and,
-    // as for every parse-time deferral, no figure is compiled.
-    final parsed = parseDance(bridgeCoreDance(dance).record);
-    if (parsed case Err(
-      :final error,
-    ) when (_figureIndexOf(error.path) ?? -1) < unreadPromenade) {
-      return finish(
-        DanceOutcome.unsupported,
-        detail: '$error',
-        deferred: error.deferred,
-      );
-    }
+    // An import problem, so it is reported before the compiler is asked,
+    // exactly as a free-text figure is (see [DanceOutcome.unstructured]).
     return finish(
-      DanceOutcome.unsupported,
+      DanceOutcome.unstructured,
       detail:
-          'figure ${unreadPromenade + 1} (promenade) states no where, which '
-          'in a Caller\'s Box record is a whole-set, counter-rotating, '
-          'around-a-dancer or mixer promenade; deferred',
-      deferred: true,
+          'figure ${unreadPromenade + 1} (promenade) imported with no where; '
+          'in a Caller\'s Box record that is a whole-set, counter-rotating, '
+          'around-a-dancer or mixer promenade the import could not name',
     );
   }
 
@@ -610,12 +604,10 @@ List<core.Figure>? decodedFigures(core.Dance dance) =>
 /// counter-rotating rings (`inner ring cw, outer ring ccw`), `3/4 around
 /// neighbor`, and the mixers' `P2 partner promenade counterclockwise`.
 /// Compiling those as the default would dance a promenade across that the
-/// source never called, so the run is deferred before it is bridged. *(Agent's
-/// call, unratified; measured on the 24,107-file mirror. The alternative was
-/// the parser's default, which would compile them as a promenade across.)*
-///
-/// A deferral rather than a refusal: the record is sound, and the figure it
-/// names is one this compiler has not built.
+/// source never called, so the run stops before it is bridged and is reported
+/// as [DanceOutcome.unstructured]: the line did not import cleanly, which is
+/// the import pipeline's problem rather than this compiler's. *(User-ruled
+/// 2026-11-22; measured on the 24,107-file mirror.)*
 int? _promenadeWithNoWhere(List<core.Figure> figures) {
   for (var index = 0; index < figures.length; index++) {
     final figure = figures[index];
@@ -625,13 +617,6 @@ int? _promenadeWithNoWhere(List<core.Figure> figures) {
     if (figure.params['where'] == null) return index;
   }
   return null;
-}
-
-/// The figure a [DanceParseError.path] blames (`figures[3].params.who` is 3),
-/// or `null` for an error about the dance itself.
-int? _figureIndexOf(String path) {
-  final match = RegExp(r'^figures\[(\d+)\]').firstMatch(path);
-  return match == null ? null : int.parse(match.group(1)!);
 }
 
 /// [dance]'s figures as the compiler dances them: [decodedFigures] with every

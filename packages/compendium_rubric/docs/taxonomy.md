@@ -822,15 +822,16 @@ To be defined later with worked examples.
   comes back to `across`. *(Agent's call, unratified; the alternative was an exemption like
   `mad_robin.who`'s, since the wheel's sense has no positional effect.)* An omitted `where` reads
   as the `across` default, which ContraDB's `partners promenade on the left` relies on.
-- **Caller's Box deferral** (`io/callersbox_source.dart` `runCoreDance`): a Caller's Box
-  promenade that states **no `where`** defers the dance before it is bridged. That source writes
+- **Caller's Box import problem** (`io/callersbox_source.dart` `runCoreDance`): a Caller's Box
+  promenade that states **no `where`** stops the dance before it is bridged, reported as
+  `unstructured` (an import-pipeline problem, not a compiler one). That source writes
   every promenade across as `… promenade across`, which imports with `where: across`; its lines
   that import with none are the ones its vocabulary cannot name (`Partner promenade
   counterclockwise around the major set`, counter-rotating rings, `… 3/4 around neighbor`, the
-  mixers' `P2 partner promenade counterclockwise`). *(Agent's call, unratified; the alternative
-  was the parser's default, which would compile those lines as a promenade across.)* It ranks as a
-  parse-time deferral at its own figure, so a parse error at an earlier figure is still reported
-  as the first blocker.
+  mixers' `P2 partner promenade counterclockwise`). *(User-ruled 2026-11-22: a line that does not
+  import cleanly is the import pipeline's problem. The alternative was the parser's default, which
+  would compile those lines as a promenade across.)* Like a free-text figure, it is reported before
+  any compiler blocker.
 - **preconditions:** in **every** hands four, the two `who` pairs stand **side by side in the two
   side columns**, one pair per side (column-mates spanning the band's two rows). Otherwise
   `whoMismatch`. Facing is **not** checked, as `right_left_through` does not check it *(agent's

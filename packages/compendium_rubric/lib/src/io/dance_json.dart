@@ -341,9 +341,9 @@ Operation _buildDoSiDo(_Params p) => DoSiDo(
 /// alternative was the exemption the alignment test gives `mad_robin.who`.)*
 ///
 /// An omitted `where` reads as the `across` default here, as the taxonomy says.
-/// The Caller's Box path defers its own where-less promenades before they reach
-/// this parser (`callersbox_source.dart`), because in that source alone they
-/// are never a promenade across.
+/// The Caller's Box path stops its own where-less promenades before they reach
+/// this parser and reports them as an import problem (`callersbox_source.dart`),
+/// because in that source alone they are never a promenade across.
 Operation _buildPromenade(_Params p) {
   // Canonical spellings first, then the legacy v34 ones (`docs/taxonomy.md`,
   // "Legacy `turn`").

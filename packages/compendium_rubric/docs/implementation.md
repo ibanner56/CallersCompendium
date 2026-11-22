@@ -495,7 +495,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 - **`runCoreDance`** sorts a dance into a `DanceOutcome` before anything else
   gets a chance to. It rejects an empty dance, then rejects any dance with a
   `custom` figure *(user-ruled — a custom figure can never compile, so counting
-  it as a compiler failure would be a lie)*, then bridges, parses, and compiles.
+  it as a compiler failure would be a lie)*, then rejects a Caller's Box
+  promenade that imported with no `where` the same way, as `unstructured`
+  *(user-ruled: a line that does not import cleanly is the import pipeline's
+  problem)*, then bridges, parses, and compiles.
   The `compile` call sits in a `try`/`catch`: a figure that throws lands in
   `crashed` rather than taking a 24,000-file sweep down with it.
 - **`dancedFigures`** is the figure list every later stage reads: the decoded
@@ -518,9 +521,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   progresses. That flag is the only field the bridge *adds* rather than
   translates, and where the assumed-progression rule below takes effect.
 - **`DanceOutcome`** keeps eight buckets deliberately separate, because they name
-  eight different problems with eight different owners. `unstructured` and
-  `unsupported` are upstream's; `mismatch`, `figureRefused` and `crashed` are
-  ours; `empty` and `adapterFailed` are the corpus's.
+  eight different problems with eight different owners. `unstructured` is
+  upstream's (the import pipeline's); `unsupported`, `mismatch`,
+  `figureRefused` and `crashed` are ours; `empty` and `adapterFailed` are the
+  corpus's.
 - **`CorpusReport`** makes every rate name its own denominator. A "compile rate"
   over all files and one over dances the compiler actually attempted differ by a
   factor of three, and an unlabelled percentage invites the wrong one. The
@@ -886,8 +890,9 @@ post-taxonomy-v35 snapshot.
   vocabulary values 310, almost all the `shadows` who-value at 305; and
   `unsupportedParam` refusals 332, led by `hey` 191 (105 side-opening non-full,
   59 partial length, 27 diagonal) and `right_left_through` 78. *(This
-  bullet and the `swing` one above predate `promenade` across; its remaining
-  forms are the promenade blockers now.)*
+  bullet and the `swing` one above predate `promenade` across. Its Caller's Box
+  lines with no `where` are now reported as `unstructured`, an import problem;
+  its other forms are still deferred.)*
 - **The assumed-progression rule's cost was measured, and it is a minority
   one.** ⚠️ *Measured at the 3,516-attempted / 1,606-compiled baseline, before
   the core merge; the shape of the finding survives but the absolute figures do
