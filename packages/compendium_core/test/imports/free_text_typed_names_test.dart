@@ -382,4 +382,29 @@ void main() {
       expect(f.params.containsKey('beats'), isFalse);
     });
   });
+
+  group('a square dance reads typed text as contra until squares have a '
+      'parser (ADR-007 §9)', () {
+    final square = shippedTaxonomies.forForm(DanceForm.square);
+    for (final line in ['hey.', 'hey', 'separate', 'backtrack', 'hand turn']) {
+      test(line, () {
+        final read = parseFreeTextFigureEntry(line, taxonomy: square);
+        expect(read, isNotEmpty);
+        for (final figure in read) {
+          expect(figure.move, isNot(startsWith('sq_')), reason: '$read');
+        }
+      });
+    }
+    for (final line in ['hey.', 'hey', 'separate', 'backtrack', 'hand turn']) {
+      test('"$line" reads as it does in a contra dance', () {
+        expect(
+          parseFreeTextFigureEntry(line, taxonomy: square).map((f) => f.move),
+          parseFreeTextFigureEntry(
+            line,
+            taxonomy: contraTaxonomy,
+          ).map((f) => f.move),
+        );
+      });
+    }
+  });
 }

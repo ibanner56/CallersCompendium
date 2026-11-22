@@ -13546,7 +13546,7 @@ abstract class AppLocalizations {
   /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
   String validationSequenceSpanNoRoom(int position, int actual, int expected);
 
-  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).
+  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own.
   ///
   /// In en, this message translates to:
   /// **'This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.'**

@@ -186,6 +186,7 @@ export 'src/storage/database.dart'
         taxonomyV38CanonicalRebuildDoneKey,
         taxonomyV39CanonicalRebuildDoneKey,
         ecdTaxonomyCanonicalRebuildDoneKey,
+        squareTaxonomyCanonicalRebuildDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
@@ -237,6 +238,7 @@ export 'src/taxonomy/compound_definition.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/ecd_sequence_span.dart';
 export 'src/taxonomy/ecd_taxonomy.dart';
+export 'src/taxonomy/square_taxonomy.dart';
 export 'src/taxonomy/figure_glossary.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/glossary_names.dart';

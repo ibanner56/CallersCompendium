@@ -71,6 +71,9 @@ void main() {
     await SettingsRepository(
       db,
     ).set(ecdTaxonomyCanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(squareTaxonomyCanonicalRebuildDoneKey, 'done');
   });
   tearDown(() => db.close());
 
