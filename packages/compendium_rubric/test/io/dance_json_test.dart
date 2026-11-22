@@ -637,14 +637,44 @@ void main() {
     });
 
     test('a vocabulary value with no reading here is deferred', () {
-      // `shadows` is the corpus's largest one: a real dancer set this compiler
-      // does not model, on a figure it otherwise implements.
+      // `sameRoles` is a real dancer set this compiler does not model, on a
+      // figure it otherwise implements.
       final error = _parseErr(
-        _record('{"move": "swing", "params": {"who": "shadows"}}'),
+        _record('{"move": "swing", "params": {"who": "sameRoles"}}'),
       );
 
       expect(error.path, 'figures[0].params.who');
       expect(error.deferred, isTrue);
+    });
+
+    test('shadows is read as a dancer set where it picks who dances', () {
+      final dance = _parseOk(
+        _record('{"move": "swing", "params": {"who": "shadows"}}'),
+      );
+
+      expect(dance.figures.single.operation, const Swing(who: WhoSet.shadows));
+    });
+
+    group('shadows in a slot that does not pick the band phase', () {
+      // These slots are resolved outside the band phase a figure naming
+      // shadows is danced in, or (endFacing) name whom you face afterwards.
+      for (final (move, key) in [
+        ('hey', 'pass2'),
+        ('hey', 'meetTarget'),
+        ('courtesy_turn', 'endFacing'),
+        ('form_long_waves', 'who'),
+        ('form_long_waves', 'whom'),
+      ]) {
+        test('$move.$key: shadows is deferred', () {
+          final error = _parseErr(
+            _record('{"move": "$move", "params": {"$key": "shadows"}}'),
+          );
+
+          expect(error.path, 'figures[0].params.$key');
+          expect(error.deferred, isTrue);
+          expect(error.message, contains('does not choose the band phase'));
+        });
+      }
     });
 
     group('taxonomy v39 parameters this compiler does not model', () {
