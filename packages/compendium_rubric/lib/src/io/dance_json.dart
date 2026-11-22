@@ -190,11 +190,17 @@ class _Params {
 /// [WhoSet.fromKey] for a slot that cannot name `shadows` yet.
 ///
 /// A figure naming shadows is danced in the band phase where they stand
-/// together, and that phase is chosen from the sets that pick the dancers who
-/// act ([Operation.dancerSets]). A slot outside that list (`hey.pass2` and
-/// `meetTarget`, `courtesy_turn.endFacing`) would be resolved in whatever phase
-/// the figure happened to be handed, so `shadows` there is deferred rather
-/// than read in the wrong place. *(Agent's call, 2026-11-22.)*
+/// together, chosen from [Operation.dancerSets]. That is right for a slot
+/// naming the dancers you are with during the figure, and wrong for the rest:
+///
+/// - `hey.pass2` and `meetTarget`, and `form_long_waves.who` and `whom`, are
+///   outside `dancerSets`, so they are resolved in whatever phase the figure
+///   was handed, or (`form_long_waves`) by membership with no phase check.
+/// - `courtesy_turn.endFacing` is in `dancerSets` but names whom you face
+///   *after* the figure, so it would choose the phase from the wrong dancers.
+///
+/// `shadows` in those slots is deferred rather than read in the wrong place.
+/// *(Agent's call, 2026-11-22.)*
 WhoSet? _whoBesidesShadows(String key) {
   final who = WhoSet.fromKey(key);
   return who == WhoSet.shadows ? null : who;
@@ -658,8 +664,8 @@ Operation _buildFormLongWaves(_Params p) => FormLongWaves(
   // Core's stated default. The figure keeps `null` as a distinct state for
   // records that fix the geometry by naming the hold instead, but a record
   // parsed from core's schema never reaches it.
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
-  whom: p.optionalEnum(['whom'], WhoSet.fromKey),
+  who: p.enumOr(['who'], _whoBesidesShadows, WhoSet.role1s),
+  whom: p.optionalEnum(['whom'], _whoBesidesShadows),
   hand: p.optionalEnum(['whomHand', 'hand'], Hand.fromKey),
   balance: p.boolOr(['balance'], false),
 );

@@ -74,7 +74,8 @@ enum WhoSet {
   /// of the opposite role and the same couple number in a neighbouring hands
   /// four. *(User-ruled 2026-11-22.)* Not a distance set: a figure naming
   /// shadows pairs whoever stands together, in whichever band phase they
-  /// stand together in ([Operation.apply]).
+  /// stand together in, unless it also names a distance set, which then picks
+  /// the phase ([Operation.apply]).
   shadows('shadows', aliases: {'shadow'}),
   prevNeighbors('prevNeighbors', aliases: {'prevNeighbor'}, distance: -1),
   nextNeighbors('nextNeighbors', aliases: {'nextNeighbor'}, distance: 1),

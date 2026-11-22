@@ -206,10 +206,11 @@ sealed class Operation {
       );
     }
     // A figure naming a distance set and shadows (a square through with the
-    // shadows, then the next neighbours) is danced where the distance reaches.
-    // Where you meet your shadows depends on the progression, so there is no
-    // rule tying the two sets together to refuse on *(user-ruled
-    // 2026-11-22)*; the figure's own `who` checks still apply.
+    // shadows, then the next neighbours): where you meet your shadows depends
+    // on the progression, so there is no rule tying the two sets together to
+    // refuse on *(user-ruled 2026-11-22)*. The agent's call, following from
+    // that: the distance picks the phase, the shadows phase rule is not
+    // applied, and the figure's own `who` checks still are.
     if (reaching.isNotEmpty) {
       return _applyReaching(settled, reaching.single, progressions);
     }
@@ -280,9 +281,9 @@ sealed class Operation {
   ///
   /// A dancer's shadows stand in a neighbouring hands four, so whether they
   /// are together depends on the dance so far, not on a fixed distance. The
-  /// rule is the one `swing` uses for every set: pair whoever is standing
-  /// next to you, and refuse if there is no one or more than one choice.
-  /// *(User-ruled 2026-11-22.)*
+  /// rule is to pair whoever is standing next to you, and refuse if there is
+  /// no one or more than one choice *(user-ruled 2026-11-22)*, which is how
+  /// `swing` already treats every set.
   ///
   /// How that is carried out is the agent's call (`docs/taxonomy.md`,
   /// "Shadows"): the choices are the two **band phases**, the figure is danced

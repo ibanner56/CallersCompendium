@@ -656,12 +656,14 @@ void main() {
     });
 
     group('shadows in a slot that does not pick the band phase', () {
-      // These slots are resolved in whatever phase the figure is handed, so a
-      // figure naming shadows there would find them in the wrong place.
+      // These slots are resolved outside the band phase a figure naming
+      // shadows is danced in, or (endFacing) name whom you face afterwards.
       for (final (move, key) in [
         ('hey', 'pass2'),
         ('hey', 'meetTarget'),
         ('courtesy_turn', 'endFacing'),
+        ('form_long_waves', 'who'),
+        ('form_long_waves', 'whom'),
       ]) {
         test('$move.$key: shadows is deferred', () {
           final error = _parseErr(

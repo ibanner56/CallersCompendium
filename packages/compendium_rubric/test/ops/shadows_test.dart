@@ -202,47 +202,76 @@ void main() {
     // A figure can name both, like a square through with the shadows and then
     // the next neighbours. Where you meet your shadows depends on the
     // progression, so nothing ties the two sets together to refuse on
-    // (user-ruled 2026-11-22): the distance picks the band phase.
+    // (user-ruled 2026-11-22). The agent's call following from it: the
+    // distance picks the band phase and the shadows pairing rule is not
+    // applied.
 
-    test('is danced where the distance reaches', () {
-      // Three hands four after a pass through along: one phase over, every
-      // band holds a 1s couple with its next neighbours, the 2s.
-      final input = duple([
-        'L2-B . . . R2-B',
-        'R1-A . . . L1-A',
-        'L2-D . . . R2-D',
-        'R1-C . . . L1-C',
-        'L2-F . . . R2-F',
-        'R1-E . . . L1-E',
-      ]);
+    // Three hands four after a pass through along. One phase over, every band
+    // holds a 1s couple with its next neighbours, the 2s; no band phase holds
+    // a shadow pair, so a figure naming only shadows is refused here.
+    final passedThrough = duple([
+      'L2-B . . . R2-B',
+      'R1-A . . . L1-A',
+      'L2-D . . . R2-D',
+      'R1-C . . . L1-C',
+      'L2-F . . . R2-F',
+      'R1-E . . . L1-E',
+    ]);
 
-      final after = applyOk(
-        const MadRobin(who: WhoSet.shadows, whom: WhoSet.nextNeighbors),
-        input,
+    test('is danced one phase over, where the distance reaches', () {
+      expect(
+        const MadRobin(who: WhoSet.shadows, turn: 0.5).apply(passedThrough),
+        isA<Err<Formation, OpError>>(),
       );
 
-      expect(bandRows(after), bandRows(input));
+      // A half mad robin swaps the two rows of every band: here (1,2) and
+      // (3,4), leaving B and E at the ends untouched.
+      final after = applyOk(
+        const MadRobin(
+          who: WhoSet.shadows,
+          whom: WhoSet.nextNeighbors,
+          turn: 0.5,
+        ),
+        passedThrough,
+      );
+
+      expect(bandRows(after), bandRows(passedThrough));
+      for (final (couple, from, to) in [
+        ('B', 0, 0),
+        ('A', 1, 2),
+        ('D', 2, 1),
+        ('C', 3, 4),
+        ('F', 4, 3),
+        ('E', 5, 5),
+      ]) {
+        for (final id in [lark(couple), robin(couple)]) {
+          expect(at(passedThrough, id).row, from, reason: '$id before');
+          expect(at(after, id).row, to, reason: '$id after');
+        }
+      }
     });
 
-    test('is not refused for the shadows standing apart', () {
-      // The starting formation has no shadow pair in either phase. A figure
-      // naming only shadows is refused there; with a distance set as well it
-      // is the distance that decides, so the shadows rule does not refuse it.
+    test('is danced in place once a progression has closed the distance', () {
+      // After one progression the next neighbours are the current ones, so
+      // the half mad robin swaps the rows of the bands the set was handed.
       final start = startingFormation(
         FormationType.dupleImproper,
         handsFour: 2,
-      );
-      expect(
-        const MadRobin(who: WhoSet.shadows).apply(start),
-        isA<Err<Formation, OpError>>(),
       );
 
       final result = const MadRobin(
         who: WhoSet.shadows,
         whom: WhoSet.nextNeighbors,
+        turn: 0.5,
       ).apply(start, progressions: 1);
 
       expect(result, isA<Ok<Formation, OpError>>(), reason: '$result');
+      final after = (result as Ok<Formation, OpError>).value;
+      for (final couple in ['A', 'B', 'C', 'D']) {
+        final before = at(start, lark(couple)).row;
+        final expected = before.isEven ? before + 1 : before - 1;
+        expect(at(after, lark(couple)).row, expected, reason: couple);
+      }
     });
   });
 

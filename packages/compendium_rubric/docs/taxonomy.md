@@ -414,16 +414,15 @@ rather than from your neighbor. Two further rules come with it:
   turned round at an end shares its number with the couple beside it, so that couple's
   opposite-role dancer is its shadow there.
 
-**Pairing.** *(User-ruled.)* A figure naming `shadows` pairs whoever is standing next to you, as
-`swing` does for every set, and is refused if there is no choice or more than one. It does not
-reach a fixed distance.
+**Pairing.** *(User-ruled.)* A figure naming `shadows` pairs whoever is standing next to you, and
+is refused if there is no choice or more than one. It does not reach a fixed distance. (This is
+how `swing` already treats every set.)
 
 **A distance set in the same figure.** A figure can name both, like a square through with the
-shadows and then the next neighbors. *(User-ruled.)* Meeting your shadows often puts you in a
-hands four with your next neighbors, but not always: it depends on the progression, and sometimes
-you are still with your original neighbors, so there is no rule tying the two sets together to
-refuse on. The distance set picks the band phase as it always does, and the shadows rule above
-does not refuse the figure; the figure's own `who` checks still apply.
+shadows and then the next neighbors. *(User-ruled.)* Where you meet your shadows depends on the
+progression, so there is no rule tying the two sets together to refuse on. *(Agent's call,
+following from that.)* The distance set picks the band phase as it always does, the shadows
+pairing rule above is not applied, and the figure's own `who` checks still are.
 
 Worked example (`test/ops/shadows_test.dart`). With B and D, both 2s, standing beside each other
 across the settled band boundary, only the shifted phase holds a shadow pair, so an allemande
@@ -455,10 +454,11 @@ R1-C . . . L1-C
   value. The alternative, checking home grouping the way `crossHandsFourRefusal` does for the
   distance sets, was not taken because no worked example yet says which grouping a shadow is
   measured from.
-- **Slots that do not choose the phase.** The phase is chosen from the sets that pick who dances
-  (`Operation.dancerSets`). `hey.pass2`, `hey.meetTarget` and `courtesy_turn.endFacing` are
-  resolved in whatever phase the figure is handed, so `shadows` in those slots is deferred at
-  parse time rather than read in the wrong place.
+- **Slots that cannot choose the phase.** The phase is chosen from `Operation.dancerSets`, which
+  is right for a slot naming whom you dance with. `hey.pass2`/`meetTarget` and
+  `form_long_waves.who`/`whom` are outside that list, and `courtesy_turn.endFacing` names whom
+  you face *after* the figure, so `shadows` in those slots is deferred at parse time rather than
+  read in the wrong place.
 
 ---
 

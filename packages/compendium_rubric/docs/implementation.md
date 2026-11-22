@@ -332,9 +332,11 @@ grand right and left the third neighbours stand *one* grouping apart, not two.
 standing together in every hands four, and hands the original phase back.
 Neither phase is `whoMismatch`; both is `unresolvableDancerSet`. A figure
 that also names a distance set is danced in the phase the distance picks, and
-the shadows rule does not refuse it (user-ruled). Only `dancerSets` choose the phase, so the
-parser defers `shadows` in slots outside it (`hey.pass2`/`meetTarget`,
-`courtesy_turn.endFacing`). `whoMatches`
+the shadows pairing rule is not applied (the agent's call, following the
+user's ruling that nothing ties the two sets together). Only `dancerSets` choose the phase, so the
+parser defers `shadows` in slots that cannot choose it: `hey.pass2`/
+`meetTarget` and `form_long_waves.who`/`whom` (outside it) and
+`courtesy_turn.endFacing` (whom you face afterwards). `whoMatches`
 reads the numbers as they stand, so at an end a couple that has turned round has
 its neighbour as its shadow. The rulings and a worked example are in
 `docs/taxonomy.md`, "Shadows".

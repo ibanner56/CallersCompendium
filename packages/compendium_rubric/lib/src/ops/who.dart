@@ -64,9 +64,11 @@ bool whoMatches(Formation formation, DancerId a, DancerId b, WhoSet who) {
 /// membership, which is why they mean something quite different here than they
 /// do in [whoMatches].
 ///
-/// `shadows` is total on the same reasoning, but a figure naming it is only
-/// reached once [Operation.apply] has found the shadows standing together, so
-/// a unary figure naming shadows is refused there when they are not.
+/// `shadows` is total on the same reasoning. A figure naming it is only
+/// reached once [Operation.apply] has found the shadows standing together
+/// (unless it also names a distance set), so a unary figure naming shadows is
+/// refused there when they are not. `form_long_waves` reads its `who` here
+/// with no such check, which is why the parser defers `shadows` there.
 bool whoIncludes(Formation formation, DancerId id, WhoSet who) {
   final state = formation.stateOf(id);
   return switch (who) {
