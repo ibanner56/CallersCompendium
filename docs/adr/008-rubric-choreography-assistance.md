@@ -145,7 +145,8 @@ teach it.
    they appear.
 4. **Verification reaches the app first, behind an experimental switch**
    (issue #1031), once the bar in §6.2 is met. *The switch was the
-   maintainer's plan for this work; the bar is the author's call.*
+   maintainer's plan for this work. He set the pass-rate target in §6.2;
+   the rest of the bar is the author's call.*
 
 ## 3. Decision: what Rubric does for a caller
 
@@ -308,7 +309,7 @@ visible feature but would rest on the least verified ground.
 
 ### 4.3 Why the exact model, and not a continuous one
 
-*Author's call*, consistent with the maintainer's rulings so far. Animators
+*The maintainer decided* this in review. Animators
 place dancers at continuous coordinates and check closeness. Rubric places
 them in cells and checks equality. The exact model is weaker at showing a
 dance and stronger at checking one: a dance either reaches the reference
@@ -495,10 +496,27 @@ when, on the latest corpus measurement:
 3. every dance a spot check of compiled results turns up as wrongly
    "working" has been fixed, because a false "works" is the failure callers
    cannot see; and
-4. the in-scope compile rate reaches a level the maintainer sets.
+4. the in-scope compile rate meets the target below.
 
-The number in point 4 is the maintainer's to set. This record does not
-choose it.
+*The maintainer decided* the target in review. **85% in-scope is the goal.
+As low as 70% is acceptable if the core set passes.** The core set is the
+maintainer's list of about 1,250 dances, each called at least once in the
+Seattle area in the past five years. If a dance in the core set keeps failing, it goes to
+the maintainer, who reviews it and may remove it from the set Rubric is
+required to support.
+
+*Author's call* on how the set is used:
+
+- The set is matched to corpus records by title and choreographer, and the
+  harness reports the core set's pass rate beside the in-scope rate. The
+  list stays outside the repository, as the corpus does, unless the
+  maintainer asks for it to be committed; the harness is given its path when
+  it runs.
+- Entries that are not contra dances in a form Rubric models (squares,
+  English country dances, line dances and couple dances appear on the list)
+  are outside the set's scope (§3.5), not failures.
+- "Passing" means Compiled. A core-set dance that Rubric cannot check yet
+  counts as not passing, because "can't check yet" is not support.
 
 ### 6.3 Debts accepted knowingly
 
