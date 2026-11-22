@@ -6866,7 +6866,7 @@
   "@exportLabelSources": {
     "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
   },
-  "exportSlotAuthorSuffix": "作: {names}",
+  "exportSlotAuthorSuffix": "作：{names}",
   "@exportSlotAuthorSuffix": {
     "x-sourceSha256": "79ac564bb32e62bcab69cdf18ff4753eae39a6616fe7569f062ab5795c484347"
   },

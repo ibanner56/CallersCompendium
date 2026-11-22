@@ -21,12 +21,14 @@ void main() {
         phraseStructure: 'A:2*4*2 + B:1*8*2',
         hook: 'Hook text',
         callingNotes: 'Notes text',
+        status: DanceStatus.draft,
         createdAt: now,
         updatedAt: now,
       ),
       dialect: Dialect.canonical,
       authorNames: const [],
       formationLabel: 'F',
+      levelLabel: 'L',
       statusLabel: 'S',
       labels: danceExportLabels(l10n),
       fields: DanceShareField.values.toSet(),
@@ -40,11 +42,18 @@ void main() {
         id: 'p',
         title: 'Program',
         band: 'Band name',
-        slots: const [],
+        caller: 'Caller name',
+        dancerLevel: 'All',
+        notes: 'Program notes',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1', guestCaller: 'G'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+        ],
         createdAt: now,
         updatedAt: now,
       ),
-      titleFor: (_) => null,
+      titleFor: (id) => 'Dance $id',
+      authorNamesFor: (_) => const ['Pat'],
       labels: programExportLabels(l10n),
     ).split('\n');
   }
@@ -66,9 +75,9 @@ void main() {
     expect(lines, contains('コーリングノート：'));
     expect(programLines('ja'), contains('バンド：Band name'));
     expect(
-      [...lines, ...programLines('ja')].where((l) => l.contains(': ')),
+      [...lines, ...programLines('ja')].where((l) => l.contains(':')),
       isEmpty,
-      reason: 'no label keeps an ASCII colon',
+      reason: 'no label or author suffix keeps an ASCII colon',
     );
   });
 

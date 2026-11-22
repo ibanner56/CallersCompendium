@@ -185,8 +185,8 @@ class ProgramExportLabels {
   /// least one non-blank author name for that slot's dance.
   final String Function(String names) by;
 
-  /// Between a field's label and its value, such as `Phrase: AAB`: `": "` in
-  /// English, the full-width `"："` in Japanese.
+  /// Between a field's label and its value, such as `Band: Reel Time`: `": "`
+  /// in English, the full-width `"："` in Japanese.
   final String labelSeparator;
 
   /// [label] followed by [labelSeparator], to put before a field's value.

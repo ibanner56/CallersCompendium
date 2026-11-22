@@ -6605,7 +6605,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String exportSlotAuthorSuffix(String names) {
-    return '作: $names';
+    return '作：$names';
   }
 
   @override
