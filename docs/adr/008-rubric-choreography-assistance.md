@@ -215,12 +215,22 @@ checker-mover gives a square dance caller.
 
 The third use answers a Mismatch or a refusal with **suggestions**: small
 edits that make the dance compile. Everything in this section is the
-*author's call*.
+*author's call*, except the diagnosis bullet, which *the maintainer decided*
+in review.
 
 - A suggestion is a single bounded edit: change one parameter of one figure
   (for example the hand, the shoulder, the amount of a turn or who does it),
-  replace one figure with a figure of the same beats, or move the
-  progression flag to another figure.
+  replace one figure with a figure of the same beats, add one figure, or
+  move the progression flag to another figure.
+- **Suggestions start from the diagnosis.** Comparing where the dancers
+  ended with where they should have ended often names the fault: the dance
+  progresses the wrong way, or one pair of dancers is swapped. Then Rubric
+  suggests a figure that swaps that pair, or replaces a figure that swaps
+  one pair with one that swaps the other. For example, a circle left ¾, or
+  a robins allemande 1½ in place of a larks allemande 1½. *(The maintainer
+  decided, in review.)* Adding a figure changes the dance's length, so once
+  the phrasing warnings in §5.4 exist, an added figure that breaks the
+  phrasing ranks below one that does not.
 - Every suggestion is **compiled in full** before it is shown. Rubric never
   suggests an edit it has not verified.
 - Suggestions are **shown, never applied**. The caller chooses one, and the
