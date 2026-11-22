@@ -9107,6 +9107,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figur $position går ud over slutningen af $label. I en squaredans bør kaldene i hver frase fylde den helt ud.';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'Figur $position er ikke færdig, så Gem udelader den.';
   }

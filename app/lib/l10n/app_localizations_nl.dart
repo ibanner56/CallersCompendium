@@ -9163,6 +9163,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figuur $position loopt door tot voorbij het einde van $label. In een squaredans horen de calls van elke frase die precies te vullen.';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'Figuur $position is niet compleet, dus Opslaan laat hem weg.';
   }

@@ -8739,6 +8739,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'フィギュア$positionが$labelの終わりを越えています。スクエアダンスでは、各フレーズのコールがそのフレーズをちょうど埋めるようにします。';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'フィギュア$positionは未完成のため、保存しても含まれません。';
   }
