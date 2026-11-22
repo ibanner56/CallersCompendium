@@ -46,7 +46,7 @@ app cannot express either today:
 
 - `CalledFilter` has only `called`, `callerFilter`, `performedOnly` and
   `requireEventDate`. It has no venue or date scope
-  (`packages/compendium_core/lib/src/search/filter.dart:224-247`, compiled at
+  (`packages/compendium_core/lib/src/search/filter.dart:282-302`, compiled at
   `filter_compiler.dart`).
 - The Filters panel offers only a Called / Not called pair
   (the `call-status-called` and `call-status-not-called` chips in `app/lib/src/widgets/facet_panel.dart`). It becomes a `CalledFilter`
