@@ -150,8 +150,8 @@ void main() {
   });
 
   group('rory_o_more reads the wave rather than settling it away', () {
-    // §8.5.4: the figure has no meaning outside a wave, so it is the third
-    // figure to preserve the offsets, alongside `balance` and `stand_still`.
+    // §8.5.4: the figure has no meaning outside a wave, so it preserves the
+    // offsets, as `balance`, `stand_still` and a quarter `allemande` do.
     test('it declares that it preserves the wave offsets', () {
       expect(rightSlide.preservesWaveOffsets, isTrue);
       expect(const Balance().preservesWaveOffsets, isTrue);
