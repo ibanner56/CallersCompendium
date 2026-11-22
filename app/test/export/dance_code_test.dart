@@ -174,6 +174,30 @@ void main() {
     });
   });
 
+  group('a code is only shown for a dance that reads back', () {
+    String repetitive(int bytes) {
+      const frame = '{"a":""}';
+      return '{"a":"${'a' * (bytes - frame.length)}"}';
+    }
+
+    test(
+      'a bundle past the inflate cap is too long, however small its link',
+      () {
+        final json = repetitive(kMaxDanceInflatedBytes + 1);
+        // The link is tiny, so the byte-capacity check alone would show it.
+        expect(encodeDanceLink(json).length, lessThan(2000));
+        expect(planDanceCode(json), isA<DanceCodeTooLong>());
+      },
+    );
+
+    test('a bundle at the inflate cap is shown, and reads back', () {
+      final json = repetitive(kMaxDanceInflatedBytes);
+      final plan = planDanceCode(json);
+      expect(plan, isA<DanceCodeShown>());
+      expect(decodeDanceLink((plan as DanceCodeShown).link), json);
+    });
+  });
+
   group('capacity', () {
     test('each level takes a link of exactly its capacity and no more', () {
       // ISO/IEC 18004, version 40, byte mode. Literals, not the enum's own

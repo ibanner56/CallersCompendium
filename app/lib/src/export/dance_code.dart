@@ -53,9 +53,11 @@ const String _danceLinkScheme = 'ccdance://';
 /// version 31 at level H, so a value below 31 would stop it showing the mark.
 const int kMaxDanceCodeVersion = 40;
 
-/// The longest link [decodeDanceLink] reads, in characters. A code holds at
-/// most 2,953 bytes, so no link this app shows is longer than that plus the
-/// prefix; the margin is for a link pasted with other text around it.
+/// The longest link [decodeDanceLink] reads, in characters. A bound on hostile
+/// input, with slack over the longest link a code can hold: the code's payload
+/// is the whole link, and a version 40 code at level L holds 2,953 bytes.
+/// [encodeDanceLink] on its own can return a longer link for a large dance;
+/// [planDanceCode] reports such a dance as [DanceCodeTooLong].
 const int kMaxDanceLinkLength = 4096;
 
 /// The most a payload may inflate to, in bytes. A real dance's bundle is a few
@@ -139,11 +141,20 @@ final class DanceCodeTooLong extends DanceCodePlan {
 ///
 /// Tries level H, then Q, M and L, and takes the first that fits within
 /// [maxVersion]; only H carries the mark ([DanceCodeShown.withMark]). When
-/// none fits the result is [DanceCodeTooLong].
+/// none fits the result is [DanceCodeTooLong]. So is a bundle whose JSON is
+/// longer than [kMaxDanceInflatedBytes]: a very repetitive one can compress
+/// into a small link that [decodeDanceLink] would then refuse, and a code is
+/// only shown for a dance the receiving side can read back.
 DanceCodePlan planDanceCode(
   String shareBundleJson, {
   int maxVersion = kMaxDanceCodeVersion,
-}) => planDanceLink(encodeDanceLink(shareBundleJson), maxVersion: maxVersion);
+}) {
+  final link = encodeDanceLink(shareBundleJson);
+  if (utf8.encode(shareBundleJson).length > kMaxDanceInflatedBytes) {
+    return DanceCodeTooLong(linkBytes: link.length);
+  }
+  return planDanceLink(link, maxVersion: maxVersion);
+}
 
 /// [planDanceCode] for a link already built. Separate so a test can offer a
 /// link of an exact length, which compression makes hard to reach from JSON.
