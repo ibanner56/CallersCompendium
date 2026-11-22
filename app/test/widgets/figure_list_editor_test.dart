@@ -69,6 +69,7 @@ class _Host extends StatefulWidget {
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
     this.dialect,
+    this.barTiming,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
 
   final List<FigureDraft> drafts;
@@ -96,6 +97,7 @@ class _Host extends StatefulWidget {
   final bool aggressiveBeatsUpdate;
   final bool showWordingOverride;
   final Dialect? dialect;
+  final BarTiming? barTiming;
 
   @override
   State<_Host> createState() => _HostState();
@@ -145,6 +147,7 @@ class _HostState extends State<_Host> {
               allowDuplicating: widget.allowDuplicating,
               allowModifierSelection: widget.allowModifierSelection,
               showPhraseStructure: widget.showPhraseStructure,
+              barTimingOf: () => widget.barTiming,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
               onAddMeanwhile: widget.wireAddMeanwhile
@@ -275,6 +278,7 @@ Future<void> _pump(
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
   Dialect? dialect,
+  BarTiming? barTiming,
   Taxonomy? taxonomy,
   Size surfaceSize = const Size(1200, 2400),
 }) async {
@@ -307,6 +311,7 @@ Future<void> _pump(
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
       dialect: dialect,
+      barTiming: barTiming,
     ),
   );
   await tester.pumpAndSettle();
@@ -4150,6 +4155,65 @@ void main() {
       expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
       expect(find.byKey(const ValueKey('figure-0-unknown-move')), findsNothing);
       expect(find.byType(FigureParamEditor), findsWidgets);
+    });
+  });
+
+  group('a typed bar range where phrases differ in beats per bar (#2303)', () {
+    const fieldKey = ValueKey('figure-free-text-field');
+    const submitKey = ValueKey('figure-free-text-submit');
+    // A1 and A2 are 4 bars of 3 beats (0-24), B is 8 bars of 2 (24-40).
+    final structure = PhraseStructure.parse('A:2*4*3 + B:1*8*2');
+    final timing = BarTiming.byPhrase(structure);
+
+    FigureDraft figureOf(int beats) =>
+        FigureDraft.fromFigure(customFigure('stand', beats: beats));
+
+    Future<List<Figure>> typeLine(
+      WidgetTester tester,
+      List<FigureDraft> drafts,
+      String line,
+    ) async {
+      final typed = <Figure>[];
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        phrase: structure,
+        barTiming: timing,
+        freeTextAdder: (figures) {
+          typed.addAll(figures);
+          return figures.length;
+        },
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), line);
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+      return typed;
+    }
+
+    testWidgets('counts from where the line is placed, after the rows '
+        'before it', (tester) async {
+      // 18 beats put the line at the end of A2: bars at 18 (3), 21 (3), 24
+      // (2), 26 (2).
+      final typed = await typeLine(tester, [figureOf(18)], '1-4 circle left');
+      expect(typed.single.params['beats'], 10);
+    });
+
+    testWidgets('a row Save would not write does not move the start', (
+      tester,
+    ) async {
+      // A row given beats but no move builds no figure, so the saved dance
+      // lacks it: the line still starts at 18, not 26.
+      final unfinished = FigureDraft()..params['beats'] = 8;
+      expect(unfinished.savesAsFigure, isFalse);
+      final typed = await typeLine(tester, [
+        figureOf(18),
+        unfinished,
+      ], '1-4 circle left');
+      expect(typed.single.params['beats'], 10);
     });
   });
 

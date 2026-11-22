@@ -73,6 +73,7 @@ class FigureListEditor extends StatefulWidget {
     this.mixer = false,
     this.formationShape,
     this.meterOf,
+    this.barTimingOf,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
@@ -124,6 +125,13 @@ class FigureListEditor extends StatefulWidget {
   /// 2/2, 12 in 3/2). Read when a line is entered, so an edit to the meter
   /// field counts at once. Null where there is no dance.
   final String Function()? meterOf;
+
+  /// How free-text entry counts an English line's bar range where the dance's
+  /// phrases differ in beats per bar (#2303), or null where one count of
+  /// bars serves ([meterOf]). Read when a line is entered. The range counts
+  /// from where the line is placed: after the rows Save writes as figures,
+  /// or in place of the row it replaces ([figureStartBeat]).
+  final BarTiming? Function()? barTimingOf;
 
   /// Dialect used for lingo-line styling (discouraged + role terms).
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
@@ -801,6 +809,8 @@ class _FigureListEditorState extends State<FigureListEditor>
       dialect: _dialect,
       formationShape: widget.formationShape,
       meter: widget.meterOf?.call(),
+      timing: widget.barTimingOf?.call(),
+      startBeat: figureStartBeat(widget.drafts),
     );
     if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
@@ -873,6 +883,8 @@ class _FigureListEditorState extends State<FigureListEditor>
       dialect: _dialect,
       formationShape: widget.formationShape,
       meter: widget.meterOf?.call(),
+      timing: widget.barTimingOf?.call(),
+      startBeat: figureStartBeat(widget.drafts.take(index)),
     );
     if (figures.isEmpty) return false;
     final acceptedCount = onReplace(draft, figures);
@@ -1016,11 +1028,9 @@ class _FigureListEditorState extends State<FigureListEditor>
     String? lastLabel;
     if (widget.showPhraseStructure) {
       for (final draft in drafts) {
-        // Only rows Save writes count: a row with no move and no note, a group
-        // short of two sides, or a modifier group with a blank core builds no
-        // figure, and counting its beats would put a figure the saved dance
-        // lacks into the Total.
-        if (draft.toFigure() == null && !draft.keepsNoteWithoutMove) {
+        // Only rows Save writes count ([FigureDraft.savesAsFigure]); counting
+        // the others would put a figure the saved dance lacks into the Total.
+        if (!draft.savesAsFigure) {
           labels[draft.id] = null;
           sectionStart[draft.id] = false;
           continue;

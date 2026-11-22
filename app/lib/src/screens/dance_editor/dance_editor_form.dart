@@ -225,6 +225,15 @@ class DanceEditorForm extends StatelessWidget {
     if (clauses == null || clauses.length < 2) return 0;
     final drafts = <FigureDraft>[];
     var anyOfOurs = false;
+    // Each clause is placed after the ones before it, so a bar range counts
+    // from where it will start: the figures before the line, then the rows its
+    // earlier clauses become (not the beats the parser gave, which leave out
+    // the count a row takes by default).
+    final lineStart = figureStartBeat(
+      replacing == null
+          ? controller.figureDrafts
+          : controller.figureDrafts.takeWhile((d) => d != replacing),
+    );
     for (final clause in clauses) {
       final draft = _shorthandDraft(clause);
       if (draft != null) {
@@ -241,6 +250,8 @@ class DanceEditorForm extends StatelessWidget {
         dialect: dialect,
         formationShape: controller.formationShape,
         meter: _meterForBars,
+        timing: _barTimingForBars,
+        startBeat: lineStart + figureStartBeat(drafts),
       );
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
@@ -550,6 +561,7 @@ class DanceEditorForm extends StatelessWidget {
                     mixer: controller.mixer,
                     formationShape: controller.formationShape,
                     meterOf: () => _meterForBars,
+                    barTimingOf: () => _barTimingForBars,
                     moveParamDefaults: moveParamDefaults,
                     onChanged: controller.onFiguresChanged,
                     onAdd: controller.addFigure,
@@ -735,6 +747,14 @@ class DanceEditorForm extends StatelessWidget {
     controller.meterController.text,
     controller.phraseStructure,
   );
+
+  /// How a typed bar range is counted where the tune's phrases differ in
+  /// beats per bar (#2303), else null: [_meterForBars] counts it.
+  BarTiming? get _barTimingForBars =>
+      controller.form == DanceForm.ecd &&
+          controller.phraseStructure.hasMixedMeter
+      ? BarTiming.byPhrase(controller.phraseStructure)
+      : null;
 
   /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
   /// an English dance whose tune has one meter throughout.
