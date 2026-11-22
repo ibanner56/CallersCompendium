@@ -648,6 +648,109 @@ void main() {
     });
   });
 
+  group('buildCollectionFilter — calling-history inputs (characterization)', () {
+    // These pin what the host passes in (callerFilter, performedOnly,
+    // requireEventDate, tracking) and the `today` default, before the
+    // translator moves into compendium_core (#2325). They were not asserted
+    // anywhere: `built()` above always uses the defaults.
+    CalledFilter calledWith({
+      String? callerFilter,
+      bool performedOnly = false,
+      bool requireEventDate = false,
+      CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+      DateTime? today,
+      int? months,
+    }) {
+      final facets = FacetSelections()..callStatuses.add(true);
+      if (months != null) facets.setHistoryMonths(months);
+      return buildCollectionFilter(
+            ftsText: '',
+            facets: facets,
+            defs: defs,
+            callerFilter: callerFilter,
+            performedOnly: performedOnly,
+            requireEventDate: requireEventDate,
+            tracking: tracking,
+            today: today,
+          )
+          as CalledFilter;
+    }
+
+    test(
+      'callerFilter, performedOnly and requireEventDate reach CalledFilter',
+      () {
+        final called = calledWith(
+          callerFilter: 'Ada',
+          performedOnly: true,
+          requireEventDate: true,
+        );
+        expect(called.callerFilter, 'Ada');
+        expect(called.performedOnly, isTrue);
+        expect(called.requireEventDate, isTrue);
+
+        final plain = calledWith();
+        expect(plain.callerFilter, isNull);
+        expect(plain.performedOnly, isFalse);
+        expect(plain.requireEventDate, isFalse);
+      },
+    );
+
+    test('tracking reaches CalledFilter unchanged', () {
+      const tracking = CallingHistoryTracking(
+        recencyRequireEventDate: true,
+        recencyRequirePerformed: true,
+      );
+      expect(calledWith(tracking: tracking).tracking, tracking);
+      expect(calledWith().tracking, CallingHistoryTracking.defaults);
+    });
+
+    test('Collection never sets currentProgramId', () {
+      expect(calledWith().currentProgramId, isNull);
+    });
+
+    test(
+      'without `today`, the window is counted back from the clock at build time',
+      () {
+        // Bracket the call with two clock reads so the assertion holds at any
+        // date and in any zone, including across midnight.
+        final before = DateTime.now();
+        final since = calledWith(months: 3).since;
+        final after = DateTime.now();
+        expect(since, isNotNull);
+        expect(since!.isUtc, isTrue);
+        expect(since.hour, 0);
+        expect(
+          since,
+          anyOf(
+            calendarMonthsBefore(before, 3),
+            calendarMonthsBefore(after, 3),
+          ),
+        );
+      },
+    );
+  });
+
+  group('availableCollectionSorts', () {
+    test(
+      'Best match is offered first, and only for a bare full-text query',
+      () {
+        expect(availableCollectionSorts(bareFullText: true), [
+          CollectionSort.relevance,
+          CollectionSort.title,
+          CollectionSort.author,
+          CollectionSort.recentlyAdded,
+          CollectionSort.lastCalled,
+        ]);
+        expect(availableCollectionSorts(bareFullText: false), [
+          CollectionSort.title,
+          CollectionSort.author,
+          CollectionSort.recentlyAdded,
+          CollectionSort.lastCalled,
+        ]);
+      },
+    );
+  });
+
   group('buildCollectionFilter — By phrase', () {
     test('empty selections add no branch', () {
       final f = buildCollectionFilter(
