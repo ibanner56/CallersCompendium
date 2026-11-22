@@ -892,7 +892,8 @@ class DanceEditorForm extends StatelessWidget {
       required LingoTextEditingController textController,
       required String label,
       required String hint,
-      int maxLength = kMaxMusicLabelLength,
+      int? maxLength = kMaxMusicLabelLength,
+      List<TextInputFormatter>? inputFormatters,
     }) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -900,6 +901,7 @@ class DanceEditorForm extends StatelessWidget {
           key: ValueKey('$key-field'),
           controller: textController,
           maxLength: maxLength,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
@@ -950,7 +952,13 @@ class DanceEditorForm extends StatelessWidget {
           textController: controller.barnesReferenceController,
           label: l10n.danceEditorBarnesReferenceLabel,
           hint: l10n.danceEditorBarnesReferenceHint,
-          maxLength: kMaxBarnesReferenceLength,
+          // Counted in code units, as the [Dance] constructor bounds it,
+          // not in characters as `maxLength` counts, so nothing typed is
+          // cut on save.
+          maxLength: null,
+          inputFormatters: const [
+            CodeUnitLimitInputFormatter(kMaxBarnesReferenceLength),
+          ],
         ),
       ],
     );
@@ -1338,6 +1346,33 @@ class AlternateTitlesInputFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: end),
+    );
+  }
+}
+
+/// Keeps a field's text to at most [maxLength] UTF-16 code units, the unit
+/// the model's bounds count in, cutting an edit that goes past it on a
+/// character boundary. `TextField.maxLength` counts characters instead, so
+/// text made of characters outside the Basic Multilingual Plane could pass it
+/// and still be cut on save.
+@visibleForTesting
+class CodeUnitLimitInputFormatter extends TextInputFormatter {
+  const CodeUnitLimitInputFormatter(this.maxLength);
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.length <= maxLength) return newValue;
+    final text = truncateOnRuneBoundary(newValue.text, maxLength);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(
+        offset: newValue.selection.end.clamp(0, text.length),
+      ),
     );
   }
 }

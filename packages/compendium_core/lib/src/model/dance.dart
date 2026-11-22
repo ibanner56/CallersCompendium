@@ -50,7 +50,9 @@ const int kMaxAlternateTitleLength = 512;
 const int kMaxAlternateTitles = 20;
 
 /// Upper bound on the length of [Dance.barnesReference], in UTF-16 code
-/// units, enforced softly as [kMaxMusicLabelLength] is.
+/// units. The [Dance] constructor cuts a longer value (on a character
+/// boundary), so every [Dance] holds the bound and a file or sync body is
+/// clamped rather than rejected; the editor stops typing at it.
 const int kMaxBarnesReferenceLength = 100;
 
 /// [titles] as [Dance.alternateTitles] holds them: each with its runs of
@@ -112,7 +114,7 @@ class Dance {
     this.walkthrough = '',
     this.meter = '',
     this.musicalKey = '',
-    this.barnesReference = '',
+    String barnesReference = '',
     this.status = DanceStatus.active,
     String? difficultyLevelId,
     DifficultyLevel? level,
@@ -140,6 +142,10 @@ class Dance {
        formation = formation.improper && !formHasImproperFlag(form)
            ? formation.copyWith(improper: false)
            : formation,
+       barnesReference = truncateOnRuneBoundary(
+         barnesReference,
+         kMaxBarnesReferenceLength,
+       ),
        alternateTitles = List.unmodifiable(
          normalizeAlternateTitles(alternateTitles),
        ),

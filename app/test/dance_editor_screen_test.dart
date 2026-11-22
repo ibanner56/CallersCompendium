@@ -3007,6 +3007,27 @@ void main() {
       expect(saved!.alternateTitles, shown);
     });
 
+    testWidgets('the Barnes reference stops at its bound in code units, so '
+        'characters outside the Basic Multilingual Plane are not cut on '
+        'save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+      // 60 fiddles: 60 characters, 120 code units.
+      await tester.enterText(barnes, '\u{1F3BB}' * 60);
+      await tester.pumpAndSettle();
+      final shown = tester.widget<TextFormField>(barnes).controller!.text;
+      expect(shown, '\u{1F3BB}' * (kMaxBarnesReferenceLength ~/ 2));
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.barnesReference, shown);
+    });
+
     testWidgets('an interpreter is picked from the people list', (
       tester,
     ) async {

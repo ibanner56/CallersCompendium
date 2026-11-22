@@ -704,10 +704,8 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   // Short untrusted labels: clamped like the walkthrough, never rejected.
   meter: _clampLength(_strOr(m, 'meter', ''), kMaxMusicLabelLength),
   musicalKey: _clampLength(_strOr(m, 'musicalKey', ''), kMaxMusicLabelLength),
-  barnesReference: _clampLength(
-    _strOr(m, 'barnesReference', ''),
-    kMaxBarnesReferenceLength,
-  ),
+  // Bounded by the [Dance] constructor, as every dance is.
+  barnesReference: _strOr(m, 'barnesReference', ''),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],

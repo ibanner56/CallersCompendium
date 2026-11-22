@@ -59,6 +59,17 @@ void main() {
       expect(dance.alternateTitles, hasLength(kMaxAlternateTitles));
     });
 
+    test('every dance holds the Barnes bound, counted in code units and cut '
+        'on a character boundary', () {
+      // 60 fiddles are 60 characters but 120 code units.
+      final dance = sampleDance().copyWith(barnesReference: '\u{1F3BB}' * 60);
+      expect(dance.barnesReference, '\u{1F3BB}' * 50);
+      final odd = sampleDance().copyWith(
+        barnesReference: '${'b' * (kMaxBarnesReferenceLength - 1)}\u{1F3BB}',
+      );
+      expect(odd.barnesReference, 'b' * (kMaxBarnesReferenceLength - 1));
+    });
+
     test('a column value reads back as the list it was written from', () {
       final titles = ['Monymusk', 'Sir Archibald Grant of Monemusk'];
       final text = alternateTitlesColumnText(titles);
