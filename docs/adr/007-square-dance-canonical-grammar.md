@@ -466,7 +466,7 @@ resolution changes.
 *Decided by the maintainer on 20 November 2026 (Option A, §1.1). The details
 below are the author's.*
 
-The registry (§7) has two parts:
+The registry (§7) has three parts:
 
 - **The traditional core** (§7.1): the calls the held squares use, with
   traditional defaults. Some have no CALLERLAB equivalent (hey for four,
@@ -682,7 +682,7 @@ it stands alone (number of lines in brackets).
 | `circle` | `who`, `direction`, `fraction`, `size` | 8 dancers: full 16, ½ 8; 4 dancers: ½ 4, ¾ 8, full 8 | 10; 4 (2), 8 (6) | Parkes's ¾ circle of four is 8 (CALLERLAB 6). |
 | `forward_and_back` | `who` | 8 | 10; 8 (11) | "Always a full eight beats in New England" (Parkes). "Forward again and ..." is Q10. |
 | `pass_through` | `who` | 4 | 9; 4 (4) | Spelled "through" in the books, "thru" in some syllabi; dialect handles spelling. |
-| `chain` | `who`, `where`, `fraction` (`half` across, `threeQuarters` round the set with `four`, `full` over and back), `four`, `courtesy` (`normal`, `powerTurn`) | 8; over and back 16 | 8; 8 (8), 16 (1) | "[Robins] chain", "four [Robins] chain", "the same two [Robins] chain", "chain along the line". `powerTurn` is Fuerst's "power turn", a courtesy turn with an extra half. |
+| `chain` | `who`, `where`, `fraction` (`half` across, `threeQuarters` round the set with `four`, `full` over and back), `four`, `courtesy` (`normal`, `powerTurn`) | 8; three quarters 10 ⚠ (CALLERLAB, no traditional count seen); over and back 16 | 8; 8 (8), 16 (1) | "[Robins] chain", "four [Robins] chain", "the same two [Robins] chain", "chain along the line". `powerTurn` is Fuerst's "power turn", a courtesy turn with an extra half. |
 | `star` | `who`, `hand`, `fraction`, `size` | 4 dancers: once 8, ¾ 6 | 8; 8 (9), 6 (1), 4 (1) | |
 | `balance` | `who`, `whom`, `where` (`inPlace`, `wave`, `ring`) | 4 | 7; 4 (6) | Standalone balances, including in waves and rings. Before a swing it is the swing's `prefix: balance`. |
 | `do_si_do` | `who`, `whom`, `turns`, `shoulder` | 8 | 7; 8 (5) | Includes 1½ and "once around and a little bit more" into a wave. "See saw" is an alias for `shoulder: left` (§7.2). |
@@ -801,13 +801,15 @@ call missing below may still be used somewhere.
 | Cross Trail Thru | Advanced | Caller's Box glossary (1950s squares); about five Coffman contras | `cross_trails` ⚠ |
 
 No Challenge call was found. These Plus and Advanced calls were looked for
-and not found in any source read, including §4.4's wider search: Teacup
+and not found in any source read: Teacup
 Chain, Relay the Deucey, Spin Chain Thru, Load the Boat, Dixie Grand, Fan
 the Top, Track Two, Peel Off, Ping Pong Circulate, Linear Cycle, Chase
 Right, Coordinate, Explode the Wave, Grand Swing Thru, Partner Tag, Partner
 Hinge, Quarter Thru, Turn Thru, Acey Deucey and the diamond calls. Teacup
 Chain, Ping Pong Circulate and Acey Deucey are in §7.2 anyway, because the
-maintainer asked for them (§1.1). The rest stay out of scope (§5.2). Walk
+maintainer asked for them (§1.1). §4.4's wider search checked only those
+three, the Thar family, Do Paso, Pass the Sea, Trade the Wave and Dixie
+Style to a Wave, and found none of them. The rest stay out of scope (§5.2). Walk
 Around the Corner and Eight Chain Thru (both Plus) were not looked for and
 are worth checking. The contra taxonomy's `zig_zag` shares only its name
 with the Advanced call.
@@ -823,6 +825,9 @@ From §4.4's search. "Seen" is the number of distinct squares that use the
 call, as a lower bound, then any count a source states. Where no source
 states a count the default is this ADR author's estimate, marked ⚠, and
 `goodBeats` stays wide.
+
+Every §7.4 call is in the glossary's "Traditional" group with the §7.1
+core (§8.3).
 
 | ID | Parameters | Default beats | Seen | Notes |
 | --- | --- | --- | --- | --- |
@@ -994,8 +999,9 @@ filter below are new (phase 2).
   the new-dance form setting gives (ADR-006 S2, S6).
 - The square glossary can be sorted and filtered by program (maintainer
   requirement, §1.1), as a browsing structure like Taminations' by level.
-  The groups are the traditional core, then Mainstream, Plus, Advanced and
-  Challenge. A core call that CALLERLAB also lists (Swing, Dosado, Right
+  The groups are "Traditional" (the §7.1 core and the §7.4 calls, which have
+  no CALLERLAB program), then Mainstream, Plus, Advanced and Challenge (this
+  ADR author's grouping). A core call that CALLERLAB also lists (Swing, Dosado, Right
   and Left Thru, ...) carries that program's label too (§7.2), so filtering
   to Mainstream shows it alongside the borrowed calls. Each entry shows its
   own-words definition, parameters, default beats and program label.
