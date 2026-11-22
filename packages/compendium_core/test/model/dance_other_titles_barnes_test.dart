@@ -42,6 +42,23 @@ void main() {
       expect(dance.alternateTitles, ['Monymusk']);
     });
 
+    test('every dance holds the bounds: titles are cut on a character '
+        'boundary and only the first ones kept', () {
+      final titles = normalizeAlternateTitles([
+        '${'t' * (kMaxAlternateTitleLength - 1)}\u{1F3BB}',
+        for (var i = 0; i < kMaxAlternateTitles + 5; i++) 'Title $i',
+      ]);
+      expect(titles, hasLength(kMaxAlternateTitles));
+      // The fiddle needs two code units and only one fits: it is dropped
+      // whole, never left as half a surrogate pair.
+      expect(titles.first, 't' * (kMaxAlternateTitleLength - 1));
+      expect(titles.last, 'Title ${kMaxAlternateTitles - 2}');
+      final dance = sampleDance().copyWith(
+        alternateTitles: [for (var i = 0; i < 30; i++) 'T$i'],
+      );
+      expect(dance.alternateTitles, hasLength(kMaxAlternateTitles));
+    });
+
     test('a column value reads back as the list it was written from', () {
       final titles = ['Monymusk', 'Sir Archibald Grant of Monemusk'];
       final text = alternateTitlesColumnText(titles);

@@ -1,6 +1,7 @@
 import '../storage/permanent_deletion.dart';
 import '../storage/repositories/sync_local_repository.dart';
 import '../imports/dedupe.dart';
+import '../model/dance.dart' show normalizeAlternateTitles;
 import '../model/stored_timestamp.dart';
 import 'canonical_json.dart';
 import 'sync_codec.dart';
@@ -384,9 +385,12 @@ Map<String, Object?> _mergeDanceBodies(
   } else {
     body['interpreterIds'] = interpreterIds;
   }
-  // Every copy's other titles are kept, as interpreters are; omitted when
-  // there are none.
-  final alternateTitles = _unionStrings(candidates, 'alternateTitles');
+  // Every copy's other titles are kept, as interpreters are, up to the
+  // bound every [Dance] holds (so the merged body decodes to itself); omitted
+  // when there are none.
+  final alternateTitles = normalizeAlternateTitles(
+    _unionStrings(candidates, 'alternateTitles'),
+  );
   if (alternateTitles.isEmpty) {
     body.remove('alternateTitles');
   } else {

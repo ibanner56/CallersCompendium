@@ -1090,6 +1090,28 @@ void main() {
       isNot(contains('barnesReference')),
       reason: 'the newest copy has none, so the merged dance has none',
     );
+
+    // The union keeps the bound every dance holds, so the merged body
+    // decodes to itself on every device.
+    final full = planFreshAttachDedupe([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: {
+          'alternateTitles': [for (var i = 0; i < 15; i++) 'A$i'],
+        },
+      ),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: {
+          'alternateTitles': [for (var i = 0; i < 15; i++) 'B$i'],
+        },
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(full['alternateTitles'], hasLength(kMaxAlternateTitles));
   });
 
   test('fresh attach unions interpreters as it does authors, leaves the '

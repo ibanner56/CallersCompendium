@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+import '../imports/figure_parser.dart' show truncateOnRuneBoundary;
 import '../validation/validation.dart';
 import 'custom_field.dart';
 import 'dance_link.dart';
@@ -37,33 +38,43 @@ const int kMaxWalkthroughLength = 20000;
 const int kMaxMusicLabelLength = 100;
 
 /// Upper bound on the length of one of [Dance.alternateTitles], in UTF-16
-/// code units, enforced softly as [kMaxMusicLabelLength] is: the archive and
-/// sync decoders clamp a longer title rather than rejecting the dance.
+/// code units. [normalizeAlternateTitles] cuts a longer title (on a character
+/// boundary), so every [Dance] holds the bound and a file or sync body is
+/// clamped rather than rejected; the editor stops typing at it.
 const int kMaxAlternateTitleLength = 512;
 
 /// Upper bound on how many [Dance.alternateTitles] a dance keeps. A dance
 /// rarely has more than two other names; the bound only stops a hostile file
-/// from carrying an unbounded list. Decoders keep the first this many.
+/// from carrying an unbounded list. [normalizeAlternateTitles] keeps the first
+/// this many, so every [Dance] holds the bound; the editor stops at it.
 const int kMaxAlternateTitles = 20;
 
 /// Upper bound on the length of [Dance.barnesReference], in UTF-16 code
 /// units, enforced softly as [kMaxMusicLabelLength] is.
 const int kMaxBarnesReferenceLength = 100;
 
-/// [titles] as [Dance.alternateTitles] holds them: each trimmed with its
-/// runs of whitespace (line breaks included) made one space, then the empty
-/// ones and the repeats of an earlier one dropped, in the order given.
+/// [titles] as [Dance.alternateTitles] holds them: each with its runs of
+/// whitespace (line breaks included) made one space, trimmed, and cut to
+/// [kMaxAlternateTitleLength]; then the empty ones and the repeats of an
+/// earlier one dropped, in the order given; then the first
+/// [kMaxAlternateTitles] kept.
 ///
 /// A line break can never survive, which is what lets storage keep the list
-/// as one line per title.
+/// as one line per title. Because the [Dance] constructor applies it, the
+/// list a device stores, syncs and backs up is the list every reader decodes,
+/// so a receiver never rewrites it into a different value.
 List<String> normalizeAlternateTitles(Iterable<String> titles) {
   final seen = <String>{};
-  return [
-    for (final title in titles)
-      if (title.replaceAll(_alternateTitleWhitespace, ' ').trim() case final t
-          when t.isNotEmpty && seen.add(t))
-        t,
-  ];
+  final result = <String>[];
+  for (final title in titles) {
+    if (result.length == kMaxAlternateTitles) break;
+    final t = truncateOnRuneBoundary(
+      title.replaceAll(_alternateTitleWhitespace, ' ').trim(),
+      kMaxAlternateTitleLength,
+    ).trimRight();
+    if (t.isNotEmpty && seen.add(t)) result.add(t);
+  }
+  return result;
 }
 
 final RegExp _alternateTitleWhitespace = RegExp(r'\s+');
@@ -225,8 +236,8 @@ class Dance {
 
   /// Where the tune is printed in the Barnes books, as free text with the
   /// book and page in one value ("BIII p. 92"), or "NiB" for a tune Not in
-  /// Barnes; `''` when not given. Never parsed: shown, printed and searched
-  /// as typed.
+  /// Barnes; `''` when not given. Never parsed: shown on the dance page and
+  /// searched as typed. Printed cards and shared text don't show it yet.
   final String barnesReference;
   final DanceStatus status;
 

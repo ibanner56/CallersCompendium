@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/exclude_focus_when_collapsed.dart';
@@ -797,13 +798,14 @@ class DanceEditorForm extends StatelessWidget {
       required LingoTextEditingController textController,
       required String label,
       required String hint,
+      int maxLength = kMaxMusicLabelLength,
     }) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextFormField(
           key: ValueKey('$key-field'),
           controller: textController,
-          maxLength: kMaxMusicLabelLength,
+          maxLength: maxLength,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
@@ -854,6 +856,7 @@ class DanceEditorForm extends StatelessWidget {
           textController: controller.barnesReferenceController,
           label: l10n.danceEditorBarnesReferenceLabel,
           hint: l10n.danceEditorBarnesReferenceHint,
+          maxLength: kMaxBarnesReferenceLength,
         ),
       ],
     );
@@ -908,6 +911,9 @@ class DanceEditorForm extends StatelessWidget {
                 minLines: 1,
                 maxLines: null,
                 keyboardType: TextInputType.multiline,
+                // The bounds every saved dance holds, so nothing typed here
+                // is cut on save.
+                inputFormatters: const [AlternateTitlesInputFormatter()],
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorAlternateTitlesLabel,
                   helperText: l10n.danceEditorAlternateTitlesHelper,
@@ -1209,4 +1215,35 @@ Future<void> _fillWalkthroughFromSnippets(
   }
 
   controller.setWalkthroughText(assembled);
+}
+
+/// Keeps the editor's "Other titles" text inside the bounds every [Dance]
+/// holds: at most [kMaxAlternateTitles] lines of at most
+/// [kMaxAlternateTitleLength] code units each. An edit that would go past
+/// them is cut back to them, as a length limit cuts a paste, so what the
+/// person sees is what [normalizeAlternateTitles] keeps on save.
+@visibleForTesting
+class AlternateTitlesInputFormatter extends TextInputFormatter {
+  const AlternateTitlesInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final lines = newValue.text.split('\n');
+    final fits =
+        lines.length <= kMaxAlternateTitles &&
+        lines.every((line) => line.length <= kMaxAlternateTitleLength);
+    if (fits) return newValue;
+    final text = [
+      for (final line in lines.take(kMaxAlternateTitles))
+        truncateOnRuneBoundary(line, kMaxAlternateTitleLength),
+    ].join('\n');
+    final end = newValue.selection.end.clamp(0, text.length);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: end),
+    );
+  }
 }

@@ -1298,8 +1298,9 @@ recommendation; the answer is quoted.
    text), joining the unreleased v42 schema and archive v8. Implementer's
    calls, not yet ratified: one title per line rather than a JSON list, so
    a stored value can never fail to decode; at most 20 other titles of 512
-   characters, and 100 characters of Barnes reference, when read from an
-   untrusted file; a fresh-attach sync merge unions other titles and takes
+   characters each, held by every dance (the editor stops at them, so a
+   synced or restored copy never differs from the one saved), and 100
+   characters of Barnes reference; a fresh-attach sync merge unions other titles and takes
    the latest copy's Barnes reference; the choreography fingerprint
    ignores both, so a build from before them agrees on duplicates; the
    Title search scope reads other titles and All fields reads both. Also

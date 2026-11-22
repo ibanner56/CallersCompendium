@@ -660,15 +660,12 @@ List<String>? _clampChoices(List<String>? choices) {
   return out;
 }
 
-/// A dance's `alternateTitles`, bounded as untrusted input is: each title
-/// clamped to [kMaxAlternateTitleLength], then blanks and repeats dropped
-/// ([normalizeAlternateTitles]), then the first [kMaxAlternateTitles] kept.
-/// A missing key holds none.
+/// A dance's `alternateTitles`, bounded as untrusted input is by
+/// [normalizeAlternateTitles]: each title cut to [kMaxAlternateTitleLength],
+/// blanks and repeats dropped, the first [kMaxAlternateTitles] kept. A missing
+/// key holds none.
 List<String> _alternateTitlesFromJson(Map<String, Object?> m) =>
-    normalizeAlternateTitles([
-      for (final title in _stringList(m, 'alternateTitles'))
-        _clampLength(title, kMaxAlternateTitleLength),
-    ]).take(kMaxAlternateTitles).toList();
+    normalizeAlternateTitles(_stringList(m, 'alternateTitles'));
 
 Dance _danceFromJson(Map<String, Object?> m) => Dance(
   id: _str(m, 'id'),
