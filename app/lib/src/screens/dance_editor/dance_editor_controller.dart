@@ -335,8 +335,8 @@ class DanceEditorController extends ChangeNotifier {
   );
 
   /// Keys for the Authors and Interpreted by pickers, so a picker keeps its
-  /// typed search text and focus when an English dance's credit line flips
-  /// between names beside the year and names above it (a window resize or a
+  /// state (an open list's link to it, its focus) when an English dance's
+  /// credit line flips between names beside the year and names above it (a
   /// text size change), or moves when the form changes.
   final GlobalKey authorsPickerKey = GlobalKey(debugLabel: 'authors-picker');
   final GlobalKey interpretersPickerKey = GlobalKey(

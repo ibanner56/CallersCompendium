@@ -9306,6 +9306,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorTypeToAddOrCreateHint => 'Tapez pour ajouter ou créer…';
 
   @override
+  String get danceEditorChooseHint => 'Choisir…';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return 'Créer « $name »';
   }

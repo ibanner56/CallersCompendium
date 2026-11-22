@@ -643,7 +643,10 @@ nothing in it to lose.
 
 - **Title** — required.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
-  Type to find an existing author or create a new one.
+  Tap the field to open the list of people: check each author, type in the
+  search box to narrow the list, or choose **Create** to add someone new. The
+  pencil beside a name edits that person's details. **Interpreted by** and
+  **Tags** work the same way.
 - For an **English (ECD)** dance, the credits for its original and its
   interpretation come next, each as names with a year beside them: **Authors**
   with **Composed**, then **Interpreted by** with **Interpreted in**. Many

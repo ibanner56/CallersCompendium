@@ -9282,6 +9282,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Zum Hinzufügen oder Erstellen eingeben…';
 
   @override
+  String get danceEditorChooseHint => 'Auswählen…';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return '„$name“ erstellen';
   }
