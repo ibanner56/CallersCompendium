@@ -100,6 +100,14 @@ implementation work that is now mostly completed and update your ADR with
 any changes or learnings that you find are applicable to your original
 design." §12 records the result.
 
+From the maintainer's review on 22 November 2026:
+
+- On calling the repeated section "the figure", which the app uses for one
+  line: **"Add a note that “main figure” is the colloquialism and use “main”
+  as you suggested."** §2 defines the main part, and §8.1's kind is `main`.
+- On Appendix A.1: **"I’m fairly certain that the a2 circle is the heads
+  leading out to circle with the sides."** A.1's A2 line is re-encoded.
+
 ### 1.2 The proposal in brief
 
 Everything below is proposed by this ADR's author for the maintainer to
@@ -137,7 +145,7 @@ In this ADR a **figure** is one line of a dance (one call with its beats), as
 everywhere else in the app. The part of a square that is danced several
 times through, which callers colloquially call "the figure" or "the main
 figure", is the **main part**: an ordered list of figures, like a contra
-(the maintainer's wording, 22 November 2026).
+(the maintainer's decision, 22 November 2026, §1.1).
 
 1. **A square's main part is fixed, phrased and repeated.** It is danced
    several times through, usually twice with the heads leading and twice
@@ -303,7 +311,7 @@ What the 19 show:
 - **Labels.** Both books print contra-style phrase labels on every square.
   The syllabus versions omit them.
 - **No book prints an intro, break or ending.** The syllabi describe the
-  routine around the figure ("Intro; figure as above; figure with the sides
+  routine around the main part ("Intro; figure as above; figure with the sides
   leading; break; ..."), and one prints a break.
 
 ### 4.2 CALLERLAB documents (secondary)
@@ -1189,7 +1197,7 @@ B2  sq_promenade         who=everyone  variant=couples  destination=role1Place  
 
 - In A2 the heads lead out to the couple on their right and circle four
   with them, so all eight dance the circle and both lines form at once
-  (the maintainer's correction, 22 November 2026). The source gives one
+  (the maintainer's correction, 22 November 2026, §1.1). The source gives one
   count for the whole line, so it is a `sequence` with that count and
   untimed steps, as Q10 recommends; until that span is open to squares,
   the fallback is `sq_circle_to_a_line who=everyone` with "heads lead to
