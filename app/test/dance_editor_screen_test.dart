@@ -625,6 +625,29 @@ void main() {
     expect(saved!.form, DanceForm.square);
   });
 
+  testWidgets('type: a new dance changed to English starts on duple minor, '
+      'and its list has no contra formations', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+    expect(
+      _dropdownValue<FormationShape>(tester),
+      FormationShape.dupleImproper,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('form-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English (ECD)').last);
+    await tester.pumpAndSettle();
+
+    expect(_dropdownValue<FormationShape>(tester), FormationShape.dupleMinor);
+    final formation = find.byKey(const ValueKey('formation-field'));
+    await tester.ensureVisible(formation);
+    await tester.tap(formation);
+    await tester.pumpAndSettle();
+    expect(find.text('Duple minor'), findsWidgets);
+    expect(find.text('Improper'), findsNothing);
+  });
+
   testWidgets('type: a mouse click on a desktop picks another type', (
     tester,
   ) async {

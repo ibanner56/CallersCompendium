@@ -1819,6 +1819,7 @@ class DanceEditorController extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   void setForm(DanceForm value) {
+    _fitFormationToForm(from: _form, to: value);
     _form = value;
     _followForm();
     _fitSequenceTimingToForm(figureDrafts);
@@ -1827,6 +1828,26 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+  }
+
+  /// Starts the formation over when the dance changes to a form that does not
+  /// offer its shape: the shape becomes that form's first
+  /// ([core.offeredFormationShapes], duple minor for ECD and duple improper
+  /// for contra and square). A shape from the old form's list, such as
+  /// contra's "Improper", would otherwise stay selected and keep showing in
+  /// the new form's list ([offeredFormationShapes]). A shape the new form
+  /// offers is kept: triple minor, Sicilian circle and other are in both
+  /// lists, contra and square share theirs, and an English dance still on a
+  /// contra shape (converted or imported before ECD's shapes) keeps it when
+  /// changed back to contra. Choosing the form the dance already has changes
+  /// nothing. [improper] is left as it is: a new dance starts proper, and an
+  /// English dance changed to contra and back keeps its checkbox. Undo
+  /// restores the old shape.
+  void _fitFormationToForm({required DanceForm from, required DanceForm to}) {
+    if (from == to) return;
+    final offered = core.offeredFormationShapes(to);
+    if (offered.contains(_formationShape)) return;
+    _formationShape = offered.first;
   }
 
   void setImproper(bool value) {
