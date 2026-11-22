@@ -84,8 +84,9 @@ sealed class Operation {
   /// The test is the figure's **premise**, not its effect: a figure preserves
   /// the offsets only if it is danceable *while standing in a wave*. That is
   /// `balance` — balancing a wave is the ordinary thing to do in one —
-  /// `stand_still`, and `rory_o_more`, which has no meaning outside a wave at
-  /// all; and only them.
+  /// `stand_still`, `rory_o_more`, which has no meaning outside a wave at
+  /// all, and an `allemande` of a quarter or three-quarter amount, which turns
+  /// a pair from the wave it is holding (§8.5.7); and only them.
   ///
   /// Moving nobody is not sufficient. `balance_the_ring` needs a ring of four
   /// with hands joined all the way round and `long_lines` is danced in the two

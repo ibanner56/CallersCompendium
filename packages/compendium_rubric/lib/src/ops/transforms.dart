@@ -313,6 +313,136 @@ Formation quarterTurnIntoWave(
   return formation.withUpdates(changes);
 }
 
+/// The two shapes in which a pair already stands **holding hands in a wave**,
+/// so that a turn can start from the hold rather than from facing each other
+/// (`docs/fundamentals.md` §8.5.7).
+enum WaveHoldShape {
+  /// A side pair of a short wave: one dancer in a side column and the other in
+  /// the offset column beside it, in the band's two rows, facing up and down
+  /// the hall. Physically the two stand in one line across the set.
+  short,
+
+  /// A pair in a side long wave (§8.5.5): both in the same side column, in
+  /// adjacent rows, facing across the set in opposite directions.
+  long,
+}
+
+/// How [pair] is holding hands in a wave, or `null` when it is not.
+///
+/// The hand comes from the geometry, as it always does here (§8.5.2): a dancer
+/// holds right hands with the other when the other stands on their right.
+/// Only the two side-pair shapes of [WaveHoldShape] are recognized. A centre
+/// pair of a short wave and a centre long wave are not, so a turn they start
+/// leaves the wave and is turned from facing (`Allemande`, §8.5.7).
+({WaveHoldShape shape, Hand hand})? waveHoldOf(
+  Formation formation,
+  DancerPair pair,
+) {
+  final a = formation.stateOf(pair.a);
+  final b = formation.stateOf(pair.b);
+  if ((a.row - b.row).abs() != 1) return null;
+  if (!a.facing.isConcrete || a.facing.reversed != b.facing) return null;
+
+  const east = kColumnCount - 1;
+  final cols = {a.col, b.col};
+  final WaveHoldShape shape;
+  final Facing towardB;
+  final upper = a.row < b.row ? a : b;
+  if (a.facing.isAlongHall &&
+      // A short wave faces its top row Down (§8.5.1); the same cells facing
+      // the other way are two dancers back to back, holding nothing.
+      upper.facing == Facing.down &&
+      (cols.containsAll(const {0, 1}) ||
+          cols.containsAll(const {east - 1, east}))) {
+    shape = WaveHoldShape.short;
+    towardB = b.col > a.col ? Facing.acrossEast : Facing.acrossWest;
+  } else if (a.facing.isAcross && a.col == b.col && _isSideColumn(a.col)) {
+    shape = WaveHoldShape.long;
+    towardB = b.row > a.row ? Facing.down : Facing.up;
+  } else {
+    return null;
+  }
+  if (a.facing.turnedRight == towardB) {
+    return (shape: shape, hand: Hand.right);
+  }
+  if (a.facing.turnedLeft == towardB) return (shape: shape, hand: Hand.left);
+  return null;
+}
+
+/// Returns [formation] with each pair in [pairs], already holding [hand] hands
+/// in a wave ([waveHoldOf]), turned a quarter — or, when [threeQuarters], three
+/// quarters — about its own midpoint, as a rigid pair (§8.5.7). *(User-ruled.)*
+///
+/// Positions and facings rotate together, clockwise for the right hand and
+/// counter-clockwise for the left. A quarter of a turn takes a pair's line
+/// through a right angle, so the two shapes trade places:
+///
+/// - a **short-wave** side pair ends in the side long wave of its own side
+///   column, the dancer the rotation carries north in the band's top row;
+/// - a **long-wave** pair ends as the side pair of a short wave, the dancer the
+///   rotation carries toward the centre in the offset column, and each dancer
+///   in the row a short wave gives their facing (top row Down, bottom row Up,
+///   §8.5.1).
+Formation quarterTurnFromWaveHold(
+  Formation formation,
+  List<DancerPair> pairs, {
+  required Hand hand,
+  required bool threeQuarters,
+}) {
+  final clockwise = (hand == Hand.right) != threeQuarters;
+  ({int x, int y}) turn(({int x, int y}) v) =>
+      clockwise ? (x: v.y, y: -v.x) : (x: -v.y, y: v.x);
+
+  final changes = <DancerId, DancerState>{};
+  for (final pair in pairs) {
+    final hold = waveHoldOf(formation, pair);
+    if (hold == null || hold.hand != hand) {
+      throw ArgumentError.value(pair, 'pairs', 'is not holding $hand hands');
+    }
+    final a = formation.stateOf(pair.a);
+    final b = formation.stateOf(pair.b);
+    final topRow = a.row < b.row ? a.row : b.row;
+    final bottomRow = topRow + 1;
+    final sideCol = _isSideColumn(a.col) ? a.col : b.col;
+    final inward = sideCol == 0 ? 1 : -1;
+
+    for (final (id, self, other) in [(pair.a, a, b), (pair.b, b, a)]) {
+      // The dancer's offset from the pair's midpoint, x east and y north. In a
+      // short wave the pair stand in one physical line, whatever rows the
+      // matrix keeps them in; in a long wave the top row is the northern one.
+      final from = hold.shape == WaveHoldShape.short
+          ? (x: self.col > other.col ? 1 : -1, y: 0)
+          : (x: 0, y: self.row < other.row ? 1 : -1);
+      final to = turn(from);
+      final facing = _facingOf(turn(_vectorOf(self.facing)));
+      final Position at;
+      if (hold.shape == WaveHoldShape.short) {
+        at = Position(to.y > 0 ? topRow : bottomRow, sideCol);
+      } else {
+        final row = facing == Facing.down ? topRow : bottomRow;
+        at = Position(row, to.x == inward ? sideCol + inward : sideCol);
+      }
+      changes[id] = self.copyWith(position: at, facing: facing);
+    }
+  }
+  return formation.withUpdates(changes);
+}
+
+({int x, int y}) _vectorOf(Facing facing) => switch (facing) {
+  Facing.up => (x: 0, y: 1),
+  Facing.down => (x: 0, y: -1),
+  Facing.acrossEast => (x: 1, y: 0),
+  Facing.acrossWest => (x: -1, y: 0),
+  Facing.flexible => throw ArgumentError.value(facing, 'facing'),
+};
+
+Facing _facingOf(({int x, int y}) v) => switch (v) {
+  (x: 0, y: 1) => Facing.up,
+  (x: 0, y: -1) => Facing.down,
+  (x: 1, y: 0) => Facing.acrossEast,
+  _ => Facing.acrossWest,
+};
+
 /// Returns [formation] with every dancer standing in a wave offset moved back
 /// to their side column (`docs/fundamentals.md` §8.5.4).
 ///
@@ -334,9 +464,42 @@ Formation quarterTurnIntoWave(
 /// free**. That is well defined by construction, because a centre wave is
 /// role-scoped precisely so that each rank puts one dancer in the centre and
 /// leaves the other holding its line.
-Formation normalizeWaveOffsets(Formation formation) {
+///
+/// [alsoOutsideBands] also settles the rows no band covers. A figure that
+/// keeps the offsets so it can read them, and then steps into the other band
+/// phase to reach the next couples, finds the end rows waiting out there; the
+/// offsets in them are still the aligned phase's, and are settled the same way
+/// (a dancer moves only into an empty cell, so a line of four is never
+/// collapsed).
+Formation normalizeWaveOffsets(
+  Formation formation, {
+  bool alsoOutsideBands = false,
+}) {
   final changes = <DancerId, DancerState>{};
-  for (final band in handsFourBands(formation)) {
+  final bands = handsFourBands(formation);
+  if (alsoOutsideBands) {
+    final covered = {
+      for (final b in bands) ...[b.topRow, b.bottomRow],
+    };
+    for (var row = 0; row < formation.rowCount; row++) {
+      if (covered.contains(row)) continue;
+      final ids = formation.dancersInRow(row);
+      final occupied = {for (final id in ids) formation.stateOf(id).col};
+      final occupiedSides = {
+        for (final col in occupied)
+          if (_isSideColumn(col)) col,
+      };
+      for (final id in ids) {
+        final state = formation.stateOf(id);
+        final home = _waveHomeColumn(state.col, occupiedSides);
+        if (home == null || home == state.col || occupied.contains(home)) {
+          continue;
+        }
+        changes[id] = state.movedTo(Position(row, home));
+      }
+    }
+  }
+  for (final band in bands) {
     if (lineOfFourRow(formation, band) != null) continue;
     for (final row in [band.topRow, band.bottomRow]) {
       final ids = formation.dancersInRow(row);

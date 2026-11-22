@@ -403,8 +403,9 @@ the wave from c0/c4 rather than compounding two offsets, and `form_a_long_wave`'
 needs no code at all, because returning a centre dancer to the line they left *is* this rule.
 The figures that opt out are the ones **danceable while standing in a wave** — `balance`, whose
 canonical use is balancing the wave itself, `rory_o_more`, whose whole subject is the wave it
-slides (normalizing first would delete it), and `stand_still`. The test is the figure's premise,
-not its effect: moving nobody is not enough. `balance_the_ring` needs a ring of four with hands
+slides (normalizing first would delete it), `stand_still`, and an `allemande` of a quarter or
+three-quarter amount, which turns a pair from the wave it is holding (§8.5.7). The test is
+the figure's premise, not its effect: moving nobody is not enough. `balance_the_ring` needs a ring of four with hands
 joined all the way round and `long_lines` is danced in the two side lines; neither shape is a
 wave, so the dancers must come out of one before either can begin, and both settle like any
 other figure.
@@ -459,6 +460,10 @@ cannot express. This is ruled for **`do_si_do`, `allemande` and `shoulder_round`
 turns that carry a usable direction token; every other member of the turn family still refuses
 a quarter, each for its own reason (see `taxonomy.md`).
 
+Four things define the landing from a pair facing each other. A pair that is **already
+holding hands in a wave** is different, and §8.5.7 covers it: there an `allemande` turns the
+pair rigidly, so the rules below about columns, rows and facing do not apply.
+
 Four things define the landing:
 
 **Along the set only.** The offset is a sideways step, so the turning pair must be
@@ -493,6 +498,52 @@ facing from the passing shoulder — is **overridden** on the quarter: every dan
 the wave's resting facing for the row they land in (§8.5.1 and §8.5.3, top row Down and
 bottom row Up here). A wave whose dancers did not alternate would not be a wave, and that
 property outranks the figure's own facing rule.
+
+### 8.5.7 A quarter turn from a wave
+
+> **Status:** user-ruled (2026-11-22, for `allemande`): a pair already holding hands in a wave
+> turns **from where it stands**. `do_si_do` and `shoulder_round`, which hold no hands, are not
+> covered and still leave the wave first.
+
+§8.5.6 counts a turn from a pair **facing each other**, which is how a turn is called from an
+ordinary position. A pair already standing in a wave is somewhere else: they are holding hands,
+side by side and facing opposite ways, so a quarter of a turn rotates that hold through a right
+angle rather than building one. Settling them back to facing each other first (§8.5.4) and then
+turning would land every such turn a quarter off — which is exactly what the Caller's Box
+dances that go *wave, allemande ¾, long wave, allemande ¾, wave* contradicted, by naming the
+other role in the centre of the final wave.
+
+The pair is turned **rigidly about its own midpoint**: positions and facings rotate together,
+clockwise for the right hand and counter-clockwise for the left, through a quarter or three
+quarters. Two holds are recognized:
+
+- **a short-wave side pair** — one dancer in a side column, the other in the offset column beside
+  it, in the band's two rows, the top row facing Down (§8.5.1). The pair stand in one physical
+  line across the set, so a quarter of a turn stands them **along** it: they finish in the side
+  long wave of their own side column (§8.5.5), the dancer the rotation carries north in the top
+  row, both facing across.
+- **a side long-wave pair** — both in the same side column, in adjacent rows, facing across the
+  set in opposite directions. A quarter of a turn takes them **across** the set: they finish as
+  the side pair of a short wave, the dancer the rotation carries toward the centre in the offset
+  column, each in the row the short wave gives their facing (top row Down, bottom row Up).
+
+```
+from a right-hand wave, neighbours on the sides:     allemande right 3/4:
+
+ .   R1-A  .    .   L1-A                             R1-A  .    .    .   L1-A   (face →)
+L2-B  .    .   R2-B   .                              L2-B  .    .    .   R2-B   (face ←)
+                                                    (the Robins face in)
+and a second 3/4 from there:
+
+ .   L2-B  .    .   R2-B                             the Larks are now in the centre
+R1-A  .    .   L1-A   .
+```
+
+**Holding the hand is part of the hold.** Which hand a pair holds is read from the geometry as
+always (§8.5.2). A pair whose hold is the *other* hand — an allemande left from a right-hand
+wave — is not turning from a hold it has, so it leaves the wave and turns from facing each
+other, exactly as before this ruling. So does every pair that is not one of the two shapes
+above, such as the centre pair of a short wave. Whole and half turns still settle the wave first.
 
 ---
 
@@ -909,9 +960,10 @@ Still open:
   waves, c2 role-scoped for a centre long wave, concrete alternating facing, automatic
   normalization on exit, and no stored wave flag. What remains is **worked examples** for the
   two figures still held (`pass_the_ocean` — held on its across-facing entry state, not on the
-  wave model — and `rory_o_more`), and a ruling on **quarter turns**: the representation now
-  exists to land one in, but where exactly a ¾ allemande leaves each dancer is still unasked.
-  *(§8.5)*
+  wave model — and `rory_o_more`). Quarter turns are ruled: §8.5.6 lands one from facing, and
+  §8.5.7 turns an `allemande` pair already holding hands in a wave from where it stands. Still
+  unruled: a half or whole turn from a wave (still settled first), and `do_si_do` /
+  `shoulder_round` from one. *(§8.5)*
 - **Non-duple formations** — triple, 3×3, 4×4, others: deferred. Their operations generally do
   **not** match duple results, so each needs its own set of definitions rather than a reuse of
   these. *(§2)*

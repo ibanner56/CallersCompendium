@@ -752,11 +752,17 @@ To be defined later with worked examples.
     builds the canonical wave, `left` its mirror, and ¾ is a half turn followed by the same
     handed quarter (so the other role ends in the centre). Across-the-set quarters are
     **deferred**.
-- **normalization:** none — not a normalizing figure.
+  - **quarter from a wave** (fundamentals §8.5.7, user-ruled) ⇒ a pair already holding `hand`
+    in a wave — a short-wave side pair, or a pair in a side long wave — turns **rigidly from
+    where it stands**: a short wave and ¾ lands in a long wave, a long wave and ¾ in a short
+    wave. Any other pair leaves the wave and turns from facing, as above.
+- **normalization:** none — not a normalizing figure. A whole or half turn settles wave offsets
+  first (§8.5.4); a quarter or three-quarter keeps them, because it may start from the wave.
 - **facing (output):** per the rotation-facing principle (CallersCompendium `gate_facing`): a
   turn-in-place figure ends **unchanged on a full turn, opposite on a half turn**. On a quarter
   the **wave owns the facing** — every dancer takes the wave's resting facing for the row they
-  land in (§8.5.1), overriding the rotation. A **Flexible** input stays Flexible on whole and
+  land in (§8.5.1), overriding the rotation; a quarter from a wave (§8.5.7) rotates the facing
+  with the pair instead, since the pair is already holding hands. A **Flexible** input stays Flexible on whole and
   half turns (opposite of undetermined is undetermined).
 - **interaction scope:** within the current hands four (like `do_si_do`).
 - **h4 contribution** (D7): 0.
@@ -2219,8 +2225,8 @@ To be defined later with worked examples.
   - A landing is **occupied** — by a held dancer, or by another slider — → refused. (`Formation`
     throws on a shared cell, so this must be caught before projection.)
 - **§8.5.4 exemption:** `preservesWaveOffsets => true`. This is a wave figure that reads the wave,
-  so normalizing the offsets away before it ran would delete its entire subject. It is the third
-  member of that list, alongside `balance` and `stand_still`.
+  so normalizing the offsets away before it ran would delete its entire subject. It is on that
+  list alongside `balance`, `stand_still` and a quarter-amount `allemande`.
 - **effect:** the landings computed above, applied together.
 - **interaction scope:** the whole set (waves span bands).
 - **h4 contribution** (D7): 0.

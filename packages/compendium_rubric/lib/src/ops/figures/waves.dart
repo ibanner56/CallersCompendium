@@ -789,11 +789,11 @@ final class PassTheOcean extends Operation {
 /// to c5 and is rejected; a slide right lands cleanly and the return slide
 /// left then works, which is exactly the pair of slides a dance calls.
 ///
-/// Declares [Operation.preservesWaveOffsets] — the third figure to, alongside
-/// `balance` and `stand_still`. It meets the §8.5.4 premise squarely: this is
-/// not a figure that merely tolerates a wave but one that has no meaning
-/// outside of it, so settling the offsets away first would delete the very
-/// state it reads.
+/// Declares [Operation.preservesWaveOffsets], alongside `balance`,
+/// `stand_still` and a quarter-amount `allemande`. It meets the §8.5.4
+/// premise squarely: this is not a figure that merely tolerates a wave but one
+/// that has no meaning outside of it, so settling the offsets away first would
+/// delete the very state it reads.
 final class RoryOMore extends Operation {
   const RoryOMore({
     this.who = WhoSet.everyone,

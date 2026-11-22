@@ -5,7 +5,9 @@ part of '../operation.dart';
 ///
 /// Each takes a numeric amount and sorts it into the same four buckets — a
 /// whole turn returns the dancers to place, a half exchanges them, and a
-/// quarter or three-quarter lands the pair in a short wave (§8.5.6).
+/// quarter or three-quarter lands the pair in a short wave (§8.5.6), except
+/// that an `allemande` pair already holding its hand in a wave turns from
+/// there instead (§8.5.7).
 /// `allemande` and `shoulder_round` each carry a direction token that fixes
 /// that wave's handedness and so implement it; the rest of the family carries
 /// no usable direction token, or has no worked example, and refuses both
@@ -38,15 +40,12 @@ OpError? _requireWholeOrHalf(num amount, String moveName, String param) {
 /// refuse alike.
 OpError? _requireAlongTheSet(
   Formation formation,
-  WhoSet who,
   String moveName,
   String param,
-  num amount,
-) {
-  final across = firstPairAcrossTheSet(
-    formation,
-    whoPairsInSet(formation, who),
-  );
+  num amount, {
+  required List<DancerPair> pairs,
+}) {
+  final across = firstPairAcrossTheSet(formation, pairs);
   if (across == null) return null;
   return OpError(
     ErrorKind.unsupportedParam,
@@ -68,6 +67,10 @@ OpError? _requireAlongTheSet(
 /// improper start builds the canonical wave, and 1¾ builds the same wave with
 /// the other role in the centre, because the half turn trades the couples
 /// between rows before the offset is taken.
+///
+/// A pair **already holding its hand in a wave** is the exception: it turns
+/// rigidly from where it stands, so a short wave and ¾ lands in a long wave
+/// and a long wave and ¾ in a short wave (§8.5.7). *(User-ruled.)*
 final class Allemande extends Operation {
   const Allemande({
     this.who = WhoSet.neighbors,
@@ -98,10 +101,28 @@ final class Allemande extends Operation {
   @override
   bool get progressionEligible => true;
 
+  /// A quarter or three-quarter turn reads the wave it may start from, so it
+  /// keeps the offsets: a pair already holding hands in a wave turns from
+  /// there (§8.5.7). Whole and half turns settle them as before.
+  @override
+  bool get preservesWaveOffsets => rotationAmountOf(turn).landsInWave;
+
   @override
   OpError? checkPreconditions(Formation formation) {
     if (!rotationAmountOf(turn).landsInWave) return null;
-    return _requireAlongTheSet(formation, who, name, 'turn', turn);
+    // A pair already holding this hand in a wave turns from there (§8.5.7).
+    // Every other pair leaves the wave first, exactly as before, and is held
+    // to the along-the-set rule from the settled cells.
+    return _requireAlongTheSet(
+      normalizeWaveOffsets(formation, alsoOutsideBands: true),
+      name,
+      'turn',
+      turn,
+      pairs: [
+        for (final pair in whoPairsInSet(formation, who))
+          if (!_heldFor(formation, pair)) pair,
+      ],
+    );
   }
 
   @override
@@ -109,13 +130,36 @@ final class Allemande extends Operation {
     final amount = rotationAmountOf(turn);
     if (amount == RotationAmount.whole) return Ok(formation);
     if (amount.landsInWave) {
+      final threeQuarters = amount == RotationAmount.threeQuarter;
+      final pairs = whoPairsInSet(formation, who);
+      final held = [
+        for (final pair in pairs)
+          if (_heldFor(formation, pair)) pair,
+      ];
+      // Everyone not turning from a hold leaves the wave as any other figure
+      // would (§8.5.4); the held pairs are then turned from where they stood.
+      final settled = quarterTurnIntoWave(
+        normalizeWaveOffsets(formation, alsoOutsideBands: true),
+        [
+          for (final pair in pairs)
+            if (!held.contains(pair)) pair,
+        ],
+        hand: hand,
+        afterHalfTurn: threeQuarters,
+      );
+      final turned = quarterTurnFromWaveHold(
+        formation,
+        held,
+        hand: hand,
+        threeQuarters: threeQuarters,
+      );
       return Ok(
-        quarterTurnIntoWave(
-          formation,
-          whoPairsInSet(formation, who),
-          hand: hand,
-          afterHalfTurn: amount == RotationAmount.threeQuarter,
-        ),
+        settled.withUpdates({
+          for (final pair in held) ...{
+            pair.a: turned.stateOf(pair.a),
+            pair.b: turned.stateOf(pair.b),
+          },
+        }),
       );
     }
     return Ok(
@@ -126,6 +170,11 @@ final class Allemande extends Operation {
       ),
     );
   }
+
+  /// Whether [pair] already holds this allemande's [hand] in a wave, and so
+  /// turns from there rather than from facing each other.
+  bool _heldFor(Formation formation, DancerPair pair) =>
+      waveHoldOf(formation, pair)?.hand == hand;
 
   @override
   bool operator ==(Object other) =>
@@ -267,7 +316,13 @@ final class ShoulderRound extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     if (!rotationAmountOf(turn).landsInWave) return null;
-    return _requireAlongTheSet(formation, who, name, 'turn', turn);
+    return _requireAlongTheSet(
+      formation,
+      name,
+      'turn',
+      turn,
+      pairs: whoPairsInSet(formation, who),
+    );
   }
 
   @override

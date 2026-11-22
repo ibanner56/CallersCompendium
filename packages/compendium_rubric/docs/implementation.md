@@ -414,8 +414,9 @@ authority. Implementation notes:
 - Offsets are a **sub-position within the side columns**, derived from facing —
   they are not a separate grid state and there is **no stored wave flag**.
 - `Operation.apply` **settles offsets before every figure** except those with
-  `preservesWaveOffsets` — which is exactly `balance`, `stand_still` and
-  `rory_o_more`. The test is the figure's *premise* (is it danceable while
+  `preservesWaveOffsets` — which is exactly `balance`, `stand_still`,
+  `rory_o_more` and a quarter or three-quarter `allemande` (fundamentals
+  §8.5.7). The test is the figure's *premise* (is it danceable while
   standing in a wave?), **not** whether it happens to move anybody.
   `balance_the_ring` and `long_lines` move nobody and still settle, because
   neither shape is a wave.
