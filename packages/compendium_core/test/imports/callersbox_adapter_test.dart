@@ -778,8 +778,15 @@ void main() {
             expect(structure.raw, '4*4*3');
             expect(unreadable(draft), isFalse);
 
+            // The structure itself: four 12-beat phrases (the standard one is
+            // four of 16, 64 beats).
+            expect(structure.totalBeats, 48);
+            expect(structure.beatsPerPhrase, 12);
+
             final figures = figuresOf(draft.dance);
             final sections = deriveSections(figures, structure);
+            // `startBeat` is the running total of the figures' own beats, so it
+            // does not depend on the structure; the labels below do.
             expect([for (final s in sections) s.startBeat], [0, 12, 24, 36]);
             expect(
               [for (final s in sections) s.label],

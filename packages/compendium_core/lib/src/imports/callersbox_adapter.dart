@@ -1916,7 +1916,7 @@ class CallersBoxAdapter implements SourceAdapter {
   /// The stored structure for a Caller's Box `PhraseStructure` field, and the
   /// note that came after its formula, if any.
   ///
-  /// A value the model's grammar accepts is kept exactly as given. Otherwise a
+  /// A value the model's grammar accepts is kept as given, trimmed. Otherwise a
   /// single trailing `( … )` note is split off and what remains must itself
   /// parse (bounds included): the structure is then the bare formula, so no
   /// free text reaches the stored (synced, deduplicated) format, and the note
@@ -1944,6 +1944,8 @@ class CallersBoxAdapter implements SourceAdapter {
         // Control and bidi characters go first, so the whitespace around one
         // collapses with the rest instead of leaving a double space; a newline
         // would otherwise be deleted outright by the single-line sanitizer.
+        // (A line or paragraph separator, U+2028/U+2029, is removed rather
+        // than spaced by the sanitizer, so it can join the words around it.)
         final note = sanitizeImportedText(
           split.group(2)!,
         ).replaceAll(_whitespaceRun, ' ').trim();
