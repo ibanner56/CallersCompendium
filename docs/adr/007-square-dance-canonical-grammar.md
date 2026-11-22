@@ -107,6 +107,17 @@ From the maintainer's review on 22 November 2026:
   as you suggested."** §2 defines the main part, and §8.1's kind is `main`.
 - On Appendix A.1: **"I’m fairly certain that the a2 circle is the heads
   leading out to circle with the sides."** A.1's A2 line is re-encoded.
+- On §7.3's deferral of traditional calls no held square uses: **"Include
+  figures that our sources indicate are present in trad squares - our held
+  collection is not comprehensive. Also include teacup chain, ping pong
+  circulate, and acey deucey."** The maintainer also asked for a wider
+  search of traditional sources (CDSS, the UNH library's Ralph Page
+  material, other reputable collections). §4.4 records it, and §7.4 adds
+  the calls it found.
+- On calls named "Dixie": **"Use a plain descriptive name. We’ll probably
+  draw flak for it but I’m not super comfortable publishing an app with the
+  word Dixie in it by default. If someone cares they can update their
+  dialect."** §7.5 gives the names.
 
 ### 1.2 The proposal in brief
 
@@ -121,7 +132,9 @@ decision.
   this as Option A, §1.1). The registry starts
   from the calls traditional squares actually use, and adds the club calls
   they borrow, including the few Plus and Advanced calls that traditional
-  squares and contras were found to use (§7.3). CALLERLAB programs are kept
+  squares and contras were found to use (§7.3) and three the maintainer
+  asked for. A wider search of traditional sources adds the calls they use
+  beyond the held squares (§4.4, §7.4). CALLERLAB programs are kept
   only as a label in the glossary.
 - **Beats are stored on every call.** Defaults follow traditional
   phrase-filling practice, and the check that matters is that each phrase
@@ -342,6 +355,45 @@ a call is danced. It was not consulted for this draft, and the
 implementation PRs should each say whether it was consulted and confirm
 nothing was taken.
 
+### 4.4 Wider traditional sources
+
+The held squares are not a complete record of what traditional squares use
+(the maintainer, 22 November 2026, §1.1). A second search read twelve Ralph
+Page Dance Legacy Weekend syllabi (1990–2012, about 190 square entries,
+many repeated across years), two 1949 issues of Page's *Northern Junket*,
+the CDSS *Be Square* handbook and the Morgantown chapter of *West Virginia
+Squares*, Colin Hume's notes on American squares, an Ontario old-time
+squares group's pages and the Caller's Box glossary.
+[trad-squares.md](../research/trad-squares.md) has the reading; Appendix B
+lists the sources. The UNH finding aids for the Ralph Page and Square Dance
+Foundation of New England collections hold no figure text online.
+
+What it adds to §4.1:
+
+- **The same shape.** New England squares in the syllabi are a main part
+  with an intro, breaks and an ending, and a count on each line. The older
+  syllabi print A1–B2 labels on many Parkes, Page and Sannella squares;
+  later ones mostly print counts only. Singing calls give no counts.
+  Southern figures are patter over 16-beat phrases.
+- **More calls.** Grand right and left, four [Robins] chain and its grand
+  chain forms, grand square, box the gnat, sashays and rollaways, arches and
+  ducking, splitting a couple, courtesy and power turns, weaving the ring,
+  California twirl, basket swings, "cheat or swing", honors, and a handful
+  of single uses. §7.4 takes those seen in more than one square, or named by
+  a glossary as traditional (this ADR author's rule).
+- **Southern visiting-couple figures** (Birdie in the Cage, Duck for the
+  Oyster, Take a Peek, Texas Star, Figure Eight and others) are whole main
+  parts, not calls: each is a sequence of calls danced by each couple in
+  turn. They are stored as dances, and their distinctive actions are calls
+  where §7.4 lists them (`duck_through`, `peek`, `arch`, `mountain_do_si_do`)
+  (this ADR author's call). *Alternative rejected:* one call per named
+  figure, which would hide the calls inside each and leave the phrase check
+  nothing to count. The maintainer asked to include what the sources show
+  (§1.1); if a named figure should also be a call, it is one §7.4 row.
+- **Partly read.** The syllabi are long. Each was read in full for about
+  its first 40,000 characters and only as a machine summary after that, so
+  §7.4's counts are lower bounds.
+
 ## 5. Design principles
 
 Each principle is a proposal by this ADR's author, except where noted: the
@@ -422,10 +474,16 @@ The registry (§7) has two parts:
 - **Borrowed club calls** (§7.2): CALLERLAB Mainstream calls, plus the Plus
   and Advanced calls that traditional squares or contras are found to use
   (§7.3): Circle to a Line (traditional "break to a line"), the Thar family,
-  Shoot the Star, Do Paso, See Saw, Pass the Sea, Trade the Wave, Dixie Style
-  to a Wave and Cross Trail Thru. Their meaning is CALLERLAB's, written in our
-  own words, except where a traditional meaning differs and is kept as a
-  variant.
+  Shoot the Star, Do Paso, See Saw, Pass the Sea, Trade the Wave, Pull By to
+  a Wave (CALLERLAB's "Dixie Style to a Wave", §7.5) and Cross Trail Thru,
+  and the three Plus calls the maintainer asked for by name: Teacup Chain,
+  Ping Pong Circulate and Acey Deucey. Their meaning is CALLERLAB's, written
+  in our own words, except where a traditional meaning differs and is kept as
+  a variant.
+- **Traditional calls from the wider sources** (§7.4): calls outside
+  CALLERLAB, or danced the traditional way, that the Ralph Page Legacy
+  syllabi and the Southern and Canadian collections use but no held square
+  does (§4.4).
 
 Each borrowed call, and each core call that CALLERLAB also lists, carries
 its **CALLERLAB program as a glossary label** ("Mainstream", "Plus",
@@ -444,7 +502,8 @@ glossary can sort and filter by it (§8.3). Nothing else is derived from it:
 
 Everything the first draft built for club calling beyond Mainstream is out of
 scope: Plus, Advanced and Challenge calls that no traditional or contra
-source was found to use (§7.3), edition-versioned programs, and calls that
+source was found to use and the maintainer did not ask for (§7.3),
+edition-versioned programs, and calls that
 take another call as an argument ("Clover and (anything)"). §11 lists them
 under revisit triggers. As the maintainer expects (§1.1), single Advanced or
 Challenge calls will be requested for choreographed traditional squares. The
@@ -575,13 +634,14 @@ stored as `unspecified`, never filled with a usual value: Fuerst's bare
 | `direction` | A turning or travel direction | `left`, `right`, `in`, `out` |
 | `destination` | Where a promenade ends, as the source states it | `home`, `role1Place`, `role2Place` |
 | `where` | Where a call is danced | `across`, `alongTheLine`, `inTheCenter`, `withTheSides` |
-| `size` | Dancers in a circle or star | `2`, `4`, `8` |
+| `size` | Dancers in a circle, star or basket | `2`, `3`, `4`, `8` |
+| `around` | Whom a dancer goes around | `one`, `two` (`separate`, `split`, `peek`) |
 | `count` | A number of hands | Square Through 1–5 |
 | `prefix` | What the call starts with, as contra's swing names it | `none`, `balance` (swing) |
 | `variant` | A named family member | Promenade: `couples`, `singleFile`, `outside` |
 | `beats` | Beats, as in contra (§5.3) | `0`–`64` |
 
-Parameters that only one call uses (`four`, `courtesy`, `around`, `into`,
+Parameters that only one call uses (`four`, `courtesy`, `into`,
 `fullTurn`, `reverse`, `fullAround`) and per-call values such as `balance`'s
 `where` (`inPlace`, `wave`, `ring`) are defined with the call in §7.
 
@@ -622,7 +682,7 @@ it stands alone (number of lines in brackets).
 | `circle` | `who`, `direction`, `fraction`, `size` | 8 dancers: full 16, ½ 8; 4 dancers: ½ 4, ¾ 8, full 8 | 10; 4 (2), 8 (6) | Parkes's ¾ circle of four is 8 (CALLERLAB 6). |
 | `forward_and_back` | `who` | 8 | 10; 8 (11) | "Always a full eight beats in New England" (Parkes). "Forward again and ..." is Q10. |
 | `pass_through` | `who` | 4 | 9; 4 (4) | Spelled "through" in the books, "thru" in some syllabi; dialect handles spelling. |
-| `chain` | `who`, `where`, `fraction` (`half` across, `full` over and back), `four`, `courtesy` (`normal`, `powerTurn`) | 8; over and back 16 | 8; 8 (8), 16 (1) | "[Robins] chain", "four [Robins] chain", "the same two [Robins] chain", "chain along the line". `powerTurn` is Fuerst's "power turn", a courtesy turn with an extra half. |
+| `chain` | `who`, `where`, `fraction` (`half` across, `threeQuarters` round the set with `four`, `full` over and back), `four`, `courtesy` (`normal`, `powerTurn`) | 8; over and back 16 | 8; 8 (8), 16 (1) | "[Robins] chain", "four [Robins] chain", "the same two [Robins] chain", "chain along the line". `powerTurn` is Fuerst's "power turn", a courtesy turn with an extra half. |
 | `star` | `who`, `hand`, `fraction`, `size` | 4 dancers: once 8, ¾ 6 | 8; 8 (9), 6 (1), 4 (1) | |
 | `balance` | `who`, `whom`, `where` (`inPlace`, `wave`, `ring`) | 4 | 7; 4 (6) | Standalone balances, including in waves and rings. Before a swing it is the swing's `prefix: balance`. |
 | `do_si_do` | `who`, `whom`, `turns`, `shoulder` | 8 | 7; 8 (5) | Includes 1½ and "once around and a little bit more" into a wave. "See saw" is an alias for `shoulder: left` (§7.2). |
@@ -634,17 +694,19 @@ it stands alone (number of lines in brackets).
 | `pull_by` | `who`, `whom`, `hand` | 2 | 2; 2 (1) | |
 | `hey` | `who`, `where` (`alongTheLine`, `inTheCenter`), `shoulder` (first pass) | 16 | 2; 16 (2) | Hey for four. |
 | `turn_alone` | `who` | 4 | 2; 4 (1) | An about-face on the spot (after Parkes's glossary). CALLERLAB's U-Turn Back and Backtrack are aliases. |
-| `shoulder_round` | `who`, `whom`, `shoulder`, `turns` | 8 | 1; none stated | "Gypsy" is an alias. ⚠ Default 8 is phrase-filling; the brief's reading of Hey 'Round the Corner gives 6 (Q11). |
+| `shoulder_round` | `who`, `whom`, `shoulder`, `turns` | 8 | 1; none stated | "Gypsy" is read as a shoulder round, as contra reads it, and never shown: it is a discouraged term (this ADR author's call while implementing §7.1, 22 November 2026, following contra's table of discouraged terms). ⚠ Default 8 is phrase-filling; the brief's reading of Hey 'Round the Corner gives 6 (Q11). |
 
 Single uses in the held squares that stay `custom` lines unless more
 evidence appears: "stand back to back", "cross the set", "move to the
-right-hand [Robin]", "split the sides", and Shadrack's Square's "move up". "Pass
+right-hand [Robin]", and Shadrack's Square's "move up". "Split the sides"
+is §7.4's `split`, which the wider sources use often. "Pass
 partner, swing the next" is two lines, `pass_by` and `swing`.
 
 ### 7.2 Borrowed club calls
 
 CALLERLAB Mainstream (2026) calls not already covered by §7.1, plus the Plus
-and Advanced calls that §7.3 found in traditional or contra sources. Default
+and Advanced calls that §7.3 found in traditional or contra sources and the
+three Plus calls the maintainer asked for by name (§1.1). Default
 beats are CALLERLAB's (reprinted with permission of CALLERLAB; "SS" means from
 a static square). Where a held square gives a different traditional count,
 the notes show it and `goodBeats` includes it. The program column is the
@@ -658,7 +720,7 @@ glossary label (§5.2).
 | `cast_off_three_quarters` | `who` | 6 | Mainstream | |
 | `centers_in` | none | 2 | Mainstream | |
 | `circulate` | `who`, `variant` | 4 | Mainstream | |
-| `courtesy_turn` | `who` | 4 | Mainstream | |
+| `courtesy_turn` | `who`, `variant` (`normal`, `powerTurn`, `double`) | 4 | Mainstream | The syllabi also call a power turn (an extra half, 8 with its chain; `chain`'s `courtesy: powerTurn` when it ends a chain) and a double courtesy turn. |
 | `dive_through` | `who` | 6 | Mainstream | Diving couple 2, arching couple 6. |
 | `double_pass_through` | `who` | 4 | Mainstream | |
 | `extend` | `who` | 2 | Mainstream | |
@@ -666,15 +728,15 @@ glossary label (§5.2).
 | `first_couple_go` | `direction` | 6 | Mainstream | |
 | `flutterwheel` | `who`, `reverse` | 8; SS heads or sides 10, SS all 12 | Mainstream | |
 | `fold` | `who`, `variant` | fold 2, cross fold 4 | Mainstream | |
-| `grand_square` | none | 32 | Mainstream | |
-| `half_sashay` | `who`, `variant` (`halfSashay`, `rollaway`, `role2InRole1Sashay`) | 4 | Mainstream | |
+| `grand_square` | `fraction` (`half`, `full`) | 32; half 16 | Mainstream | Common in the Page syllabi, often as a whole main part. |
+| `half_sashay` | `who`, `variant` (`halfSashay`, `rollaway`, `role2InRole1Sashay`) | 4 | Mainstream | Syllabi: "rollaway with a half sashay" in 8 (Cross the Way). |
 | `hinge` | `who`, `variant`, `hand` | single 2, couples 3 | Mainstream | |
 | `alamo_style` | none | 4 | Mainstream | |
 | `step_to_a_wave` | `who`, `hand` | 2 | Mainstream | Held squares form waves with no separate beats. |
 | `do_si_do_to_a_wave` | `who` | 6 | Mainstream | |
 | `pass_the_ocean` | `who` | 4 | Mainstream | |
 | `recycle` | `who` | 4 | Mainstream | |
-| `right_and_left_grand` | `variant` (`grand`, `weaveTheRing`, `wrongWayGrand`) | 10 | Mainstream | |
+| `right_and_left_grand` | `variant` (`grand`, `weaveTheRing`, `wrongWayGrand`), `fraction` (`half`, `full`) | 10; all the way round 16 | Mainstream | Shown as "grand right and left", the traditional name the syllabi use in about 20 squares; "right and left grand" is the alias that carries the Mainstream label. CALLERLAB's 10 is to the partner halfway; the syllabi dance it all the way home in 16 (Newport Quadrille #3). |
 | `run` | `who`, `variant`, `direction` | run 4, cross run 6 | Mainstream | |
 | `scoot_back` | `who` | 6 | Mainstream | |
 | `single_circle_to_a_wave` | `who` | 4 | Mainstream | |
@@ -699,7 +761,10 @@ glossary label (§5.2).
 | `do_paso` | none | 12 | Plus | The Caller's Box glossary places it in early western square breaks, and Caller's Box dances use it ([callersbox.md](../research/callersbox.md)). |
 | `pass_the_sea` | `who` | 6 | Plus | ⚠ Evidence is thin: an entry in the Caller's Box glossary index (§7.3). |
 | `trade_the_wave` | `who` | 6 | Plus | The contra taxonomy has it (v39), and The Caller's Box writes it. |
-| `dixie_style_to_a_wave` | `who` | 6; SS all 8 | Plus | Caller's Box dances use it ([callersbox.md](../research/callersbox.md)). |
+| `pull_by_to_a_wave` | `who` | 6; SS all 8 | Plus | CALLERLAB's "Dixie Style to a Wave", under a plain name (§7.5). Caller's Box dances use it ([callersbox.md](../research/callersbox.md)). |
+| `teacup_chain` | `who` | 32 | Plus | Asked for by the maintainer (§1.1); no traditional source read uses it. |
+| `ping_pong_circulate` | `who` | 6 | Plus | Asked for by the maintainer (§1.1); no traditional source read uses it. |
+| `acey_deucey` | `who` | 4 | Plus | Asked for by the maintainer (§1.1); no traditional source read uses it. |
 | `cross_trails` | `who`, `variant` (`traditional`, `callerlab`) | 6 | Advanced | ⚠ The Caller's Box glossary says the traditional form (pass, then cross over toward the corner) came from 1950s squares and that CALLERLAB later redefined it. Contras by John Coffman use it, and contra's `cross_trails` is its namesake (§5.1). Default `traditional`; `goodBeats` lists a wide spread because no source gives a traditional count. |
 
 CALLERLAB Mainstream calls that §7.1 already covers (Swing, Promenade,
@@ -732,25 +797,88 @@ call missing below may still be used somewhere.
 | See Saw | Plus | Coffman contras (e.g. "Aback", a see saw ¾ into a wave in 8) | `do_si_do` alias |
 | Pass the Sea | Plus | Caller's Box glossary index only | `pass_the_sea` ⚠ |
 | Trade the Wave | Plus | Contra taxonomy (v39); The Caller's Box writes it | `trade_the_wave` |
-| Dixie Style to a Wave | Plus | Caller's Box dances | `dixie_style_to_a_wave` |
+| Dixie Style to a Wave | Plus | Caller's Box dances | `pull_by_to_a_wave` (§7.5) |
 | Cross Trail Thru | Advanced | Caller's Box glossary (1950s squares); about five Coffman contras | `cross_trails` ⚠ |
 
 No Challenge call was found. These Plus and Advanced calls were looked for
-and not found in any source read: Teacup Chain, Relay the Deucey, Spin Chain
-Thru, Load the Boat, Dixie Grand, Fan the Top, Track Two, Peel Off, Ping
-Pong Circulate, Linear Cycle, Chase Right, Coordinate, Explode the Wave,
-Grand Swing Thru, Partner Tag, Partner Hinge, Quarter Thru, Turn Thru,
-Acey Deucey and the diamond calls. They stay out of scope (§5.2). Walk
+and not found in any source read, including §4.4's wider search: Teacup
+Chain, Relay the Deucey, Spin Chain Thru, Load the Boat, Dixie Grand, Fan
+the Top, Track Two, Peel Off, Ping Pong Circulate, Linear Cycle, Chase
+Right, Coordinate, Explode the Wave, Grand Swing Thru, Partner Tag, Partner
+Hinge, Quarter Thru, Turn Thru, Acey Deucey and the diamond calls. Teacup
+Chain, Ping Pong Circulate and Acey Deucey are in §7.2 anyway, because the
+maintainer asked for them (§1.1). The rest stay out of scope (§5.2). Walk
 Around the Corner and Eight Chain Thru (both Plus) were not looked for and
 are worth checking. The contra taxonomy's `zig_zag` shares only its name
 with the Advanced call.
 
 The same sources show Mainstream calls in contras (Box the Gnat, Star Thru,
 Square Thru, Flutterwheel, Circulate, Spin the Top, Swing Thru), which §7.2
-already covers. They also show traditional square calls outside CALLERLAB that
-no held square uses: Allemande X, Catch All Eight, Mountain-style Do-si-do,
-grand chains for either role, Birdie in the Cage and other Southern calls.
-Those wait for a held square that uses them (§11).
+already covers. Traditional square calls outside CALLERLAB that no held
+square uses are in §7.4, following the maintainer's ruling (§1.1).
+
+### 7.4 Traditional calls from the wider sources
+
+From §4.4's search. "Seen" is the number of distinct squares that use the
+call, as a lower bound, then any count a source states. Where no source
+states a count the default is this ADR author's estimate, marked ⚠, and
+`goodBeats` stays wide.
+
+| ID | Parameters | Default beats | Seen | Notes |
+| --- | --- | --- | --- | --- |
+| `split` | `who`, `whom`, `around` (`one`, `two`) | 8 | about 10; 8 (Cross the Way) | "Split the ring", "split those two", "split the sides", "go around one". |
+| `duck_through` | `who`, `whom` (who makes the arch) | 4 ⚠ | about 5 | "Duck through", "pop under an arch", the ducking in Duck for the Oyster. Mainstream `dive_through` is the club form from facing couples, and contra's `arch_and_dive` joins the arch and the duck in one line; the namesake report (§5.1) should list that pair. |
+| `dip_and_dive` | `who`, `fraction` | once around 16 | about 5; 16 (Deer Park Lancers) | Couples arch and duck in turn as they travel round. |
+| `arch` | `who` | 0 ⚠ | about 9 | Raising joined hands for others to pass under; the ducking is its own line. |
+| `sashay` | `who`, `direction`, `fraction` | 4 | about 5; "slide three steps" 4 | A sideways slide across or along the set. `half_sashay` (§7.2) is the club exchange of places. |
+| `basket` | `who`, `size` (`3`, `4`, `8`) | 8 ⚠ | 3 | A basket swing ("swing two [Robins]"). |
+| `cheat_or_swing` | `who`, `whom` | 8 ⚠ | 3 | Swing anyone nearby or your partner, as Whirligig and Cheat and [Robins]' Whirligig call it. |
+| `honor` | `who`, `whom` | 4 ⚠ | about 6 | "Honor your partner", "bow to the corner"; usually the intro. "Bow" is an alias. |
+| `allemande_x` | `who`, `whom` | 8 ⚠ | Hume; Caller's Box | Turn the corner by the left, pass the partner, swing the next. |
+| `catch_all_eight` | `who`, `whom` | 8 | Caller's Box only | Half by one hand, all the way by the other, with the corner. ⚠ Thin evidence. |
+| `mountain_do_si_do` | `who`, `whom` | 8 ⚠ | Southern collections | The Southern do-si-do: alternate hand turns with partner and corner. |
+| `peek` | `who`, `around` | 8 ⚠ | Southern collections; Ontario pages | "Take a peek": look round the couple you visit, then back. |
+| `butterfly_whirl` | `who` | 4 ⚠ | 1 (Golden Slippers) | ⚠ One use; kept because the Caller's Box glossary names it among older square figures and contra has the namesake `butterfly_whirl`. |
+
+Covered by entries already in §7.1 and §7.2:
+
+- Four [Robins] chain and the grand chain forms: `chain` with `four`, and
+  §7.1's `fraction: full` for across and back (16, Buffalo Quadrille). Four
+  [Robins] chain three quarters adds a `threeQuarters` value to `chain`'s
+  `fraction` (CALLERLAB 10).
+- Weave the ring: `right_and_left_grand` with `variant: weaveTheRing`.
+- Elbow swings and "turn by the left elbow": `hand_turn` with its `hand`,
+  and the elbow grip in the line's note, so they are not custom lines.
+- Box the gnat, California twirl, wheel around, cross trails, courtesy and
+  power turns, rollaways: §7.2's entries.
+- Gypsy (right or left shoulder round, about 4 squares): `shoulder_round`.
+
+Left as `custom` lines until more evidence appears: slide, move up, cut
+away, back to back, swat the flea, back-up star and grapevine (one or two
+squares each). The Southern visiting-couple figures are dances, not calls
+(§4.4).
+
+### 7.5 Plain names for calls named "Dixie"
+
+*Decided by the maintainer on 22 November 2026 (§1.1); the names are this
+ADR author's.* No shipped display name, ID, alias or search keyword contains
+"Dixie". Each such call gets a plain name that says what the dancers do,
+and a caller who wants the source's word sets it in their dialect.
+
+| Source name | ID | Display name | Why this name |
+| --- | --- | --- | --- |
+| Dixie Style to a Wave | `pull_by_to_a_wave` | pull by to a wave | The first dancers pull by, then all join the next hand into a wave. |
+| Dixie Grand | `pull_by_grand` | pull by grand | Three pull bys with alternating hands along a grand right and left's path. Out of scope today (§7.3); the name is reserved if it is ever added. |
+| Dixie Chain, Dixie Twirl | none | named when added | Neither is in the registry. The same rule applies. |
+
+No established replacement was found: CALLERLAB and Ceder.net still use the
+old names, and "Thread the Needle" names a different figure in English
+dancing. So the names are the Compendium's own. Text and imports that use the old names are
+still read: the square parser and importer accept them on input and store
+the plain call, as contra's parser treats "gypsy" (this ADR author's call).
+⚠ That puts the old names in shipped parser tables, though never in what
+the app shows. The alternative is to leave such lines as custom text for the
+caller to re-enter.
 
 ## 8. Dance structure, entry, glossary and import
 
@@ -970,19 +1098,22 @@ rather than adding a second one.
    sequence span to squares (Q10), a placeholder figure per form, square
    sample figures in the dialect editor, extra pairs for the namesake report
    (§5.1), and tests.
-2. **Borrowed club calls.** The §7.2 registry with CALLERLAB program labels,
-   including the Plus and Advanced calls found in §7.3, and the glossary's
-   sort and filter by program (§8.3).
+2. **Borrowed club calls and the wider traditional calls.** The §7.2
+   registry with CALLERLAB program labels, including the Plus and Advanced
+   calls found in §7.3 and the three the maintainer asked for, the §7.4
+   traditional calls, and the glossary's sort and filter by program (§8.3).
 3. **Entry and import.** Square editor behavior, shorthand, copying a break
    into another dance, the square prose parser, import of the held squares,
    Caller's Companion squares, the Caller's Box search, and the conversion of
    earlier square imports.
-4. **Glossary text.** Own-words definitions for the §7.1 and §7.2 calls. ECD
+4. **Glossary text.** Own-words definitions for the §7.1, §7.2 and §7.4
+   calls. ECD
    shipped its taxonomy before its definitions, and squares can too (this
    ADR author's call).
 
 Out of scope, from the first draft: Plus, Advanced and Challenge calls that
-no traditional or contra source was found to use (§7.3), edition-versioned
+no traditional or contra source was found to use and the maintainer did not
+ask for (§7.3), edition-versioned
 programs, a derived required program, and calls that take another call as an
 argument.
 
@@ -1089,8 +1220,8 @@ selector.
 - **Schema and privacy.** `squareKind`, `singing`, `freeForm`, the repeat
   order and the new partner are new persisted fields (§8.1). Each needs a
   privacy-registry classification in the PR that adds it.
-- **Glossary text.** Own-words definitions for about 70 calls (19 in §7.1,
-  49 in §7.2, and aliases) are real writing work, and need review by someone
+- **Glossary text.** Own-words definitions for about 85 calls (19 in §7.1,
+  52 in §7.2, 13 in §7.4, and aliases) are real writing work, and need review by someone
   who calls traditional squares.
 - **Overlap with contra.** Many traditional square calls look like contra
   moves. Keeping them separate (§1.1) means two definitions of a hey or a
@@ -1111,7 +1242,8 @@ animations, and any code, data or text from Taminations.
 - A caller or a traditional or contra source turns up another Plus,
   Advanced or Challenge call (§5.2, §7.3).
 - Callers ask for stated positions or offsets (Q4, Q12).
-- More held squares surface with calls §7.1 does not cover.
+- More squares surface with calls §7.1 and §7.4 do not cover, or a single
+  use in §7.4's custom list turns up again.
 
 ## 12. Learnings from the ECD implementation
 
@@ -1279,6 +1411,24 @@ Online sources for the §7.3 search (read 20 November 2026):
 - John Coffman, contra dances,
   <https://sites.google.com/site/capecontradance/cape-girardeau-mo-contra-dance/contra-dances-by-john-coffman>.
 - "Honeycomb Contra Figures", <https://upadouble.info/honeycombContra/>.
+
+Wider traditional sources (§4.4, read 22 November 2026):
+
+- Ralph Page Dance Legacy Weekend syllabi, 1990, 1998, 1999, 2001, 2003,
+  2005, 2006, 2007, 2008, 2010, 2011 and 2012, University of New Hampshire
+  Library, <https://library.unh.edu/special/forms/rpdlw/>.
+- Ralph Page, *Northern Junket*, vol. 1 nos. 4 and 7 (1949), UNH Scholars'
+  Repository, <https://scholars.unh.edu/northern_junket/>.
+- *Be Square* calling handbook, a Southern subset, CDSS,
+  <https://cdss.org/wp-content/uploads/resources/Be-Square-Calling-Handbook-a-southern-subset.pdf>.
+- *West Virginia Squares*, "Morgantown", CDSS e-library,
+  <https://store.cdss.org/elibrary/wvasquares/morgantown.html>.
+- Colin Hume, "Session 8: American Squares",
+  <https://colinhume.com/session8.htm>.
+- Old-time square dance glossary and "Dance Format and Movements",
+  University of Waterloo, <https://sca.uwaterloo.ca/cotsdca/>.
+- UNH finding aids: Ralph Page manuscript collection; Square Dance
+  Foundation of New England collection (MC 270).
 
 Other square formations (§8.1, read 20 November 2026):
 
