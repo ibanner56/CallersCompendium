@@ -630,7 +630,7 @@ void main() {
     // malformed, because no amount of implementation work would fix that.
 
     test('an unimplemented move is deferred', () {
-      final error = _parseErr(_record('{"move": "promenade"}'));
+      final error = _parseErr(_record('{"move": "butterfly_whirl"}'));
 
       expect(error.path, 'figures[0].move');
       expect(error.deferred, isTrue);
@@ -693,6 +693,50 @@ void main() {
           expect(error.deferred, isTrue);
         });
       }
+    });
+
+    group('promenade', () {
+      test('a rotation with no stated where is a promenade across', () {
+        // The taxonomy's default `where`, which ContraDB's "partners promenade
+        // on the left" relies on. Caller's Box's where-less promenades are
+        // deferred on its own path, before they reach this parser.
+        final dance = _parseOk(
+          _record(
+            '{"move": "promenade", "params": {"direction": "clockwise"}}',
+          ),
+        );
+
+        expect(
+          dance.figures.single.operation,
+          const Promenade(direction: SpinDirection.clockwise),
+        );
+      });
+
+      test('the legacy turn and dir spellings are read too', () {
+        final dance = _parseOk(
+          _record(
+            '{"move": "promenade", '
+            '"params": {"dir": "in", "turn": "clockwise"}}',
+          ),
+        );
+
+        expect(
+          dance.figures.single.operation,
+          const Promenade(where: 'in', direction: SpinDirection.clockwise),
+        );
+      });
+
+      test('a rotation stated unspecified is deferred', () {
+        final error = _parseErr(
+          _record(
+            '{"move": "promenade", '
+            '"params": {"where": "across", "direction": "unspecified"}}',
+          ),
+        );
+
+        expect(error.path, 'figures[0].params.direction');
+        expect(error.deferred, isTrue);
+      });
     });
 
     test('a malformed value is NOT deferred, however it fails', () {

@@ -331,6 +331,31 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
     );
   }
 
+  final unreadPromenade = _promenadeWithNoWhere(figures);
+  if (unreadPromenade != null) {
+    // Ranked as a parse-time deferral at its own figure: a parse error at an
+    // earlier figure (or at the dance itself) is still the first blocker, and,
+    // as for every parse-time deferral, no figure is compiled.
+    final parsed = parseDance(bridgeCoreDance(dance).record);
+    if (parsed case Err(
+      :final error,
+    ) when (_figureIndexOf(error.path) ?? -1) < unreadPromenade) {
+      return finish(
+        DanceOutcome.unsupported,
+        detail: '$error',
+        deferred: error.deferred,
+      );
+    }
+    return finish(
+      DanceOutcome.unsupported,
+      detail:
+          'figure ${unreadPromenade + 1} (promenade) states no where, which '
+          'in a Caller\'s Box record is a whole-set, counter-rotating, '
+          'around-a-dancer or mixer promenade; deferred',
+      deferred: true,
+    );
+  }
+
   // One compile with the positional assumption. If the assumption is the only
   // thing in the way, try the single alternative the record itself names.
   // *(User-ruled.)* The retry is deliberately not a search: exactly two
@@ -572,6 +597,42 @@ List<core.Figure>? decodedFigures(core.Dance dance) =>
       core.DecodedFigures(:final figures) => figures,
       core.UnreadableFigures() => null,
     };
+
+/// The position in [figures] of the first `promenade` that states no `where`,
+/// or `null` when every promenade states one.
+///
+/// **Caller's Box only.** The taxonomy's default `where` is `across`, and
+/// another source may rely on it: ContraDB's `partners promenade on the left`
+/// imports with a rotation and no `where`, and is a promenade across. Caller's
+/// Box never does. It writes every promenade across as `… promenade across`,
+/// which imports with `where: across`, and the lines that import with none are
+/// the promenades its vocabulary cannot name: `around the major set`, the
+/// counter-rotating rings (`inner ring cw, outer ring ccw`), `3/4 around
+/// neighbor`, and the mixers' `P2 partner promenade counterclockwise`.
+/// Compiling those as the default would dance a promenade across that the
+/// source never called, so the run is deferred before it is bridged. *(Agent's
+/// call, unratified; measured on the 24,107-file mirror. The alternative was
+/// the parser's default, which would compile them as a promenade across.)*
+///
+/// A deferral rather than a refusal: the record is sound, and the figure it
+/// names is one this compiler has not built.
+int? _promenadeWithNoWhere(List<core.Figure> figures) {
+  for (var index = 0; index < figures.length; index++) {
+    final figure = figures[index];
+    if (figure.move != 'promenade') continue;
+    // `compendium_core` has neither a legacy `dir` spelling nor an
+    // `unspecified` value for `promenade.where`, so absence is the only case.
+    if (figure.params['where'] == null) return index;
+  }
+  return null;
+}
+
+/// The figure a [DanceParseError.path] blames (`figures[3].params.who` is 3),
+/// or `null` for an error about the dance itself.
+int? _figureIndexOf(String path) {
+  final match = RegExp(r'^figures\[(\d+)\]').firstMatch(path);
+  return match == null ? null : int.parse(match.group(1)!);
+}
 
 /// [dance]'s figures as the compiler dances them: [decodedFigures] with every
 /// `sequence` container replaced by its children, or `null` when the
