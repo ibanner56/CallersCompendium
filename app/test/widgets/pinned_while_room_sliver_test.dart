@@ -107,6 +107,23 @@ void main() {
     expect(find.byKey(const ValueKey('b')).hitTestable(), findsNothing);
   });
 
+  testWidgets('a second header that cannot pin slides smoothly under the '
+      'first, rather than sticking and then jumping', (tester) async {
+    // 200 + 150 is more than half of 600, so B must never pin; it reaches
+    // A's bottom edge at scroll 200 and is under A from scroll 350.
+    final controller = await _pump(tester, a: 200, b: 150);
+    double? previous;
+    for (var offset = 150.0; offset <= 400; offset++) {
+      controller.jumpTo(offset);
+      await tester.pump();
+      expect(_pinned(tester, 'b'), isFalse, reason: 'at scroll $offset');
+      final top = _top(tester, 'b');
+      expect(top, 400 - offset, reason: 'at scroll $offset');
+      if (previous != null) expect(previous - top, 1);
+      previous = top;
+    }
+  });
+
   testWidgets('revealing a row scrolls it clear of the pinned headers', (
     tester,
   ) async {

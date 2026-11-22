@@ -99,7 +99,7 @@ class RenderPinnedWhileRoomSliver extends RenderSliverSingleBoxAdapter {
     child!.layout(constraints.asBoxConstraints(), parentUsesSize: true);
     final extent = _childExtent;
     _pinned =
-        constraints.overlap + extent <=
+        _pinnedAbove() + extent <=
         _maxViewportFraction * constraints.viewportMainAxisExtent;
     if (_pinned) {
       // [PinnedHeaderSliver]'s geometry: drawn below whatever is pinned above
@@ -139,6 +139,34 @@ class RenderPinnedWhileRoomSliver extends RenderSliverSingleBoxAdapter {
       );
       setChildParentData(child!, constraints, geometry!);
     }
+  }
+
+  /// How much of the viewport the headers before this one cover once pinned:
+  /// their full extent, not the [SliverConstraints.overlap], which grows from
+  /// zero as this header slides up under them. Deciding on the overlap made a
+  /// header that could not fit stick for a while, then jump behind the others.
+  ///
+  /// The viewport lays its slivers out in order, so those before this one
+  /// already have this pass's geometry. Under any other parent (a sliver
+  /// group) the overlap is all there is to go on.
+  double _pinnedAbove() {
+    final parent = this.parent;
+    if (parent is! RenderViewportBase) return constraints.overlap;
+    var extent = 0.0;
+    for (
+      RenderSliver? sliver = parent.childBefore(this);
+      sliver != null;
+      sliver = parent.childBefore(sliver)
+    ) {
+      final geometry = sliver.geometry;
+      // Slivers before a viewport's centre grow the other way.
+      if (geometry == null ||
+          sliver.constraints.growthDirection != constraints.growthDirection) {
+        break;
+      }
+      extent += geometry.maxScrollObstructionExtent;
+    }
+    return extent;
   }
 
   @override
