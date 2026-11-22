@@ -89,28 +89,62 @@ final class GiveAndTake extends Operation {
   }
 
   @override
-  OpError? checkPreconditions(Formation formation) => _assignRoles(
-    formation,
-  ).fold((pairs) => _requireAcross(formation, pairs), (error) => error);
+  OpError? checkPreconditions(Formation formation) =>
+      _assignRoles(formation).fold(
+        (pairs) =>
+            _requireAcross(formation, pairs) ?? _requireRoom(formation, pairs),
+        (error) => error,
+      );
+
+  /// Rejects moves that would put two dancers in one cell.
+  ///
+  /// Each taker slides along their own column into the other row of the band,
+  /// so the two pairs of a hands four can only both be danced when their
+  /// takers stand on opposite sides of the set. Two takers on one side would
+  /// land on each other's taken partner: the starting state is legal, but the
+  /// state it leads to is not one a set can be in. *(Agent's call, 2026-11-22: refused rather than
+  /// left to throw a cell collision.)*
+  OpError? _requireRoom(Formation formation, List<_TakePair> pairs) {
+    final moves = _moves(formation, pairs);
+    final landing = <Position, DancerId>{};
+    for (final id in formation.dancers.keys) {
+      final at = moves[id]?.position ?? formation.stateOf(id).position;
+      final other = landing[at];
+      if (other != null) {
+        return OpError(
+          ErrorKind.unresolvableDancerSet,
+          'give_and_take would put $other and $id both at $at (the takers of '
+          'one hands four have to stand on opposite sides of the set)',
+        );
+      }
+      landing[at] = id;
+    }
+    return null;
+  }
+
+  /// Where each taker and taken ends up.
+  Map<DancerId, DancerState> _moves(
+    Formation formation,
+    List<_TakePair> pairs,
+  ) {
+    final changes = <DancerId, DancerState>{};
+    for (final pair in pairs) {
+      final taker = formation.stateOf(pair.taker);
+      final taken = formation.stateOf(pair.taken);
+      final band = handsFourBandContaining(formation, taker.row);
+      if (band == null) continue;
+      final freeRow = taker.row == band.topRow ? band.bottomRow : band.topRow;
+
+      changes[pair.taken] = taken.movedTo(Position(taker.row, taker.col));
+      changes[pair.taker] = taker.movedTo(Position(freeRow, taker.col));
+    }
+    return changes;
+  }
 
   @override
-  Result<Formation, OpError> perform(Formation formation) =>
-      _assignRoles(formation).map((pairs) {
-        final changes = <DancerId, DancerState>{};
-        for (final pair in pairs) {
-          final taker = formation.stateOf(pair.taker);
-          final taken = formation.stateOf(pair.taken);
-          final band = handsFourBandContaining(formation, taker.row);
-          if (band == null) continue;
-          final freeRow = taker.row == band.topRow
-              ? band.bottomRow
-              : band.topRow;
-
-          changes[pair.taken] = taken.movedTo(Position(taker.row, taker.col));
-          changes[pair.taker] = taker.movedTo(Position(freeRow, taker.col));
-        }
-        return formation.withUpdates(changes);
-      });
+  Result<Formation, OpError> perform(Formation formation) => _assignRoles(
+    formation,
+  ).map((pairs) => formation.withUpdates(_moves(formation, pairs)));
 
   @override
   bool operator ==(Object other) =>

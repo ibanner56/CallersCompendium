@@ -982,6 +982,8 @@ Still open:
   a well-formed figure, a legal `who`, a dance that ran to the end.
   What is still genuinely untested is a Becket dance that names a distance set **before** its
   progression, where the effective distance is non-zero and the cross-hands-four reach actually
-  runs. The standing suspicion is that `travelDirection` reads Becket travel from `position.col` —
-  a *here* quantity — while the grouping arithmetic it is compared against is a *home* quantity.
-  No corpus dance exercises it yet, so it is unresolved rather than disproved. *(§10.3.1)*
+  runs. The suspicion that `travelDirection` read Becket travel from `position.col` — a *here*
+  quantity — while the grouping arithmetic it is compared against is a *home* quantity was
+  shown right on 2026-11-22: after a `circle` 3/4 a couple stands across the set, and the column
+  sent one partner the wrong way (a unit test, not a corpus verdict). It now reads the line from the dancer's **number** (c4 = 1s
+  line, c0 = 2s line, §10.2.2). *(§10.3.1)*
