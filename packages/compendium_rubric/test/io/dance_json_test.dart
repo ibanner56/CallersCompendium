@@ -630,7 +630,7 @@ void main() {
     // malformed, because no amount of implementation work would fix that.
 
     test('an unimplemented move is deferred', () {
-      final error = _parseErr(_record('{"move": "butterfly_whirl"}'));
+      final error = _parseErr(_record('{"move": "dolphin_hey"}'));
 
       expect(error.path, 'figures[0].move');
       expect(error.deferred, isTrue);

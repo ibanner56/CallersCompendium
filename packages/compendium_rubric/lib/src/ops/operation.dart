@@ -14,6 +14,7 @@ import 'transforms.dart';
 import 'who.dart';
 
 part 'figures/axis_swaps.dart';
+part 'figures/butterfly_whirl.dart';
 part 'figures/circle.dart';
 part 'figures/chain.dart';
 part 'figures/couple_wheel.dart';
@@ -26,8 +27,10 @@ part 'figures/hey.dart';
 part 'figures/pair_swaps.dart';
 part 'figures/petronella.dart';
 part 'figures/promenade.dart';
+part 'figures/revolving_door.dart';
 part 'figures/right_left_through.dart';
 part 'figures/rings.dart';
+part 'figures/slice.dart';
 part 'figures/slide_along_set.dart';
 part 'figures/stand_still.dart';
 part 'figures/star.dart';
