@@ -296,6 +296,41 @@ void main() {
       final west = settled.dancers.keys.firstWhere((id) => '$id' == 'R-B');
       expect(travelDirection(settled, east), -travelDirection(settled, west));
     });
+
+    // After a circle 3/4 a couple stands across the set, one partner in each
+    // line's column. Both still travel with the line their number names
+    // (c4 = 1s line, c0 = 2s line, fundamentals.md §10.2.2), not with the
+    // column they happen to be standing in.
+    test('a couple standing across the set travels with its own line', () {
+      for (final (type, couple1Sign) in [
+        (FormationType.becketCw, 1),
+        (FormationType.becketCcw, -1),
+      ]) {
+        final start = startingFormation(type, handsFour: 1);
+        final result = const Circle(
+          turn: CircleDirection.left,
+          places: 3,
+        ).apply(start);
+        final circled = (result as Ok<Formation, OpError>).value;
+        expect(circled.toRolesNotation(), [
+          'R1-A . . . L1-A',
+          'L2-B . . . R2-B',
+        ], reason: '$type');
+        final byName = {for (final id in circled.dancers.keys) '$id': id};
+        for (final (name, sign) in [
+          ('L-A', couple1Sign),
+          ('R-A', couple1Sign),
+          ('L-B', -couple1Sign),
+          ('R-B', -couple1Sign),
+        ]) {
+          expect(
+            travelDirection(circled, byName[name]!),
+            sign,
+            reason: '$type: $name',
+          );
+        }
+      }
+    });
   });
 
   group('reading the set from the top down', () {

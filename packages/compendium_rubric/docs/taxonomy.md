@@ -248,10 +248,11 @@ The distance sets are the one `who` family that names dancers the current hands 
 contain. They resolve like this:
 
 **Resolution.** A dancer's next neighbors are the **opposite-number couple in the grouping one
-place on in their direction of travel** — the 1s look one grouping down the hall, the 2s one
-grouping up. `thirdNeighbors` is two groupings on, `fourthNeighbors` three, and `prevNeighbors`
+place on in their direction of travel** — in Duple Improper the 1s look one grouping down the
+hall and the 2s one grouping up; in Becket it is the line their number names that sets the way. `thirdNeighbors` is two groupings on, `fourthNeighbors` three, and `prevNeighbors`
 one grouping *back*. Direction of travel is §10.3.1's: Duple Improper couples share a row and
-travel by **number**, Becket couples share a column and travel by **line**. This is the same
+travel by **number**, Becket couples share a column and travel by **line** (the line their number
+names, not the column they happen to stand in). This is the same
 number-based, grouping-based shape the diagonal `chain` already uses.
 
 ### ⭐ The distance sets are **absolute**, and only `neighbors` is relative — **ruled**
@@ -1417,7 +1418,10 @@ To be defined later with worked examples.
     (not a render token; no end-position effect).
   - `beats` — int, default 8 (baseline good=[4, 8]: 8 = give & take, 4 = take-only).
 - **preconditions:** taker and taken must be **across the set** — same row, different column
-  (matches verifier `CheckGiveAndTakeAcross`, fails otherwise).
+  (matches verifier `CheckGiveAndTakeAcross`, fails otherwise). The moves must also leave every
+  dancer in a cell of their own: two takers of one hands four on the **same side** would slide into
+  each other's taken partner, and that is refused as `unresolvableDancerSet` rather than danced.
+  *(Agent's call, 2026-11-22, not yet ratified.)*
 - **effect:** for each (taker `T` at `(r, cT)`, taken `K` at `(r, cK)`) pair:
   - **K (taken)** → `(r, cT)` — crosses into the taker's column, staying in the shared row.
   - **T (taker)** → `(r̄, cT)` — keeps their column, slides to the **free row** (`r̄ = 1-r`).

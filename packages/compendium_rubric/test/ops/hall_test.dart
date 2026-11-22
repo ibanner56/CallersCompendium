@@ -218,6 +218,15 @@ void main() {
       );
       expect(error.kind, ErrorKind.unresolvableDancerSet);
     });
+
+    test('two takers on one side of the set are refused', () {
+      // Both larks in c0: each slides along c0 into the other row, so L1-A
+      // and the taken R2-B would share (r1,c0). Refused, not a cell collision.
+      final sameSide = di(const ['L1-A . . . R1-A', 'L2-B . . . R2-B']);
+      final error = applyErr(const GiveAndTake(), sameSide);
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.detail, contains('opposite sides of the set'));
+    });
   });
 
   group('gate — the taxonomy worked example', () {
