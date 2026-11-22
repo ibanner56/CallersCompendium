@@ -688,6 +688,9 @@ nothing in it to lose.
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types.
+- **Barnes books** — where the tune is printed in the Barnes books, book and
+  page in one line, such as `BIII p. 92`, or `NiB` when it is not in them. It
+  sits under **Meter** and **Key**.
 
 ### Notes
 
@@ -730,12 +733,13 @@ updates the default used everywhere.
 
 | Field | Notes |
 |---|---|
+| **Other titles** | Other names the dance goes by, one per line; the dance page shows them under the title, and searching by **Title** finds them |
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
 | **Composed** / **Revised** | A year, optionally with a month and day; Composed is up front for an English dance |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; up front for an English dance |
-| **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
+| **Meter** / **Key** / **Barnes books** | The tune's written meter and key, and where it is printed in the Barnes books; up front for an English dance |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

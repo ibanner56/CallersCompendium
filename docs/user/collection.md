@@ -169,13 +169,16 @@ what is already there.
 
 Use **Search in**, beside the search bar (above it on a narrow screen or with
 large text), to choose where your words are looked for: **All fields**,
-**Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
-sources, custom field values, hooks and notes, and at each dance's meter, key
-and the people who interpreted it, and finds each word exactly as you typed
+**Title**, **Author**, or **Figure**. **Title** looks at each dance's title
+and its other titles, so `Monymusk` finds *Money Musk* if you gave it that
+other title. **All fields** looks at titles and other titles, authors,
+sources, custom field values, hooks and notes, and at each dance's meter, key,
+Barnes reference and the people who interpreted it, and finds each word exactly as you typed
 it: `3/2`, `D minor` or `Sharp` each find the dances that have them. A word of
 one or two letters must start a word, so `D` finds the key "D minor" but `in`
-does not. Accents and capitals don't matter in a meter, key or interpreter's
-name: `emile` finds Émile. **Author** looks at the people who wrote a dance and
+does not. Accents and capitals don't matter in an other title, a meter, key,
+Barnes reference or interpreter's name: `emile` finds Émile, and `nib` finds
+*NiB*. **Author** looks at the people who wrote a dance and
 the people who interpreted it. All fields skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)).

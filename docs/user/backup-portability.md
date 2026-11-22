@@ -160,8 +160,9 @@ backup is refused the same way, with its size and the limit.
 > without those details. Install the current version before you restore.
 >
 > The same goes for a backup that holds an English country dance formation
-> (such as duple minor), a dance marked improper, a dance's meter or key, or
-> who interpreted a dance and when: versions without them refuse it as coming
+> (such as duple minor), a dance marked improper, a dance's meter or key,
+> who interpreted a dance and when, or a dance's other titles or Barnes
+> reference: versions without them refuse it as coming
 > from a newer version. A backup that holds an archived program needs version
 > 0.11.0 or later to replace your library: versions 0.5.2 to 0.10.0 refuse
 > that, rather than bring your archived programs back unarchived.

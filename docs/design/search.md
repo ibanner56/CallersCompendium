@@ -827,7 +827,9 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   removed (`filter_compiler.dart`, `_figureMatchWithoutRoleTokens`). The
   Figure scope is unchanged.
 - **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
-  also matches the dance's `meter`, its `musical_key` and the names of its
+  also matches the dance's `meter`, its `musical_key`, its
+  `barnes_reference`, its other titles (`alternate_titles`, one per line, each
+  line break read as a space; `_alternateTitleMatch`) and the names of its
   live interpreters (`dance_interpreters` joined to `choreographers` with
   `deleted_at IS NULL`), in a dance of any form. They are read with a folded
   `LIKE` (below) from those rows rather than from the text index
