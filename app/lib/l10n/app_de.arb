@@ -4306,37 +4306,31 @@
   },
   "danceEditorAlternateTitlesLabel": "Weitere Titel",
   "@danceEditorAlternateTitlesLabel": {
-    "description": "Label of the dance editor field for other names the dance is known by, entered one per line."
+    "x-sourceSha256": "befe494f481dc6103fe5f47704fa36dc82739c5d8b5086e57ee8e8bf39504e3b"
   },
   "danceEditorAlternateTitlesHelper": "Einer pro Zeile. Die Titelsuche findet den Tanz unter jedem davon.",
   "@danceEditorAlternateTitlesHelper": {
-    "description": "Helper text under the dance editor's other-titles field: enter one title per line, and a title search finds the dance by any of them."
+    "x-sourceSha256": "e6f92b1bba9299f59f2931c46f8c571713a7e2ae46b86773a50e42b5bcf3ed12"
   },
   "danceEditorBarnesReferenceLabel": "Barnes-Verweis",
   "@danceEditorBarnesReferenceLabel": {
-    "description": "Label of the dance editor field for where the dance's tune is printed in the Barnes books (a set of English country dance tune books), as free text with the book and page in one value."
+    "x-sourceSha256": "a87089c5e6ee0a0b519cc8136c7dc9e8133ed36735490fdb09559feefdb097a5"
   },
   "danceEditorBarnesReferenceHint": "z. B. BIII p. 92 oder NiB",
   "@danceEditorBarnesReferenceHint": {
-    "description": "Hint in the dance editor's Barnes field: examples of a Barnes book reference. 'BIII p. 92' is book III, page 92; 'NiB' means Not in Barnes. Keep both examples untranslated."
+    "x-sourceSha256": "83e5191f97ef94a027c93d3356c7bd2c7947b73178d462afa2f482cc4e1717f6"
   },
   "danceAlsoKnownAs": "Auch bekannt als {titles}",
   "@danceAlsoKnownAs": {
-    "description": "Line under a dance's title on the dance detail screen, listing the other names the dance is known by.",
-    "placeholders": {
-      "titles": {
-        "type": "String",
-        "example": "Monymusk"
-      }
-    }
+    "x-sourceSha256": "27dba4b0559050be164ca848e7b23141326a01c6b65fdbc71b9baf35e2056a83"
   },
   "danceAlsoKnownAsSeparator": "; ",
   "@danceAlsoKnownAsSeparator": {
-    "description": "Text placed between two of a dance's other titles in the 'Also known as' line."
+    "x-sourceSha256": "0a2d3f8f9b727cf73e6c7e44f2feefc41855195b3010a3c4f6b05c33aeb484a9"
   },
   "danceSectionBarnes": "Barnes-Bücher",
   "@danceSectionBarnes": {
-    "description": "Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books)."
+    "x-sourceSha256": "49a8e8a9f8339a6e0ce62b696d610c4a164ecc6268d021da155f11944946b95a"
   },
   "commonMixedLevel": "Gemischtes Niveau",
   "@commonMixedLevel": {
