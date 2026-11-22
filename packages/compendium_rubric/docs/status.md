@@ -18,8 +18,8 @@
 >
 > **Added since (2026-11-22):** `slice`, `butterfly_whirl` and `revolving_door`
 > are built on user rulings (`taxonomy.md` has each entry). Measured on the
-> same mirror against `rubric` at `435e31d5`, they took the in-scope count
-> from 2,512 to 2,753 compiled, and Hudson's Seattle core set from 360 to 391,
+> same mirror against `rubric` at `eb52b309`, they took the in-scope count
+> from 2,517 to 2,759 compiled, and Hudson's Seattle core set from 360 to 391,
 > with no previously compiling dance lost. The tables below count them in their
 > new rows but keep the September per-figure numbers.
 
