@@ -410,6 +410,76 @@ void main() {
     expect(find.text('Mixer'), findsNothing);
   });
 
+  group('credits with years', () {
+    Future<CompendiumRepositories> withPeople() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'a1', name: 'Pat Shaw'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'i1', name: 'Cecil Sharp'),
+      );
+      return repos;
+    }
+
+    testWidgets('the authors carry the composed year and the interpreters '
+        'their own line with the interpreted year', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(
+        _dance(id: 'credits', authorIds: ['a1']).copyWith(
+          composedOn: PartialDate(1951, 3, 4),
+          interpreterIds: ['i1'],
+          interpretedOn: PartialDate(1916),
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'credits');
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('dance-detail-authors')),
+          matching: find.text('Pat Shaw (1951)'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('dance-detail-interpreters')),
+          matching: find.text('Interpreted by Cecil Sharp (1916)'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a year with no names still shows, labelled', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(
+        _dance(id: 'years-only').copyWith(
+          composedOn: PartialDate(1651),
+          interpretedOn: PartialDate(1916),
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'years-only');
+      expect(find.text('Composed 1651'), findsOneWidget);
+      expect(find.text('Interpreted 1916'), findsOneWidget);
+    });
+
+    testWidgets('names with no years show as before, and no interpreter line '
+        'without interpreters', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(_dance(id: 'names-only', authorIds: ['a1']));
+
+      await _pumpDetail(tester, repos, 'names-only');
+      expect(find.text('Pat Shaw'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('dance-detail-interpreters')),
+        findsNothing,
+      );
+    });
+  });
+
   testWidgets('shows the meter and key in the header when they are set', (
     tester,
   ) async {
