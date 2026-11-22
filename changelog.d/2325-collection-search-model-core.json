@@ -1,0 +1,9 @@
+{
+  "id": "2325-collection-search-model-core",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "The Collection search model and translator (FacetSelections, ByPhraseSelections, the Advanced builder nodes, buildCollectionFilter, isBareFullText, CollectionSort and CollectionFacetIds) moved, unchanged, from the app into compendium_core."
+    ]
+  }
+}
