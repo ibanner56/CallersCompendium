@@ -4242,6 +4242,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'bijv. g mineur';
 
   @override
+  String danceMeterValue(String meter) {
+    return 'Maatsoort: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Toonsoort: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override
