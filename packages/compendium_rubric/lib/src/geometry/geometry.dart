@@ -250,12 +250,18 @@ Formation toggleBandPhase(Formation formation) => isShiftedBandPhase(formation)
 /// which way "on down the set" points for them. It is what makes "the grouping
 /// ahead of you" well defined for both the progression oracle and the
 /// cross-hands-four dancer sets.
+///
+/// A dancer standing in a short-wave offset (`docs/fundamentals.md` §8.5.1)
+/// still belongs to the line they stepped out of: `c3` is the east line's
+/// offset, as `c1` is the west line's. A figure that keeps wave offsets while
+/// reaching along the set (a quarter `allemande`, §8.5.7) reads them here.
+/// The centre column is read as the west line, as it always was.
 int travelDirection(Formation formation, DancerId id) {
   final state = formation.stateOf(id);
   if (!formation.type.couplesShareColumn) {
     return state.number == CoupleNumber.one ? 1 : -1;
   }
-  final onEastLine = state.position.col == kColumnCount - 1;
+  final onEastLine = state.position.col > kColumnCount ~/ 2;
   final eastGoesDown = formation.type == FormationType.becketCw;
   return onEastLine == eastGoesDown ? 1 : -1;
 }

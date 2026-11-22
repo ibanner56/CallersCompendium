@@ -333,7 +333,7 @@ enum WaveHoldShape {
 /// holds right hands with the other when the other stands on their right.
 /// Only the two side-pair shapes of [WaveHoldShape] are recognized. A centre
 /// pair of a short wave and a centre long wave are not, so a turn they start
-/// is left to the caller to refuse.
+/// leaves the wave and is turned from facing (`Allemande`, §8.5.7).
 ({WaveHoldShape shape, Hand hand})? waveHoldOf(
   Formation formation,
   DancerPair pair,

@@ -277,6 +277,27 @@ void main() {
     });
   });
 
+  group('travel along a Becket set', () {
+    // A dancer standing in a short-wave offset belongs to the line they
+    // stepped out of: the c3 dancer is on the east line, the c1 dancer on the
+    // west one, and each travels with that line.
+    test('an offset dancer travels with their own line', () {
+      final settled = becketGrid(const ['L2-B . . . R1-A', 'R2-B . . . L1-A']);
+      final waved = becketGrid(const ['. L2-B . . R1-A', 'R2-B . . L1-A .']);
+      for (final id in settled.dancers.keys) {
+        expect(
+          travelDirection(waved, id),
+          travelDirection(settled, id),
+          reason: '$id at ${waved.stateOf(id).position}',
+        );
+      }
+      // The control: the two lines really do travel opposite ways.
+      final east = settled.dancers.keys.firstWhere((id) => '$id' == 'L-A');
+      final west = settled.dancers.keys.firstWhere((id) => '$id' == 'R-B');
+      expect(travelDirection(settled, east), -travelDirection(settled, west));
+    });
+  });
+
   group('reading the set from the top down', () {
     test('orders duple improper couples by row', () {
       final formation = startingFormation(
