@@ -410,6 +410,61 @@ void main() {
     expect(find.text('Mixer'), findsNothing);
   });
 
+  testWidgets('shows the meter and key in the header when they are set', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'tune').copyWith(meter: '6/8', musicalKey: 'G minor'),
+    );
+
+    await _pumpDetail(tester, repos, 'tune');
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('dance-detail-tune-details')),
+        matching: find.text('Meter: 6/8 · Key: G minor'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows only the key when no meter is set', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'key-only').copyWith(meter: '  ', musicalKey: 'D'),
+    );
+
+    await _pumpDetail(tester, repos, 'key-only');
+    expect(find.text('Key: D'), findsOneWidget);
+    expect(find.textContaining('Meter:'), findsNothing);
+  });
+
+  testWidgets('renders a discouraged term in the meter or key canonically', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'gypsy-key').copyWith(musicalKey: 'Gypsy'),
+    );
+
+    await _pumpDetail(tester, repos, 'gypsy-key');
+    expect(find.text('Key: Shoulder round'), findsOneWidget);
+    expect(find.textContaining('Gypsy'), findsNothing);
+  });
+
+  testWidgets('has no tune details row when neither meter nor key is set', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'no-tune'));
+
+    await _pumpDetail(tester, repos, 'no-tune');
+    expect(
+      find.byKey(const ValueKey('dance-detail-tune-details')),
+      findsNothing,
+    );
+  });
+
   testWidgets('renders a canonical hook under the active dialect (#613)', (
     tester,
   ) async {
