@@ -22,7 +22,8 @@ already made one figure at a time.
 Each decision is labelled with who made it:
 
 - **The maintainer decided** marks a choice Hudson (@ibanner56) made on
-  22 November 2026, in the discussion that commissioned this record.
+  22 November 2026, in the discussion that commissioned this record, or
+  in review of the pull request that adds it (marked *in review*).
 - **The maintainer's view** marks something he said in that discussion that
   this record builds on, without his having been asked to rule on it.
 - **Author's call** marks a choice the author of this record made, with the
@@ -309,7 +310,9 @@ visible feature but would rest on the least verified ground.
 
 ### 4.3 Why the exact model, and not a continuous one
 
-*The maintainer decided* this in review. Animators
+The exact model rests on the maintainer's earlier figure rulings, and
+*the maintainer decided* the evidence rule at the end of this section in
+review. Animators
 place dancers at continuous coordinates and check closeness. Rubric places
 them in cells and checks equality. The exact model is weaker at showing a
 dance and stronger at checking one: a dance either reaches the reference
@@ -517,6 +520,11 @@ required to support.
   are outside the set's scope (§3.5), not failures.
 - "Passing" means Compiled. A core-set dance that Rubric cannot check yet
   counts as not passing, because "can't check yet" is not support.
+- **"The core set passes" means every in-scope, matched entry compiles**,
+  apart from entries the maintainer has removed.
+- An entry that matches no corpus record, or more than one, is reported by
+  name as unmatched. It is neither passing nor out of scope until it is
+  resolved, by finding its record or by the maintainer's decision.
 
 ### 6.3 Debts accepted knowingly
 
