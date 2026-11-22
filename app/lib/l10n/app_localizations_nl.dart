@@ -4266,6 +4266,31 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceSectionBarnes => 'Barnes-boeken';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Gecomponeerd in $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Geïnterpreteerd door $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Geïnterpreteerd door $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Geïnterpreteerd in $year';
+  }
+
+  @override
   String danceMeterValue(String meter) {
     return 'Maatsoort: $meter';
   }

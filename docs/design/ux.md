@@ -119,7 +119,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   before adding it again (N3-A1; `docs/design/add-to-program-sheet.md`).
 
 ### 2. Dance detail / card
-- Header: title, authors, formation, meter and key (one labelled line, only
+- Header: title, authors with the composed year ("Pat Shaw (1951)"),
+  interpreters with the interpreted year on their own line ("Interpreted by
+  Cecil Sharp (1916)"; either line shows a year alone, labelled, when there
+  are no names), formation, meter and key (one labelled line, only
   when either is set), hook, tags, status banner (deprecated/broken),
   provenance line ("via The Caller's Box · CC-BY-NC").
 - Figure table grouped by derived section (A1…), beats column, progression ¶
@@ -266,8 +269,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 ### 5. Performance mode
 - Full-screen card: current dance, huge type (user-set size/weight/spacing,
   no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on.
-  The header adds the dance's meter and key on one labelled row when either is
-  set. A `meanwhile` container (#590/#594) shows both concurrent sides on one
+  The header adds the composed year to the authors line, the interpreters and
+  interpreted year on their own line, and the dance's meter and key on one
+  labelled row when either is set. A `meanwhile` container (#590/#594) shows both concurrent sides on one
   card row joined by "while", on their single shared beat span; the
   screen-reader announcement reads the pair as one continuous "A while B"
   phrase.

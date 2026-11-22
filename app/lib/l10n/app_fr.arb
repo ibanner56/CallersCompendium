@@ -4332,6 +4332,26 @@
   "@danceSectionBarnes": {
     "x-sourceSha256": "49a8e8a9f8339a6e0ce62b696d610c4a164ecc6268d021da155f11944946b95a"
   },
+  "danceAuthorsWithYear": "{names} ({year})",
+  "@danceAuthorsWithYear": {
+    "x-sourceSha256": "9da3518c560f6302cab54100ad68898ef4e9cae6d5a57560f30b2fbe27c30bd9"
+  },
+  "danceComposedYear": "Composée en {year}",
+  "@danceComposedYear": {
+    "x-sourceSha256": "3459cb5a490d4effed9e6fea7954e0706134c4ca14bd03b258008f779d325f80"
+  },
+  "danceInterpretedBy": "Interprétée par {names}",
+  "@danceInterpretedBy": {
+    "x-sourceSha256": "b898c976869f45e68899cf965d33ae814c64a718c85cfbfc971bd00736aa92de"
+  },
+  "danceInterpretedByWithYear": "Interprétée par {names} ({year})",
+  "@danceInterpretedByWithYear": {
+    "x-sourceSha256": "11cc4ce5a0bc38981a9ad514c0079bfceae68e28396117d9a7754bdc4eae7dd0"
+  },
+  "danceInterpretedYear": "Interprétée en {year}",
+  "@danceInterpretedYear": {
+    "x-sourceSha256": "bf7f2681634650c962accef31e57f40118bb171615bb7218247ef1e8fde5abee"
+  },
   "danceMeterValue": "Mesure : {meter}",
   "@danceMeterValue": {
     "x-sourceSha256": "43c115395c78332e54a364e9a0a3c253895a121a1a2336b736f9d6cb2a690444"

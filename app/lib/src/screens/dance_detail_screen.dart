@@ -471,6 +471,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           dance: detail.dance,
           renderer: renderer,
           authorNames: detail.authorNames,
+          interpreterNames: detail.interpreterNames,
           difficultyLevel: detail.difficultyLevel,
         ),
       ),
@@ -1193,12 +1194,30 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     ),
                   ),
                 ],
-                if (detail.authorNames.isNotEmpty) ...[
+                if (authorsWithYearLabel(
+                      l10n,
+                      detail.authorNames,
+                      dance.composedOn,
+                    )
+                    case final authors?) ...[
                   const SizedBox(height: AppSpacing.xxs),
                   SelectableLine(
+                    key: const ValueKey('dance-detail-authors'),
+                    child: Text(authors, style: theme.textTheme.bodyLarge),
+                  ),
+                ],
+                if (interpretersWithYearLabel(
+                      l10n,
+                      detail.interpreterNames,
+                      dance.interpretedOn,
+                    )
+                    case final interpreters?) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  SelectableLine(
+                    key: const ValueKey('dance-detail-interpreters'),
                     child: Text(
-                      detail.authorNames.join(', '),
-                      style: theme.textTheme.bodyLarge,
+                      interpreters,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
                 ],

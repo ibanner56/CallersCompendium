@@ -653,7 +653,10 @@ nothing in it to lose.
   it, and the year, in the other two. On a narrow screen, or with large text,
   each year goes under its names. **Interpreted by** draws on the same list of
   people as **Authors**. For other types the dates and **Interpreted by** are in **More
-  details**, where a date can also have a month and day.
+  details**, where a date can also have a month and day. The dance's detail
+  view and its Perform card show each year beside its names, such as
+  *Pat Shaw (1951)* and *Interpreted by Cecil Sharp (1916)*; they show only
+  the year of a date that has a month and day.
 - **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
   the dance's row in your collection and what the **Type** filter finds. A new
   dance starts with your default type (see
