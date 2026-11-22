@@ -3364,6 +3364,124 @@ void main() {
     });
   });
 
+  group('the formation follows a change of form', () {
+    test('a contra shape gives way to duple minor, proper, for ECD', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.titleController.text = 'New';
+      expect(controller.form, DanceForm.contra);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.dupleMinor);
+      expect(controller.improper, isFalse);
+      // The contra shape is gone from the field's list, not kept beside it.
+      expect(
+        controller.offeredFormationShapes,
+        isNot(contains(FormationShape.dupleImproper)),
+      );
+      expect(
+        controller.buildDance().formation.shape,
+        FormationShape.dupleMinor,
+      );
+
+      controller.undo();
+      expect(controller.form, DanceForm.contra);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+    });
+
+    test('a shape both forms offer is kept', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setFormationShape(FormationShape.tripleMinor);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.tripleMinor);
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.tripleMinor);
+    });
+
+    test('an English dance still on a contra shape keeps it when changed '
+        'back to contra, or when English is chosen again', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Converted',
+          form: DanceForm.ecd,
+          formation: const Formation(FormationShape.becketCw),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      expect(controller.formationShape, FormationShape.becketCw);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.becketCw);
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.becketCw);
+    });
+
+    test('an English shape gives way to contra\'s first, and the checkbox '
+        'is kept for a change back', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      controller.setFormationShape(FormationShape.threeCoupleLongways);
+      controller.setImproper(true);
+
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+      expect(
+        controller.offeredFormationShapes,
+        isNot(contains(FormationShape.threeCoupleLongways)),
+      );
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.dupleMinor);
+      expect(controller.improper, isTrue);
+    });
+
+    test('contra and square share their shapes, so the shape stays', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setFormationShape(FormationShape.becketCw);
+
+      controller.setForm(DanceForm.square);
+      expect(controller.formationShape, FormationShape.becketCw);
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.becketCw);
+    });
+
+    test('choosing the form the dance already has keeps its shape', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      controller.setFormationShape(FormationShape.sicilianCircle);
+      controller.setImproper(true);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.sicilianCircle);
+      expect(controller.improper, isTrue);
+    });
+  });
+
   group('timing by dance form (ADR-006 §5.5)', () {
     Future<DanceEditorController> openEcd(
       CompendiumRepositories repos,
