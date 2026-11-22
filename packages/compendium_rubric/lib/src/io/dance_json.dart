@@ -187,6 +187,19 @@ class _Params {
   }
 }
 
+/// [WhoSet.fromKey] for a slot that cannot name `shadows` yet.
+///
+/// A figure naming shadows is danced in the band phase where they stand
+/// together, and that phase is chosen from the sets that pick the dancers who
+/// act ([Operation.dancerSets]). A slot outside that list (`hey.pass2` and
+/// `meetTarget`, `courtesy_turn.endFacing`) would be resolved in whatever phase
+/// the figure happened to be handed, so `shadows` there is deferred rather
+/// than read in the wrong place. *(Agent's call, 2026-11-22.)*
+WhoSet? _whoBesidesShadows(String key) {
+  final who = WhoSet.fromKey(key);
+  return who == WhoSet.shadows ? null : who;
+}
+
 /// Builds one figure from its `params` object.
 typedef _FigureBuilder = Operation Function(_Params params);
 
@@ -395,8 +408,8 @@ Operation _buildHey(_Params p) => HeyForFour(
   // which `_Params` already reads as absent. `pass2` is an anchor and
   // `meetTarget` only speaks to the deferred partial lengths, so neither
   // selects anybody.
-  pass2: p.optionalEnum(['pass2'], WhoSet.fromKey),
-  meetTarget: p.optionalEnum(['meetTarget'], WhoSet.fromKey),
+  pass2: p.optionalEnum(['pass2'], _whoBesidesShadows),
+  meetTarget: p.optionalEnum(['meetTarget'], _whoBesidesShadows),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
   dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   rico1: p.boolOr(['rico1'], false),
@@ -495,7 +508,7 @@ Operation _buildCourtesyTurn(_Params p) => CourtesyTurn(
     SpinDirection.counterclockwise,
   ),
   // A dancer relationship despite the name it shares with `swing.endFacing`.
-  endFacing: p.optionalEnum(['endFacing'], WhoSet.fromKey),
+  endFacing: p.optionalEnum(['endFacing'], _whoBesidesShadows),
 );
 
 // --- Pair swaps ------------------------------------------------------------

@@ -170,12 +170,14 @@ void main() {
     });
 
     test('refused when no phase has shadows standing together', () {
+      // An allemande has no who check of its own that could refuse first.
       final error = applyErr(
-        const Swing(who: WhoSet.shadows),
+        const Allemande(who: WhoSet.shadows, turn: 0.5),
         startingFormation(FormationType.dupleImproper, handsFour: 2),
       );
 
       expect(error.kind, ErrorKind.whoMismatch);
+      expect(error.message, contains('no band phase'));
     });
 
     test('refused when both phases have shadows standing together', () {
@@ -192,16 +194,55 @@ void main() {
       );
 
       expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.message, contains('both band phases'));
     });
+  });
 
-    test('refused when it also names a distance set', () {
-      final error = applyErr(
+  group('a figure naming shadows and a distance set', () {
+    // A figure can name both, like a square through with the shadows and then
+    // the next neighbours. Where you meet your shadows depends on the
+    // progression, so nothing ties the two sets together to refuse on
+    // (user-ruled 2026-11-22): the distance picks the band phase.
+
+    test('is danced where the distance reaches', () {
+      // Three hands four after a pass through along: one phase over, every
+      // band holds a 1s couple with its next neighbours, the 2s.
+      final input = duple([
+        'L2-B . . . R2-B',
+        'R1-A . . . L1-A',
+        'L2-D . . . R2-D',
+        'R1-C . . . L1-C',
+        'L2-F . . . R2-F',
+        'R1-E . . . L1-E',
+      ]);
+
+      final after = applyOk(
         const MadRobin(who: WhoSet.shadows, whom: WhoSet.nextNeighbors),
-        startingFormation(FormationType.dupleImproper, handsFour: 3),
+        input,
       );
 
-      expect(error.kind, ErrorKind.unresolvableDancerSet);
-      expect(error.message, contains('shadows and nextNeighbors'));
+      expect(bandRows(after), bandRows(input));
+    });
+
+    test('is not refused for the shadows standing apart', () {
+      // The starting formation has no shadow pair in either phase. A figure
+      // naming only shadows is refused there; with a distance set as well it
+      // is the distance that decides, so the shadows rule does not refuse it.
+      final start = startingFormation(
+        FormationType.dupleImproper,
+        handsFour: 2,
+      );
+      expect(
+        const MadRobin(who: WhoSet.shadows).apply(start),
+        isA<Err<Formation, OpError>>(),
+      );
+
+      final result = const MadRobin(
+        who: WhoSet.shadows,
+        whom: WhoSet.nextNeighbors,
+      ).apply(start, progressions: 1);
+
+      expect(result, isA<Ok<Formation, OpError>>(), reason: '$result');
     });
   });
 

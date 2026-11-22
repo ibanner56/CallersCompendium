@@ -414,14 +414,16 @@ rather than from your neighbor. Two further rules come with it:
   turned round at an end shares its number with the couple beside it, so that couple's
   opposite-role dancer is its shadow there.
 
-**Pairing.** A figure naming `shadows` pairs whoever is standing together, as `swing` does for
-every set: it does not reach a fixed distance. Shadows stand in different hands fours, so the
-figure is danced in the **band phase in which every hands four holds a shadow pair** — the phase
-it was handed or the other one — and the phase it was handed is given back afterwards, as a
-distance set's reach is. If neither phase has shadows standing together the figure is refused
-with `whoMismatch`; if both do it is refused with `unresolvableDancerSet`, because two different
-sets of dancers could be the shadows and choosing one would be a guess. *(User-ruled: "pair
-whoever is next to you; refuse if neither or both".)*
+**Pairing.** *(User-ruled.)* A figure naming `shadows` pairs whoever is standing next to you, as
+`swing` does for every set, and is refused if there is no choice or more than one. It does not
+reach a fixed distance.
+
+**A distance set in the same figure.** A figure can name both, like a square through with the
+shadows and then the next neighbors. *(User-ruled.)* Meeting your shadows often puts you in a
+hands four with your next neighbors, but not always: it depends on the progression, and sometimes
+you are still with your original neighbors, so there is no rule tying the two sets together to
+refuse on. The distance set picks the band phase as it always does, and the shadows rule above
+does not refuse the figure; the figure's own `who` checks still apply.
 
 Worked example (`test/ops/shadows_test.dart`). With B and D, both 2s, standing beside each other
 across the settled band boundary, only the shifted phase holds a shadow pair, so an allemande
@@ -436,14 +438,27 @@ R1-C . . . L1-C
 
 *Agent's calls, not ratified:*
 
-- `shadows` checks only the relationship (opposite role, different couple, same number), not how
-  many hands fours apart the pair started. The user noted that shadows can lie beyond the
-  neighbouring hands four; those are named by their own sets (`secondShadows` and further), which
-  are not modelled yet and are refused at parse time as an unmodelled vocabulary value. The
-  alternative, checking home grouping the way `crossHandsFourRefusal` does for the distance sets,
-  was not taken because no worked example yet says which grouping a shadow is measured from.
-- A figure naming both `shadows` and a distance set is refused with `unresolvableDancerSet`: each
-  picks its own band phase, and a figure is danced in one.
+- **What "a choice" is.** The choices are the two band phases: the one the figure was handed and
+  the other one. The figure is danced in the phase where **every** hands four holds a shadow pair,
+  and the phase it was handed is given back afterwards, as a distance set's reach is. Neither
+  phase is `whoMismatch`; both is `unresolvableDancerSet`.
+- **Waiting-out couples.** When the set is handed in the shifted phase and the shadows stand
+  together in the other one, the couples waiting out at the ends are brought in and dance, and
+  the hand-back marks whoever then stands at the ends as out. This is the same mechanics as a
+  distance set's reach.
+- **The progression flag.** A flagged figure that reached along the set advances it a second
+  time; a flagged shadows figure does not, even when it was danced one phase over.
+- **How far apart.** `shadows` checks only the relationship (opposite role, different couple, same
+  number), not how many hands fours apart the pair started. The user noted that shadows can lie
+  beyond the neighbouring hands four; those are named by their own sets (`secondShadows` and
+  further), which are not modelled yet and are refused at parse time as an unmodelled vocabulary
+  value. The alternative, checking home grouping the way `crossHandsFourRefusal` does for the
+  distance sets, was not taken because no worked example yet says which grouping a shadow is
+  measured from.
+- **Slots that do not choose the phase.** The phase is chosen from the sets that pick who dances
+  (`Operation.dancerSets`). `hey.pass2`, `hey.meetTarget` and `courtesy_turn.endFacing` are
+  resolved in whatever phase the figure is handed, so `shadows` in those slots is deferred at
+  parse time rather than read in the wrong place.
 
 ---
 

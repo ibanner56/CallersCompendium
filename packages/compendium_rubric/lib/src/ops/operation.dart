@@ -205,20 +205,17 @@ sealed class Operation {
         ),
       );
     }
-    final namesShadows = dancerSets.contains(WhoSet.shadows);
-    if (namesShadows && reaching.isNotEmpty) {
-      return Err<Formation, OpError>(
-        OpError(
-          ErrorKind.unresolvableDancerSet,
-          '$name names shadows and ${reaching.single.key}; each picks its own '
-          'band phase, and a figure can only be danced in one',
-        ),
-      );
-    }
+    // A figure naming a distance set and shadows (a square through with the
+    // shadows, then the next neighbours) is danced where the distance reaches.
+    // Where you meet your shadows depends on the progression, so there is no
+    // rule tying the two sets together to refuse on *(user-ruled
+    // 2026-11-22)*; the figure's own `who` checks still apply.
     if (reaching.isNotEmpty) {
       return _applyReaching(settled, reaching.single, progressions);
     }
-    if (namesShadows) return _applyWithShadows(settled);
+    if (dancerSets.contains(WhoSet.shadows)) {
+      return _applyWithShadows(settled);
+    }
 
     final failure = checkPreconditions(settled);
     if (failure != null) return Err<Formation, OpError>(failure);
@@ -284,15 +281,14 @@ sealed class Operation {
   /// A dancer's shadows stand in a neighbouring hands four, so whether they
   /// are together depends on the dance so far, not on a fixed distance. The
   /// rule is the one `swing` uses for every set: pair whoever is standing
-  /// together, and check the relationship. *(User-ruled 2026-11-22.)* Here
-  /// that means picking the **band phase** in which every hands four holds a
-  /// shadow pair: the phase the figure was handed, or the other one. The
-  /// figure is danced there and the phase it was given is handed back, as
-  /// [_applyReaching] does.
+  /// next to you, and refuse if there is no one or more than one choice.
+  /// *(User-ruled 2026-11-22.)*
   ///
-  /// Neither phase is refused with `whoMismatch`: no shadows are standing
-  /// together. Both is refused as `unresolvableDancerSet`: two different sets
-  /// of dancers could be the shadows, and choosing one would be a guess.
+  /// How that is carried out is the agent's call (`docs/taxonomy.md`,
+  /// "Shadows"): the choices are the two **band phases**, the figure is danced
+  /// in the one in which **every** hands four holds a shadow pair, and the
+  /// phase it was given is handed back, as [_applyReaching] does. Neither
+  /// phase is `whoMismatch`; both is `unresolvableDancerSet`.
   Result<Formation, OpError> _applyWithShadows(Formation formation) {
     final over = toggleBandPhase(formation);
     final here = _shadowsStandTogether(formation);

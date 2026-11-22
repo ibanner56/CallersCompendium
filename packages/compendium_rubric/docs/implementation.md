@@ -200,7 +200,10 @@ operation.apply(...)                       the figure's own transform
 1. settle wave offsets      unless preservesWaveOffsets
 2. reaching sets            if the figure names a cross-hands-four set:
                               - more than one distinct set -> unresolvableDancerSet
-                              - exactly one -> _applyReaching (see §6.3)
+                              - exactly one -> _applyReaching (see §6.3), even
+                                when the figure also names shadows (§6.4)
+   shadows                  else, if the figure names shadows ->
+                              _applyWithShadows (see §6.4)
 3. checkPreconditions       -> Err short-circuits
 4. perform                  the figure's transform (@protected)
 ```
@@ -327,7 +330,11 @@ grand right and left the third neighbours stand *one* grouping apart, not two.
 `shadows` has no distance: `Operation.apply` routes a figure naming it through
 `_applyWithShadows`, which dances it in whichever band phase has a shadow pair
 standing together in every hands four, and hands the original phase back.
-Neither phase is `whoMismatch`; both is `unresolvableDancerSet`. `whoMatches`
+Neither phase is `whoMismatch`; both is `unresolvableDancerSet`. A figure
+that also names a distance set is danced in the phase the distance picks, and
+the shadows rule does not refuse it (user-ruled). Only `dancerSets` choose the phase, so the
+parser defers `shadows` in slots outside it (`hey.pass2`/`meetTarget`,
+`courtesy_turn.endFacing`). `whoMatches`
 reads the numbers as they stand, so at an end a couple that has turned round has
 its neighbour as its shadow. The rulings and a worked example are in
 `docs/taxonomy.md`, "Shadows".
@@ -724,7 +731,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,104 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,109 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **46 figures registered**, plus 7 upstream aliases resolved to them

@@ -647,6 +647,33 @@ void main() {
       expect(error.deferred, isTrue);
     });
 
+    test('shadows is read as a dancer set where it picks who dances', () {
+      final dance = _parseOk(
+        _record('{"move": "swing", "params": {"who": "shadows"}}'),
+      );
+
+      expect(dance.figures.single.operation, const Swing(who: WhoSet.shadows));
+    });
+
+    group('shadows in a slot that does not pick the band phase', () {
+      // These slots are resolved in whatever phase the figure is handed, so a
+      // figure naming shadows there would find them in the wrong place.
+      for (final (move, key) in [
+        ('hey', 'pass2'),
+        ('hey', 'meetTarget'),
+        ('courtesy_turn', 'endFacing'),
+      ]) {
+        test('$move.$key: shadows is deferred', () {
+          final error = _parseErr(
+            _record('{"move": "$move", "params": {"$key": "shadows"}}'),
+          );
+
+          expect(error.path, 'figures[0].params.$key');
+          expect(error.deferred, isTrue);
+        });
+      }
+    });
+
     group('taxonomy v39 parameters this compiler does not model', () {
       // Each is a value an unknown-key-tolerant reader would otherwise drop or
       // read as the default, compiling a different dance than the record says.
