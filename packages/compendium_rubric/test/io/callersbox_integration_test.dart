@@ -369,6 +369,141 @@ void main() {
     );
   });
 
+  group('a sequence container is danced as its children', () {
+    // `compendium_core` puts a run of figures written on one line ("pass
+    // through and California twirl") in a `sequence` container. It defines no
+    // new motion: the children are danced in order, exactly as if they had
+    // been written as separate figures. The fixture is the control here,
+    // because it compiles as plain figures, so the same figures inside a
+    // container must compile too.
+    Future<core.StructuredDraft> withSequence(
+      int start,
+      int end, {
+      bool progression = false,
+    }) async {
+      final draft = await _draft();
+      final figures = decodedFigures(draft.dance)!;
+      final children = figures.sublist(start, end);
+      final wrapped = [
+        ...figures.sublist(0, start),
+        core.Figure.sequence(
+          figures: children,
+          beats: children.fold(0, (sum, figure) => sum + figure.beats),
+          progression: progression,
+        ),
+        ...figures.sublist(end),
+      ];
+      return core.StructuredDraft(
+        dance: draft.dance.copyWith(figures: wrapped),
+        raw: draft.raw,
+      );
+    }
+
+    test('a sequence mid-dance compiles as the figures it holds', () async {
+      final draft = await withSequence(3, 5);
+      expect(
+        decodedFigures(draft.dance)!.map((figure) => figure.move),
+        contains('sequence'),
+        reason: 'the container really is in the transcription',
+      );
+
+      final figures =
+          bridgeCoreDance(draft.dance).record['figures']! as List<Object?>;
+      expect(
+        [for (final f in figures) (f! as Map<String, Object?>)['move']],
+        [
+          'box_the_gnat',
+          'allemande',
+          'swing',
+          'circle',
+          'swing',
+          'petronella',
+          'petronella',
+        ],
+      );
+      expect(runCoreDance(draft).outcome, DanceOutcome.compiled);
+    });
+
+    test('the assumed progression reaches inside a closing sequence', () async {
+      // The positional rule takes the last figure danced, which is the last
+      // child, not the container.
+      final draft = await withSequence(5, 7);
+      final bridged = bridgeCoreDance(draft.dance);
+      expect(bridged.assumedProgressionAt, 6);
+      expect(runCoreDance(draft).outcome, DanceOutcome.compiled);
+    });
+
+    test('a sequence flagged as the progression hands it to its last '
+        'child', () async {
+      final draft = await withSequence(5, 7, progression: true);
+      final danced = dancedFigures(draft.dance)!;
+      expect(
+        [for (final f in danced) f.progression],
+        [false, false, false, false, false, false, true],
+      );
+      final run = runCoreDance(draft);
+      expect(run.outcome, DanceOutcome.compiled);
+      expect(run.assumedProgressionAt, isNull, reason: 'the source said');
+    });
+
+    test('a sequence inside another container is left inside it', () {
+      // Only a top-level sequence is spliced; a meanwhile stays a meanwhile,
+      // and stays deferred, whatever it holds.
+      final meanwhile = core.Figure.meanwhile(
+        figures: [
+          core_test.testFigure(move: 'swing'),
+          core.Figure.sequence(
+            figures: [
+              core_test.testFigure(move: 'circle'),
+              core_test.testFigure(move: 'star'),
+            ],
+            beats: 8,
+          ),
+        ],
+        beats: 8,
+      );
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [meanwhile],
+      );
+      final danced = dancedFigures(dance)!;
+      expect(danced.single.move, 'meanwhile');
+      expect(
+        [for (final f in danced.single.subFigures) f.move],
+        ['swing', 'sequence'],
+        reason: 'the inner sequence is not spliced into the meanwhile',
+      );
+    });
+
+    test('a container inside a sequence comes up to the top level', () {
+      // The splice is one level deep: a meanwhile the sequence held is danced
+      // in its place, and stays deferred there.
+      final meanwhile = core.Figure.meanwhile(
+        figures: [
+          core_test.testFigure(move: 'swing'),
+          core_test.testFigure(move: 'circle'),
+        ],
+        beats: 8,
+      );
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          core.Figure.sequence(
+            figures: [
+              core_test.testFigure(move: 'star'),
+              meanwhile,
+            ],
+            beats: 16,
+          ),
+        ],
+      );
+      expect(
+        [for (final f in dancedFigures(dance)!) f.move],
+        ['star', 'meanwhile'],
+      );
+    });
+  });
+
   group('which figure the import assumes progresses', () {
     // The rule itself, stated over shapes rather than over choreography. These
     // are not golden dances and are never compiled: they exist to pin the

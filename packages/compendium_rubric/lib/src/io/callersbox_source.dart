@@ -111,6 +111,9 @@ class DanceRun {
   /// is a fact about this compiler.
   final Set<String> moves;
 
+  /// How many figures the source wrote, counted by `compendium_core` over
+  /// its top-level lines: a `sequence` container counts once here, though it
+  /// is danced as its children (see [dancedFigures]).
   final int totalFigures;
   final int customFigures;
 
@@ -126,6 +129,11 @@ class DanceRun {
   final bool blockedByDeferral;
 
   /// The figure this run assumed was the progression, when it assumed one.
+  ///
+  /// Like every figure index this path reports (warnings, a refusal's
+  /// "figure N", a parse error's `figures[N]`), it is a position in
+  /// [dancedFigures], not in the source's lines: after a `sequence` the two
+  /// differ, and this index can exceed [totalFigures].
   final int? assumedProgressionAt;
 
   bool get ran =>
@@ -274,7 +282,7 @@ DanceRun _adapterFailure(String label, Object error, {String? sourceId}) =>
 DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   final dance = draft.dance;
   final sourceId = draft.raw.externalId;
-  final figures = decodedFigures(dance);
+  final figures = dancedFigures(dance);
   final moves = {
     for (final figure in figures ?? const <core.Figure>[]) figure.move,
   };
@@ -422,14 +430,18 @@ class BridgedDance {
 
   final Map<String, Object?> record;
   final List<Warning> warnings;
+
+  /// A position in [dancedFigures], as is every index in [record]'s figures.
   final int? assumedProgressionAt;
 }
 
 /// Translates a [core.Dance] into the dance-record shape [parseDance] reads.
 ///
 /// The translation is deliberately thin — four fields, because those are the
-/// four [parseDance] looks at — and it does exactly one thing the source did
-/// not: it may supply the progression flag. See [assumedProgressionIndex].
+/// four [parseDance] looks at. Its figures are [dancedFigures], so a `sequence`
+/// arrives as its children (and a flagged sequence's flag on its last child).
+/// Beyond that it does one thing the source did not: it may supply the
+/// progression flag. See [assumedProgressionIndex].
 ///
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
@@ -561,8 +573,50 @@ List<core.Figure>? decodedFigures(core.Dance dance) =>
       core.UnreadableFigures() => null,
     };
 
+/// [dance]'s figures as the compiler dances them: [decodedFigures] with every
+/// `sequence` container replaced by its children, or `null` when the
+/// transcription did not decode.
+///
+/// `compendium_core` defines a sequence as figures "danced one after another
+/// and shown on one line", and says ordinary sequence is still just the order
+/// of a dance's figures: the container exists so a run can sit where one figure
+/// must (one side of a `meanwhile`), not to change what is danced. Splicing the
+/// children in place is therefore that definition read literally, and it
+/// happens before anything positional reads the list, so the progression rules
+/// below see the figures that are actually danced rather than the line they
+/// were written on.
+///
+/// Only a top-level sequence is spliced. A sequence inside a `meanwhile` or
+/// `modifier` stays inside it, and those containers stay deferred. A sequence
+/// with no readable children (core's own constructor requires two, so only a
+/// malformed record gets here) is left in place and refused as an unsupported
+/// move, rather than silently vanishing.
+///
+/// Every figure index reported downstream counts positions in this list, not
+/// the source's lines.
+///
+/// A sequence the source flagged as the progression hands the flag to its
+/// **last** child: the container's figure ends when its last child ends, which
+/// is the same reading [assumedProgressionIndex] gives a dance whose final
+/// figure is the progression. *(Agent's call, not yet ruled; the alternative
+/// was refusing a flagged sequence, which no Caller's Box record can carry.)*
+List<core.Figure>? dancedFigures(core.Dance dance) {
+  final figures = decodedFigures(dance);
+  if (figures == null) return null;
+  return [
+    for (final figure in figures)
+      if (figure.isSequence && figure.subFigures.isNotEmpty)
+        for (var i = 0; i < figure.subFigures.length; i++)
+          figure.progression && i == figure.subFigures.length - 1
+              ? figure.subFigures[i].copyWith(progression: true)
+              : figure.subFigures[i]
+      else
+        figure,
+  ];
+}
+
 List<core.Figure> _requireDecoded(core.Dance dance) =>
-    decodedFigures(dance) ??
+    dancedFigures(dance) ??
     (throw ArgumentError.value(
       dance.title,
       'dance',
