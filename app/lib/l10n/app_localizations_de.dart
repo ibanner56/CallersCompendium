@@ -4252,6 +4252,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'z. B. g-Moll';
 
   @override
+  String danceMeterValue(String meter) {
+    return 'Taktart: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Tonart: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Gemischtes Niveau';
 
   @override
