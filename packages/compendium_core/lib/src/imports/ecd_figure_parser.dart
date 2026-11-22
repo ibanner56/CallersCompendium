@@ -122,7 +122,12 @@ Figure? parseEcdFigureLine(
 }) {
   var safeBeats = beats < 0 ? 0 : beats;
   var lineText = rawText;
-  final bars = ecdBarCount(rawText, meter: meter);
+  final bars = ecdBarCount(
+    rawText,
+    meter: meter,
+    timing: timing,
+    startBeat: startBeat,
+  );
   if (bars != null) {
     // The bars are the count (Hudson: "take them and use them"), over a
     // count the line was given or a custom line kept, so a re-check counts

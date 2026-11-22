@@ -142,9 +142,13 @@ final RegExp _barRange = RegExp(
   final range = splitEcdBarRange(line);
   if (range == null) return null;
   final perBar = ecdBeatsPerBar(meter).beatsPerBar;
-  var beats = range.bars * perBar;
+  // With phrases that differ in beats per bar, the bars are counted from where
+  // the line sits, each as long as the phrase it falls in.
+  int beatsOf(int bars) =>
+      timing?.beatsForHalfBars(startBeat, bars * 2) ?? bars * perBar;
+  var beats = beatsOf(range.bars);
   // Ranges that run past the beats range keep the first one's count.
-  if (beats > _maxBeats) beats = range.firstBars * perBar;
+  if (beats > _maxBeats) beats = beatsOf(range.firstBars);
   if (beats > _maxBeats) return null;
   return (beats: beats, rest: range.rest, several: range.several);
 }

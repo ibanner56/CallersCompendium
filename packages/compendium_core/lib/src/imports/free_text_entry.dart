@@ -442,7 +442,9 @@ List<Figure> parseFreeTextFigureEntry(
   // its count. Anything else, a rest that also states a count in beats or a
   // line of several ranges (`(5-8) X (9-12) Y`, counted across all of them)
   // included, keeps the line whole as typed, with that count.
-  final bars = _isEcd(taxonomy) ? ecdBarCount(trimmed, meter: meter) : null;
+  final bars = _isEcd(taxonomy)
+      ? ecdBarCount(trimmed, meter: meter, timing: timing, startBeat: startBeat)
+      : null;
   if (bars != null) {
     // A count in beats as well would be dropped, and a line of several
     // ranges names several figures: the line is kept whole.
