@@ -5,9 +5,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 /// A sliver that keeps its box child pinned to the top of a [CustomScrollView]
-/// as [PinnedHeaderSliver] does, while that leaves the list room: once the
-/// child, together with whatever is already pinned above it, would cover more
-/// than [maxViewportFraction] of the viewport, it scrolls like a
+/// as Flutter's PinnedHeaderSliver does, while that leaves the list room: once
+/// the child, together with whatever is already pinned above it, would cover
+/// more than [maxViewportFraction] of the viewport, it scrolls like a
 /// [SliverToBoxAdapter] instead.
 ///
 /// Several of these stack: each pins below the ones before it.
@@ -33,7 +33,7 @@ class PinnedWhileRoomSliver extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _PinnedWhileRoomSliver(
     maxViewportFraction: maxViewportFraction,
-    // As [PinnedHeaderSliver] does, so the header's nodes stay grouped.
+    // As Flutter's PinnedHeaderSliver does, so the header's nodes stay grouped.
     child: Semantics(container: true, explicitChildNodes: true, child: child),
   );
 }
@@ -102,8 +102,8 @@ class RenderPinnedWhileRoomSliver extends RenderSliverSingleBoxAdapter {
         _pinnedAbove() + extent <=
         _maxViewportFraction * constraints.viewportMainAxisExtent;
     if (_pinned) {
-      // [PinnedHeaderSliver]'s geometry: drawn below whatever is pinned above
-      // (the overlap), and reported as an obstruction so reveal-on-focus
+      // Flutter's PinnedHeaderSliver geometry: drawn below whatever is pinned
+      // above (the overlap), and reported as an obstruction so reveal-on-focus
       // scrolls a target clear of it.
       geometry = SliverGeometry(
         scrollExtent: extent,
@@ -142,7 +142,7 @@ class RenderPinnedWhileRoomSliver extends RenderSliverSingleBoxAdapter {
   }
 
   /// How much of the viewport the headers before this one cover once pinned:
-  /// their full extent, not the [SliverConstraints.overlap], which grows from
+  /// their full extent, not the constraints' overlap, which grows from
   /// zero as this header slides up under them. Deciding on the overlap made a
   /// header that could not fit stick for a while, then jump behind the others.
   ///
@@ -172,8 +172,8 @@ class RenderPinnedWhileRoomSliver extends RenderSliverSingleBoxAdapter {
   @override
   void describeSemanticsConfiguration(SemanticsConfiguration config) {
     super.describeSemanticsConfiguration(config);
-    // As [PinnedHeaderSliver]: a header held in place is not part of what the
-    // viewport scrolls, for screen readers either.
+    // As Flutter's PinnedHeaderSliver: a header held in place is not part of
+    // what the viewport scrolls, for screen readers either.
     if (_pinned && geometry != null && geometry!.layoutExtent < _childExtent) {
       config.addTagForChildren(RenderViewport.excludeFromScrolling);
     }
