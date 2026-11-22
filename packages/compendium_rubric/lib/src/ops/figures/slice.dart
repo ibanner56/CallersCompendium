@@ -53,10 +53,13 @@ enum SliceReturn {
 /// **Known limit:** a diagonal return is two slides, but the engine runs a
 /// progression's end-normalization once per flag, so a progression-flagged
 /// diagonal slice compiles as a mismatch. What a flag on a double slice means
-/// (one progression or two) is not ruled; the Caller's Box bridge therefore
-/// never assumes one (`assumedProgressionIndex`), and in the corpus the
-/// double slices are mid-dance shifts to the shadows rather than the
-/// progression.
+/// (one progression or two) is not ruled. The Caller's Box bridge therefore
+/// does not assume one on a Becket opener (`assumedProgressionIndex`), but a
+/// dance that *ends* in a double slice still gets the ordinary last-figure
+/// flag and compiles as this mismatch. In the Caller's Box corpus 19 of the 21
+/// double slices are mid-dance shifts to the shadows; the other two end
+/// double-progression dances, and neither reaches the compiler today (another
+/// figure in each stays free text).
 ///
 /// **Deferred:** `by: dancer` (a shift of a single dancer, which leaves a shape
 /// the slide does not model) and `return: none` (the couples stop in the

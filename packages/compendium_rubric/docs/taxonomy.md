@@ -1047,9 +1047,11 @@ To be defined later with worked examples.
 - **progression-eligible:** yes, and it is **its own progression**, like the slide: a flag on a
   straight slice names the shift it has already made. ⚠️ **Known limit:** a diagonal return is
   two slides, but a flag end-normalizes once, so a progression-flagged diagonal slice compiles
-  as a mismatch. Whether a flag on a double slice means one progression or two is not ruled. In
-  the Caller's Box corpus every "Double slice" (21 dances) is a mid-dance shift to the shadows,
-  not the progression.
+  as a mismatch. Whether a flag on a double slice means one progression or two is not ruled. Of
+  the 21 Caller's Box "Double slice" lines, 19 are mid-dance shifts to the shadows and 2 end a
+  double-progression dance; neither of those two reaches the compiler today (another figure in
+  each stays free text). The bridge does not assume a progression on a Becket opener double
+  slice, but a dance ending in one still gets the ordinary last-figure flag.
 - **assumed progression (Caller's Box):** a Becket dance that **opens with a slice left** and a
   straight return is assumed to progress on it, exactly as one opening with a slide left is
   (user-ruled 2026-11-22, extending the slide rule in `callersbox_source.dart`). A diagonal
