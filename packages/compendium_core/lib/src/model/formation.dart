@@ -48,10 +48,11 @@ enum FormationShape {
   /// ECD: a longways set of exactly six couples.
   sixCoupleLongways,
 
-  /// ECD: a circle.
+  /// ECD: a circle. Squares use it too, for a Southern big circle or big set
+  /// (ADR-007 §8.1).
   circle,
 
-  /// ECD: a square set.
+  /// ECD: a square set, and a traditional square's own (ADR-007 §8.1).
   square,
 
   /// ECD: a set of two couples, such as "2 couple set - on the side with
@@ -101,16 +102,33 @@ const List<FormationShape> contraFormationShapes = [
   FormationShape.other,
 ];
 
+/// The shapes a traditional square offers (ADR-007 §8.1): the square set
+/// first, which a new square dance starts on; a circle, for a Southern big
+/// circle or big set such as the Kentucky running set; and
+/// [FormationShape.other] for anything else, such as a hexagon square.
+///
+/// The maintainer agreed that squares use [FormationShape.square] and left the
+/// rest to research (ADR-007 Q13, 20 November 2026). Contra's longways,
+/// becket and mixer shapes are left out because no held square or source
+/// dances a square in them. `grid` waits for the Caller's Box search to show
+/// whether its "Grid Contra/Square" marks squares.
+const List<FormationShape> squareFormationShapes = [
+  FormationShape.square,
+  FormationShape.circle,
+  FormationShape.other,
+];
+
 /// The shapes a dance of [form] offers when its formation is chosen.
 ///
-/// Squares have no shapes of their own yet (ADR-007 §8.1 assigns them), so
-/// they offer contra's, as every form did before ECD's shapes were added. A stored
-/// shape outside this list is still read and shown: an ECD dance imported
-/// before the ECD shapes existed keeps its contra shape until it is migrated
-/// (ADR-006 §12, F5).
+/// A stored shape outside this list is still read and shown: an ECD dance
+/// imported before the ECD shapes existed keeps its contra shape until it is
+/// migrated (ADR-006 §12, F5), and a square imported before the square shapes
+/// existed keeps `other` with detail "Square" until it is converted (ADR-007
+/// §8.4).
 List<FormationShape> offeredFormationShapes(DanceForm form) => switch (form) {
   DanceForm.ecd => ecdFormationShapes,
-  DanceForm.contra || DanceForm.square => contraFormationShapes,
+  DanceForm.square => squareFormationShapes,
+  DanceForm.contra => contraFormationShapes,
 };
 
 /// Whether a dance of [form] records proper or improper apart from its shape,

@@ -1,0 +1,14 @@
+{
+  "id": "adr-007-square-formations",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A square dance's formation now offers Square, which a new square dance starts on, Circle for a big-circle dance such as a running set, and Other for anything else, instead of the contra formations. Changing a dance's type to square starts it on Square unless its formation is Circle or Other."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add squareFormationShapes; offeredFormationShapes gives square dances square, circle and other (ADR-007 §8.1)."
+    ]
+  }
+}
