@@ -257,6 +257,23 @@ void main() {
     'amount': const Orbit(amount: 1),
   });
 
+  checkValueSemantics(const Slice(), const Slice(), {
+    'slice': const Slice(slice: SlideDirection.right),
+    'by': const Slice(by: SliceBy.dancer),
+    'back': const Slice(back: SliceReturn.diagonal),
+  });
+
+  checkValueSemantics(const ButterflyWhirl(), const ButterflyWhirl(), {
+    'who': const ButterflyWhirl(who: WhoSet.partners),
+    'direction': const ButterflyWhirl(direction: SpinDirection.clockwise),
+  });
+
+  checkValueSemantics(const RevolvingDoor(), const RevolvingDoor(), {
+    'who': const RevolvingDoor(who: WhoSet.role1s),
+    'hand': const RevolvingDoor(hand: Hand.left),
+    'whom': const RevolvingDoor(whom: WhoSet.neighbors),
+  });
+
   checkValueSemantics(const StarPromenade(), const StarPromenade(), {
     'who': const StarPromenade(who: WhoSet.role2s),
     'turn': const StarPromenade(turn: 1),

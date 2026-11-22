@@ -579,7 +579,7 @@ void main() {
       // the blame for a dance the import could not structure.
       final draft = await withPromenadeAt(4, {'who': 'partners'});
       final figures = [...decodedFigures(draft.dance)!];
-      figures[1] = core_test.testFigure(move: 'butterfly_whirl');
+      figures[1] = core_test.testFigure(move: 'dolphin_hey');
       final run = runCoreDance(
         core.StructuredDraft(
           dance: draft.dance.copyWith(figures: figures),
@@ -661,6 +661,48 @@ void main() {
         expect(assumedProgressionIndex(dance), 0);
       },
     );
+
+    test(
+      'a Becket dance opening with a slice left progresses on the slice',
+      () {
+        // A slice lands like a slide (user-ruled 2026-11-22), and a bare slice
+        // is a slice left: `slice.slice` defaults to `left` upstream.
+        for (final opener in [
+          figure('slice', {'slice': 'left'}),
+          figure('slice'),
+        ]) {
+          final dance = _shapedLike(
+            shape: core.FormationShape.becketCw,
+            figures: [opener, figure('circle'), figure('swing')],
+          );
+          expect(assumedProgressionIndex(dance), 0, reason: '$opener');
+        }
+      },
+    );
+
+    test('a Becket dance opening with a double slice does not', () {
+      // A diagonal return is two slides; a flag on it is not ruled, so the
+      // bridge does not assume one there.
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('slice', {'slice': 'left', 'return': 'diagonal'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a Becket dance slicing right does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('slice', {'slice': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
 
     test('a Becket dance sliding right does not', () {
       final dance = _shapedLike(

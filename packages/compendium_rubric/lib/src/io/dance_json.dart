@@ -255,6 +255,7 @@ const Map<String, _FigureBuilder> _registry = {
   'balance_the_ring': _buildBalanceTheRing,
   'box_circulate': _buildBoxCirculate,
   'box_the_gnat': _buildBoxTheGnat,
+  'butterfly_whirl': _buildButterflyWhirl,
   'california_twirl': _buildCaliforniaTwirl,
   'chain': _buildChain,
   'circle': _buildCircle,
@@ -279,11 +280,13 @@ const Map<String, _FigureBuilder> _registry = {
   'petronella': _buildPetronella,
   'poussette': _buildPoussette,
   'promenade': _buildPromenade,
+  'revolving_door': _buildRevolvingDoor,
   'pull_by': _buildPullBy,
   'right_left_through': _buildRightLeftThrough,
   'roll_away': _buildRollAway,
   'rory_o_more': _buildRoryOMore,
   'shoulder_round': _buildShoulderRound,
+  'slice': _buildSlice,
   'slide_along_set': _buildSlideAlongSet,
   'square_through': _buildSquareThrough,
   'stand_still': _buildStandStill,
@@ -477,6 +480,19 @@ Operation _buildOrbit(_Params p) => Orbit(
 Operation _buildStarPromenade(_Params p) => StarPromenade(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
   turn: p.numberOr(['travel', 'turn'], 0.5),
+);
+
+// Taxonomy v20: both default to `unspecified`, which this parser reads as
+// absent, so an unstated pair or sense is carried as null.
+Operation _buildButterflyWhirl(_Params p) => ButterflyWhirl(
+  who: p.optionalEnum(['who'], WhoSet.fromKey),
+  direction: p.optionalEnum(['direction'], SpinDirection.fromKey),
+);
+
+Operation _buildRevolvingDoor(_Params p) => RevolvingDoor(
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role2s),
+  hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
+  whom: p.enumOr(['whom'], WhoSet.fromKey, WhoSet.partners),
 );
 
 // --- Rings -----------------------------------------------------------------
@@ -733,6 +749,12 @@ Operation _buildGate(_Params p) => Gate(
 
 Operation _buildSlideAlongSet(_Params p) => SlideAlongSet(
   slide: p.enumOr(['slide'], SlideDirection.fromKey, SlideDirection.left),
+);
+
+Operation _buildSlice(_Params p) => Slice(
+  slice: p.enumOr(['slice'], SlideDirection.fromKey, SlideDirection.left),
+  by: p.enumOr(['by'], SliceBy.fromKey, SliceBy.couple),
+  back: p.enumOr(['return'], SliceReturn.fromKey, SliceReturn.straight),
 );
 
 // --- Hall ------------------------------------------------------------------

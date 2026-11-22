@@ -367,7 +367,8 @@ the reach is handed back they are not left marked out either.
 a couple further along *is* movement along the set, and a progression flag on top of that names
 more — so a flagged reaching figure finishes one phase past where an ordinary one would. The
 couples at the ends collect their end numbers from the normalization and then step straight
-back in beside whoever has arrived next to them. `slide_along_set` is the **exception** — the
+back in beside whoever has arrived next to them. `slide_along_set` (and `slice`, which dances it)
+is the **exception** — the
 slide *is* the progression, so flagging it names displacement the figure has already made
 rather than asking for more, and it advances once. That difference is
 carried by `Operation.isItsOwnProgression` rather than by naming the slide, so a future figure
@@ -500,13 +501,10 @@ To be defined later with worked examples.
 
 | Figure | Why held |
 |---|---|
-| `butterfly_whirl` | Prior verifier reduces it to no-op + reorient to lark-left/robin-right facing in. No `who` param, so scope (which couples) and "facing in" resolution are under-specified; real choreography unconfirmed. Needs a directed conversation with examples. |
 | `arch_and_dive` | Prior verifier makes it an unconditional row swap `(r0,c)↔(r1,c)` with **baked-in progression** and **ignores `who`**. **User-ruled: the unconditional row swap is correct** — this is the one place the prior verifier's reading governs over ours (§1.1 waived by explicit confirmation). Still held on the **progression** half: their baked-in progression conflicts with our explicit-flag model, and `who` needs a reading. Needs a worked example for those two points only. |
-| `revolving_door` | **No verifier implementation** to consult. Net permutation ambiguous (Larks-swap-across-with-Robins-pivoting vs. a 180° half-star-promenade → diagonal swap); Compendium decomposition leans on `star_promenade` (undefined) + "drop off on far side". Needs a worked example. |
 | `orbit` — couple `who` (**meanwhile**) | The move itself is **implemented** (see `orbit`); this row holds only the **couple-`who` (`ones`/`twos`) semantics**. A true 180° orbit carries a couple onto the *other* couple's cells, so it resolves only in combination with the centre figure — the **meanwhile** mechanism. *(Replaces the former `allemande_orbit` row: that fused move was **retired at Compendium v19** and its figures migrated to `meanwhile[allemande, orbit]`, so the name no longer exists in the taxonomy.)* The prior verifier also lists `^ones orbit` in its unsupported-patterns table. Revisit with the meanwhile conversation. |
 | hall `ender` values — `cozy`, `cloverleaf`, `threadNeedle`, `rightHandHigh` | `down_the_hall` / `up_the_hall` are **implemented** (see their entries); this row holds only these four `ender` values, which raise `UnsupportedParam`. No verifier basis for any: there is **no handler at all** for `cozy`, `threadNeedle`, or `slidingDoors`; `TryCloverleaf` (FigureSimulator.cs:1224) is a **different, standalone** figure (an h4 ring rotation) and "cloverleaf turn single" sits in the unsupported-patterns list (:800); `TryRightHandHigh` (:4229) needs a named pivot dancer parsed from free text, and the structured ender carries no dancer param, so it is degenerate. Each needs a worked example. |
 | hall `moving` values — `center`, `outsides` | Held with the above. They move only part of the line, leaving a shape that is **not a line of four**, so §8.1 does not cover the result. Revisit with a worked example. |
-| `slice` | Alias of the Becket **shift/progression** (`TryShift`). Real mechanics live in the discarded grid/mirror model (`HandleBecketShift`); only a degenerate "swap rows" fallback survives. `return` (straight/diagonal/none) and `by` (couple/dancer) change the outcome, and it interacts with our progression/normalization machinery. Revisit with the progression conversation. |
 | `contra_corners` | Verifier `TryContraCorners` is a **no-op** (no usable logic). Compendium models it as a **container with a free-text `custom` param** — arbitrary embedded turning figures, so no single fixed permutation. 16-beat variant-dependent sequence. Needs a worked example. |
 | `dolphin_hey` | Hey variant (a couple travels as a unit — a "dolphin" — led by `whom`), so it needs a rule for how a *pair* occupies one place in the line of four that the base `hey` weaves along; `hey` itself is now **implemented** (see its entry) and no longer blocks this. Verifier has **no implementation** (in the unsupported-patterns list). Needs a worked example. |
 
@@ -1022,6 +1020,47 @@ To be defined later with worked examples.
   clean against the independently derived §10.6 net-displacement oracle at both `count: 1` and
   `count: 2`, so **`slide:left` ↔ the CW sense** and `slide:right` ↔ CCW.
 
+### `slice`
+
+- **summary:** The Becket shift. Couples on the side step in on the named diagonal toward the
+  next couple and fall back to the side, which moves everyone along the set. **User-ruled
+  (2026-11-22): it lands exactly like `slide_along_set` in the same direction.**
+- **params** (meets CallersCompendium baseline `{slice, by, return, beats}`):
+  - `slice` — enum {`left`, `right`}, default `left`. The diagonal stepped in on, and so the
+    direction of the shift, read like `slide_along_set.slide`.
+  - `by` — enum {`couple`, `dancer`}, default `couple`. `dancer` (a shift of a single dancer)
+    is **deferred** (`UnsupportedParam`): it is half the step the slide models, and no worked
+    example pins where that leaves the set.
+  - `return` — enum {`straight`, `diagonal`, `none`}, default `straight`. **User-ruled:**
+    falling back **straight** across shifts **one couple** (one slide); falling back on the
+    **diagonal** shifts **two** (two slides). `none` (the couples stop in the middle facing
+    the couple on the diagonal) is **deferred** (`UnsupportedParam`). Carried as `back` in
+    Dart, where `return` is reserved.
+  - `beats` — int, default 8 (4 with no return).
+- **preconditions:** as `slide_along_set`: both lines standing along the sides of the set,
+  refused (`UnresolvableDancerSet`) with a dancer in a centre column.
+- **effect:** one `slide_along_set` in the `slice` direction, or two for a diagonal return. The
+  slide's whole mechanic (counter-rotating lines, rounding the ends, re-banding) is reused, not
+  restated; see that entry.
+- **normalization / facing:** as `slide_along_set`.
+- **interaction scope:** cross-h4, like the slide.
+- **h4 contribution** (D7): **+1** per slide, so +1 straight and +2 diagonal.
+- **progression-eligible:** yes, and it is **its own progression**, like the slide: a flag on a
+  straight slice names the shift it has already made. ⚠️ **Known limit:** a diagonal return is
+  two slides, but a flag end-normalizes once, so a progression-flagged diagonal slice compiles
+  as a mismatch. Whether a flag on a double slice means one progression or two is not ruled. Of
+  the 21 Caller's Box "Double slice" lines, 19 are mid-dance shifts to the shadows and 2 end a
+  double-progression dance; neither of those two reaches the compiler today (another figure in
+  each stays free text). The bridge does not assume a progression on a Becket opener double
+  slice, but a dance ending in one still gets the ordinary last-figure flag.
+- **assumed progression (Caller's Box):** a Becket dance that **opens with a slice left** and a
+  straight return is assumed to progress on it, exactly as one opening with a slide left is
+  (user-ruled 2026-11-22, extending the slide rule in `callersbox_source.dart`). A diagonal
+  return is not, for the reason above.
+- **sources:** user ruling 2026-11-22 (slice = slide; straight one couple, diagonal two;
+  measured on the Caller's Box mirror before the ruling was asked); CallersCompendium taxonomy
+  `slice` MoveDef. The prior verifier's "swap rows" fallback is not followed.
+
 ### `balance`
 
 - **summary:** A step forward-and-back (balance) with the `who` dancers — a **positional
@@ -1405,6 +1444,66 @@ To be defined later with worked examples.
   diagonal/opposite-corner swap, whole = no-op, FigureSimulator.cs:3793); user (implement
   whole=no-op, half=diagonal swap, quarter deferred, facing flexible); CallersCompendium taxonomy
   `star_promenade` MoveDef.
+
+### `butterfly_whirl`
+
+- **summary:** Two dancers side by side, arms around each other's backs, turn together about a
+  point between them. It almost always follows a half `star_promenade`. **User-ruled
+  (2026-11-22): nobody changes place.**
+- **params** (meets CallersCompendium baseline `{who, direction, beats}`):
+  - `who` — dancer pair, default `unspecified` (read as absent). The whirling pair. Validated
+    (see preconditions), never used to move anyone.
+  - `direction` — `clockwise` / `counterclockwise`, default `unspecified`. Styling; no
+    positional effect.
+  - `beats` — int, default 4.
+- **preconditions:** **user-ruled:** each named pair must be standing side by side (adjacent),
+  refused (`UnresolvableDancerSet`) otherwise. A pair that has just star-promenaded nearly
+  always is. Note that this compiler's `star_promenade` does **not** itself check that its
+  couples stand together (its only precondition is a whole or half turn), so this is the one
+  adjacency guard on the pair. An unstated `who` names nobody and is not checked.
+- **effect:** the identity. The half star promenade before it has already carried each couple
+  to its new side, so the whirl only turns the pair to face in. Asked with evidence: on the
+  Caller's Box mirror the no-move reading compiled 122 of the dances it unblocked, against 105
+  for a reading that swaps the pair.
+- **normalization:** none.
+- **facing (output):** **flexible** (left as it was); facing is only ever a warning.
+- **interaction scope:** within the hands four.
+- **h4 contribution** (D7): 0.
+- **progression-eligible:** no.
+- **sources:** user ruling 2026-11-22; CallersCompendium taxonomy `butterfly_whirl` MoveDef. The
+  prior verifier's "no-op + reorient" agrees on position.
+
+### `revolving_door`
+
+- **summary:** The leaders star-promenade the dancers they carry across the set, drop them off,
+  and turn on to meet someone new. **User-ruled (2026-11-22): the leaders effectively
+  allemande once around, ending where they began, while the other pair trades places.**
+- **params** (meets CallersCompendium baseline `{who, hand, whom, beats}`):
+  - `who` — dancer set, default `role2s`. The leaders, who join hands in the centre.
+  - `hand` — handedness, default `right`. Styling; no positional effect.
+  - `whom` — dancer set, default `partners`. Whom the leaders carry. It does not change who
+    trades places, but like any named set it picks the hands four: a `whom` reaching the next
+    neighbours or the shadows re-bands the set first. (The Caller's Box import does not
+    recover `whom` from its written-out lines, so it usually arrives as the default.)
+  - `beats` — int, default 8.
+- **preconditions:** exactly one `who` pair in each hands four, with two other dancers to carry;
+  anything else (no leaders, or a `who` such as `partners` that names two pairs) is refused
+  (`UnresolvableDancerSet`) rather than guessed. The leaders must stand on the **diagonal** of
+  the hands four, since they join hands across its centre; leaders sharing a row or column are
+  refused. *(Agent's call, not yet ruled; it changed no corpus outcome. Only on the diagonal
+  does the net below equal the written-out promenade and allemande.)*
+- **effect:** in each hands four, the two dancers who are not the `who` pair **swap places**;
+  the `who` pair stays put. *Worked check:* from the base ring
+  `R1-A . . . L1-A / L2-B . . . R2-B`, role2s leading land `R1-A . . . L2-B / L1-A . . . R2-B`,
+  which is exactly a half `star_promenade` followed by a half role2s `allemande`, the way The
+  Caller's Box writes the figure out.
+- **normalization:** none.
+- **facing (output):** unchanged (flexible).
+- **interaction scope:** within the hands four (the one `who`/`whom` names).
+- **h4 contribution** (D7): 0.
+- **progression-eligible:** no.
+- **sources:** user ruling 2026-11-22; Caller's Box decomposition ("star promenade 1/2; women
+  allemande right 1/2"); CallersCompendium taxonomy `revolving_door` MoveDef.
 
 ### `give_and_take`
 

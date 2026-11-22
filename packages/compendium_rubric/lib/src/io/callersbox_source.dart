@@ -525,7 +525,8 @@ BridgedDance bridgeCoreDance(
 /// progresses**, which is where contra choreography overwhelmingly puts it —
 /// the dance ends standing with the next couple.
 ///
-/// The one exception is a **Becket dance that opens with a slide left**. Becket
+/// The one exception is a **Becket dance that opens with a slide left** (or a
+/// slice left, which lands exactly like one). Becket
 /// dancers progress along the set rather than through it, and a slide left at
 /// the top of the dance *is* that progression: it is the figure that hands the
 /// couple to the next one, and everything after it is danced with the new
@@ -545,8 +546,19 @@ int? assumedProgressionIndex(core.Dance dance) {
     final opener = figures.first;
     // `slide` defaults to `left` upstream, so an unparameterised slide is a
     // slide left and must be read as one.
-    final slide = opener.params['slide'] ?? 'left';
-    if (opener.move == 'slide_along_set' && slide == 'left') return 0;
+    // A slice lands like a slide (user-ruled 2026-11-22), so a Becket dance
+    // opening with a slice left progresses there too. Its direction is
+    // carried under `slice` rather than `slide`, defaulting to `left` as well.
+    final direction = switch (opener.move) {
+      'slide_along_set' => opener.params['slide'] ?? 'left',
+      // Only a straight return, which is one slide. A diagonal return is two
+      // (a "Double slice"), and what a progression flag on that means is not
+      // ruled, so it is not assumed here.
+      'slice' when (opener.params['return'] ?? 'straight') == 'straight' =>
+        opener.params['slice'] ?? 'left',
+      _ => null,
+    };
+    if (direction == 'left') return 0;
   }
 
   return figures.length - 1;

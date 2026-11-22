@@ -735,7 +735,7 @@ between them, and they are worth keeping distinct:
 | What | Advances by | Why |
 |---|---|---|
 | The **progression** (§10.2's end-normalization) | one phase | the change-over: the couples who have served re-enter, and a fresh whole couple at each end takes its end number and stands out |
-| `slide_along_set` | one phase | the slide carries everyone one row along, so the boundaries fall between different rows. It **is** the progression, so a progression flag on it adds nothing |
+| `slide_along_set` | one phase | the slide carries everyone one row along, so the boundaries fall between different rows. It **is** the progression, so a progression flag on it adds nothing. A `slice` dances one slide (two for a diagonal return) and is the same |
 | A figure naming a **distance** set (`nextNeighbors` and friends) | *nothing*, unless it also carries the progression flag — in which case, one phase | reaching is **transient**: the figure is danced *d* phases from the one it was handed and always hands that phase back. A progression flag on top names movement the reach did not make, so a flagged reaching figure advances once |
 
 **Reaching is decided by parity, not by history.** A distance-*d* set is danced *d* places from
@@ -818,8 +818,9 @@ Apply progression → row 0 (B) and row 3 (C) normalize; A, D unchanged:
 > §3.4). It is **not** the per-figure progression mechanic. **A progression-flagged figure is
 > DI-style by default** (the general §10.2 operation, state-driven) even in a Becket dance;
 > the figures then reposition dancers onto their destined Becket side (partners together). The
-> **only** figure that progresses by an explicit column slide is **`slide_along_set`** (others
-> like single-file promenades TBD). Either way, the **final** state after all figures must equal
+> **only** figure that progresses by an explicit column slide is **`slide_along_set`**, together
+> with `slice`, which is user-ruled (2026-11-22) to land exactly like it (others like
+> single-file promenades TBD). Either way, the **final** state after all figures must equal
 > this net-displacement oracle.
 
 Becket differs from DI in orientation: a **DI couple is horizontal** (partners in one row,
@@ -870,7 +871,8 @@ number-derived rule as §10.3.
 > (§10.2, state-driven) **by default — for Becket too**; the remaining figures then reposition
 > dancers onto their destined Becket side (partners together). The **column slide** happens
 > **only** via the dedicated figure **`slide_along_set`** (`slide:[left/right]`, `beats`,
-> progression-capable) — the sole known case; other single-file-promenade-like figures will be
+> progression-capable) — the sole known case, plus `slice`, which is user-ruled (2026-11-22) to
+> dance one slide (two for a diagonal return); other single-file-promenade-like figures will be
 > called out as encountered.
 >
 > Consequences: (1) normalization derives from **actual positions/facing**, not a fixed row
