@@ -117,9 +117,12 @@ From the maintainer's review on 22 November 2026:
 - On calls named "Dixie": **"Use a plain descriptive name. We’ll probably
   draw flak for it but I’m not super comfortable publishing an app with the
   word Dixie in it by default. If someone cares they can update their
-  dialect."** §7.5 gives the names. Asked whether the parser should still
-  read the old names: **"Yes, we should still recognize the input, I just
-  don't want to endorse the phrase by shipping it in the editor."**
+  dialect."** Asked whether the parser should still read the old names:
+  **"Yes, we should still recognize the input, I just don't want to endorse
+  the phrase by shipping it in the editor."** Later the same day the
+  maintainer replaced both rulings: **"Just omit figures with "Dixie" in the
+  name for now and I'll find someone to help me pick a direction on the
+  subject before we include them."** §7.5 records the deferral.
 
 ### 1.2 The proposal in brief
 
@@ -476,8 +479,8 @@ The registry (§7) has three parts:
 - **Borrowed club calls** (§7.2): CALLERLAB Mainstream calls, plus the Plus
   and Advanced calls that traditional squares or contras are found to use
   (§7.3): Circle to a Line (traditional "break to a line"), the Thar family,
-  Shoot the Star, Do Paso, See Saw, Pass the Sea, Trade the Wave, Pull By to
-  a Wave (CALLERLAB's "Dixie Style to a Wave", §7.5) and Cross Trail Thru,
+  Shoot the Star, Do Paso, See Saw, Pass the Sea, Trade the Wave and Cross
+  Trail Thru,
   and the three Plus calls the maintainer asked for by name: Teacup Chain,
   Ping Pong Circulate and Acey Deucey. Their meaning is CALLERLAB's, written
   in our own words, except where a traditional meaning differs and is kept as
@@ -763,7 +766,6 @@ glossary label (§5.2).
 | `do_paso` | none | 12 | Plus | The Caller's Box glossary places it in early western square breaks, and Caller's Box dances use it ([callersbox.md](../research/callersbox.md)). |
 | `pass_the_sea` | `who` | 6 | Plus | ⚠ Evidence is thin: an entry in the Caller's Box glossary index (§7.3). |
 | `trade_the_wave` | `who` | 6 | Plus | The contra taxonomy has it (v39), and The Caller's Box writes it. |
-| `pull_by_to_a_wave` | `who` | 6; SS all 8 | Plus | CALLERLAB's "Dixie Style to a Wave", under a plain name (§7.5). Caller's Box dances use it ([callersbox.md](../research/callersbox.md)). |
 | `teacup_chain` | `who` | 32 | Plus | Asked for by the maintainer (§1.1); no traditional source read uses it. |
 | `ping_pong_circulate` | `who` | 6 | Plus | Asked for by the maintainer (§1.1); no traditional source read uses it. |
 | `acey_deucey` | `who` | 4 | Plus | Asked for by the maintainer (§1.1); no traditional source read uses it. |
@@ -799,7 +801,7 @@ call missing below may still be used somewhere.
 | See Saw | Plus | Coffman contras (e.g. "Aback", a see saw ¾ into a wave in 8) | `do_si_do` alias |
 | Pass the Sea | Plus | Caller's Box glossary index only | `pass_the_sea` ⚠ |
 | Trade the Wave | Plus | Contra taxonomy (v39); The Caller's Box writes it | `trade_the_wave` |
-| Dixie Style to a Wave | Plus | Caller's Box dances | `pull_by_to_a_wave` (§7.5) |
+| Dixie Style to a Wave | Plus | Caller's Box dances | deferred (§7.5) |
 | Cross Trail Thru | Advanced | Caller's Box glossary (1950s squares); about five Coffman contras | `cross_trails` ⚠ |
 
 No Challenge call was found. These Plus and Advanced calls were looked for
@@ -865,27 +867,24 @@ away, back to back, swat the flea, back-up star and grapevine (one or two
 squares each). The Southern visiting-couple figures are dances, not calls
 (§4.4).
 
-### 7.5 Plain names for calls named "Dixie"
+### 7.5 Calls named "Dixie" are deferred
 
-*Decided by the maintainer on 22 November 2026 (§1.1); the names are this
-ADR author's.* No shipped display name, ID, alias or search keyword contains
-"Dixie". Each such call gets a plain name that says what the dancers do,
-and a caller who wants the source's word sets it in their dialect.
+*Decided by the maintainer on 22 November 2026 (§1.1).* Every call whose
+CALLERLAB name contains "Dixie" (Dixie Style to a Wave, Dixie Grand, Dixie
+Chain, Dixie Twirl) is left out of the registry for now. The maintainer will
+choose a direction, with outside help, before any of them is added. Until
+then there is no ID, display name, alias, search keyword, shorthand or
+parser entry for them: a source line that uses one is a `custom` line with
+the source's words. This replaces the same day's earlier plan, which gave
+them plain names and read the old names on input.
 
-| Source name | ID | Display name | Why this name |
-| --- | --- | --- | --- |
-| Dixie Style to a Wave | `pull_by_to_a_wave` | pull by to a wave | The first dancers pull by, then all join the next hand into a wave. |
-| Dixie Grand | `pull_by_grand` | pull by grand | Three pull bys with alternating hands (right, left, right) along a grand right and left's path, 6 beats. CALLERLAB's Plus definition (25 August 2026) has each hand pull by, with no turn, so it is not a series of allemandes. Out of scope today (§7.3); the name is reserved if it is ever added. |
-| Dixie Chain, Dixie Twirl | none | named when added | Neither is in the registry. The same rule applies. |
-
-No established replacement was found: CALLERLAB and Ceder.net still use the
-old names, and "Thread the Needle" names a different figure in English
-dancing. So the names are the Compendium's own. Text and imports that use the old names are
-still read: the square parser and importer accept them on input and store
-the plain call, as contra's parser treats "gypsy" (the maintainer's decision,
-22 November 2026, §1.1). The old names live only in the parser's input
-tables. The editor never shows or suggests them: they are not display
-names, aliases, search keywords or shorthand.
+For the decision: Dixie Style to a Wave is the only one a source read for
+this ADR uses (Caller's Box contras, §7.3). By CALLERLAB's Plus definitions
+(25 August 2026), it is a right pull by into a left-hand wave (6 beats, 8
+from a static square), and Dixie Grand is three pull bys, right, left and
+right, along a grand right and left's path (6 beats), with no turn. No
+established replacement name was found: CALLERLAB and Ceder.net still use
+the old names.
 
 ## 8. Dance structure, entry, glossary and import
 
@@ -1229,7 +1228,7 @@ selector.
   order and the new partner are new persisted fields (§8.1). Each needs a
   privacy-registry classification in the PR that adds it.
 - **Glossary text.** Own-words definitions for about 85 calls (19 in §7.1,
-  52 in §7.2, 13 in §7.4, and aliases) are real writing work, and need review by someone
+  51 in §7.2, 13 in §7.4, and aliases) are real writing work, and need review by someone
   who calls traditional squares.
 - **Overlap with contra.** Many traditional square calls look like contra
   moves. Keeping them separate (§1.1) means two definitions of a hey or a
