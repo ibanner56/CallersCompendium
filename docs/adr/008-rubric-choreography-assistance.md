@@ -282,11 +282,13 @@ which *the maintainer decided* in review.
   dances "nearby" the generated one, in the caller's own collection and in
   online sources, and says what it found, so a caller does not unknowingly
   present an existing dance as new. *(The maintainer decided, in review.)*
-- The online part of that check is a lookup the caller starts, as the app's
-  online imports already are. It is never needed for generation itself, and
-  what it sends is classified in the privacy registry in the change that
-  adds it. The rejected alternative was checking online automatically,
-  which would make generation depend on the network.
+- The online part of that check runs as part of the generation the caller
+  asked for, so no lookup happens unless the caller generates. Generation
+  still works offline: when online sources cannot be reached, the offer
+  says they were not checked rather than implying the dance is new. What
+  the lookup sends is classified in the privacy registry in the change that
+  adds it. The rejected alternative was refusing to generate offline, which
+  would make a local feature depend on the network.
 
 ### 3.5 Out of scope
 
