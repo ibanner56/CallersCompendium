@@ -114,13 +114,20 @@ void main() {
     });
 
     test('is the versioned prefix and unpadded Base64url, nothing else', () {
-      final link = encodeDanceLink(_bundle());
-      expect(link, startsWith('ccdance://1/'));
-      expect(
-        link.substring(danceLinkPrefix.length),
-        matches(r'^[A-Za-z0-9_-]+$'),
-      );
-      expect(link, isNot(contains('=')));
+      expect(encodeDanceLink(_bundle()), startsWith('ccdance://1/'));
+      // Padding only appears when the compressed length is not a multiple of
+      // three, so sweep inputs until every remainder has been seen; a
+      // single input can pass for a padded encoder by luck.
+      final remainders = <int>{};
+      for (var extra = 0; extra < 12; extra++) {
+        final json = '{"a":"${'x' * extra}${_prose(extra * 7)}"}';
+        final link = encodeDanceLink(json);
+        final payload = link.substring(danceLinkPrefix.length);
+        remainders.add(_deflate(utf8.encode(json)).length % 3);
+        expect(payload, matches(r'^[A-Za-z0-9_-]+$'), reason: json);
+        expect(decodeDanceLink(link), json);
+      }
+      expect(remainders, {0, 1, 2}, reason: 'the sweep must reach each case');
     });
   });
 
@@ -163,14 +170,23 @@ void main() {
 
   group('capacity', () {
     test('each level takes a link of exactly its capacity and no more', () {
+      // ISO/IEC 18004, version 40, byte mode. Literals, not the enum's own
+      // numbers, so a wrong constant cannot agree with itself.
+      const capacity = {
+        DanceCodeLevel.high: 1273,
+        DanceCodeLevel.quartile: 1663,
+        DanceCodeLevel.medium: 2331,
+        DanceCodeLevel.low: 2953,
+      };
       for (final level in DanceCodeLevel.values) {
-        final atCap = planDanceLink(_linkOfLength(level.byteCapacity));
+        expect(level.byteCapacity, capacity[level], reason: '$level');
+        final atCap = planDanceLink(_linkOfLength(capacity[level]!));
         expect(atCap, isA<DanceCodeShown>(), reason: '$level at capacity');
         // The strongest level that fits is used, so a link of exactly this
         // level's capacity is at this level.
         expect((atCap as DanceCodeShown).level, level);
         expect(atCap.version, 40);
-        final over = planDanceLink(_linkOfLength(level.byteCapacity + 1));
+        final over = planDanceLink(_linkOfLength(capacity[level]! + 1));
         if (level == DanceCodeLevel.low) {
           expect(over, isA<DanceCodeTooLong>());
         } else {
