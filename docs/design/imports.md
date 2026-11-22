@@ -2313,7 +2313,16 @@ ECD dance.
   and say it was not stated. Where the dance's phrase structure gives one beats per bar, that is
   the fallback for an unstated meter (`ecdMeterForBars`: `4*8*3` reads as
   `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
-  which takes the meter first too). A range that runs backwards, spans more than 32 bars, would come to
+  which takes the meter first too). Where the phrases of a structure differ in
+  beats per bar (`A:2*4*3 + B:1*8*2`, #2303) the meter text does not count it:
+  `BarTiming.byPhrase` counts each bar as long as the phrase it starts in, from
+  where the line starts, so the range's numbers give a number of bars and not a
+  position (Caller's Companion numbers bars within each section). The start is
+  the end of the figures before the line, as stored or as re-read; for a
+  sequence's steps the end of the steps before it, for a meanwhile's sides and
+  a modifier's parts the container's start. The typed entry, Re-check and
+  Convert English dances count this way; Caller's Companion import does not, since
+  it builds the phrase structure from the counted lines (#2365). A range that runs backwards, spans more than 32 bars, would come to
   more than 64 beats, or has nothing after it is not one, and a lone number is
   never a bar (`2 changes of rights and lefts`). The bars are the count, over
   a count the line was given (a Caller's Companion `(8)`, a re-checked

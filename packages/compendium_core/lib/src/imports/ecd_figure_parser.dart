@@ -103,7 +103,9 @@ const int _maxSteps = kMaxSequenceFigures;
 /// A line that starts with a bar range (`1-4 partners set`, `(5-8) …`,
 /// `A1 1-4 …`, [splitEcdBarRange]) is read without it, and takes its count
 /// from it over [beats] and over any count the words give: its bars times the
-/// beats in a bar of [meter] ([ecdBeatsPerBar], 2 when [meter] does not say).
+/// beats in a bar of [meter] ([ecdBeatsPerBar], 2 when [meter] does not say),
+/// or with [timing] counted from [startBeat] by the phrase each bar falls in
+/// ([ecdBarCount]).
 /// A line whose rest also states a count in beats ([ecdRestStatesBeats]) is
 /// kept as custom, so that count stays in its words, and so is one that goes
 /// on to further ranges (`(5-8) X (9-12) Y`), counted across all of them. A

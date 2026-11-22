@@ -396,7 +396,9 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// front-ends, the typed-name lookup and the beat-implied balances, so it never
 /// becomes a contra move; shorthands, counts and `;` clauses work as above.
 /// [formationShape] is the dance's shape, from which a circle's or star's
-/// fraction is read as a number of places ([ecdRingDancers]).
+/// fraction is read as a number of places ([ecdRingDancers]). A leading bar
+/// range counts by [meter], or with [timing] (phrases that differ in beats per
+/// bar, #2303) from [startBeat], where the line is placed ([ecdBarCount]).
 ///
 /// Returns an empty list when the line is empty after trimming/scrubbing
 /// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
@@ -438,7 +440,8 @@ List<Figure> parseFreeTextFigureEntry(
   }
   // An English line that starts with a bar range (`1-4 partners set`) counts
   // in bars of the dance's [meter] (ADR-006 W6; Hudson: "the meter is the
-  // rule"): the rest is read, and one figure read in full takes the bars as
+  // rule"), or by [timing] from [startBeat] where the dance's phrases differ
+  // in beats per bar (#2303): the rest is read, and one figure read in full takes the bars as
   // its count. Anything else, a rest that also states a count in beats or a
   // line of several ranges (`(5-8) X (9-12) Y`, counted across all of them)
   // included, keeps the line whole as typed, with that count.

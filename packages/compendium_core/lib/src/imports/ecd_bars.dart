@@ -1,7 +1,8 @@
 /// Bar counts in English Country Dance lines (ADR-006 W6): ECD notation
 /// counts a figure in bars of the tune (`1-4 partners set and turn single`),
 /// not in beats. A leading bar range is the line's count, turned into beats by
-/// the dance's meter (Hudson, 19 November 2026: "the meter is the rule").
+/// the dance's meter (Hudson, 19 November 2026: "the meter is the rule"), or,
+/// where its phrases differ in beats per bar, by the phrase each bar falls in.
 library;
 
 import '../model/bar_timing.dart';
@@ -40,9 +41,11 @@ int? _beatsPerBar(String topText, String bottomText) {
 /// one ([ecdBeatsPerBar]), else the beats per bar of [structure] when its parts
 /// all agree (a `4*8*3` tune is read as `3/4`), else [meter] as it is.
 ///
-/// The meter is the rule (Hudson, 19 November 2026); the phrase structure is
-/// the fallback, so the editor's bar timing and a typed or re-checked bar range
-/// count a bar the same way.
+/// The meter is the rule (Hudson, 19 November 2026) for a structure whose
+/// parts agree; the phrase structure is the fallback, so the editor's bar
+/// timing and a typed or re-checked bar range count a bar the same way. A
+/// structure whose parts differ in beats per bar is not counted by a meter at
+/// all: its bars are counted by [BarTiming.byPhrase] (#2303).
 String ecdMeterForBars(String? meter, PhraseStructure structure) {
   if (ecdBeatsPerBar(meter).stated) return meter!;
   final perBar = {for (final c in structure.components) c.beatsPerBar};
@@ -129,6 +132,11 @@ final RegExp _barRange = RegExp(
 /// [meter], the line's rest after the first range, and whether it gave
 /// [several] ranges ([splitEcdBarRange]). Null when [line] starts with no
 /// range, or its count would be over 64 beats.
+///
+/// With [timing] (a dance whose phrases differ in beats per bar, #2303) the
+/// bars are instead counted from [startBeat], where the line starts, each as
+/// long as the phrase it starts in, and [meter] is not read: the range's
+/// numbers give how many bars, not where they sit.
 ///
 /// A line of several ranges names several figures, so the parsers keep it
 /// whole as text, with the count of all its ranges; when that would be over

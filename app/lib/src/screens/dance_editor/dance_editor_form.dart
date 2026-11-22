@@ -742,7 +742,8 @@ class DanceEditorForm extends StatelessWidget {
   }
 
   /// The meter a typed bar range counts by: the Meter field's, or with none
-  /// the phrase structure's beats per bar, as the bar timing does.
+  /// the phrase structure's beats per bar, as the bar timing does. Not read
+  /// where the phrases differ in beats per bar: [_barTimingForBars] counts it.
   String get _meterForBars => ecdMeterForBars(
     controller.meterController.text,
     controller.phraseStructure,

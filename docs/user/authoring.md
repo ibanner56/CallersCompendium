@@ -102,7 +102,14 @@ formation, two in a duple minor and three in a triple minor. A line that
 starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle
 left`, `A1 1-8 lead up`) counts those bars by the dance's **Meter**: `1-4` is
 8 beats in 2/2 and 12 in 3/2 or 3/4. With no meter, a bar counts the beats
-of the phrase structure, as the **Bars** field does.
+of the phrase structure, as the **Bars** field does. Where the phrase
+structure's phrases differ in beats per bar (`A:2*4*3 + B:1*8*2`, an A in 3/4
+and a B in 6/8), the Meter does not decide it: each bar is as long as the
+phrase it falls in, and the bars count from where the line is placed in the
+dance, so the numbers you type give how many bars, not where they sit. In that
+example `1-4` placed first is 12 beats, and `9-12` placed after the two A
+phrases is 8. A line that runs across the change counts each bar by its own
+phrase.
 The bars are the count. A line that also states a count in beats
 (`1-4 (6) circle left`) is kept as you typed it, with the bars' count, so you
 can see the two disagree and fix whichever is wrong. A line with several bar
