@@ -88,9 +88,13 @@ Uint8List _deflate(List<int> bytes) =>
 String _linkFor(List<int> deflated) =>
     '$danceLinkPrefix${base64Url.encode(deflated).replaceAll('=', '')}';
 
-DanceLinkFailure _failureOf(String link, {int? cap}) {
+DanceLinkFailure _failureOf(String link, {int? cap, int? maxLinkLength}) {
   try {
-    decodeDanceLink(link, maxInflatedBytes: cap ?? kMaxDanceInflatedBytes);
+    decodeDanceLink(
+      link,
+      maxInflatedBytes: cap ?? kMaxDanceInflatedBytes,
+      maxLinkLength: maxLinkLength ?? kMaxDanceLinkLength,
+    );
   } on DanceLinkException catch (e) {
     return e.failure;
   }
@@ -138,17 +142,19 @@ void main() {
       plan as DanceCodeShown;
       expect(plan.level, DanceCodeLevel.high);
       expect(plan.withMark, isTrue);
-      expect(plan.moduleCount, plan.version * 4 + 17);
+      expect(plan.modules.length, plan.moduleCount * plan.moduleCount);
+      expect((plan.moduleCount - 17) % 4, 0);
       expect(plan.link, encodeDanceLink(_bundle()));
     });
 
     test(
       'a dance over the H limit drops to a lower level, without the mark',
       () {
-        final json = _bundle(walkthrough: _prose(1300));
+        final json = _bundle(walkthrough: _prose(1450));
         final bytes = encodeDanceLink(json).length;
         // The fixture must really sit between the H and Q limits.
-        expect(bytes, inInclusiveRange(1274, 1663));
+        // Well inside the H..Q band, not at an edge of it.
+        expect(bytes, inInclusiveRange(1324, 1613));
         final plan = planDanceCode(json);
         expect(plan, isA<DanceCodeShown>());
         plan as DanceCodeShown;
@@ -214,6 +220,7 @@ void main() {
       expect(tighter.version, lessThan(unlimited.version));
       expect(planDanceCode(json, maxVersion: 1), isA<DanceCodeTooLong>());
       expect(() => planDanceCode(json, maxVersion: 41), throwsRangeError);
+      expect(() => planDanceCode(json, maxVersion: 0), throwsRangeError);
     });
 
     test('the module grid has the finder and timing patterns of a QR code', () {
@@ -239,6 +246,55 @@ void main() {
         }
       }
     });
+  });
+
+  group('module grid orientation', () {
+    // The finder and timing patterns are symmetric, so they cannot tell a
+    // grid from its transpose or mirror image. The format information (error
+    // correction level and mask) is stored twice, in different bit orders
+    // along the left column and the top row, and the dark module sits at a
+    // fixed place; both break under a transpose or a mirror.
+    int formatWord(int levelBits, int mask) {
+      final data = (levelBits << 3) | mask;
+      var remainder = data << 10;
+      for (var bit = 14; bit >= 10; bit--) {
+        if ((remainder >> bit) & 1 == 1) remainder ^= 0x537 << (bit - 10);
+      }
+      return ((data << 10) | remainder) ^ 0x5412;
+    }
+
+    // ISO/IEC 18004 error-correction indicator bits.
+    const levelBits = {
+      DanceCodeLevel.low: 1,
+      DanceCodeLevel.medium: 0,
+      DanceCodeLevel.quartile: 3,
+      DanceCodeLevel.high: 2,
+    };
+
+    for (final level in DanceCodeLevel.values) {
+      test('${level.name}: both format-information copies read back, '
+          'and the dark module is in place', () {
+        final plan =
+            planDanceLink(_linkOfLength(level.byteCapacity)) as DanceCodeShown;
+        expect(plan.level, level);
+        final n = plan.moduleCount;
+        var down = 0; // copy along the left column, reading downwards
+        var across = 0; // copy along the top row, reading leftwards
+        for (var i = 0; i < 15; i++) {
+          final r = i < 6 ? i : (i < 8 ? i + 1 : n - 15 + i);
+          if (plan.isDark(r, 8)) down |= 1 << i;
+          final c = i < 8 ? n - i - 1 : (i == 8 ? 7 : 14 - i);
+          if (plan.isDark(8, c)) across |= 1 << i;
+        }
+        expect(down, across, reason: 'the two copies must agree');
+        expect(
+          [for (var m = 0; m < 8; m++) formatWord(levelBits[level]!, m)],
+          contains(down),
+          reason: 'format word ${down.toRadixString(2)} for $level',
+        );
+        expect(plan.isDark(n - 8, 8), isTrue, reason: 'the dark module');
+      });
+    }
   });
 
   group('decodeDanceLink refuses', () {
@@ -348,6 +404,7 @@ void main() {
       try {
         decodeDanceLink(
           _linkFor(bomb),
+          maxLinkLength: 1 << 20,
           maxInflatedBytes: cap,
           onInflated: (total) => inflated = total,
         );
@@ -370,6 +427,47 @@ void main() {
       final link = _linkFor(_deflate(utf8.encode(objectOf(2000))));
       expect(decodeDanceLink(link, maxInflatedBytes: 2000), objectOf(2000));
       expect(_failureOf(link, cap: 1999), DanceLinkFailure.tooLarge);
+    });
+  });
+  group('hostile input that is cheap to send', () {
+    test('a link past the length limit is refused before it is read', () {
+      // Regression: a regular expression over a payload of several million
+      // characters overflowed the VM's stack, and an `Error` is not a
+      // `DanceLinkException`.
+      final huge = '$danceLinkPrefix${'A' * 16000000}';
+      expect(_failureOf(huge), DanceLinkFailure.tooLong);
+      expect(
+        _failureOf('$danceLinkPrefix${'A' * (kMaxDanceLinkLength + 1)}'),
+        DanceLinkFailure.tooLong,
+      );
+      // At the limit the link is read (and fails later, as garbage).
+      expect(
+        _failureOf(
+          '$danceLinkPrefix${'A' * (kMaxDanceLinkLength - danceLinkPrefix.length)}',
+        ),
+        isNot(DanceLinkFailure.tooLong),
+      );
+    });
+
+    test(
+      'a small link of deeply nested JSON is refused by the inflate cap',
+      () {
+        // Validating the text parses it, and nested JSON costs far more memory
+        // than its length. 600 KB of brackets is a link of a few hundred bytes.
+        const depth = 300000;
+        final json = '{"a":${'[' * depth}${']' * depth}}';
+        expect(utf8.encode(json).length, greaterThan(kMaxDanceInflatedBytes));
+        final link = _linkFor(_deflate(utf8.encode(json)));
+        expect(link.length, lessThan(kMaxDanceLinkLength));
+        expect(_failureOf(link), DanceLinkFailure.tooLarge);
+      },
+    );
+
+    test('a leading byte-order mark is refused, not silently dropped', () {
+      final link = _linkFor(
+        _deflate([0xEF, 0xBB, 0xBF, ...utf8.encode('{"a":1}')]),
+      );
+      expect(_failureOf(link), DanceLinkFailure.notAJsonObject);
     });
   });
 }
