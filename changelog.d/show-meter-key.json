@@ -1,0 +1,9 @@
+{
+  "id": "show-meter-key",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A dance's meter and key now show on its detail view and its Perform card, on one line such as \"Meter: 6/8 · Key: G minor\"."
+    ]
+  }
+}
