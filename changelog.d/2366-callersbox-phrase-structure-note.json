@@ -1,0 +1,14 @@
+{
+  "id": "2366-callersbox-phrase-structure-note",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A dance imported from The Caller's Box whose phrase structure has a note after it, like \"4*4*3 (slip jig)\", now keeps that structure instead of the standard four phrases of 16 beats, and the note is added to the dance's notes. A dance you already imported keeps the structure it was imported with."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Import a Caller's Box `PhraseStructure` that is a valid formula followed by one parenthesised note as the formula, adding the note to the calling notes as `Phrase structure note: …`. A formula that is still unreadable without the note keeps the warning and the standard structure."
+    ]
+  }
+}

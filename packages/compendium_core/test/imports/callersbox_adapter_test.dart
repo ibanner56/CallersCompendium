@@ -831,7 +831,7 @@ void main() {
           'a note that is empty or all invisible imports the formula without '
           'a note line',
           () async {
-            for (final text in ['4*4*3 ()', '4*4*3 ( )', '4*4*3 (‮)']) {
+            for (final text in ['4*4*3 ()', '4*4*3 ( )', '4*4*3 (\u202E)']) {
               final draft = await importWith(text);
               expect(draft.dance.phraseStructure.raw, '4*4*3', reason: text);
               expect(unreadable(draft), isFalse, reason: text);
@@ -854,7 +854,7 @@ void main() {
               contains('Phrase structure note: slip jig\n'),
             );
 
-            final bidi = await importWith('4*4*3 (slip ‮ jig)');
+            final bidi = await importWith('4*4*3 (slip \u202E jig)');
             expect(
               bidi.dance.callingNotes,
               contains('Phrase structure note: slip jig\n'),
