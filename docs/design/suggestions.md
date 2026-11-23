@@ -195,12 +195,14 @@ dance, through a `SuggestionWorker` as the picker does: building the request
 (the per-candidate projection), sending it, ranking and returning. It reports
 the longest stretch the calling isolate went without a turn of its event loop
 meanwhile, which is what a dropped frame would be. Medians of 5 runs on the
-development container:
+development container, taken when the feature landed; the block time
+varies by several milliseconds from run to run, and only the 5 s total is
+enforced:
 
 | | Build the request | Longest block | Total |
 | --- | --- | --- | --- |
-| First rank (a new worker, every candidate sent) | about 5 ms | about 23 ms | about 0.63 s |
-| Re-rank after an add (candidates already held) | about 5 ms | about 15 ms | about 0.41 s |
+| First rank (a new worker, every candidate sent) | 5.27 ms | 26.95 ms | 0.67 s |
+| Re-rank after an add (candidates already held) | 5.13 ms | 8.19 ms | 0.41 s |
 
 "Build the request" includes each candidate's revision (see "Revision"
 above).
