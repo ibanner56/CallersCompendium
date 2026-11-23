@@ -202,8 +202,11 @@ class CollectionPicker extends StatefulWidget {
   /// Applied **once**: when the picker is built with it, or when a rebuild
   /// passes a request it has not applied yet. A request is marked applied by
   /// the first picker to take it ([CollectionPanelRequest.applied]), so a
-  /// picker built again with the same one — remounted by a narrow/wide layout
-  /// change, a sheet opened again — keeps what the user has since changed.
+  /// rebuild of the same picker keeps what the user has since changed, and a
+  /// picker built again with the same request — remounted by a narrow/wide
+  /// layout change, a sheet opened again — is a new picker that starts blank,
+  /// as it would without a request: it does not put the search back. To show
+  /// the search in a new picker, pass a new request.
   ///
   /// The owner must therefore **hold the request in a field** and pass that
   /// same object on every build. A request created inside `build()` is a new,

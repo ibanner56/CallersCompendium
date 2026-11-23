@@ -351,4 +351,13 @@ void main() {
       expect(find.text(l10n.collectionFacetNone), findsNothing);
     });
   });
+
+  testWidgets('a hidden Tags section holding only Untagged still shows it '
+      '(#2325)', (tester) async {
+    final facets = FacetSelections()..untagged = true;
+    await _pump(tester, facets, hidden: {CollectionFacetIds.tags});
+    final chip = find.byKey(const ValueKey('untagged-chip'));
+    expect(chip, findsOneWidget);
+    expect(tester.widget<FilterChip>(chip).selected, isTrue);
+  });
 }

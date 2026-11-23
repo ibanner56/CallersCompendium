@@ -374,7 +374,8 @@ class FacetSelections {
       case CollectionFacetIds.musicalKey:
         return musicalKeys.isNotEmpty;
       case CollectionFacetIds.tags:
-        return tagIds.isNotEmpty;
+        // Untagged is a chip of the Tags section.
+        return tagIds.isNotEmpty || untagged;
       case CollectionFacetIds.source:
         return sourceIds.isNotEmpty;
     }
@@ -427,6 +428,7 @@ class FacetSelections {
           tagIds.clear();
           _keptTagIds.clear();
           tagsMatchAll = true;
+          untagged = false;
         case CollectionFacetIds.source:
           sourceIds.clear();
         default:

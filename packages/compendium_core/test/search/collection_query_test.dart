@@ -1187,6 +1187,18 @@ void main() {
       expect(facets.tagIds, isEmpty);
     });
 
+    test('Untagged alone is a selection of the Tags section, and clearing '
+        'the section clears it', () {
+      // With Tags hidden in Settings, a Tags section holding only Untagged
+      // must still show (so it can be removed), and hiding Tags must clear it,
+      // or UntaggedFilter narrows the list with no chip.
+      final facets = FacetSelections()..untagged = true;
+      expect(facets.hasSelectionFor(CollectionFacetIds.tags), isTrue);
+      expect(facets.clearFacets({CollectionFacetIds.tags}), isTrue);
+      expect(facets.untagged, isFalse);
+      expect(facets.isEmpty, isTrue);
+    });
+
     test('clearCount counts clears, not edits', () {
       final facets = FacetSelections();
       facets.setTag('t1', selected: true);
