@@ -6,6 +6,62 @@ void main() {
   // A custom figure never renders a wording override (renderer.dart:
   // `figure.isCustom ? null : _renderWordingOverride`) and the editor offers no
   // field for it, so toFigure must not persist one (#1394).
+  group('childStartBeatsOfDraft (#2303)', () {
+    FigureDraft step(int beats) =>
+        FigureDraft(move: 'ecd_lead', params: {'beats': beats});
+
+    test(
+      'a sequence\'s steps follow one another, an untimed one adding none',
+      () {
+        final sequence = FigureDraft(
+          sequenceFigures: [
+            step(6),
+            FigureDraft(move: 'ecd_set'),
+            step(4),
+          ],
+        );
+        expect(childStartBeatsOfDraft(sequence, 18), [18, 24, 24]);
+      },
+    );
+
+    test(
+      'a meanwhile\'s sides and a modifier\'s parts start with the group',
+      () {
+        expect(
+          childStartBeatsOfDraft(
+            FigureDraft(meanwhileSides: [step(6), step(6)]),
+            18,
+          ),
+          [18, 18],
+        );
+        expect(
+          childStartBeatsOfDraft(
+            FigureDraft(modifierFigures: [step(6), step(2)]),
+            18,
+          ),
+          [18, 18],
+        );
+      },
+    );
+
+    test('a figure that is no group has no children', () {
+      expect(childStartBeatsOfDraft(step(6), 18), isEmpty);
+    });
+  });
+
+  group('figureStartBeat (#2303)', () {
+    test('counts only the rows Save writes as figures', () {
+      final rows = [
+        FigureDraft(move: 'ecd_lead', params: {'beats': 6}),
+        FigureDraft()..params['beats'] = 8,
+        FigureDraft(move: 'ecd_set', params: {'beats': 4}),
+      ];
+      expect(figureStartBeat(rows), 10);
+      expect(figureStartBeat(rows.take(2)), 6);
+      expect(figureStartBeat(const []), 0);
+    });
+  });
+
   group('FigureDraft.toFigure wordingOverride on a custom figure', () {
     test('a custom leaf draft drops a stale override', () {
       final draft = FigureDraft(move: customMove, params: {'text': 'my call'})

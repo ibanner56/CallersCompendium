@@ -31,6 +31,10 @@ class BarTiming {
   final int? _fixed;
   final PhraseStructure? _structure;
 
+  /// Whether every bar is as long as every other, so that a count reads the
+  /// same wherever it starts.
+  bool get isFixed => _fixed != null;
+
   /// Beats in the bar that starts at [beat].
   int beatsPerBarAt(int beat) =>
       _fixed ?? _structure!.componentAtBeat(beat).beatsPerBar;
@@ -82,6 +86,49 @@ class BarTiming {
     final perBar = beatsPerBarAt(position);
     if (perBar.isOdd || rest * 2 != perBar) return null;
     return (text: whole == 0 ? '½' : '$whole½', halfBars: whole * 2 + 1);
+  }
+
+  /// Most whole bars from [start] that fit within [maxBeats] beats.
+  int maxBarsWithin(int start, int maxBeats) {
+    _checkStart(start);
+    final end = start + maxBeats;
+    var position = start;
+    var bars = 0;
+    while (position + beatsPerBarAt(position) <= end) {
+      position += beatsPerBarAt(position);
+      bars++;
+    }
+    return bars;
+  }
+
+  /// Twice the beats of [halfBars] half bars from [start], counted even where
+  /// the half bar is not a whole number of beats: the beats range check on a
+  /// typed count compares it to twice the range's top.
+  int doubledBeatsForHalfBars(int start, int halfBars) {
+    _checkStart(start);
+    final wholeEnd = _endOfWholeBars(start, halfBars);
+    final doubled = (wholeEnd - start) * 2;
+    return halfBars.isOdd ? doubled + beatsPerBarAt(wholeEnd) : doubled;
+  }
+
+  /// Beats in the bar that the last half bar of [halfBars] half bars from
+  /// [start] falls in: the bar a refused half bar is refused in.
+  int beatsPerBarOfHalfAt(int start, int halfBars) {
+    _checkStart(start);
+    return beatsPerBarAt(_endOfWholeBars(start, halfBars));
+  }
+
+  /// Where the whole bars among [halfBars] half bars from [start] end.
+  int _endOfWholeBars(int start, int halfBars) {
+    var position = start;
+    for (var bar = 0; bar < halfBars ~/ 2; bar++) {
+      position += beatsPerBarAt(position);
+    }
+    return position;
+  }
+
+  static void _checkStart(int start) {
+    if (start < 0) throw ArgumentError.value(start, 'start', 'must be >= 0');
   }
 
   @override

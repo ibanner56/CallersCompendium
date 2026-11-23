@@ -7,19 +7,23 @@ import '../export/dance_code.dart';
 import '../export/share_file.dart';
 import '../screens/perform_wakelock.dart';
 import '../theme/app_spacing.dart';
-import 'brand_mark.dart';
 
-/// How much of the code's width the brand mark covers (#2334). The issue asks
-/// for about 15 to 20%. Only a level H code (30% of it can be lost) is drawn
-/// with the mark, and `dance_code_render_test.dart` decodes a rendered one to
-/// show it still scans.
-const double kDanceCodeMarkFraction = 0.18;
+/// How much of the code's width the clear zone at its middle covers (#2334),
+/// which the brand mark badge fills. The issue asks for about 15 to 20%. Only a
+/// level H code (30% of it can be lost) is drawn with the badge, and
+/// `dance_code_render_test.dart` decodes a rendered one to show it still scans.
+const double kDanceCodeMarkFraction = 0.20;
 
-/// The white square the mark sits in, as a multiple of the mark's own size.
-const double _clearZoneFactor = 1.18;
+/// The raised brand mark, dark on the Mac installer's pale floor, baked by
+/// `tools/brand/generate_raised_mark.py` in the installer's bump-mapped style.
+const String _markBadgeAsset = 'assets/brand/mark-raised.png';
 
 /// A QR code needs a quiet zone of at least this many modules on each side.
 const int _quietZoneModules = 4;
+
+/// The badge's corner radius as a fraction of its side: the same as the baked
+/// artwork's (`RADIUS` in `tools/brand/generate_raised_mark.py`).
+const double _badgeRadius = 0.10;
 
 /// A code is dark modules on a light card, in every theme: scanners expect it,
 /// and a dark theme would invert it. These are deliberately not theme colours.
@@ -43,8 +47,8 @@ class DanceCodeScreen extends StatefulWidget {
   final DanceCodeShown plan;
   final String title;
 
-  /// Fraction of the code's width the mark covers. Tests turn this up to
-  /// find where a code stops scanning.
+  /// Fraction of the code's width the clear zone and its badge cover. Tests
+  /// turn this up to find where a code stops scanning.
   final double markFraction;
 
   @override
@@ -54,6 +58,16 @@ class DanceCodeScreen extends StatefulWidget {
 class _DanceCodeScreenState extends State<DanceCodeScreen>
     with WidgetsBindingObserver, PerformWakelockMixin {
   late final Path _modules = _modulePath(widget.plan);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decode the badge before the first frame that needs it, so it does not
+    // pop in a moment after the code.
+    if (widget.plan.withMark) {
+      precacheImage(const AssetImage(_markBadgeAsset), context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +160,7 @@ class _CodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final codeSide = module * plan.moduleCount;
-    final mark = markFraction == null ? null : codeSide * markFraction!;
+    final badge = markFraction == null ? null : codeSide * markFraction!;
     return ColoredBox(
       color: _codeLight,
       child: Stack(
@@ -157,16 +171,26 @@ class _CodeCard extends StatelessWidget {
               painter: _CodePainter(modules, module, _quietZoneModules),
             ),
           ),
-          if (mark != null) ...[
+          if (badge != null) ...[
+            // White under the badge: its rounded corners show it, so the
+            // clear zone is the same square whatever the artwork's edge does.
             Container(
-              width: mark * _clearZoneFactor,
-              height: mark * _clearZoneFactor,
+              width: badge,
+              height: badge,
               decoration: BoxDecoration(
                 color: _codeLight,
-                borderRadius: BorderRadius.circular(mark * 0.12),
+                borderRadius: BorderRadius.circular(badge * _badgeRadius),
               ),
             ),
-            BrandMark(size: mark, showTile: true),
+            Image.asset(
+              _markBadgeAsset,
+              key: const ValueKey('dance-code-mark'),
+              width: badge,
+              height: badge,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+              excludeFromSemantics: true,
+            ),
           ],
         ],
       ),

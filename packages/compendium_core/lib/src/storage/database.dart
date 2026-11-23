@@ -809,6 +809,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// no existing program is taken for an imported one. It joined v42 while
   /// v42 was unreleased, the same way.
   ///
+  /// Also the program times (#2350): `programs.start_minute`, `end_minute`,
+  /// `lesson_minute` and `arrival_minute`, all nullable, so every existing
+  /// program has none. They joined v42 while v42 was unreleased, after
+  /// `calendar_event_key`.
+  ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
     final columns = await customSelect(
@@ -834,15 +839,22 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     final programColumns = await customSelect(
       "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
     ).get();
-    if (!{
+    final presentProgramColumns = {
       for (final row in programColumns) row.read<String>('name'),
-    }.contains(programs.archivedAt.name)) {
-      await m.addColumn(programs, programs.archivedAt);
-    }
-    if (!{
-      for (final row in programColumns) row.read<String>('name'),
-    }.contains(programs.calendarEventKey.name)) {
-      await m.addColumn(programs, programs.calendarEventKey);
+    };
+    // In declaration order, so a migrated database's columns line up with a
+    // fresh one's.
+    for (final column in <GeneratedColumn<Object>>[
+      programs.archivedAt,
+      programs.calendarEventKey,
+      programs.startMinute,
+      programs.endMinute,
+      programs.lessonMinute,
+      programs.arrivalMinute,
+    ]) {
+      if (!presentProgramColumns.contains(column.name)) {
+        await m.addColumn(programs, column);
+      }
     }
   }
 

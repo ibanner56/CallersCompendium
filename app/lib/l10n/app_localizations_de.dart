@@ -3205,7 +3205,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Datum und Veranstaltungsort beim Teilen einer Setliste einbeziehen';
+      'Datum, Uhrzeiten und Veranstaltungsort beim Teilen einer Setliste einbeziehen';
 
   @override
   String get settingsSharingSubtitle =>
@@ -5850,6 +5850,65 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsClearEventDate => 'Veranstaltungsdatum löschen';
 
   @override
+  String get programsStartTimeLabel => 'Beginn';
+
+  @override
+  String get programsEndTimeLabel => 'Ende';
+
+  @override
+  String get programsLessonTimeLabel => 'Einsteigerkurs';
+
+  @override
+  String get programsArrivalTimeLabel => 'Ankunft bis';
+
+  @override
+  String get programsNoTimeSet => 'Nicht festgelegt';
+
+  @override
+  String get programsSetTime => 'Festlegen';
+
+  @override
+  String get programsChangeTime => 'Ändern';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return '$field festlegen';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return '$field ändern';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return '$field löschen';
+  }
+
+  @override
+  String get programsTimeNextDay => 'Endet am nächsten Tag';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return 'Übliche Zeit des Veranstaltungsorts: $time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'Kurs $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'Tanz $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return 'Ankunft bis $time';
+  }
+
+  @override
   String get programsVenueLabel => 'Veranstaltungsort';
 
   @override
@@ -7134,6 +7193,24 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return 'Seite $page von $pages';
+  }
+
+  @override
+  String get exportLabelLesson => 'Kurs';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start–$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return 'bis $end';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times (nächster Tag)';
   }
 
   @override

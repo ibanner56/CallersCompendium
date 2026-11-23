@@ -167,7 +167,9 @@ flutter:
     # Brand mark / app-icon source SVGs (app/assets/brand/). Rendered in-app by
     # BrandMark (nav rail, empty states, About) via flutter_svg so the in-app
     # mark matches the generated launcher icons. Also the source of truth for
-    # tools/brand/generate_icons.py.
+    # tools/brand/generate_icons.py. The folder also holds one generated PNG,
+    # mark-raised.png (tools/brand/generate_raised_mark.py), the raised mark in
+    # the middle of a Show code QR code.
     - assets/brand/
   fonts:
     - family: Fraunces # display / headings (serif, OFL) — variable opsz/wght

@@ -1049,6 +1049,41 @@ void main() {
       expect((await programs.getById(programId))!.archivedAt, archivedAt);
     });
 
+    test('re-import keeps the times the caller added (#2350)', () async {
+      final first = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      final programId = first.programs.single.id;
+      final imported = (await programs.getById(programId))!;
+      await programs.update(
+        imported.copyWith(
+          startMinute: 1170,
+          endMinute: 1350,
+          lessonMinute: 1140,
+          arrivalMinute: 1110,
+        ),
+      );
+
+      // A `.USR` file has no times, so the rebuild must carry them forward.
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: DateTime.utc(2026, 8, 1),
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      expect(second.updatedProgramCount, 1);
+      final reloaded = (await programs.getById(programId))!;
+      expect(reloaded.startMinute, 1170);
+      expect(reloaded.endMinute, 1350);
+      expect(reloaded.lessonMinute, 1140);
+      expect(reloaded.arrivalMinute, 1110);
+    });
+
     group('a prior venue link that no row backs', () {
       // The repository's save guard refuses a dead id, so the column is
       // rewritten directly: the state #2076 leaves on a restore.

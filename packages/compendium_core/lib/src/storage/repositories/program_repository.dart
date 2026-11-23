@@ -971,6 +971,10 @@ class ProgramRepository {
               ),
               payMinorUnits: Value(program.payMinorUnits),
               payCurrency: Value(program.payCurrency),
+              startMinute: Value(program.startMinute),
+              endMinute: Value(program.endMinute),
+              lessonMinute: Value(program.lessonMinute),
+              arrivalMinute: Value(program.arrivalMinute),
               createdAt: program.createdAt,
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
@@ -2429,6 +2433,10 @@ class ProgramRepository {
       row.payCurrency == null &&
       row.archivedAt == null &&
       row.calendarEventKey == null &&
+      row.startMinute == null &&
+      row.endMinute == null &&
+      row.lessonMinute == null &&
+      row.arrivalMinute == null &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
                 ..where(_db.programSlots.programId.equals(row.id))
@@ -2481,6 +2489,10 @@ class ProgramRepository {
         payCurrency: const Value(null),
         archivedAt: const Value(null),
         calendarEventKey: Value(normalizeShareableTextOrNull(null)),
+        startMinute: const Value(null),
+        endMinute: const Value(null),
+        lessonMinute: const Value(null),
+        arrivalMinute: const Value(null),
         updatedAt: Value(
           nextStoredTimestamp(
             now: now.isAfter(current) ? now : current.add(storedTimestampTick),
@@ -2511,6 +2523,10 @@ class ProgramRepository {
     dialectName: row.dialectName,
     payMinorUnits: row.payMinorUnits,
     payCurrency: row.payCurrency,
+    startMinute: row.startMinute,
+    endMinute: row.endMinute,
+    lessonMinute: row.lessonMinute,
+    arrivalMinute: row.arrivalMinute,
     slots: slots,
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),

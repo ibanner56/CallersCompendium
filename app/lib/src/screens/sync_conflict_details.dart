@@ -253,6 +253,10 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'payMinorUnits': l10n.programsPayLabel,
         'payCurrency': l10n.programsPayCurrencyLabel,
         'archivedAt': l10n.programsArchivedLabel,
+        'startMinute': l10n.programsStartTimeLabel,
+        'endMinute': l10n.programsEndTimeLabel,
+        'lessonMinute': l10n.programsLessonTimeLabel,
+        'arrivalMinute': l10n.programsArrivalTimeLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
@@ -1213,6 +1217,10 @@ class SyncConflictComparison extends StatelessWidget {
             MaterialLocalizations.of(context),
             l10n,
           );
+        case 'startMinute' || 'endMinute' || 'lessonMinute' || 'arrivalMinute':
+          // A program time: minutes after midnight, in the app language's
+          // clock (#2350). No time zone: it is the time on the hall's wall.
+          return formatTimeOfDay(value as int, l10n);
         case 'payMinorUnits':
           // The amount alone is ambiguous: show it with that version's own
           // currency, formatted by the currency's exponent.

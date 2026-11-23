@@ -38,10 +38,13 @@ const String _presentMark = '✓';
 /// [_debutMark]/[_firstMark]/[_presentMark]/blank markers with the same
 /// semantics as the on-screen [ProgramMatrix]
 /// (`isProgramDebut`/`isFirst`/`isPresent`). A short legend explains the marks.
-/// The header block (program title + event date/venue) mirrors the
+/// The header block (program title + event date, times and venue) mirrors the
 /// field ordering/format of [buildProgramPdf].
 ///
 /// - [formatDate] formats [eventDate]; defaults to ISO `yyyy-MM-dd`.
+/// - [times] is the dance's start and end, already phrased
+///   (`danceTimesText`), printed between the date and the venue (#2350). The
+///   lesson and Arrive by times are not printed here.
 /// - [omittedFreeTextCount] renders the same "free-text slots omitted" caption
 ///   as the on-screen matrix, so the dances-only scope stays explicit.
 /// - The empty matrix (no move columns) renders the header, the omitted caption
@@ -70,6 +73,7 @@ Future<Uint8List> buildProgramMatrixPdf(
   required String programTitle,
   String Function(DateTime date)? formatDate,
   DateTime? eventDate,
+  String? times,
   String? venue,
   int omittedFreeTextCount = 0,
   ProgramMatrixExportLabels labels = const ProgramMatrixExportLabels(),
@@ -89,7 +93,7 @@ Future<Uint8List> buildProgramMatrixPdf(
       : programTitle.trim();
   final doc = pw.Document(title: title, theme: resolvedTheme);
 
-  final dateVenue = _dateVenue(eventDate, venue, fmtDate);
+  final dateVenue = _dateVenue(eventDate, times, venue, fmtDate);
 
   // The marker font is only used when the matrix actually has rows/columns
   // to draw (the legend + marker cells), so it's loaded lazily rather than
@@ -258,11 +262,13 @@ pw.Widget _legend(
 
 String _dateVenue(
   DateTime? eventDate,
+  String? times,
   String? venue,
   String Function(DateTime) fmtDate,
 ) {
   final parts = <String>[
     if (eventDate != null) fmtDate(eventDate),
+    if (times != null && times.trim().isNotEmpty) times.trim(),
     if (venue != null && venue.trim().isNotEmpty) venue.trim(),
   ];
   return parts.join(' · ');

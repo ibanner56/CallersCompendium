@@ -5334,6 +5334,9 @@ void main() {
     expect(body, isNot(contains('_dialect')));
     expect(body, isNot(contains('_matrixColumnConfig')));
     expect(body, isNot(contains('_eventDate')));
+    // The program's times reach the header (#2350), resolved before the
+    // callback like the date.
+    expect(body, contains('times: times,'));
   });
 
   testWidgets('Matrix export control is disabled for an empty matrix', (
