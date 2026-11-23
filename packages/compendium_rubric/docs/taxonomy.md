@@ -1895,9 +1895,9 @@ To be defined later with worked examples.
   - `beats` — int, default 4.
 - **preconditions:** casters named, `direction` up or down, `places` stated and equal to 1, no
   `destination`; anything else is deferred (`UnsupportedParam`). A `who` naming pairs rather
-  than members (`partners`, `neighbors`, `everyone`) is refused (`UnresolvableDancerSet`); a
-  distance set is refused earlier, by the engine's reach check (`WhoMismatch`); `shadows` is
-  deferred at parse time. In every active hands four, each caster must have a dancer beside it
+  than members (`partners`, `neighbors`, `everyone`, or a distance set such as
+  `nextNeighbors`) is refused (`UnresolvableDancerSet`), unless the engine's reach check
+  refuses a distance set first; `shadows` is deferred at parse time. In every active hands four, each caster must have a dancer beside it
   in its column, in the cast's direction, who is not casting too (`UnresolvableDancerSet`
   otherwise).
 - **effect (user-ruled 2026-11-23):** the casters move `places` places up or down the set, and
