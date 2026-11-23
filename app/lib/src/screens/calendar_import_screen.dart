@@ -15,6 +15,7 @@ import '../export/export_labels_l10n.dart';
 import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/calendar_flag_label.dart';
 
 /// Fetches a calendar feed's body. [fetchCalendarFeed] in production.
 typedef CalendarFeedFetcher = Future<String> Function(String url);
@@ -50,6 +51,9 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
   CalendarImportSettings _settings = const CalendarImportSettings();
   CalendarImportPreview? _preview;
   final Set<String> _ticked = {};
+
+  /// Program ids whose upstream change is ticked (#2354).
+  final Set<String> _acceptedChanges = {};
   String? _error;
   bool _started = false;
 
@@ -124,6 +128,12 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
             for (final e in preview.entries)
               if (e.tickedByDefault) e.candidate.eventKey,
           ]);
+        _acceptedChanges
+          ..clear()
+          ..addAll([
+            for (final c in preview.changes)
+              if (c.untouched && calendarOfferVisible(c)) c.program.id,
+          ]);
         _phase = _Phase.preview;
       });
     } on UrlFetchException catch (error, stackTrace) {
@@ -175,16 +185,31 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
       for (final e in preview.entries)
         if (e.offered && _ticked.contains(e.candidate.eventKey)) e,
     ];
-    if (chosen.isEmpty) return;
+    if (chosen.isEmpty && !preview.hasPendingWrites) return;
     setState(() => _phase = _Phase.committing);
     final List<String> ids;
+    final List<CalendarUpdateRecord> before;
+    final now = clock.now().toUtc();
     try {
       ids = await commitCalendarImport(
         repos,
         chosen: chosen,
         untitledTitle: l10n.calendarImportUntitled,
-        now: clock.now().toUtc(),
+        now: now,
       );
+      try {
+        before = await applyCalendarUpdates(
+          repos,
+          preview: preview,
+          accepted: {..._acceptedChanges},
+          now: now,
+        );
+      } catch (_) {
+        // diagnostics: silent — rethrown below; logged at the outer catch.
+        // The drafts go too, so Import is all or nothing.
+        await repos.programs.hardDelete(ids);
+        rethrow;
+      }
     } catch (error, stackTrace) {
       logCaughtError(
         error,
@@ -201,13 +226,33 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
     showUndoSnackBar(
       messenger,
       key: const ValueKey('calendar-import-committed-snackbar'),
-      message: l10n.calendarImportCommitted(ids.length),
+      message: _appliedMessage(l10n, preview, ids.length),
       undoLabel: l10n.commonUndo,
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessible,
-      onUndo: () => repos.programs.hardDelete(ids),
+      onUndo: () async {
+        await repos.programs.hardDelete(ids);
+        await undoCalendarUpdates(repos, before, now: clock.now().toUtc());
+      },
     );
     if (mounted) navigator.pop(ids);
+  }
+
+  String _appliedMessage(
+    AppLocalizations l10n,
+    CalendarImportPreview preview,
+    int created,
+  ) {
+    final updated = [
+      for (final c in preview.changes)
+        if (calendarOfferVisible(c) && _acceptedChanges.contains(c.program.id))
+          c,
+    ].length;
+    final parts = [
+      if (created > 0) l10n.calendarImportCommitted(created),
+      if (updated > 0) l10n.calendarImportUpdated(updated),
+    ];
+    return parts.isEmpty ? l10n.calendarImportReviewed : parts.join(' ');
   }
 
   @override
@@ -229,7 +274,13 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
               key: const ValueKey('calendar-import-commit'),
               label: l10n.calendarImportImport,
               icon: Icons.download_done,
-              onPressed: busy || tickedCount == 0 ? null : _import,
+              onPressed:
+                  busy ||
+                      (tickedCount == 0 &&
+                          _acceptedChanges.isEmpty &&
+                          !preview.hasPendingWrites)
+                  ? null
+                  : _import,
             ),
         ],
       ),
@@ -296,12 +347,15 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
         : e.candidate.title;
     // The event's times beside its date (#2423), phrased as the set list
     // phrases a program's start and end.
-    String? timesOf(CalendarImportEntry e) => danceTimesText(
-      startMinute: e.candidate.startMinute,
-      endMinute: e.candidate.endMinute,
+    // Times as the program summary shows them, "(next day)" included.
+    String? rangeOf(int? start, int? end) => danceTimesText(
+      startMinute: start,
+      endMinute: end,
       formatTime: (m) => formatTimeOfDay(m, l10n),
       labels: programExportLabels(l10n),
     );
+    String? timesOf(CalendarImportEntry e) =>
+        rangeOf(e.candidate.startMinute, e.candidate.endMinute);
     String subtitleOf(CalendarImportEntry e) =>
         [dateOf(e), ?timesOf(e), ?e.candidate.venueLabel].join(' · ');
 
@@ -309,7 +363,65 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
         preview.entries.where((e) => e.state == s).toList();
     final fresh = withState(CalendarEntryState.fresh);
     final deleted = withState(CalendarEntryState.deleted);
-    final already = withState(CalendarEntryState.alreadyImported);
+    final offers = [
+      for (final c in preview.changes)
+        if (calendarOfferVisible(c)) c,
+    ];
+    final offeredKeys = {for (final c in offers) c.candidate.eventKey};
+    final already = [
+      for (final e in withState(CalendarEntryState.alreadyImported))
+        if (!offeredKeys.contains(e.candidate.eventKey)) e,
+    ];
+    final updated = offers.where((c) => c.untouched).toList();
+    final changed = offers.where((c) => !c.untouched).toList();
+    String changeText(CalendarChangeOffer c) => [
+      if (c.date)
+        l10n.calendarChangeDate(
+          c.program.eventDate == null
+              ? '—'
+              : formatEventDate(
+                  c.program.eventDate!,
+                  dateSetting,
+                  material,
+                  l10n,
+                ),
+          formatEventDate(c.candidate.date, dateSetting, material, l10n),
+        ),
+      if (c.title) l10n.calendarChangeTitle(c.program.title, c.candidate.title),
+      if (c.venue)
+        l10n.calendarChangeVenue(
+          c.shownVenue ?? '—',
+          c.candidate.venueLabel ?? '—',
+        ),
+      if (c.time)
+        l10n.calendarChangeTime(
+          rangeOf(c.program.startMinute, c.program.endMinute) ?? '—',
+          // Only the offered times change; an unoffered one stays as is.
+          rangeOf(
+                c.start ? c.candidate.startMinute : c.program.startMinute,
+                c.end ? c.candidate.endMinute : c.program.endMinute,
+              ) ??
+              '—',
+        ),
+    ].join('\n');
+    Widget offerTile(CalendarChangeOffer c) => CheckboxListTile(
+      key: ValueKey('calendar-change-${c.program.id}'),
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      value: _acceptedChanges.contains(c.program.id),
+      onChanged: _phase == _Phase.preview
+          ? (v) => setState(() {
+              if (v ?? false) {
+                _acceptedChanges.add(c.program.id);
+              } else {
+                _acceptedChanges.remove(c.program.id);
+              }
+            })
+          : null,
+      title: Text(c.program.title),
+      subtitle: Text(changeText(c)),
+      isThreeLine: true,
+    );
     final ours = withState(CalendarEntryState.fromThisApp);
 
     Widget header(String text) => Padding(
@@ -358,6 +470,27 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
         header(l10n.calendarImportDeletedHeader),
         for (final e in deleted)
           tickable(e, note: l10n.calendarImportDeletedNote),
+      ],
+      if (updated.isNotEmpty) ...[
+        header(l10n.calendarImportUpdatedHeader),
+        for (final c in updated) offerTile(c),
+      ],
+      if (changed.isNotEmpty) ...[
+        header(l10n.calendarImportChangedHeader),
+        Text(l10n.calendarImportChangedBody),
+        for (final c in changed) offerTile(c),
+      ],
+      if (preview.flagged.isNotEmpty) ...[
+        header(l10n.calendarImportFlaggedHeader),
+        Text(l10n.calendarImportFlaggedBody),
+        for (final f in preview.flagged)
+          ListTile(
+            key: ValueKey('calendar-flagged-${f.program.id}'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.event_busy_outlined),
+            title: Text(f.program.title),
+            subtitle: Text(calendarFlagLabel(l10n, f.flag)),
+          ),
       ],
       if (already.isNotEmpty) ...[
         header(l10n.calendarImportAlreadyHeader),

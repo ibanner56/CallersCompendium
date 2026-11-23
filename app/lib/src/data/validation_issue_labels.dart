@@ -128,10 +128,9 @@ String? _localizedValidation(
       final actual = data['actual'];
       final limit = data['limit'];
       if (position is! int || actual is! int || limit is! int) return null;
-      // The limit is a phrase's length: it reads from where that phrase
-      // starts. Where the data gives none, a tune in one meter reads it
-      // anywhere, and one whose phrases tied for longest differ in bars reads
-      // in beats.
+      // The limit is the length of the phrase the sequence starts in: it reads
+      // from where that phrase starts. Where the data gives none, a tune in
+      // one meter reads it anywhere, and any other in beats.
       final limitStart = data['limitStart'] is int
           ? data['limitStart'] as int
           : timing != null && timing.isFixed

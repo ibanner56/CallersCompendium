@@ -303,7 +303,8 @@ variant decomposes and keeps its name in the note.
 *Since container titles:* the name is now kept as the **title of one
 sequence** holding the children (`Modified revolving door - …`) when the block
 has two to four figures that come through the cross-line merge untouched and
-fit one phrase of the dance, and the name fits a title. The first-child note above is the fallback for every other block
+fit the phrase of the dance they start in (the longest phrase before
+23 November 2026), and the name fits a title. The first-child note above is the fallback for every other block
 (`Interrupted square through 2`, whose balance child folds into its square
 through, is one). See [imports.md](../design/imports.md) §1.
 

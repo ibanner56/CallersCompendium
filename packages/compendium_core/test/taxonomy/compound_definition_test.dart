@@ -284,6 +284,99 @@ void main() {
       expect(allowedValues(definition, 'nope', taxonomy), isEmpty);
     });
 
+    group('a group of dancers follows the combination\'s form (#2294)', () {
+      final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+
+      CompoundDefinition unbound(String form, ParamKind kind) =>
+          CompoundDefinition(
+            params: [CompoundParam(key: 'who', kind: kind)],
+            figures: [pullBy()],
+            bindings: const [],
+            form: form,
+          );
+
+      test('an English parameter that fills no slot takes English\'s groups', () {
+        final allowed = allowedValues(
+          unbound('ecd', ParamKind.dancerSet),
+          'who',
+          taxonomy,
+        );
+        expect(allowed, {...ecdSelectors, u});
+        // Groups only English has are offered, and ones only contra has are not.
+        expect(allowed, containsAll(['ends', 'top', 'couples']));
+        expect(allowed, isNot(contains('thirdCorners')));
+        expect(allowed, isNot(contains('opposites')));
+      });
+
+      test('a pair of dancers does too', () {
+        expect(
+          allowedValues(unbound('ecd', ParamKind.dancerPair), 'who', taxonomy),
+          {...ecdSelectors, u},
+        );
+      });
+
+      test('contra, and a form this build does not know, keep contra\'s', () {
+        for (final form in ['contra', 'future', 'square']) {
+          final allowed = allowedValues(
+            unbound(form, ParamKind.dancerSet),
+            'who',
+            taxonomy,
+          );
+          expect(allowed, {...ParamVocab.dancerSets, u}, reason: form);
+          expect(allowed, isNot(contains('ends')), reason: form);
+        }
+      });
+
+      test('a parameter filling an English slot takes that slot\'s groups', () {
+        final definition = CompoundDefinition(
+          params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
+          figures: [Figure(move: 'ecd_honor')],
+          bindings: const [
+            CompoundSlotBinding(
+              figureIndex: 0,
+              slotKey: 'whom',
+              paramKey: 'who',
+            ),
+          ],
+          form: 'ecd',
+        );
+        expect(allowedValues(definition, 'who', ecd), {...ecdSelectors});
+      });
+
+      // Characterisation, not a guard: no English-only group has an opposite,
+      // so the form changes nothing here, and the declared binding already
+      // limits the result to the slot's groups. It pins that the result stays
+      // inside English's groups and holds none only contra has.
+      test('through an opposite, the groups that have one are unchanged', () {
+        final definition = CompoundDefinition(
+          params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
+          figures: [
+            Figure(move: 'ecd_honor'),
+            Figure(move: 'ecd_honor'),
+          ],
+          bindings: const [
+            CompoundSlotBinding(
+              figureIndex: 0,
+              slotKey: 'whom',
+              paramKey: 'who',
+            ),
+            CompoundSlotBinding(
+              figureIndex: 1,
+              slotKey: 'whom',
+              paramKey: 'who',
+              source: CompoundBindingSource.opposite,
+            ),
+          ],
+          form: 'ecd',
+        );
+        final allowed = allowedValues(definition, 'who', ecd)!;
+        expect(allowed, containsAll(['role1s', 'role2s', 'partners', u]));
+        expect(allowed.every(ecdSelectors.contains), isTrue);
+        expect(allowed, isNot(contains('thirdCorners')));
+        expect(allowed, isNot(contains('opposites')));
+      });
+    });
+
     test('are the overlap of every slot a parameter fills', () {
       final definition = CompoundDefinition(
         params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],

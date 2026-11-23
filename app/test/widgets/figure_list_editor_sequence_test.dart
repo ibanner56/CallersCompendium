@@ -255,7 +255,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsNothing);
     expect(
-      find.text('These figures fill one phrase (16 beats).'),
+      find.text('These figures fill their phrase (16 beats).'),
       findsOneWidget,
     );
   });
@@ -281,6 +281,73 @@ void main() {
     await _open(tester, 0);
 
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+  });
+
+  group('a sequence fits the phrase it sits in (23 November 2026)', () {
+    // A1 and A2 are 8 beats each, B is 16: a tune in one meter whose phrases
+    // differ in length.
+    final uneven = PhraseStructure.parse('2*4*2 + 1*8*2');
+
+    testWidgets('no step is added once the steps fill a short phrase', (
+      tester,
+    ) async {
+      final drafts = [
+        FigureDraft(sequenceFigures: [_step('balance', 4), _step('swing', 4)]),
+      ];
+      await _pump(tester, drafts, phrase: uneven);
+      await _open(tester, 0);
+      expect(find.byKey(const ValueKey('figure-0-add-side')), findsNothing);
+      expect(
+        find.text('These figures fill their phrase (8 beats).'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the same steps in the long phrase may take another', (
+      tester,
+    ) async {
+      final drafts = [
+        _step('swing', 8),
+        _step('swing', 8),
+        FigureDraft(sequenceFigures: [_step('balance', 4), _step('swing', 4)]),
+      ];
+      await _pump(tester, drafts, phrase: uneven);
+      await _open(tester, 2);
+      expect(find.byKey(const ValueKey('figure-2-add-side')), findsOneWidget);
+    });
+
+    testWidgets('"Group with next as sequence" follows the phrase the first '
+        'row sits in', (tester) async {
+      final drafts = [
+        _step('balance', 4),
+        _step('swing', 8),
+        _step('swing', 4),
+        _step('balance', 4),
+        _step('swing', 8),
+      ];
+      await _pump(tester, drafts, phrase: uneven);
+
+      // From beat 0, in an 8-beat phrase: 4 + 8 is too long.
+      await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('figure-0-group-with-next-sequence')),
+        findsNothing,
+      );
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      // From beat 16, in B: the same 4 + 8 fits.
+      await tester.tap(find.byKey(const ValueKey('figure-3-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('figure-3-group-with-next-sequence')),
+      );
+      await tester.pumpAndSettle();
+      expect(drafts, hasLength(4));
+      expect(drafts.last.isSequenceGroup, isTrue);
+      expect(drafts.last.beats, 12);
+    });
   });
 
   testWidgets('"Group with next as sequence" is offered only when it fits', (

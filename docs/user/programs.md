@@ -244,7 +244,7 @@ background, on a timer, or when you come back to the app.
 - Events from **today** up to 6 months ahead. You can choose 3 or 12 months
   instead, and offer only events whose title contains a word such as "contra",
   in [Settings ▸ Program ▸ Calendar](./settings.md#calendar). Past events are
-  never offered, and nor are cancelled ones.
+  never offered, and nor are canceled ones.
 - **Repeating events** are read only **30 days ahead**, whatever the date range,
   so a weekly series never floods your list. Each occurrence becomes its own
   draft, and a later import picks up the next ones as they come within 30 days.
@@ -278,7 +278,7 @@ event.
 
 **No duplicates.** Each imported program remembers which event it came from, so
 the next import lists that event as **Already imported** and does not offer it
-again — even if the event has since changed in your calendar. That memory
+again. That memory
 travels with [Device Sync](./settings.md#device-sync), so your other devices
 recognise it too once they have synced. (If two devices import the same
 calendar before either has synced, both create the program; delete one.)
@@ -290,8 +290,48 @@ calendar before either has synced, both create the program; delete one.)
   are listed under **From this app** and not offered, because the program is
   already here.
 
-**Undo.** After **Import**, a message says how many draft programs were added,
-with **Undo** to remove them all again.
+**When an event changes or is canceled.** The app never changes a program
+behind your back, and never deletes one because of your calendar.
+
+- **Updated in your calendar** — the event's title, date, location or times
+  changed, and you haven't touched the draft since it was imported (it is
+  still a **Draft** and you haven't edited anything, even a slot). The review
+  shows the old and new values ("Date: 20 Jun → 27 Jun", "Time: 7:00 PM–10:00
+  PM → 7:30 PM–10:30 PM"), ticked. **Import** updates the program. An event
+  made all-day clears the start and end times. The **Beginner lesson** and
+  **Arrive by** times are never changed. A time your calendar keeps in UTC
+  counts as changed only when the event moves, not when you import in
+  another time zone.
+- **Changed in your calendar** — the same, for a program you have worked on,
+  here or on another device. It starts unticked; tick it and **Import**
+  updates only what changed in the calendar. A program imported before this
+  check existed counts as worked on.
+- If you leave an offer unticked, the program stays as it is, and the change is
+  not offered again unless the event changes again.
+- **Canceled or gone from your calendar** — an event marked canceled, or one
+  that is no longer in the calendar. A one-off event that only moved, however
+  far, is not gone, and neither is one date of a repeating event moved on its
+  own. Changing a repeating event as a whole is different, because the app
+  knows each of its dates by its day and time. If you move the whole event to
+  another day or time, or change "this and following" events, the programs
+  already imported for the old dates are labeled **No longer in your
+  calendar**, and the new dates are offered as new drafts. If it repeats less
+  often, only the dates it drops are labeled. "No longer in the calendar" is
+  judged only for programs dated from today up to 30 days ahead, and only when
+  the app could read the whole
+  calendar (not when it holds repeating events the app can't read, or more
+  events than the app reads). The
+  program is kept as it is and, when you choose **Import**, labeled **Canceled
+  in your calendar** or **No longer in your calendar** in the Programs list and
+  on its summary, with an icon and words. Archive or delete it yourself if you
+  no longer need it. The label goes away if the event comes back, or when you
+  choose **Clear calendar flag** on the summary; the next import labels it again
+  if the event is still canceled or gone.
+
+Closing the review without choosing **Import** changes nothing.
+
+**Undo.** After **Import**, a message says how many draft programs were added
+and how many programs were updated, with **Undo** to put everything back.
 
 ## Build a program
 
@@ -377,9 +417,8 @@ each would fit where the dance will go, best first:
 - **Adding before or after a slot** ([Add a dance before / after](#build-a-program)):
   between the dances on either side of that place, compared with both of them.
 - **[Replace…](#edit-a-slot)**: in that slot's place, between the dances
-  before and after it. The dance you are replacing is left out: it isn't
-  compared with, and isn't marked *Already in this program* (unless another
-  slot has it too), since picking it again would change nothing.
+  before and after it. The dance you are replacing isn't in the list, since
+  picking it again would change nothing, and it isn't compared with.
 
 It looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
 balance of formations, the difficulty of the evening at that point, and when
@@ -471,7 +510,8 @@ The same dialog has a **Replace…** button:
 
 - **On a dance slot**, it swaps in a different dance and keeps everything else —
   note, guest caller, lengths, and performed mark — so you don't have to add the
-  new dance, drag it into place, and delete the old one.
+  new dance, drag it into place, and delete the old one. The list leaves out the
+  dance the slot shows now, since picking it would change nothing.
 - **On a note slot** (other than a break), it imports or selects a dance and
   puts it in the slot in place of the note, keeping the timing details.
 

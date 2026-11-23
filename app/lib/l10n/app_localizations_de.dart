@@ -5290,7 +5290,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'Diese Sequenz dauert $length, länger als eine Phrase ($limit).';
+    return 'Diese Sequenz dauert $length, länger als ihre Phrase ($limit).';
   }
 
   @override
@@ -9357,7 +9357,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'Eine Sequenz in Figur $position hat $actual Beats und ist länger als eine Phrase ($limit Beats).';
+    return 'Eine Sequenz in Figur $position hat $actual Beats und ist länger als ihre Phrase ($limit Beats).';
   }
 
   @override
@@ -9380,7 +9380,7 @@ class AppLocalizationsDe extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'Eine Sequenz in Figur $position dauert $actual und ist länger als eine Phrase ($limit).';
+    return 'Eine Sequenz in Figur $position dauert $actual und ist länger als ihre Phrase ($limit).';
   }
 
   @override
@@ -10041,12 +10041,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'Diese Sequenz hat $beats Beats und ist länger als eine Phrase ($limit Beats).';
+    return 'Diese Sequenz hat $beats Beats und ist länger als ihre Phrase ($limit Beats).';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'Diese Figuren füllen eine Phrase ($limit Beats).';
+    return 'Diese Figuren füllen ihre Phrase ($limit Beats).';
   }
 
   @override
@@ -14051,4 +14051,76 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importCsvNoRows =>
       'Diese Datei hat keine Zeilen mit Tänzen, nur die Spaltennamen.';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme aus deinem Kalender aktualisiert.',
+      one: '1 Programm aus deinem Kalender aktualisiert.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Kalender geprüft. Nichts wurde hinzugefügt oder geändert.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Datum: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Titel: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return 'Uhrzeit: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Veranstaltungsort: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'In deinem Kalender aktualisiert';
+
+  @override
+  String get calendarImportChangedHeader => 'In deinem Kalender geändert';
+
+  @override
+  String get calendarImportChangedBody =>
+      'Du hast diese Programme bearbeitet, daher ändert sich nichts, außer du hakst es an.';
+
+  @override
+  String get calendarImportFlaggedHeader =>
+      'Abgesagt oder nicht mehr in deinem Kalender';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'Diese Programme bleiben, wie sie sind, und werden gekennzeichnet. Archiviere oder lösche sie selbst, wenn du sie nicht mehr brauchst.';
+
+  @override
+  String get calendarFlagCancelled => 'In deinem Kalender abgesagt';
+
+  @override
+  String get calendarFlagMissing => 'Nicht mehr in deinem Kalender';
+
+  @override
+  String get calendarFlagOther => 'Von deinem Kalender markiert';
+
+  @override
+  String get calendarFlagFieldLabel => 'Kalendermarkierung';
+
+  @override
+  String get calendarClearFlag => 'Kalendermarkierung entfernen';
+
+  @override
+  String get calendarClearFlagError =>
+      'Die Kalendermarkierung konnte nicht entfernt werden. Versuche es erneut.';
 }
