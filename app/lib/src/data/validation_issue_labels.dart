@@ -58,6 +58,8 @@ String validationIssueMessage(
   ValidationIssue issue, {
   String Function(String key)? keyLabel,
   int? beatsPerBar,
+  // Red-run stub: accepted, not yet read.
+  BarTiming? timing,
 }) {
   final localized = _localizedValidation(
     l10n,

@@ -98,6 +98,49 @@ void main() {
     });
   });
 
+  Dance mixed(List<int> beats) => _english().copyWith(
+    phraseStructure: 'A:2*4*3 + B:1*8*2',
+    figures: [
+      for (final (i, b) in beats.indexed)
+        Figure(
+          move: i.isEven ? 'ecd_siding' : 'ecd_turn_single',
+          params: {'beats': b},
+        ),
+    ],
+  );
+
+  test('a calling card counts a tune whose phrases differ in the bars of '
+      'each phrase', () async {
+    // 12 beats are 4 bars of 3, and 8 from beat 24 are 4 bars of 2.
+    final text = await _card(mixed([12, 12, 8]));
+    expect(text, isNot(contains('12')));
+    expect(text, isNot(contains('8')));
+  });
+
+  test('a mixed card with a count that is no whole number of half bars '
+      'stays in beats', () async {
+    final text = await _card(mixed([12, 5]));
+    expect(text, contains('12'));
+    expect(text, contains('5'));
+  });
+
+  test('the dance PDF counts a figure across the change by its own '
+      'phrases', () async {
+    final text = pdfText(
+      await buildDancePdf(
+        mixed([18, 10]),
+        dialect: Dialect.canonical,
+        authorNames: const [],
+        formationLabel: 'Duple minor',
+        statusLabel: 'Active',
+        theme: _theme,
+      ),
+    );
+    expect(text, contains('6 bars'));
+    expect(text, contains('4 bars'));
+    expect(text, isNot(contains('beats')));
+  });
+
   test('the dance PDF counts an English dance in bars', () async {
     final text = pdfText(
       await buildDancePdf(

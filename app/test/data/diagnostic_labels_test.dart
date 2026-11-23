@@ -121,7 +121,7 @@ void main() {
       test('a phrase mismatch', () {
         final i = issue('phrase_overflow', {'actual': 66, 'expected': 64});
         expect(
-          validationIssueMessage(l10n, i, beatsPerBar: 2),
+          validationIssueMessage(l10n, i, timing: const BarTiming.fixed(2)),
           'The figures total 33 bars; the phrase structure expects 32 bars.',
         );
         // Without a bar it is in beats, as before.
@@ -140,7 +140,7 @@ void main() {
               'actual': 20,
               'limit': 16,
             }),
-            beatsPerBar: 2,
+            timing: const BarTiming.fixed(2),
           ),
           'A sequence in figure 3 is 10 bars, longer than one phrase '
           '(8 bars).',
@@ -157,7 +157,7 @@ void main() {
               'expected': 8,
               'allTimed': true,
             }),
-            beatsPerBar: 2,
+            timing: const BarTiming.fixed(2),
           ),
           'The steps of the sequence in figure 2 take 1½ bars; the sequence '
           'takes 4 bars.',
@@ -171,11 +171,85 @@ void main() {
               'expected': 2,
               'allTimed': false,
             }),
-            beatsPerBar: 2,
+            timing: const BarTiming.fixed(2),
           ),
           'The timed steps of the sequence in figure 2 take 1 bar, leaving '
           'none of its 1 bar for the rest.',
         );
+      });
+
+      group('where the phrases differ in beats per bar (#2303)', () {
+        // A1 and A2 are 4 bars of 3 beats (0-24), B is 8 bars of 2 (24-40).
+        final mixed = BarTiming.byPhrase(
+          PhraseStructure.parse('A:2*4*3 + B:1*8*2'),
+        );
+
+        test('a phrase mismatch counts from the start of the dance', () {
+          expect(
+            validationIssueMessage(
+              l10n,
+              issue('phrase_underflow', {'actual': 28, 'expected': 40}),
+              timing: mixed,
+            ),
+            'The figures total 10 bars; the phrase structure expects 16 bars.',
+          );
+        });
+
+        test('a sequence counts from its start, and its limit by its own '
+            'phrase', () {
+          // 10 beats from 18 are 3 + 3 + 2 + 2: 4 bars. The limit is B, 16
+          // beats, 8 bars of 2, which no walk from the sequence would give.
+          expect(
+            validationIssueMessage(
+              l10n,
+              issue('sequence_exceeds_phrase', {
+                'position': 2,
+                'actual': 10,
+                'limit': 16,
+                'startBeat': 18,
+                'limitStart': 24,
+              }),
+              timing: mixed,
+            ),
+            'A sequence in figure 2 is 4 bars, longer than one phrase '
+            '(8 bars).',
+          );
+        });
+
+        test('a limit with no one bar length reads the whole message in '
+            'beats', () {
+          expect(
+            validationIssueMessage(
+              l10n,
+              issue('sequence_exceeds_phrase', {
+                'position': 2,
+                'actual': 10,
+                'limit': 16,
+                'startBeat': 18,
+              }),
+              timing: mixed,
+            ),
+            contains('beats'),
+          );
+        });
+
+        test('a sequence span counts both from the sequence\'s start', () {
+          expect(
+            validationIssueMessage(
+              l10n,
+              issue('sequence_span_mismatch', {
+                'position': 2,
+                'actual': 8,
+                'expected': 10,
+                'allTimed': true,
+                'startBeat': 18,
+              }),
+              timing: mixed,
+            ),
+            'The steps of the sequence in figure 2 take 3 bars; the sequence '
+            'takes 4 bars.',
+          );
+        });
       });
 
       test('a count that is no whole number of half bars stays in beats', () {
@@ -183,7 +257,7 @@ void main() {
           validationIssueMessage(
             l10n,
             issue('phrase_underflow', {'actual': 47, 'expected': 48}),
-            beatsPerBar: 3,
+            timing: const BarTiming.fixed(3),
           ),
           'The figures total 47 beats; the phrase structure expects 48.',
         );
