@@ -11586,13 +11586,17 @@
   "@danceEditorPhrasesAdd": {
     "description": "Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used."
   },
-  "danceEditorPhrasesInvalid": "Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.",
+  "danceEditorPhrasesInvalid": "Give each phrase from 1 to {maxBars} bars and from 1 to {maxBeats} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.",
   "@danceEditorPhrasesInvalid": {
-    "description": "Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
+    "description": "Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above its most ({maxBars} bars, {maxBeats} beats to the bar), or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
     "placeholders": {
-      "max": {
+      "maxBars": {
         "type": "int",
         "example": "1000"
+      },
+      "maxBeats": {
+        "type": "int",
+        "example": "12"
       }
     }
   },
@@ -11632,7 +11636,7 @@
     "placeholders": {
       "max": {
         "type": "int",
-        "example": "1000"
+        "example": "12"
       }
     }
   },

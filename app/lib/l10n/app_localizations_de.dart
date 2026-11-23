@@ -8937,8 +8937,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Phrase hinzufügen';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Gib jeder Phrase 1 bis $max Takte und 1 bis $max Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Gib jeder Phrase 1 bis $maxBars Takte und 1 bis $maxBeats Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.';
   }
 
   @override

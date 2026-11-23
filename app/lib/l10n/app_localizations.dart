@@ -13120,11 +13120,11 @@ abstract class AppLocalizations {
   /// **'Add phrase'**
   String get danceEditorPhrasesAdd;
 
-  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above its most ({maxBars} bars, {maxBeats} beats to the bar), or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
   ///
   /// In en, this message translates to:
-  /// **'Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
-  String danceEditorPhrasesInvalid(int max);
+  /// **'Give each phrase from 1 to {maxBars} bars and from 1 to {maxBeats} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats);
 
   /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
   ///

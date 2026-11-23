@@ -8494,8 +8494,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'フレーズを追加';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return '各フレーズの小節数と1小節の拍数を、それぞれ1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return '各フレーズの小節数は1から$maxBars、1小節の拍数は1から$maxBeatsで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
   }
 
   @override
