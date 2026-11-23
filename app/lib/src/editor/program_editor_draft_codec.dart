@@ -138,9 +138,11 @@ class ProgramEditorDraft {
   final String? payCurrency;
 
   /// Whether this draft recorded the pay fields at all. Drafts written before
-  /// issue #1418 carry neither key, which must read as "never captured"
-  /// (restoring keeps the program's current pay), not as "the user cleared
-  /// it". Decoded from key presence, so it needs no draft version bump.
+  /// issue #1418 carry neither key, and neither does one written while the
+  /// Show pay setting hid an unedited pay field (#2355). Either must read as
+  /// "never captured" (restoring keeps the program's current pay), not as "the
+  /// user cleared it". Decoded from key presence, so it needs no draft version
+  /// bump.
   final bool hasPay;
 
   /// The in-progress slot list (position-ordered).
@@ -165,7 +167,8 @@ class ProgramEditorDraft {
 ///   "status": "draft",
 ///   "hideAlternates": false,
 ///   "dialectName": null,    // key always written; null = explicitly "use app dialect"
-///   "payText": "250.00",    // as typed; "" = no pay. Absent in older drafts
+///   "payText": "250.00",    // as typed; "" = no pay. Absent in older drafts,
+///                           // and while Show pay hides an unedited field
 ///   "payCurrency": "USD",   // omitted when the locale default applies
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},

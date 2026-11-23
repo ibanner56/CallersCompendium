@@ -1747,82 +1747,149 @@ void main() {
     });
   });
 
-  group('v41 -> v42 upgrade (programs.archived_at, #2218)', () {
-    Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
-      for (final row
-          in await db
-              .customSelect("SELECT name FROM pragma_table_info('programs')")
-              .get())
-        row.read<String>('name'),
-    };
+  group(
+    'v41 -> v42 upgrade (programs.archived_at #2218, calendar_event_key #2352)',
+    () {
+      Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
+        for (final row
+            in await db
+                .customSelect("SELECT name FROM pragma_table_info('programs')")
+                .get())
+          row.read<String>('name'),
+      };
 
-    test('adds archived_at as NULL and keeps every program', () async {
-      final raw = sqlite3.sqlite3.openInMemory();
-      final historical = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        41,
-      );
-      await historical.customSelect('SELECT 1').get();
-      expect(
-        await programColumns(historical),
-        isNot(contains('archived_at')),
-        reason: 'a v41 database has no archived_at column',
-      );
-      await historical.customStatement(
-        "INSERT INTO programs (id, title, notes, status, hide_alternates, "
-        "created_at, updated_at) "
-        "VALUES ('p1', 'Keep', 'n', 'performed', 0, 1700000000, 1700000100)",
-      );
-      await historical.close();
+      test('adds archived_at as NULL and keeps every program', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        expect(
+          await programColumns(historical),
+          isNot(contains('archived_at')),
+          reason: 'a v41 database has no archived_at column',
+        );
+        await historical.customStatement(
+          "INSERT INTO programs (id, title, notes, status, hide_alternates, "
+          "created_at, updated_at) "
+          "VALUES ('p1', 'Keep', 'n', 'performed', 0, 1700000000, 1700000100)",
+        );
+        await historical.close();
 
-      final db = CompendiumDatabase(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      );
-      addTearDown(() async {
-        await db.close();
-        raw.close();
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await programColumns(db), contains('archived_at'));
+        final program = await ProgramRepository(db).getById('p1');
+        expect(program, isNotNull);
+        expect(program!.title, 'Keep');
+        expect(program.status, ProgramStatus.performed);
+        expect(program.archivedAt, isNull);
+        expect(
+          program.updatedAt,
+          DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+          reason:
+              'the migration must not touch updated_at, or sync would '
+              'republish every program',
+        );
+        final version = await db
+            .customSelect('PRAGMA user_version')
+            .getSingle();
+        expect(version.read<int>('user_version'), 42);
       });
-      await db.customSelect('SELECT 1').get();
 
-      expect(await programColumns(db), contains('archived_at'));
-      final program = await ProgramRepository(db).getById('p1');
-      expect(program, isNotNull);
-      expect(program!.title, 'Keep');
-      expect(program.status, ProgramStatus.performed);
-      expect(program.archivedAt, isNull);
-      expect(
-        program.updatedAt,
-        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
-        reason:
-            'the migration must not touch updated_at, or sync would '
-            'republish every program',
-      );
-      final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 42);
-    });
+      test('is idempotent over a column that already exists', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.close();
+        raw.execute('ALTER TABLE programs ADD COLUMN archived_at INTEGER NULL');
 
-    test('is idempotent over a column that already exists', () async {
-      final raw = sqlite3.sqlite3.openInMemory();
-      final historical = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        41,
-      );
-      await historical.customSelect('SELECT 1').get();
-      await historical.close();
-      raw.execute('ALTER TABLE programs ADD COLUMN archived_at INTEGER NULL');
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
 
-      final db = CompendiumDatabase(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      );
-      addTearDown(() async {
-        await db.close();
-        raw.close();
+        expect(await programColumns(db), contains('archived_at'));
       });
-      await db.customSelect('SELECT 1').get();
 
-      expect(await programColumns(db), contains('archived_at'));
-    });
-  });
+      test('adds calendar_event_key as NULL (#2352)', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        expect(
+          await programColumns(historical),
+          isNot(contains('calendar_event_key')),
+        );
+        await historical.customStatement(
+          "INSERT INTO programs (id, title, notes, status, hide_alternates, "
+          "created_at, updated_at) "
+          "VALUES ('p1', 'Keep', 'n', 'draft', 0, 1700000000, 1700000100)",
+        );
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await programColumns(db), contains('calendar_event_key'));
+        final program = await ProgramRepository(db).getById('p1');
+        expect(program!.calendarEventKey, isNull);
+        expect(
+          program.updatedAt,
+          DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+          reason: 'the migration must not touch updated_at',
+        );
+      });
+
+      test('is idempotent over an existing calendar_event_key', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.close();
+        raw.execute('ALTER TABLE programs ADD COLUMN archived_at INTEGER NULL');
+        raw.execute(
+          'ALTER TABLE programs ADD COLUMN calendar_event_key TEXT NULL',
+        );
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await programColumns(db), contains('calendar_event_key'));
+      });
+    },
+  );
 
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
     const indexes = {

@@ -183,9 +183,8 @@ class _ResponsiveAutocompleteState<T extends Object>
   // by a stale flag left over from a tap-driven open (which never focuses
   // the launcher at all) or from a *selection's* own deliberate refocus
   // (issue #894 — a caller that clears the field and calls
-  // `FocusNode.requestFocus()` after a pick, e.g. `name_picker.dart`'s
-  // `_AddAutocomplete`, would otherwise have that very request swallowed by
-  // the guard it just armed against itself). The flag also expires on the
+  // `FocusNode.requestFocus()` after a pick would otherwise have that very
+  // request swallowed by the guard it just armed against itself). The flag also expires on the
   // next frame (see `_openSheet`) rather than staying armed indefinitely:
   // in the current layout the launcher is unmounted while the sheet is
   // open, so the boomerang this guards against never actually arrives to
@@ -324,8 +323,8 @@ class _ResponsiveAutocompleteState<T extends Object>
     if (!mounted) return;
     setState(() => _sheetOpen = false);
     // A boomerang can only follow a DISMISSAL: a selection-driven close is
-    // followed by the caller's own deliberate `requestFocus()` (e.g.
-    // `name_picker.dart`'s clear-and-refocus-to-add-another), and arming
+    // followed by the caller's own deliberate `requestFocus()` (a
+    // clear-and-refocus-to-add-another after a pick), and arming
     // here on every focus-driven open — regardless of how it closed — would
     // swallow that request instead (issue #894, reported as the picker
     // closing after every second tag/author addition). The flag also

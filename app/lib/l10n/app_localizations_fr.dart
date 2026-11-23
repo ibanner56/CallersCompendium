@@ -2630,10 +2630,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => 'Programme de départ';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      'Danses et notes ajoutées aux programmes créés manuellement.';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Ajouter une danse';
 
   @override
@@ -2796,6 +2792,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSources => 'Sources';
+
+  @override
+  String get settingsDefaultsShareFieldsMusic => 'Mesure, tonalité et Barnes';
 
   @override
   String get settingsDefaultsCollectionFiltersHeader =>
@@ -3245,6 +3244,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsProgramAutoCommitSubtitle =>
       'Lorsque cette option est activée, les modifications valides sont enregistrées au fil du travail et l’éditeur ne demande pas de les abandonner à la fermeture. Désactivez-la pour enregistrer les programmes explicitement.';
+
+  @override
+  String get settingsProgramShowPayTitle => 'Afficher le cachet';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Lorsque cette option est désactivée, l’éditeur et le résumé du programme masquent le cachet. Un cachet déjà saisi est conservé et réapparaît lorsque vous la réactivez.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Colonnes de la matrice';
@@ -6204,6 +6210,46 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get programsAddDanceBeforeMenu => 'Ajouter une danse avant';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Ajouter une danse après';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Ajouter avant $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Ajouter après $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Ajout avant $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Ajout après $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title ajoutée avant $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title ajoutée après $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Annulé. Les nouvelles danses s\'ajoutent à la fin.';
+
+  @override
   String get programsEditSlotMenu => 'Modifier le créneau';
 
   @override
@@ -6882,6 +6928,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportSaveDanceBundle => 'Enregistrer le fichier de danse…';
+
+  @override
+  String get exportShowCode => 'Afficher le code';
+
+  @override
+  String get exportShowCodeError =>
+      'Impossible d’afficher le code. Votre danse est inchangée. Réessayez.';
+
+  @override
+  String get danceCodeScreenTitle => 'Code de la danse';
+
+  @override
+  String danceCodeSemanticLabel(String title) {
+    return 'Code QR de $title';
+  }
+
+  @override
+  String get danceCodeTooLong =>
+      'Cette danse est trop longue pour être partagée sous forme de code. Partagez-la plutôt comme fichier.';
 
   @override
   String get exportCopyDance => 'Copier la danse';
@@ -9333,6 +9398,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorTypeToAddOrCreateHint => 'Tapez pour ajouter ou créer…';
+
+  @override
+  String get danceEditorChooseHint => 'Choisir…';
+
+  @override
+  String get figureParamSearchDancersHint => 'Rechercher des danseurs';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -12656,7 +12727,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'Le titre de la danse.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Qui a écrit la danse.';
+  String get callingCardHelpBlockAuthors =>
+      'Qui a écrit la danse et quand, puis qui l’a interprétée et quand.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12668,6 +12740,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Formation, niveau, mixer, statut et phrase sur une ligne, chacun avec son libellé.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'La mesure et la tonalité de l’air, ainsi que sa référence Barnes, sur une ligne.';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -12804,6 +12880,322 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Ces fiches sont plus grandes que le papier : chacune a donc été imprimée en plus petit, une par page.';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'Modèles de programme';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count modèles',
+      one: '1 modèle',
+      zero: 'Aucun modèle pour l’instant',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => 'Modèle par défaut';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      'Point de départ d’un nouveau programme quand on ne vous demande pas de choisir.';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => 'Programme de départ';
+
+  @override
+  String get programTemplateBlankProgram => 'Programme vide';
+
+  @override
+  String get programTemplateDefaultBadge => 'Par défaut';
+
+  @override
+  String get programTemplateChooserTitle => 'Partir d’un modèle';
+
+  @override
+  String get programTemplateNew => 'Nouveau modèle';
+
+  @override
+  String get programTemplatesEmptyTitle => 'Aucun modèle pour l’instant';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'Un modèle est une liste de départ de danses, de notes et de pauses pour un type de soirée. À partir de deux modèles, Nouveau programme vous demande lequel utiliser.';
+
+  @override
+  String get programTemplateNameLabel => 'Nom du modèle';
+
+  @override
+  String get programTemplateRename => 'Renommer';
+
+  @override
+  String get programTemplateRenameTitle => 'Renommer le modèle';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name (copie)';
+  }
+
+  @override
+  String get programTemplateUntitled => 'Modèle sans nom';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count emplacements',
+      one: '1 emplacement',
+      zero: 'Vide',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return 'Par défaut · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return 'Actions pour $name';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'Modifier le modèle';
+
+  @override
+  String get programTemplateSlotsHeader => 'Emplacements';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'Danses, notes et pauses par lesquelles commence un programme créé à partir de ce modèle.';
+
+  @override
+  String get programTemplatesLoadError =>
+      'Impossible de charger vos modèles de programme.';
+
+  @override
+  String get programTemplateSaveError =>
+      'Impossible d’enregistrer cette modification de vos modèles. Réessayez.';
+
+  @override
+  String get exportAddToCalendar => 'Ajouter au calendrier (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Exporter le calendrier (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Exporter le calendrier';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Choisissez les programmes à mettre dans le fichier de calendrier.';
+
+  @override
+  String get exportCalendarShowPast => 'Afficher les programmes passés';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'Aucun programme à venir à afficher. Les programmes archivés ne sont pas listés ici. Activez « Afficher les programmes passés » pour en choisir un plus ancien.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'Aucun programme n’a encore de date. Donnez une date à un programme pour l’ajouter à un calendrier.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Exporter';
+
+  @override
+  String get exportCalendarAddressTitle => 'Inclure l’adresse du lieu ?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'Le fichier de calendrier nomme le lieu. Son adresse postale est omise, sauf si vous l’incluez. Les calendriers sont souvent synchronisés ou partagés avec d’autres personnes.';
+
+  @override
+  String get exportCalendarAddressInclude => 'Inclure l’adresse du lieu';
+
+  @override
+  String get exportCalendarDialogTitle => 'Exporter le fichier de calendrier';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Choisissez comment transmettre ce fichier de calendrier.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Fichier de calendrier enregistré.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Impossible d’enregistrer ce fichier de calendrier. Réessayez.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Impossible de partager ce fichier de calendrier. Réessayez.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'Cette adresse n’a pas renvoyé de calendrier. Pour un agenda Google, utilisez son adresse au format iCal (Paramètres et partage ▸ Intégrer l’agenda), pas le lien ordinaire.';
+
+  @override
+  String get importFromCalendar => 'Depuis un calendrier';
+
+  @override
+  String get importProgramFromCalendar => 'Importer depuis un calendrier';
+
+  @override
+  String get calendarImportTitle => 'Importer depuis un calendrier';
+
+  @override
+  String get calendarImportImport => 'Importer';
+
+  @override
+  String get calendarAddressLabel => 'Adresse du calendrier';
+
+  @override
+  String get calendarAddressHelper =>
+      'L’adresse iCal du calendrier, commençant par https:// ou webcal://. L’adresse secrète d’un calendrier privé fonctionne aussi ; gardez-la pour vous.';
+
+  @override
+  String get calendarImportFetch => 'Récupérer les événements';
+
+  @override
+  String get calendarImportFailed =>
+      'Impossible d’importer depuis le calendrier. Réessayez.';
+
+  @override
+  String get calendarImportUntitled => 'Événement sans titre';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmes brouillons ajoutés depuis votre calendrier.',
+      one: '1 programme brouillon ajouté depuis votre calendrier.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'Aucun événement dans la période.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nouveaux événements.',
+      one: '1 nouvel événement.',
+      zero: 'Aucun nouvel événement.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'Nouveau dans votre calendrier';
+
+  @override
+  String get calendarImportDeletedHeader =>
+      'Programmes que vous avez supprimés';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'Vous avez supprimé le programme créé à partir de cet événement. Cochez-le pour l’importer à nouveau.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Déjà importé';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'Depuis cette app';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Événements récurrents que l’app ne sait pas lire';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'Ils se répètent d’une façon que l’app ne comprend pas, ils ne sont donc pas importés.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count événements n’ont pas d’identifiant et ont été ignorés.',
+      one: '1 événement n’a pas d’identifiant et a été ignoré.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Le calendrier contient plus de $count événements. Seuls les $count premiers ont été lus.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Calendrier';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Impossible d’enregistrer ce réglage. Réessayez.';
+
+  @override
+  String get calendarAddressSet => 'Définie. Touchez pour la modifier.';
+
+  @override
+  String get calendarAddressNotSet => 'Non définie';
+
+  @override
+  String get calendarWindowTitle => 'Quels événements';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Événements d’aujourd’hui jusqu’à cette échéance. Les événements récurrents ne sont lus que 30 jours à l’avance.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months mois',
+      one: '1 mois',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle =>
+      'Seulement les événements dont le titre contient';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'Pour un calendrier qui contient aussi d’autres événements. Laissez vide pour tous les événements.';
+
+  @override
+  String get calendarTitleFilterNone => 'Tous les événements';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '« $filter »';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Récupérer maintenant';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Lire le calendrier et choisir les événements à ajouter comme programmes brouillons.';
 
   @override
   String get collectionRepertoireMenuItem => 'Répertoire';

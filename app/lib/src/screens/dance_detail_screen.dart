@@ -688,6 +688,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
+      interpreterNames: detail.interpreterNames,
       formationLabel: _formationDisplayLabel(
         l10n,
         detail.dance.formation,
@@ -768,8 +769,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// the share actions too; with [wide] they stay on the bar and are left out.
   /// Every entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
-  /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
-  /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
+  /// (mirroring [DialectQuickSwitch]), the six export items (share text, share dance
+  /// file, show code, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
   /// [DanceExportActions], and Duplicate / Delete call the same handlers
   /// whichever layout opens them. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
@@ -795,6 +796,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // route pops: the `onTap`s below run after it has, and the actions run
     // across awaits.
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -803,6 +805,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
+      interpreterNames: detail.interpreterNames,
       formationLabel: _formationDisplayLabel(
         l10n,
         detail.dance.formation,
@@ -877,6 +880,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     ? l10n.exportSaveDanceBundle
                     : l10n.exportShareDanceBundle,
               ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-show-code'),
+            onTap: () => exportActions.showCode(navigator, messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.qr_code_2),
+              title: Text(l10n.exportShowCode),
               contentPadding: EdgeInsets.zero,
             ),
           ),

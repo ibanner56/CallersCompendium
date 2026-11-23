@@ -3,15 +3,16 @@
 - **Status**: Accepted (22 November 2026) for a pilot implementation.
   Proposed 12 November 2026, reworked 20 November 2026 for traditional
   squares, and revised 22 November 2026 after the maintainer's review
-  (§1.1). Q1, Q4, Q8, Q10, Q11 and Q12 stay open on acceptance; until the
-  maintainer answers them, the pilot follows each recommendation (this
-  ADR author's call), and for Q11, which has none, an 8-beat default.
+  (§1.1). Q1, Q4, Q8, Q10, Q11 and Q12 stayed open on acceptance; the
+  maintainer answered them on 23 November 2026 (§10), and accepted the
+  pilot's departures from this text (§12.1).
 - **Roadmap item**: "ECD and Squares support" (Later milestones in
   [ROADMAP.md](../ROADMAP.md))
 - **Deciders**: Maintainers
 
-**Feedback is still welcome.** The open questions in §10 are still open,
-and corrections or missing calls can change the square taxonomy later
+**Feedback is still welcome.** Every question in §10 is answered or
+withdrawn, and corrections or missing calls can change the square taxonomy
+later
 through the versioning process in
 [figure-taxonomy.md](../design/figure-taxonomy.md).
 
@@ -131,6 +132,15 @@ From the maintainer's review on 22 November 2026:
 Later on 22 November 2026 the maintainer accepted the ADR: **"I think this
 proposal is good enough for now to approve and begin our pilot
 implementation."**
+
+On 23 November 2026 the maintainer answered the questions left open, on a
+numbered decision sheet: **"1. Yes 2. Note is fine for now 3. Do we have
+examples of a bare allemande without a stated pair? 4. Yes 5. 8 6. Leave for
+later, delay in a note 7. Yes"**. Items 1–6 were Q1, Q4, Q8, Q10, Q11 and
+Q12 in that order, and item 7 asked whether to keep the pilot's nine
+departures from this text (§12.1). After the answer to item 3 (no held square
+has one; CALLERLAB's own command examples do), the maintainer agreed to the
+Q8 recommendation: **"Yes, go ahead"**.
 
 ### 1.2 The proposal in brief
 
@@ -1136,7 +1146,9 @@ argument.
 
 **Q1. CALLERLAB notice in the app.** Should `THIRD_PARTY_NOTICES.md` carry
 "Reprinted with permission of CALLERLAB" for the borrowed calls' timing
-data? It costs one line. *Recommendation: yes.*
+data? It costs one line. *Answered by the maintainer (23 November 2026):
+yes.* The notice is in `THIRD_PARTY_NOTICES.md` and on the app's license
+page.
 
 **Q2.** *Withdrawn (20 November 2026).* It asked which CALLERLAB edition the
 app should default to. Program labels now use only the 2026 edition (§5.2).
@@ -1148,8 +1160,8 @@ squares (§5.2).
 **Q4. Stated positions.** Should a call line be able to record a formation
 or position the source states ("end in lines of four at the sides", "end
 facing the nearest side couple"), as an optional, never-computed parameter?
-The held squares state these often. *Recommendation: defer; keep them in the
-line's note for now.*
+The held squares state these often. *Answered by the maintainer (23 November
+2026): "Note is fine for now." A stated position stays in the line's note.*
 
 **Q5. ID prefix.** *Answered by the maintainer (15 November 2026): the
 `sq_` prefix is accepted.* ADR-006 has since adopted `ecd_`, so nothing is
@@ -1165,7 +1177,13 @@ squares (15 November 2026).* Its square-corner notation supports that
 (§8.4). §8.4 adds it to phase 3, which first searches Caller's Box to
 confirm it.
 
-**Q8. Allemande.** §7.1 proposes one `hand_turn` call, with "Allemande Left"
+**Q8. Allemande.** *Answered by the maintainer (23 November 2026): the
+recommendation below.* No held square has a bare "allemande left"; every
+one names the person. CALLERLAB's Mainstream definitions list a bare
+"Allemande Left" first among their command examples and say the call is
+"mostly reserved for an Arm Turn with your Corner", though some of their
+starting formations turn whoever the dancer faces. §7.1 proposes one
+`hand_turn` call, with "Allemande Left"
 and "Allemande Right" as aliases that pin the hand, in place of the first
 draft's separate `allemande` and `arm_turn`. Parkes writes "allemande left
 corner" and "turn partner by the left hand, once and a half" for the same
@@ -1193,14 +1211,17 @@ next call with a note, or a `sequence` of a forward and the next call?
 `sequence` with the source's one count and untimed steps, the span ECD
 built (#2269). Today that span is ECD-only, so squares need it opened to
 their form. The earlier recommendation, the next call with a note, is the
-fallback if the span stays ECD-only.*
+fallback if the span stays ECD-only.* *Answered by the maintainer (23
+November 2026): yes, a `sequence`, with the span opened to squares.*
 
 **Q11. Gypsy timing.** Should a gypsy (shoulder round) default to 8 beats,
 like the other phrase-filling calls, or to 6? No held square states it.
+*Answered by the maintainer (23 November 2026): 8.*
 
 **Q12. Start offsets.** Should a `meanwhile` side be able to start part-way
-through, as in Interface Jig? One held square needs it. *Recommendation: no,
-until more dances do; keep offsets in notes.*
+through, as in Interface Jig? One held square needs it. *Answered by the
+maintainer (23 November 2026): "Leave for later, delay in a note." An
+offset stays in the line's note.*
 
 **Q13. Square formation.** *Answered by the maintainer (20 November 2026):
 "Yes, and they likely will not use any/many other formations. Your research
@@ -1307,6 +1328,33 @@ below is this ADR author's call unless it says otherwise.
   a time (§5.5).
 - **ECD's own template notation.** Square calls render with contra-style
   templates, since their wording is close to contra's.
+
+### 12.1 The pilot's departures from this text
+
+The pilot implementation (square taxonomy version 1) differs from §6 and §7
+in the places below. The maintainer kept all nine on 23 November 2026 (§1.1,
+item 7). Where the tables above disagree with these, the code and this list
+win. The pilot lands in topic pull requests: the taxonomy (items 1–8) in
+#2385, and the per-phrase check (item 9) in a later one; until that one
+merges, item 9 describes code still in review.
+
+1. A turn's amount is `travel`, contra's name for it, not `turns`.
+2. Three quarters is contra's token `threeQuarter`, not `threeQuarters`.
+3. A plain promenade leaves `variant` unstated; there is no `couples`
+   value.
+4. A circle's or star's `size` is a word token (`two` to `eight`, `three`
+   included), not a number.
+5. Couple numbers reuse contra's `ones` to `fours`.
+6. The CALLERLAB program is a side table (`squareCallPrograms`), not a field
+   on each call.
+7. Some value spellings differ: `balance.where` is `inAWave` or
+   `inTheRing`; `separate.into` is `intoALine`, `intoTheMiddle` or `home`,
+   and `separate.around` is `aroundOne` or `aroundTwo`; `right_left_through`
+   takes `whom`, not `where`.
+8. A chain's plain courtesy turn is left unstated; only `powerTurn` is a
+   value.
+9. The per-phrase check (§5.3) applies to squares only, and a figure that
+   starts on a phrase boundary and ends on one is not flagged.
 
 ---
 

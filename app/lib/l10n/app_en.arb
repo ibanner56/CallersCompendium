@@ -3216,10 +3216,6 @@
   "@settingsDefaultsStartingProgramTitle": {
     "description": "Title for the reusable program template in Program defaults."
   },
-  "settingsDefaultsStartingProgramSubtitle": "Dance and note entries added to manually created programs.",
-  "@settingsDefaultsStartingProgramSubtitle": {
-    "description": "Explanation of the starting program template."
-  },
   "settingsDefaultsStartingProgramPickerTitle": "Add a dance",
   "@settingsDefaultsStartingProgramPickerTitle": {
     "description": "Title for the dance picker used by the starting program template."
@@ -3421,6 +3417,10 @@
   "settingsDefaultsShareFieldsSources": "Sources",
   "@settingsDefaultsShareFieldsSources": {
     "description": "Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed."
+  },
+  "settingsDefaultsShareFieldsMusic": "Meter, key and Barnes",
+  "@settingsDefaultsShareFieldsMusic": {
+    "description": "Label for the share-field toggle that prints a dance's tune details: its meter and key (time signature and musical key of the tune) and its Barnes reference (where the tune is printed in the Barnes books of English dance tunes). On by default. 'Barnes' is a name and stays as is."
   },
   "settingsDefaultsCollectionFiltersHeader": "Collection filters",
   "@settingsDefaultsCollectionFiltersHeader": {
@@ -4044,6 +4044,14 @@
   "settingsProgramAutoCommitSubtitle": "When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.",
   "@settingsProgramAutoCommitSubtitle": {
     "description": "Subtitle explaining the opt-in program-editor auto-commit preference and its effect on the discard warning."
+  },
+  "settingsProgramShowPayTitle": "Show pay",
+  "@settingsProgramShowPayTitle": {
+    "description": "Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default."
+  },
+  "settingsProgramShowPaySubtitle": "When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.",
+  "@settingsProgramShowPaySubtitle": {
+    "description": "Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared."
   },
   "settingsMatrixColumnsHeader": "Matrix columns",
   "@settingsMatrixColumnsHeader": {
@@ -8016,6 +8024,86 @@
       }
     }
   },
+  "programsAddDanceBeforeMenu": "Add a dance before",
+  "@programsAddDanceBeforeMenu": {
+    "description": "Program builder slot overflow menu item: choose a dance from the collection and insert it before this slot's group (the slot, or its primary, and that primary's alternates)."
+  },
+  "programsAddDanceAfterMenu": "Add a dance after",
+  "@programsAddDanceAfterMenu": {
+    "description": "Program builder slot overflow menu item: choose a dance from the collection and insert it after this slot's group (after the last alternate of the slot's primary)."
+  },
+  "programsAddBeforeSheetTitle": "Add before {title}",
+  "@programsAddBeforeSheetTitle": {
+    "description": "Title of the dance picker sheet opened by 'Add a dance before' on a narrow screen. {title} names the slot the new dance will go before.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddAfterSheetTitle": "Add after {title}",
+  "@programsAddAfterSheetTitle": {
+    "description": "Title of the dance picker sheet opened by 'Add a dance after' on a narrow screen. {title} names the slot the new dance will go after.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddingBeforeBanner": "Adding before {title}",
+  "@programsAddingBeforeBanner": {
+    "description": "Banner above the dance picker beside the program on a wide screen while 'Add a dance before' waits for a dance. Also announced to screen readers. {title} names the target slot.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddingAfterBanner": "Adding after {title}",
+  "@programsAddingAfterBanner": {
+    "description": "Banner above the dance picker beside the program on a wide screen while 'Add a dance after' waits for a dance. Also announced to screen readers. {title} names the target slot.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddedDanceBeforeAnnounce": "Added {title} before {target}.",
+  "@programsAddedDanceBeforeAnnounce": {
+    "description": "Screen-reader announcement when a dance is inserted before a slot in the program being edited. {title} is the added dance; {target} is the slot it went before.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Rory O'More"
+      },
+      "target": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddedDanceAfterAnnounce": "Added {title} after {target}.",
+  "@programsAddedDanceAfterAnnounce": {
+    "description": "Screen-reader announcement when a dance is inserted after a slot in the program being edited. {title} is the added dance; {target} is the slot it went after.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Rory O'More"
+      },
+      "target": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsInsertionCancelledAnnounce": "Canceled. New dances go at the end.",
+  "@programsInsertionCancelledAnnounce": {
+    "description": "Screen-reader announcement when the caller cancels 'Add a dance before/after' from the banner beside the dance picker; the next dance added goes at the end of the program."
+  },
   "programsEditSlotMenu": "Edit slot",
   "@programsEditSlotMenu": {
     "description": "Overflow menu item to edit a program slot."
@@ -8907,6 +8995,32 @@
   "exportSaveDanceBundle": "Save dance file…",
   "@exportSaveDanceBundle": {
     "description": "Export-menu item shown instead of 'Share dance file' on Linux, where the OS share sheet cannot carry files: save the dance and its referenced metadata as a .ccshare file through the system Save As dialog."
+  },
+  "exportShowCode": "Show code",
+  "@exportShowCode": {
+    "description": "Export-menu item: show the dance as a full-screen QR code for another caller to scan in person. The code holds the same dance file as 'Share dance file'."
+  },
+  "exportShowCodeError": "Couldn't show the code. Your dance is unchanged. Try again.",
+  "@exportShowCodeError": {
+    "description": "Snackbar shown when the dance could not be turned into a QR code."
+  },
+  "danceCodeScreenTitle": "Dance code",
+  "@danceCodeScreenTitle": {
+    "description": "Title bar of the full-screen view that shows a dance as a QR code (and of the notice that replaces it when the dance is too long for one)."
+  },
+  "danceCodeSemanticLabel": "QR code for {title}",
+  "@danceCodeSemanticLabel": {
+    "description": "Accessible name of the QR code image on the full-screen dance code view. The code itself cannot be read aloud.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Baby Rose"
+      }
+    }
+  },
+  "danceCodeTooLong": "This dance is too long to share as a code. Share it as a file instead.",
+  "@danceCodeTooLong": {
+    "description": "Message shown instead of a QR code when the dance holds more than any QR code can. A button below it shares or saves the dance file."
   },
   "exportCopyDance": "Copy dance",
   "@exportCopyDance": {
@@ -12100,6 +12214,14 @@
   "danceEditorTypeToAddOrCreateHint": "Type to add or create…",
   "@danceEditorTypeToAddOrCreateHint": {
     "description": "Hint text for a type-ahead field that can add an existing item or create a new one."
+  },
+  "danceEditorChooseHint": "Choose…",
+  "@danceEditorChooseHint": {
+    "description": "Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to."
+  },
+  "figureParamSearchDancersHint": "Search dancers",
+  "@figureParamSearchDancersHint": {
+    "description": "Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list."
   },
   "danceEditorCreateQuotedName": "Create \"{name}\"",
   "@danceEditorCreateQuotedName": {
@@ -16860,7 +16982,7 @@
   "@callingCardHelpBlockTitle": {
     "description": "Help: what the title block prints."
   },
-  "callingCardHelpBlockAuthors": "Who wrote the dance.",
+  "callingCardHelpBlockAuthors": "Who wrote the dance and when, then who interpreted it and when.",
   "@callingCardHelpBlockAuthors": {
     "description": "Help: what the authors block prints."
   },
@@ -16875,6 +16997,10 @@
   "callingCardHelpBlockMeta": "Formation, level, mixer, status and phrase on one line, each with its label.",
   "@callingCardHelpBlockMeta": {
     "description": "Help: what the meta block prints."
+  },
+  "callingCardHelpBlockMusic": "The tune's meter and key, and its Barnes reference, on one line.",
+  "@callingCardHelpBlockMusic": {
+    "description": "Help: what the music block prints: the tune's meter (time signature) and key, and the Barnes reference (where the tune is printed in the Barnes books). 'Barnes' is a name and stays as is."
   },
   "callingCardHelpBlockFigures": "The figures, grouped by phrase (A1, A2, B1, B2), with their counts: beats, or bars for an English dance.",
   "@callingCardHelpBlockFigures": {
@@ -17029,6 +17155,362 @@
   "exportCallingCardsBiggerThanPaper": "These cards are bigger than the paper, so each was printed smaller, one to a page.",
   "@exportCallingCardsBiggerThanPaper": {
     "description": "Snack bar after printing calling cards several to a page when the card size does not fit on the chosen paper."
+  },
+  "settingsProgramTemplatesTitle": "Program templates",
+  "@settingsProgramTemplatesTitle": {
+    "description": "Settings ▸ Defaults ▸ Program defaults row and manager screen title for the list of program templates."
+  },
+  "settingsProgramTemplatesCount": "{count, plural, =0{No templates yet} =1{1 template} other{{count} templates}}",
+  "@settingsProgramTemplatesCount": {
+    "description": "Subtitle of the Program templates row: how many templates there are.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsProgramTemplateDefaultTitle": "Default template",
+  "@settingsProgramTemplateDefaultTitle": {
+    "description": "Settings row choosing the template a new program starts from when the user is not asked to choose."
+  },
+  "settingsProgramTemplateDefaultSubtitle": "What a new program starts from when you aren't asked to choose.",
+  "@settingsProgramTemplateDefaultSubtitle": {
+    "description": "Subtitle of the Default template row."
+  },
+  "settingsProgramTemplatesMigratedName": "Starting program",
+  "@settingsProgramTemplatesMigratedName": {
+    "description": "Name given to the template made from the old Starting program setting when the app is upgraded."
+  },
+  "programTemplateBlankProgram": "Blank program",
+  "@programTemplateBlankProgram": {
+    "description": "Choice of starting a new program with no slots, in the New program chooser and the Default template setting."
+  },
+  "programTemplateDefaultBadge": "Default",
+  "@programTemplateDefaultBadge": {
+    "description": "Marks the default template in the New program chooser."
+  },
+  "programTemplateChooserTitle": "Start from a template",
+  "@programTemplateChooserTitle": {
+    "description": "Title of the sheet New program shows when there are two or more templates."
+  },
+  "programTemplateNew": "New template",
+  "@programTemplateNew": {
+    "description": "Button and dialog title that creates a program template."
+  },
+  "programTemplatesEmptyTitle": "No templates yet",
+  "@programTemplatesEmptyTitle": {
+    "description": "Empty state title in the program templates manager."
+  },
+  "programTemplatesEmptyBody": "A template is a starting list of dances, notes and breaks for one kind of evening. With two or more, New program asks which to start from.",
+  "@programTemplatesEmptyBody": {
+    "description": "Empty state body in the program templates manager."
+  },
+  "programTemplateNameLabel": "Template name",
+  "@programTemplateNameLabel": {
+    "description": "Label of the program template name field."
+  },
+  "programTemplateRename": "Rename",
+  "@programTemplateRename": {
+    "description": "Menu action that renames a program template."
+  },
+  "programTemplateRenameTitle": "Rename template",
+  "@programTemplateRenameTitle": {
+    "description": "Dialog title for renaming a program template."
+  },
+  "programTemplateCopyName": "{name} (copy)",
+  "@programTemplateCopyName": {
+    "description": "Name of a duplicated program template.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "programTemplateUntitled": "Untitled template",
+  "@programTemplateUntitled": {
+    "description": "Shown for a program template with no name."
+  },
+  "programTemplateSlotCount": "{count, plural, =0{Empty} =1{1 slot} other{{count} slots}}",
+  "@programTemplateSlotCount": {
+    "description": "How many slots a program template has, in the manager list.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "programTemplateDefaultWithSlots": "Default · {slots}",
+  "@programTemplateDefaultWithSlots": {
+    "description": "Manager list subtitle of the default template; slots is the slot count text.",
+    "placeholders": {
+      "slots": {
+        "type": "String"
+      }
+    }
+  },
+  "programTemplateActionsTooltip": "Actions for {name}",
+  "@programTemplateActionsTooltip": {
+    "description": "Tooltip and screen-reader label of a program template row menu.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "programTemplateEditorTitle": "Edit template",
+  "@programTemplateEditorTitle": {
+    "description": "Title of the program template editor screen."
+  },
+  "programTemplateSlotsHeader": "Slots",
+  "@programTemplateSlotsHeader": {
+    "description": "Heading over a program template slot list."
+  },
+  "programTemplateSlotsSubtitle": "Dances, notes and breaks a program made from this template starts with.",
+  "@programTemplateSlotsSubtitle": {
+    "description": "Explains a program template slot list."
+  },
+  "programTemplatesLoadError": "Couldn't load your program templates.",
+  "@programTemplatesLoadError": {
+    "description": "Error shown when program templates cannot be read."
+  },
+  "programTemplateSaveError": "Couldn't save that change to your templates. Try again.",
+  "@programTemplateSaveError": {
+    "description": "Snackbar shown when creating, renaming, duplicating, reordering or deleting a program template fails to save."
+  },
+  "exportAddToCalendar": "Add to calendar (.ics)",
+  "@exportAddToCalendar": {
+    "description": "Program export-menu item: save or share the program as an iCalendar (.ics) file so a calendar app shows it. Shown only when the program has an event date."
+  },
+  "programsExportCalendar": "Export calendar (.ics)",
+  "@programsExportCalendar": {
+    "description": "Programs list More actions item: pick several programs and save or share them as one iCalendar (.ics) file."
+  },
+  "exportCalendarPickTitle": "Export calendar",
+  "@exportCalendarPickTitle": {
+    "description": "Title of the checklist dialog where the user picks which programs go into a calendar (.ics) file. Also the share-sheet subject for that file."
+  },
+  "exportCalendarPickBody": "Choose the programs to put in the calendar file.",
+  "@exportCalendarPickBody": {
+    "description": "Body of the calendar export checklist dialog."
+  },
+  "exportCalendarShowPast": "Show past programs",
+  "@exportCalendarShowPast": {
+    "description": "Switch in the calendar export checklist that adds programs whose date has passed to the list, unticked."
+  },
+  "exportCalendarNoUpcoming": "No upcoming programs to list. Archived programs aren't listed here. Turn on Show past programs to choose an earlier one.",
+  "@exportCalendarNoUpcoming": {
+    "description": "Shown in the calendar export checklist when there are dated programs but none dated today or later that is not archived, and past programs are hidden. Upcoming archived programs are never listed in the checklist."
+  },
+  "exportCalendarNoDated": "No program has an event date yet. Give a program a date to add it to a calendar.",
+  "@exportCalendarNoDated": {
+    "description": "Shown in the calendar export checklist when no program has an event date."
+  },
+  "exportCalendarPickConfirm": "Export",
+  "@exportCalendarPickConfirm": {
+    "description": "Confirm button of the calendar export checklist dialog; disabled until at least one program is ticked."
+  },
+  "exportCalendarAddressTitle": "Include the venue's address?",
+  "@exportCalendarAddressTitle": {
+    "description": "Title of the consent dialog shown before a calendar (.ics) export when a chosen program's venue has a street address."
+  },
+  "exportCalendarAddressBody": "The calendar file names the venue. Its street address is left out unless you include it. Calendars are often synced or shared with others.",
+  "@exportCalendarAddressBody": {
+    "description": "Body of the calendar export's venue-address consent dialog."
+  },
+  "exportCalendarAddressInclude": "Include the venue's address",
+  "@exportCalendarAddressInclude": {
+    "description": "The single checkbox, unticked by default, in the calendar export's venue-address consent dialog."
+  },
+  "exportCalendarDialogTitle": "Export calendar file",
+  "@exportCalendarDialogTitle": {
+    "description": "Title of the dialog that asks how to deliver a calendar (.ics) file: Save, Share or Cancel."
+  },
+  "exportCalendarDialogMessage": "Choose how to deliver this calendar file.",
+  "@exportCalendarDialogMessage": {
+    "description": "Body of the dialog that asks how to deliver a calendar (.ics) file."
+  },
+  "exportCalendarSavedGeneric": "Calendar file saved.",
+  "@exportCalendarSavedGeneric": {
+    "description": "Snack bar after a calendar (.ics) file was saved, when the platform does not report its file name."
+  },
+  "exportCalendarSaveError": "Couldn't save this calendar file. Try again.",
+  "@exportCalendarSaveError": {
+    "description": "Snack bar when saving a calendar (.ics) file failed."
+  },
+  "exportCalendarShareError": "Couldn't share this calendar file. Try again.",
+  "@exportCalendarShareError": {
+    "description": "Snack bar when building or sharing a calendar (.ics) file failed."
+  },
+  "importErrorNotACalendar": "That address didn't return a calendar. For a Google Calendar, use its address in iCal format (Settings and sharing ▸ Integrate calendar), not the ordinary link.",
+  "@importErrorNotACalendar": {
+    "description": "Error when a calendar import's address returns something that is not an iCalendar file, often a web page. Mentions where Google Calendar shows its iCal address."
+  },
+  "importFromCalendar": "From calendar",
+  "@importFromCalendar": {
+    "description": "Programs import menu item: import gigs from the user's online calendar as draft programs."
+  },
+  "importProgramFromCalendar": "Import from calendar",
+  "@importProgramFromCalendar": {
+    "description": "More actions menu item on narrow screens: import gigs from the user's online calendar as draft programs."
+  },
+  "calendarImportTitle": "Import from calendar",
+  "@calendarImportTitle": {
+    "description": "Title of the calendar import screen."
+  },
+  "calendarImportImport": "Import",
+  "@calendarImportImport": {
+    "description": "App-bar button on the calendar import screen that creates the ticked draft programs."
+  },
+  "calendarAddressLabel": "Calendar address",
+  "@calendarAddressLabel": {
+    "description": "Label of the field holding the online calendar's iCal (.ics) address."
+  },
+  "calendarAddressHelper": "The calendar's iCal address, starting https:// or webcal://. A private calendar's secret address works too; keep it to yourself.",
+  "@calendarAddressHelper": {
+    "description": "Helper text under the calendar address field."
+  },
+  "calendarImportFetch": "Fetch events",
+  "@calendarImportFetch": {
+    "description": "Button on the calendar import screen that reads the calendar now."
+  },
+  "calendarImportFailed": "Couldn't import from the calendar. Try again.",
+  "@calendarImportFailed": {
+    "description": "Generic failure message of the calendar import."
+  },
+  "calendarImportUntitled": "Untitled event",
+  "@calendarImportUntitled": {
+    "description": "Title given to a calendar event with no usable title, in the preview and on the draft program it becomes."
+  },
+  "calendarImportCommitted": "{count, plural, =1{1 draft program added from your calendar.} other{{count} draft programs added from your calendar.}}",
+  "@calendarImportCommitted": {
+    "description": "Snack bar after a calendar import created draft programs; offers Undo.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportNothingFound": "No events in the date range.",
+  "@calendarImportNothingFound": {
+    "description": "Shown on the calendar import preview when the calendar has no events in range."
+  },
+  "calendarImportSummary": "{count, plural, =0{No new events.} =1{1 new event.} other{{count} new events.}}",
+  "@calendarImportSummary": {
+    "description": "Summary at the top of the calendar import preview.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportNewHeader": "New in your calendar",
+  "@calendarImportNewHeader": {
+    "description": "Heading over the new calendar events, ticked, in the calendar import preview."
+  },
+  "calendarImportDeletedHeader": "You deleted these programs",
+  "@calendarImportDeletedHeader": {
+    "description": "Heading over calendar events whose imported program is in Recently deleted."
+  },
+  "calendarImportDeletedNote": "You deleted the program made from this event. Tick it to import it again.",
+  "@calendarImportDeletedNote": {
+    "description": "Note on a calendar event whose imported program is in Recently deleted."
+  },
+  "calendarImportAlreadyHeader": "Already imported",
+  "@calendarImportAlreadyHeader": {
+    "description": "Heading over calendar events already imported as programs; they are not offered again."
+  },
+  "calendarImportFromThisAppHeader": "From this app",
+  "@calendarImportFromThisAppHeader": {
+    "description": "Heading over calendar events that this app exported from its own programs; they are not offered."
+  },
+  "calendarImportUnreadableHeader": "Repeating events the app can't read",
+  "@calendarImportUnreadableHeader": {
+    "description": "Heading over repeating calendar events whose repeat rule the app cannot read."
+  },
+  "calendarImportUnreadableBody": "These repeat in a way the app doesn't understand, so they are not imported.",
+  "@calendarImportUnreadableBody": {
+    "description": "Body under the heading for unreadable repeating events."
+  },
+  "calendarImportSkippedNoUid": "{count, plural, =1{1 event has no identifier and was skipped.} other{{count} events have no identifier and were skipped.}}",
+  "@calendarImportSkippedNoUid": {
+    "description": "Note in the calendar import preview: events with no UID cannot be recognised again, so they are skipped.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportTruncated": "{count, plural, other{The calendar has more than {count} events. Only the first {count} were read.}}",
+  "@calendarImportTruncated": {
+    "description": "Note in the calendar import preview when the feed is over the event cap.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarSettingsHeader": "Calendar",
+  "@calendarSettingsHeader": {
+    "description": "Settings ▸ Program subsection heading for the calendar import."
+  },
+  "calendarSettingsSaveError": "Couldn't save that setting. Try again.",
+  "@calendarSettingsSaveError": {
+    "description": "Snack bar when a calendar setting could not be saved."
+  },
+  "calendarAddressSet": "Set. Tap to change it.",
+  "@calendarAddressSet": {
+    "description": "Subtitle of the calendar address setting when an address is stored. The address itself is never shown."
+  },
+  "calendarAddressNotSet": "Not set",
+  "@calendarAddressNotSet": {
+    "description": "Subtitle of the calendar address setting when none is stored."
+  },
+  "calendarWindowTitle": "Which events",
+  "@calendarWindowTitle": {
+    "description": "Title of the calendar import's date-window setting."
+  },
+  "calendarWindowSubtitle": "Events from today up to this far ahead. Repeating events are read only 30 days ahead.",
+  "@calendarWindowSubtitle": {
+    "description": "Subtitle of the calendar import's date-window setting."
+  },
+  "calendarWindowOption": "{months, plural, =1{1 month} other{{months} months}}",
+  "@calendarWindowOption": {
+    "description": "An option in the calendar import's date-window setting.",
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarTitleFilterTitle": "Only events whose title contains",
+  "@calendarTitleFilterTitle": {
+    "description": "Title of the calendar import's title-filter setting."
+  },
+  "calendarTitleFilterHelper": "For a calendar that also holds other events. Leave empty for every event.",
+  "@calendarTitleFilterHelper": {
+    "description": "Helper text of the calendar import's title-filter field."
+  },
+  "calendarTitleFilterNone": "Every event",
+  "@calendarTitleFilterNone": {
+    "description": "Subtitle of the title-filter setting when no filter is set."
+  },
+  "calendarTitleFilterValue": "\"{filter}\"",
+  "@calendarTitleFilterValue": {
+    "description": "Subtitle of the title-filter setting showing the stored filter in quotes.",
+    "placeholders": {
+      "filter": {
+        "type": "String",
+        "example": "Contra"
+      }
+    }
+  },
+  "calendarPullNowTitle": "Pull now",
+  "@calendarPullNowTitle": {
+    "description": "Settings item that opens the calendar import."
+  },
+  "calendarPullNowSubtitle": "Read the calendar and choose events to add as draft programs.",
+  "@calendarPullNowSubtitle": {
+    "description": "Subtitle of the Pull now settings item."
   },
   "collectionRepertoireMenuItem": "Repertoire",
   "@collectionRepertoireMenuItem": {

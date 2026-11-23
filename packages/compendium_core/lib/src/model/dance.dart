@@ -49,6 +49,12 @@ const int kMaxAlternateTitleLength = 512;
 /// this many, so every [Dance] holds the bound; the editor stops at it.
 const int kMaxAlternateTitles = 20;
 
+/// Whether a dance of [form] carries a [Dance.barnesReference]: only an
+/// English country dance does, since the Barnes books are ECD tune books
+/// (maintainer, 2026-11-23: "ECD only"). Elsewhere the [Dance] constructor
+/// clears it, as it clears the improper flag ([formHasImproperFlag]).
+bool formHasBarnesReference(DanceForm form) => form == DanceForm.ecd;
+
 /// Upper bound on the length of [Dance.barnesReference], in UTF-16 code
 /// units. The [Dance] constructor cuts a longer value (on a character
 /// boundary), so every [Dance] holds the bound and a file or sync body is
@@ -142,10 +148,12 @@ class Dance {
        formation = formation.improper && !formHasImproperFlag(form)
            ? formation.copyWith(improper: false)
            : formation,
-       barnesReference = truncateOnRuneBoundary(
-         barnesReference,
-         kMaxBarnesReferenceLength,
-       ),
+       // Only an English dance has one ([formHasBarnesReference]); any
+       // other form clears it, so a contra dance never stores, sends, finds
+       // or shows it, whatever it was built from.
+       barnesReference = formHasBarnesReference(form)
+           ? truncateOnRuneBoundary(barnesReference, kMaxBarnesReferenceLength)
+           : '',
        alternateTitles = List.unmodifiable(
          normalizeAlternateTitles(alternateTitles),
        ),
@@ -242,7 +250,8 @@ class Dance {
 
   /// Where the tune is printed in the Barnes books, as free text with the
   /// book and page in one value ("BIII p. 92"), or "NiB" for a tune Not in
-  /// Barnes; `''` when not given. Never parsed: shown on the dance page and
+  /// Barnes; `''` when not given, and always `''` for a form other than ECD
+  /// ([formHasBarnesReference]). Never parsed: shown on the dance page and
   /// searched as typed. Printed cards and shared text don't show it yet.
   final String barnesReference;
   final DanceStatus status;

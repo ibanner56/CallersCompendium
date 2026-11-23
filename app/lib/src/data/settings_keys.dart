@@ -164,11 +164,11 @@ const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';
 
 /// Key used to persist the set of [DanceShareField]s included when a
 /// program/dance is shared, copied, or exported to PDF (issue #1434). Stored
-/// as a JSON list of field name strings; absent/unset means every field
-/// except the opt-in `tunes`, `hook` and `sources` (see
-/// [DanceShareField.allExceptTunes]) — the set every
-/// renderer emitted unconditionally before this preference existed — so
-/// existing users see no change to their exports until they adjust it.
+/// as a JSON list of field name strings; absent/unset means the default set,
+/// [DanceShareField.allExceptTunes]: every field the renderers emitted
+/// unconditionally before this preference existed, plus `music` (meter, key
+/// and Barnes), with `tunes`, `hook` and `sources` opt-in. A saved list keeps
+/// only what it names, so a field added after it was saved stays off.
 const String kProgramDanceShareFieldsKey = 'program_dance_share_fields';
 
 /// Key used to persist the filter sections the user has hidden from the
@@ -244,3 +244,9 @@ const String kSyncLastSuccessAtKey = 'sync_last_success_at';
 /// a bool; absent/unset means off (`false`), so Collection's More actions menu
 /// offers no Repertoire item.
 const String kShowRepertoireDashboardKey = 'show_repertoire_dashboard';
+
+/// Key used to persist the "Show pay" Programs setting (issue #2355). Stored as
+/// a bool; absent/unset means on (`true`), so the program editor's Pay field
+/// and the summary's pay line show. Off hides both; it is display-only and
+/// never clears or changes a program's stored pay.
+const String kShowProgramPayKey = 'show_program_pay';

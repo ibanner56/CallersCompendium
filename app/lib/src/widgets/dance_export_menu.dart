@@ -15,6 +15,7 @@ export 'dance_export_actions.dart' show PdfLayouter, ShareInvoker;
 enum _ExportAction {
   shareText,
   shareBundle,
+  showCode,
   copyText,
   shareJson,
   pdf,
@@ -25,13 +26,16 @@ enum _ExportAction {
 /// (`docs/design/ux.md` §2 dance-detail actions).
 ///
 /// Mirrors the program-level [ProgramExportMenu]: a [PopupMenuButton] (icon +
-/// tooltip "Export") with five actions (six with calling cards on), all
+/// tooltip "Export") with six actions (seven with calling cards on), all
 /// implemented by
 /// [DanceExportActions]:
 /// - **Share dance (text)** — the shareable plain-text card, via the OS share
 ///   sheet (`share_plus`).
 /// - **Share / save dance file** — the `.ccshare` bundle, via the share sheet
 ///   (or Save As where the platform's share sheet cannot carry files).
+/// - **Show code** — the same dance file as a full-screen QR code to hold up
+///   for another caller (#2334), or, for a dance too long for one, an offer of
+///   the file instead.
 /// - **Copy dance** — copies the same text to the clipboard (an
 ///   always-available fallback); shows a confirming SnackBar.
 /// - **Share dance JSON** — the plain JSON export, with a Save / Copy / Share
@@ -50,6 +54,7 @@ class DanceExportMenu extends StatelessWidget {
     required this.dance,
     required this.dialect,
     required this.authorNames,
+    this.interpreterNames = const [],
     required this.formationLabel,
     required this.statusLabel,
     this.levelLabel,
@@ -69,14 +74,19 @@ class DanceExportMenu extends StatelessWidget {
   final Dance dance;
   final Dialect dialect;
   final List<String> authorNames;
+
+  /// The resolved names of whoever interpreted the dance; they print with
+  /// the authors and never choose the dialect.
+  final List<String> interpreterNames;
   final String formationLabel;
   final String statusLabel;
   final String? levelLabel;
   final FigureRenderer? renderer;
 
   /// Which non-figures fields appear on the exported card (issue #1434).
-  /// Defaults to every field this widget rendered unconditionally before the
-  /// picker existed, minus the opt-in tunes, hook and sources — see
+  /// Defaults to the default set: every field this widget rendered
+  /// unconditionally before the picker existed, plus the meter, key and
+  /// Barnes lines, without the opt-in tunes, hook and sources — see
   /// [DanceShareField.allExceptTunes].
   final Set<DanceShareField> fields;
   final Map<String, Choreographer> choreographersById;
@@ -109,6 +119,7 @@ class DanceExportMenu extends StatelessWidget {
     dance: dance,
     dialect: dialect,
     authorNames: authorNames,
+    interpreterNames: interpreterNames,
     formationLabel: formationLabel,
     statusLabel: statusLabel,
     levelLabel: levelLabel,
@@ -129,6 +140,7 @@ class DanceExportMenu extends StatelessWidget {
 
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     final actions = _actions(
       canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
@@ -148,6 +160,8 @@ class DanceExportMenu extends StatelessWidget {
         await actions.shareText(messenger, l10n, origin: origin);
       case _ExportAction.shareBundle:
         await actions.shareBundle(messenger, l10n, origin: origin);
+      case _ExportAction.showCode:
+        await actions.showCode(navigator, messenger, l10n);
       case _ExportAction.copyText:
         await actions.copyText(messenger, l10n);
       case _ExportAction.shareJson:
@@ -194,6 +208,15 @@ class DanceExportMenu extends StatelessWidget {
                   ? l10n.exportSaveDanceBundle
                   : l10n.exportShareDanceBundle,
             ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<_ExportAction>(
+          key: const ValueKey('dance-export-show-code'),
+          value: _ExportAction.showCode,
+          child: ListTile(
+            leading: const Icon(Icons.qr_code_2),
+            title: Text(l10n.exportShowCode),
             contentPadding: EdgeInsets.zero,
           ),
         ),
