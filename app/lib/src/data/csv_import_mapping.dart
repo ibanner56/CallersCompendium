@@ -137,13 +137,17 @@ List<String> csvReservedHeaders(List<AppLocalizations> languages) => [
 ];
 
 /// The target a header names, in any of [languages] (the UI language and
-/// English), or `null`. A phrase label (`A1`) names its phrase, and a custom
-/// field's label names that field.
+/// English), or `null`. A phrase label (`A1`) names its phrase. A custom field
+/// is named by its export header ([customFieldCsvHeaders]), or by its bare
+/// label when it is not shared, or when its header was not renamed, or when
+/// its renamed header (`Rating (2)`) is in none of [sheetHeaders]: a sheet
+/// without the renamed header is not an export that needed it kept apart.
 CsvColumnMapping? csvTargetForHeader(
   String header,
   List<AppLocalizations> languages,
-  List<CustomFieldDef> fields,
-) {
+  List<CustomFieldDef> fields, {
+  Iterable<String> sheetHeaders = const [],
+}) {
   final folded = csvFold(header);
   if (folded.isEmpty) return null;
   for (final l10n in languages) {
@@ -164,11 +168,14 @@ CsvColumnMapping? csvTargetForHeader(
   }
   // The plain label, for a field the export never writes and for a file from
   // before headers were made unique. A field whose header was changed to tell
-  // it apart ("Rating (2)") no longer answers to its bare label: that header
-  // belongs to the built-in column it was kept apart from.
+  // it apart ("Rating (2)") keeps answering to its bare label only when the
+  // sheet has no such header: in an export that has one, the bare label is the
+  // built-in column it was kept apart from.
+  final present = {for (final h in sheetHeaders) csvFold(h)};
   for (final f in fields) {
     final header = exported[f.id];
-    if ((header == null || header == f.label) && csvFold(f.label) == folded) {
+    final free = header == null || !present.contains(csvFold(header));
+    if (free && csvFold(f.label) == folded) {
       return CsvColumnMapping.customField(f.id);
     }
   }
@@ -180,7 +187,10 @@ bool csvRowLooksLikeHeader(
   List<String> firstRow,
   List<AppLocalizations> languages,
   List<CustomFieldDef> fields,
-) => firstRow.any((c) => csvTargetForHeader(c, languages, fields) != null);
+) => firstRow.any(
+  (c) =>
+      csvTargetForHeader(c, languages, fields, sheetHeaders: firstRow) != null,
+);
 
 /// The starting mapping for a sheet whose first row is [header] (or, without
 /// a header, [columnCount] columns of Ignore). Each target is taken by the
@@ -196,7 +206,12 @@ List<CsvColumnMapping> autoMapCsvColumns(
   return [
     for (var i = 0; i < columnCount; i++)
       if (header != null && i < header.length)
-        switch (csvTargetForHeader(header[i], languages, fields)) {
+        switch (csvTargetForHeader(
+          header[i],
+          languages,
+          fields,
+          sheetHeaders: header,
+        )) {
           final m? when taken.add(m) => m,
           _ => CsvColumnMapping.ignore,
         }
