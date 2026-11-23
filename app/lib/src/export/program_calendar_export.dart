@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/picker_extensions.dart';
+import '../data/regional_formats.dart';
 import '../widgets/calendar_export_dialogs.dart';
 import '../widgets/export_guard.dart';
 import '../widgets/program_status_labels.dart';
@@ -100,12 +101,18 @@ bool calendarExportNeedsAddressConsent(
 /// its name followed by its address lines. An unlinked program, or a link that
 /// does not resolve, uses the typed venue label as written.
 ///
+/// The program's start and end times (#2350) become a timed event; with no
+/// start it stays all-day. [scheduleLine] is the already-formatted lesson
+/// and arrival line ([programCalendarScheduleLine]); the calendar export is
+/// the caller's own, so Arrive by is in it (maintainer ruling, #2350).
+///
 /// Pay, notes, band, caller and slots are not read at all.
 ProgramCalendarEvent programCalendarEvent(
   Program program, {
   required Map<String, Venue> venuesById,
   required bool includeAddress,
   required String statusLabel,
+  String? scheduleLine,
 }) {
   final linked = _linkedVenue(program, venuesById);
   final venue = linked == null
@@ -134,10 +141,30 @@ ProgramCalendarEvent programCalendarEvent(
     title: program.title,
     date: program.eventDate!,
     updatedAt: program.updatedAt,
+    start: _timeOfDay(program.startMinute),
+    end: _timeOfDay(program.endMinute),
     location: location,
     statusLabel: statusLabel,
+    scheduleLine: scheduleLine,
     venueTime: venue?.time,
   );
+}
+
+CalendarTimeOfDay? _timeOfDay(int? minuteOfDay) => minuteOfDay == null
+    ? null
+    : CalendarTimeOfDay(minuteOfDay ~/ 60, minuteOfDay % 60);
+
+/// The lesson and arrival times as one line for an event's description, such
+/// as "Lesson 7:00 PM · Arrive by 6:30 PM", in the words and clock of the
+/// program summary; `null` when neither is set.
+String? programCalendarScheduleLine(AppLocalizations l10n, Program program) {
+  final parts = [
+    if (program.lessonMinute case final lesson?)
+      l10n.programsSummaryLessonTime(formatTimeOfDay(lesson, l10n)),
+    if (program.arrivalMinute case final arrival?)
+      l10n.programsSummaryArriveBy(formatTimeOfDay(arrival, l10n)),
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
 }
 
 bool _present(String? s) => s != null && s.trim().isNotEmpty;
@@ -157,6 +184,7 @@ String buildProgramsCalendar(
         venuesById: venuesById,
         includeAddress: includeAddress,
         statusLabel: programStatusLabel(l10n, program.status),
+        scheduleLine: programCalendarScheduleLine(l10n, program),
       ),
 ], now: now ?? clock.now());
 
