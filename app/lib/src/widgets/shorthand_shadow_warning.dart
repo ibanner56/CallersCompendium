@@ -11,6 +11,11 @@ import '../theme/app_spacing.dart';
 /// parser, so saving it would make typing that word insert the shorthand's
 /// figures instead. A warning, not an error: it never blocks saving.
 ///
+/// A shorthand is matched in a dance of any form, whatever figure it stands
+/// for, so the token is read as each form's own dance reads it: with that
+/// form's figures and its active dialect (#2294). A square dance reads with
+/// contra's figures and square's own dialect.
+///
 /// Rebuilds as [controller] changes; renders nothing while the token is empty
 /// or does not read as a figure.
 class ShorthandShadowWarning extends StatelessWidget {
@@ -18,7 +23,6 @@ class ShorthandShadowWarning extends StatelessWidget {
     super.key,
     required this.warningKey,
     required this.controller,
-    this.taxonomy,
   });
 
   /// Keys the note itself, which is absent while there is nothing to warn of.
@@ -26,12 +30,9 @@ class ShorthandShadowWarning extends StatelessWidget {
 
   final TextEditingController controller;
 
-  /// The taxonomy the token is read against; the shipped one by default.
-  final Taxonomy? taxonomy;
-
   @override
   Widget build(BuildContext context) {
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialects = ActiveDialectScope.of(context);
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return ValueListenableBuilder<TextEditingValue>(
@@ -40,10 +41,12 @@ class ShorthandShadowWarning extends StatelessWidget {
         final token = value.text.trim();
         if (token.isEmpty ||
             token.length > maxShorthandTokenLength ||
-            !shorthandTokenShadowsFigure(
-              token,
-              taxonomy: taxonomy ?? contraTaxonomy,
-              dialect: dialect,
+            !DanceForm.values.any(
+              (form) => shorthandTokenShadowsFigure(
+                token,
+                taxonomy: shippedTaxonomies.forForm(form),
+                dialect: dialects.forForm(form),
+              ),
             )) {
           return const SizedBox.shrink();
         }

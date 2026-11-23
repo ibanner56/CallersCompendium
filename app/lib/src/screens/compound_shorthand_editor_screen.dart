@@ -358,19 +358,27 @@ class _CompoundShorthandEditorScreenState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialects = ActiveDialectScope.of(context);
     final compounds = _compounds;
     final figures = _figures;
     final picked = _compoundId == null ? null : compounds?[_compoundId];
     final pickedFigure = _figureId == null ? null : figures?[_figureId];
+    // The shorthand reads in the dialect of the form of the figure it stands
+    // for, which the list below lets you change (#2294).
+    final dialect = shorthandDialect(dialects, (picked ?? pickedFigure)?.entry);
     final useParams = _useParams;
-    // Both kinds in one list, by name: each is "one of your figures".
-    final choices = <({String value, String name})>[
+    // Both kinds in one list, by name: each is "one of your figures", shown
+    // in the dialect of its own form.
+    final choices = <({String value, String name, UserGlossaryEntry entry})>[
       if (compounds != null && figures != null) ...[
         for (final c in compounds.values)
-          (value: _compoundValue(c.entry.id), name: c.entry.name),
+          (
+            value: _compoundValue(c.entry.id),
+            name: c.entry.name,
+            entry: c.entry,
+          ),
         for (final f in figures.values)
-          (value: _figureValue(f.entry.id), name: f.entry.name),
+          (value: _figureValue(f.entry.id), name: f.entry.name, entry: f.entry),
       ],
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final pickedValue = picked != null
@@ -453,7 +461,10 @@ class _CompoundShorthandEditorScreenState
                         'compound-shorthand-choice-${choice.value}',
                       ),
                       value: choice.value,
-                      label: _renderer.renderFreeText(choice.name, dialect),
+                      label: _renderer.renderFreeText(
+                        choice.name,
+                        shorthandDialect(dialects, choice.entry),
+                      ),
                     ),
                 ],
                 onChanged: _pick,

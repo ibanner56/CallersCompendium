@@ -677,10 +677,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// from an earlier import): it reads in the form of the dances that use
   /// it when they are all of one form, and in [_dialect] when they mix forms. A column no dance uses (a baseline swing column the
   /// matrix always shows) reads in the program's form when all its dances are
-  /// of one form. A column of a figure of the user's own, or one that isn't a
-  /// figure, reads in [_dialect].
+  /// of one form. A column of a figure of the user's own reads in the dialect
+  /// of the form it was made for, however the dances using it read (#2294); a
+  /// free-text custom column, or one that isn't a figure, reads in [_dialect].
   Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) {
     switch (column.kind) {
+      case MatrixColumnKind.userFigure when isUserFigureKey(column.moveId):
+        final view = UserFiguresScope.shownCatalogOf(
+          context,
+        )[column.moveId.substring(userFigureRefPrefix.length)];
+        return view == null ? _dialect : _dialects.forForm(view.form);
       case MatrixColumnKind.known ||
           MatrixColumnKind.split ||
           MatrixColumnKind.unknown:

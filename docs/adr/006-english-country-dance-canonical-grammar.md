@@ -1314,7 +1314,9 @@ recommendation; the answer is quoted.
    Barnes reference was for every form, the answer was "ECD only": the
    `Dance` constructor clears it for any other form
    (`formHasBarnesReference`), as it clears the improper flag (point 2), so
-   a dance moved off ECD loses it. Also kept: an import that links over an
+   a dance moved off ECD loses it when saved. Asked whether it should
+   instead be kept hidden in case the dance moves back, the answer was
+   "Clear it" (23 November 2026). Also kept: an import that links over an
    existing dance keeps its other titles and Barnes reference when the
    record carries none (the record's form still applies). Implementer's
    calls, not yet ratified: a fresh-attach sync merge unions other titles and takes

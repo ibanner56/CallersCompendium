@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/user_glossary.dart';
 import '../storage/shareable_text.dart';
@@ -239,6 +240,7 @@ final class UserFigureView {
   const UserFigureView({
     required this.id,
     required this.name,
+    required this.form,
     required this.definition,
   });
 
@@ -246,6 +248,11 @@ final class UserFigureView {
 
   /// The entry's name, role words as canonical tokens.
   final String name;
+
+  /// The dance form the figure is for, read from its stored payload
+  /// ([glossaryEntryDanceForm]), so a figure that no longer decodes still
+  /// has one: what its name is shown in is that form's dialect.
+  final DanceForm form;
 
   /// The definition, or null when the payload no longer decodes: the
   /// figure's uses then show their stored line.
@@ -271,6 +278,7 @@ final class UserFigureCatalog {
       byId[entry.id] = UserFigureView(
         id: entry.id,
         name: entry.name,
+        form: glossaryEntryDanceForm(entry.payload),
         definition: decodeUserFigureDefinition(entry.payload),
       );
     }

@@ -4882,16 +4882,16 @@ abstract class AppLocalizations {
   /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
   String get settingsProgramAutoCommitSubtitle;
 
-  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default.
+  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor, its pay line on the summary and its pay columns in the programs CSV export. On by default.
   ///
   /// In en, this message translates to:
   /// **'Show pay'**
   String get settingsProgramShowPayTitle;
 
-  /// Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared.
+  /// Subtitle of the Show pay switch: turning it off hides pay in the program editor, on the summary and in the programs CSV export; stored pay is never cleared.
   ///
   /// In en, this message translates to:
-  /// **'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
+  /// **'When off, the editor, summary and programs spreadsheet hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
   String get settingsProgramShowPaySubtitle;
 
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
@@ -19840,6 +19840,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Barnes reference'**
   String get csvColumnBarnes;
+
+  /// Programs list overflow menu item that exports the programs in the current view as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export programs as CSV'**
+  String get programsExportCsv;
+
+  /// Start of the file name of an exported programs CSV spreadsheet, before the date (for example programs_2026-11-23.csv). Lower case; a single word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'programs'**
+  String get csvProgramsFileStem;
+
+  /// Column heading in an exported programs CSV spreadsheet: the date of the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Event date'**
+  String get csvColumnEventDate;
+
+  /// Column heading in an exported programs CSV spreadsheet: the venue's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get csvColumnVenue;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's caller.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller'**
+  String get csvColumnCaller;
+
+  /// Column heading in an exported programs CSV spreadsheet: the band playing the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Band'**
+  String get csvColumnBand;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's overall dancer level.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancer level'**
+  String get csvColumnDancerLevel;
+
+  /// Column heading in an exported programs CSV spreadsheet: what the caller was paid, as a number.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get csvColumnPayAmount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the currency of the pay, such as USD.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get csvColumnPayCurrency;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get csvColumnNotes;
+
+  /// Column heading in an exported programs CSV spreadsheet: how many dances the program has, not counting alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get csvColumnDanceCount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's dances in order, one per line, alternates marked.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances'**
+  String get csvColumnDances;
+
+  /// Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle).
+  ///
+  /// In en, this message translates to:
+  /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
+  String get exportCsvPayHiddenNotice;
 }
 
 class _AppLocalizationsDelegate

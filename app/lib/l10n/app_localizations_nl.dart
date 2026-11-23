@@ -3226,7 +3226,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Als dit uit staat, verbergen de programma-editor en het overzicht de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
+      'Als dit uit staat, verbergen de editor, het overzicht en de programmaspreadsheet de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrixkolommen';
@@ -13608,4 +13608,44 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes-verwijzing';
+
+  @override
+  String get programsExportCsv => 'Programma\'s exporteren als CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programmas';
+
+  @override
+  String get csvColumnEventDate => 'Eventdatum';
+
+  @override
+  String get csvColumnVenue => 'Locatie';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Band';
+
+  @override
+  String get csvColumnDancerLevel => 'Dansersniveau';
+
+  @override
+  String get csvColumnPayAmount => 'Gage';
+
+  @override
+  String get csvColumnPayCurrency => 'Valuta';
+
+  @override
+  String get csvColumnNotes => 'Notities';
+
+  @override
+  String get csvColumnDanceCount => 'Aantal dansen';
+
+  @override
+  String get csvColumnDances => 'Dansen';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'De gage is verborgen in Instellingen en wordt daarom weggelaten. Zet ‘Gage tonen’ aan onder Instellingen ▸ Programma om hem op te nemen.';
 }
