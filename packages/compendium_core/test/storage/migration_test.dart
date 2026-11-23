@@ -202,6 +202,7 @@ void main() {
           taxonomyV38CanonicalRebuildDoneKey,
           taxonomyV39CanonicalRebuildDoneKey,
           ecdTaxonomyCanonicalRebuildDoneKey,
+          squareTaxonomyCanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -912,6 +913,57 @@ void main() {
         expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
       },
     );
+  });
+
+  group('Square taxonomy canonical rebuild (ADR-007)', () {
+    test('an sq_ figure indexed while unknown re-derives as a call', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = _CountingRepositories(db, shippedTaxonomies.anyForm);
+      addTearDown(db.close);
+
+      await repos.dances.create(
+        Dance(
+          id: 'sq-known',
+          title: 'A square',
+          form: DanceForm.square,
+          figures: [
+            Figure(
+              move: 'sq_swing',
+              params: {'who': 'heads', 'whom': 'opposites'},
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await _markPre1192SweepsComplete(repos);
+      await repos.settings.remove(squareTaxonomyCanonicalRebuildDoneKey);
+      // What a build without the square taxonomy derived: the bare move ID.
+      await db.customUpdate(
+        'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+        variables: [Variable<String>('sq_swing'), Variable<String>('sq-known')],
+      );
+
+      await repos.ensureMigrated();
+
+      final indexed = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+            variables: [Variable<String>('sq-known')],
+          )
+          .get();
+      expect(indexed.map((row) => row.read<String>('canonical_text')), [
+        'heads swing opposites',
+      ]);
+      expect(
+        repos.oneTimeRepairMarkers,
+        contains(squareTaxonomyCanonicalRebuildDoneKey),
+      );
+
+      final rebuilds = repos.rebuildAttempts;
+      await repos.ensureMigrated();
+      expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+    });
   });
 
   group('taxonomy v35 figure normalization', () {
@@ -2022,6 +2074,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV38CanonicalRebuildDoneKey,
     taxonomyV39CanonicalRebuildDoneKey,
     ecdTaxonomyCanonicalRebuildDoneKey,
+    squareTaxonomyCanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

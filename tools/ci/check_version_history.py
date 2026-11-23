@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Version-history gate: a version bump must append its entry to the design doc.
 
-Four constants each carry an append-only per-version log in a design doc:
-``contraTaxonomyVersion`` and ``ecdTaxonomyVersion`` in
+Five constants each carry an append-only per-version log in a design doc:
+``contraTaxonomyVersion``, ``ecdTaxonomyVersion`` and ``squareTaxonomyVersion`` in
 ``docs/design/figure-taxonomy.md``, ``kCompendiumSchemaVersion`` in
 ``docs/design/storage.md``, and ``syncWireVersion`` in
 ``docs/design/sync-spec.md``. The taxonomy and schema logs used to live as doc
@@ -69,11 +69,17 @@ ECD_SOURCE = "packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart"
 # next value, and contra is far ahead.
 ECD_HEADING = "### ECD taxonomy versions"
 
+SQUARE_SOURCE = "packages/compendium_core/lib/src/taxonomy/square_taxonomy.dart"
+# The square log is a ``###`` of its own beside ECD's, keyed on its own heading
+# for the reason ECD's is.
+SQUARE_HEADING = "### Square taxonomy versions"
+
 LEDGERS = (
     Ledger("contraTaxonomyVersion", TAXONOMY_SOURCE, TAXONOMY_DOC, TAXONOMY_HEADING),
     Ledger("kCompendiumSchemaVersion", SCHEMA_SOURCE, SCHEMA_DOC, SCHEMA_HEADING),
     Ledger("syncWireVersion", WIRE_SOURCE, WIRE_DOC, WIRE_HEADING),
     Ledger("ecdTaxonomyVersion", ECD_SOURCE, TAXONOMY_DOC, ECD_HEADING),
+    Ledger("squareTaxonomyVersion", SQUARE_SOURCE, TAXONOMY_DOC, SQUARE_HEADING),
 )
 
 

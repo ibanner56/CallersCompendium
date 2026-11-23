@@ -880,7 +880,12 @@ List<Figure> _parseSplit(
   // dancer (`neighbor pass by`): only when no parse read it, so a line the
   // grammar reads keeps every fact it states. A role word in the dancer's place
   // (`ravens mad robin`) is read by the retries' meaning of it, as it is above.
-  final names = taxonomy ?? contraTaxonomy;
+  // A square dance's line is still read with contra's names until squares get
+  // a parser of their own (ADR-007 §9, phase 3), so typed text never mixes
+  // `sq_` calls into the contra figures the grammar above reads.
+  final names = taxonomy == null || taxonomy.form == DanceForm.square
+      ? contraTaxonomy
+      : taxonomy;
   final named =
       figureFromTypedName(
         split.text,

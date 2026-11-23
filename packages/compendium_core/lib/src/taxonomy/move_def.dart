@@ -56,6 +56,7 @@ class ParamBeats {
     required this.param,
     required this.byValue,
     this.beatsPerAmount,
+    this.rules = const [],
   });
 
   /// Name of the parameter whose value selects the beat count.
@@ -73,9 +74,17 @@ class ParamBeats {
   /// the flat default.
   final int? beatsPerAmount;
 
+  /// Counts that depend on more than one parameter (ADR-007 §5.3), such as a
+  /// square's circle, whose beats follow both its size and how far it goes.
+  /// The first rule whose values all match wins, ahead of [byValue].
+  final List<ParamBeatsRule> rules;
+
   /// The beats these rules derive from a figure's [effective] params, or null
   /// when they derive none.
   int? derive(Map<String, Object?> effective) {
+    for (final rule in rules) {
+      if (rule.matches(effective)) return rule.beats;
+    }
     final byName = byValue[effective[param]];
     if (byName != null) return byName;
     final perAmount = beatsPerAmount;
@@ -83,6 +92,23 @@ class ParamBeats {
     final amount = statedFractionAmount(effective, fractionParam: param);
     return amount == null ? null : (amount * perAmount).round();
   }
+}
+
+/// One [ParamBeats.rules] entry: the beats of a figure whose effective params
+/// hold every value in [when].
+@immutable
+class ParamBeatsRule {
+  const ParamBeatsRule(this.when, this.beats);
+
+  /// The parameter values a figure must hold, all of them, for [beats].
+  final Map<String, Object?> when;
+
+  /// The canonical beats of a figure that matches [when].
+  final int beats;
+
+  /// Whether [effective] holds every value in [when].
+  bool matches(Map<String, Object?> effective) =>
+      when.entries.every((e) => effective[e.key] == e.value);
 }
 
 /// An alias entry: resolves to a canonical move with pinned params
