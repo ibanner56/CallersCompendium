@@ -878,9 +878,9 @@ void main() {
 
   group('defaultImportSources', () {
     test('returns the canonical [TitleList, CallersBox, ContraDB, GenericJson, '
-        'CC .USR] list', () {
+        'CC .USR, CSV] list', () {
       final sources = defaultImportSources();
-      expect(sources, hasLength(5));
+      expect(sources, hasLength(6));
       expect(sources[0].kind, ImportSourceKind.titleList);
       expect(sources[1].kind, ImportSourceKind.callersBox);
       expect(sources[2].kind, ImportSourceKind.contraDb);
@@ -899,11 +899,14 @@ void main() {
       expect(sources[0].urlBuilder, isNull);
       expect(sources[0].matchesUrl, isNull);
       expect(sources[0].bytePicker, isNull);
-      // The CC source is the only byte-based source (a binary .USR picker);
-      // it has no URL affordances.
-      expect(sources[4].bytePicker, isNotNull);
-      expect(sources[4].urlBuilder, isNull);
-      expect(sources[4].matchesUrl, isNull);
+      // The CC .USR and the spreadsheet (#2329) are the byte-based sources
+      // (file pickers); neither has URL affordances.
+      for (final byteSource in [sources[4], sources[5]]) {
+        expect(byteSource.bytePicker, isNotNull);
+        expect(byteSource.urlBuilder, isNull);
+        expect(byteSource.matchesUrl, isNull);
+      }
+      expect(sources[5].kind, ImportSourceKind.csv);
     });
 
     test('order and default selection are separate: The Caller\'s Box is '
