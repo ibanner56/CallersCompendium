@@ -958,22 +958,11 @@ void main() {
       expect((outcome as CompileError).kind, ErrorKind.unresolvableDancerSet);
     });
 
-    test('and shortening it to a half is deferred, not quietly danced', () {
-      // Last Hey's twin assertion shortens its hey to a half and checks the
-      // dance stops landing, because a full hey is a positional identity and
-      // its presence is otherwise untestable end to end. **That argument does
-      // not transfer here, and this test deliberately does not make it.**
-      // Opening on the side shifts every pass by one, so where a half hey
-      // stops is not pinned by any worked example and this compiler refuses
-      // to guess. Shortening The Carousel's hey therefore hits the deferral
-      // before any geometry is computed -- asserting only that it "no longer
-      // lands" would read as a claim about the weave while actually testing
-      // my own refusal.
-      //
-      // So this pins the deferral itself, which is worth pinning on a real
-      // dance: a side-opening half hey must not silently compile. The weave
-      // is guarded where it can be, in `test/ops/hey_test.dart`, against the
-      // exact post-allemande state this dance produces.
+    test('and shortening it to a half stops it landing', () {
+      // Last Hey's twin assertion, now that a side-opening half hey is
+      // danced: a full hey is a positional identity, so its presence is only
+      // testable end to end by shortening it. A half leaves each couple on the
+      // other side of the set, and the dance no longer lands.
       final parsed = parseFixture('test/golden/the_carousel.json');
       final hey = parsed.figures[2].operation as HeyForFour;
       final outcome = compile(
@@ -989,8 +978,7 @@ void main() {
         ),
       );
 
-      expect(outcome, isA<CompileError>());
-      expect((outcome as CompileError).kind, ErrorKind.unsupportedParam);
+      expect(outcome, isA<Mismatch>());
     });
   });
 }

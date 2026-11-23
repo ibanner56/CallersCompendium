@@ -2897,10 +2897,14 @@ To be defined later with worked examples.
   lone pair names half of it. Duple *proper* with `pass1: role2s` is that case — both Robins east,
   nobody named opposite — and it stays an `unresolvableDancerSet` refusal.
 
-  **Deferred:** a side-opening hey that is not a `full` one. Opening on the side shifts every
-  later pass by one, so the half-way stopping point is not the place a centre-opening half hey
-  stops, and no worked example pins it. A full hey is exempt because the whole weave is danced
-  either way.
+  **A side-opening half hey ends like a centre-opening one** *(user-ruled 2026-11-23)*. Walking
+  the four passes from `[a, b, c, d]` with the side passes first — `b a d c`, then `a, d` meet in
+  the centre → `b d a c`, the sides again → `d b c a`, then `b, c` in the centre → `d c b a` —
+  reverses the line, as a centre opening does. So the pair who meet first in the middle (the
+  `pass2` pair) exchange, and so does the other pair. On The Carousel's post-allemande state
+  `[[R2-B . . . L1-A], [L2-B . . . R1-A]]` with `pass1: partners, pass2: role1s`, a half hey
+  gives `[[R1-A . . . L2-B], [L1-A . . . R2-B]]`: each couple ends on the other side. Until
+  this ruling it was deferred for want of a worked example.
 
   **Ricochets are not deferred here.** They number **centre meetings**, never passes (user-ruled;
   the exceptions are out of scope), and opening on the side changes neither how many centre
@@ -2929,8 +2933,9 @@ To be defined later with worked examples.
     anything else names a pass with no place to happen.
   - A side opening with `pass2` absent, or with a `pass2` that names no single spanning pair →
     `unresolvableDancerSet`. There the anchor is the only thing that can identify the centres.
-  - A side opening at any `length` other than `full` → `unsupportedParam`. Ricochets are **not**
-    refused there; see the side-opening section above.
+  - A side opening is danced at `half` and `full`, like a centre opening (user-ruled
+    2026-11-23); its partial lengths are refused by the `length` bullet above. Ricochets are
+    **not** refused there; see the side-opening section above.
   - A band holds other than four dancers, or there is **no complete hands four** →
     `unresolvableDancerSet`.
 - **facing:** `flexible` for all four. A hey ends mid-flow, and what a dancer looks at depends on
