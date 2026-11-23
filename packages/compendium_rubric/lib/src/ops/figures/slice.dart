@@ -55,12 +55,12 @@ enum SliceReturn {
 /// flagged slides, each with its own change-over ([progressionSteps]), so a
 /// double-progression dance can progress on it. The Caller's Box bridge still
 /// does not assume one on a Becket opener (`assumedProgressionIndex`, agent's
-/// call): single-progression dances open with one too. Inside a `modifier` or
-/// `meanwhile` it is a known limit: the container is one step, so a flag there
-/// counts one. Today only 3 of the 21 Caller's Box double slices
-/// import as a `slice` (those written "go forward to S1, fall back to S2", all
-/// mid-dance and unflagged); the rest stay free text, so none of them reaches
-/// the compiler (`taxonomy.md`, `slice`).
+/// call): single-progression dances open with one too. Inside a container
+/// (`modifier`, `meanwhile` or a nested `sequence`) it is a known limit: the
+/// container is one step, so a flag there counts one. Today only 3 of the 21
+/// Caller's Box double slices import as a `slice` (those written "go forward
+/// to S1, fall back to S2", all mid-dance and unflagged); the rest stay free
+/// text, so none of them reaches the compiler (`taxonomy.md`, `slice`).
 ///
 /// **Deferred:** `by: dancer` (a shift of a single dancer, which leaves a shape
 /// the slide does not model) and `return: none` (the couples stop in the

@@ -1114,8 +1114,8 @@ To be defined later with worked examples.
   to N3), and one goes forward to a shadow and falls back to partner. 13 of the 18 are in
   dances Caller's Box marks as a double or quadruple progression, and 5 of those open with the
   double slice (Warren's Roadhouse Reel, in the Seattle core set, is one). A double slice
-  inside a `modifier` or `meanwhile` is a known limit: the container is one progression step,
-  so a flag on it counts one.
+  inside a container (`modifier`, `meanwhile` or a nested `sequence`) is a known limit: the
+  container is one progression step, so a flag on it counts one.
 - **assumed progression (Caller's Box):** a Becket dance that **opens with a slice left** and a
   straight return is assumed to progress on it, exactly as one opening with a slide left is
   (user-ruled 2026-11-22, extending the slide rule in `callersbox_source.dart`). A diagonal
