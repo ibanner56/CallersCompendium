@@ -426,7 +426,7 @@ stores the names of the **visible** fields. A user who has changed it has a list
 without `lastCalled`, so the chip stays hidden for them until they turn it on
 (`app/lib/src/data/collection_tile_fields_scope.dart:136-144`). Contrast the
 hidden-facets key, a deny-list "so a filter added later is visible by default"
-(`app/lib/src/data/settings_keys.dart:140-146`).
+(`kCollectionHiddenFacetsKey` in `app/lib/src/data/settings_keys.dart`).
 - The key is a shareable `_preference`
   (`packages/compendium_core/lib/src/privacy/settings_registry.dart`). An
   older build ignores the unknown name, but if that build saves the setting, it
