@@ -1179,8 +1179,8 @@ class _ParamDropdown extends StatelessWidget {
     // match, and re-run the search.
     //
     // LATENT, not live: the builder tree is in-memory only (`_advancedRoot` is
-    // constructed fresh and has no JSON codec) and the sole writer is this
-    // dropdown, which only ever stores a selectable value — and `_MoveField`
+    // constructed fresh; core's `SavedSearchSpec` can persist a tree, but no
+    // host loads one yet) and the sole writer is this dropdown, which only ever stores a selectable value — and `_MoveField`
     // clears `figure.params` when the move changes, so a param cannot outlive
     // the move that declared it. This exists because none of that is
     // load-bearing anywhere: the day the advanced query is persisted, or seeded
