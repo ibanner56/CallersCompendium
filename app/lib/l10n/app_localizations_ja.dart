@@ -8495,6 +8495,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return '$nameの1小節の拍数';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
   String get danceEditorPhraseNameLabel => 'フレーズ名';
 
   @override

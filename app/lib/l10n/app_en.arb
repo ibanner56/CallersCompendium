@@ -11600,6 +11600,26 @@
       }
     }
   },
+  "danceEditorPhraseBeatsPerBarLabel": "Beats to the bar in {name}",
+  "@danceEditorPhraseBeatsPerBarLabel": {
+    "description": "Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "A"
+      }
+    }
+  },
+  "danceEditorPhraseBeatsPerBarRange": "1 to {max}",
+  "@danceEditorPhraseBeatsPerBarRange": {
+    "description": "Short error under one named phrase's beats-to-the-bar field in an English dance when its count is empty, zero or too large: the beats a bar may have.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "1000"
+      }
+    }
+  },
   "danceEditorPhraseNameLabel": "Phrase name",
   "@danceEditorPhraseNameLabel": {
     "description": "Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases."

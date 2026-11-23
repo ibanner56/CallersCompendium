@@ -8638,6 +8638,14 @@
   "@danceEditorPhraseBarsRange": {
     "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
   },
+  "danceEditorPhraseBeatsPerBarLabel": "Slag i takten i {name}",
+  "@danceEditorPhraseBeatsPerBarLabel": {
+    "x-sourceSha256": "6dabd9f720e145405c99e68e75bdf89dc4ea0620d905b439ac668a118ab0efcc"
+  },
+  "danceEditorPhraseBeatsPerBarRange": "1 til {max}",
+  "@danceEditorPhraseBeatsPerBarRange": {
+    "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
+  },
   "danceEditorPhraseNameLabel": "Frasens navn",
   "@danceEditorPhraseNameLabel": {
     "x-sourceSha256": "b9645f94bbfb4f46cd498465674211193279e8e327933257762532f1cb63f94f"

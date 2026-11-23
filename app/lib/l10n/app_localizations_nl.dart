@@ -8907,6 +8907,16 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return 'Tellen per maat in $name';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
   String get danceEditorPhraseNameLabel => 'Naam van de frase';
 
   @override

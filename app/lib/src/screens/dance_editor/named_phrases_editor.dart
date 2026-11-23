@@ -7,8 +7,9 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/app_dropdown_field.dart';
 
 /// An English dance's phrases as the caller names them (Hudson, 20 November
-/// 2026): one row for each of A, B and C, with its bars and whether it plays
-/// once or twice, its repeat straight after it. It writes the phrase
+/// 2026): one row for each of A, B and C, with its bars, its beats to the bar
+/// (a tune that changes meter has a different count in each phrase, #2303) and
+/// whether it plays once or twice, its repeat straight after it. It writes the phrase
 /// structure as named components ([PhraseStructure.named]), so the figure
 /// list's section labels read `A`, `A1`/`A2`, `B`, `C`.
 ///
@@ -101,23 +102,36 @@ class _Row {
   _Row(NamedPhrase phrase)
     : name = phrase.name,
       plays = phrase.plays,
-      beatsPerBar = phrase.beatsPerBar,
-      bars = TextEditingController(text: '${phrase.bars}');
+      bars = TextEditingController(text: '${phrase.bars}'),
+      beats = TextEditingController(text: '${phrase.beatsPerBar}');
 
   String name;
   int plays;
-  int beatsPerBar;
   final TextEditingController bars;
+
+  /// The beats in each of the phrase's bars, as typed.
+  final TextEditingController beats;
 
   /// The bars typed, or null when they are not a whole number from 1 to
   /// [PhraseStructure.maxComponentNumber].
-  int? get barCount {
-    final value = int.tryParse(bars.text.trim());
+  int? get barCount => _count(bars);
+
+  /// The beats to the bar typed, or null when they are not a whole number from
+  /// 1 to [PhraseStructure.maxComponentNumber].
+  int? get beatsPerBar => _count(beats);
+
+  static int? _count(TextEditingController controller) {
+    final value = int.tryParse(controller.text.trim());
     return value == null ||
             value < 1 ||
             value > PhraseStructure.maxComponentNumber
         ? null
         : value;
+  }
+
+  void dispose() {
+    bars.dispose();
+    beats.dispose();
   }
 }
 
@@ -149,7 +163,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
 
   void _loadRows() {
     for (final row in _rows) {
-      row.bars.dispose();
+      row.dispose();
     }
     _rows
       ..clear()
@@ -165,7 +179,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
   @override
   void dispose() {
     for (final row in _rows) {
-      row.bars.dispose();
+      row.dispose();
     }
     super.dispose();
   }
@@ -173,14 +187,15 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
   int get _newRowBeatsPerBar =>
       widget.beatsPerBar ??
       (_rows.isNotEmpty
-          ? _rows.first.beatsPerBar
+          ? _rows.first.beatsPerBar ?? 2
           : widget.structure?.components.first.beatsPerBar ?? 2);
 
   void _write({bool typed = false}) {
     final phrases = <NamedPhrase>[];
     for (final row in _rows) {
       final bars = row.barCount;
-      if (bars == null) {
+      final beats = row.beatsPerBar;
+      if (bars == null || beats == null) {
         setState(() => _invalid = true);
         return;
       }
@@ -189,7 +204,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
           name: row.name,
           plays: row.plays,
           bars: bars,
-          beatsPerBar: row.beatsPerBar,
+          beatsPerBar: beats,
         ),
       );
     }
@@ -250,7 +265,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
   }
 
   void _remove(int index) {
-    setState(() => _rows.removeAt(index).bars.dispose());
+    setState(() => _rows.removeAt(index).dispose());
     _write();
   }
 
@@ -352,6 +367,30 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
         onChanged: (_) => _write(typed: true),
       ),
     );
+    final beats = SizedBox(
+      width: 112,
+      child: TextField(
+        key: ValueKey('named-phrase-$index-beats'),
+        controller: row.beats,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(
+            '${PhraseStructure.maxComponentNumber}'.length,
+          ),
+        ],
+        decoration: InputDecoration(
+          labelText: l10n.danceEditorPhraseBeatsPerBarLabel(row.name),
+          errorText: row.beatsPerBar == null
+              ? l10n.danceEditorPhraseBeatsPerBarRange(
+                  PhraseStructure.maxComponentNumber,
+                )
+              : null,
+          errorMaxLines: 2,
+        ),
+        onChanged: (_) => _write(typed: true),
+      ),
+    );
     final plays = Semantics(
       label: l10n.danceEditorPhrasePlaysLabel(row.name),
       container: true,
@@ -384,7 +423,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
-        children: [name, bars, plays, remove],
+        children: [name, bars, beats, plays, remove],
       ),
     );
   }
