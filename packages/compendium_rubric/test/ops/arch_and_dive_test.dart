@@ -68,4 +68,39 @@ void main() {
     expect(const ArchAndDive().progressionEligible, isTrue);
     expect(const ArchAndDive().isItsOwnProgression, isFalse);
   });
+
+  group('the archFromLine lint (user-ruled 2026-11-23)', () {
+    test('a line of four warns, and the figure still runs as ruled', () {
+      final line = di(['. . . . .', 'R1-A L2-B . R2-B L1-A']);
+      final warnings = const ArchAndDive().lint(line).toList();
+      expect(warnings.single.kind, WarningKind.archFromLine);
+      expect(applyOk(const ArchAndDive(), line).toRolesNotation(), [
+        'R1-A L2-B . R2-B L1-A',
+        '. . . . .',
+      ]);
+    });
+
+    test('two couples facing along the set raise nothing', () {
+      expect(const ArchAndDive().lint(di(base)), isEmpty);
+    });
+
+    test('the engine stamps it on the arch in a compiled dance', () {
+      final result = compile(
+        Dance(
+          formation: FormationType.dupleImproper,
+          success: const ProgressionCriterion(count: 1),
+          figures: [
+            OperationInvocation(const UpTheHall(ender: HallEnder.none)),
+            OperationInvocation(const ArchAndDive(), progression: true),
+          ],
+        ),
+      );
+      expect(
+        result.warnings
+            .where((w) => w.kind == WarningKind.archFromLine)
+            .map((w) => w.opIndex),
+        [1],
+      );
+    });
+  });
 }

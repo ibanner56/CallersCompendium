@@ -30,6 +30,28 @@ final class ArchAndDive extends Operation {
   @override
   bool get progressionEligible => true;
 
+  /// Warns when a hands four stands as a line of four
+  /// ([WarningKind.archFromLine]). The swap still runs as ruled; from a line
+  /// it moves the whole line to the band's other row rather than trading two
+  /// facing couples, which usually means the figure list needs a look.
+  @override
+  Iterable<Warning> lint(Formation formation) {
+    for (final band in handsFourBands(formation)) {
+      final row = lineOfFourRow(formation, band);
+      if (row == null) continue;
+      return [
+        Warning(
+          WarningKind.archFromLine,
+          detail:
+              'arch_and_dive was called on a line of four (row $row); the row '
+              'swap moves the whole line along the set instead of trading two '
+              'facing couples',
+        ),
+      ];
+    }
+    return const [];
+  }
+
   @override
   Result<Formation, OpError> perform(Formation formation) =>
       Ok<Formation, OpError>(reflectBands(formation, rows: true));

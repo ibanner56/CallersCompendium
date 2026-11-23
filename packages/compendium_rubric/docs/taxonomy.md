@@ -188,6 +188,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `oneSidedHall` | a dance contains a `down_the_hall` without a corresponding `up_the_hall`, or vice versa. Non-fatal because the two need not be adjacent. Not raised when `facing: forwardThenBackward` completes the round trip within one figure. This is a **dance-level lint**, not a per-figure precondition — the first diagnostic in the taxonomy evaluated over the whole figure list rather than a single state transition. |
 | `hallFacingConflict` | a hall figure is danced from a line of four that is already facing *against* the figure's travel facing, so the line turns around on the spot before travelling. The figure still runs and `facing` still wins; the warning reports the uncalled turn. **State-dependent**, so unlike `oneSidedHall` it is raised by the operation against the formation it is handed, and stamped with its index by the engine. |
 | `facingPrecondition` | a figure is danced by dancers facing the wrong way for it (e.g. `pass_through dir:along` from dancers left facing across the set). The figure runs as though they had turned to it first; the warning reports the turn nobody called. Dancers whose facing is `Flexible` are skipped entirely — this figure is what resolves them, so there is nothing to report. **State-dependent**, raised by the operation and stamped by the engine. |
+| `archFromLine` | `arch_and_dive` is called on a hands four standing as a **line of four**, typically left by a hall figure. Its unconditional row swap then moves the whole line to the band's other row, usually back along the set, instead of trading two facing couples. The figure still runs as ruled; the warning says the order of figures probably needs a look. **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled, 2026-11-23.)* |
 | `anchorMismatch` | a **descriptive anchor** contradicts the arrangement the figure produced — `form_long_waves` naming a `whom`/`hand` hold the wave it forms cannot offer. An anchor states a fact the figure does not need in order to run, so the figure runs unchanged and only the description is at fault. Anchors are still worth carrying: they **disambiguate** (a record naming the hold but not the pair has said everything needed) and they **corroborate** (a claim about the arrangement can be checked rather than trusted). **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled.)* |
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
 
@@ -1466,16 +1467,17 @@ To be defined later with worked examples.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (not its own progression: a flag adds the usual
   end-normalization).
-- **known limit (2026-11-23, not ruled):** the swap is unconditional, so after a figure that
-  has already moved the couples along the set it can move them back. After `up_the_hall` with
-  its default `ender: circle`, for example, the ones are already below, and the arch lifts
-  them again; the next neighbour swing then refuses. On a line of four it moves the whole
-  line. On the corpus at `rubric` `11b1860a`, 115 dances stopped at this figure before it was
-  built: 34 now compile, 20 compile to the wrong progression (16 of those with the bridge
-  assuming the arch is the progression), 59 refuse at a later figure and 2 still name
-  another unbuilt figure.
-- **sources:** user rulings (row swap; 2026-11-22 on `who` and progression); ContraDanceVerifier
-  row swap; CallersCompendium taxonomy `arch_and_dive` MoveDef (`who` default `twos`).
+- **known limit and lint (user-ruled 2026-11-23: keep the plain swap, warn):** the swap is
+  unconditional, so after a figure that has already moved the couples along the set it can
+  move them back. The usual case is a line of four left by a hall figure: the arch moves the
+  whole line to the band's other row, and the next neighbour swing then refuses. That case
+  raises the **`archFromLine` warning**. A ring left out of step with the bands (seen after a
+  `circle` in the corpus) is not covered by the lint. On the corpus at `rubric` `11b1860a`,
+  115 dances stopped at this figure before it was built: 34 now compile, 20 compile to the
+  wrong progression (16 of those with the bridge assuming the arch is the progression), 59
+  refuse at a later figure and 2 still name another unbuilt figure.
+- **sources:** user rulings (row swap; 2026-11-22 on `who` and progression; 2026-11-23 on
+  the lint); ContraDanceVerifier row swap; CallersCompendium taxonomy `arch_and_dive` MoveDef (`who` default `twos`).
 
 ### `contra_corners`
 

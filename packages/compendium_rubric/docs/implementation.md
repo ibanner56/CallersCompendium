@@ -370,15 +370,17 @@ into "malformed input".
 `unperformedProgression` is the only **dance-level** error and carries no figure
 index.
 
-### 7.2 Warnings — five kinds
+### 7.2 Warnings — seven kinds
 
 | Kind | Raised by | When |
 |---|---|---|
 | `oneSidedHall` | engine pre-scan | a hall figure with no matching return |
 | `hallFacingConflict` | figure lint | the line was already facing the other way along the hall; it turns around before travelling |
 | `facingPrecondition` | figure lint | dancers are not facing the way the figure assumes |
+| `archFromLine` | figure lint | `arch_and_dive` was called on a line of four; the row swap moves the whole line *(user-ruled 2026-11-23)* |
 | `anchorMismatch` | figure lint | a descriptive param contradicts the derived arrangement |
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
+| `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
 
 Three rules about warnings:
 
