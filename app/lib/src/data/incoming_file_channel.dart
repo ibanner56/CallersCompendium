@@ -75,9 +75,11 @@ class IncomingFileChannel {
 
   /// Raw URL strings shared into the app while it is running (issue #343: a
   /// browser "Share" of a program page sends a `text/plain` URL via an Android
-  /// `ACTION_SEND` intent or an iOS Share Extension). Broadcast, mirroring
-  /// [files]. The string is **untrusted OS input** — Dart validates it
-  /// (`extractSharedContraDbProgramUrl` / `extractSharedDanceLink`) before it
+  /// `ACTION_SEND` intent or an iOS Share Extension), or a `ccdance:` dance
+  /// link the app was opened with (issue #2335: a camera app read a dance's QR
+  /// code). Broadcast, mirroring [files]. The string is **untrusted OS input**
+  /// — Dart validates it (`validateDanceLink`, or
+  /// `extractSharedContraDbProgramUrl` / `extractSharedDanceLink`) before it
   /// reaches an import pipeline; the native side forwards it verbatim and
   /// interprets nothing.
   Stream<String> get urls => _urlController.stream;
