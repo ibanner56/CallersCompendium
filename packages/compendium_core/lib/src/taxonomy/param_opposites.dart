@@ -19,8 +19,9 @@ enum OppositeCoverage {
 ///
 /// Every [ParamKind] is classified here, through an exhaustive switch, and
 /// `param_opposites_test.dart` pins the full table value by value, so a new
-/// kind or a new vocabulary value cannot be added without deciding its
-/// opposite. Pair inversion is not restated: it is [invertPairDancerSet], the
+/// kind or a new [ParamVocab] value cannot be added without deciding its
+/// opposite. A group only English has ([_englishPairs]) is pinned by pair, and
+/// a new English-only group gets none until it is added there. Pair inversion is not restated: it is [invertPairDancerSet], the
 /// single source of truth the renderer and importers already share. On top of
 /// it, `partners` is opposed by `neighbors`, every neighbor-series token is
 /// opposed by `partners`, and four pairs of English's own groups are opposed

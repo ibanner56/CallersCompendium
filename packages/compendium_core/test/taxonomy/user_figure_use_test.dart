@@ -482,6 +482,10 @@ void main() {
             render('ecd', 'firstDiagonals'),
             'first diagonals zoom with second diagonals',
           );
+          expect(
+            render('ecd', 'secondDiagonals'),
+            'second diagonals zoom with first diagonals',
+          );
         });
 
         test('is empty, and its bracket dropped, for a group with no '
