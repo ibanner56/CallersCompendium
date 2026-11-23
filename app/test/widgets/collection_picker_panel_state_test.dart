@@ -385,6 +385,7 @@ void main() {
       label: 'Gnarly',
       position: 9,
     );
+    // ignore: unused_result
     await repos.choreographers.upsert(
       Choreographer(id: 'c1', name: 'Gene Hubert'),
     );
