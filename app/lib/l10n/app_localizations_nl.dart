@@ -13083,4 +13083,62 @@ class AppLocalizationsNl extends AppLocalizations {
   String suggestionWhyLowers(String reason) {
     return 'Zet hem lager: $reason';
   }
+
+  @override
+  String get figureParamSearchDancersHint => 'Dansers zoeken';
+
+  @override
+  String get exportAddToCalendar => 'Toevoegen aan agenda (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Agenda exporteren (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Agenda exporteren';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Kies de programma\'s die in het agendabestand komen.';
+
+  @override
+  String get exportCalendarShowPast => 'Eerdere programma\'s tonen';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'Geen komende programma\'s om te tonen. Gearchiveerde programma\'s staan hier niet. Zet Eerdere programma\'s tonen aan om een eerder programma te kiezen.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'Nog geen enkel programma heeft een datum. Geef een programma een datum om het aan een agenda toe te voegen.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Exporteren';
+
+  @override
+  String get exportCalendarAddressTitle => 'Adres van de locatie opnemen?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'Het agendabestand noemt de locatie. Het adres blijft weg, tenzij je het opneemt. Agenda\'s worden vaak gesynchroniseerd of met anderen gedeeld.';
+
+  @override
+  String get exportCalendarAddressInclude => 'Adres van de locatie opnemen';
+
+  @override
+  String get exportCalendarDialogTitle => 'Agendabestand exporteren';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Kies hoe je dit agendabestand wilt afleveren.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Agendabestand opgeslagen.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Dit agendabestand kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Dit agendabestand kon niet worden gedeeld. Probeer het opnieuw.';
 }

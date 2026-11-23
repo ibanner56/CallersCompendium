@@ -13011,4 +13011,62 @@ class AppLocalizationsDa extends AppLocalizations {
   String suggestionWhyLowers(String reason) {
     return 'Rykker den ned: $reason';
   }
+
+  @override
+  String get figureParamSearchDancersHint => 'Søg i dansere';
+
+  @override
+  String get exportAddToCalendar => 'Føj til kalender (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Eksportér kalender (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Eksportér kalender';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Vælg de programmer, der skal med i kalenderfilen.';
+
+  @override
+  String get exportCalendarShowPast => 'Vis tidligere programmer';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'Ingen kommende programmer at vise. Arkiverede programmer vises ikke her. Slå Vis tidligere programmer til for at vælge et tidligere.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'Intet program har en dato endnu. Giv et program en dato for at føje det til en kalender.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Eksportér';
+
+  @override
+  String get exportCalendarAddressTitle => 'Inkluder spillestedets adresse?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'Kalenderfilen nævner spillestedet. Dets adresse udelades, medmindre du inkluderer den. Kalendere bliver ofte synkroniseret eller delt med andre.';
+
+  @override
+  String get exportCalendarAddressInclude => 'Inkluder spillestedets adresse';
+
+  @override
+  String get exportCalendarDialogTitle => 'Eksportér kalenderfil';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Vælg, hvordan kalenderfilen skal leveres.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Kalenderfil gemt.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Kunne ikke gemme denne kalenderfil. Prøv igen.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Kunne ikke dele denne kalenderfil. Prøv igen.';
 }

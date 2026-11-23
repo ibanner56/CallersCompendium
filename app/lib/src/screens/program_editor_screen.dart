@@ -3577,6 +3577,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     program: _draftProgram!,
                     titleFor: _titleForDance,
                     venuesById: _exportVenuesById,
+                    // Only the stored program has a real id and save stamp.
+                    offerCalendarExport: _existing != null && !_dirty,
                     danceFor: _danceById,
                     choreographerFor: (id) =>
                         _createdChoreographers[id] ??
