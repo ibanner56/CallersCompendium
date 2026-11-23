@@ -909,7 +909,7 @@ tree. This section specifies the mapping; the widget shipped as
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
 | Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers, or the **Any figure** chip (`BuilderFigure.isAnyFigure`, folding to `anyFigure`, with no move, section or params) |
-| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
+| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance (a row whose tag no live dance carries keeps it, as one more entry named from every tag or "Not in your library", #2325); two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
@@ -1104,14 +1104,23 @@ state, and nothing in it is silently dropped or left filtering out of sight:
   "12 months", or "12 months, saved" when the state came from a saved search
   (`CollectionPanelState.fromSavedSearch`).
 - **A By phrase section no dance has** still gets its row, and an Advanced
-  row's phrase no dance has stays its dropdown's value.
+  row's phrase no dance has stays its dropdown's value. An Advanced **Has
+  tag** row whose tag no live dance carries keeps it and shows it (named from
+  every tag, or "Not in your library"); it used to clear the tag a frame
+  later, widening the search with no sign.
+- **Untagged is a Tags selection.** A Tags section hidden in Settings that
+  holds only Untagged is shown, and hiding Tags clears Untagged too
+  (`hasSelectionFor` / `clearFacets`).
 - **A figure parameter no dropdown offers** (the rule the resolver uses, above)
   is kept, shown as a notice "hands: not stated (not offered)" the user can
   remove. Removing it silently, as the Advanced panel did before a tree could
   be opened, would run a broader search than the one the resolver hands every
   other feature.
 - A custom text or number filter's field shows the state's value, not the one
-  it showed before.
+  it showed before, and a clear or another state empties text that was no
+  value yet (a lone "-", Between's first bound, spaces). The field tells
+  those apart from a rebuild its own typing caused by the facets' identity
+  and `FacetSelections.clearCount`, a count kept in memory only.
 
 ## Performance
 
