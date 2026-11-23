@@ -9,10 +9,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
-import 'package:compendium_app/src/widgets/picker_suggestions.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 
 import 'support/l10n_harness.dart';
@@ -75,6 +75,7 @@ Future<void> _pump(
   CompendiumRepositories repos, {
   Size size = const Size(1200, 2000),
   OnlineSearchService? callersBoxOnline,
+  bool suggestions = false,
 }) async {
   // The view, not setSurfaceSize: the slot list's compact rule reads
   // MediaQuery.
@@ -84,12 +85,16 @@ Future<void> _pump(
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
+  final suggestionsOn = ValueNotifier(suggestions);
+  addTearDown(suggestionsOn.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: SuggestionsEnabledScope(notifier: suggestionsOn, child: child!),
+      ),
       home: ProgramEditorScreen(
         programId: 'p1',
         onSaved: (_) {},
@@ -347,25 +352,42 @@ void main() {
       expect(_order(slots), ['a', 'b', 'b-alt1', 'b-alt2', 'brk', 'c', 'NEW']);
     });
 
-    testWidgets('while inserting, the picker gets no slots, so it offers no '
-        'Suggested; Cancel gives them back (#2343)', (tester) async {
+    testWidgets('while inserting, the picker ranks for the place the dance '
+        'will land; a new target moves it, and Cancel gives back the end '
+        '(#2344)', (tester) async {
       final repos = await _seed();
       await _pump(tester, repos);
-      PickerProgramContext? contextOf() => tester
+      SuggestionPosition? positionOf() => tester
           .widget<CollectionPicker>(find.byKey(const ValueKey('inline-picker')))
-          .programContext;
+          .programContext
+          ?.position;
+      final all = _order(_groupedSlots());
 
-      expect(contextOf()?.programId, 'p1');
-      expect(contextOf()?.slots, hasLength(_groupedSlots().length));
+      expect(_order(positionOf()!.slotsBefore), all);
+      expect(positionOf()!.slotsAfter, isEmpty);
 
+      // Before Chorus Jig: between Dance A and Chorus Jig's group.
       await _chooseFromSlotMenu(tester, 1, 'add-before');
       expect(find.byKey(const ValueKey('insertion-banner')), findsOneWidget);
-      expect(contextOf()?.programId, 'p1');
-      expect(contextOf()?.slots, isNull);
+      expect(_order(positionOf()!.slotsBefore), ['a']);
+      expect(_order(positionOf()!.slotsAfter), [
+        'b',
+        'b-alt1',
+        'b-alt2',
+        'brk',
+        'c',
+      ]);
+      expect(positionOf()!.isAlternate, isFalse);
+
+      // After an alternate: after the group's last alternate, as the add.
+      await _chooseFromSlotMenu(tester, 2, 'add-after');
+      expect(_order(positionOf()!.slotsBefore), ['a', 'b', 'b-alt1', 'b-alt2']);
+      expect(_order(positionOf()!.slotsAfter), ['brk', 'c']);
 
       await tester.tap(find.byKey(const ValueKey('insertion-banner-cancel')));
       await tester.pumpAndSettle();
-      expect(contextOf()?.slots, hasLength(_groupedSlots().length));
+      expect(_order(positionOf()!.slotsBefore), all);
+      expect(positionOf()!.slotsAfter, isEmpty);
     });
 
     testWidgets('cutting the target ends the insertion', (tester) async {
@@ -494,6 +516,19 @@ void main() {
             .data,
         'Add before Chorus Jig',
       );
+      // Suggested ranks for the same place (#2344).
+      final position = tester
+          .widget<CollectionPicker>(find.byKey(const ValueKey('sheet-picker')))
+          .programContext!
+          .position!;
+      expect(_order(position.slotsBefore), ['a']);
+      expect(_order(position.slotsAfter), [
+        'b',
+        'b-alt1',
+        'b-alt2',
+        'brk',
+        'c',
+      ]);
       // The title takes the row's free width beside the close button, not
       // half of it, so a long target name is not cut short.
       expect(
@@ -562,6 +597,121 @@ void main() {
 
       final slots = await _saveAndRead(tester, repos);
       expect(_order(slots).last, 'NEW');
+    });
+  });
+
+  // --- Suggested for an insertion and for Replace… (#2344) -------------------
+
+  group('Suggested', () {
+    /// The reason line of [danceId]'s row in [picker], or null when it has
+    /// none.
+    String? reasonOf(WidgetTester tester, Finder picker, String danceId) {
+      final line = find.descendant(
+        of: find.descendant(
+          of: picker,
+          matching: find.byKey(ValueKey('suggestion-reason-$danceId')),
+        ),
+        matching: find.byType(Text),
+      );
+      return line.evaluate().isEmpty ? null : tester.widget<Text>(line).data;
+    }
+
+    /// Chooses Suggested in [picker] and pumps, with real time for the
+    /// ranking isolate, until every row has a reason line, failing after a
+    /// deadline rather than waiting on a fixed delay.
+    Future<void> rankIn(WidgetTester tester, Finder picker) async {
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-sort')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('sort-suggested')));
+      await tester.pump();
+      bool ranked() => reasonOf(tester, picker, 'd-new') != null;
+      final deadline = DateTime.now().add(const Duration(seconds: 30));
+      while (!ranked() && DateTime.now().isBefore(deadline)) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump();
+      }
+      expect(ranked(), isTrue, reason: 'not ranked by the deadline');
+    }
+
+    testWidgets('is offered while adding before a slot, and ranks there', (
+      tester,
+    ) async {
+      final repos = await _seed();
+      await _pump(tester, repos, suggestions: true);
+      await _chooseFromSlotMenu(tester, 1, 'add-before');
+      final picker = find.byKey(const ValueKey('inline-picker'));
+      await rankIn(tester, picker);
+      expect(reasonOf(tester, picker, 'd-b'), 'Already in this program');
+      expect(
+        reasonOf(tester, picker, 'd-new'),
+        isNot('Already in this program'),
+      );
+      // Close the picker's worker with the screen.
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets("Replace… ranks for the slot's place, and the slot's own "
+        'dance is not "already in this program"', (tester) async {
+      final repos = await _seed();
+      await _pump(
+        tester,
+        repos,
+        size: const Size(600, 2000),
+        suggestions: true,
+      );
+      // Edit Chorus Jig's slot, then Replace….
+      await _chooseFromSlotMenu(tester, 1, 'edit');
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      final picker = find.byKey(const ValueKey('replace-picker'));
+      final position = tester
+          .widget<CollectionPicker>(picker)
+          .programContext!
+          .position!;
+      expect(_order(position.slotsBefore), ['a']);
+      expect(_order(position.slotsAfter), ['b-alt1', 'b-alt2', 'brk', 'c']);
+      expect(position.isAlternate, isFalse);
+
+      await rankIn(tester, picker);
+      expect(
+        reasonOf(tester, picker, 'd-b'),
+        isNot('Already in this program'),
+        reason: 'the dance being replaced',
+      );
+      for (final other in ['d-a', 'd-b1', 'd-c']) {
+        expect(
+          reasonOf(tester, picker, other),
+          'Already in this program',
+          reason: other,
+        );
+      }
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets("Replace… on an alternate takes the alternate's place", (
+      tester,
+    ) async {
+      final repos = await _seed();
+      await _pump(tester, repos, size: const Size(600, 2000));
+      await _chooseFromSlotMenu(tester, 3, 'edit');
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      final position = tester
+          .widget<CollectionPicker>(
+            find.byKey(const ValueKey('replace-picker')),
+          )
+          .programContext!
+          .position!;
+      expect(_order(position.slotsBefore), ['a', 'b', 'b-alt1']);
+      expect(_order(position.slotsAfter), ['brk', 'c']);
+      expect(position.isAlternate, isTrue);
     });
   });
 }
