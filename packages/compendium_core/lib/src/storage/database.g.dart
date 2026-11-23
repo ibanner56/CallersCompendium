@@ -4062,6 +4062,17 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _calendarEventKeyMeta = const VerificationMeta(
+    'calendarEventKey',
+  );
+  @override
+  late final GeneratedColumn<String> calendarEventKey = GeneratedColumn<String>(
+    'calendar_event_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _startMinuteMeta = const VerificationMeta(
     'startMinute',
   );
@@ -4127,6 +4138,7 @@ class $ProgramsTable extends Programs
     deletedAt,
     existenceAt,
     archivedAt,
+    calendarEventKey,
     startMinute,
     endMinute,
     lessonMinute,
@@ -4275,6 +4287,15 @@ class $ProgramsTable extends Programs
         archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
       );
     }
+    if (data.containsKey('calendar_event_key')) {
+      context.handle(
+        _calendarEventKeyMeta,
+        calendarEventKey.isAcceptableOrUnknown(
+          data['calendar_event_key']!,
+          _calendarEventKeyMeta,
+        ),
+      );
+    }
     if (data.containsKey('start_minute')) {
       context.handle(
         _startMinuteMeta,
@@ -4395,6 +4416,10 @@ class $ProgramsTable extends Programs
         DriftSqlType.dateTime,
         data['${effectivePrefix}archived_at'],
       ),
+      calendarEventKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_event_key'],
+      ),
       startMinute: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}start_minute'],
@@ -4495,10 +4520,16 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// on a migrated database, so a fresh one gets the same column order.
   final DateTime? archivedAt;
 
+  /// The calendar event the program was imported from (#2352, schema v42): a
+  /// SHA-256 hex digest of the event's `UID` and recurrence id, never the
+  /// `UID`. `null` for every program not imported from a calendar. Declared
+  /// last for the same column-order reason as [archivedAt].
+  final String? calendarEventKey;
+
   /// When the dance starts, as minutes after midnight (`0`–`1439`), a
   /// wall-clock time at the hall with no time zone (schema v42, #2350).
   /// `null` (every program before v42) means not recorded. Like the three
-  /// times after it, declared after [archivedAt] so a migrated database and a
+  /// times after it, declared after [calendarEventKey] so a migrated database and a
   /// fresh one get the same column order.
   final int? startMinute;
 
@@ -4531,6 +4562,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     this.deletedAt,
     this.existenceAt,
     this.archivedAt,
+    this.calendarEventKey,
     this.startMinute,
     this.endMinute,
     this.lessonMinute,
@@ -4585,6 +4617,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     }
     if (!nullToAbsent || archivedAt != null) {
       map['archived_at'] = Variable<DateTime>(archivedAt);
+    }
+    if (!nullToAbsent || calendarEventKey != null) {
+      map['calendar_event_key'] = Variable<String>(calendarEventKey);
     }
     if (!nullToAbsent || startMinute != null) {
       map['start_minute'] = Variable<int>(startMinute);
@@ -4644,6 +4679,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       archivedAt: archivedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(archivedAt),
+      calendarEventKey: calendarEventKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarEventKey),
       startMinute: startMinute == null && nullToAbsent
           ? const Value.absent()
           : Value(startMinute),
@@ -4686,6 +4724,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
       archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
+      calendarEventKey: serializer.fromJson<String?>(json['calendarEventKey']),
       startMinute: serializer.fromJson<int?>(json['startMinute']),
       endMinute: serializer.fromJson<int?>(json['endMinute']),
       lessonMinute: serializer.fromJson<int?>(json['lessonMinute']),
@@ -4717,6 +4756,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'existenceAt': serializer.toJson<DateTime?>(existenceAt),
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
+      'calendarEventKey': serializer.toJson<String?>(calendarEventKey),
       'startMinute': serializer.toJson<int?>(startMinute),
       'endMinute': serializer.toJson<int?>(endMinute),
       'lessonMinute': serializer.toJson<int?>(lessonMinute),
@@ -4744,6 +4784,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     Value<DateTime?> deletedAt = const Value.absent(),
     Value<DateTime?> existenceAt = const Value.absent(),
     Value<DateTime?> archivedAt = const Value.absent(),
+    Value<String?> calendarEventKey = const Value.absent(),
     Value<int?> startMinute = const Value.absent(),
     Value<int?> endMinute = const Value.absent(),
     Value<int?> lessonMinute = const Value.absent(),
@@ -4770,6 +4811,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    calendarEventKey: calendarEventKey.present
+        ? calendarEventKey.value
+        : this.calendarEventKey,
     startMinute: startMinute.present ? startMinute.value : this.startMinute,
     endMinute: endMinute.present ? endMinute.value : this.endMinute,
     lessonMinute: lessonMinute.present ? lessonMinute.value : this.lessonMinute,
@@ -4812,6 +4856,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       archivedAt: data.archivedAt.present
           ? data.archivedAt.value
           : this.archivedAt,
+      calendarEventKey: data.calendarEventKey.present
+          ? data.calendarEventKey.value
+          : this.calendarEventKey,
       startMinute: data.startMinute.present
           ? data.startMinute.value
           : this.startMinute,
@@ -4847,6 +4894,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('deletedAt: $deletedAt, ')
           ..write('existenceAt: $existenceAt, ')
           ..write('archivedAt: $archivedAt, ')
+          ..write('calendarEventKey: $calendarEventKey, ')
           ..write('startMinute: $startMinute, ')
           ..write('endMinute: $endMinute, ')
           ..write('lessonMinute: $lessonMinute, ')
@@ -4876,6 +4924,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     deletedAt,
     existenceAt,
     archivedAt,
+    calendarEventKey,
     startMinute,
     endMinute,
     lessonMinute,
@@ -4904,6 +4953,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.deletedAt == this.deletedAt &&
           other.existenceAt == this.existenceAt &&
           other.archivedAt == this.archivedAt &&
+          other.calendarEventKey == this.calendarEventKey &&
           other.startMinute == this.startMinute &&
           other.endMinute == this.endMinute &&
           other.lessonMinute == this.lessonMinute &&
@@ -4930,6 +4980,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<DateTime?> deletedAt;
   final Value<DateTime?> existenceAt;
   final Value<DateTime?> archivedAt;
+  final Value<String?> calendarEventKey;
   final Value<int?> startMinute;
   final Value<int?> endMinute;
   final Value<int?> lessonMinute;
@@ -4955,6 +5006,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.deletedAt = const Value.absent(),
     this.existenceAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.calendarEventKey = const Value.absent(),
     this.startMinute = const Value.absent(),
     this.endMinute = const Value.absent(),
     this.lessonMinute = const Value.absent(),
@@ -4981,6 +5033,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.deletedAt = const Value.absent(),
     this.existenceAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.calendarEventKey = const Value.absent(),
     this.startMinute = const Value.absent(),
     this.endMinute = const Value.absent(),
     this.lessonMinute = const Value.absent(),
@@ -5011,6 +5064,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<DateTime>? deletedAt,
     Expression<DateTime>? existenceAt,
     Expression<DateTime>? archivedAt,
+    Expression<String>? calendarEventKey,
     Expression<int>? startMinute,
     Expression<int>? endMinute,
     Expression<int>? lessonMinute,
@@ -5037,6 +5091,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (existenceAt != null) 'existence_at': existenceAt,
       if (archivedAt != null) 'archived_at': archivedAt,
+      if (calendarEventKey != null) 'calendar_event_key': calendarEventKey,
       if (startMinute != null) 'start_minute': startMinute,
       if (endMinute != null) 'end_minute': endMinute,
       if (lessonMinute != null) 'lesson_minute': lessonMinute,
@@ -5065,6 +5120,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<DateTime?>? deletedAt,
     Value<DateTime?>? existenceAt,
     Value<DateTime?>? archivedAt,
+    Value<String?>? calendarEventKey,
     Value<int?>? startMinute,
     Value<int?>? endMinute,
     Value<int?>? lessonMinute,
@@ -5091,6 +5147,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       deletedAt: deletedAt ?? this.deletedAt,
       existenceAt: existenceAt ?? this.existenceAt,
       archivedAt: archivedAt ?? this.archivedAt,
+      calendarEventKey: calendarEventKey ?? this.calendarEventKey,
       startMinute: startMinute ?? this.startMinute,
       endMinute: endMinute ?? this.endMinute,
       lessonMinute: lessonMinute ?? this.lessonMinute,
@@ -5161,6 +5218,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (archivedAt.present) {
       map['archived_at'] = Variable<DateTime>(archivedAt.value);
     }
+    if (calendarEventKey.present) {
+      map['calendar_event_key'] = Variable<String>(calendarEventKey.value);
+    }
     if (startMinute.present) {
       map['start_minute'] = Variable<int>(startMinute.value);
     }
@@ -5201,6 +5261,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('deletedAt: $deletedAt, ')
           ..write('existenceAt: $existenceAt, ')
           ..write('archivedAt: $archivedAt, ')
+          ..write('calendarEventKey: $calendarEventKey, ')
           ..write('startMinute: $startMinute, ')
           ..write('endMinute: $endMinute, ')
           ..write('lessonMinute: $lessonMinute, ')
@@ -20755,6 +20816,7 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<DateTime?> existenceAt,
       Value<DateTime?> archivedAt,
+      Value<String?> calendarEventKey,
       Value<int?> startMinute,
       Value<int?> endMinute,
       Value<int?> lessonMinute,
@@ -20782,6 +20844,7 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<DateTime?> existenceAt,
       Value<DateTime?> archivedAt,
+      Value<String?> calendarEventKey,
       Value<int?> startMinute,
       Value<int?> endMinute,
       Value<int?> lessonMinute,
@@ -20939,6 +21002,11 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<DateTime> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarEventKey => $composableBuilder(
+    column: $table.calendarEventKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21117,6 +21185,11 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get calendarEventKey => $composableBuilder(
+    column: $table.calendarEventKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get startMinute => $composableBuilder(
     column: $table.startMinute,
     builder: (column) => ColumnOrderings(column),
@@ -21215,6 +21288,11 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get calendarEventKey => $composableBuilder(
+    column: $table.calendarEventKey,
     builder: (column) => column,
   );
 
@@ -21338,6 +21416,7 @@ class $$ProgramsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime?> existenceAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
+                Value<String?> calendarEventKey = const Value.absent(),
                 Value<int?> startMinute = const Value.absent(),
                 Value<int?> endMinute = const Value.absent(),
                 Value<int?> lessonMinute = const Value.absent(),
@@ -21363,6 +21442,7 @@ class $$ProgramsTableTableManager
                 deletedAt: deletedAt,
                 existenceAt: existenceAt,
                 archivedAt: archivedAt,
+                calendarEventKey: calendarEventKey,
                 startMinute: startMinute,
                 endMinute: endMinute,
                 lessonMinute: lessonMinute,
@@ -21390,6 +21470,7 @@ class $$ProgramsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime?> existenceAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
+                Value<String?> calendarEventKey = const Value.absent(),
                 Value<int?> startMinute = const Value.absent(),
                 Value<int?> endMinute = const Value.absent(),
                 Value<int?> lessonMinute = const Value.absent(),
@@ -21415,6 +21496,7 @@ class $$ProgramsTableTableManager
                 deletedAt: deletedAt,
                 existenceAt: existenceAt,
                 archivedAt: archivedAt,
+                calendarEventKey: calendarEventKey,
                 startMinute: startMinute,
                 endMinute: endMinute,
                 lessonMinute: lessonMinute,

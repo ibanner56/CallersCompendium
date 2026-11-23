@@ -805,9 +805,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// every existing program stays unarchived. It joined v42 while v42 was
   /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
   ///
+  /// Also `programs.calendar_event_key` (calendar import, #2352), nullable, so
+  /// no existing program is taken for an imported one. It joined v42 while
+  /// v42 was unreleased, the same way.
+  ///
   /// Also the program times (#2350): `programs.start_minute`, `end_minute`,
   /// `lesson_minute` and `arrival_minute`, all nullable, so every existing
-  /// program has none. They joined v42 while v42 was unreleased.
+  /// program has none. They joined v42 while v42 was unreleased, after
+  /// `calendar_event_key`.
   ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
@@ -837,8 +842,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     final presentProgramColumns = {
       for (final row in programColumns) row.read<String>('name'),
     };
+    // In declaration order, so a migrated database's columns line up with a
+    // fresh one's.
     for (final column in <GeneratedColumn<Object>>[
       programs.archivedAt,
+      programs.calendarEventKey,
       programs.startMinute,
       programs.endMinute,
       programs.lessonMinute,

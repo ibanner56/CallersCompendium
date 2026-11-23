@@ -917,6 +917,14 @@ class Programs extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> calendarEventKey = GeneratedColumn<String>(
+    'calendar_event_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   late final GeneratedColumn<int> startMinute = GeneratedColumn<int>(
     'start_minute',
     aliasedName,
@@ -970,6 +978,7 @@ class Programs extends Table with TableInfo {
     deletedAt,
     existenceAt,
     archivedAt,
+    calendarEventKey,
     startMinute,
     endMinute,
     lessonMinute,

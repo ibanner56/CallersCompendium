@@ -2619,6 +2619,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'ソース';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => '拍子・調・Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
 
   @override
@@ -3039,6 +3042,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsProgramAutoCommitSubtitle =>
       'オンにすると、有効な変更が作業中に保存されるため、エディターを終了するときに破棄するかどうかを確認されません。オフにすると、プログラムを明示的に保存します。';
+
+  @override
+  String get settingsProgramShowPayTitle => '報酬を表示';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'オフにすると、プログラムのエディターと概要で報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。';
 
   @override
   String get settingsMatrixColumnsHeader => 'マトリクスの列';
@@ -5926,6 +5936,46 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return '$titleのその他のアクション';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => '前にダンスを追加';
+
+  @override
+  String get programsAddDanceAfterMenu => '後にダンスを追加';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return '$title の前に追加';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return '$title の後に追加';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return '$title の前に追加中';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return '$title の後に追加中';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title を $target の前に追加しました。';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title を $target の後に追加しました。';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'キャンセルしました。新しいダンスは最後に追加されます。';
 
   @override
   String get programsEditSlotMenu => 'スロットを編集';
@@ -8943,6 +8993,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => '選択…';
+
+  @override
+  String get figureParamSearchDancersHint => 'ダンサーを検索';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -12119,7 +12172,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'ダンスのタイトル。';
 
   @override
-  String get callingCardHelpBlockAuthors => 'ダンスの作者。';
+  String get callingCardHelpBlockAuthors => 'ダンスの作者と作られた年、続いて解釈した人とその年。';
 
   @override
   String get callingCardHelpBlockFormation => 'フォーメーション（Improper、Becket など）。';
@@ -12130,6 +12183,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'フォーメーション、レベル、ミキサー、ステータス、フレーズを、それぞれのラベル付きで1行に。';
+
+  @override
+  String get callingCardHelpBlockMusic => '曲の拍子と調、Barnes の参照を1行に。';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -12352,4 +12408,204 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programTemplateSaveError => 'テンプレートへの変更を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportAddToCalendar => 'カレンダーに追加（.ics）';
+
+  @override
+  String get programsExportCalendar => 'カレンダーを書き出す（.ics）';
+
+  @override
+  String get exportCalendarPickTitle => 'カレンダーを書き出す';
+
+  @override
+  String get exportCalendarPickBody => 'カレンダーファイルに入れるプログラムを選んでください。';
+
+  @override
+  String get exportCalendarShowPast => '過去のプログラムを表示';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      '表示できる今後のプログラムはありません。アーカイブ済みのプログラムはここには表示されません。以前のプログラムを選ぶには「過去のプログラムを表示」をオンにしてください。';
+
+  @override
+  String get exportCalendarNoDated =>
+      '日付のあるプログラムはまだありません。カレンダーに追加するには、プログラムに日付を設定してください。';
+
+  @override
+  String get exportCalendarPickConfirm => '書き出す';
+
+  @override
+  String get exportCalendarAddressTitle => '会場の住所を含めますか？';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'カレンダーファイルには会場名が入ります。住所は、含めることを選ばない限り省かれます。カレンダーは同期されたり、他の人と共有されたりすることがよくあります。';
+
+  @override
+  String get exportCalendarAddressInclude => '会場の住所を含める';
+
+  @override
+  String get exportCalendarDialogTitle => 'カレンダーファイルを書き出す';
+
+  @override
+  String get exportCalendarDialogMessage => 'このカレンダーファイルの渡し方を選んでください。';
+
+  @override
+  String get exportCalendarSavedGeneric => 'カレンダーファイルを保存しました。';
+
+  @override
+  String get exportCalendarSaveError => 'このカレンダーファイルを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCalendarShareError => 'このカレンダーファイルを共有できませんでした。もう一度お試しください。';
+
+  @override
+  String get importErrorNotACalendar =>
+      'そのアドレスからはカレンダーが返されませんでした。Google カレンダーの場合は、通常のリンクではなく iCal 形式のアドレス（設定と共有 ▸ カレンダーの統合）を使ってください。';
+
+  @override
+  String get importFromCalendar => 'カレンダーから';
+
+  @override
+  String get importProgramFromCalendar => 'カレンダーからインポート';
+
+  @override
+  String get calendarImportTitle => 'カレンダーからインポート';
+
+  @override
+  String get calendarImportImport => 'インポート';
+
+  @override
+  String get calendarAddressLabel => 'カレンダーのアドレス';
+
+  @override
+  String get calendarAddressHelper =>
+      'カレンダーの iCal アドレス（https:// または webcal:// で始まるもの）。非公開カレンダーの秘密のアドレスも使えます。他の人には教えないでください。';
+
+  @override
+  String get calendarImportFetch => '予定を取得';
+
+  @override
+  String get calendarImportFailed => 'カレンダーからインポートできませんでした。もう一度お試しください。';
+
+  @override
+  String get calendarImportUntitled => '無題の予定';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーから下書きプログラムを$count件追加しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => '期間内に予定はありません。';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '新しい予定が$count件あります。',
+      zero: '新しい予定はありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'カレンダーの新しい予定';
+
+  @override
+  String get calendarImportDeletedHeader => '削除したプログラム';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'この予定から作ったプログラムは削除済みです。もう一度インポートするにはチェックを入れてください。';
+
+  @override
+  String get calendarImportAlreadyHeader => 'インポート済み';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'このアプリから';
+
+  @override
+  String get calendarImportUnreadableHeader => 'アプリが読み取れない繰り返しの予定';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'アプリが理解できない方法で繰り返しているため、インポートされません。';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の予定には識別子がないため、スキップしました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーに$count件を超える予定があります。最初の$count件だけを読み取りました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'カレンダー';
+
+  @override
+  String get calendarSettingsSaveError => '設定を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get calendarAddressSet => '設定済み。タップして変更します。';
+
+  @override
+  String get calendarAddressNotSet => '未設定';
+
+  @override
+  String get calendarWindowTitle => '対象の予定';
+
+  @override
+  String get calendarWindowSubtitle =>
+      '今日からこの期間先までの予定。繰り返しの予定は30日先までしか読み取りません。';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$monthsか月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle => 'タイトルにこの語を含む予定のみ';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'ほかの予定も入っているカレンダー向けです。すべての予定を対象にするには空欄のままにします。';
+
+  @override
+  String get calendarTitleFilterNone => 'すべての予定';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '「$filter」';
+  }
+
+  @override
+  String get calendarPullNowTitle => '今すぐ取得';
+
+  @override
+  String get calendarPullNowSubtitle => 'カレンダーを読み取り、下書きプログラムとして追加する予定を選びます。';
 }

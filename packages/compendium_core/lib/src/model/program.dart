@@ -254,6 +254,7 @@ class Program {
     required this.updatedAt,
     this.deletedAt,
     this.archivedAt,
+    this.calendarEventKey,
     this.provenance,
   }) : slots = List.unmodifiable(
          <ProgramSlot>[...slots]
@@ -418,6 +419,15 @@ class Program {
   /// gets an unarchived program.
   final DateTime? archivedAt;
 
+  /// The calendar event this program was imported from (#2352): a SHA-256
+  /// digest of the event's `UID` and recurrence id (`calendarEventKey` in
+  /// `ical_feed.dart`), never the `UID` itself. A later calendar import
+  /// matches on it and does not offer the event again. It travels in Device
+  /// Sync, so another device recognises the import too, and in the caller's
+  /// own backups, but not in share files (`sanitizeProgramForShare`). Null
+  /// for a program not imported from a calendar.
+  final String? calendarEventKey;
+
   /// Import provenance: where this program came from, keyed on
   /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
   /// dedupe onto the same program rather than create a duplicate. A program
@@ -513,6 +523,57 @@ class Program {
     }
     next.removeAt(index);
     return next;
+  }
+
+  /// The alternate group holding the slot at [index] in a **position-ordered**
+  /// [slots] list, as the half-open range `[start, end)`: the group's primary
+  /// and every alternate after it, by the rule [grouped] and
+  /// [alternateGroupsForSlots] use. An alternate's group is its primary's; a
+  /// break, a note, or a leading/orphaned alternate with no primary above it
+  /// starts its own group.
+  static ({int start, int end}) alternateGroupRange(
+    List<ProgramSlot> slots,
+    int index,
+  ) {
+    RangeError.checkValidIndex(index, slots, 'index');
+    var start = index;
+    while (start > 0 && slots[start].isAlt) {
+      start--;
+    }
+    var end = start + 1;
+    while (end < slots.length && slots[end].isAlt) {
+      end++;
+    }
+    return (start: start, end: end);
+  }
+
+  /// [slots] with [slot] inserted as a **primary** just before ([after]
+  /// false) or just after ([after] true) the alternate group holding the slot
+  /// at [index] ([alternateGroupRange]): before the group's primary, or after
+  /// its last alternate. Inserting at the raw index instead could land the new
+  /// dance among a group's alternates, splitting the group or making its
+  /// alternates belong to the new dance (#2339). [slot] is inserted with
+  /// `isAlt` cleared. Positions are left for the caller to renumber.
+  ///
+  /// The one group with no primary is a leading run of orphaned alternates
+  /// (`orphaned_alt`, reachable by dragging an alternate to the top). Inserting
+  /// before it would make the run the new dance's alternates, so the run's
+  /// first slot is promoted to a planned primary instead: it loses its ALT
+  /// badge, gains a dance number, and is no longer hidden by
+  /// `hideAlternates`. The rest of the run stays its alternates.
+  static List<ProgramSlot> insertSlotAtGroupBoundary(
+    List<ProgramSlot> slots,
+    int index,
+    ProgramSlot slot, {
+    required bool after,
+  }) {
+    final range = alternateGroupRange(slots, index);
+    final next = [...slots];
+    if (!after && next[range.start].isAlt) {
+      next[range.start] = next[range.start].copyWith(isAlt: false);
+    }
+    return next
+      ..insert(after ? range.end : range.start, slot.copyWith(isAlt: false));
   }
 
   /// [slots] with the slot at [oldIndex] moved to [newIndex], where
@@ -722,6 +783,7 @@ class Program {
     DateTime? updatedAt,
     DateTime? deletedAt,
     DateTime? archivedAt,
+    String? calendarEventKey,
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
@@ -732,6 +794,7 @@ class Program {
     bool clearDialectName = false,
     bool clearDeletedAt = false,
     bool clearArchivedAt = false,
+    bool clearCalendarEventKey = false,
     bool clearPay = false,
     bool clearStartMinute = false,
     bool clearEndMinute = false,
@@ -766,6 +829,9 @@ class Program {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
+    calendarEventKey: clearCalendarEventKey
+        ? null
+        : (calendarEventKey ?? this.calendarEventKey),
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
@@ -775,6 +841,8 @@ class Program {
   /// Provenance is dropped (the copy is the user's own record, not an import),
   /// mirroring [Dance.duplicate]. The copy is never archived: it is for a new
   /// event, so it belongs in the Programs list even when its source does not.
+  /// Nor does it keep [calendarEventKey]: it was not imported from that event,
+  /// and a calendar import must keep recognising the original alone.
   Program duplicate({
     required String newId,
     required String Function() newSlotId,
@@ -892,7 +960,8 @@ class Program {
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
       other.deletedAt == deletedAt &&
-      other.archivedAt == archivedAt;
+      other.archivedAt == archivedAt &&
+      other.calendarEventKey == calendarEventKey;
 
   @override
   int get hashCode => Object.hash(id, title, updatedAt);

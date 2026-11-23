@@ -636,6 +636,144 @@ void main() {
     });
   });
 
+  group('Program.insertSlotAtGroupBoundary (#2339)', () {
+    final slots = [
+      ProgramSlot(id: 'a', position: 0, danceId: 'd0'),
+      ProgramSlot(id: 'b', position: 1, danceId: 'd1'),
+      ProgramSlot(id: 'b-alt1', position: 2, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'b-alt2', position: 3, danceId: 'd3', isAlt: true),
+      ProgramSlot(id: 'brk', position: 4, text: Program.breakSlotText),
+      ProgramSlot(id: 'c', position: 5, danceId: 'd4'),
+    ];
+    ProgramSlot fresh() => ProgramSlot(id: 'new', position: 0, danceId: 'dn');
+    List<String> ids(List<ProgramSlot> list) => [for (final s in list) s.id];
+
+    test('before a leading run of orphaned alternates keeps the run its own '
+        'group, as it is shown', () {
+      final orphans = [
+        ProgramSlot(id: 'o', position: 0, danceId: 'd0', isAlt: true),
+        ProgramSlot(id: 'o2', position: 1, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 'p', position: 2, danceId: 'd2'),
+      ];
+      final before = Program.alternateGroupsForSlots(orphans);
+      final next = Program.insertSlotAtGroupBoundary(
+        orphans,
+        1,
+        fresh(),
+        after: false,
+      );
+      expect(ids(next), ['new', 'o', 'o2', 'p']);
+      expect(next.first.isAlt, isFalse);
+      // o is promoted to a planned dance of its own: new, o and p.
+      expect(next[1].isAlt, isFalse);
+      expect(Program.plannedDanceCountOf(next), 3);
+      // The new dance is a group of its own; o and o2 still share theirs.
+      final groups = Program.alternateGroupsForSlots(next);
+      expect(groups[0], isNot(groups[1]));
+      expect(groups[1], groups[2]);
+      expect(before[0], before[1]);
+    });
+
+    test('before a primary with alternates goes ahead of the whole group', () {
+      final next = Program.insertSlotAtGroupBoundary(
+        slots,
+        1,
+        fresh(),
+        after: false,
+      );
+      expect(ids(next), ['a', 'new', 'b', 'b-alt1', 'b-alt2', 'brk', 'c']);
+      // The group is untouched: both alternates still belong to b.
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 2, 2, 2, 3, 4]);
+    });
+
+    test('after a primary goes after its last alternate', () {
+      final next = Program.insertSlotAtGroupBoundary(
+        slots,
+        1,
+        fresh(),
+        after: true,
+      );
+      expect(ids(next), ['a', 'b', 'b-alt1', 'b-alt2', 'new', 'brk', 'c']);
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 1, 1, 2, 3, 4]);
+    });
+
+    test("an alternate's positions are its primary's", () {
+      for (final altIndex in [2, 3]) {
+        for (final after in [false, true]) {
+          expect(
+            ids(
+              Program.insertSlotAtGroupBoundary(
+                slots,
+                altIndex,
+                fresh(),
+                after: after,
+              ),
+            ),
+            ids(
+              Program.insertSlotAtGroupBoundary(
+                slots,
+                1,
+                fresh(),
+                after: after,
+              ),
+            ),
+            reason: 'alternate at $altIndex, after: $after',
+          );
+        }
+      }
+    });
+
+    test('a break or a lone dance is a group of one', () {
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 4, fresh(), after: false)),
+        ['a', 'b', 'b-alt1', 'b-alt2', 'new', 'brk', 'c'],
+      );
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 4, fresh(), after: true)),
+        ['a', 'b', 'b-alt1', 'b-alt2', 'brk', 'new', 'c'],
+      );
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 0, fresh(), after: false)),
+        ['new', 'a', 'b', 'b-alt1', 'b-alt2', 'brk', 'c'],
+      );
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 5, fresh(), after: true)),
+        ['a', 'b', 'b-alt1', 'b-alt2', 'brk', 'c', 'new'],
+      );
+    });
+
+    test('the inserted slot is always a primary', () {
+      final altSlot = ProgramSlot(
+        id: 'new',
+        position: 0,
+        danceId: 'dn',
+        isAlt: true,
+      );
+      final next = Program.insertSlotAtGroupBoundary(
+        slots,
+        0,
+        altSlot,
+        after: true,
+      );
+      expect(next[1].id, 'new');
+      expect(next[1].isAlt, isFalse);
+    });
+
+    test('alternateGroupRange spans the primary and its alternates', () {
+      expect(Program.alternateGroupRange(slots, 1), (start: 1, end: 4));
+      expect(Program.alternateGroupRange(slots, 3), (start: 1, end: 4));
+      expect(Program.alternateGroupRange(slots, 4), (start: 4, end: 5));
+      // A leading alternate with no primary above starts its own group.
+      final orphan = [
+        ProgramSlot(id: 'o', position: 0, danceId: 'd0', isAlt: true),
+        ProgramSlot(id: 'o2', position: 1, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 'p', position: 2, danceId: 'd2'),
+      ];
+      expect(Program.alternateGroupRange(orphan, 1), (start: 0, end: 2));
+      expect(() => Program.alternateGroupRange(slots, 6), throwsRangeError);
+    });
+  });
+
   group('Program.danceSlotCount', () {
     Program program(List<ProgramSlot> slots) => Program(
       id: 'p1',

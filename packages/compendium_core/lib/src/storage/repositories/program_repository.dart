@@ -979,6 +979,11 @@ class ProgramRepository {
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
               archivedAt: Value(program.archivedAt),
+              // A hex digest, so normalising changes nothing; done anyway
+              // because every shareable text column is written normalised.
+              calendarEventKey: Value(
+                normalizeShareableTextOrNull(program.calendarEventKey),
+              ),
             ),
           );
       await seedExistenceIfMissing(
@@ -1073,6 +1078,51 @@ class ProgramRepository {
     final slots = _slotsFor(id);
     final provenance = _provenanceFor(id);
     return _toModel(row, await slots, await provenance);
+  }
+
+  /// For a calendar import (#2352): which of [keys] (`programs.calendar_event_key`
+  /// digests) a program already holds, mapped to whether every such program is
+  /// in Recently deleted (`true`) or at least one is live (`false`). A key no
+  /// program holds is absent, and so is one held only by a permanently deleted
+  /// program, whose fields are blanked and which can never come back.
+  Future<Map<String, bool>> calendarEventKeyStates(Iterable<String> keys) =>
+      _deletedStates(_db.programs.calendarEventKey, keys);
+
+  /// For a calendar import (#2352): which of [ids] name a program, mapped to
+  /// whether it is in Recently deleted. Absent: no such program, or one
+  /// permanently deleted.
+  Future<Map<String, bool>> programDeletedStates(Iterable<String> ids) =>
+      _deletedStates(_db.programs.id, ids);
+
+  Future<Map<String, bool>> _deletedStates(
+    GeneratedColumn<String> column,
+    Iterable<String> values,
+  ) async {
+    final wanted = values.toSet();
+    final out = <String, bool>{};
+    // Chunked: SQLite caps bound parameters per statement.
+    final list = wanted.toList();
+    for (var i = 0; i < list.length; i += 500) {
+      final chunk = list.sublist(
+        i,
+        i + 500 > list.length ? list.length : i + 500,
+      );
+      final rows =
+          await (_db.selectOnly(_db.programs)
+                ..addColumns([column, _db.programs.deletedAt])
+                ..where(column.isIn(chunk)))
+              .get();
+      for (final row in rows) {
+        final value = row.read(column)!;
+        final deletedAt = row.read(_db.programs.deletedAt);
+        if (deletedAt != null && asUtc(deletedAt) == permanentlyDeletedAt) {
+          continue;
+        }
+        final deleted = deletedAt != null;
+        out[value] = (out[value] ?? true) && deleted;
+      }
+    }
+    return out;
   }
 
   /// Returns the soft-delete state for [id] without hydrating its slots or
@@ -2382,6 +2432,7 @@ class ProgramRepository {
       row.payMinorUnits == null &&
       row.payCurrency == null &&
       row.archivedAt == null &&
+      row.calendarEventKey == null &&
       row.startMinute == null &&
       row.endMinute == null &&
       row.lessonMinute == null &&
@@ -2437,6 +2488,7 @@ class ProgramRepository {
         payMinorUnits: const Value(null),
         payCurrency: const Value(null),
         archivedAt: const Value(null),
+        calendarEventKey: Value(normalizeShareableTextOrNull(null)),
         startMinute: const Value(null),
         endMinute: const Value(null),
         lessonMinute: const Value(null),
@@ -2480,6 +2532,7 @@ class ProgramRepository {
     updatedAt: asUtc(row.updatedAt),
     deletedAt: asUtcOrNull(row.deletedAt),
     archivedAt: asUtcOrNull(row.archivedAt),
+    calendarEventKey: row.calendarEventKey,
     provenance: provenance,
   );
 

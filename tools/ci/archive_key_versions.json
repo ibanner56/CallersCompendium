@@ -119,6 +119,7 @@
     "payMinorUnits": "backupSchemaVersionProgramPay",
     "payCurrency": "backupSchemaVersionProgramPay",
     "archivedAt": "backupSchemaVersionArchivedPrograms",
+    "calendarEventKey": "backupSchemaVersionCalendarEventKeys",
     "startMinute": "archiveSchemaVersionProgramTimes",
     "endMinute": "archiveSchemaVersionProgramTimes",
     "lessonMinute": "archiveSchemaVersionProgramTimes",

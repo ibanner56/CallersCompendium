@@ -150,7 +150,8 @@ button is labeled **Save dance file…**.
 
 ## Share a program
 
-Open a program and choose **Export**. Five actions:
+Open a program and choose **Export**. Five actions, and a sixth for a program
+with a date:
 
 | Action | What happens |
 |---|---|
@@ -159,30 +160,26 @@ Open a program and choose **Export**. Five actions:
 | **Copy set list** | Puts the set list text on your clipboard, and confirms with "Set list copied to clipboard." |
 | **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
+| **Add to calendar (.ics)** | Only when the program has an event date and, in the builder, once it is saved. Writes a calendar file for your calendar app — see [Put programs in your calendar](#put-programs-in-your-calendar) |
 
 With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
-cards, there is a sixth: **Print calling cards**, one small card for each of the program's dances — see
+cards, there is one more: **Print calling cards**, one small card for each of the program's dances — see
 [Print calling cards](#print-calling-cards).
 
 The set list — text and PDF alike — is titles, event details, and slot notes by
 default, with each dance's author shown next to its title if you have authors
-turned on (see [Choose which dance fields
-appear](#choose-which-dance-fields-appear) below).
-
-A program's [times](./programs.md#times) appear in the set list too: the
-dance's start and end beside the date, such as "7:30 PM–10:30 PM", with
-"(next day)" when it ends after midnight, and the **Beginner lesson** on its
-own line. **Arrive by** never appears in the set list or the PDF: it is your
-own logistics. A program file you share (**Share program and dances**, or
-**Export as JSON file**) keeps all four times, so a guest caller you send it
-to knows when to arrive. When you choose **Share set
+turned on, and its meter and key if you have meter, key and Barnes turned on
+(see [Choose which dance fields appear](#choose-which-dance-fields-appear)
+below). When you choose **Share set
 list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
 **Include figures?** with two choices:
 
-- **Set list only** — titles, event details, slot notes, and the author
-  (the default). None of your other selected dance fields appear here —
-  formation, level, mixer, status, phrase, calling notes, walkthrough,
-  tunes, hook, and sources only ever show up on the richer per-dance card described next.
+- **Set list only** — titles, event details, slot notes, the author, and the
+  meter and key (the default). None of your other selected dance fields appear
+  here — formation, level, mixer, status, phrase, calling notes, walkthrough,
+  tunes, hook, sources, the composed and interpreted years, the interpreters
+  and the Barnes reference only ever show up on the richer per-dance card
+  described next.
 - **Set list and figures** — appends a full card for each dance after the set
   list, showing every dance field you've selected alongside its figures. The
   cards use your app language for field labels; the figure text uses your
@@ -190,6 +187,14 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
   structured figures still gets its card when it has calling notes, a
   walkthrough, a hook or a published source and you've selected that field; a dance with nothing to show
   beneath its title gets no card.
+
+A program's [times](./programs.md#times) appear in the set list too: the
+dance's start and end beside the date, such as "7:30 PM–10:30 PM", with
+"(next day)" when it ends after midnight, and the **Beginner lesson** on its
+own line. **Arrive by** never appears in the set list or the PDF: it is your
+own logistics. A program file you share (**Share program and dances**, or
+**Export as JSON file**) keeps all four times, so a guest caller you send it
+to knows when to arrive.
 
 If none of the program's dances have anything to put on a card — no structured
 figures, and no selected calling notes, walkthrough, hook or published source —
@@ -205,10 +210,18 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 Settings ▸ Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
-notes, walkthrough, suggested tunes, hook, and published sources. Everything
-except suggested tunes, the hook and published sources is on by default,
-matching every export before this setting existed; those three are off by
-default, since no export showed them before.
+notes, walkthrough, suggested tunes, hook, published sources, and meter, key
+and Barnes. Everything except suggested tunes, the hook and published sources
+is on by default; those three are off by default, since no export showed them
+before.
+
+**Authors** also prints the year the dance was composed beside its authors,
+such as *Pat Shaw (1951)*, and who interpreted it and when on a line of its
+own, such as *Interpreted by Cecil Sharp (1916)*. **Meter, key and Barnes**
+prints the tune's meter and key on one line, such as *Meter: 6/8 · Key: G
+minor*, and the Barnes reference on the next, such as *Barnes: BIII p. 92*.
+It is on for a new install. If you had already changed this checklist before
+it was added, it starts off: tick it to print them.
 
 A published source prints as one line per citation, such as *Give-and-Take —
 A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and
@@ -220,11 +233,13 @@ related dance) never appear on a card. Only a
 you marked it **Include in sharing**).
 
 Turning a field off removes it everywhere it would otherwise appear — but
-**author is the only one of these fields the plain numbered set-list line
-ever shows.** The rest only appear on the richer per-dance card: the "Set
-list and figures" appendix, a single dance's own **Share dance (text)**/
-**Copy dance** card, or a single dance's PDF. Figures are not part of this
-list; they stay controlled by the **Include figures?** choice above.
+**the plain numbered set-list line shows only the authors' names and the
+meter and key**, such as *1. Lilac Lane — by A. Author (English; Meter: 6/8 ·
+Key: G minor; 5 min)*, where the form is named only when the program mixes
+forms. The rest only appear on the richer per-dance card: the "Set list and
+figures" appendix, a single dance's own **Share dance (text)**/**Copy dance**
+card, a single dance's PDF, or a printed calling card. Figures are not part of
+this list; they stay controlled by the **Include figures?** choice above.
 
 ### Share a program with its dances
 
@@ -327,6 +342,54 @@ one when you are:
 Either file imports back into the app the same way, so nothing is lost by
 choosing one over the other.
 
+## Put programs in your calendar
+
+A calendar file (`.ics`) puts your gigs in the calendar app you already use, so
+you don't type them in twice. There are two ways to make one:
+
+- **One program:** open it and choose **Export ▸ Add to calendar (.ics)**. It is
+  offered for any saved program with an event date, past or upcoming. In the
+  builder it appears once the program is saved, and not while it has unsaved
+  changes: the file names the program as it is stored.
+- **Several programs:** on the Programs list, choose **More actions** (⋮) ▸
+  **Export calendar (.ics)**. A checklist shows your upcoming programs — dated
+  today or later, not archived — all ticked. Turn on **Show past programs** to
+  add earlier ones to the list, unticked, and tick the ones you want. Choose
+  **Export** to write them all into one file. A program with no date is not
+  listed.
+
+You then choose **Save**, **Share** (**Save as…** on Linux), or **Cancel**, as
+for a JSON file. Open the file with your calendar app, or import it there.
+
+Each program becomes one calendar event:
+
+- **Title:** the program's title.
+- **When:** the program's date, as an all-day event.
+- **Where:** the venue's name — a linked venue's name, or the venue you typed.
+- **Notes:** the program's status (Draft, Finalized or Performed), and a linked
+  venue's time, if it has one.
+
+**The venue's street address is yours to include.** If a chosen program is
+linked to a venue with an address, the app asks first:
+
+> **Include the venue's address?**
+
+with one tick box, **Include the venue's address**, unticked. Leave it unticked
+and the event names the venue only. Tick it and the address follows the name in
+the event's location. Dismissing the dialog cancels the export, and nothing is
+written. The app does not remember your answer: it asks again next time.
+Calendars are often synced to an online account or shared with family or
+bandmates, so think about who sees yours.
+
+A calendar file never carries the venue's contact people, your pay, program
+notes, the band, the caller, or the set list.
+
+**Exporting again.** A program keeps the same event identity in every calendar
+file, from any of your devices, and an edited program is marked as the newer
+version. Calendar apps differ in what they do with a file they have imported
+before. A program you delete in the app is not removed from a calendar you exported it
+to; delete it there yourself.
+
 ## Print calling cards
 
 A calling card is one dance on a small card, such as a 3 × 5 index card, to hold
@@ -407,10 +470,13 @@ leave, and one thing asks you first.
   not the notes you keep on it. They stay in your Glossary and in a
   [backup](./backup-portability.md).
 
-- **A venue's street address.** The address lines, city, state or province,
-  country, and postcode of a saved venue record are left out of everything you
-  share, print, or copy — the `.ccshare` file, the JSON file, the PDF, and the
-  text set list alike. There is no tick box for these: they are never sent. What
+- **A venue's street address, except in a calendar file you ask for.** The
+  address lines, city, state or province, country, and postcode of a saved
+  venue record are left out of everything you share, print, or copy — the
+  `.ccshare` file, the JSON file, the PDF, and the text set list alike. There is
+  no tick box for these. The one exception is a
+  [calendar file](#put-programs-in-your-calendar), which asks whether to include
+  the venue's address and leaves it out unless you tick it. What
   does travel is the venue's **name**, so a recipient still knows which hall you
   mean; the `.ccshare` and JSON files also carry its website, time, schedule,
   price, sponsor, event name, and notes, and the PDF prints all of those except
@@ -445,13 +511,13 @@ Whatever you leave unticked is genuinely absent from the file, not hidden inside
 it. The venue's other details — its name, website, time, schedule, price, sponsor,
 event name, and notes — are not personal contact details, so they are not part
 of this choice: the `.ccshare` and JSON files carry all of them, and the PDF
-prints all of them except the notes. Its street address is always left out; see
+prints all of them except the notes. Its street address is left out; see
 **Never included** above.
 
 You will not see this dialog when there is nothing to ask about: a program with no
 linked venue, or a venue with no contact people recorded, exports straight away.
-Text set lists and dance exports never show it either, because neither carries
-contact people in the first place.
+Text set lists, calendar files and dance exports never show it either, because
+none of them carries contact people in the first place.
 
 ### A note on diagnostics
 

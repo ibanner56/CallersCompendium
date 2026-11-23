@@ -305,4 +305,156 @@ void main() {
       reason: 'trimmed label, without the Formation: prefix',
     );
   });
+
+  group('credits and tune details', () {
+    Dance english({
+      String meter = ' 6/8 ',
+      String musicalKey = 'G minor',
+      String barnes = ' BIII p. 92 ',
+      PartialDate? composedOn,
+      PartialDate? interpretedOn,
+    }) => Dance(
+      id: 'e1',
+      title: 'Hole in the Wall',
+      form: DanceForm.ecd,
+      formation: const Formation(FormationShape.dupleMinor),
+      meter: meter,
+      musicalKey: musicalKey,
+      barnesReference: barnes,
+      composedOn: composedOn,
+      interpretedOn: interpretedOn,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    DanceCardContent card(
+      Dance d, {
+      List<String> authors = const ['Pat Shaw'],
+      List<String> interpreters = const [],
+      Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+      bool canonicalize = false,
+    }) => DanceCardContent.build(
+      d,
+      dialect: Dialect.larksRobins,
+      authorNames: authors,
+      interpreterNames: interpreters,
+      formationLabel: 'Duple minor',
+      statusLabel: 'Active',
+      canonicalizeDiscouragedTerms: canonicalize,
+      fields: fields,
+    );
+
+    test('music is on by default, in all, and keeps its stored name', () {
+      expect(DanceShareField.allExceptTunes, contains(DanceShareField.music));
+      expect(DanceShareField.all, contains(DanceShareField.music));
+      expect(DanceShareField.music.toJson(), 'music');
+      expect(DanceShareField.fromJson('music'), DanceShareField.music);
+    });
+
+    test('meter and key share a line and Barnes has its own', () {
+      expect(card(english()).musicLines, [
+        'Meter: 6/8 · Key: G minor',
+        'Barnes: BIII p. 92',
+      ]);
+      expect(card(english(meter: '  ')).musicLines, [
+        'Key: G minor',
+        'Barnes: BIII p. 92',
+      ]);
+      expect(card(english(musicalKey: '', barnes: '')).musicLines, [
+        'Meter: 6/8',
+      ]);
+      expect(
+        card(english(meter: '', musicalKey: '', barnes: ' ')).musicLines,
+        isEmpty,
+      );
+    });
+
+    test('tune details are gated on the music field', () {
+      final off = {...DanceShareField.all}..remove(DanceShareField.music);
+      expect(card(english(), fields: off).musicLines, isEmpty);
+      expect(
+        danceToPlainText(
+          english(),
+          dialect: Dialect.larksRobins,
+          authorNames: const [],
+          formationLabel: 'Duple minor',
+          statusLabel: 'Active',
+          fields: off,
+        ),
+        isNot(anyOf(contains('Meter'), contains('Barnes'))),
+      );
+    });
+
+    test('tune details go through the discouraged-term rendering', () {
+      final d = english(meter: '', musicalKey: '', barnes: 'see Gypsy');
+      expect(card(d).musicLines, ['Barnes: see Gypsy']);
+      expect(card(d, canonicalize: true).musicLines, [
+        'Barnes: see Shoulder round',
+      ]);
+    });
+
+    test('authors carry the composed year, interpreters their own line', () {
+      final d = english(
+        composedOn: PartialDate(1951, 3),
+        interpretedOn: PartialDate(1916),
+      );
+      expect(card(d, interpreters: const ['Cecil Sharp']).creditLines, [
+        'Pat Shaw (1951)',
+        'Interpreted by Cecil Sharp (1916)',
+      ]);
+      expect(card(english(), interpreters: const ['Cecil Sharp']).creditLines, [
+        'Pat Shaw',
+        'Interpreted by Cecil Sharp',
+      ]);
+      expect(card(d, authors: const [' ']).creditLines, [
+        'Composed 1951',
+        'Interpreted 1916',
+      ]);
+      expect(card(english(), authors: const []).creditLines, isEmpty);
+    });
+
+    test('credits are gated on the authors field', () {
+      final d = english(composedOn: PartialDate(1951));
+      final off = {...DanceShareField.all}..remove(DanceShareField.authors);
+      expect(
+        card(d, interpreters: const ['Cecil Sharp'], fields: off).creditLines,
+        isEmpty,
+      );
+    });
+
+    test('interpreters never choose the dialect', () {
+      final d = english();
+      final content = DanceCardContent.build(
+        d,
+        dialect: Dialect.canonical,
+        authorNames: const ['Pat Shaw'],
+        interpreterNames: const ['Rae Fifer'],
+        formationLabel: 'Duple minor',
+        statusLabel: 'Active',
+      );
+      expect(content.dialect, Dialect.canonical);
+    });
+
+    test('the text card prints credits under the title, music after meta', () {
+      final text = danceToPlainText(
+        english(
+          composedOn: PartialDate(1951),
+          interpretedOn: PartialDate(1916),
+        ),
+        dialect: Dialect.larksRobins,
+        authorNames: const ['Pat Shaw'],
+        interpreterNames: const ['Cecil Sharp'],
+        formationLabel: 'Duple minor',
+        statusLabel: 'Active',
+      );
+      expect(text.split('\n'), [
+        'Hole in the Wall',
+        'Pat Shaw (1951)',
+        'Interpreted by Cecil Sharp (1916)',
+        'Formation: Duple minor',
+        'Meter: 6/8 · Key: G minor',
+        'Barnes: BIII p. 92',
+      ]);
+    });
+  });
 }

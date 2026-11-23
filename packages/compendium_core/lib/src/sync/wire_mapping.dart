@@ -93,6 +93,7 @@ const _programFields = [
   SyncWireField('payMinorUnits', ['programs.pay_minor_units']),
   SyncWireField('payCurrency', ['programs.pay_currency']),
   SyncWireField('archivedAt', ['programs.archived_at']),
+  SyncWireField('calendarEventKey', ['programs.calendar_event_key']),
   SyncWireField('startMinute', ['programs.start_minute']),
   SyncWireField('endMinute', ['programs.end_minute']),
   SyncWireField('lessonMinute', ['programs.lesson_minute']),

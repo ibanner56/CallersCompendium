@@ -185,7 +185,7 @@ For the whole workflow, see [Backup & portability](./backup-portability.md).
 
 The **Program** section gathers the settings that shape how you build, check, and
 perform your [programs](./glossary.md#program) — venues, the programming matrix,
-sharing, Perform mode, and calling history.
+sharing, Perform mode, calling history, and your calendar.
 
 ### Venues
 
@@ -232,6 +232,17 @@ details are handled when you export.
 - **Auto-save program changes** (off by default) — when on, valid changes are
   saved as you work, so leaving the program editor never asks whether to
   discard them. Leave it off to save programs yourself.
+
+- **Show pay** (on by default) — shows each program's
+  [Pay](./programs.md#event-details) field under **More details** in the
+  program editor, and its pay line on the program's summary. Turn it off if you
+  don't track pay, and both are hidden. Hiding never clears anything: pay
+  already entered is kept, saving a program while pay is hidden keeps its amount
+  and currency as they are, and turning **Show pay** back on shows them again.
+  If you had changed a pay amount just before hiding it, that change is still
+  saved; an amount that isn't a valid number stays visible so you can fix it.
+  A sync conflict still compares pay, so two versions that differ only in pay
+  don't look the same.
 
 - **Matrix columns** — opens a dedicated editor for the columns of the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
@@ -369,6 +380,28 @@ out here too. These only change how calls are dated and ordered.
 - **History order and Last called ignore slots not marked performed** (off) — the
   same for a slot you have not marked performed. With both on, only a dated slot
   you marked performed gives a date.
+
+### Calendar
+
+For [importing gigs from your online calendar](./programs.md#import-programs-from-your-calendar)
+as draft programs.
+
+- **Calendar address** — your calendar's iCal address (`https://…` or
+  `webcal://…`). One address per device. The setting shows only **Set** or
+  **Not set**, and the address itself appears only when you edit it, because a
+  private calendar's address contains a secret: it is never
+  synced to your other devices, never put in a [backup](./backup-portability.md)
+  (enter it again after a restore), and removed from
+  [diagnostics](#diagnostics).
+- **Which events** — how far ahead to look: 3, 6 (the default) or 12 months.
+  Repeating events are read only 30 days ahead, whatever you choose.
+- **Only events whose title contains** — for a calendar that also holds things
+  other than gigs. Leave it empty for every event. It ignores capitals.
+- **Pull now** — opens the calendar import. The app reads your calendar only
+  when you ask it to there.
+
+**Which events** and the title filter travel with your other preferences; the
+address does not.
 
 ## Appearance
 
@@ -585,9 +618,11 @@ default.
 
 Choose which details appear when you share, copy, or export a program or dance:
 **Authors**, **Formation**, **Level**, **Mixer**, **Status**, **Phrase**,
-**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, and **Sources**.
-Everything except tunes, the hook and sources is shown by default; those three
-are hidden until you turn them on. See
+**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, **Sources**, and
+**Meter, key and Barnes**. Everything except tunes, the hook and sources is
+shown by default; those three are hidden until you turn them on. If you had
+changed this list before **Meter, key and Barnes** was added, it starts off.
+See
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 
 ### Collection filters
@@ -623,10 +658,12 @@ Select **Program defaults** to open this group.
   becomes the default unless you have chosen Blank program. With two or more
   templates,
   **New program** asks which to start from, listing the default first; with
-  one template or none it uses the default without asking. Templates apply
-  only to programs you start with **New program**: imports, duplicates,
-  programs someone shared with you, and **Create a new program with this
-  dance** keep their own slots.
+  one template or none it uses the default without asking. The Default
+  template also fills the drafts a
+  [calendar import](./programs.md#import-programs-from-your-calendar) creates.
+  Otherwise templates apply only to programs you start with **New program**:
+  other imports, duplicates, programs someone shared with you, and **Create a
+  new program with this dance** keep their own slots.
 
 If you had set up a **Starting program** before templates arrived, it became
 your first template, named "Starting program", and your Default template, so
@@ -1096,6 +1133,7 @@ with is:
 ```text
 title size=16 bold width=3 | formation size=8 right width=2
 authors size=8 | level size=8 right
+music size=8
 rule color=#b64545 thickness=1.5
 figures size=10 highlight
 space 4
@@ -1103,7 +1141,8 @@ notes size=8 lines=4
 ```
 
 That reads: the title, large and bold, with the formation to its right; the
-authors, with the level to their right; a red line; the figures, with the
+authors, with the level to their right; the tune's meter, key and Barnes
+reference, for a dance that has them; a red line; the figures, with the
 move in bold dark red, the dancers in bold and amounts such as ½ or 3 places in
 blue-gray; a small gap; then up to four lines of calling notes.
 
@@ -1127,8 +1166,10 @@ Beside the text, the editor shows:
 Changes are saved as you type. **Reset to default** (after asking) puts the
 layout above back.
 
-The blocks are `title`, `authors`, `formation`, `level`, `meta` (formation,
-level, mixer, status and phrase on one line), `figures`, `notes` (calling
+The blocks are `title`, `authors` (with the year the dance was composed, and
+who interpreted it and when), `formation`, `level`, `meta` (formation, level,
+mixer, status and phrase on one line), `music` (the meter and key, and the
+Barnes reference, on one line), `figures`, `notes` (calling
 notes), `walkthrough`, `hook`, `tunes`, `sources`, `program` and `number` (a
 program's title, and the dance's number in its set list, or **Alternate**), `text`
 (your own words in quotes, like `text "Called by me"`), `rule` (a line across),

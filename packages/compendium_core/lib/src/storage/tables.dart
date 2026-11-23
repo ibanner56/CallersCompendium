@@ -370,10 +370,16 @@ class Programs extends Table {
   /// on a migrated database, so a fresh one gets the same column order.
   DateTimeColumn get archivedAt => dateTime().nullable()();
 
+  /// The calendar event the program was imported from (#2352, schema v42): a
+  /// SHA-256 hex digest of the event's `UID` and recurrence id, never the
+  /// `UID`. `null` for every program not imported from a calendar. Declared
+  /// last for the same column-order reason as [archivedAt].
+  TextColumn get calendarEventKey => text().nullable()();
+
   /// When the dance starts, as minutes after midnight (`0`–`1439`), a
   /// wall-clock time at the hall with no time zone (schema v42, #2350).
   /// `null` (every program before v42) means not recorded. Like the three
-  /// times after it, declared after [archivedAt] so a migrated database and a
+  /// times after it, declared after [calendarEventKey] so a migrated database and a
   /// fresh one get the same column order.
   IntColumn get startMinute => integer().nullable()();
 

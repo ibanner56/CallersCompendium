@@ -881,6 +881,11 @@ const _valuePairs = <String, List<Object?>>{
   'programs.updated_at': _earlier,
   'programs.deleted_at': _earlier,
   'programs.archived_at': _earlier,
+  // A SHA-256 hex digest: the codec drops anything else.
+  'programs.calendar_event_key': [
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  ],
   'programs.start_minute': [1170, 1171],
   'programs.end_minute': [1350, 1351],
   'programs.lesson_minute': [1140, 1141],
@@ -1187,6 +1192,7 @@ class _Fixture {
     updatedAt: _date('programs.updated_at'),
     deletedAt: _date('programs.deleted_at'),
     archivedAt: _date('programs.archived_at'),
+    calendarEventKey: _str('programs.calendar_event_key'),
   );
 
   StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(

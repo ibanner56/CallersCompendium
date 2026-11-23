@@ -1023,6 +1023,16 @@
             "dsl_features": []
           },
           {
+            "name": "calendar_event_key",
+            "getter_name": "calendarEventKey",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "start_minute",
             "getter_name": "startMinute",
             "moor_type": "int",

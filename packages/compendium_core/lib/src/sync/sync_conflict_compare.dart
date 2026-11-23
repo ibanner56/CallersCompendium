@@ -342,6 +342,10 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
         'program as already imported, with the import date in the badge\'s '
         'tooltip. A hint on another screen rather than a field of the '
         'program: hidden by choice in PR #1729.',
+    'calendarEventKey':
+        'A digest of the calendar event the program was imported from '
+        '(#2352). Nothing shows it: only the calendar import reads it, to '
+        'avoid offering the event again.',
   },
   SyncRecordKind.venue => const {
     'provenance':

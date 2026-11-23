@@ -64,6 +64,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'archivedAt',
     'arrivalMinute',
     'band',
+    'calendarEventKey',
     'caller',
     'createdAt',
     'dancerLevel',

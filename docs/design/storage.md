@@ -896,6 +896,22 @@ steps that can still fire are v40 onward.
   step with `Migrator.addColumn`, guarded on `pragma_table_info`. No data
   rewritten, no derived rebuild.
 
+  Also in v42, before it shipped: the calendar import (#2352). Adds the
+  nullable `programs.calendar_event_key` column (`Program.calendarEventKey`):
+  a SHA-256 hex digest of the calendar event's `UID` and recurrence id that a
+  program was imported from, never the `UID` itself; NULL, which every
+  existing row gets, means not imported from a calendar. A later calendar
+  import matches on it (`ProgramRepository.calendarEventKeyStates`, which
+  counts Recently deleted programs and ignores permanently deleted ones).
+  Device Sync and backups carry it; share files drop it
+  (`sanitizeProgramForShare`); a duplicate does not copy it. The archive key
+  is written only when set, so other programs keep their wire hash; the codec
+  drops a value that is not 64 lower-case hex digits rather than refusing the
+  program. A backup holding one is written under envelope v3
+  (`backupSchemaVersionCalendarEventKeys`, the same number as archiving,
+  because v3 had not shipped). Added by the same `from < 42` step, guarded on
+  `pragma_table_info`. No data rewritten, no derived rebuild.
+
   Also in v42, before it shipped: a program's times (#2350). Adds four
   nullable integer columns, `programs.start_minute`, `end_minute`,
   `lesson_minute` and `arrival_minute` (`Program.startMinute` and the others):
@@ -910,7 +926,7 @@ steps that can still fire are v40 onward.
   above), so 0.10.0 and older warn on import and refuse a replace-restore
   rather than drop them. A Caller's Companion re-import keeps a program's
   times, since a `.USR` file has none. Added by the same `from < 42` step,
-  each only if absent. No data rewritten, no derived rebuild.
+  after `calendar_event_key`, each only if absent. No data rewritten, no derived rebuild.
 
 ## The delete model
 

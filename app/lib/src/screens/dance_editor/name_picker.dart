@@ -1,13 +1,9 @@
-import 'dart:math' as math;
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../theme/app_breakpoints.dart';
-import '../../theme/app_motion.dart';
-import '../../theme/app_shapes.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/multi_select_dropdown.dart';
 
 typedef NameOption = ({String id, String name});
 
@@ -66,182 +62,35 @@ class NamePicker extends StatefulWidget {
 }
 
 class _NamePickerState extends State<NamePicker> {
-  /// The open list's view of this widget, updated on every rebuild so the
-  /// list shows the owner's current selection and names.
-  late final ValueNotifier<NamePicker> _live = ValueNotifier(widget);
-
-  /// The open list's route, while it is open.
-  Route<String>? _route;
-
-  /// The closed field's focus. Taken when the list opens, so closing it hands
-  /// focus back here, not to a text field elsewhere in the form, which would
-  /// scroll the form back to that field.
-  final FocusNode _fieldFocus = FocusNode();
-
-  /// The window size when the drop-down opened, to close it on a resize.
-  Size? _openedAt;
-
-  @override
-  void didUpdateWidget(covariant NamePicker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // After this frame: the open list is in another route, so it cannot be
-    // marked for rebuild while this one is building.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _live.value = widget;
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // A drop-down is placed under the field, so a resized window, which moves
-    // the field, closes it, as a menu closes.
-    final size = MediaQuery.sizeOf(context);
-    if (_route is _DropDownRoute && _openedAt != null && size != _openedAt) {
-      _closeList();
-    }
-  }
-
-  @override
-  void dispose() {
-    // The list belongs to this field: a create still in flight must not add
-    // to an owner that has gone (the editor closed under it).
-    _closeList();
-    _live.dispose();
-    _fieldFocus.dispose();
-    super.dispose();
-  }
-
-  /// Closes the open list, after this frame, since it can be called while
-  /// the tree is building or being torn down.
-  void _closeList() {
-    final route = _route;
-    if (route == null) return;
-    _route = null;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (route.isActive) route.navigator?.removeRoute(route);
-    });
-  }
-
-  String _nameOf(String id) => widget.namesById[id] ?? id;
-
-  Future<void> _open() async {
-    if (_route != null) return;
-    _fieldFocus.requestFocus();
-    // Chosen first, in their order, then everyone else by name. Fixed while
-    // the list is open, so a row does not jump when it is checked.
-    final selected = widget.selectedIds.toSet();
-    // Each sort key is worked out once: a long people list would otherwise
-    // normalise every name many times over.
-    final rest = [
-      for (final o in widget.options)
-        if (!selected.contains(o.id))
-          (key: naturalKeyMatchKey(o.name), id: o.id),
-    ]..sort((a, b) => a.key.compareTo(b.key));
-    final order = [...widget.selectedIds, for (final o in rest) o.id];
-
-    final navigator = Navigator.of(context);
-    final size = MediaQuery.sizeOf(context);
-    final compact =
-        size.width < AppBreakpoints.compact || AppBreakpoints.isShort(context);
-    final Route<String> route;
-    if (compact) {
-      route = ModalBottomSheetRoute<String>(
-        isScrollControlled: true,
-        useSafeArea: true,
-        showDragHandle: true,
-        sheetAnimationStyle: AppMotion.styleFor(context),
-        capturedThemes: InheritedTheme.capture(
-          from: context,
-          to: navigator.context,
-        ),
-        barrierLabel: MaterialLocalizations.of(
-          context,
-        ).scrimOnTapHint(MaterialLocalizations.of(context).bottomSheetLabel),
-        builder: (sheetContext) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
-          ),
-          child: DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.6,
-            minChildSize: 0.3,
-            maxChildSize: 0.9,
-            builder: (_, scrollController) => _NamePickerPanel(
-              owner: this,
-              live: _live,
-              order: order,
-              scrollController: scrollController,
-              // The keyboard would cover half the list on a phone; the
-              // search box is one tap away.
-              autofocus: false,
-            ),
-          ),
-        ),
-      );
-    } else {
-      final box = context.findRenderObject()! as RenderBox;
-      final anchor = box.localToGlobal(Offset.zero) & box.size;
-      route = _DropDownRoute<String>(
-        anchor: anchor,
-        textDirection: Directionality.of(context),
-        barrierLabel: MaterialLocalizations.of(
-          context,
-        ).modalBarrierDismissLabel,
-        child: _NamePickerPanel(
-          owner: this,
-          live: _live,
-          order: order,
-          autofocus: true,
-        ),
-      );
-    }
-    _route = route;
-    _openedAt = size;
-    final editId = await navigator.push(route);
-    if (!mounted) return;
-    if (identical(_route, route)) _route = null;
-    if (editId != null) widget.onEdit?.call(editId);
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final names = widget.selectedIds.map(_nameOf).join(', ');
-    // One node: the field's name, the chosen names as its value, and the
-    // ink well's tap and focus. The hint and names drawn inside are left out
-    // so they are not read twice.
-    return Semantics(
-      button: true,
-      label: widget.sheetSemanticLabel,
-      value: names,
-      child: InkWell(
-        key: ValueKey('${widget.fieldKey}-field'),
-        focusNode: _fieldFocus,
-        onTap: _open,
-        borderRadius: AppShapes.borderRadiusSmall,
-        child: ExcludeSemantics(
-          child: InputDecorator(
-            isEmpty: names.isEmpty,
-            decoration: InputDecoration(
-              hintText: l10n.danceEditorChooseHint,
-              suffixIcon: const Icon(Icons.arrow_drop_down),
-            ),
-            child: Text(names, key: ValueKey('${widget.fieldKey}-names')),
-          ),
-        ),
+    return MultiSelectDropdown(
+      fieldKey: widget.fieldKey,
+      semanticLabel: widget.sheetSemanticLabel,
+      valueText: widget.selectedIds
+          .map((id) => widget.namesById[id] ?? id)
+          .join(', '),
+      decoration: InputDecoration(hintText: l10n.danceEditorChooseHint),
+      panelBuilder: (context, placement) => _NamePickerPanel(
+        owner: this,
+        picker: widget,
+        autofocus: placement.autofocus,
+        scrollController: placement.scrollController,
       ),
+      onClosed: (editId) {
+        if (editId is String) widget.onEdit?.call(editId);
+      },
     );
   }
 }
 
-/// The open list: a search box, a checkbox row per option in [order], and a
-/// create row for a typed name nobody has.
+/// The open list: a search box, a checkbox row per option, the chosen ones
+/// first (see `_order`), and a create row for a typed name nobody has.
 class _NamePickerPanel extends StatefulWidget {
   const _NamePickerPanel({
     required this.owner,
-    required this.live,
-    required this.order,
+    required this.picker,
     required this.autofocus,
     this.scrollController,
   });
@@ -249,8 +98,9 @@ class _NamePickerPanel extends StatefulWidget {
   /// The field this list belongs to. Once it is gone (the editor closed
   /// under the list), a create still in flight adds nothing.
   final State<NamePicker> owner;
-  final ValueNotifier<NamePicker> live;
-  final List<String> order;
+
+  /// The field as the owner last built it: its selection and names.
+  final NamePicker picker;
   final bool autofocus;
   final ScrollController? scrollController;
 
@@ -262,8 +112,22 @@ class _NamePickerPanelState extends State<_NamePickerPanel> {
   final TextEditingController _query = TextEditingController();
   final FocusNode _queryFocus = FocusNode();
 
-  /// [_NamePickerPanel.order], plus anything created while the list is open.
-  late final List<String> _order = [...widget.order];
+  /// The rows' order: the chosen names first, in their order, then everyone
+  /// else by name, plus anything created while the list is open. Fixed while
+  /// the list is open, so a row does not jump when it is checked.
+  late final List<String> _order = _initialOrder(widget.picker);
+
+  static List<String> _initialOrder(NamePicker picker) {
+    final selected = picker.selectedIds.toSet();
+    // Each sort key is worked out once: a long people list would otherwise
+    // normalise every name many times over.
+    final rest = [
+      for (final o in picker.options)
+        if (!selected.contains(o.id))
+          (key: naturalKeyMatchKey(o.name), id: o.id),
+    ]..sort((a, b) => a.key.compareTo(b.key));
+    return [...picker.selectedIds, for (final o in rest) o.id];
+  }
 
   @override
   void initState() {
@@ -366,96 +230,82 @@ class _NamePickerPanelState extends State<_NamePickerPanel> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ValueListenableBuilder<NamePicker>(
-      valueListenable: widget.live,
-      builder: (context, picker, _) {
-        final rows = _rows(picker);
-        final selected = picker.selectedIds.toSet();
-        return Semantics(
-          scopesRoute: true,
-          namesRoute: true,
-          explicitChildNodes: true,
-          label: picker.sheetSemanticLabel,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                  AppSpacing.md,
-                  AppSpacing.xs,
-                ),
-                child: TextField(
-                  key: ValueKey('${picker.fieldKey}-input'),
-                  controller: _query,
-                  focusNode: _queryFocus,
-                  autofocus: widget.autofocus,
-                  decoration: InputDecoration(
-                    hintText: l10n.danceEditorTypeToAddOrCreateHint,
-                    prefixIcon: const Icon(Icons.search),
-                    isDense: true,
-                  ),
-                  onSubmitted: (_) => _submit(picker),
-                ),
-              ),
-              Flexible(
-                child: ListView.builder(
-                  key: ValueKey('${picker.fieldKey}-options'),
-                  controller: widget.scrollController,
-                  shrinkWrap: true,
-                  itemCount: rows.length,
-                  itemBuilder: (context, i) {
-                    final row = rows[i];
-                    if (row.isCreate) {
-                      return ListTile(
-                        key: ValueKey(
-                          '${picker.fieldKey}-option-create:${row.name}',
-                        ),
-                        dense: true,
-                        leading: const Icon(Icons.add),
-                        title: Text(l10n.danceEditorCreateQuotedName(row.name)),
-                        onTap: () => _create(picker, row.name),
-                      );
-                    }
-                    final id = row.id!;
-                    return CheckboxListTile(
-                      key: ValueKey('${picker.fieldKey}-option-$id'),
-                      dense: true,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      value: selected.contains(id),
-                      title: Text(row.name),
-                      onChanged: (_) => _toggle(picker, id),
-                      secondary: picker.onEdit == null
-                          ? null
-                          : IconButton(
-                              key: ValueKey('${picker.fieldKey}-edit-$id'),
-                              icon: const Icon(Icons.edit_outlined),
-                              tooltip: l10n.danceEditorEditItemTooltip(
-                                row.name,
-                              ),
-                              onPressed: () => Navigator.of(context).pop(id),
-                            ),
-                    );
-                  },
-                ),
-              ),
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xs),
-                  child: TextButton(
-                    key: ValueKey('${picker.fieldKey}-done'),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.commonDone),
-                  ),
-                ),
-              ),
-            ],
+    final picker = widget.picker;
+    final rows = _rows(picker);
+    final selected = picker.selectedIds.toSet();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.xs,
           ),
-        );
-      },
+          child: TextField(
+            key: ValueKey('${picker.fieldKey}-input'),
+            controller: _query,
+            focusNode: _queryFocus,
+            autofocus: widget.autofocus,
+            decoration: InputDecoration(
+              hintText: l10n.danceEditorTypeToAddOrCreateHint,
+              prefixIcon: const Icon(Icons.search),
+              isDense: true,
+            ),
+            onSubmitted: (_) => _submit(picker),
+          ),
+        ),
+        Flexible(
+          child: ListView.builder(
+            key: ValueKey('${picker.fieldKey}-options'),
+            controller: widget.scrollController,
+            shrinkWrap: true,
+            itemCount: rows.length,
+            itemBuilder: (context, i) {
+              final row = rows[i];
+              if (row.isCreate) {
+                return ListTile(
+                  key: ValueKey('${picker.fieldKey}-option-create:${row.name}'),
+                  dense: true,
+                  leading: const Icon(Icons.add),
+                  title: Text(l10n.danceEditorCreateQuotedName(row.name)),
+                  onTap: () => _create(picker, row.name),
+                );
+              }
+              final id = row.id!;
+              return CheckboxListTile(
+                key: ValueKey('${picker.fieldKey}-option-$id'),
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: selected.contains(id),
+                title: Text(row.name),
+                onChanged: (_) => _toggle(picker, id),
+                secondary: picker.onEdit == null
+                    ? null
+                    : IconButton(
+                        key: ValueKey('${picker.fieldKey}-edit-$id'),
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: l10n.danceEditorEditItemTooltip(row.name),
+                        onPressed: () => Navigator.of(context).pop(id),
+                      ),
+              );
+            },
+          ),
+        ),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xs),
+            child: TextButton(
+              key: ValueKey('${picker.fieldKey}-done'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.commonDone),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -467,129 +317,4 @@ class _Row {
   final String? id;
   final String name;
   final bool isCreate;
-}
-
-/// Shows [child] in a card dropped down under [anchor] (or above it, when
-/// there is more room there), as wide as the field and at least 280.
-/// A tap outside or Esc closes it.
-class _DropDownRoute<T> extends PopupRoute<T> {
-  _DropDownRoute({
-    required this.anchor,
-    required this.textDirection,
-    required this.child,
-    required this.barrierLabel,
-  });
-
-  final Rect anchor;
-
-  /// The field's text direction, which the list lines up with.
-  final TextDirection textDirection;
-
-  final Widget child;
-
-  @override
-  final String barrierLabel;
-
-  @override
-  Color? get barrierColor => null;
-
-  @override
-  bool get barrierDismissible => true;
-
-  @override
-  Duration get transitionDuration => const Duration(milliseconds: 150);
-
-  @override
-  Widget buildPage(
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-  ) {
-    final padding = MediaQuery.paddingOf(context);
-    final insets = MediaQuery.viewInsetsOf(context);
-    return CustomSingleChildLayout(
-      delegate: _DropDownLayout(
-        anchor: anchor,
-        textDirection: textDirection,
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.sm,
-          padding.top + AppSpacing.sm,
-          AppSpacing.sm,
-          math.max(padding.bottom, insets.bottom) + AppSpacing.sm,
-        ),
-      ),
-      child: FadeTransition(
-        opacity: animation,
-        // The popup menus' shape: their radius, and in High contrast their
-        // outline.
-        child: Material(
-          elevation: 3,
-          shape:
-              PopupMenuTheme.of(context).shape ??
-              const RoundedRectangleBorder(
-                borderRadius: AppShapes.borderRadiusSmall,
-              ),
-          clipBehavior: Clip.antiAlias,
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _DropDownLayout extends SingleChildLayoutDelegate {
-  _DropDownLayout({
-    required this.anchor,
-    required this.padding,
-    required this.textDirection,
-  });
-
-  final Rect anchor;
-
-  /// The list lines up with the field's start edge: its right edge in a
-  /// right-to-left language.
-  final TextDirection textDirection;
-  final EdgeInsets padding;
-
-  static const double _maxHeight = 400;
-  static const double _minWidth = 280;
-
-  double _below(Size size) => size.height - padding.bottom - anchor.bottom;
-  double _above() => anchor.top - padding.top;
-
-  @override
-  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
-    final size = constraints.biggest;
-    final width = math.min(
-      math.max(anchor.width, _minWidth),
-      size.width - padding.horizontal,
-    );
-    final room = math.max(_below(size), _above());
-    return BoxConstraints(
-      minWidth: width,
-      maxWidth: width,
-      maxHeight: math.max(0, math.min(_maxHeight, room)),
-    );
-  }
-
-  @override
-  Offset getPositionForChild(Size size, Size childSize) {
-    final start = textDirection == TextDirection.rtl
-        ? anchor.right - childSize.width
-        : anchor.left;
-    final double left = math.min(
-      math.max(start, padding.left),
-      math.max(padding.left, size.width - padding.right - childSize.width),
-    );
-    final top = childSize.height <= _below(size) || _below(size) >= _above()
-        ? anchor.bottom
-        : anchor.top - childSize.height;
-    return Offset(left, top);
-  }
-
-  @override
-  bool shouldRelayout(_DropDownLayout old) =>
-      anchor != old.anchor ||
-      padding != old.padding ||
-      textDirection != old.textDirection;
 }

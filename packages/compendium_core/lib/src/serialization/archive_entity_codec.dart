@@ -305,6 +305,10 @@ Map<String, Object?> archiveProgramToJson(
   // envelope (`requiredBackupVersion`), like pay; share files never carry it,
   // because the share bundles strip it (`sanitizeProgramForShare`).
   if (p.archivedAt != null) 'archivedAt': archiveIso(p.archivedAt!),
+  // Only when set, for the same wire-hash reason, and stamped by the backup
+  // envelope like archivedAt. Share files never carry it: the share bundles
+  // strip it (`sanitizeProgramForShare`).
+  if (p.calendarEventKey != null) 'calendarEventKey': p.calendarEventKey,
   // The times (#2350): only when set, for the same wire-hash reason. Each is
   // minutes after midnight, and stays an integer for good (sync-spec §6.9).
   // Stamped by the core archive version (`archiveSchemaVersionProgramTimes`),

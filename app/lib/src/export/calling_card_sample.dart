@@ -1,8 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
 
 /// The dance the calling-card layout editor previews: a plain improper contra
-/// with a progression, a figure note and calling notes, so every block the
-/// default layout uses has something to show. [title], [notes] and
+/// with a progression, a figure note, calling notes, a composed year and a
+/// meter and key, so every block the default layout uses has something to
+/// show. It has no Barnes reference, which only an English dance carries. [title], [notes] and
 /// [figureNote] come from the app's localizations; the author name the
 /// preview prints is a display string passed beside it, as for any dance.
 Dance callingCardSampleDance({
@@ -16,6 +17,9 @@ Dance callingCardSampleDance({
     title: title,
     formation: const Formation(FormationShape.dupleImproper),
     callingNotes: notes,
+    composedOn: PartialDate(2019),
+    meter: '2/2',
+    musicalKey: 'D',
     createdAt: epoch,
     updatedAt: epoch,
     figures: [
