@@ -788,14 +788,6 @@ To be defined later with worked examples.
     - `face:up` → `[[L2-B,0,0,0,R2-B],[L1-A,0,0,0,R1-A]]`
     - `face:down` → `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]`
     - `face:in` → N/A (not meaningful) · `face:out` → **deferred** (context-dependent).
-  - **"Ones swing" — built for `who: ones`** *(user-ruled 2026-11-23)*. Caller's Box writes it with
-    no `where`, so it arrives as `where: sides`. When every active hands four has its ones in one
-    row on the side lines, they swing there and finish in that row facing **down** the hall,
-    toward the twos (which after a progression may be new twos), lark-left. A stated `face: up` /
-    `down` is honoured; the default `in` means nothing for a couple along the hall and takes the
-    ruled `down`; `face: out` stays deferred. Otherwise the side-column swing runs as above. A
-    couple standing out does not swing (`fundamentals.md` §10.3.2). `who: twos` in a row is
-    not ruled and still refuses.
     - _Note (flagged, not implemented):_ if the following figure is a **line of four** (with
       these dancers, or the next h4's when `progression:true`), the up/down result is finessed
       into the `sides` line-of-four form. **The line-of-four side of this is now settled** —
@@ -803,6 +795,16 @@ To be defined later with worked examples.
       input using this same column-pair rule, so a `where:center` result that is not already a
       line is simply gathered by the following figure. What remains open here is only the
       `where:center` placement itself.
+  - **"Ones swing" — built for `who: ones`** *(user-ruled 2026-11-23)*. Caller's Box writes it
+    with no `where`, so it arrives as `where: sides`. When every active hands four has its ones
+    alone in one row, on opposite side lines, they swing there and finish in that row facing
+    **down** the hall, toward the twos (which after a progression may be new twos), lark-left.
+    A stated `face: up` / `down` is honoured; the default `in` means nothing for a couple along
+    the hall and takes the ruled `down`; `face: out` there is deferred (`unsupportedParam`).
+    Otherwise the side-column swing runs as above. A couple standing out does not swing
+    (`fundamentals.md` §10.3.2). `who: twos` in a row is not ruled and still refuses.
+    - _Known gap:_ the import keeps a written facing ("Ones swing; face up") as the figure's
+      note, not a param, so from Caller's Box every ones swing takes the default `down`.
   - **dancers not aligned (swingers diagonally opposite)** — e.g. `who:larks`: highly
     context-dependent on the following figure — **largely deferred**. For now: `face:out` →
     dancers stay put `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]` (placeholder, known-incomplete);

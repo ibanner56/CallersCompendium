@@ -243,6 +243,44 @@ void main() {
       );
     });
 
+    test('face: out for ones in their own row is deferred', () {
+      final result = const Swing(
+        who: WhoSet.ones,
+        face: FaceDirection.awayFromSet,
+      ).apply(di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B']));
+      expect(
+        (result as Err<Formation, OpError>).error.kind,
+        ErrorKind.unsupportedParam,
+      );
+    });
+
+    test('ones at the ends of a line of four do not swing in that row', () {
+      // The ones stand at c0 and c4 of a line, facing in. A ones-in-a-row
+      // swing would turn them down the hall; here nobody moves or turns.
+      final line = di(const ['R1-A L2-B . R2-B L1-A', '. . . . .']);
+      final after = applyOk(const Swing(who: WhoSet.ones), line);
+      for (final id in line.dancers.keys) {
+        expect(after.stateOf(id), line.stateOf(id), reason: '$id');
+      }
+    });
+
+    test(
+      'a hands four with ones in both rows is not a ones-in-a-row swing',
+      () {
+        // Synthetic: every dancer numbered one. The side-column swing then
+        // runs, so the dancers are paired by column, not by row.
+        final set = di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B']);
+        final allOnes = set.withUpdates({
+          for (final entry in set.dancers.entries)
+            entry.key: entry.value.copyWith(number: CoupleNumber.one),
+        });
+        final after = applyOk(const Swing(who: WhoSet.ones), allOnes);
+        for (final id in after.dancers.keys) {
+          expect(after.stateOf(id).facing.isAcross, isTrue, reason: '$id');
+        }
+      },
+    );
+
     test('a couple standing out does not swing', () {
       final set = di(const [
         'L1-A . . . R1-A',

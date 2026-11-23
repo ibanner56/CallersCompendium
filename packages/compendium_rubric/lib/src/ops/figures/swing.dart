@@ -69,7 +69,15 @@ final class Swing extends Operation {
         'swing supports where:sides only; where:center is deferred',
       );
     }
-    if (_ownRowSwing(formation) != null) return null;
+    if (_onesInTheirRows(formation) != null) {
+      if (face == FaceDirection.awayFromSet) {
+        return const OpError(
+          ErrorKind.unsupportedParam,
+          'the ones swing in their own row; face:out there is deferred',
+        );
+      }
+      return null;
+    }
     for (final band in handsFourBands(formation)) {
       for (final pair in _columnPairs(formation, band)) {
         if (!whoMatches(formation, pair.top, pair.bottom, who)) {
@@ -91,37 +99,22 @@ final class Swing extends Operation {
   }
 
   /// "Ones swing": the ones, standing across the set from each other in one
-  /// row of every hands four, swing there, in the middle of the set, and
-  /// finish in that row as a couple facing **down** the hall, toward the twos
-  /// — which after a progression may be new twos. *(User-ruled 2026-11-23.)*
+  /// row of every hands four, swing there, in that row, and finish as a
+  /// couple facing **down** the hall, toward the twos — which after a
+  /// progression may be new twos. *(User-ruled 2026-11-23.)*
   ///
   /// This is the taxonomy's `where: center` aligned case, which the import
   /// never names: Caller's Box writes "Ones swing" and the record carries
   /// only `who: ones`. A stated `face: up` or `down` is honoured; the default
   /// `in` has no meaning for a couple standing along the hall, so it takes the
-  /// ruled `down`. `face: out` is still deferred.
-  ///
-  /// Returns `null`, leaving the side-column swing to run, unless every
-  /// active hands four has its ones in one row on the side lines. A couple
-  /// standing out is outside every band and does not swing (§10.3.2).
+  /// ruled `down`. `face: out` is deferred ([checkPreconditions] refuses it).
   Map<DancerId, DancerState>? _ownRowSwing(Formation formation) {
-    if (who != WhoSet.ones || face == FaceDirection.awayFromSet) return null;
+    if (face == FaceDirection.awayFromSet) return null;
+    final rows = _onesInTheirRows(formation);
+    if (rows == null) return null;
     final facing = face == FaceDirection.up ? Facing.up : Facing.down;
-    final bands = handsFourBands(formation);
-    if (bands.isEmpty) return null;
     final changes = <DancerId, DancerState>{};
-    for (final band in bands) {
-      ({int row, DancerId lark, DancerId robin})? ones;
-      for (final row in [band.topRow, band.bottomRow]) {
-        final west = formation.dancerAt(Position(row, 0));
-        final east = formation.dancerAt(Position(row, kColumnCount - 1));
-        if (west == null || east == null) continue;
-        if (west.role == east.role) continue;
-        if (!whoMatches(formation, west, east, who)) continue;
-        final lark = west.role == Role.lark ? west : east;
-        ones = (row: row, lark: lark, robin: lark == west ? east : west);
-      }
-      if (ones == null) return null;
+    for (final ones in rows) {
       final placement = normalizeAlongHall(row: ones.row, facing: facing);
       changes[ones.lark] = formation
           .stateOf(ones.lark)
@@ -131,6 +124,39 @@ final class Swing extends Operation {
           .copyWith(position: placement.robin, facing: facing);
     }
     return changes;
+  }
+
+  /// The row each active hands four's ones stand in, when [who] is `ones`
+  /// and every such hands four has them alone in one row, a lark and a robin
+  /// on opposite side lines; otherwise `null`, leaving the side-column swing
+  /// to run.
+  ///
+  /// A band with ones in both rows, or a row shared with other dancers (a
+  /// line of four), does not qualify. A couple standing out is outside every
+  /// band and does not swing (§10.3.2).
+  List<({int row, DancerId lark, DancerId robin})>? _onesInTheirRows(
+    Formation formation,
+  ) {
+    if (who != WhoSet.ones) return null;
+    final bands = handsFourBands(formation);
+    if (bands.isEmpty) return null;
+    final found = <({int row, DancerId lark, DancerId robin})>[];
+    for (final band in bands) {
+      final rows = <({int row, DancerId lark, DancerId robin})>[];
+      for (final row in [band.topRow, band.bottomRow]) {
+        final west = formation.dancerAt(Position(row, 0));
+        final east = formation.dancerAt(Position(row, kColumnCount - 1));
+        if (west == null || east == null) continue;
+        if (west.role == east.role) continue;
+        if (formation.dancersInRow(row).length != 2) continue;
+        if (!whoMatches(formation, west, east, who)) continue;
+        final lark = west.role == Role.lark ? west : east;
+        rows.add((row: row, lark: lark, robin: lark == west ? east : west));
+      }
+      if (rows.length != 1) return null;
+      found.add(rows.single);
+    }
+    return found;
   }
 
   @override
