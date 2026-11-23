@@ -12,6 +12,7 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/program_template_seed.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 
@@ -90,10 +91,10 @@ Future<void> _pump(
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
-  testWidgets('fetches, previews, and imports a ContraDB program in order', (
-    tester,
-  ) async {
+  testWidgets('fetches, previews, and imports a ContraDB program in order, '
+      'taking nothing from the Default template (#2337)', (tester) async {
     final repos = openTestRepositories();
+    await seedDefaultProgramTemplate(repos);
     // ContraDB per-dance scrape is seam-backed: return a page keyed on the id.
     final contraDb = ContraDbOnline(
       htmlFetcher: (url) async {
@@ -142,6 +143,8 @@ void main() {
     expect(program.slots[1].danceId, isNull);
     expect(program.slots[1].text, 'Waltz');
     expect(program.slots[2].danceId, isNotNull);
+    expect(program.slots, hasLength(3));
+    expect(hasSeededTemplateSlot(program), isFalse);
 
     // Two distinct ContraDB dances were actually imported.
     final dances = await repos.dances.listAll();

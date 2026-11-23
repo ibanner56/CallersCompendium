@@ -222,6 +222,17 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   or elsewhere, hidden by Hide archived, or by the Show archived reset when
   Programs is left), including a selection handed over by a rotation. Restoring a program from Recently deleted
   unarchives it; a delete's Undo does not.
+- New program (#2337): with two or more program templates, New program first
+  opens a short bottom sheet titled "Start from a template", listing the
+  templates in the user's order with the Default template first and marked
+  "Default", and **Blank program** (first and marked when it is the default,
+  otherwise last). Dismissing the sheet cancels. With zero or one template
+  there is no sheet: the builder opens on the Default template, so the common
+  case costs no extra tap. The templates are managed in Settings ▸ Defaults ▸
+  Program defaults ▸ Program templates, a full-screen manager that floats
+  **New template** once it has a list (the empty state carries its own
+  button), reorders by drag or move up / move down, and offers Rename,
+  Duplicate and Delete (with Undo) from each row's ⋮ menu.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called
   history filtering, and Collection's Search in, sort (session-only, opening in

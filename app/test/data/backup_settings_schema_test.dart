@@ -22,7 +22,7 @@ import 'package:compendium_app/src/data/display_defaults.dart'
         kDefaultModifierFiguresKey,
         kDefaultProgramSortDirectionKey,
         kDefaultStartingProgramKey,
-        StartingProgramTemplateEntry;
+        ProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
     show
         kCollectionHiddenFacetsKey,
@@ -71,7 +71,7 @@ void main() {
           validateBackupSettingValue(
             kDefaultStartingProgramKey,
             encodeStartingProgramTemplate([
-              const StartingProgramTemplateEntry(
+              const ProgramTemplateEntry(
                 danceId: 'dance-1',
                 text: 'Caller note',
               ),
