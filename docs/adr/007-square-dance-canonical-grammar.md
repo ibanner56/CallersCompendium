@@ -1331,9 +1331,12 @@ below is this ADR author's call unless it says otherwise.
 
 ### 12.1 The pilot's departures from this text
 
-The pilot implementation (taxonomy version 1) differs from §6 and §7 in the
-places below. The maintainer kept all nine on 23 November 2026 (§1.1, item
-7). Where the tables above disagree with these, the code and this list win.
+The pilot implementation (square taxonomy version 1) differs from §6 and §7
+in the places below. The maintainer kept all nine on 23 November 2026 (§1.1,
+item 7). Where the tables above disagree with these, the code and this list
+win. The pilot lands in topic pull requests: the taxonomy (items 1–8) in
+#2385, and the per-phrase check (item 9) in a later one; until that one
+merges, item 9 describes code still in review.
 
 1. A turn's amount is `travel`, contra's name for it, not `turns`.
 2. Three quarters is contra's token `threeQuarter`, not `threeQuarters`.
