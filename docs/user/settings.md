@@ -931,8 +931,10 @@ then syncs to your other devices, so update the device instead.
 
 Names, definitions and examples of the built-in figures follow your active
 [dialect](dialects.md) for the type shown, so role words read the way you call
-them. Your own figures and terms read in your contra dialect for now, whatever
-their type. The built-in
+them. Your own figures, combinations and terms read in the dialect of the type
+they were made for, and a shorthand reads in the dialect of the type of the
+figure it stands for; a shorthand whose figure is gone reads in your contra
+dialect. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
