@@ -343,7 +343,11 @@ void main() {
         expect(allowedValues(definition, 'who', ecd), {...ecdSelectors});
       });
 
-      test('through an opposite, only English groups that have one', () {
+      // Characterisation, not a guard: no English-only group has an opposite,
+      // so the form changes nothing here, and the declared binding already
+      // limits the result to the slot's groups. It pins that the result stays
+      // inside English's groups and holds none only contra has.
+      test('through an opposite, the groups that have one are unchanged', () {
         final definition = CompoundDefinition(
           params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
           figures: [

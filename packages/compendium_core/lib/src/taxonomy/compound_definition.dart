@@ -258,7 +258,9 @@ ParamKind? _kindNamed(String name) {
 /// opposite that slot accepts, which excludes every value with no opposite.
 ///
 /// A parameter that fills no slot takes its kind's whole vocabulary, with the
-/// `unspecified` sentinel where the kind has one; a `choice` parameter has no
+/// `unspecified` sentinel where the kind has one (a group or pair of dancers
+/// takes the groups of the combination's own form, [userFigureDancerChoices]);
+/// a `choice` parameter has no
 /// vocabulary of its own, so unbound it takes nothing. Null means any string:
 /// a text parameter whose slots are all free text. An empty set means no
 /// value fits, which [validateCompound] reports for a parameter in use; an
