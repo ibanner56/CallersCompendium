@@ -97,7 +97,7 @@ Set<int> waitingCouples(Formation formation) => {
 /// Anything else is a **silent skip**: an empty row, a lone dancer, a
 /// non-partner pair, or a line of four (§8.1 — two whole couples in one row is
 /// an entire hands four, not an end couple). The figure's own transform stands
-/// and later figures are expected to resolve the shape. In a Becket dance, a
+/// and later figures are expected to resolve the shape. In any formation, a
 /// flagged ordinary figure that leaves no whole couple at either end (couples
 /// already standing out included) has its change-over held instead
 /// (`OperationInvocation.applyHolding`, `docs/fundamentals.md` §10.2.1).

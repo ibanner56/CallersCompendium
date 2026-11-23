@@ -639,12 +639,16 @@ brings a couple to an end, the change-over never runs and the compile says so wi
 an end the change-over would only have cleared waiting-out marks, which the comparison does not
 read. `FigureFold` is the one place this is threaded.
 
-Holding applies in **every formation** *(user-ruled 2026-11-23)*: on any diagonal figure the end
-pair with no partner pair on that diagonal stays put, whatever the formation, and the test is
-only whether a whole couple stands at an end. The cost, measured when this was ruled, is that a
-flag a figure or two early can be carried to a later figure that finishes it rather than fail:
-*Once More With Feeling* (Caller's Box #14948) compiles flagged on either petronella, and *The
-Baby Rose* flagged on its partner swing. On the Caller's Box corpus it changed no dance's outcome.
+Holding applies in **every formation** *(user-ruled 2026-11-23)*: the test is only whether a
+whole couple stands at an end, which does not depend on the formation. In Becket the type case
+is a diagonal figure, where the end pair with no partner pair on that diagonal stays put; in
+Duple Improper it is a circle, do si do or swing that leaves partners split across rows. The
+cost is that a flag placed early can be carried to a later figure that finishes it rather than
+fail, sometimes several figures early. Moving each golden's flag to every figure, twelve
+goldens accept two or three more placements than before: *The Baby Rose* compiles flagged on any
+figure from its circle onward (four figures early), *Once More With Feeling* (Caller's Box
+#14948) on either petronella. On the Caller's Box corpus, where the importer places the flag by
+rule, it changed no dance's outcome.
 
 Two limits, each the *agent's call (2026-11-23)*: a figure that is its own progression (`slide_along_set`) or that reached along the
 set is never held; and a later flagged figure that runs its own change-over **overtakes** a
@@ -722,8 +726,10 @@ buys two things:
 
 A useful consequence, with one caveat: the canonical Duple Improper **starting** formation
 (§11) is already end-normalized in the **matrix** — position, number and facing all stand. Its
-*waiting-out* state is not, and should not be: in Duple Improper every row holds a whole
-couple, so the end rows always qualify for marking (§10.3.2). Normalization only ever runs
+*waiting-out* state is not, and should not be: in the Duple Improper start every row holds a
+whole couple, so the end rows qualify for marking (§10.3.2). Mid-dance that need not hold (a
+circle or a swing can leave partners split across rows), which is when a progression is held
+(§10.2.1). Normalization only ever runs
 behind an explicit progression flag (§10.1), so a start state is never passed through it.
 
 ### 10.3 Governing rule — where the hands four begin
@@ -817,7 +823,8 @@ swaps A and D and leaves B and C exactly where they stand; the change-over is wh
 into a hands four — with D.
 
 > **The marking rule is deliberately positional**, not "is this couple already in a complete
-> band?" In Duple Improper *every* row holds a whole couple, so an end row always qualifies. The
+> band?" In a settled Duple Improper set *every* row holds a whole couple, so an end row
+> qualifies. The
 > tempting refinement — skip an end couple that already sits in a complete band — would break
 > §10.5, where B is banded with A and nonetheless waits out. Normalization only ever runs behind
 > an explicit progression flag (§10.1), so a start state is never passed through it.

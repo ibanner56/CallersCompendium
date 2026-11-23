@@ -209,7 +209,13 @@ void main() {
         heldAfter[i] = fold.unfinished;
       }
       expect(heldAfter[early], [early], reason: 'held at the flagged figure');
-      expect(fold.unfinished, isEmpty, reason: 'and finished later');
+      expect(
+        heldAfter[early + 1],
+        isEmpty,
+        reason:
+            'finished by the chain across, the next figure to bring a '
+            'couple whole to an end',
+      );
 
       final result = compile(dance);
       expect(result, isA<Compiled>(), reason: '$result');

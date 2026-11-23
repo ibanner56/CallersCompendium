@@ -15,16 +15,17 @@ import 'result.dart';
 /// **Holding** (`docs/fundamentals.md` §10.2.1, user-ruled 2026-11-23). A
 /// progression-flagged figure that leaves no whole couple at either end has
 /// nobody to step out yet: a Becket dance progressing on a diagonal `chain` or
-/// a `pass_through` along the set is the type case, and on any diagonal figure
-/// the end pair with no partner pair on that diagonal stays put. Its change-over is held
+/// a `pass_through` along the set is the type case in Becket; in Duple Improper
+/// it is a circle or swing that leaves partners split across rows. Its change-over is held
 /// ([OperationInvocation.applyHolding]) and runs after the first later figure
 /// that brings a whole couple to an end. The progression still counts at the
 /// flagged figure, so the distance sets measure from it.
 ///
 /// Holding applies in **every formation** *(user-ruled 2026-11-23)*: the test
 /// is only whether a whole couple stands at an end, which does not depend on
-/// the formation. The cost is that a flag placed a figure or two early can be
-/// carried to a later figure that finishes it, rather than failing.
+/// the formation. The cost is that a flag placed early, sometimes several
+/// figures early, can be carried to a later figure that finishes it rather than
+/// failing (`docs/fundamentals.md` §10.2.1 has the measurement).
 class FigureFold {
   FigureFold();
 

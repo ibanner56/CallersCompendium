@@ -68,8 +68,8 @@ class OperationInvocation {
   /// change-over would mark nobody and the progression would be lost. Held,
   /// it finishes on the first later figure that leaves a whole couple at an
   /// end; see [finishHeldProgression] and `FigureFold`. *(User-ruled
-  /// 2026-11-23, in every formation: on any diagonal figure the end pair with
-  /// no partner pair on that diagonal stays put.)*
+  /// 2026-11-23, in every formation: the test is only whether a whole couple
+  /// stands at an end.)*
   ///
   /// When the result's `held` is `true`, its formation is the figure's own
   /// transform with no change-over applied, and the caller owes one
