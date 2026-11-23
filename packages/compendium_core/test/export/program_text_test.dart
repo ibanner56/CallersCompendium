@@ -96,6 +96,20 @@ void main() {
       );
     });
 
+    test('danceTimesText phrases times not yet on a program the same way', () {
+      String? text(int? start, int? end) => danceTimesText(
+        startMinute: start,
+        endMinute: end,
+        formatTime: isoTimeOfDay,
+      );
+      expect(text(1170, 1350), '19:30–22:30');
+      expect(text(1260, 60), '21:00–01:00 (next day)');
+      expect(text(1170, 1170), '19:30–19:30');
+      expect(text(1170, null), '19:30');
+      expect(text(null, 1350), 'until 22:30');
+      expect(text(null, null), isNull);
+    });
+
     test('formatTime and the labels are used', () {
       final lines = programHeaderLines(
         timed(start: 1170, end: 1350, lesson: 1140),

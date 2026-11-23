@@ -363,12 +363,27 @@ String? programDanceTimes(
   Program program, {
   required String Function(int minuteOfDay) formatTime,
   ProgramExportLabels labels = const ProgramExportLabels(),
+}) => danceTimesText(
+  startMinute: program.startMinute,
+  endMinute: program.endMinute,
+  formatTime: formatTime,
+  labels: labels,
+);
+
+/// [programDanceTimes] for a start and end that are not on a [Program] yet,
+/// such as the program editor's unsaved edits. An end earlier than the start
+/// is the next day, as [Program.endsNextDay] has it.
+String? danceTimesText({
+  required int? startMinute,
+  required int? endMinute,
+  required String Function(int minuteOfDay) formatTime,
+  ProgramExportLabels labels = const ProgramExportLabels(),
 }) {
-  final start = program.startMinute;
-  final end = program.endMinute;
+  final start = startMinute;
+  final end = endMinute;
   if (start != null && end != null) {
     final range = labels.timeRange(formatTime(start), formatTime(end));
-    return program.endsNextDay ? labels.nextDay(range) : range;
+    return end < start ? labels.nextDay(range) : range;
   }
   if (start != null) return formatTime(start);
   if (end != null) return labels.endsAt(formatTime(end));

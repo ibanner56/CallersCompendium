@@ -1,5 +1,7 @@
+import 'package:compendium_app/src/export/program_matrix_pdf.dart';
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -95,5 +97,27 @@ void main() {
       );
       expect(without, contains('8-11pm'));
     });
+  });
+
+  test('the matrix PDF header prints the dance\'s times between the date and '
+      'the venue', () async {
+    final text = pdfText(
+      await buildProgramMatrixPdf(
+        buildProgramMatrix(const []),
+        taxonomy: contraTaxonomy,
+        dialect: Dialect.canonical,
+        programTitle: 'Program',
+        eventDate: DateTime.utc(2026, 5, 1),
+        times: danceTimesText(
+          startMinute: 1170,
+          endMinute: 1350,
+          formatTime: (m) => 'minute$m',
+        ),
+        venue: 'Grange',
+        theme: pw.ThemeData.base(),
+      ),
+    );
+    expect(text, contains('2026-05-01 · minute1170'));
+    expect(text, contains('minute1350 · Grange'));
   });
 }

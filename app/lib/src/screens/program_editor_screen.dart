@@ -4206,6 +4206,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
     final config = _matrixColumnConfig;
     final eventDate = _eventDate;
+    // The dance's start and end beside the date, as the set list prints them
+    // (#2350); the lesson and Arrive by stay off this one-line header.
+    final times = danceTimesText(
+      startMinute: _times.start,
+      endMinute: _times.end,
+      formatTime: (m) => formatTimeOfDay(m, l10n),
+      labels: programExportLabels(l10n),
+    );
     final title = _titleController.text.trim();
     // Prefer a linked venue's sanitized display label over free text. The
     // linked-record precedence matches the set-list export and screen.
@@ -4231,6 +4239,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           dialect: dialect,
           programTitle: title,
           eventDate: eventDate,
+          times: times,
           venue: venue,
           omittedFreeTextCount: omittedFreeTextCount,
           formatDate: (d) =>
