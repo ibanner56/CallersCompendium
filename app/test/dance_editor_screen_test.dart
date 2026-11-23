@@ -2737,6 +2737,127 @@ void main() {
         expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*3');
       });
 
+      Future<void> setBeatsPerBar(
+        WidgetTester tester,
+        int row,
+        String beats,
+      ) async {
+        await tester.enterText(
+          find.byKey(ValueKey('named-phrase-$row-beats')),
+          beats,
+        );
+        await tester.pump();
+      }
+
+      String fieldText(WidgetTester tester, String key) =>
+          tester.widget<TextField>(find.byKey(ValueKey(key))).controller!.text;
+
+      testWidgets('each named phrase shows its own beats to the bar (#2303)', (
+        tester,
+      ) async {
+        final repos = await ecdDance(
+          meter: '3/4 and 6/8',
+          phraseStructure: 'A:2*4*3 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(fieldText(tester, 'named-phrase-0-beats'), '3');
+        expect(fieldText(tester, 'named-phrase-1-beats'), '2');
+      });
+
+      testWidgets('a caller sets one phrase\'s beats to the bar, and the other '
+          'keeps its own (#2303)', (tester) async {
+        final repos = await ecdDance(
+          meter: '',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setBeatsPerBar(tester, 0, '3');
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+      });
+
+      testWidgets('a beats count past the range says so and changes nothing', (
+        tester,
+      ) async {
+        final repos = await ecdDance(
+          meter: '',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setBeatsPerBar(tester, 0, '0');
+        expect(
+          find.byKey(const ValueKey('named-phrases-invalid')),
+          findsOneWidget,
+        );
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
+      testWidgets(
+        'a phrase added after the others takes the Meter\'s beats and '
+        'keeps the rest as they are (#2303)',
+        (tester) async {
+          final repos = await ecdDance(
+            meter: '3/4 and 6/8',
+            phraseStructure: 'A:2*4*3 + B:1*8*2',
+          );
+          await _pumpEditor(tester, repos, danceId: 'd3');
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('named-phrases-add')),
+          );
+          await tester.tap(find.byKey(const ValueKey('named-phrases-add')));
+          await tester.pump();
+          // The Meter names two meters, so a new phrase takes the first row's.
+          expect(
+            await savedStructure(tester, repos),
+            'A:2*4*3 + B:1*8*2 + C:1*8*3',
+          );
+        },
+      );
+
+      testWidgets('editing a Meter that still states the same beats to the bar '
+          'keeps each phrase\'s own (#2303)', (tester) async {
+        final repos = await ecdDance(
+          meter: '3/4',
+          phraseStructure: 'A:2*4*3 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '3/4 waltz',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+      });
+
+      testWidgets('a Meter that names two meters keeps each phrase\'s own '
+          '(#2303)', (tester) async {
+        final repos = await ecdDance(
+          meter: '3/4',
+          phraseStructure: 'A:2*4*3 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '3/4 and 6/8',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+      });
+
+      testWidgets('a Meter that now states other beats to the bar sets them '
+          'in every phrase', (tester) async {
+        final repos = await ecdDance(
+          meter: '3/4',
+          phraseStructure: 'A:2*4*3 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '2/4',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
       testWidgets('an empty bar count changes nothing and says why', (
         tester,
       ) async {
