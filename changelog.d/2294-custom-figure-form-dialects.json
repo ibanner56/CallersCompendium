@@ -1,0 +1,15 @@
+{
+  "id": "2294-custom-figure-form-dialects",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A figure, combination or term of your own made for English reads in your English dialect, instead of your contra dialect, in the Glossary, the figure editor and detail, the Custom Figures screen, the program matrix's column for it, and a sync conflict on it. A shorthand reads in the dialect of the type of the figure it stands for. Nothing changes while your English and contra dialects are the same. The figure editor shows its fields again in the new dialect when you change the type it is made for.",
+      "The note under a shorthand's name that says it reads as a figure now checks each dance type's own figures and dialect, since a shorthand works in a dance of any type."
+    ]
+  },
+  "core": {
+    "added": [
+      "glossaryEntryDanceForm reads the dance form an entry's payload names, contra for one that names none or an unknown one; UserFigureView.form carries it."
+    ]
+  }
+}

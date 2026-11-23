@@ -64,14 +64,11 @@ class GlossaryScreen extends StatefulWidget {
 Dialect _dialectFor(BuildContext context, DanceForm form) =>
     ActiveDialectScope.of(context).forForm(form);
 
-/// The dialect the Glossary shows the user's own entries in, whatever form
-/// they were made for: contra's, as their detail, the Custom Figures screen
-/// and the editor show them, so each reads the same everywhere. Each moves to
-/// its own form's when those surfaces do (ADR-006 implementation plan, W7).
-Dialect _customDialect(BuildContext context) =>
-    _dialectFor(context, DanceForm.contra);
-
-/// Renders the user's own entries, with [_customDialect].
+/// Renders the free text of the user's own entries. Each is shown in the
+/// dialect of the form it was made for (`glossaryEntryDanceForm`), as its
+/// detail, the Custom Figures screen and the editor show it, so each reads the
+/// same everywhere (#2294). Free text takes a dialect and no taxonomy, so one
+/// renderer serves every form.
 final FigureRenderer _customRenderer = glossaryRenderer(DanceForm.contra);
 
 /// The name [entry] is listed and headed by under [dialect]
@@ -219,7 +216,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     AppLocalizations l10n,
     Dialect dialect,
     List<CustomGlossaryItem> custom,
-    Dialect customDialect,
+    DialectsByForm dialects,
   ) {
     final shown = [
       for (final e in _entries)
@@ -231,16 +228,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
             null => null,
           },
         ),
-      for (final c in custom)
-        _ShownEntry.custom(
-          c,
-          _customRenderer.renderFreeText(c.entry.name, customDialect),
-          _customRenderer.renderFreeText(c.entry.definition, customDialect),
-          keywords: [
-            for (final k in c.entry.keywords)
-              _customRenderer.renderFreeText(k, customDialect),
-          ],
-        ),
+      for (final c in custom) _customShown(c, dialects),
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return shown;
@@ -250,30 +238,45 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     ];
   }
 
+  /// [item] as listed: its name, definition and keywords in the dialect of
+  /// the form it was made for, whichever form the Glossary is showing.
+  _ShownEntry _customShown(CustomGlossaryItem item, DialectsByForm dialects) {
+    final dialect = dialects.forForm(
+      glossaryEntryDanceForm(item.entry.payload),
+    );
+    return _ShownEntry.custom(
+      item,
+      _customRenderer.renderFreeText(item.entry.name, dialect),
+      _customRenderer.renderFreeText(item.entry.definition, dialect),
+      keywords: [
+        for (final k in item.entry.keywords)
+          _customRenderer.renderFreeText(k, dialect),
+      ],
+    );
+  }
+
   /// The user's own entries resolved for display: their terms, and while
   /// Custom Figures is on, everything else too (#1023, maintainer decision
   /// 9). Each is checked for a rename against all of them, shown or not.
-  List<CustomGlossaryItem> _custom(BuildContext context, Dialect dialect) {
+  List<CustomGlossaryItem> _custom(
+    BuildContext context,
+    DialectsByForm dialects,
+  ) {
     final figuresShown = customFiguresShown(context);
     final all = resolveCustomGlossary(
       _userEntries,
       // Each name is checked against its own form's figures, as the editor
-      // and the detail check it.
-      dialects: [
-        dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
+      // and the detail check it, and against the dialect it is shown in.
+      dialects: [...?DialectLibraryScope.maybeOf(context)?.allCustomDialects],
+      dialectsFor: (payload) => [
+        dialects.forForm(glossaryEntryDanceForm(payload)),
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
     // Each entry is listed under its own form, or contra's for one with no
     // figures of its own, or one this build does not know.
-    DanceForm listedUnder(UserGlossaryEntry entry) {
-      final form = glossaryEntryForm(entry.payload);
-      for (final value in DanceForm.values) {
-        if (value.name == form) return glossaryFormFor(value);
-      }
-      return DanceForm.contra;
-    }
+    DanceForm listedUnder(UserGlossaryEntry entry) =>
+        glossaryFormFor(glossaryEntryDanceForm(entry.payload));
 
     return [
       for (final item in all)
@@ -335,9 +338,9 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
   ) async {
     final l10n = AppLocalizations.of(context);
     final form = _form;
-    // The copy is one of the user's own, so it is named in the dialect the
-    // editor shows those in.
-    final dialect = _customDialect(context);
+    // The copy is one of the user's own, made for [form], so it is named in
+    // the dialect the editor shows a figure for that form in.
+    final dialect = _dialectFor(context, form);
     final seed = userFigureSeedFromMove(
       shippedTaxonomies.forForm(form),
       entry.id,
@@ -451,9 +454,9 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final dialect = _dialectFor(context, _form);
-    final customDialect = _customDialect(context);
-    final custom = _custom(context, customDialect);
-    final shown = _shown(l10n, dialect, custom, customDialect);
+    final dialects = ActiveDialectScope.of(context);
+    final custom = _custom(context, dialects);
+    final shown = _shown(l10n, dialect, custom, dialects);
     // A term needs only the Glossary, which this screen is; a figure of your
     // own needs Custom Figures on too (#1023, maintainer decision 9).
     final canAdd = _repos != null;
