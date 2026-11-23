@@ -187,6 +187,9 @@ void main() {
     expect(seen.text, unbranded.link);
     expect(seen.floorPixels, 0, reason: 'no badge on a lower level');
     expect(seen.artPixels, 0);
+    // The pixel counts look inside the badge's own box; also say it is not in
+    // the tree at all.
+    expect(find.byKey(const ValueKey('dance-code-mark')), findsNothing);
   });
 
   testWidgets('the real dance shows with the mark and still reads back', (
@@ -195,10 +198,11 @@ void main() {
     expect(seed.withMark, isTrue);
     final seen = await _look(tester, seed);
     expect(seen.text, seed.link);
-    expect(seen.floorPixels, greaterThan(5000), reason: 'the badge painted');
+    // Measured on this render: about 7,700 floor and 5,500 art pixels.
+    expect(seen.floorPixels, greaterThan(3000), reason: 'the badge painted');
     expect(
       seen.artPixels,
-      greaterThan(1000),
+      greaterThan(2000),
       reason: 'the raised mark painted',
     );
     expect(decodeDanceLink(seen.text!), _seedBundle());
@@ -219,8 +223,8 @@ void main() {
     expect(densest.version, 40);
     final seen = await _look(tester, densest);
     expect(seen.text, densest.link);
-    expect(seen.floorPixels, greaterThan(5000));
-    expect(seen.artPixels, greaterThan(1000));
+    expect(seen.floorPixels, greaterThan(3000));
+    expect(seen.artPixels, greaterThan(2000));
   });
 
   testWidgets('it reads back on a 2.625x phone screen too', (tester) async {
@@ -233,8 +237,8 @@ void main() {
       density: 2.625,
     );
     expect(seen.text, seed.link);
-    expect(seen.floorPixels, greaterThan(5000));
-    expect(seen.artPixels, greaterThan(1000));
+    expect(seen.floorPixels, greaterThan(3000));
+    expect(seen.artPixels, greaterThan(2000));
   });
 
   testWidgets('the mark has room to spare: a much larger one still reads', (

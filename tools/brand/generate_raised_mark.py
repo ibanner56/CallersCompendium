@@ -4,21 +4,25 @@
 The Mac installer window (``generate_dmg_background.py``) draws the brand's
 small mark "standing raised" on a pressed-in floor: lit along its top edge,
 darker along its bottom edge, with a small soft shadow. This script gives the
-Show code screen the same construction, using the installer's own shading
-helpers, palette, floor and proportions, so the two read as one family.
+Show code screen the same construction: it reuses the installer's shading
+helpers, its floor tone, its pressed-in rim (same offsets, blur and strength),
+its proportions, and the same layer order for the mark (soft shadow, lower
+edge, lit top edge, face).
 
-One thing differs on purpose: the installer's mark is pale on a pale floor,
-which is far too faint in the middle of a QR code. Here the mark is dark
+The mark itself differs on purpose. The installer's is pale on a pale floor,
+which is far too faint in the middle of a QR code, so here the mark is dark
 enamel: a deep slate face with a vertical sheen (lighter at the top, deeper at
 the bottom), a lit top edge, a deeper lower edge and a stronger soft shadow on
-the floor. It is a dark mark with a raised, lit surface, not a flat black
-shape, and its colours come from the app's own dark scheme.
+the floor. Those layers' offsets, strengths and inks are tuned by hand for a
+dark mark, not taken from the installer; the face colours sit around the
+app's Soft Dark surface (#1E2A38) but are not scheme tokens. It is a dark mark
+with a raised, lit surface, not a flat black shape.
 
 The output is a small rounded-square badge: the pale installer floor, pressed
 in (shadowed upper rim, lit lower rim), with the mark raised on it. The app
 draws it over the white clear zone at the middle of a code. It is baked
-(opaque, floor included) rather than drawn at run time so the shading matches
-the installer's exactly.
+(opaque, floor included) rather than drawn at run time, as the installer's
+background is.
 
 The mark's shading is specified in points against the installer's 22 pt mark
 height, then scaled with the mark, so the badge keeps the installer's
@@ -88,7 +92,8 @@ def badge() -> Image.Image:
     img = Image.new("RGB", (side, side), FLOOR)
 
     # Pressed-in floor, as the installer's arrow: a gentle inner shadow under
-    # the upper rim, light along the lower rim and on the lip outside it.
+    # the upper rim and light along the lower rim. (The arrow's light lip
+    # outside the shape is left out: the badge has no outside.)
     rim_shadow = ImageChops.subtract(outline, dmg.shifted(outline, 0, 2.2 * s))
     rim_shadow = ImageChops.multiply(
         rim_shadow.filter(ImageFilter.GaussianBlur(2.8 * s)), outline)

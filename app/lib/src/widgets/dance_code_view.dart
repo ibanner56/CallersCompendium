@@ -60,6 +60,16 @@ class _DanceCodeScreenState extends State<DanceCodeScreen>
   late final Path _modules = _modulePath(widget.plan);
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decode the badge before the first frame that needs it, so it does not
+    // pop in a moment after the code.
+    if (widget.plan.withMark) {
+      precacheImage(const AssetImage(_markBadgeAsset), context);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final plan = widget.plan;
@@ -177,6 +187,7 @@ class _CodeCard extends StatelessWidget {
               key: const ValueKey('dance-code-mark'),
               width: badge,
               height: badge,
+              fit: BoxFit.fill,
               filterQuality: FilterQuality.high,
               excludeFromSemantics: true,
             ),
