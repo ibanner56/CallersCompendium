@@ -97,8 +97,9 @@ String? squareRoleTokenWords(String token, String Function(String) roleTerm) {
   );
 }
 
-/// The CALLERLAB program a square call is also listed in, shown in the
-/// glossary as a label (ADR-007 §5.2). Nothing else is derived from it.
+/// The CALLERLAB program a square call is also listed in: data for a label in
+/// the glossary (ADR-007 §5.2), which nothing shows yet. Nothing else is
+/// derived from it.
 enum CallerlabProgram { mainstream, plus, advanced }
 
 /// The CALLERLAB program of each square move or alias that CALLERLAB lists
@@ -234,8 +235,10 @@ final Taxonomy squareTaxonomy = Taxonomy(
         ),
         'beats': _beats(16),
       },
+      // No "single file" keyword: contra's own text says "single file" (a
+      // single file promenade or circle), so a search over every form would
+      // read it as a promenade.
       renderTemplate: '{who} {variant} {move} {fraction} {destination}',
-      searchKeywords: const ['single file'],
       goodBeats: const [4, 8, 12, 16],
       // Sources name a destination more often than a fraction (§7.1); one to
       // home is the full 16.

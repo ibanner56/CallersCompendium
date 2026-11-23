@@ -79,7 +79,8 @@ searchKeywords: [allemande, almond]
   a swing's partner, an allemande's corner). Its templates are contra-style.
   A selector that names a role (`headRole1s`, `rightHandRole2`) shows the
   dialect's role term (`squareRoleSelectorWords`). `squareCallPrograms`
-  labels the calls CALLERLAB also lists, for the glossary (ADR-007 §5.2).
+  records which calls CALLERLAB also lists, for a glossary label (ADR-007
+  §5.2) that nothing shows yet.
 - **Aliases** are entries that resolve to a canonical move with pinned params
   (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
   left}; long lines → forward and back{formation: longLines}). A structured
@@ -2408,8 +2409,9 @@ instead, which the gate cannot see.
     follow their contra namesakes (`sq_pass_through`, `sq_do_si_do`), and the
     aliases `sq_allemande_left`, `sq_allemande_right`, `sq_see_saw`,
     `sq_u_turn_back` and `sq_backtrack`. "Gypsy" reads as a shoulder round,
-    as it does for contra, and no square keyword is another form's move name,
-    so a search over every form reads those as before. The selectors are
+    as it does for contra, and no square keyword is another form's move name
+    or a phrase another form's text says (such as "single file"), so a
+    search over every form reads those as before. The selectors are
     ADR-007 §6.2's (`squareSelectors`); a selector or destination that names
     a role (`headRole1s`, `rightHandRole2`, `role1Place`) shows the dialect's
     role term. `ParamBeats.rules` lets a count follow more than one parameter

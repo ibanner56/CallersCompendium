@@ -102,6 +102,50 @@ void main() {
       expect(squareCallPrograms, isNot(contains('sq_hey')));
     });
 
+    test('no square keyword is a phrase another form\'s text uses', () {
+      // A keyword the square taxonomy adds to the search over every form
+      // rewrites that phrase wherever it is searched. A phrase contra's or
+      // English text already says, such as "single file" (contra's single
+      // file promenade and circle), would then find the wrong dances.
+      final withoutSquares = TaxonomyRegistry(
+        base: contraTaxonomy,
+        forms: [ecdTaxonomy],
+      ).anyForm;
+      String words(String token) => token
+          .replaceAllMapped(RegExp('[A-Z]'), (m) => ' ${m[0]}')
+          .toLowerCase()
+          .trim();
+      final phrases = <String>{};
+      for (final taxonomy in [contraTaxonomy, ecdTaxonomy]) {
+        for (final move in taxonomy.moves.values) {
+          phrases.add(move.renderTemplate.toLowerCase());
+          for (final spec in move.params.values) {
+            for (final choice in spec.choices ?? const <String>[]) {
+              phrases.add(words(choice));
+            }
+          }
+        }
+      }
+      for (final (id, keywords) in [
+        for (final m in squareTaxonomy.moves.values) (m.id, m.searchKeywords),
+        for (final a in squareTaxonomy.aliases.values) (a.id, a.searchKeywords),
+      ]) {
+        for (final keyword in keywords) {
+          final word = keyword.toLowerCase();
+          if (canonicalizeMoveSearchText(word, withoutSquares) != word) {
+            continue; // Another form already rewrites it the same way.
+          }
+          for (final phrase in phrases) {
+            expect(
+              phrase.contains(word),
+              isFalse,
+              reason: '$id: "$keyword" is in another form\'s "$phrase"',
+            );
+          }
+        }
+      }
+    });
+
     test('no square name or keyword rewrites another form\'s search', () {
       // A search over every form rewrites a name or keyword to its move's
       // name (canonicalizeMoveSearchText), so a square keyword that is
