@@ -721,6 +721,13 @@ void main() {
             ['DTSTART:20300620T180000Z', 'DTEND:20300620T185000Z'],
             ['DTSTART:20300620T230000', 'DTEND:20300620T235000'],
           ),
+          (
+            // 21:00Z on 19 June is 02:00 on 20 June: the UTC date is the
+            // day before the local one.
+            'from UTC on the day before to a local time',
+            ['DTSTART:20300619T210000Z', 'DTEND:20300619T215000Z'],
+            ['DTSTART:20300620T020000', 'DTEND:20300620T025000'],
+          ),
         ]) {
           test('a caller\'s edited date is not offered back when the calendar '
               're-saves the same time $label', () async {
