@@ -894,6 +894,22 @@ steps that can still fire are v40 onward.
   step with `Migrator.addColumn`, guarded on `pragma_table_info`. No data
   rewritten, no derived rebuild.
 
+  Also in v42, before it shipped: a program's times (#2350). Adds four
+  nullable integer columns, `programs.start_minute`, `end_minute`,
+  `lesson_minute` and `arrival_minute` (`Program.startMinute` and the others):
+  minutes after midnight, 0–1439, a wall-clock time at the hall with no time
+  zone. NULL, which every existing row gets, means not recorded. Device Sync,
+  backups and program share files carry all four; each key is written only
+  when set, so a program without times keeps its sync wire hash. They travel
+  as top-level integers, so a build that does not know them keeps them
+  verbatim (`retained_sync_fields`, sync-spec §6.7) and they need no
+  capability gate. An archive holding one is stamped core archive v8
+  (`archiveSchemaVersionProgramTimes`, the same number as the dance fields
+  above), so 0.10.0 and older warn on import and refuse a replace-restore
+  rather than drop them. A Caller's Companion re-import keeps a program's
+  times, since a `.USR` file has none. Added by the same `from < 42` step,
+  each only if absent. No data rewritten, no derived rebuild.
+
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published

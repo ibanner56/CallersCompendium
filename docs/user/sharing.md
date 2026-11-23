@@ -143,7 +143,15 @@ cards, there is a sixth: **Print calling cards**, one small card for each of the
 The set list — text and PDF alike — is titles, event details, and slot notes by
 default, with each dance's author shown next to its title if you have authors
 turned on (see [Choose which dance fields
-appear](#choose-which-dance-fields-appear) below). When you choose **Share set
+appear](#choose-which-dance-fields-appear) below).
+
+A program's [times](./programs.md#times) appear in the set list too: the
+dance's start and end beside the date, such as "7:30 PM–10:30 PM", with
+"(next day)" when it ends after midnight, and the **Beginner lesson** on its
+own line. **Arrive by** never appears in the set list or the PDF: it is your
+own logistics. A program file you share (**Share program and dances**, or
+**Export as JSON file**) keeps all four times, so a guest caller you send it
+to knows when to arrive. When you choose **Share set
 list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
 **Include figures?** with two choices:
 
