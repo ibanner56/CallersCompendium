@@ -100,6 +100,11 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _tcbBareLongWave,
     _chainAnnotation,
     _starPromenadeAnnotation,
+    // #2331: a single-file promenade `clockwise`/`counterclockwise` around the
+    // major set is a promenade, not a single-file circle. Listed before
+    // `_promenadeAnnotation` and `_singleFileCircleRecognizer`, both of which
+    // anchor on the same words; it claims only that whole-set shape.
+    _singleFileWholeSetPromenade,
     _promenadeAnnotation,
     _rightLeftThroughAnnotation,
     // Single-file circle recognition (taxonomy v27, issue #840): "Single file
@@ -1858,6 +1863,103 @@ FigureMatch? _tcbBareLongWave(String scrubbed) {
 /// One people-code-plus-hand field of a TCB annotation (`P2L`, `N1R`, `SR`,
 /// `P-1R`), the shape that names a hold. Anchored and bounded.
 final RegExp _bareLongWaveCodeField = RegExp(r'^[A-Za-z]{1,2}-?\d{0,2}[RL]$');
+
+// --- Single-file promenade around the major set (#2331) ---------------------
+
+/// TCB's `Single file promenade counterclockwise around the major set to N2`:
+/// the whole set travels single file to the next neighbors — a promenade
+/// around the major set (maintainer ruling, #2331), not the single-file
+/// circle [_singleFileCircleRecognizer] reads for `Single file promenade
+/// clockwise 3/4`, whose unstated `places` would read as a three-place circle
+/// in the hands four.
+///
+/// The figure is `promenade{singleFile: true, where: along, direction,
+/// destination}`, the shape the ContraDB dialect gives its own whole-set
+/// single-file promenade: `along` because the single-file display always
+/// shows `where`, and the `across` default would state a direction the source
+/// never did. `direction` is the spin word as written (a promenade's
+/// `direction` is a rotation, unlike a circle's left/right). No `who` is
+/// written: TCB's promenade path never writes an unstated subject, and the
+/// single-file display drops it anyway. `around the major set` and any other
+/// annotation stay in the note; the destination's words do not, because
+/// `where: along` renders the destination clause (the rule
+/// [_promenadeAnnotation] applies).
+///
+/// A whole-set line it cannot read whole — a destination that names no dancer
+/// set (`to shadow S4`), a places amount, or an annotation describing two
+/// rings turning opposite ways (`(inner ring ccw, outer ring cw)`) — stays
+/// custom rather than fall through to the circle. A line with no rotation word
+/// is not this shape (the counter-rotating `Single file promenade around the
+/// major set (… cw in center, …)` lines) and is left to the existing path.
+FigureMatch? _singleFileWholeSetPromenade(String scrubbed) {
+  final head = _singleFileSpinRe.firstMatch(scrubbed);
+  if (head == null) return null;
+  var rest = scrubbed.substring(head.end).trimLeft();
+  final places = _placesRe.firstMatch(rest);
+  final hadPlaces = places != null && places.end > 0;
+  if (hadPlaces) rest = rest.substring(places.end).trimLeft();
+  final around = _aroundMajorSetLeadRe.firstMatch(rest);
+  if (around == null) return null;
+  if (hadPlaces) return const FigureMatch.customFallback();
+  rest = rest.substring(around.end);
+
+  final annotations = _annotations(rest);
+  if (annotations.any(_counterRotationRe.hasMatch)) {
+    return const FigureMatch.customFallback();
+  }
+  final bare = rest.replaceAll(_parenRe, ' ').replaceAll(_bracketRe, ' ').trim();
+
+  String? destination;
+  if (bare.isNotEmpty) {
+    final tail = _promenadeDestinationTailRe.firstMatch(' $bare');
+    if (tail == null || tail.start != 0) {
+      return const FigureMatch.customFallback();
+    }
+    destination = resolveDancerSetPhrase(tail.group(1)!);
+    if (destination == null) return const FigureMatch.customFallback();
+  }
+  final notes = <String>[];
+  for (final body in annotations) {
+    final m = _promenadeDestinationAnnotationRe.firstMatch(body);
+    final d = m == null ? null : resolveDancerSetPhrase(m.group(1)!);
+    if (d != null && destination == null) {
+      destination = d;
+      continue;
+    }
+    notes.add(body);
+  }
+  final note = [?_joinAnnotations(notes), 'around the major set'].join('; ');
+  return FigureMatch(
+    'promenade',
+    params: {
+      'singleFile': true,
+      'where': 'along',
+      'direction': head.group(1)!.toLowerCase(),
+      'destination': ?destination,
+    },
+    note: note,
+    assumedSubject: true,
+  );
+}
+
+/// `single file promenade clockwise|counterclockwise` at the start of a line.
+final RegExp _singleFileSpinRe = RegExp(
+  r'^\s*single\s+file\s+promenade\s+(clockwise|counterclockwise)\b',
+  caseSensitive: false,
+);
+
+/// `around [the] [major] set` at the start of what follows the spin word.
+final RegExp _aroundMajorSetLeadRe = RegExp(
+  r'^around\s+(?:the\s+)?(?:major\s+)?set\b',
+  caseSensitive: false,
+);
+
+/// An annotation describing counter-rotating rings: `cw`/`ccw`, `ring`,
+/// `in center`, `on outside`.
+final RegExp _counterRotationRe = RegExp(
+  r'\b(?:cw|ccw|rings?|in\s+(?:the\s+)?center|on\s+(?:the\s+)?outside)\b',
+  caseSensitive: false,
+);
 
 // --- Single-file circle recognition (taxonomy v27, issue #840 / #749) --------
 
