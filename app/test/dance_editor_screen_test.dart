@@ -2843,8 +2843,23 @@ void main() {
         expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
       });
 
-      testWidgets('a Meter that now states other beats to the bar sets them '
-          'in every phrase', (tester) async {
+      testWidgets('a Meter that states other beats to the bar sets them in '
+          'every phrase of a uniform structure', (tester) async {
+        final repos = await ecdDance(
+          meter: '3/4',
+          phraseStructure: 'A:2*4*3 + B:1*8*3',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '2/4',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
+      testWidgets('a Meter never rewrites phrases that differ in beats to the '
+          'bar (#2303)', (tester) async {
         final repos = await ecdDance(
           meter: '3/4',
           phraseStructure: 'A:2*4*3 + B:1*8*2',
@@ -2855,6 +2870,79 @@ void main() {
           '2/4',
         );
         await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+      });
+
+      testWidgets('typing a Meter one character at a time keeps the phrases '
+          'that differ (#2303)', (tester) async {
+        final repos = await ecdDance(
+          meter: '3/4 and 6/8',
+          phraseStructure: 'A:2*4*3 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        const typed = '3/4 and 6/8';
+        for (var i = 1; i <= typed.length; i++) {
+          await tester.enterText(
+            find.byKey(const ValueKey('meter-field')),
+            typed.substring(0, i),
+          );
+          await tester.pump();
+        }
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+      });
+
+      testWidgets('undoing a Meter edit restores what the next edit is '
+          'compared with (#2303)', (tester) async {
+        // The Meter says 3/4 but the phrases count 2: it is changed to 4/4,
+        // which sets them to 4, and undone. The next edit leaves the Meter at
+        // 3/4 as it was, so it sets nothing.
+        final repos = await ecdDance(
+          meter: '3/4',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '4/4',
+        );
+        await tester.pump(const Duration(seconds: 1));
+        await tester.ensureVisible(find.byKey(const ValueKey('undo-button')));
+        await tester.tap(find.byKey(const ValueKey('undo-button')));
+        await tester.pump();
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '3/4 waltz',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
+      testWidgets('naming the phrases keeps the beats of a structure that '
+          'differs (#2303)', (tester) async {
+        final repos = await ecdDance(
+          meter: '3/4',
+          phraseStructure: '2*4*3 + 1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('named-phrases-start')),
+        );
+        await tester.tap(find.byKey(const ValueKey('named-phrases-start')));
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+      });
+
+      testWidgets('an empty or too large beats count says so and changes '
+          'nothing', (tester) async {
+        final repos = await ecdDance(
+          meter: '',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setBeatsPerBar(tester, 0, '');
+        expect(find.text('1 to 1000'), findsOneWidget);
+        await setBeatsPerBar(tester, 0, '1001');
+        expect(find.text('1 to 1000'), findsOneWidget);
         expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
       });
 
