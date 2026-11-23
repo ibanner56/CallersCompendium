@@ -466,7 +466,8 @@ Future<void> clearCalendarFlag(
 /// Creates one draft program per entry in [chosen] and returns their ids.
 ///
 /// Each draft has the event's title ([untitledTitle] when it has none), its
-/// date, its venue label (and linked venue record when one matched), status
+/// date, its start and end times when the event is timed (#2423), its venue
+/// label (and linked venue record when one matched), status
 /// Draft, the **Default template**'s slots (#2337,
 /// [defaultProgramTemplateEntries]; none for Blank program), the default
 /// caller and band, and the event's key.
@@ -496,6 +497,9 @@ Future<List<String>> commitCalendarImport(
           id: id,
           title: c.title.trim().isEmpty ? untitledTitle : c.title,
           eventDate: c.date,
+          // A timed event's start and end (#2423); an all-day one has none.
+          startMinute: c.startMinute,
+          endMinute: c.endMinute,
           venue: c.venueLabel,
           venueId: entry.venueId,
           caller: caller,

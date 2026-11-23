@@ -143,6 +143,45 @@ void main() {
     },
   );
 
+  testWidgets('the preview shows a timed event\'s times beside its date '
+      '(#2423)', (tester) async {
+    await withClock(fixed, () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kCalendarFeedUrlKey, _secret);
+      await pump(
+        tester,
+        repos,
+        CalendarImportScreen(
+          fetcher: (_) async => _cal([
+            [
+              'UID:t',
+              'DTSTART:20300620T193000',
+              'DTEND:20300620T223000',
+              'SUMMARY:Timed contra',
+            ],
+            ['UID:d', 'DTSTART;VALUE=DATE:20300627', 'SUMMARY:All-day contra'],
+          ]),
+          toLocal: (u) => u,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('calendar-import-fetch')));
+      await tester.pumpAndSettle();
+
+      // intl may put a narrow no-break space before AM/PM.
+      Finder textWith(String part) => find.byWidgetPredicate(
+        (w) =>
+            w is Text &&
+            (w.data ?? '').replaceAll('\u202f', ' ').contains(part),
+      );
+      expect(textWith('7:30 PM–10:30 PM'), findsOneWidget);
+      expect(
+        textWith('PM'),
+        findsOneWidget,
+        reason: 'the all-day event has no time',
+      );
+    });
+  });
+
   testWidgets('Settings shows the address as set, never its text', (
     tester,
   ) async {

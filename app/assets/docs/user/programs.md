@@ -256,7 +256,8 @@ background, on a timer, or when you come back to the app.
   and the list says how many.
 
 **What each draft gets.** The event's title (or **Untitled event**), its date,
-and the first part of its location as the venue — "Glen Echo Park, 7300
+its [start and end times](#times) when the event has a time of day (an all-day
+event gets none), and the first part of its location as the venue — "Glen Echo Park, 7300
 MacArthur Blvd, …" becomes **Glen Echo Park**. If that matches the name of a
 saved [venue](./glossary.md#venue), the draft is linked to it. The rest of the
 location, usually a street address, is not kept. Nor is the event's
@@ -265,6 +266,15 @@ emails and phone numbers live. The draft starts with your **Default template**,
 **Default caller** and **Default band** from
 [Settings ▸ Defaults](./settings.md#program-defaults), and its status is
 **Draft**.
+
+**The times.** An event's start and end become the draft's **Start time** and
+**End time**, shown beside its date in the list before you import. A time your
+calendar keeps in a time zone is taken as written, the clock at the hall; a
+time your calendar keeps in UTC is turned into your device's local time. An
+event that ends after midnight gets an end earlier than its start, read as the
+next day; one that lasts a day or more, or no time at all, gets only its
+start. The **Beginner lesson** and **Arrive by** times are never read from an
+event.
 
 **No duplicates.** Each imported program remembers which event it came from, so
 the next import lists that event as **Already imported** and does not offer it

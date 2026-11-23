@@ -87,6 +87,31 @@ class ICalDateValue {
     return DateTime.utc(local.year, local.month, local.day);
   }
 
+  /// The wall-clock date and time this value falls at for the reader, as a
+  /// UTC-flagged container (no instant is implied), or `null` for a `DATE`:
+  /// a `Z` value through [toLocal]; a floating or `TZID` value as written
+  /// (#2423). The same rule as [localDate], with the time of day kept.
+  DateTime? localDateTime(DateTime Function(DateTime utc) toLocal) {
+    if (isDate) return null;
+    if (!isUtc) return _instant;
+    return _wallClock(toLocal(_instant));
+  }
+
+  /// The written date and time in a UTC container: the instant itself for a
+  /// `Z` value, the wall clock for a floating or `TZID` one. Not for a `DATE`.
+  DateTime get _instant =>
+      DateTime.utc(year, month, day, hour!, minute!, second!);
+
+  /// [local]'s wall-clock fields in a UTC container.
+  static DateTime _wallClock(DateTime local) => DateTime.utc(
+    local.year,
+    local.month,
+    local.day,
+    local.hour,
+    local.minute,
+    local.second,
+  );
+
   /// Comparable key: date, then time (a `DATE` sorts as midnight).
   int get _sortKey =>
       ((year * 100 + month) * 100 + day) * 1000000 +
@@ -132,6 +157,8 @@ class ICalEvent {
   const ICalEvent({
     required this.uid,
     required this.start,
+    this.end,
+    this.duration,
     this.summary,
     this.location,
     this.status,
@@ -142,6 +169,14 @@ class ICalEvent {
 
   final String uid;
   final ICalDateValue start;
+
+  /// `DTEND`, when the event has one (#2423).
+  final ICalDateValue? end;
+
+  /// `DURATION`, when the event has one (RFC 5545 §3.3.6), as a nominal
+  /// length: weeks, days, hours, minutes and seconds added together. An
+  /// [end] takes precedence where a feed gives both.
+  final Duration? duration;
   final String? summary;
   final String? location;
 
@@ -229,6 +264,8 @@ ICalFeed parseICalFeed(String body, {int maxEvents = iCalMaxEvents}) {
               ICalEvent(
                 uid: uid.trim(),
                 start: start,
+                end: _date(props, 'DTEND'),
+                duration: _duration(props['DURATION']?.first.value),
                 summary: _text(props, 'SUMMARY'),
                 location: _text(props, 'LOCATION'),
                 status: _text(props, 'STATUS')?.trim().toUpperCase(),
@@ -317,6 +354,24 @@ ICalDateValue? _date(Map<String, List<_Prop>> props, String name) {
   final p = props[name];
   if (p == null || p.isEmpty) return null;
   return ICalDateValue.tryParse(p.first.value);
+}
+
+/// An RFC 5545 §3.3.6 `DURATION` value, such as "PT3H", "PT2H30M", "P1D" or
+/// "P1W", or `null` when it is missing, negative or unreadable.
+Duration? _duration(String? raw) {
+  if (raw == null) return null;
+  final m = RegExp(
+    r'^\+?P(?:(\d+)W|(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?)$',
+  ).firstMatch(raw.trim().toUpperCase());
+  if (m == null) return null;
+  int part(int i) => int.tryParse(m.group(i) ?? '') ?? 0;
+  if ([1, 2, 3, 4, 5].every((i) => m.group(i) == null)) return null;
+  return Duration(
+    days: part(1) * 7 + part(2),
+    hours: part(3),
+    minutes: part(4),
+    seconds: part(5),
+  );
 }
 
 /// Undoes RFC 5545 TEXT escaping: `\\`, `\;`, `\,` and `\n` / `\N`. An
@@ -535,6 +590,8 @@ class CalendarImportCandidate {
     required this.eventKey,
     required this.title,
     required this.date,
+    this.startMinute,
+    this.endMinute,
     this.venueLabel,
     this.exportedProgramId,
   });
@@ -548,6 +605,18 @@ class CalendarImportCandidate {
 
   /// The event date, `DateTime.utc(y, m, d)`, as the program editor stores it.
   final DateTime date;
+
+  /// When the event starts, as minutes after midnight on [date] at the
+  /// reader's wall clock (`Program.startMinute`, #2423), or `null` for an
+  /// all-day event. A `Z` time is converted to the reader's local time; a
+  /// floating or `TZID` time is taken as written.
+  final int? startMinute;
+
+  /// When it ends, on the same rule (`Program.endMinute`): earlier than
+  /// [startMinute] when it ends after midnight. `null` when the event has no
+  /// start time, no end, or lasts no time or a day or more, none of which a
+  /// program's start and end can say.
+  final int? endMinute;
 
   /// The first comma-separated segment of `LOCATION`, sanitized and
   /// single-line; the rest (usually a street address) is dropped.
@@ -577,7 +646,7 @@ class CalendarImportPlan {
     this.truncated = false,
   });
 
-  /// In date order.
+  /// In date order, and on one date by start time (an all-day event first).
   final List<CalendarImportCandidate> candidates;
 
   /// Every event the feed holds and does not cancel, whatever its date or
@@ -697,9 +766,16 @@ CalendarImportPlan planCalendarImport(
   final candidates = <CalendarImportCandidate>[];
   final unreadable = <String>[];
 
-  void offer(ICalEvent e, String recurrenceId, DateTime date) {
-    final key = calendarEventKey(e.uid, recurrenceId);
+  /// [start] is when this occurrence starts: the event's own `DTSTART`, or
+  /// for a series occurrence, the series' moved to that day.
+  void offer(
+    ICalEvent e,
+    String recurrenceId,
+    DateTime date,
+    ICalDateValue start,
+  ) {
     if (e.isCancelled) return;
+    final (startMinute, endMinute) = _eventMinutes(e, start, localOf);
     final title = _clean(e.summary) ?? '';
     if (filter != null &&
         filter.isNotEmpty &&
@@ -708,9 +784,11 @@ CalendarImportPlan planCalendarImport(
     }
     candidates.add(
       CalendarImportCandidate(
-        eventKey: key,
+        eventKey: calendarEventKey(e.uid, recurrenceId),
         title: title,
         date: date,
+        startMinute: startMinute,
+        endMinute: endMinute,
         venueLabel: _clean(e.location?.split(',').first),
         exportedProgramId: e.uid.endsWith(programCalendarUidSuffix)
             ? e.uid.substring(0, e.uid.length - programCalendarUidSuffix.length)
@@ -728,13 +806,15 @@ CalendarImportPlan planCalendarImport(
       // below. One whose series is missing is offered as a single event.
       if (seriesUids.contains(e.uid)) continue;
       final date = e.start.localDate(localOf);
-      if (inRange(date, horizonEnd)) offer(e, e.recurrenceId!.text, date);
+      if (inRange(date, horizonEnd)) {
+        offer(e, e.recurrenceId!.text, date, e.start);
+      }
       continue;
     }
     final rrule = e.rrule;
     if (rrule == null) {
       final date = e.start.localDate(localOf);
-      if (inRange(date, windowEnd)) offer(e, '', date);
+      if (inRange(date, windowEnd)) offer(e, '', date, e.start);
       continue;
     }
     final rule = ICalRecurrence.tryParse(rrule);
@@ -770,20 +850,30 @@ CalendarImportPlan planCalendarImport(
       if (override != null) {
         placed.add(rid);
         final date = override.start.localDate(localOf);
-        if (inRange(date, horizonEnd)) offer(override, rid, date);
+        if (inRange(date, horizonEnd)) {
+          offer(override, rid, date, override.start);
+        }
         continue;
       }
       final date = occurrence.localDate(localOf);
-      if (inRange(date, horizonEnd)) offer(e, rid, date);
+      if (inRange(date, horizonEnd)) offer(e, rid, date, occurrence);
     }
     // An override moved into the horizon from an occurrence outside it.
     for (final entry in seriesOverrides.entries) {
       if (placed.contains(entry.key)) continue;
       final date = entry.value.start.localDate(localOf);
-      if (inRange(date, horizonEnd)) offer(entry.value, entry.key, date);
+      if (inRange(date, horizonEnd)) {
+        offer(entry.value, entry.key, date, entry.value.start);
+      }
     }
   }
-  candidates.sort((a, b) => a.date.compareTo(b.date));
+  // By date, then start time (an all-day event first), so two gigs on one
+  // day are listed in the order they happen.
+  candidates.sort((a, b) {
+    final byDate = a.date.compareTo(b.date);
+    if (byDate != 0) return byDate;
+    return (a.startMinute ?? -1).compareTo(b.startMinute ?? -1);
+  });
 
   // #2354: every event the feed holds, whatever its date or the title
   // filter, so a program whose event, or one occurrence of it, only moved is
@@ -889,6 +979,55 @@ int _untilKey(
     )._sortKey;
   }
   return until._sortKey;
+}
+
+/// The start and end minutes after midnight of [e]'s occurrence starting at
+/// [start], at the reader's wall clock (#2423).
+///
+/// The length comes from the event's own `DTSTART` and `DTEND`, or from its
+/// `DURATION` when it has no `DTEND`, and is added to [start], so every
+/// occurrence of a series keeps the series' length. An override is a whole
+/// event of its own: without a `DTEND` or `DURATION` it has no end, and does
+/// not take the series'.
+///
+/// For a `Z` start the length is measured and added as an instant and the end
+/// converted with [localOf], so an event across a daylight-saving change ends
+/// at the right local time; a floating or `TZID` event is wall-clock
+/// throughout. An end is kept only when the event lasts more than no time and
+/// less than a day, and does not fall in the start's own minute: a program's
+/// end time is a time of day, read as the next day when it is earlier than
+/// the start, so it cannot say anything longer.
+(int?, int?) _eventMinutes(
+  ICalEvent e,
+  ICalDateValue start,
+  DateTime Function(DateTime utc) localOf,
+) {
+  final startAt = start.localDateTime(localOf);
+  if (startAt == null) return (null, null);
+  final startMinute = startAt.hour * 60 + startAt.minute;
+  final end = e.end;
+  final Duration? length;
+  if (end != null) {
+    length = end.isDate || e.start.isDate
+        ? null
+        : (end.isUtc && e.start.isUtc)
+        ? end._instant.difference(e.start._instant)
+        : end
+              .localDateTime(localOf)!
+              .difference(e.start.localDateTime(localOf)!);
+  } else {
+    length = e.duration;
+  }
+  if (length == null ||
+      length <= Duration.zero ||
+      length >= const Duration(days: 1)) {
+    return (startMinute, null);
+  }
+  final endAt = start.isUtc
+      ? ICalDateValue._wallClock(localOf(start._instant.add(length)))
+      : startAt.add(length);
+  final endMinute = endAt.hour * 60 + endAt.minute;
+  return (startMinute, endMinute == startMinute ? null : endMinute);
 }
 
 DateTime _addMonths(DateTime d, int months) {

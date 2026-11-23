@@ -248,6 +248,36 @@ void main() {
       expect(p.venueId, 'v1');
     });
 
+    test('a timed event gives its draft a start and end; an all-day one gives '
+        'none (#2423)', () async {
+      final repos = openTestRepositories();
+      await _importAll(
+        repos,
+        await _preview(
+          repos,
+          _cal([
+            [
+              'UID:timed',
+              'DTSTART:20300620T193000',
+              'DTEND:20300620T223000',
+              'SUMMARY:Timed',
+            ],
+            ['UID:allday', 'DTSTART;VALUE=DATE:20300627', 'SUMMARY:All day'],
+          ]),
+        ),
+      );
+      final byTitle = {
+        for (final p in await repos.programs.listAll()) p.title: p,
+      };
+      expect(byTitle['Timed']!.startMinute, 1170);
+      expect(byTitle['Timed']!.endMinute, 1350);
+      expect(byTitle['Timed']!.eventDate, DateTime.utc(2030, 6, 20));
+      expect(byTitle['All day']!.hasTimes, isFalse);
+      // Lesson and Arrive by are never read from an event.
+      expect(byTitle['Timed']!.lessonMinute, isNull);
+      expect(byTitle['Timed']!.arrivalMinute, isNull);
+    });
+
     test('an empty title gets the placeholder', () async {
       final repos = openTestRepositories();
       await _importAll(
