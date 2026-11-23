@@ -57,7 +57,7 @@ void main() {
         ),
       ),
     );
-    final p = decoded.document!.core.programs.single;
+    final p = decoded.document.core.programs.single;
     expect(p.startMinute, 1170);
     expect(p.endMinute, 60);
     expect(p.lessonMinute, 1140);
