@@ -182,4 +182,24 @@ void main() {
       expect(find.byKey(const ValueKey('match-A1-chip-swing')), findsOneWidget);
     },
   );
+
+  testWidgets('a phrase no dance has still shows its picks, removable '
+      '(#2325)', (tester) async {
+    // A saved search can ask for a figure in a phrase that no dance in the
+    // collection has (any more). The pick still narrows the search, so its
+    // row must be there to see and clear.
+    final selections = ByPhraseSelections();
+    selections.exclude['C1'] = ['swing'];
+    var changes = 0;
+    await _pump(tester, selections: selections, onChanged: () => changes++);
+    expect(find.byKey(const ValueKey('by-phrase-C1')), findsOneWidget);
+    final chip = find.byKey(const ValueKey('exclude-C1-chip-swing'));
+    expect(chip, findsOneWidget);
+    await tester.tap(
+      find.descendant(of: chip, matching: find.byIcon(Icons.cancel)),
+    );
+    await tester.pumpAndSettle();
+    expect(selections.isEmpty, isTrue);
+    expect(changes, 1);
+  });
 }
