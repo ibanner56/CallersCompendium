@@ -584,9 +584,11 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   criterion — single or double — not the flag), and `figures` (the danced
   figures above), each carrying its
   `move` and `params` (a container's child figures become figure records of
-  their own under `params.figures`), plus `progression: true` on the one figure that
-  progresses. That flag is the only field the bridge *adds* rather than
-  translates, and where the assumed-progression rule below takes effect.
+  their own under `params.figures`), plus `progression: true` on each figure
+  that progresses: the source's own flags, or, when it flags none, the one the
+  assumed-progression rule below places (and, on its N2 retry, the later ones
+  N3 and N4 place). That flag is the only field the bridge *adds* rather than
+  translates.
 - **`DanceOutcome`** keeps eight buckets deliberately separate, because they name
   eight different problems with eight different owners. `unstructured` is
   upstream's (the import pipeline's); `unsupported`, `mismatch`,
@@ -647,6 +649,20 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > clause that speaks of only some dancers or of other neighbours too ("M1 with
 > N2, W1 with N1", "Heads with N2", "face N2 M2") is not a mention. Notes inside
 > a container count, as params do *(agent's call)*.
+>
+> **Later progressions follow N3 and N4** *(user-ruled 2026-11-23: "N3 marks
+> the second", "N4 marks a third")*. On the same retry, a Double dance also
+> flags its second progression by the first mention of the third neighbours
+> after the first progression, and a Triple (or longer) its third by the first
+> mention of the fourth (`laterNeighborsProgressionIndex`). The reading is the
+> N2 one: a `thirdNeighbors` param or a "with N3" note puts it on the figure
+> before, "face N3" on that figure, a note-only mention followed by a nearer
+> neighbour set again is an excursion, and a clause about only some dancers
+> does not count. Each must fall after the progression before it. The engine
+> already dances several flags (`progressionCount`, `reachAfter`); only the
+> bridge was placing one. Positional placement never adds a second, and the
+> retry is compiled whenever it adds a later progression even if its first
+> matches the positional one. A Quadruple gets at most three (no N5 rule).
 >
 > This stays inside rule 5 because the landmark comes from the *record*: it reads
 > figure parameters and notes, exactly as the positional rule reads formation and
@@ -834,7 +850,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,429 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,447 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

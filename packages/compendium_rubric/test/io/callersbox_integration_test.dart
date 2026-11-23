@@ -1120,6 +1120,253 @@ void main() {
       });
     });
 
+    group('N3 and N4 mark later progressions (user-ruled 2026-11-23)', () {
+      core.Figure noted(String move, String note) =>
+          core_test.testFigure(move: move, note: note);
+      core.Dance dance(
+        List<core.Figure> figures, {
+        core.Progression progression = core.Progression.double,
+      }) => _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: figures,
+      ).copyWith(progression: progression);
+      List<int> flagged(BridgedDance bridged) => [
+        for (final (i, f) in (bridged.record['figures']! as List).indexed)
+          if ((f as Map)['progression'] == true) i,
+      ];
+
+      test('a double progression flags the figure before the first N3', () {
+        final bridged = bridgeCoreDance(
+          dance([
+            figure('circle'),
+            figure('swing', {'who': 'nextNeighbors'}),
+            figure('long_lines'),
+            figure('do_si_do', {'who': 'thirdNeighbors'}),
+          ]),
+          useNextNeighborsFallback: true,
+        );
+        expect(flagged(bridged), [0, 2]);
+        expect(bridged.warnings.map((w) => w.detail), contains(contains('N3')));
+      });
+
+      test('a note dancing with N3 is a reach; facing N3 is the figure', () {
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing'),
+              noted('balance', 'with thirdNeighbors'),
+            ]),
+            n: 3,
+            after: 0,
+          ),
+          1,
+        );
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing'),
+              noted('allemande', 'face N3'),
+            ]),
+            n: 3,
+            after: 0,
+          ),
+          2,
+        );
+      });
+
+      test('a single progression places no second', () {
+        final bridged = bridgeCoreDance(
+          dance([
+            figure('circle'),
+            figure('swing', {'who': 'nextNeighbors'}),
+            figure('long_lines'),
+            figure('do_si_do', {'who': 'thirdNeighbors'}),
+          ], progression: core.Progression.single),
+          useNextNeighborsFallback: true,
+        );
+        expect(flagged(bridged), [0]);
+      });
+
+      test('the positional rule places no second', () {
+        // A Becket dance opening with a slide left progresses there by the
+        // positional rule; only the N2 retry goes on to read N3.
+        final bridged = bridgeCoreDance(
+          _shapedLike(
+            shape: core.FormationShape.becketCw,
+            figures: [
+              figure('slide_along_set', {'slide': 'left'}),
+              figure('swing'),
+              figure('do_si_do', {'who': 'thirdNeighbors'}),
+            ],
+          ).copyWith(progression: core.Progression.double),
+        );
+        expect(flagged(bridged), [0]);
+      });
+
+      test(
+        'a triple flags the third before the first N4; a double does not',
+        () {
+          final figures = [
+            figure('circle'),
+            figure('swing', {'who': 'nextNeighbors'}),
+            figure('long_lines'),
+            figure('do_si_do', {'who': 'thirdNeighbors'}),
+            figure('star'),
+            figure('swing', {'who': 'fourthNeighbors'}),
+          ];
+          expect(
+            flagged(
+              bridgeCoreDance(
+                dance(figures, progression: core.Progression.triple),
+                useNextNeighborsFallback: true,
+              ),
+            ),
+            [0, 2, 4],
+          );
+          expect(
+            flagged(
+              bridgeCoreDance(dance(figures), useNextNeighborsFallback: true),
+            ),
+            [0, 2],
+          );
+        },
+      );
+
+      test('a later progression must come after the one before it', () {
+        // N3 named right after the N2 reach would put the second progression
+        // on the first one's figure: that is not a second progression.
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing', {'who': 'nextNeighbors'}),
+              figure('do_si_do', {'who': 'thirdNeighbors'}),
+            ]),
+            n: 3,
+            after: 1,
+          ),
+          isNull,
+        );
+      });
+
+      test('a note-only N3 followed by N2 again is an excursion', () {
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing'),
+              noted('balance', 'with N3'),
+              figure('swing', {'who': 'nextNeighbors'}),
+              noted('allemande', 'face N3'),
+            ]),
+            n: 3,
+            after: 0,
+          ),
+          4,
+        );
+      });
+
+      test('a note-only N3 followed by plain neighbours is an excursion', () {
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing'),
+              noted('balance', 'with N3'),
+              figure('swing', {'who': 'neighbors'}),
+            ]),
+            n: 3,
+            after: 0,
+          ),
+          isNull,
+        );
+      });
+
+      test('a note inside a container counts', () {
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing'),
+              core.Figure.modifier(
+                figures: [figure('long_lines'), noted('swing', 'face N3')],
+                beats: 8,
+              ),
+            ]),
+            n: 3,
+            after: 0,
+          ),
+          2,
+        );
+      });
+
+      test('the retry is compiled when it only adds a later progression', () {
+        // A Becket double opening with a slide left: both rules put the first
+        // progression on the slide, and only the retry adds the N3 one.
+        final source = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            figure('slide_along_set', {'slide': 'left'}),
+            figure('swing', {'who': 'nextNeighbors'}),
+            figure('long_lines'),
+            figure('do_si_do', {'who': 'thirdNeighbors'}),
+          ],
+        ).copyWith(progression: core.Progression.double);
+        final positional = bridgeCoreDance(source);
+        final fallback = bridgeCoreDance(
+          source,
+          useNextNeighborsFallback: true,
+        );
+        expect(positional.assumedProgressionAt, 0);
+        expect(fallback.assumedProgressionAt, 0);
+        expect(fallback.laterProgressionsAt, [2]);
+        expect(retryPlacesDifferently(positional, fallback), isTrue);
+        expect(retryPlacesDifferently(positional, positional), isFalse);
+      });
+
+      test('the first progression is warned about first', () {
+        final bridged = bridgeCoreDance(
+          dance([
+            figure('circle'),
+            figure('swing', {'who': 'nextNeighbors'}),
+            figure('long_lines'),
+            figure('do_si_do', {'who': 'thirdNeighbors'}),
+          ]),
+          useNextNeighborsFallback: true,
+        );
+        expect(bridged.warnings.map((w) => w.opIndex), [0, 2]);
+      });
+
+      group('clauses that are not a mention of the whole hands four', () {
+        for (final note in const [
+          'M1 with N3, W1 with N2',
+          'Heads with N3',
+          'with N3 phantoms',
+          'face N3 M2',
+          'with partner, to N3',
+          'face N2',
+          'with N4',
+        ]) {
+          test('"$note"', () {
+            expect(
+              laterNeighborsProgressionIndex(
+                dance([
+                  figure('circle'),
+                  figure('swing'),
+                  noted('balance', note),
+                ]),
+                n: 3,
+                after: 0,
+              ),
+              isNull,
+            );
+          });
+        }
+      });
+    });
+
     test('a flagged source is never second-guessed', () {
       final dance = _shapedLike(
         shape: core.FormationShape.dupleImproper,

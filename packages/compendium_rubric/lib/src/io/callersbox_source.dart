@@ -134,7 +134,9 @@ class DanceRun {
   /// means.
   final bool blockedByDeferral;
 
-  /// The figure this run assumed was the progression, when it assumed one.
+  /// The first figure this run assumed was a progression, when it assumed
+  /// any. A multiple progression's later assumed flags appear only in
+  /// [warnings] (`assumedProgression`).
   ///
   /// Like every figure index this path reports (warnings, a refusal's
   /// "figure N", a parse error's `figures[N]`), it is a position in
@@ -358,12 +360,12 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   //
   // A crash is never retried. The compiler throwing is a defect here, and a
   // second placement that happens to land would bury it.
-  var attempt = _attempt(bridgeCoreDance(dance));
+  final positional = bridgeCoreDance(dance);
+  var attempt = _attempt(positional);
   if (attempt.outcome != DanceOutcome.compiled &&
       attempt.outcome != DanceOutcome.crashed) {
     final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
-    if (fallback.assumedProgressionAt != null &&
-        fallback.assumedProgressionAt != attempt.assumedAt) {
+    if (retryPlacesDifferently(positional, fallback)) {
       final retry = _attempt(fallback);
       if (retry.outcome == DanceOutcome.compiled) attempt = retry;
     }
@@ -445,14 +447,28 @@ class BridgedDance {
     required this.record,
     this.warnings = const [],
     this.assumedProgressionAt,
+    this.laterProgressionsAt = const [],
   });
 
   final Map<String, Object?> record;
   final List<Warning> warnings;
 
-  /// A position in [dancedFigures], as is every index in [record]'s figures.
+  /// The first assumed progression: a position in [dancedFigures], as is
+  /// every index in [record]'s figures.
   final int? assumedProgressionAt;
+
+  /// The second and later assumed progressions of a multiple progression,
+  /// in order (`laterNeighborsProgressionIndex`); empty for a single one.
+  final List<int> laterProgressionsAt;
 }
+
+/// Whether the N2 retry [fallback] reads the dance differently from the
+/// positional [attempt], and so is worth compiling: it places a progression,
+/// and either its first one differs or it adds later ones.
+bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
+    fallback.assumedProgressionAt != null &&
+    (fallback.assumedProgressionAt != attempt.assumedProgressionAt ||
+        fallback.laterProgressionsAt.isNotEmpty);
 
 /// Translates a [core.Dance] into the dance-record shape [parseDance] reads.
 ///
@@ -465,7 +481,11 @@ class BridgedDance {
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
 /// [runCoreDance] makes when the positional rule does not compile; it is not a
-/// better rule, only a second guess, and it warns just as loudly.
+/// better rule, only a second guess, and it warns just as loudly. On that
+/// retry a Double or Triple dance also gets its later progressions by
+/// [laterNeighborsProgressionIndex] (N3, then N4), reported in
+/// [BridgedDance.laterProgressionsAt]. A Quadruple gets at most three: no
+/// rule names its fourth.
 BridgedDance bridgeCoreDance(
   core.Dance dance, {
   bool useNextNeighborsFallback = false,
@@ -477,6 +497,25 @@ BridgedDance bridgeCoreDance(
       : (useNextNeighborsFallback
             ? nextNeighborsProgressionIndex(dance)
             : assumedProgressionIndex(dance));
+  // A double progression places its second progression by the first N3
+  // mention, and a triple its third by N4, on the same retry (user-ruled
+  // 2026-11-23).
+  final rounds = switch (dance.progression) {
+    core.Progression.double => 2,
+    core.Progression.triple => 3,
+    core.Progression.quadruple => 4,
+    _ => 1,
+  };
+  final laterAt = <int>[];
+  if (useNextNeighborsFallback && assumedAt != null) {
+    var previous = assumedAt;
+    for (var n = 3; n <= 4 && n <= rounds + 1; n++) {
+      final at = laterNeighborsProgressionIndex(dance, n: n, after: previous);
+      if (at == null) break;
+      laterAt.add(at);
+      previous = at;
+    }
+  }
   final warnings = <Warning>[
     if (assumedAt != null)
       Warning(
@@ -489,6 +528,17 @@ BridgedDance bridgeCoreDance(
             '${useNextNeighborsFallback ? ', because the positional rule did '
                       'not compile and this is where the first mention of the '
                       'next neighbours (nextNeighbors, N2) puts it' : ''}',
+      ),
+    for (final (step, at) in laterAt.indexed)
+      Warning(
+        WarningKind.assumedProgression,
+        opIndex: at,
+        detail:
+            'the source flagged no figure as the progression, so figure '
+            '${at + 1} (${figures[at].move}) was assumed to be progression '
+            '${step + 2}, because this is where the first mention of '
+            '${_laterNeighbours[step + 3]!.label} '
+            '(${_laterNeighbours[step + 3]!.key}) puts it',
       ),
   ];
 
@@ -503,13 +553,16 @@ BridgedDance bridgeCoreDance(
           {
             'move': figures[index].move,
             'params': _recordParams(figures[index].params),
-            if (figures[index].progression || index == assumedAt)
+            if (figures[index].progression ||
+                index == assumedAt ||
+                laterAt.contains(index))
               'progression': true,
           },
       ],
     },
     warnings: warnings,
     assumedProgressionAt: assumedAt,
+    laterProgressionsAt: laterAt,
   );
 }
 
@@ -718,18 +771,114 @@ final _partialMention = RegExp(
 /// matches [pattern] and speaks of the whole hands four. A container's
 /// children are danced in its slot, as for [_namesNextNeighbors] *(agent's
 /// call, 2026-11-23)*.
-bool _noteSays(core.Figure figure, RegExp pattern) =>
+bool _noteSays(core.Figure figure, RegExp pattern, {RegExp? partial}) =>
     (figure.note ?? '')
         .split(';')
         .any(
           (clause) =>
-              pattern.hasMatch(clause) && !_partialMention.hasMatch(clause),
+              pattern.hasMatch(clause) &&
+              !(partial ?? _partialMention).hasMatch(clause),
         ) ||
-    figure.subFigures.any((child) => _noteSays(child, pattern));
+    figure.subFigures.any(
+      (child) => _noteSays(child, pattern, partial: partial),
+    );
 
 bool _noteReaches(core.Figure figure) => _noteSays(figure, _withNextNeighbors);
 
 bool _noteFaces(core.Figure figure) => _noteSays(figure, _faceNextNeighbors);
+
+/// The spellings of the farther neighbour sets that mark a later progression:
+/// N3 (`thirdNeighbors`) the second, N4 (`fourthNeighbors`) the third.
+const _laterNeighbours = {
+  3: (label: 'N3', key: 'thirdNeighbors'),
+  4: (label: 'N4', key: 'fourthNeighbors'),
+};
+
+/// A note clause that dances with the [n]th neighbours ("with N3", or the
+/// import's `with thirdNeighbors`), possibly with other dancers listed.
+RegExp _withNthNeighbors(int n) => RegExp(
+  r'\bwith\s+(?:\w+\s*(?:,|\band\b)\s*)*'
+  '(${_laterNeighbours[n]!.label}|${_laterNeighbours[n]!.key}?)'
+  r'\b',
+);
+
+/// A note clause that ends facing the [n]th neighbours: "face N3".
+RegExp _faceNthNeighbors(int n) => RegExp(
+  r'\bface\s+'
+  '(${_laterNeighbours[n]!.label}|${_laterNeighbours[n]!.key}?)'
+  r'\b',
+);
+
+/// [_partialMention] for N[n]: another neighbour number, a role or group as
+/// the subject of "with", one dancer of N[n], or phantoms.
+RegExp _partialNthMention(int n) => RegExp(
+  '\\b(${[for (var k = 0; k <= 4; k++)
+    if (k != n) 'N$k'].join('|')}'
+  r'|phantoms?)\b'
+  r'|\b(M|W|M1|M2|W1|W2|men|women|heads|sides|larks|robins)\s+with\b'
+  '|\\bN$n\\s+[MW]\\d',
+  caseSensitive: false,
+);
+
+/// Whether [figure], or any figure inside it, names the [n]th neighbours.
+bool _namesNthNeighbors(core.Figure figure, int n) =>
+    figure.params.values.any(
+      (value) =>
+          value == _laterNeighbours[n]!.key ||
+          value ==
+              _laterNeighbours[n]!.key.substring(
+                0,
+                _laterNeighbours[n]!.key.length - 1,
+              ),
+    ) ||
+    figure.subFigures.any((child) => _namesNthNeighbors(child, n));
+
+/// Whether [figure], or any figure inside it, names a neighbour set nearer
+/// than the [n]th: plain neighbours, N2, ..., N(n-1).
+bool _namesNearerNeighbors(core.Figure figure, int n) =>
+    _namesNeighbors(figure) ||
+    _namesNextNeighbors(figure) ||
+    [for (var k = 3; k < n; k++) k].any((k) => _namesNthNeighbors(figure, k));
+
+/// The figure that is a multiple progression's **(n-1)th** progression, by
+/// the first mention of the [n]th neighbours (N3 for the second, N4 for the
+/// third) after [after], the previous progression's figure; or `null` when
+/// there is none.
+///
+/// The later steps of [nextNeighborsProgressionIndex]'s rule *(user-ruled
+/// 2026-11-23: "N3 marks the second", "N4 marks a third")*. A figure naming
+/// that set, or whose note dances "with N3", puts the progression on the
+/// figure before; a note ending "face N3" puts it on that figure. As with
+/// N2, a note-only mention followed later by a figure naming a nearer
+/// neighbour set is an excursion and is skipped *(agent's call, mirroring
+/// the N2 rule)*, and a clause about only some dancers does not count. Each
+/// progression must come after the previous one; a mention that would put it
+/// on or before [after] gives `null`.
+int? laterNeighborsProgressionIndex(
+  core.Dance dance, {
+  required int n,
+  required int after,
+}) {
+  final figures = _requireDecoded(dance);
+  final withPattern = _withNthNeighbors(n);
+  final facePattern = _faceNthNeighbors(n);
+  final partial = _partialNthMention(n);
+  int? later(int index) => index > after ? index : null;
+  for (var index = after + 1; index < figures.length; index++) {
+    final figure = figures[index];
+    if (_namesNthNeighbors(figure, n)) return later(index - 1);
+    final reaches = _noteSays(figure, withPattern, partial: partial);
+    final faces = _noteSays(figure, facePattern, partial: partial);
+    if (!reaches && !faces) continue;
+    if (figures
+        .skip(index + 1)
+        .any((later) => _namesNearerNeighbors(later, n))) {
+      continue;
+    }
+    return later(reaches ? index - 1 : index);
+  }
+  return null;
+}
 
 /// [dance]'s figures when its transcription decoded, or `null` when it did not.
 ///
