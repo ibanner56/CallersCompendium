@@ -1058,6 +1058,8 @@ void main() {
 
   test('fresh attach keeps every copy\'s other titles, and the latest '
       'copy\'s Barnes reference', () {
+    // Only an English dance holds a Barnes reference.
+    const ecd = {'form': 'ecd'};
     final plain = planFreshAttachDedupe([
       _danceCandidate('a-survivor', 'Shared', updatedSeconds: 1),
       _danceCandidate('m-newest', 'Shared', updatedSeconds: 2),
@@ -1071,6 +1073,7 @@ void main() {
         'Shared',
         updatedSeconds: 1,
         extra: const {
+          ...ecd,
           'alternateTitles': ['Monymusk'],
           'barnesReference': 'BIII p. 92',
         },
@@ -1080,6 +1083,7 @@ void main() {
         'Shared',
         updatedSeconds: 2,
         extra: const {
+          ...ecd,
           'alternateTitles': ['Other', 'Monymusk'],
         },
       ),
@@ -1090,6 +1094,17 @@ void main() {
       isNot(contains('barnesReference')),
       reason: 'the newest copy has none, so the merged dance has none',
     );
+
+    final newer = planFreshAttachDedupe([
+      _danceCandidate('a-survivor', 'Shared', updatedSeconds: 1, extra: ecd),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {...ecd, 'barnesReference': 'NiB'},
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(newer['barnesReference'], 'NiB');
 
     // The union keeps the bound every dance holds, so the merged body
     // decodes to itself on every device.
@@ -1112,6 +1127,21 @@ void main() {
       ),
     ]).merges.single.winner.blob.body;
     expect(full['alternateTitles'], hasLength(kMaxAlternateTitles));
+  });
+
+  test('a merge the person chose across forms keeps the English survivor\'s '
+      'Barnes reference, which a newer contra copy cannot hold', () {
+    final merged = mergeDanceCandidates([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: const {'form': 'ecd', 'barnesReference': 'BIII p. 92'},
+      ),
+      _danceCandidate('m-newest', 'Shared', updatedSeconds: 2),
+    ]).winner.blob.body;
+    expect(merged['form'], 'ecd');
+    expect(merged['barnesReference'], 'BIII p. 92');
   });
 
   test('fresh attach unions interpreters as it does authors, leaves the '

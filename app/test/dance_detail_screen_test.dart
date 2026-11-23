@@ -3910,6 +3910,7 @@ void main() {
       final repos = openTestRepositories();
       await repos.dances.create(
         _dance(id: 'd1', title: 'Money Musk').copyWith(
+          form: DanceForm.ecd,
           alternateTitles: ['Monymusk', 'Sir Archibald Grant'],
           barnesReference: 'BIII p. 92',
         ),
@@ -3932,7 +3933,7 @@ void main() {
         _dance(
           id: 'd1',
           title: 'Gypsy Dance',
-        ).copyWith(barnesReference: 'Gypsy p. 4'),
+        ).copyWith(form: DanceForm.ecd, barnesReference: 'Gypsy p. 4'),
       );
 
       await _pumpDetail(tester, repos, 'd1');
