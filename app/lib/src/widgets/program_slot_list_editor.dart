@@ -154,16 +154,11 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// "Add a dance before" / "Add a dance after" on a slot's "…" menu (#2339):
   /// the host picks a dance and inserts it at the boundary of the alternate
-  /// group holding the slot at `index` ([Program.insertSlotAtGroupBoundary]).
-  /// `targetTitle` names that group's primary, which is where the dance lands
-  /// next to whichever of the group's slots the menu was opened on. Both items
-  /// are omitted when this is null.
-  final void Function(
-    int index, {
-    required bool after,
-    required String targetTitle,
-  })?
-  onAddDanceAt;
+  /// group ([Program.insertSlotAtGroupBoundary]). `index` is that group's
+  /// primary, whichever of the group's slots the menu was opened on, since the
+  /// dance lands next to the whole group. Both items are omitted when this is
+  /// null.
+  final void Function(int index, {required bool after})? onAddDanceAt;
 
   /// Ids of the slots a pending "Add a dance before/after" will land next to,
   /// highlighted until a dance is chosen or the insertion is cancelled.
@@ -224,25 +219,14 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return '$message ${l10n.programsAlternatePromoted(name)}';
   }
 
-  String _slotTitle(AppLocalizations l10n, ProgramSlot slot) {
-    final danceId = slot.danceId;
-    if (danceId != null) {
-      final title = widget.danceTitles(danceId);
-      return title ?? l10n.programsDeletedDanceFallback;
-    }
-    final text = slot.text;
-    if (text == null || text.trim().isEmpty) {
-      return l10n.programsSlotNoteFallback;
-    }
-    if (!widget.canonicalizeDiscouragedTerms ||
-        widget.dialect == null ||
-        (slot.danceId == null && slot.isPurgedDance != false)) {
-      return text;
-    }
-    return FigureRenderer(
-      shippedTaxonomies.anyForm,
-    ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
-  }
+  String _slotTitle(AppLocalizations l10n, ProgramSlot slot) =>
+      programSlotTitle(
+        l10n,
+        slot,
+        danceTitles: widget.danceTitles,
+        dialect: widget.dialect,
+        canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
+      );
 
   String? _slotNote(ProgramSlot slot) {
     final text = slot.text?.trim();
@@ -356,10 +340,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   : () => widget.onViewDanceDetails!(slots[i].danceId!),
               onAddDanceBefore: widget.onAddDanceAt == null
                   ? null
-                  : () => _addDanceAt(l10n, i, after: false),
+                  : () => _addDanceAt(i, after: false),
               onAddDanceAfter: widget.onAddDanceAt == null
                   ? null
-                  : () => _addDanceAt(l10n, i, after: true),
+                  : () => _addDanceAt(i, after: true),
               insertionTarget: widget.insertionTargetSlotIds.contains(
                 slots[i].id,
               ),
@@ -369,13 +353,9 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     );
   }
 
-  void _addDanceAt(AppLocalizations l10n, int i, {required bool after}) {
+  void _addDanceAt(int i, {required bool after}) {
     final primary = Program.alternateGroupRange(widget.slots, i).start;
-    widget.onAddDanceAt?.call(
-      i,
-      after: after,
-      targetTitle: _slotTitle(l10n, widget.slots[primary]),
-    );
+    widget.onAddDanceAt?.call(primary, after: after);
   }
 
   void _moveUp(int i) {
@@ -493,6 +473,36 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       }
     }
   }
+}
+
+/// The name the slot list shows for [slot]: its dance's title, or its note
+/// (with discouraged terms canonicalized when [canonicalizeDiscouragedTerms]
+/// and a [dialect] are given). Shared with the program editor, which names
+/// an "Add a dance before/after" target the same way (#2339).
+String programSlotTitle(
+  AppLocalizations l10n,
+  ProgramSlot slot, {
+  required String? Function(String danceId) danceTitles,
+  required Dialect? dialect,
+  required bool canonicalizeDiscouragedTerms,
+}) {
+  final danceId = slot.danceId;
+  if (danceId != null) {
+    final title = danceTitles(danceId);
+    return title ?? l10n.programsDeletedDanceFallback;
+  }
+  final text = slot.text;
+  if (text == null || text.trim().isEmpty) {
+    return l10n.programsSlotNoteFallback;
+  }
+  if (!canonicalizeDiscouragedTerms ||
+      dialect == null ||
+      (slot.danceId == null && slot.isPurgedDance != false)) {
+    return text;
+  }
+  return FigureRenderer(
+    shippedTaxonomies.anyForm,
+  ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
 }
 
 /// A single slot row: drag handle + alt-indent + summary + controls (inline,

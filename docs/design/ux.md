@@ -264,8 +264,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   group's primary or after its last alternate, never inside it; an
   alternate's menu targets its primary's group, and a break or note is a group
   of one (`Program.insertSlotAtGroupBoundary`). The insertion is one-shot: the
-  next add goes to the end. It is announced ("Added *X* before *Y*"); Cancel
-  and the menu items meet the 24 px target minimum and are keyboard-operable.
+  next add goes to the end. The banner, sheet title and announcements name
+  the group's primary as it is at that moment; cutting that primary ends the
+  insertion, as does dropping below the two-pane breakpoint while the banner
+  is up, and either is announced. It is announced ("Added *X* before *Y*");
+  Cancel and the menu items meet the 24 px target minimum and are
+  keyboard-operable.
 - Reorder: drag + non-drag alternative; slot notes inline. Below the 600dp
   compact breakpoint (or in a program pane narrower than the full row), a slot
   row keeps only its drag handle and overflow menu; move up / move down lead

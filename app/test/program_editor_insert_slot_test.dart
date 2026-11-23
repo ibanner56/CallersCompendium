@@ -361,6 +361,40 @@ void main() {
       expect(_order(slots), ['a', 'b', 'b-alt1', 'b-alt2', 'brk', 'NEW']);
     });
 
+    testWidgets("an alternate's insertion follows its primary: cutting the "
+        'alternate keeps it, cutting the primary ends it and says so', (
+      tester,
+    ) async {
+      final announcements = _recordAnnouncements();
+      final repos = await _seed();
+      await _pump(tester, repos);
+
+      // b-alt1's menu targets the group, named by its primary b.
+      await _chooseFromSlotMenu(tester, 2, 'add-after');
+      final banner = find.byKey(const ValueKey('insertion-banner'));
+      await tester.tap(find.byKey(const ValueKey('slot-2-remove')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: banner,
+          matching: find.text('Adding after Chorus Jig'),
+        ),
+        findsOneWidget,
+      );
+
+      // Cutting the primary b promotes b-alt2, but ends the insertion: the
+      // banner never names a dance that is no longer in the program.
+      await tester.tap(find.byKey(const ValueKey('slot-1-remove')));
+      await tester.pumpAndSettle();
+      expect(banner, findsNothing);
+      expect(announcements, contains('Canceled. New dances go at the end.'));
+
+      await tester.tap(find.byKey(const ValueKey('picker-add-d-new')));
+      await tester.pumpAndSettle();
+      final slots = await _saveAndRead(tester, repos);
+      expect(_order(slots), ['a', 'b-alt2', 'brk', 'c', 'NEW']);
+    });
+
     testWidgets('a dance imported from online search lands at the target', (
       tester,
     ) async {
@@ -419,6 +453,12 @@ void main() {
             .widget<Text>(find.byKey(const ValueKey('picker-sheet-title')))
             .data,
         'Add before Chorus Jig',
+      );
+      // The title takes the row's free width beside the close button, not
+      // half of it, so a long target name is not cut short.
+      expect(
+        tester.getSize(find.byKey(const ValueKey('picker-sheet-title'))).width,
+        greaterThan(400),
       );
       expect(find.byKey(const ValueKey('insertion-banner')), findsNothing);
 

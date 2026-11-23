@@ -101,19 +101,15 @@ enum _PreviewPane { editor, picker }
 /// ([Program.insertSlotAtGroupBoundary]), and the insertion then ends.
 @immutable
 class _SlotInsertion {
-  const _SlotInsertion({
-    required this.slotId,
-    required this.after,
-    required this.targetTitle,
-  });
+  const _SlotInsertion({required this.slotId, required this.after});
 
-  /// Tracked by id, not index, so a reorder while the wide-screen banner is up
-  /// keeps the target.
+  /// The target group's primary when the insertion started. Tracked by id,
+  /// not index, so a reorder while the wide-screen banner is up keeps the
+  /// target. The banner and announcements name the group's primary as it is
+  /// now ([_ProgramEditorScreenState._insertionTargetTitle]), so they follow a
+  /// promotion or an edit.
   final String slotId;
   final bool after;
-
-  /// The target group's primary, as the slot list names it.
-  final String targetTitle;
 }
 
 enum _AutoCommitResultKind { notCommitted, committed, failed }
@@ -1051,6 +1047,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _hideAlternates = program?.hideAlternates ?? false;
         _dialectName = program?.dialectName;
         _slots = program?.slots.toList() ?? newProgramSlots;
+        _insertion = null;
         _difficultyLevels = difficultyLevels;
         _loaded = true;
       });
@@ -1122,6 +1119,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _hideAlternates = program.hideAlternates;
     _dialectName = program.dialectName;
     _slots = program.slots.toList();
+    _insertion = null;
   }
 
   /// Seeds the caller/band controllers for a NEW program from the saved G.3
@@ -1702,6 +1700,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ? draft.dialectName
             : _existing?.dialectName;
         _slots = _renumber(draft.slots);
+        _insertion = null;
         _dirty = true;
       });
     } finally {
@@ -1916,6 +1915,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _venueId = null;
       _linkedVenue = null;
       _slots = const [];
+      _insertion = null;
     });
     await _clearDraft(waitForCommits: false, resetEditorState: false);
   }
@@ -2306,12 +2306,40 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return {for (var i = range.start; i < range.end; i++) _slots[i].id};
   }
 
+  /// The name of the pending insertion's target: its group's primary as the
+  /// slot list names it now, or null when there is no target.
+  String? _insertionTargetTitle(AppLocalizations l10n) {
+    final index = _insertionIndex;
+    if (index == null) return null;
+    final primary = Program.alternateGroupRange(_slots, index).start;
+    return programSlotTitle(
+      l10n,
+      _slots[primary],
+      danceTitles: _slotTitleForDance,
+      dialect: _dialect,
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+    );
+  }
+
+  /// Ends a pending insertion without adding, and says so to screen readers.
+  void _endInsertionAnnounced() {
+    if (_insertion == null) return;
+    setState(() => _insertion = null);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      AppLocalizations.of(context).programsInsertionCancelledAnnounce,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
+  }
+
   /// Adds [danceId] as a new primary: at the pending insertion's group
   /// boundary when there is one, which this then ends, or at the end.
   void _addDanceSlot(String danceId) {
     if (!mounted) return;
     final insertion = _insertion;
     final targetIndex = _insertionIndex;
+    final l10n = AppLocalizations.of(context);
+    final targetTitle = _insertionTargetTitle(l10n);
     final slot = ProgramSlot(
       id: uuidV4(),
       position: _slots.length,
@@ -2332,37 +2360,37 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
     });
     _markDirty();
-    final l10n = AppLocalizations.of(context);
     final title = _titleForDance(danceId) ?? l10n.programsUntitledDanceFallback;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.programsAddedDanceSnack(title))),
     );
     SemanticsService.sendAnnouncement(View.of(context), switch (insertion) {
-      _ when targetIndex == null => l10n.programsAddedDanceAnnounce(title),
-      _SlotInsertion(after: true, :final targetTitle) =>
-        l10n.programsAddedDanceAfterAnnounce(title, targetTitle),
-      _SlotInsertion(:final targetTitle) =>
-        l10n.programsAddedDanceBeforeAnnounce(title, targetTitle),
+      _ when targetTitle == null => l10n.programsAddedDanceAnnounce(title),
+      _SlotInsertion(after: true) => l10n.programsAddedDanceAfterAnnounce(
+        title,
+        targetTitle,
+      ),
+      _SlotInsertion() => l10n.programsAddedDanceBeforeAnnounce(
+        title,
+        targetTitle,
+      ),
       null => l10n.programsAddedDanceAnnounce(title),
     }, Directionality.maybeOf(context) ?? TextDirection.ltr);
   }
 
-  /// "Add a dance before/after" on the slot at [index] (#2339). Beside the
+  /// "Add a dance before/after" on the group whose primary is at [index]
+  /// (#2339). Beside the
   /// program (two-pane) the inline picker shows a banner naming the target;
   /// on a narrow screen a picker sheet opens, titled with it, and closes on
   /// the first dance chosen.
   void _startInsertion(
     int index, {
     required bool after,
-    required String targetTitle,
     required bool twoPane,
   }) {
     if (index < 0 || index >= _slots.length) return;
-    final insertion = _SlotInsertion(
-      slotId: _slots[index].id,
-      after: after,
-      targetTitle: targetTitle,
-    );
+    final primary = Program.alternateGroupRange(_slots, index).start;
+    final insertion = _SlotInsertion(slotId: _slots[primary].id, after: after);
     setState(() => _insertion = insertion);
     if (!twoPane) {
       _openPickerSheet(insertion: insertion);
@@ -2371,6 +2399,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // A preview held over the picker would hide the banner and the picker.
     if (_previewPane == _PreviewPane.picker) _clearPreview();
     final l10n = AppLocalizations.of(context);
+    final targetTitle = _insertionTargetTitle(l10n)!;
     SemanticsService.sendAnnouncement(
       View.of(context),
       after
@@ -2381,21 +2410,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   /// The wide-screen banner's Cancel: ends the insertion without adding.
-  void _cancelInsertion() {
-    if (_insertion == null) return;
-    setState(() => _insertion = null);
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      AppLocalizations.of(context).programsInsertionCancelledAnnounce,
-      Directionality.maybeOf(context) ?? TextDirection.ltr,
-    );
-  }
+  void _cancelInsertion() => _endInsertionAnnounced();
 
   /// The banner above the inline picker while an insertion is pending, or an
   /// empty box (kept in the tree so the picker below keeps its state).
   Widget _buildInsertionBanner(AppLocalizations l10n) {
     final insertion = _insertion;
-    if (insertion == null || _insertionIndex == null) {
+    final targetTitle = _insertionTargetTitle(l10n);
+    if (insertion == null || targetTitle == null) {
       return const SizedBox.shrink();
     }
     final colors = Theme.of(context).colorScheme;
@@ -2419,8 +2441,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             Expanded(
               child: Text(
                 insertion.after
-                    ? l10n.programsAddingAfterBanner(insertion.targetTitle)
-                    : l10n.programsAddingBeforeBanner(insertion.targetTitle),
+                    ? l10n.programsAddingAfterBanner(targetTitle)
+                    : l10n.programsAddingBeforeBanner(targetTitle),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colors.onSecondaryContainer,
                 ),
@@ -2525,12 +2547,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// rather than its alternates joining the slot above (LIFE-10).
   void _removeSlot(int index) {
     setState(() {
-      // A cut target ends its insertion rather than leaving it to land at the
-      // end when the next dance is chosen.
-      if (_slots[index].id == _insertion?.slotId) _insertion = null;
       _slots = _renumber(Program.removeSlotPromotingAlternate(_slots, index));
     });
     _markDirty();
+    // A cut target ends its insertion, and says so, rather than leaving it to
+    // land at the end when the next dance is chosen. The target is the group's
+    // primary, the slot the banner names; cutting one of its alternates keeps
+    // it.
+    if (_insertion != null && _insertionIndex == null) {
+      _endInsertionAnnounced();
+    }
   }
 
   /// Opens the dance editor seeded from the note-slot at [index]'s text
@@ -3731,9 +3757,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // let the narrow Add dance sheet insert at a target it never names.
           if (_insertion != null && !_insertionSheetOpen) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && !_insertionSheetOpen && _insertion != null) {
-                setState(() => _insertion = null);
-              }
+              if (mounted && !_insertionSheetOpen) _endInsertionAnnounced();
             });
           }
           return editor;
@@ -4194,13 +4218,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 : _pickReplacementDance,
             onAddDanceAt: _data == null
                 ? null
-                : (index, {required after, required targetTitle}) =>
-                      _startInsertion(
-                        index,
-                        after: after,
-                        targetTitle: targetTitle,
-                        twoPane: twoPane,
-                      ),
+                : (index, {required after}) =>
+                      _startInsertion(index, after: after, twoPane: twoPane),
             insertionTargetSlotIds: _insertionTargetSlotIds,
             onPreviewDanceStarted: twoPane
                 ? (id) => _showSavedPreview(
@@ -4235,13 +4254,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       return;
     }
     final l10n = AppLocalizations.of(context);
+    // The sheet is modal, so the target cannot change while it is open.
+    final targetTitle = insertion == null ? null : _insertionTargetTitle(l10n);
     final sheetTitle = switch (insertion) {
-      null => l10n.programsAddADanceSheetTitle,
-      _SlotInsertion(after: true, :final targetTitle) =>
-        l10n.programsAddAfterSheetTitle(targetTitle),
-      _SlotInsertion(:final targetTitle) => l10n.programsAddBeforeSheetTitle(
+      _ when targetTitle == null => l10n.programsAddADanceSheetTitle,
+      _SlotInsertion(after: true) => l10n.programsAddAfterSheetTitle(
         targetTitle,
       ),
+      _ => l10n.programsAddBeforeSheetTitle(targetTitle),
     };
     // Drop focus from the Title field first. The sheet route remembers the
     // focused node and hands focus back on close, which reopens the keyboard
@@ -4294,7 +4314,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
                           IconButton(
                             key: const ValueKey('picker-sheet-close'),
                             tooltip: l10n.commonClose,

@@ -699,7 +699,7 @@ void main() {
   // #2339: "Add a dance before" / "Add a dance after" on every slot's menu,
   // after D-2's compact items and before Edit slot.
   group('add a dance before/after (#2339)', () {
-    late List<(int, bool, String)> requests;
+    late List<(int, bool)> requests;
 
     List<ProgramSlot> groupedSlots() => [
       ProgramSlot(id: 'p1', position: 0, danceId: 'd1'),
@@ -735,8 +735,8 @@ void main() {
               onRemove: (_) {},
               onCreateDance: (_) {},
               onViewDanceDetails: (_) {},
-              onAddDanceAt: (index, {required after, required targetTitle}) =>
-                  requests.add((index, after, targetTitle)),
+              onAddDanceAt: (index, {required after}) =>
+                  requests.add((index, after)),
               insertionTargetSlotIds: targets,
             ),
           ),
@@ -778,9 +778,7 @@ void main() {
       expect(menuValues(tester).take(3), ['add_before', 'add_after', 'edit']);
     });
 
-    testWidgets("an alternate's items name its primary as the target", (
-      tester,
-    ) async {
+    testWidgets("an alternate's items target its primary", (tester) async {
       await pumpList(tester, size: const Size(800, 800));
       for (final action in ['add-before', 'add-after']) {
         await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
@@ -788,7 +786,7 @@ void main() {
         await tester.tap(find.byKey(ValueKey('slot-1-$action')));
         await tester.pumpAndSettle();
       }
-      expect(requests, [(1, false, 'Dance d1'), (1, true, 'Dance d1')]);
+      expect(requests, [(0, false), (0, true)]);
     });
 
     testWidgets('the items are at least 24dp tall and keyboard-operable', (
@@ -824,7 +822,7 @@ void main() {
       expect(afterFocused(), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();
-      expect(requests, [(2, true, 'Break')]);
+      expect(requests, [(2, true)]);
     });
 
     testWidgets('the target slots are highlighted', (tester) async {
