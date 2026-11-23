@@ -14084,4 +14084,104 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get calendarClearFlagError =>
       'De agendamarkering kon niet worden gewist. Probeer het opnieuw.';
+
+  @override
+  String get calendarOnStartupTitle => 'Agenda importeren als de app start';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      'Standaard uit. Als het aan staat, leest de app je agenda één keer bij elke start en meldt niets als dat niet lukt.';
+
+  @override
+  String get calendarStartupModeTitle => 'Bij het starten';
+
+  @override
+  String get calendarStartupModeReport => 'Nieuwe afspraken melden';
+
+  @override
+  String get calendarStartupModeAdd => 'Toevoegen als concept';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      'Meldt nieuwe afspraken; er wordt niets toegevoegd tot je ze hebt bekeken.';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      'Voegt nieuwe afspraken toe als conceptprogramma\'s, met Ongedaan maken. Gewijzigde of geannuleerde afspraken worden alleen gemeld.';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return 'Agenda niet bereikbaar bij het starten ($when)';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count concepten toegevoegd',
+      one: '1 concept toegevoegd',
+    );
+    return 'Gecontroleerd bij het starten op $when: $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nieuwe afspraken',
+      one: '1 nieuwe afspraak',
+      zero: 'geen nieuwe afspraken',
+    );
+    return 'Gecontroleerd bij het starten op $when: $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'De agenda was de laatste $count keer dat de app startte niet bereikbaar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint =>
+      'Controleer het agenda-adres of je verbinding.';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nieuwe afspraken in je agenda.',
+      one: '1 nieuwe afspraak in je agenda.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wijzigingen wachten op je.',
+      one: '1 wijziging wacht op je.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => 'Tonen';
+
+  @override
+  String get calendarStartupReview => 'Bekijken';
+
+  @override
+  String calendarLastResultError(String when) {
+    return 'Importeren uit de agenda bij het starten mislukt ($when)';
+  }
 }

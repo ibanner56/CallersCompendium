@@ -29,8 +29,10 @@ It is **local-first**, and that shapes everything else:
   data. What you do in Caller's Compendium is your business alone.
 - **It works offline.** You can catalog dances, build programs, and call a
   whole evening with no internet connection. The app goes online only when *you*
-  ask it to: to bring in dances from an online source, to check for updates, or
-  to sync your own devices if you turn on the optional
+  ask it to: to bring in dances from an online source, to check for updates
+  (automatically too, if you turn that on), to read your calendar (once at each
+  start, if you turn that on), or to sync your own devices if you turn on the
+  optional
   [Device Sync](./settings.md#device-sync). It never publishes your work to a
   community site.
 - **It runs everywhere you call.** The same app, adapted to each screen size,

@@ -67,7 +67,7 @@ Keep this handy — every form asks some slice of it.
 | Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published from `site/privacy/index.html`, which is authoritative; [`privacy-policy.md`](privacy-policy.md) is its hand-kept mirror) |
 | License | AGPL-3.0-only (source-available) |
 | Data collection | Selected Other User Content via optional Device Sync, not linked to you, used for App Functionality when the user opts in. |
-| Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; published-collection browsing/imports from a developer-hosted catalog; opt-in update check (off by default); opt-in Device Sync for selected shareable content |
+| Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; published-collection browsing/imports from a developer-hosted catalog; opt-in update check (off by default); calendar import from an address the user gives, on request or (opt-in, off by default) once at startup; opt-in Device Sync for selected shareable content |
 | Age rating | Suitable for everyone (no objectionable content) |
 | Primary category | Productivity (secondary: Reference / Tools) |
 

@@ -147,8 +147,9 @@ any track (including testing) can go live. Answers are drafted in
   rules don't apply.
 - [x] **[Gate]** **Data safety form** — declare the optional Device Sync
   transfer (other user-generated content, optional, app functionality, not
-  shared with third parties), not "No data collected". Imports and the opt-in
-  update check are user-initiated. Full answer set in
+  shared with third parties), not "No data collected". Imports, the opt-in
+  update check and the opt-in startup calendar import are user-initiated (the
+  two opt-ins are off by default). Full answer set in
   [`listing-copy.md`](listing-copy.md#data-safety-google-play).
 - [x] **[Gate]** **Government apps / financial / health / etc.** declarations —
   all **No** for us.

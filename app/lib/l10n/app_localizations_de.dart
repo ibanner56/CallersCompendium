@@ -14123,4 +14123,105 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get calendarClearFlagError =>
       'Die Kalendermarkierung konnte nicht entfernt werden. Versuche es erneut.';
+
+  @override
+  String get calendarOnStartupTitle =>
+      'Kalender beim Start der App importieren';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      'Standardmäßig aus. Wenn an, liest die App deinen Kalender bei jedem Start einmal und meldet nichts, wenn es nicht klappt.';
+
+  @override
+  String get calendarStartupModeTitle => 'Beim Start';
+
+  @override
+  String get calendarStartupModeReport => 'Neue Termine melden';
+
+  @override
+  String get calendarStartupModeAdd => 'Als Entwürfe hinzufügen';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      'Meldet neue Termine; nichts wird hinzugefügt, bevor du sie prüfst.';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      'Fügt neue Termine als Programmentwürfe hinzu, mit Rückgängig. Geänderte oder abgesagte Termine werden nur gemeldet.';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return 'Kalender beim Start nicht erreichbar ($when)';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Entwürfe hinzugefügt',
+      one: '1 Entwurf hinzugefügt',
+    );
+    return 'Beim Start geprüft am $when: $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count neue Termine',
+      one: '1 neuer Termin',
+      zero: 'keine neuen Termine',
+    );
+    return 'Beim Start geprüft am $when: $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Der Kalender war bei den letzten $count Starts der App nicht erreichbar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint =>
+      'Prüfe die Kalenderadresse oder deine Verbindung.';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count neue Termine in deinem Kalender.',
+      one: '1 neuer Termin in deinem Kalender.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Änderungen warten auf dich.',
+      one: '1 Änderung wartet auf dich.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => 'Zeigen';
+
+  @override
+  String get calendarStartupReview => 'Prüfen';
+
+  @override
+  String calendarLastResultError(String when) {
+    return 'Import aus dem Kalender beim Start fehlgeschlagen ($when)';
+  }
 }
