@@ -2367,6 +2367,17 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     forming a long wave in the center (`form long wave in center`,
     `form_a_long_wave`) is a different figure — and fold its balance into it,
     across a phrase boundary too; see `docs/design/imports.md`.
+    **Older devices (v39)** have neither change. A synced
+    `form_long_waves{who: unspecified}` renders through v39's display line,
+    which names a subject and its inverse unconditionally, so it reads
+    "form long waves - unspecified facing in, others facing out"; v39's
+    `who` domain does not admit the sentinel, so opening that figure's
+    editor there writes back the default `role1s`, and that edit syncs as a
+    facing the source never stated. v39's renderer reads no `whom2`, so a
+    two-hand long wave shows only its first hold there; whether v39's editor
+    keeps or drops a param it does not declare when it saves was not
+    checked. Whether the beta acceptance recorded above for the new dancer
+    tokens also covers these is the maintainer's call, not assumed here.
   - Migration: none, and no rebuild: a new move and alias, nothing renamed or
     removed, so no stored figure changes and every canonical text stays as it
     was. **Older devices (v39)** show a synced `cast` as the bare word "cast"

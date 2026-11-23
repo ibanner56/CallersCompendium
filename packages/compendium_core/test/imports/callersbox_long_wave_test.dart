@@ -350,6 +350,55 @@ void main() {
     });
   });
 
+  group('a standalone bare wave that carries its own beats', () {
+    // Review finding B1: a `form long wave` on its own line carries `beats`,
+    // and is still a bare wave — the guards must not miss it. Not corpus
+    // wording (the corpus has `(0) Form long wave`, dance 2325).
+    test('an in-center balance after it reads as the centre wave', () async {
+      final figures = await _import({
+        'A1': [
+          '(12) Partner swing',
+          '(4) form long wave',
+          '(4) Balance long wave in center',
+        ],
+      });
+      expect(figures.map((f) => f.move), ['swing', 'form_a_long_wave']);
+      expect(figures.last.params['balance'], isTrue);
+      expect(figures.last.params['beats'], 8);
+      expect(_total(figures), 20);
+    });
+
+    test('a dancer-prefixed balance after it stays text', () async {
+      final figures = await _import({
+        'A1': [
+          '(12) Partner swing',
+          '(4) form long wave',
+          '(4) Men balance long wave',
+        ],
+      });
+      expect(figures, hasLength(3));
+      expect(figures[1].move, 'form_long_waves');
+      expect(figures[1].params, {'who': _unspecified, 'beats': 4});
+      expect(figures[2].isCustom, isTrue);
+      expect(_total(figures), 20);
+    });
+
+    test('a refused in-center balance still leaves the centre wave, with its '
+        'beats', () async {
+      final figures = await _import({
+        'A1': [
+          '(12) Partner swing',
+          '(4) form long wave',
+          '(4) Men balance long wave in center',
+        ],
+      });
+      expect(figures[1].move, 'form_a_long_wave');
+      expect(figures[1].params, {'beats': 4});
+      expect(figures[2].isCustom, isTrue);
+      expect(_total(figures), 20);
+    });
+  });
+
   group('an in-center balance after a bare wave: the follower decides', () {
     test(
       'dance 10465 A1: Women … in center folds into the centre wave',

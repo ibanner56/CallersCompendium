@@ -1741,7 +1741,8 @@ has to be judged in its own context.
   `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
   decoded params; since taxonomy v38 a square corner decodes, so `(C2R,WL)`
   folds with `opposites` as the sides; since #2331 a bare `form long wave` is
-  `form_long_waves` with an unstated facing, its `Balance long wave (…, <role>
+  `form_long_waves` with an unstated facing (its own line's beats aside, a
+  bare wave states nothing else), its `Balance long wave (…, <role>
   face in)` fills the facing and the holds — also when the balance opens the
   next phrase, the one fold that crosses a section, since the wave takes no
   beats — a balance whose other words that wave cannot carry (`Men balance

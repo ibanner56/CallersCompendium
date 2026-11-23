@@ -1439,14 +1439,15 @@ class CallersBoxAdapter implements SourceAdapter {
   }
 
   /// A bare `form long wave` as the TCB dialect reads it (#2331):
-  /// `form_long_waves` whose only param is `who: unspecified`. A note (`release
-  /// right hands`) does not change that; any stated hold, facing or balance
-  /// does.
+  /// `form_long_waves` whose only stated param, beats aside, is `who:
+  /// unspecified`. The line's own beats (`(4) form long wave` on a line of
+  /// its own) and a note (`release right hands`) do not change that; any
+  /// stated hold, facing or balance does.
   static bool _isBareLongWave(Figure f) =>
       !f.isCustom &&
       f.move == 'form_long_waves' &&
-      f.params.length == 1 &&
-      f.params['who'] == ParamVocab.unspecified;
+      f.params['who'] == ParamVocab.unspecified &&
+      f.params.keys.every((k) => k == 'who' || k == 'beats');
 
   /// A custom balance line that is exactly `Balance [the] [long] wave[s]`:
   /// no dancer, no locator, no annotation — nothing a fold would drop.
@@ -1466,9 +1467,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// followed by a balance that says the wave is `in center` is the centre
   /// wave, `form_a_long_wave`, exactly as `form long wave in center` reads.
   /// Returns [wave] unchanged in every other case. The result carries no
-  /// params (the centre wave's own defaults, as the shared recognizer gives
-  /// `form long wave in center`), so today's centre-wave fold then decides
-  /// the pair.
+  /// params but the wave's own beats (the centre wave's own defaults, as the
+  /// shared recognizer gives `form long wave in center`), so today's
+  /// centre-wave fold then decides the pair.
   static Figure _inCenterFollower(Figure wave, Figure balance) {
     if (!_isBareLongWave(wave) || !_isBalanceWaveLine(balance)) return wave;
     final words = _figureWords(balance).map(_stripEdgePunctuation).toList();
@@ -1481,6 +1482,7 @@ class CallersBoxAdapter implements SourceAdapter {
     if (!inCenter) return wave;
     return Figure(
       move: 'form_a_long_wave',
+      params: {'beats': ?wave.params['beats']},
       note: wave.note,
       progression: wave.progression,
       assumedSubject: true,
