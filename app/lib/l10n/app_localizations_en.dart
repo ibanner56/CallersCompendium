@@ -2570,10 +2570,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => 'Starting program';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      'Dance and note entries added to manually created programs.';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Add a dance';
 
   @override
@@ -12637,4 +12633,105 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'These cards are bigger than the paper, so each was printed smaller, one to a page.';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'Program templates';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count templates',
+      one: '1 template',
+      zero: 'No templates yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => 'Default template';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      'What a new program starts from when you aren\'t asked to choose.';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => 'Starting program';
+
+  @override
+  String get programTemplateBlankProgram => 'Blank program';
+
+  @override
+  String get programTemplateDefaultBadge => 'Default';
+
+  @override
+  String get programTemplateChooserTitle => 'Start from a template';
+
+  @override
+  String get programTemplateNew => 'New template';
+
+  @override
+  String get programTemplatesEmptyTitle => 'No templates yet';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'A template is a starting list of dances, notes and breaks for one kind of evening. With two or more, New program asks which to start from.';
+
+  @override
+  String get programTemplateNameLabel => 'Template name';
+
+  @override
+  String get programTemplateRename => 'Rename';
+
+  @override
+  String get programTemplateRenameTitle => 'Rename template';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name (copy)';
+  }
+
+  @override
+  String get programTemplateUntitled => 'Untitled template';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count slots',
+      one: '1 slot',
+      zero: 'Empty',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return 'Default · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return 'Actions for $name';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'Edit template';
+
+  @override
+  String get programTemplateSlotsHeader => 'Slots';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'Dances, notes and breaks a program made from this template starts with.';
+
+  @override
+  String get programTemplatesLoadError =>
+      'Couldn\'t load your program templates.';
+
+  @override
+  String get programTemplateSaveError =>
+      'Couldn\'t save that change to your templates. Try again.';
 }

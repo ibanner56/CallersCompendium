@@ -619,11 +619,31 @@ Select **Program defaults** to open this group.
 
 - **Default caller** and **Default band** — prefilled into each new program, and
   editable per program.
-- **Starting program** — an ordered template of dances, caller notes, breaks,
-  and free-text entries for programs you create by hand. Dances that are no
-  longer in your collection are skipped. It applies only when you create a
-  program in the editor; imports, duplicates, and “create with this dance” keep
-  their own slots.
+- **Program templates** — opens the list of your templates. A template is a
+  named, ordered list of dances, caller notes, breaks and free-text entries
+  that a new program starts with: one for a family dance, one for a regular
+  Saturday contra, and so on. Use **New template** to add one, select a
+  template to edit its name and slots, and use its ⋮ menu to **Rename**,
+  **Duplicate** or **Delete** it (Delete offers Undo). Drag a template, or use
+  its move up and move down buttons, to change the order **New program** lists
+  them in. Dances that are no longer in your collection are skipped when a
+  program is made from a template.
+- **Default template** — the template a new program starts from when you are
+  not asked to choose, or **Blank program**. The first template you add
+  becomes the default unless you have chosen Blank program. With two or more
+  templates,
+  **New program** asks which to start from, listing the default first; with
+  one template or none it uses the default without asking. Templates apply
+  only to programs you start with **New program**: imports, duplicates,
+  programs someone shared with you, and **Create a new program with this
+  dance** keep their own slots.
+
+If you had set up a **Starting program** before templates arrived, it became
+your first template, named "Starting program", and your Default template, so
+**New program** works as it did. Each template syncs to your other devices as
+its own setting, so editing two different templates on two devices keeps both
+edits; templates wait to sync until every device in the store has a version
+of the app that knows them.
 
 ### Import defaults
 

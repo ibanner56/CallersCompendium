@@ -95,6 +95,8 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'perform_stage_mode' => l10n.syncSettingPerformStageTheme,
   'program_dance_share_fields' => l10n.settingsDefaultsShareFieldsHeader,
   'program_matrix_columns' => l10n.settingsMatrixColumnsHeader,
+  'program_template_default' => l10n.settingsProgramTemplateDefaultTitle,
+  'program_template_order' => l10n.settingsProgramTemplatesTitle,
   'reduce_motion' => l10n.settingsGeneralReduceMotionTitle,
   'recency_require_event_date' => l10n.settingsRecencyRequireEventDateTitle,
   'recency_require_performed' => l10n.settingsRecencyRequirePerformedTitle,
@@ -134,6 +136,9 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   // list.
   final key when key.startsWith(syncCapabilityKeyPrefix) =>
     l10n.settingsSyncDevicesTitle,
+  // One program template per key (#2337), whatever its id.
+  final key when key.startsWith('program_template:') =>
+    l10n.settingsProgramTemplatesTitle,
   _ => null,
 };
 

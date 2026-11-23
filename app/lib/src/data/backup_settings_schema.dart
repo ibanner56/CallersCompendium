@@ -47,6 +47,14 @@ import 'dialect_library_controller.dart'
         kCustomDialectsEcdKey,
         kCustomDialectsSquareKey;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
+import 'program_templates.dart'
+    show
+        kProgramTemplateDefaultKey,
+        kProgramTemplateKeyPrefix,
+        kProgramTemplateOrderKey,
+        tryDecodeProgramTemplate,
+        tryDecodeProgramTemplateDefault,
+        tryDecodeProgramTemplateOrder;
 import 'locale_scope.dart' show kLocaleKey;
 import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
 import 'set_list_share_scope.dart'
@@ -191,9 +199,14 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   ])
     key: _isString,
 
-  // The starting-program template is a JSON string with an invariant-checked
-  // semantic codec, not merely an arbitrary string.
+  // The legacy starting-program template is a JSON string with an
+  // invariant-checked semantic codec, not merely an arbitrary string.
   kDefaultStartingProgramKey: _isValidStartingProgramTemplate,
+  // Program templates (#2337): the order is a list of distinct template ids,
+  // the default an id or `blank`. Each template is checked by its prefix in
+  // [_backupSettingPrefixValidators].
+  kProgramTemplateOrderKey: _isValidProgramTemplateOrder,
+  kProgramTemplateDefaultKey: _isValidProgramTemplateDefault,
   kDefaultImportTagNamesKey: _isValidDefaultImportTagNames,
 
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
@@ -260,6 +273,26 @@ bool _isValidDefaultImportTagNames(Object? v) =>
 
 bool _isValidStartingProgramTemplate(Object? v) =>
     tryDecodeStartingProgramTemplate(v) != null;
+bool _isValidProgramTemplateOrder(Object? v) =>
+    tryDecodeProgramTemplateOrder(v) != null;
+bool _isValidProgramTemplateDefault(Object? v) =>
+    tryDecodeProgramTemplateDefault(v) != null;
+
+/// Validators for settings keys built at runtime from a prefix and an id, as
+/// [_backupSettingValidators] is for exact keys. A key matches the longest
+/// prefix it starts with; the validator gets the whole key, so it can check
+/// the id too.
+final Map<String, bool Function(String key, Object? value)>
+_backupSettingPrefixValidators = {
+  // One program template per key (#2337): the strict template decoder, which
+  // also rejects an id that cannot name a template.
+  kProgramTemplateKeyPrefix: (key, value) =>
+      tryDecodeProgramTemplate(
+        key.substring(kProgramTemplateKeyPrefix.length),
+        value,
+      ) !=
+      null,
+};
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
 bool _isUndoPromptSeconds(Object? v) =>
     v is int && undoPromptSecondsFromStored(v) == v;
@@ -286,6 +319,14 @@ bool _isValidMatrixColumnConfig(Object? v) =>
 /// Never throws: the whole point is that no restored value can abort the apply.
 bool? validateBackupSettingValue(String key, Object? value) {
   final validator = _backupSettingValidators[key];
-  if (validator == null) return null;
-  return validator(value);
+  if (validator != null) return validator(value);
+  String? prefix;
+  for (final candidate in _backupSettingPrefixValidators.keys) {
+    if (key.startsWith(candidate) &&
+        (prefix == null || candidate.length > prefix.length)) {
+      prefix = candidate;
+    }
+  }
+  if (prefix == null) return null;
+  return _backupSettingPrefixValidators[prefix]!(key, value);
 }

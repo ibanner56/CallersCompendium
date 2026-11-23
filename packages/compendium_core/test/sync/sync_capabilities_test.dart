@@ -85,45 +85,68 @@ void main() {
       recordsByDevice: records,
     );
 
-    test(
-      'advertises glossary.v1 and glossary.v2, and gates on both (#1023)',
-      () {
-        expect(build.advertised, {
-          SyncCapabilities.glossaryV1,
-          SyncCapabilities.glossaryV2,
-        });
-        expect(build.gatedCapabilities, {
-          SyncCapabilities.glossaryV1,
-          SyncCapabilities.glossaryV2,
-        });
-      },
-    );
+    test('advertises glossary.v1, glossary.v2 and programTemplates.v1, and '
+        'gates on each (#1023, #2337)', () {
+      expect(build.advertised, {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+      });
+      expect(build.gatedCapabilities, {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+      });
+    });
 
-    test('rollout: with no record from any peer, every peer holds both '
+    test('rollout: with no record from any peer, every peer holds each '
         'closed', () {
       expect(closedBeside(['a', 'b'], const {}), {
         SyncCapabilities.glossaryV1: {'a', 'b'},
         SyncCapabilities.glossaryV2: {'a', 'b'},
+        SyncCapabilities.programTemplatesV1: {'a', 'b'},
       });
     });
 
     test('rollout: beside peers on the build before this one, which '
-        'advertise only glossary.v1, every peer holds glossary.v2 closed', () {
+        'advertise only the glossary capabilities, every peer holds '
+        'programTemplates.v1 closed', () {
       expect(
         closedBeside(
           ['a', 'b'],
           {
-            'a': {SyncCapabilities.glossaryV1},
-            'b': {SyncCapabilities.glossaryV1},
+            'a': {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
+            'b': {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
           },
         ),
         {
-          SyncCapabilities.glossaryV2: {'a', 'b'},
+          SyncCapabilities.programTemplatesV1: {'a', 'b'},
         },
       );
     });
 
-    test('with every peer advertising what the build does, both are open', () {
+    test('every program template key waits on programTemplates.v1, by prefix '
+        'for the per-template keys (#2337)', () {
+      for (final key in [
+        'program_template:starting_program',
+        'program_template:3f1c9a52-6a0f-4d7b-9a51-0b5e4f2d7c11',
+        'program_template_order',
+        'program_template_default',
+      ]) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.programTemplatesV1,
+          reason: key,
+        );
+      }
+      // The legacy Starting program stays ungated: older builds read it.
+      expect(
+        build.capabilityFor(SyncRecordKind.setting, 'default_starting_program'),
+        isNull,
+      );
+    });
+
+    test('with every peer advertising what the build does, all are open', () {
       expect(
         closedBeside(
           ['a', 'b'],
@@ -182,6 +205,24 @@ void main() {
     expect(policy.capabilityFor(SyncRecordKind.setting, 'other'), isNull);
     expect(policy.capabilityFor(SyncRecordKind.dance, 'x'), isNull);
     expect(policy.gatedCapabilities, {'v.v1', 's.v1'});
+  });
+
+  test('a settings key prefix gates every key under it; an exact key wins, '
+      'then the longest prefix', () {
+    const policy = SyncCapabilityPolicy(
+      gatedSettingKeys: {'p:exact': 'exact.v1'},
+      gatedSettingKeyPrefixes: {'p:': 'short.v1', 'p:long:': 'long.v1'},
+    );
+    String? forKey(String key) =>
+        policy.capabilityFor(SyncRecordKind.setting, key);
+    expect(forKey('p:anything'), 'short.v1');
+    expect(forKey('p:long:x'), 'long.v1');
+    expect(forKey('p:exact'), 'exact.v1');
+    expect(forKey('p'), isNull);
+    expect(forKey('other:p:x'), isNull);
+    // Only settings keys are matched by prefix.
+    expect(policy.capabilityFor(SyncRecordKind.tag, 'p:x'), isNull);
+    expect(policy.gatedCapabilities, {'exact.v1', 'short.v1', 'long.v1'});
   });
 
   test('a glossary entry waits on its own kind\'s capability when it has one '

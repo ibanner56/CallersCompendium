@@ -206,6 +206,13 @@ An ordered set list for one event — a Saturday dance, a weekend, or a one-off
 gig. Its individual entries are [slots](#slot), and a backup choice on a slot is
 an [alt](#alt).
 
+## Program template
+
+A named starting shape for a new [program](#program): an ordered list of
+dances, notes and breaks for one kind of evening. **New program** asks which
+template to start from when you have two or more. Set them up in Settings ▸
+Defaults ▸ Program defaults.
+
 ## Progression
 
 How dancers move on to the next couple as a dance repeats. Like

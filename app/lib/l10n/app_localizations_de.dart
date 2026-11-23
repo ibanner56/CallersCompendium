@@ -2612,10 +2612,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => 'Startprogramm';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      'Tänze und Notizen, die zu manuell erstellten Programmen hinzugefügt werden.';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Tanz hinzufügen';
 
   @override
@@ -12797,4 +12793,105 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Diese Karten sind größer als das Papier, daher wurde jede verkleinert und einzeln auf eine Seite gedruckt.';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'Programmvorlagen';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Vorlagen',
+      one: '1 Vorlage',
+      zero: 'Noch keine Vorlagen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => 'Standardvorlage';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      'Womit ein neues Programm beginnt, wenn du nicht gefragt wirst.';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => 'Startprogramm';
+
+  @override
+  String get programTemplateBlankProgram => 'Leeres Programm';
+
+  @override
+  String get programTemplateDefaultBadge => 'Standard';
+
+  @override
+  String get programTemplateChooserTitle => 'Mit einer Vorlage beginnen';
+
+  @override
+  String get programTemplateNew => 'Neue Vorlage';
+
+  @override
+  String get programTemplatesEmptyTitle => 'Noch keine Vorlagen';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'Eine Vorlage ist eine Startliste mit Tänzen, Notizen und Pausen für eine Art von Abend. Ab zwei Vorlagen fragt „Neues Programm“, womit du beginnen möchtest.';
+
+  @override
+  String get programTemplateNameLabel => 'Name der Vorlage';
+
+  @override
+  String get programTemplateRename => 'Umbenennen';
+
+  @override
+  String get programTemplateRenameTitle => 'Vorlage umbenennen';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name (Kopie)';
+  }
+
+  @override
+  String get programTemplateUntitled => 'Unbenannte Vorlage';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge',
+      one: '1 Eintrag',
+      zero: 'Leer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return 'Standard · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return 'Aktionen für $name';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'Vorlage bearbeiten';
+
+  @override
+  String get programTemplateSlotsHeader => 'Einträge';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'Tänze, Notizen und Pausen, mit denen ein Programm aus dieser Vorlage beginnt.';
+
+  @override
+  String get programTemplatesLoadError =>
+      'Deine Programmvorlagen konnten nicht geladen werden.';
+
+  @override
+  String get programTemplateSaveError =>
+      'Die Änderung an deinen Vorlagen konnte nicht gespeichert werden. Versuche es noch einmal.';
 }
