@@ -201,6 +201,7 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
       candidate,
       venueIdFor,
       (id) => venueNames[id],
+      toLocal ?? (utc) => utc.toLocal(),
     );
     if (offer != null) changes.add(offer);
   }
@@ -284,6 +285,7 @@ CalendarChangeOffer? _changeOffer(
   CalendarImportCandidate c,
   String? Function(String? label) venueIdFor,
   String? Function(String id) venueName,
+  DateTime Function(DateTime utc) toLocal,
 ) {
   final stored = program.calendarEventFingerprint;
   if (stored == c.fingerprint) return null;
@@ -302,12 +304,21 @@ CalendarChangeOffer? _changeOffer(
   final startDiffers = c.startMinute != program.startMinute;
   final endDiffers = c.endMinute != program.endMinute;
   final title = titleDiffers && (upstream?.title ?? true);
-  // A UTC event's fingerprint holds its UTC date, so a new start time can
-  // move the local date while the UTC date stays: judge the date from both.
-  // A floating or TZID event's date part is its local date already.
+  // A UTC event's fingerprint holds its UTC date, so a new start can move
+  // the local date while the UTC date stays. Then the date is offered only
+  // if the event's own local date moved, not merely because it differs from
+  // a date the caller edited. A floating or TZID event's date part is its
+  // local date already.
+  bool localDateMoved() {
+    final before = calendarFingerprintLocalDate(stored, c, toLocal);
+    return before == null || before != c.date;
+  }
+
   final date =
       dateDiffers &&
-      (upstream == null || upstream.date || (c.startsInUtc && upstream.start));
+      (upstream == null ||
+          upstream.date ||
+          (c.startsInUtc && upstream.start && localDateMoved()));
   final venue = venueDiffers && (upstream?.venue ?? true);
   final start = startDiffers && (upstream?.start ?? true);
   final end = endDiffers && (upstream?.end ?? true);

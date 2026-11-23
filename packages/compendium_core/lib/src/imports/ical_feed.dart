@@ -711,11 +711,45 @@ String calendarEventFingerprint({
   int? startMinute,
   int? endMinute,
 }) {
-  String h(String s) =>
-      sha256.convert(utf8.encode(s)).toString().substring(0, 16);
+  final h = _fingerprintHash;
   final d = '${date.year}-${date.month}-${date.day}';
   return 'v2:${h(title)}:${h(d)}:${h(venueLabel ?? '')}'
       ':${h('${startMinute ?? ''}')}:${h('${endMinute ?? ''}')}';
+}
+
+String _fingerprintHash(String s) =>
+    sha256.convert(utf8.encode(s)).toString().substring(0, 16);
+
+/// The local date [now]'s event started on when [stored] was written, for a
+/// UTC event whose UTC date has not changed since (#2354): its start minute
+/// is one of 1,440, so it is found from the stored hash, then read through
+/// [toLocal] on that UTC date. Null when that cannot be told: no readable
+/// fingerprint, not a UTC event, a changed UTC date, or no start.
+///
+/// A UTC event's fingerprint holds its UTC date, so a new start can move the
+/// local date while the UTC date stays; this says whether it did.
+DateTime? calendarFingerprintLocalDate(
+  String? stored,
+  CalendarImportCandidate now,
+  DateTime Function(DateTime utc) toLocal,
+) {
+  final parts = _fingerprintParts(stored);
+  final written = now.asWritten;
+  if (parts == null || written == null || !now.startsInUtc) return null;
+  if (parts[1] != _fingerprintParts(now.fingerprint)![1]) return null;
+  int? minute;
+  for (var m = 0; m < 24 * 60; m++) {
+    if (_fingerprintHash('$m') == parts[3]) {
+      minute = m;
+      break;
+    }
+  }
+  if (minute == null) return null;
+  final d = written.date;
+  final local = toLocal(
+    DateTime.utc(d.year, d.month, d.day, minute ~/ 60, minute % 60),
+  );
+  return DateTime.utc(local.year, local.month, local.day);
 }
 
 /// Which of title, date, location, start and end differ between two

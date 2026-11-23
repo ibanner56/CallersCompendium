@@ -607,6 +607,28 @@ void main() {
           expect((after.startMinute, after.endMinute), (19 * 60, 22 * 60));
         });
 
+        test('a caller\'s edited date is not offered back when a UTC event\'s '
+            'start moves within the same local day', () async {
+          final repos = openTestRepositories();
+          // At UTC-4: 20 June 19:00.
+          await importAt(
+            repos,
+            utc('20300620T230000Z', '20300621T020000Z'),
+            west,
+          );
+          final p = await _only(repos);
+          await repos.programs.update(
+            p.copyWith(
+              eventDate: DateTime.utc(2030, 6, 21),
+              updatedAt: _t0.add(const Duration(hours: 1)),
+            ),
+          );
+          // Half an hour later: still 20 June locally, and in UTC.
+          final later = utc('20300620T233000Z', '20300621T023000Z');
+          final offer = (await read(repos, later, west)).changes.single;
+          expect((offer.date, offer.start, offer.end), (false, true, true));
+        });
+
         test('a real change is offered, read in this time zone', () async {
           final repos = openTestRepositories();
           await importAt(

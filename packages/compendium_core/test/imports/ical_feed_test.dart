@@ -550,6 +550,33 @@ void main() {
       ));
     });
 
+    test('calendarFingerprintLocalDate recovers a UTC event\'s old local '
+        'date from its stored start', () {
+      DateTime minus4(DateTime u) => u.subtract(const Duration(hours: 4));
+      CalendarImportCandidate utcAt(int minute) => CalendarImportCandidate(
+        eventKey: 'k',
+        title: 'T',
+        date: DateTime.utc(2030, 6, 20),
+        asWritten: (
+          date: DateTime.utc(2030, 6, 21),
+          startMinute: minute,
+          endMinute: null,
+        ),
+        startsInUtc: true,
+      );
+      // 21 June 00:00Z is 20 June locally; 21 June 23:00Z is 21 June.
+      final stored = utcAt(0).fingerprint;
+      expect(
+        calendarFingerprintLocalDate(stored, utcAt(23 * 60), minus4),
+        DateTime.utc(2030, 6, 20),
+      );
+      expect(calendarFingerprintLocalDate(null, utcAt(60), minus4), isNull);
+      expect(
+        calendarFingerprintLocalDate('v1:a:b:c', utcAt(60), minus4),
+        isNull,
+      );
+    });
+
     test('an unknown or v1 fingerprint, or none, reads as unknown', () {
       expect(calendarFingerprintChanges(null, fp()), isNull);
       expect(calendarFingerprintChanges('v1:a:b:c', fp()), isNull);
