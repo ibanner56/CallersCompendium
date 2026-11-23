@@ -6652,6 +6652,12 @@ abstract class AppLocalizations {
   /// **'Interpreted {year}'**
   String danceInterpretedYear(String year);
 
+  /// On the Perform card: where the dance's tune is printed in the Barnes books (a set of English country dance tune books), labelled. {reference} is free text the caller typed with the book and page, such as BIII p. 92 or NiB. Keep 'Barnes' as is: it is the books' name.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes: {reference}'**
+  String danceBarnesValue(String reference);
+
   /// On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.
   ///
   /// In en, this message translates to:
@@ -13552,7 +13558,7 @@ abstract class AppLocalizations {
   /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
   String validationSequenceSpanNoRoom(int position, int actual, int expected);
 
-  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).
+  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own.
   ///
   /// In en, this message translates to:
   /// **'This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.'**

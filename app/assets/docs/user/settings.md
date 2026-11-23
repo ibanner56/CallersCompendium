@@ -851,13 +851,12 @@ figure to see:
   own, such as how you call it or what to watch for. Clear the text to remove
   them.
 
-Choose **Contra** or **English (ECD)** at the top of the Glossary to see
-that type's figures. Each time you go to the Glossary, it shows the type a
+Choose **Contra**, **English (ECD)** or **Square** at the top of the
+Glossary to see that type's figures. Each time you go to the Glossary, it shows the type a
 new dance starts as (the **Type** default for new dances, which can be
-**Last used**), until you choose one yourself. English figures don't have
-definitions yet. Your own figures and terms are listed under the type they
-were made for, and a square dance's under Contra, whose figures square dances
-use for now. One you add is made for the type shown. Copying an English
+**Last used**), until you choose one yourself. English figures and square
+calls don't have definitions yet. Your own figures and terms are listed under
+the type they were made for. One you add is made for the type shown. Copying an English
 figure as one of your own makes it an English figure, and it offers English's
 groups of dancers, such as the ends or the top.
 

@@ -4356,6 +4356,10 @@
   "@danceInterpretedYear": {
     "x-sourceSha256": "bf7f2681634650c962accef31e57f40118bb171615bb7218247ef1e8fde5abee"
   },
+  "danceBarnesValue": "Barnes：{reference}",
+  "@danceBarnesValue": {
+    "x-sourceSha256": "f139413c071e9491584997ef77bde8672284354c6fbdef4630b534fb5a3a1997"
+  },
   "danceMeterValue": "拍子：{meter}",
   "@danceMeterValue": {
     "x-sourceSha256": "43c115395c78332e54a364e9a0a3c253895a121a1a2336b736f9d6cb2a690444"

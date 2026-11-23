@@ -333,6 +333,13 @@ const String taxonomyV39CanonicalRebuildDoneKey =
 const String ecdTaxonomyCanonicalRebuildDoneKey =
     '__ecd_taxonomy_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed when the square
+/// taxonomy first ships (ADR-007), for the reason
+/// [ecdTaxonomyCanonicalRebuildDoneKey] gives: a dance already holding `sq_`
+/// move IDs was indexed while they were unknown, as the bare ID.
+const String squareTaxonomyCanonicalRebuildDoneKey =
+    '__square_taxonomy_canonical_rebuild_done__';
+
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
 /// container text without changing their source JSON.
