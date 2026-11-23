@@ -636,6 +636,117 @@ void main() {
     });
   });
 
+  group('Program.swapSlotDanceKeepingAlternate (#2346)', () {
+    final played = DateTime.utc(2026, 7, 9, 20);
+    final slots = [
+      ProgramSlot(id: 'a', position: 0, danceId: 'd0', performedAt: played),
+      ProgramSlot(
+        id: 'b',
+        position: 1,
+        danceId: 'd1',
+        text: 'band: slow reel',
+        guestCaller: 'Sam',
+        walkthroughMinutes: 3,
+        danceMinutes: 9,
+      ),
+      ProgramSlot(id: 'b-alt', position: 2, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'c', position: 3, danceId: 'd3'),
+    ];
+
+    test('keeps the slot and its fields, and the old dance as its first '
+        'alternate', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        slots,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['a', 'b', 'kept', 'b-alt', 'c']);
+      final swapped = next[1];
+      expect(swapped.danceId, 'new');
+      expect(swapped.text, 'band: slow reel');
+      expect(swapped.guestCaller, 'Sam');
+      expect(swapped.walkthroughMinutes, 3);
+      expect(swapped.danceMinutes, 9);
+      expect(swapped.isAlt, isFalse);
+      final kept = next[2];
+      expect(kept.danceId, 'd1');
+      expect(kept.isAlt, isTrue);
+      expect(kept.text, isNull);
+      expect(kept.performedAt, isNull);
+      // One group: the old dance is an alternate of the new one.
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 1, 1, 2]);
+    });
+
+    test('the swapped-out dance does not count toward calling history', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        slots,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      final counted = {
+        for (final s in next)
+          if (s.countsTowardCallingHistory) s.danceId,
+      };
+      expect(counted, isNot(contains('d1')));
+      expect(counted, containsAll(['d0', 'new', 'd3']));
+    });
+
+    test('choosing one of the slot\'s alternates trades the two dances', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        slots,
+        1,
+        danceId: 'd2',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['a', 'b', 'b-alt', 'c']);
+      expect(next[1].danceId, 'd2');
+      expect(next[1].text, 'band: slow reel');
+      expect(next[2].danceId, 'd1');
+      expect(next[2].isAlt, isTrue);
+    });
+
+    test('an alternate already marked performed is not traded', () {
+      final marked = [
+        ...slots.take(2),
+        slots[2].copyWith(performedAt: played),
+        slots[3],
+      ];
+      final next = Program.swapSlotDanceKeepingAlternate(
+        marked,
+        1,
+        danceId: 'd2',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['a', 'b', 'kept', 'b-alt', 'c']);
+      expect(next[3].danceId, 'd2');
+      expect(next[3].performedAt, played);
+    });
+
+    test('a slot with no dance, or the same dance, is left alone', () {
+      final note = [ProgramSlot(id: 'n', position: 0, text: 'Waltz')];
+      expect(
+        Program.swapSlotDanceKeepingAlternate(
+          note,
+          0,
+          danceId: 'new',
+          alternateId: 'kept',
+        ),
+        note,
+      );
+      expect(
+        Program.swapSlotDanceKeepingAlternate(
+          slots,
+          1,
+          danceId: 'd1',
+          alternateId: 'kept',
+        ),
+        slots,
+      );
+    });
+  });
+
   group('Program.insertSlotAtGroupBoundary (#2339)', () {
     final slots = [
       ProgramSlot(id: 'a', position: 0, danceId: 'd0'),
