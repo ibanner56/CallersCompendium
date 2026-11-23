@@ -11600,7 +11600,7 @@
       }
     }
   },
-  "danceEditorPhraseBeatsPerBarLabel": "{name} beats a bar",
+  "danceEditorPhraseBeatsPerBarLabel": "Beats per bar in {name}",
   "@danceEditorPhraseBeatsPerBarLabel": {
     "description": "Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.",
     "placeholders": {

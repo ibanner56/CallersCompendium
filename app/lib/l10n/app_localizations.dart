@@ -13117,7 +13117,7 @@ abstract class AppLocalizations {
   /// Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.
   ///
   /// In en, this message translates to:
-  /// **'{name} beats a bar'**
+  /// **'Beats per bar in {name}'**
   String danceEditorPhraseBeatsPerBarLabel(String name);
 
   /// Short error under one named phrase's beats-to-the-bar field in an English dance when its count is empty, zero or too large: the beats a bar may have.

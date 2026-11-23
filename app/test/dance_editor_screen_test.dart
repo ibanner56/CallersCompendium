@@ -2775,7 +2775,7 @@ void main() {
         expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
       });
 
-      testWidgets('a beats count past the range says so and changes nothing', (
+      testWidgets('a beats count of zero says so and changes nothing', (
         tester,
       ) async {
         final repos = await ecdDance(
@@ -2792,8 +2792,8 @@ void main() {
       });
 
       testWidgets(
-        'a phrase added after the others takes the Meter\'s beats and '
-        'keeps the rest as they are (#2303)',
+        'a phrase added to a Meter that names two meters takes the first '
+        'phrase\'s beats and keeps the rest as they are (#2303)',
         (tester) async {
           final repos = await ecdDance(
             meter: '3/4 and 6/8',
@@ -2812,6 +2812,36 @@ void main() {
           );
         },
       );
+
+      testWidgets('editing a Meter that states the same beats to the bar as '
+          'before leaves phrases that all differ from it alone (#2303)', (
+        tester,
+      ) async {
+        // The phrases were set to 2 by hand under a Meter of 3/4: adding a word
+        // to the Meter states no new beats, so it must not set them to 3.
+        final repos = await ecdDance(
+          meter: '3/4',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await tester.enterText(
+          find.byKey(const ValueKey('meter-field')),
+          '3/4 waltz',
+        );
+        await tester.pump();
+        expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
+      testWidgets('a beats field takes digits only', (tester) async {
+        final repos = await ecdDance(
+          meter: '',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setBeatsPerBar(tester, 0, 'a3b');
+        expect(fieldText(tester, 'named-phrase-0-beats'), '3');
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+      });
 
       testWidgets('editing a Meter that still states the same beats to the bar '
           'keeps each phrase\'s own (#2303)', (tester) async {

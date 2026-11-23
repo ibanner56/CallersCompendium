@@ -743,7 +743,8 @@ nothing in it to lose.
   all have the same beats to the bar: phrases that differ are never rewritten
   from the Meter. A Meter that still states the same beats (a word added after
   `3/4`), or names two meters (`3/4 and 6/8`), leaves them as they are too.
-  **Name the phrases** on a structure that differs keeps each part's own beats.
+  **Name the phrases** on a structure that differs keeps each part's own beats
+  where its parts group into named phrases.
   Each phrase has 1 to 1000 bars and 1
   to 1000 beats to the bar; while one is left empty or past that, the dance
   keeps its last valid phrases, and **Save** saves those.

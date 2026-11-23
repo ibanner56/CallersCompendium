@@ -9,8 +9,8 @@ import '../../widgets/app_dropdown_field.dart';
 /// An English dance's phrases as the caller names them (Hudson, 20 November
 /// 2026): one row for each of A, B and C, with its bars, its beats to the bar
 /// (a tune that changes meter has a different count in each phrase, #2303) and
-/// whether it plays once or twice, its repeat straight after it. It writes the phrase
-/// structure as named components ([PhraseStructure.named]), so the figure
+/// whether it plays once or twice, its repeat straight after it. It writes the
+/// phrase structure as named components ([PhraseStructure.named]), so the figure
 /// list's section labels read `A`, `A1`/`A2`, `B`, `C`.
 ///
 /// With no named phrases yet, it offers to name them, starting from the
@@ -50,7 +50,9 @@ class NamedPhrasesEditor extends StatefulWidget {
 /// standard structure in 4/4 is A and B of 8 bars, as an import gives it
 /// (`4*8*4`), not 4 bars of the standard's 2/2 beats. A structure whose parts
 /// differ in beats to the bar keeps each part's own, whatever [beatsPerBar]
-/// says: one stated meter cannot describe it (#2303).
+/// says, wherever its parts group into phrases: one stated meter cannot
+/// describe it (#2303). Where they do not group (the fallback above), both
+/// phrases take the first part's beats to the bar.
 List<NamedPhrase> namedPhrasesFrom(
   PhraseStructure structure, {
   int? beatsPerBar,
@@ -371,7 +373,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
       ),
     );
     final beats = SizedBox(
-      width: 112,
+      width: 176,
       child: TextField(
         key: ValueKey('named-phrase-$index-beats'),
         controller: row.beats,

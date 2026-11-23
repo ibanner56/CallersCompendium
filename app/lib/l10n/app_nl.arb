@@ -8638,9 +8638,9 @@
   "@danceEditorPhraseBarsRange": {
     "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
   },
-  "danceEditorPhraseBeatsPerBarLabel": "{name} tellen per maat",
+  "danceEditorPhraseBeatsPerBarLabel": "Tellen per maat in {name}",
   "@danceEditorPhraseBeatsPerBarLabel": {
-    "x-sourceSha256": "31a19fb8c9896b41685fa34f411f35b5aee28658b4664e1097fc55029f74f7dc"
+    "x-sourceSha256": "17b29f875c43235d3035266bf0bcc4fcaf5e92779a7c0178eac4fde0e758e16a"
   },
   "danceEditorPhraseBeatsPerBarRange": "1 tot {max}",
   "@danceEditorPhraseBeatsPerBarRange": {
