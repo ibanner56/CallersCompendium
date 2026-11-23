@@ -29,6 +29,8 @@ export 'src/engine/success_criterion.dart';
 export 'src/geometry/geometry.dart';
 export 'src/io/callersbox_source.dart';
 export 'src/io/dance_json.dart';
+export 'src/io/failure_report.dart';
+export 'src/io/failure_report_page.dart';
 export 'src/io/roles_notation.dart';
 export 'src/ops/diagnostics.dart';
 export 'src/ops/operation.dart';

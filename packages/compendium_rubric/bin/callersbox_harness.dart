@@ -13,11 +13,20 @@
 /// moves the corpus names are listed after it. That list is the backlog, read
 /// off real choreography rather than guessed at.
 ///
+/// `--report <dir>` also writes a failure report into `<dir>`: every dance
+/// that failed, re-run step by step (`lib/src/io/failure_report.dart`).
+/// `failures.jsonl` has one record per dance, `summary.md` groups them by
+/// cause, and `index.html` with `report.js` is a page to browse them in.
+/// `--core-ids <file>` (one Caller's Box id per line, `#` comments) marks a
+/// focus set, so each group also counts its dances from that set. Neither flag
+/// changes the run's outcomes, rates or exit code.
+///
 /// Exit codes: `0` every attempted dance compiled, `1` some did not, `64` the
 /// inputs could not be read. Note that the exit code tracks the *attempted*
 /// set, so a corpus sweep will exit `1` as a matter of course.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_rubric/compendium_rubric.dart';
@@ -34,7 +43,16 @@ Future<void> main(List<String> args) async {
 
   final quiet = args.contains('-q') || args.contains('--quiet');
   final verbose = args.contains('-v') || args.contains('--verbose');
-  final paths = args.where((arg) => !arg.startsWith('-')).toList();
+  final String? reportDir;
+  final String? coreIdsPath;
+  final paths = <String>[];
+  try {
+    (reportDir, coreIdsPath) = _options(args, paths);
+  } on FormatException catch (error) {
+    stderr.writeln('error: ${error.message}');
+    stderr.writeln(_usage);
+    exit(_exitBadInput);
+  }
   if (paths.isEmpty) {
     stderr.writeln('error: no input files');
     stderr.writeln(_usage);
@@ -47,7 +65,21 @@ Future<void> main(List<String> args) async {
     exit(_exitBadInput);
   }
 
+  Set<String> coreIds = const {};
+  if (coreIdsPath != null) {
+    try {
+      coreIds = {
+        for (final line in File(coreIdsPath).readAsLinesSync())
+          if (line.split('#').first.trim() case final id when id.isNotEmpty) id,
+      };
+    } on FileSystemException catch (error) {
+      stderr.writeln('error: $coreIdsPath: unreadable: ${error.message}');
+      exit(_exitBadInput);
+    }
+  }
+
   final runs = <DanceRun>[];
+  final diagnoses = <FailureDiagnosis>[];
   for (final file in files) {
     final String payload;
     try {
@@ -58,7 +90,17 @@ Future<void> main(List<String> args) async {
       stderr.writeln('${file.path}: unreadable: ${error.message}');
       continue;
     }
-    runs.addAll(await runCallersBoxPayload(payload, label: file.path));
+    if (reportDir == null) {
+      runs.addAll(await runCallersBoxPayload(payload, label: file.path));
+      continue;
+    }
+    for (final (run, diagnosis) in await diagnoseCallersBoxPayload(
+      payload,
+      label: file.path,
+    )) {
+      runs.add(run);
+      if (diagnosis != null) diagnoses.add(diagnosis);
+    }
   }
 
   if (!quiet) {
@@ -70,6 +112,9 @@ Future<void> main(List<String> args) async {
 
   final report = CorpusReport(runs);
   _writeSummary(report);
+  if (reportDir != null) {
+    _writeFailureReport(reportDir, report, diagnoses, coreIds);
+  }
   exit(
     report.compiled == report.attempted ? _exitAllCompiled : _exitSomeFailed,
   );
@@ -160,6 +205,70 @@ void _writeSummary(CorpusReport report) {
   }
 }
 
+/// Splits [args] into the input paths (added to [paths]) and the values of
+/// `--report` and `--core-ids`.
+(String?, String?) _options(List<String> args, List<String> paths) {
+  String? report;
+  String? coreIds;
+  for (var i = 0; i < args.length; i++) {
+    final arg = args[i];
+    if (arg == '--report' || arg == '--core-ids') {
+      if (i + 1 >= args.length || args[i + 1].startsWith('-')) {
+        throw FormatException('$arg needs a path');
+      }
+      if (arg == '--report') {
+        report = args[++i];
+      } else {
+        coreIds = args[++i];
+      }
+    } else if (!arg.startsWith('-')) {
+      paths.add(arg);
+    }
+  }
+  if (coreIds != null && report == null) {
+    throw const FormatException('--core-ids is only read with --report');
+  }
+  return (report, coreIds);
+}
+
+void _writeFailureReport(
+  String dir,
+  CorpusReport report,
+  List<FailureDiagnosis> diagnoses,
+  Set<String> coreIds,
+) {
+  final directory = Directory(dir)..createSync(recursive: true);
+  String at(String name) => '${directory.path}${Platform.pathSeparator}$name';
+  final headline =
+      'in scope ${report.compiled}/${report.inScope} '
+      '(${_percent(report.inScopeRate)}), '
+      '${report.inScope - report.compiled} in-scope failures';
+  File(at('failures.jsonl')).writeAsStringSync(
+    diagnoses
+        .map(
+          (d) =>
+              '${jsonEncode(d.toJson(core: coreIds.contains(d.run.sourceId)))}\n',
+        )
+        .join(),
+  );
+  File(at('summary.md')).writeAsStringSync(
+    '$headline.\n\n${summarizeFailures(diagnoses, coreIds: coreIds)}',
+  );
+  File(at('report.js')).writeAsStringSync(
+    failureReportScript(diagnoses, coreIds: coreIds, headline: headline),
+  );
+  File(at('index.html')).writeAsStringSync(
+    '<!doctype html>\n<meta charset="utf-8">\n'
+    '<meta name="viewport" content="width=device-width, initial-scale=1, '
+    'viewport-fit=cover">\n$failureReportPage',
+  );
+  stdout.writeln('');
+  stdout.writeln(
+    'failure report: ${diagnoses.length} dances written to ${directory.path} '
+    '(open index.html; summary.md groups them by cause)',
+  );
+}
+
 String _percent(double value) => '${(value * 100).toStringAsFixed(1)}%';
 
 const String _usage = '''
@@ -176,6 +285,11 @@ minus the ones a deferred figure blocked. The all-attempted rate follows it.
 Options:
   -q, --quiet    summary only
   -v, --verbose  list every dance, with warnings
+  --report <dir> also write a failure report to <dir>: failures.jsonl,
+                 summary.md, and index.html (with report.js) to browse
+  --core-ids <file>
+                 with --report: Caller's Box ids of a focus set, one per
+                 line, counted beside each cause
   -h, --help     this message
 
 Exit codes:
