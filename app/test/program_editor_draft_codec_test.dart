@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
+import 'package:compendium_app/src/editor/program_times.dart';
 
 void main() {
   test('program draft round-trips purge and legacy slot markers', () {
@@ -121,6 +122,75 @@ void main() {
 
       expect(encoded, isNot(contains('payText')));
       expect(decodeProgramDraft(encoded).hasPay, isFalse);
+    });
+  });
+
+  group('times (#2350)', () {
+    ProgramEditorDraft draft(ProgramTimes times) => ProgramEditorDraft(
+      title: 'T',
+      notes: '',
+      status: ProgramStatus.draft,
+      hideAlternates: false,
+      times: times,
+      slots: const [],
+    );
+
+    test('round-trip, including a cleared time and midnight', () {
+      const times = ProgramTimes(start: 1170, end: 0, arrival: 1439);
+      final decoded = decodeProgramDraft(encodeProgramDraft(draft(times)));
+      expect(decoded.hasTimes, isTrue);
+      expect(decoded.times, times);
+      expect(decoded.times.lesson, isNull);
+    });
+
+    test('none set still records that the draft captured them', () {
+      final decoded = decodeProgramDraft(
+        encodeProgramDraft(draft(const ProgramTimes())),
+      );
+      expect(decoded.hasTimes, isTrue);
+      expect(decoded.times, const ProgramTimes());
+    });
+
+    test('an old draft without the key decodes as never captured', () {
+      final decoded = decodeProgramDraft({
+        'v': 1,
+        'title': 'Old',
+        'notes': '',
+        'status': 'draft',
+        'hideAlternates': false,
+        'slots': <Object?>[],
+      });
+      expect(decoded.hasTimes, isFalse);
+    });
+
+    test('a malformed time is rejected', () {
+      for (final bad in <Object>[1440, -1, '19:30', <Object?>[]]) {
+        expect(
+          () => decodeProgramDraft({
+            'v': 1,
+            'title': 'T',
+            'notes': '',
+            'status': 'draft',
+            'hideAlternates': false,
+            'times': {'start': bad},
+            'slots': <Object?>[],
+          }),
+          throwsFormatException,
+          reason: '$bad',
+        );
+      }
+      expect(
+        () => decodeProgramDraft({
+          'v': 1,
+          'title': 'T',
+          'notes': '',
+          'status': 'draft',
+          'hideAlternates': false,
+          'times': 'start',
+          'slots': <Object?>[],
+        }),
+        throwsFormatException,
+      );
     });
   });
 }
