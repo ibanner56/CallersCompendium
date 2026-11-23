@@ -66,6 +66,51 @@ void main() {
     expect((await repo.get(s.id))!.name, 'Good');
   });
 
+  group('a value is checked as the store will keep it', () {
+    test('a name of only invisible characters is refused, not stored '
+        'unreadable', () async {
+      // U+200B survives trim() but not the store's normalization, which would
+      // leave an empty name that the codec cannot read.
+      await expectLater(
+        repo.create(name: '\u200B\u200B', spec: specFor('a')),
+        throwsArgumentError,
+      );
+      expect(await repo.list(), isEmpty);
+      expect(
+        SavedSearch.decode(
+          'x',
+          SavedSearch(id: 'x', name: '\u200B', spec: specFor('a')).toJson(),
+        ).isOk,
+        isTrue,
+        reason:
+            'readable as written, which is why the check must follow '
+            'normalization',
+      );
+    });
+
+    test(
+      'keys that differ only by an invisible character are refused',
+      () async {
+        final panel = CollectionPanelState(text: 'a');
+        panel.byPhrase.match['A1'] = ['swing'];
+        panel.byPhrase.match['A1\u200B'] = ['star'];
+        final spec = SavedSearchSpec.fromPanelState(panel, today: today).value!;
+        await expectLater(
+          repo.create(name: 'Collides', spec: spec),
+          throwsArgumentError,
+        );
+        expect(await repo.list(), isEmpty);
+      },
+    );
+
+    test('an empty id is refused', () async {
+      await expectLater(
+        repo.save(SavedSearch(id: ' ', name: 'No id', spec: specFor('a'))),
+        throwsArgumentError,
+      );
+    });
+  });
+
   group('delete', () {
     test('tombstones the key, and a later save of the same id revives it '
         '(Undo)', () async {
@@ -150,6 +195,17 @@ void main() {
         expect(listed[1].search, isNull);
         expect(listed[1].problem, isNotEmpty);
         expect(await repo.get('bad1'), isNull);
+      },
+    );
+
+    test(
+      'a stray key with no id is listed as unreadable, not skipped',
+      () async {
+        await settings.set('saved_search:', {'v': 1});
+        final listed = await repo.list();
+        expect(listed, hasLength(1));
+        expect(listed.single.search, isNull);
+        expect(listed.single.savedSearchId, '');
       },
     );
 

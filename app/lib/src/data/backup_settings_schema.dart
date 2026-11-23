@@ -292,7 +292,7 @@ bool? validateBackupSettingValue(String key, Object? value) {
   // the codec that wrote it, which never throws, so a crafted backup cannot
   // restore a value the app would then have to defend against.
   if (key.startsWith(savedSearchKeyPrefix)) {
-    return SavedSearch.decode(
+    return SavedSearch.decodeAsStored(
       key.substring(savedSearchKeyPrefix.length),
       value,
     ).isOk;

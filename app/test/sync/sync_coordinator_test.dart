@@ -8520,15 +8520,23 @@ void main() {
           SyncCapabilities.savedSearchesV1,
         });
         final store = _FakeStore(
-          local: {mine.address: mine, peerCaps.address: peerCaps},
+          local: {
+            mine.address: mine,
+            plain.address: plain,
+            peerCaps.address: peerCaps,
+          },
         );
-        final transport = transportFor(['peer']);
-        await coordinatorFor(
+        final transport = transportFor(['peer'], missing: {plain.wireHash});
+        final result = await coordinatorFor(
           store,
           transport,
           capabilities: SyncCapabilityPolicy.build,
         ).syncNow();
 
+        // The pass ran and published what is not gated, so the absence of the
+        // saved search is the gate's doing.
+        expect(result.status, SyncPassStatus.completed);
+        expect(publishedSettings(transport), contains('theme_mode'));
         expect(publishedSettings(transport), isNot(contains('saved_search:a')));
         expect(
           SyncCapabilityPolicy.build.advertised,

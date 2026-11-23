@@ -560,6 +560,8 @@ void main() {
             {...good.toJson(), 'v': 2},
             {...good.toJson(), 'name': ''},
             {...good.toJson(), 'extra': true},
+            // Readable until the store normalizes it, then an empty name.
+            {...good.toJson(), 'name': '\u200B'},
           ]) {
             expect(
               validateBackupSettingValue('saved_search:a', value),

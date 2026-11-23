@@ -2,6 +2,11 @@ import 'dart:convert';
 
 import '../model/enums.dart';
 import '../model/formation.dart' show FormationShape;
+import '../storage/shareable_text.dart'
+    show
+        ShareableJsonKeyCollision,
+        normalizeShareableJson,
+        sanitizeShareableJson;
 import '../sync/sync_record_kind.dart';
 import 'builder_nodes.dart';
 import 'collection_panel_state.dart';
@@ -142,6 +147,33 @@ final class SavedSearch {
 
   /// The settings key this search is stored under.
   String get settingsKey => '$savedSearchKeyPrefix$id';
+
+  /// Reads [json] as it will be once the settings store has normalized it
+  /// (Unicode composition, and the removal of invisible characters), which is
+  /// what is stored and what a peer or a restored backup is then read as. A
+  /// name made only of invisible characters is readable before that and empty
+  /// after, so a value must be checked in this form to be sure it is readable.
+  /// Never throws.
+  static SavedSearchDecoded<SavedSearch> decodeAsStored(
+    String id,
+    Object? json,
+  ) {
+    Object? stored;
+    try {
+      try {
+        stored = normalizeShareableJson(json);
+      } on ShareableJsonKeyCollision {
+        // The store keeps such a value whole and only sanitizes it.
+        stored = sanitizeShareableJson(json);
+      }
+    } on Object {
+      return const SavedSearchDecoded.bad(
+        'keys that differ only by invisible '
+        'characters',
+      );
+    }
+    return decode(id, stored);
+  }
 
   /// Reads the value stored for [id]. Never throws.
   static SavedSearchDecoded<SavedSearch> decode(String id, Object? json) {

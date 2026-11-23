@@ -609,7 +609,11 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'their tags, authors, sources, difficulty levels, venue records, '
         'custom fields and figures of their own, and the folded text of a '
         'venue typed by name (text:<venue>). Their own configuration, which '
-        'follows them to their other devices; it names no one else. A '
+        'follows them to their other devices. The search text and custom-field '
+        'values are free text the user typed, so they can contain a name (an '
+        'Author search for a choreographer): the subject is the app user, '
+        'whose search it is, as the maintainer classified it, and nothing '
+        'else here names anyone. A '
         'deletion is a tombstone that keeps the value until the record is '
         'purged. Held back from peers until every device advertises '
         'savedSearches.v1.',

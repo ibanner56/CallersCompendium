@@ -2,10 +2,13 @@ import '../../search/saved_search.dart';
 import '../../util/uuid.dart';
 import 'settings_repository.dart';
 
-/// Most saved searches a device will add. Each is one synced settings value
-/// (the store keeps a quota of blobs), and a list longer than this is not a
-/// list a caller can use; the same order as the custom dialects' cap. Reading
-/// is never limited: a peer may hold more.
+/// Most live saved searches [SavedSearchRepository.create] will let a device
+/// hold, counting every one it can see, those a peer synced and those it
+/// cannot read. Each is one synced settings value (the store keeps a quota of
+/// blobs), and a list longer than this is not a list a caller can use; the
+/// same order as the custom dialects' cap. It limits adding only: reading is
+/// never limited, a peer may hold more, and [SavedSearchRepository.save] (an
+/// update, or an Undo) does not count.
 const int savedSearchMaxCount = 128;
 
 /// One thing that depends on a saved search: what kind of thing, and what to
@@ -113,9 +116,10 @@ class SavedSearchRepository {
     final stored = <StoredSavedSearch>[];
     for (final key in keys) {
       final id = key.substring(savedSearchKeyPrefix.length);
-      if (id.isEmpty) continue;
       final value = await _settings.get(key);
-      final read = SavedSearch.decode(id, value);
+      final read = id.isEmpty
+          ? const SavedSearchDecoded<SavedSearch>.bad('no id')
+          : SavedSearch.decode(id, value);
       stored.add(
         read.value != null
             ? StoredSavedSearch.readable(read.value!)
@@ -157,11 +161,16 @@ class SavedSearchRepository {
   }
 
   /// Writes [search] under its own id: an update, or the revival of a deleted
-  /// one (an Undo). The value is checked first, so a name or content this
-  /// format cannot read is refused here rather than stored.
+  /// one (an Undo). The value is checked as the store will keep it (after
+  /// normalization), so a name or content this format cannot read, an empty id
+  /// or keys that differ only by invisible characters throw [ArgumentError]
+  /// here rather than being stored.
   Future<void> save(SavedSearch search, {DateTime? at}) async {
+    if (search.id.trim().isEmpty) {
+      throw ArgumentError.value(search.id, 'search.id', 'must not be empty');
+    }
     final json = search.toJson();
-    final check = SavedSearch.decode(search.id, json);
+    final check = SavedSearch.decodeAsStored(search.id, json);
     if (check.value == null) {
       throw ArgumentError.value(search.name, 'search', check.problem);
     }
