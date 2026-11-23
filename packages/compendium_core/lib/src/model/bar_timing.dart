@@ -86,23 +86,45 @@ class BarTiming {
 
   /// Most whole bars from [start] that fit within [maxBeats] beats.
   int maxBarsWithin(int start, int maxBeats) {
-    // Red-run stub: one bar length for the whole count.
-    return maxBeats ~/ beatsPerBarAt(0);
+    _checkStart(start);
+    final end = start + maxBeats;
+    var position = start;
+    var bars = 0;
+    while (position + beatsPerBarAt(position) <= end) {
+      position += beatsPerBarAt(position);
+      bars++;
+    }
+    return bars;
   }
 
   /// Twice the beats of [halfBars] half bars from [start], counted even where
   /// the half bar is not a whole number of beats: the beats range check on a
   /// typed count compares it to twice the range's top.
   int doubledBeatsForHalfBars(int start, int halfBars) {
-    // Red-run stub: one bar length for the whole count.
-    return halfBars * beatsPerBarAt(0);
+    _checkStart(start);
+    final wholeEnd = _endOfWholeBars(start, halfBars);
+    final doubled = (wholeEnd - start) * 2;
+    return halfBars.isOdd ? doubled + beatsPerBarAt(wholeEnd) : doubled;
   }
 
   /// Beats in the bar that the last half bar of [halfBars] half bars from
   /// [start] falls in: the bar a refused half bar is refused in.
   int beatsPerBarOfHalfAt(int start, int halfBars) {
-    // Red-run stub: the bar at the start.
-    return beatsPerBarAt(start);
+    _checkStart(start);
+    return beatsPerBarAt(_endOfWholeBars(start, halfBars));
+  }
+
+  /// Where the whole bars among [halfBars] half bars from [start] end.
+  int _endOfWholeBars(int start, int halfBars) {
+    var position = start;
+    for (var bar = 0; bar < halfBars ~/ 2; bar++) {
+      position += beatsPerBarAt(position);
+    }
+    return position;
+  }
+
+  static void _checkStart(int start) {
+    if (start < 0) throw ArgumentError.value(start, 'start', 'must be >= 0');
   }
 
   @override

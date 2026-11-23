@@ -37,8 +37,8 @@ BarTiming? barTimingFor(
   PhraseStructure structure, {
   String meter = '',
 }) {
-  // Red-run stub: the old rule, which counts a tune whose parts differ in
-  // beats.
+  if (form != DanceForm.ecd) return null;
+  if (structure.hasMixedMeter) return BarTiming.byPhrase(structure);
   final perBar = danceBeatsPerBar(form, structure, meter: meter);
   return perBar == null ? null : BarTiming.fixed(perBar);
 }
