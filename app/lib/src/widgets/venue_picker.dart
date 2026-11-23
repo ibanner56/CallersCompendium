@@ -24,8 +24,8 @@ import 'responsive_autocomplete.dart';
 /// (staying open if the write fails), **waits for it to arrive on the
 /// stream**, then selects it — see `_createNew` for why that
 /// wait is an ordering invariant rather than a freshness one. Follows the
-/// type-ahead + inline-create conventions of
-/// `NamePicker`/`CollectionPicker`.
+/// type-ahead conventions of `CollectionPicker` and the inline create of
+/// `NamePicker`.
 class VenuePicker extends StatefulWidget {
   const VenuePicker({
     super.key,

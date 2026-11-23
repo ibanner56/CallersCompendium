@@ -189,10 +189,18 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   wording override. The row reads with the figure's current wording, and a save
   stores that line beside it. A row whose figure is gone says so and keeps its
   line.
-- Metadata form with author autocomplete (choreographer table), formation
+- Metadata form with author pickers (choreographer table), formation
   picker, custom fields.
+- **Name pickers** (Authors, Interpreted by, Tags) are multi-select
+  dropdowns: the closed field reads the chosen names as text, and opens a
+  list of every name with a checkbox, a search box that narrows it, a row
+  that creates a typed name nobody has, and (for people) an edit button per
+  row. They replaced a row of removable chips over a type-ahead, which the
+  maintainer found cluttered and hard to use (22 November 2026). The list
+  drops down under the field on a wide window and is a bottom sheet on a
+  phone or short window, above the keyboard.
 - **Field labels**: a text field or dropdown carries a floating label inside
-  the field (Title, Type, Formation); a chip group (authors, tags) or a
+  the field (Title, Type, Formation); a name picker (authors, tags) or a
   repeating group of fields (tunes, links, sources, related dances, custom
   fields) keeps a heading above it, because a floating label belongs to one
   field, not a group.

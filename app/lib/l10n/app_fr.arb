@@ -9130,6 +9130,10 @@
   "@danceEditorTypeToAddOrCreateHint": {
     "x-sourceSha256": "51aedd35e5160fcd65b816429ffa4fb5bd895fcec71e985794ecfa4d5c5e5a59"
   },
+  "danceEditorChooseHint": "Choisir…",
+  "@danceEditorChooseHint": {
+    "x-sourceSha256": "7ca41615c19be38d63b5defd85e2db57712e18014c8d9e985f449245c0fdabc4"
+  },
   "danceEditorCreateQuotedName": "Créer « {name} »",
   "@danceEditorCreateQuotedName": {
     "x-sourceSha256": "61beb570b064beafe58096897e5b92cac6e071d27dbe3157ecced2593d7bcbc2"

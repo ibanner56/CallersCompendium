@@ -865,9 +865,11 @@ steps that can still fire are v40 onward.
   none; a title never holds a line break (`normalizeAlternateTitles`), so the
   value is plain text that cannot fail to decode. `dances.barnes_reference`
   holds `Dance.barnesReference`, where the tune is printed in the Barnes books
-  ("BIII p. 92", or "NiB", Not in Barnes), `''` when not given. Both default
-  to `''`, so every existing dance has neither; both are stored for every
-  form. Added in the `from < 42` step, each only if absent. No derived index
+  ("BIII p. 92", or "NiB", Not in Barnes), `''` when not given and always
+  `''` for a form other than ECD (maintainer, 23 November 2026: "ECD only";
+  the `Dance` constructor clears it, `formHasBarnesReference`). Both default
+  to `''`, so every existing dance has neither; other titles are stored for
+  every form. Added in the `from < 42` step, each only if absent. No derived index
   reads them: the Title scope and All fields read the other titles, and All
   fields the Barnes reference, from these rows with `LIKE`
   ([search.md](search.md), "Meter, key and interpreters").
