@@ -141,7 +141,7 @@ Future<_Harness> _pump(
   final repos = openTestRepositories();
   for (final d in [
     ..._programDances,
-    ...?extra ?? [_match, _harder, _improper, _noHey, _alt],
+    ...(extra ?? [_match, _harder, _improper, _noHey, _alt]),
   ]) {
     await repos.dances.create(d);
   }
@@ -340,6 +340,30 @@ void main() {
       );
       expect(_tile('nohey'), findsNothing);
       expect(_tile('match'), findsOneWidget);
+    });
+
+    testWidgets('never lists the dance being swapped, as a result or under '
+        'Your alternates, whatever the Keep items', (tester) async {
+      // An alternate that holds the slot's own dance.
+      final slots = _slots()
+        ..insert(
+          3,
+          ProgramSlot(id: 's1-dup', position: 3, danceId: 'd1', isAlt: true),
+        );
+      await _pump(tester, program: _program(slots));
+      await _openAdjust(tester);
+      await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+      for (final key in [
+        'swap-keep-formation',
+        'swap-keep-level',
+        'swap-keep-not-in-program',
+      ]) {
+        await _tap(tester, _inSwap(find.byKey(ValueKey(key))));
+        expect(_chip(tester, key).selected, isFalse, reason: key);
+      }
+      expect(_tile('d4'), findsOneWidget, reason: 'every Keep item is off');
+      expect(_tile('alt'), findsOneWidget);
+      expect(_tile('d1'), findsNothing);
     });
 
     testWidgets('a kept figure offers In the same phrase and With what comes '

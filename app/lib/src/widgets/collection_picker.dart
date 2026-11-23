@@ -538,7 +538,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     // picker is open (e.g. the user edits their dialect library).
     final searchInputsChanged =
         oldWidget.dialect != widget.dialect ||
-        oldWidget.enrichment != widget.enrichment;
+        oldWidget.enrichment != widget.enrichment ||
+        !setEquals(oldWidget.excludedDanceIds, widget.excludedDanceIds);
     if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
     }
@@ -558,12 +559,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
         !_onlineEnabled) {
       _debounceTimer?.cancel();
       _loadQuery(query, withSort: false);
-      _runSearch();
-    } else if (!setEquals(
-          oldWidget.excludedDanceIds,
-          widget.excludedDanceIds,
-        ) &&
-        !_onlineEnabled) {
       _runSearch();
     }
     if (oldWidget.programContext != widget.programContext && _suggested) {
@@ -682,16 +677,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
         for (final entry in _importedChoreographers.entries)
           entry.key: entry.value.name,
       };
-      final hidden = {...widget.excludedDanceIds, ...?widget.pinned?.danceIds};
+      final pinnedIds = {...?widget.pinned?.danceIds};
       setState(() {
         _results = [
           for (final id in ids)
-            if (!hidden.contains(id))
-              if (_latestDanceFor(id, data) case final dance?)
-                data.entryFor(
-                  dance,
-                  choreographerNamesOverride: choreographerNamesOverride,
-                ),
+            if (!widget.excludedDanceIds.contains(id))
+              if (!pinnedIds.contains(id))
+                if (_latestDanceFor(id, data) case final dance?)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride: choreographerNamesOverride,
+                  ),
         ];
         _searching = false;
       });
