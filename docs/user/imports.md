@@ -306,6 +306,15 @@ How the values come in:
 - **Tags** are separated by commas, matched to your tags by name, and added
   when new. Your **Import defaults** tags are added too.
 - **Level** is matched to your difficulty levels by name.
+- **Numbers** are read as you would type them, with one exception: in a sheet
+  separated by semicolons (what Excel saves in Danish, German, French and Dutch)
+  a comma is the decimal mark and a dot or a space groups thousands, so `3,5` is
+  3.5 and `1.000` is one thousand. A number the app can't read either way, such
+  as `1,234.5` in such a sheet, goes into the calling notes rather than being
+  guessed.
+- A choice field takes the option you already have whatever case, surrounding
+  space or accent form the cell uses (`café` typed as `e` plus an accent still
+  matches `café`). A cell with nothing visible in it adds no option.
 - A value that doesn't fit its field — a formation or level the app doesn't
   know, or text in a number field — goes into the dance's **calling notes**,
   with a note on the review row, so nothing is lost.

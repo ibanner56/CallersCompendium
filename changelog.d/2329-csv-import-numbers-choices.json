@@ -1,0 +1,9 @@
+{
+  "id": "2329-csv-import-numbers-choices",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a spreadsheet saved with semicolons (Danish, German, French or Dutch Excel) now reads a number like 3,5 as 3.5 and 1.000 as one thousand instead of putting it in the calling notes or reading it as 1. A choice cell that differs from your option only in accent form now matches it, and a choice cell with nothing visible in it no longer adds an empty option."
+    ]
+  }
+}
