@@ -44,8 +44,11 @@ class FacetSelections {
   /// removed). Set and cleared with [historyVenue] by [setHistoryVenue].
   String? historyVenueLabel;
 
-  /// The recency scope, as a preset: only calls in the last this-many calendar
-  /// months count (1, 3 or 6). Null with [historySince] also null = no window.
+  /// The recency scope, as a number of months: only calls in the last
+  /// this-many calendar months count. The panel offers 1, 3 or 6; any other
+  /// number comes in with a panel state (a saved search keeps the months) and
+  /// is shown as a chip of its own. Null with [historySince] also null = no
+  /// window.
   /// Never set together with [historySince]; use [setHistoryMonths] and
   /// [setHistorySince].
   int? historyMonths;
@@ -130,22 +133,42 @@ class FacetSelections {
   ///
   /// Selecting the second tag sets [tagsMatchAll] to `true`; see there.
   bool setTag(String id, {required bool selected}) {
-    if (!selected) return tagIds.remove(id);
+    if (!selected) {
+      _keptTagIds.remove(id);
+      return tagIds.remove(id);
+    }
     if (!tagIds.add(id)) return false;
     if (tagIds.length == 2) tagsMatchAll = true;
     return true;
   }
 
-  /// Drops every selected tag not in [listed], the tags the Tags facet offers
-  /// (those a live dance carries). Returns whether anything was dropped.
+  /// Selected tags that [retainTags] keeps even when no live dance carries
+  /// them: the ones a host opened with, from a saved search or another
+  /// caller's panel state ([keepSelectedTags]). A tag picked by hand is not
+  /// among them.
+  final Set<String> _keptTagIds = {};
+
+  /// Marks every tag selected now as one [retainTags] keeps.
   ///
-  /// A selected tag whose last dance loses it has no chip left to deselect,
-  /// and under [tagsMatchAll] it would hide every dance, so the host calls
-  /// this whenever its collection data changes.
+  /// A host calls this when it opens with a given panel state: a search for a
+  /// tag nobody carries yet must not quietly turn into a search for anything
+  /// (a dance tagged later is meant to appear), so the tag stays selected, and
+  /// the Tags section shows it as a chip the user can remove.
+  void keepSelectedTags() => _keptTagIds.addAll(tagIds);
+
+  /// Drops every selected tag not in [listed], the tags the Tags facet offers
+  /// (those a live dance carries), except those marked by [keepSelectedTags].
+  /// Returns whether anything was dropped.
+  ///
+  /// A tag picked by hand whose last dance loses it would, under
+  /// [tagsMatchAll], hide every dance, so the host calls this whenever its
+  /// collection data changes and such a tag goes. A kept tag stays selected,
+  /// and the Tags section still shows it as a chip.
   bool retainTags(Iterable<String> listed) {
     final keep = listed.toSet();
     final before = tagIds.length;
-    tagIds.removeWhere((id) => !keep.contains(id));
+    tagIds.removeWhere((id) => !keep.contains(id) && !_keptTagIds.contains(id));
+    _keptTagIds.retainAll(tagIds);
     return tagIds.length != before;
   }
 
@@ -276,7 +299,19 @@ class FacetSelections {
       textValues.values.where((s) => s.isEffective).length +
       numberValues.values.where((s) => s.isEffective).length;
 
+  /// How many times [clear], or a [clearFacets] that cleared something, has
+  /// run on these selections. In memory only, never stored.
+  ///
+  /// A custom text or number filter's field can hold text the user typed that
+  /// is no value yet (a lone "-", Between's first bound, spaces), so its
+  /// selection here is empty both before and after a clear; the field reads
+  /// this to tell a clear from a rebuild its own typing caused, and empties
+  /// itself only for the first.
+  int get clearCount => _clearCount;
+  int _clearCount = 0;
+
   void clear() {
+    _clearCount++;
     forms.clear();
     formations.clear();
     progressions.clear();
@@ -289,6 +324,7 @@ class FacetSelections {
     minRating = null;
     authorIds.clear();
     tagIds.clear();
+    _keptTagIds.clear();
     tagsMatchAll = true;
     untagged = false;
     sourceIds.clear();
@@ -338,7 +374,8 @@ class FacetSelections {
       case CollectionFacetIds.musicalKey:
         return musicalKeys.isNotEmpty;
       case CollectionFacetIds.tags:
-        return tagIds.isNotEmpty;
+        // Untagged is a chip of the Tags section.
+        return tagIds.isNotEmpty || untagged;
       case CollectionFacetIds.source:
         return sourceIds.isNotEmpty;
     }
@@ -357,6 +394,7 @@ class FacetSelections {
     var changed = false;
     for (final id in ids) {
       if (!hasSelectionFor(id)) continue;
+      if (!changed) _clearCount++;
       changed = true;
       switch (id) {
         case CollectionFacetIds.form:
@@ -388,7 +426,9 @@ class FacetSelections {
           musicalKeys.clear();
         case CollectionFacetIds.tags:
           tagIds.clear();
+          _keptTagIds.clear();
           tagsMatchAll = true;
+          untagged = false;
         case CollectionFacetIds.source:
           sourceIds.clear();
         default:

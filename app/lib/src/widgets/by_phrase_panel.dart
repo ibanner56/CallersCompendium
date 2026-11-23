@@ -19,6 +19,10 @@ import 'move_autocomplete.dart' show moveLabelWithForm;
 /// within a phrase every "match" move must be present (AND) and no "do not
 /// match" move may be present (each negated); across phrases all constraints
 /// AND together.
+///
+/// A phrase that holds a pick but that no dance has any more (or that came in
+/// with a saved search) still gets its row, after the others, so a constraint
+/// that is narrowing the list can be seen and removed.
 class ByPhrasePanel extends StatelessWidget {
   const ByPhrasePanel({
     super.key,
@@ -59,10 +63,16 @@ class ByPhrasePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final offered = sectionLabels.toSet();
+    final unoffered = {
+      for (final picks in [selections.match, selections.exclude])
+        for (final MapEntry(:key, :value) in picks.entries)
+          if (value.isNotEmpty && !offered.contains(key)) key,
+    }.toList()..sort();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final label in sectionLabels)
+        for (final label in [...sectionLabels, ...unoffered])
           _PhraseRow(
             key: ValueKey('by-phrase-$label'),
             label: label,

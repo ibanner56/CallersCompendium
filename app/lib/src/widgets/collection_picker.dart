@@ -98,6 +98,7 @@ class CollectionPicker extends StatefulWidget {
     this.excludedDanceIds = const {},
     this.rankSuggestions,
     this.clock = const SearchClock(),
+    this.panelState,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -208,8 +209,45 @@ class CollectionPicker extends StatefulWidget {
   /// Where "today" comes from, for the venue window. A test seam.
   final SearchClock clock;
 
+  /// A search for the picker to show: its text, **Search in**, every filter,
+  /// the By phrase rows, the Advanced tree and the sort with its direction,
+  /// exactly ([CollectionPanelState]), in place of whatever it shows.
+  ///
+  /// Applied **once**: when the picker is built with it, or when a rebuild
+  /// passes a request it has not applied yet. A request is marked applied by
+  /// the first picker to take it ([CollectionPanelRequest.applied]), so a
+  /// rebuild of the same picker keeps what the user has since changed, and a
+  /// picker built again with the same request — remounted by a narrow/wide
+  /// layout change, a sheet opened again — is a new picker that starts blank,
+  /// as it would without a request: it does not put the search back. To show
+  /// the search in a new picker, pass a new request.
+  ///
+  /// The owner must therefore **hold the request in a field** and pass that
+  /// same object on every build. A request created inside `build()` is a new,
+  /// unapplied one on every rebuild, and each would put the search back over
+  /// the user's edits (a program editor rebuilds its picker on every change
+  /// to the program).
+  final CollectionPanelRequest? panelState;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
+}
+
+/// A one-shot request to show [state] in a [CollectionPicker]; see
+/// [CollectionPicker.panelState].
+///
+/// The picker takes [state]'s objects as its own and edits them from then on,
+/// so a request is not reusable, and the owner should not keep editing
+/// [state] after passing it.
+class CollectionPanelRequest {
+  CollectionPanelRequest(this.state);
+
+  final CollectionPanelState state;
+
+  bool _applied = false;
+
+  /// Whether a picker has applied this request.
+  bool get applied => _applied;
 }
 
 /// What a [CollectionPicker] row's tap target does, driving its tooltip,
@@ -230,15 +268,19 @@ class _CollectionPickerState extends State<CollectionPicker> {
   /// The local Search in choice, restored when online search is turned off
   /// (online search maps All fields to Title).
   FullTextScope _localFtsScope = FullTextScope.omni;
-  final _facets = FacetSelections();
-  final _byPhrase = ByPhraseSelections();
-  final _advancedRoot = BuilderGroup();
+  // Replaced, not edited, when a panel state is applied ([_applyPanelState]).
+  var _facets = FacetSelections();
+  var _byPhrase = ByPhraseSelections();
+  var _advancedRoot = BuilderGroup();
+
+  /// Whether the panel state last applied came from a saved search.
+  bool _panelFromSavedSearch = false;
 
   CollectionSort _sort = CollectionSort.title;
   SortDirection _sortDir = CollectionSort.title.searchSort.defaultDirection;
 
-  /// Whether the user picked a sort or direction in this picker, so the async
-  /// opening-sort read cannot overwrite it.
+  /// Whether the user picked a sort or direction in this picker, or a panel
+  /// state set one, so the async opening-sort read cannot overwrite it.
   bool _sortUserSet = false;
 
   late OnlineSearchService _callersBox;
@@ -316,6 +358,58 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Object? _searchError;
   int _searchSeq = 0;
   Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Before the first search: the opening-sort read that runs it leaves a
+    // sort set here alone (`_sortUserSet`).
+    _applyPanelState(widget.panelState);
+  }
+
+  /// Shows [request]'s state, if no picker has applied it yet; returns whether
+  /// it did. Every part is replaced, the sort included, never only the parts
+  /// [_clearAll] resets.
+  ///
+  /// The order matters while online search is on: online is turned off
+  /// **first**, which puts any tag rows a ContraDB search took out back into
+  /// the tree they came from — the old one — then those taken rows are
+  /// forgotten, and only then is the tree replaced, so none of them lands in
+  /// the new one. Online is left because an online source cannot search most
+  /// of what a panel state holds.
+  ///
+  /// Sets state directly: the caller is `initState` or `didUpdateWidget`,
+  /// both followed by a build.
+  bool _applyPanelState(CollectionPanelRequest? request) {
+    if (request == null || request._applied) return false;
+    request._applied = true;
+    final state = request.state;
+    if (_onlineEnabled) {
+      _onlineEnabled = false;
+      _syncAdvancedTagRows();
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineImportError = null;
+      _onlineSearching = false;
+    }
+    _removedTags.clear();
+    _ftsController.text = state.text;
+    _ftsScope = state.scope;
+    _localFtsScope = state.scope;
+    // A tag the state names stays selected even if no dance carries it yet.
+    state.facets.keepSelectedTags();
+    _facets = state.facets;
+    _byPhrase = state.byPhrase;
+    _advancedRoot = state.advanced;
+    _panelFromSavedSearch = state.fromSavedSearch;
+    _leaveSuggested();
+    // Best match that is no longer offered falls back to Title.
+    final (:sort, :direction) = state.effectiveSort;
+    _sort = sort;
+    _sortDir = direction;
+    _sortUserSet = true;
+    return true;
+  }
 
   @override
   void didChangeDependencies() {
@@ -404,6 +498,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
     super.didUpdateWidget(oldWidget);
     var dataChanged = false;
     var onlineDisabled = false;
+    // A request this picker (or another) has applied is left alone, so a
+    // rebuild never puts it back over the user's edits.
+    final panelApplied = _applyPanelState(widget.panelState);
+    if (panelApplied) {
+      _debounceTimer?.cancel();
+      _searchSeq++;
+      _onlineSeq++;
+    }
     if (oldWidget.enableOnlineSearch &&
         !widget.enableOnlineSearch &&
         _onlineEnabled) {
@@ -435,8 +537,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
               (dance) => dance.authorIds.contains(id),
             );
       });
-      // A tag no live dance carries has no chip left; see retainTags. The
-      // search below re-runs for any data change.
+      // A tag picked by hand that no live dance carries any more is dropped;
+      // one a panel state brought is kept (see retainTags). The search below
+      // re-runs for any data change.
       _facets.retainTags([for (final t in widget.data.tags) t.id]);
       dataChanged = true;
     }
@@ -463,7 +566,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
     }
-    if (onlineDisabled ||
+    if (panelApplied ||
+        onlineDisabled ||
         ((dataChanged || hostOverrideAdvanced) &&
             !_onlineEnabled &&
             !searchInputsChanged)) {
@@ -877,6 +981,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _advancedRoot.children.clear();
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
@@ -1406,6 +1511,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       booleanFields: data.booleanFields,
       textFields: data.textFields,
       numberFields: data.numberFields,
+      allLevels: data.allLevels,
+      authorNames: data.choreographerNames,
+      allTagNames: data.allTagNames,
+      sourceTitles: data.sourceTitles,
+      allCustomFields: data.customFieldDefs,
+      historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );
   }
@@ -1438,6 +1549,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       dialect: widget.dialect,
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      allTagNames: data.allTagNames,
       tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
           ? _onlineSource.label
           : null,

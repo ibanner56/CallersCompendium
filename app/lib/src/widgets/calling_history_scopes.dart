@@ -23,17 +23,31 @@ import 'app_date_picker.dart';
 ///
 /// [venues] is where the venue chooser reads its rows. Null (a host with no
 /// repositories) leaves the venue row out and keeps **Within**.
+///
+/// **Within** offers 1, 3 and 6 months. A window of any other number of
+/// months can only come in with a given panel state (a saved search keeps the
+/// months, `docs/design/search.md`); it shows as one more selected chip,
+/// "12 months", or "12 months, saved" when [fromSavedSearch], so a window that
+/// is narrowing the list is never invisible. Choosing another window replaces
+/// it, as for the presets.
 class CallingHistoryScopes extends StatefulWidget {
   const CallingHistoryScopes({
     super.key,
     required this.facets,
     required this.venues,
+    this.fromSavedSearch = false,
     required this.onChanged,
   });
 
   final FacetSelections facets;
   final VenueChoiceSource? venues;
+
+  /// Whether the panel state came from a saved search.
+  final bool fromSavedSearch;
   final VoidCallback onChanged;
+
+  /// The **Within** presets.
+  static const presetMonths = [1, 3, 6];
 
   @override
   State<CallingHistoryScopes> createState() => _CallingHistoryScopesState();
@@ -206,12 +220,25 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
               selected: noWindow,
               onSelected: (_) => _pickMonths(null),
             ),
-            for (final months in const [1, 3, 6])
+            for (final months in CallingHistoryScopes.presetMonths)
               ChoiceChip(
                 key: ValueKey('facet-history-within-$months'),
                 label: Text(l10n.collectionFacetWithinMonths(months)),
                 selected: facets.historyMonths == months,
                 onSelected: (_) => _pickMonths(months),
+              ),
+            if (facets.historyMonths case final months?
+                when !CallingHistoryScopes.presetMonths.contains(months))
+              ChoiceChip(
+                key: const ValueKey('facet-history-within-other'),
+                label: Text(
+                  widget.fromSavedSearch
+                      ? l10n.collectionFacetWithinMonthsSaved(months)
+                      : l10n.collectionFacetWithinMonths(months),
+                ),
+                selected: true,
+                // Already the window; another chip replaces it.
+                onSelected: (_) {},
               ),
             ChoiceChip(
               key: const ValueKey('facet-history-within-since'),

@@ -1,0 +1,16 @@
+{
+  "id": "2325-panel-shows-every-filter",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A filter you chose no longer goes on narrowing the list out of sight once no dance has that value: the Filters panel keeps it as a selected chip you can remove, even when the whole section would otherwise be hidden, and a level, author or source that has since been deleted reads Not in your library. A By phrase pick in a phrase no dance has any more keeps its row too, and an Advanced Has tag row keeps its tag instead of silently dropping it.",
+      "With the Tags filter hidden in Settings, an Untagged choice is no longer left narrowing the list out of sight: the section shows while it holds Untagged, and hiding Tags clears it.",
+      "Typing a number into a custom number filter, such as a lone minus sign or the first bound of Between, no longer clears what you typed; Clear all still empties it."
+    ]
+  },
+  "core": {
+    "added": [
+      "FacetSelections.hasSelectionFor(tags) counts Untagged, and clearFacets clears it with the Tags section. FacetSelections.clearCount counts clears (in memory only). FacetSelections.keepSelectedTags marks the selected tags a host opened with, which retainTags then keeps even while no live dance carries them; a tag picked by hand is dropped as before. CollectionPanelState.fromSavedSearch says a state was read from a saved search; SavedSearchSpec.toPanelState sets it."
+    ]
+  }
+}

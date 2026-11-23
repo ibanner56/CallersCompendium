@@ -24,6 +24,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
     required this.tags,
     required this.onChanged,
     this.tagsUnavailableFor,
+    this.allTagNames = const {},
   });
 
   final BuilderGroup root;
@@ -40,6 +41,10 @@ class AdvancedQueryBuilder extends StatelessWidget {
   /// offers (tags carried by at least one live dance). With none, the Add menu
   /// does not offer "Has tag" at all.
   final List<Tag> tags;
+
+  /// Every tag's name by id, to name a "Has tag" row's tag that no live dance
+  /// carries (so it is not among [tags]), or that is gone.
+  final Map<String, String> allTagNames;
   final VoidCallback onChanged;
 
   /// The name of the source being searched when that source cannot carry a tag
@@ -56,6 +61,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
       dialect: dialect,
       sectionLabels: sectionLabels,
       tags: tags,
+      allTagNames: allTagNames,
       tagsUnavailableFor: tagsUnavailableFor,
       onChanged: onChanged,
       onRemove: null,
@@ -71,6 +77,7 @@ class _GroupView extends StatelessWidget {
     required this.dialect,
     required this.sectionLabels,
     required this.tags,
+    required this.allTagNames,
     required this.tagsUnavailableFor,
     required this.onChanged,
     required this.onRemove,
@@ -82,6 +89,7 @@ class _GroupView extends StatelessWidget {
   final Dialect dialect;
   final List<String> sectionLabels;
   final List<Tag> tags;
+  final Map<String, String> allTagNames;
   final String? tagsUnavailableFor;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
@@ -190,6 +198,7 @@ class _GroupView extends StatelessWidget {
           dialect: dialect,
           sectionLabels: sectionLabels,
           tags: tags,
+          allTagNames: allTagNames,
           tagsUnavailableFor: tagsUnavailableFor,
           onChanged: onChanged,
           onRemove: remove,
@@ -211,6 +220,7 @@ class _GroupView extends StatelessWidget {
         return _TagRow(
           node: child,
           tags: tags,
+          allTagNames: allTagNames,
           onChanged: onChanged,
           onRemove: () {
             remove();
@@ -394,12 +404,14 @@ class _TagRow extends StatelessWidget {
   const _TagRow({
     required this.node,
     required this.tags,
+    required this.allTagNames,
     required this.onChanged,
     required this.onRemove,
   });
 
   final BuilderTag node;
   final List<Tag> tags;
+  final Map<String, String> allTagNames;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
 
@@ -407,24 +419,20 @@ class _TagRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final stored = node.tagId;
-    // [tags] is the set of tags carried by a LIVE dance, so a picked tag can
-    // drop out of it while the row is open (its last dance is deleted or
-    // untagged). A value that is gone is shown as unpicked, as the dropdown
-    // would show it anyway (an empty field, a value not among its entries).
-    final value = tags.any((t) => t.id == stored) ? stored : null;
-    // Showing "unpicked" is not enough on its own: `BuilderTag.toFilter` would
-    // still emit the gone tag, a filter the user can neither see nor clear
-    // (the same hazard `_ParamDropdown` closes for params). So the MODEL is
-    // normalised to match and the search re-run — but only if the row still
-    // holds that id, so a pick made in the meantime is never overwritten.
-    if (stored != null && value == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (node.tagId == stored) {
-          node.tagId = null;
-          onChanged();
-        }
-      });
-    }
+    // [tags] is the set of tags carried by a LIVE dance, so the row's tag can
+    // be outside it: its last dance was deleted or untagged while the row was
+    // open, or a panel state (a saved search) came in asking for a tag nobody
+    // carries yet. The row KEEPS that tag and shows it, named from every tag
+    // or as "Not in your library" when it is gone, as one more entry: the
+    // search goes on asking for it, the user can see that, and removes the
+    // row or picks another tag to change it. Clearing it instead (as this did
+    // before saved searches could be opened) would widen the search with no
+    // sign, a broader search than the one the saved-search resolver hands
+    // every other feature (the same hazard `_ParamDropdown` closes for
+    // params).
+    final unoffered = stored != null && !tags.any((t) => t.id == stored)
+        ? stored
+        : null;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
@@ -438,7 +446,7 @@ class _TagRow extends StatelessWidget {
               label: l10n.collectionQueryTagLabel,
               child: AppDropdownField<String?>(
                 key: ValueKey('tag-${node.id}'),
-                value: value,
+                value: stored,
                 // The user's own tags: a list that grows.
                 filterable: true,
                 decoration: InputDecoration(
@@ -453,6 +461,13 @@ class _TagRow extends StatelessWidget {
                 entries: [
                   for (final tag in tags)
                     AppDropdownEntry<String?>(value: tag.id, label: tag.name),
+                  if (unoffered != null)
+                    AppDropdownEntry<String?>(
+                      value: unoffered,
+                      label:
+                          allTagNames[unoffered] ??
+                          l10n.collectionFacetMissingValue,
+                    ),
                 ],
               ),
             ),
@@ -811,6 +826,19 @@ class _FigureEditor extends StatelessWidget {
         if (!pinned.containsKey(key)) key: value,
     };
     final any = figure.isAnyFigure;
+    // A stored param with no dropdown at all (a param the move does not
+    // declare, one its alias pins, or one with no closed vocabulary) is kept
+    // and shown, as a value out of a dropdown's domain is ([_ParamDropdown]):
+    // the same rule the saved-search resolver reports such a param by.
+    final undeclared = [
+      for (final MapEntry(:key, :value) in figure.params.entries)
+        if (value != null &&
+            key != userFigureRefKey &&
+            !userFigureReferenceKeys.contains(key) &&
+            (paramSpecs[key] == null ||
+                figureParamChoices(paramSpecs[key]!) == null))
+          key,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -853,7 +881,7 @@ class _FigureEditor extends StatelessWidget {
             ),
           ],
         ),
-        if (paramSpecs.isNotEmpty)
+        if (paramSpecs.isNotEmpty || undeclared.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Wrap(
@@ -879,6 +907,14 @@ class _FigureEditor extends StatelessWidget {
                       dialect: dialect,
                       onChanged: onChanged,
                     ),
+                for (final key in undeclared)
+                  _ParamNotice(
+                    figure: figure,
+                    paramKey: key,
+                    spec: paramSpecs[key],
+                    dialect: dialect,
+                    onChanged: onChanged,
+                  ),
               ],
             ),
           ),
@@ -1117,6 +1153,12 @@ class _SectionDropdown extends StatelessWidget {
           AppDropdownEntry(value: null, label: l10n.collectionQueryAnySection),
           for (final label in sectionLabels)
             AppDropdownEntry(value: label, label: label),
+          // A phrase no dance has any more, or one a saved search came in
+          // with, is still shown as the row's phrase rather than as a blank
+          // field while it narrows the search.
+          if (figure.section case final section?
+              when !sectionLabels.contains(section))
+            AppDropdownEntry(value: section, label: section),
         ],
       ),
     );
@@ -1162,36 +1204,33 @@ class _ParamDropdown extends StatelessWidget {
     // they and the editor are three consumers of one contract (#726 / #746) and
     // must not disagree about what a param can hold.
     final selectable = figureParamSelectableChoices(choices);
+    final raw = figure.params[paramKey];
+    final stored = raw is String ? raw : null;
+    // A stored value the dropdown does not offer — the `unspecified`
+    // sentinel, or a value outside this param's domain — came in with a
+    // panel state (a saved search, or another caller's), since this dropdown
+    // is the only writer and offers neither. It is KEPT, and shown with a
+    // notice the user can remove, rather than coerced to "Any <param>":
+    // `_cleanParams` forwards every non-null param into the compiled
+    // `FigureLeaf`, so a value shown as "Any" would still narrow the search,
+    // a filter the user could neither see nor clear. Removing it silently
+    // instead (as this did before saved searches could be opened) would run
+    // a broader search than the one the saved-search resolver hands every
+    // other feature, which reports such a value as unresolvable by the same
+    // rule ([figureParamSelectableChoices]).
+    if (raw != null && (stored == null || !selectable.contains(stored))) {
+      return _ParamNotice(
+        figure: figure,
+        paramKey: paramKey,
+        spec: spec,
+        dialect: dialect,
+        onChanged: onChanged,
+      );
+    }
     // With nothing left to pick, "Any" alone is not a filter — offering a
     // one-item dropdown that cannot constrain anything is just noise.
     if (selectable.isEmpty) return const SizedBox.shrink();
     final label = figureParamKeyLabel(l10n, paramKey, moveId: figure.move);
-    final stored = figure.params[paramKey] as String?;
-    // Defensive: a value outside the selectable list would show as an empty
-    // field rather than "Any <param>". Unreachable through the UI — the only
-    // writer is this dropdown — but cheap next to a blank control.
-    final value = selectable.contains(stored) ? stored : null;
-    // Coercing the DISPLAY to "Any" is not enough on its own: `_cleanParams`
-    // forwards every non-null param into the compiled `FigureLeaf`, so a stored
-    // value the dropdown refuses to show would still narrow the search — a
-    // filter the user can neither see nor clear, because the control they would
-    // use to clear it already reads "Any <param>". So normalise the MODEL to
-    // match, and re-run the search.
-    //
-    // LATENT, not live: the builder tree is in-memory only (`_advancedRoot` is
-    // constructed fresh; core's `SavedSearchSpec` can persist a tree, but no
-    // host loads one yet) and the sole writer is this dropdown, which only ever stores a selectable value — and `_MoveField`
-    // clears `figure.params` when the move changes, so a param cannot outlive
-    // the move that declared it. This exists because none of that is
-    // load-bearing anywhere: the day the advanced query is persisted, or seeded
-    // from a saved search, an out-of-domain token becomes reachable and the
-    // failure is silent. Cheap to foreclose now, invisible to debug later.
-    if (stored != null && value == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        figure.params.remove(paramKey);
-        onChanged();
-      });
-    }
     return Semantics(
       label: label,
       // Sized like the section dropdown, and bounded by the line the same way.
@@ -1199,7 +1238,7 @@ class _ParamDropdown extends StatelessWidget {
         key: ValueKey('param-${figure.id}-$paramKey'),
         compact: true,
         fillWidth: false,
-        value: value,
+        value: stored,
         onChanged: (v) {
           v == null
               ? figure.params.remove(paramKey)
@@ -1218,6 +1257,50 @@ class _ParamDropdown extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// A stored figure param that no dropdown offers, kept and shown with a
+/// notice, removable ([_ParamDropdown] says when and why).
+class _ParamNotice extends StatelessWidget {
+  const _ParamNotice({
+    required this.figure,
+    required this.paramKey,
+    required this.spec,
+    required this.dialect,
+    required this.onChanged,
+  });
+
+  final BuilderFigure figure;
+  final String paramKey;
+
+  /// The param's spec, when the move declares it.
+  final ParamSpec? spec;
+  final Dialect dialect;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final stored = '${figure.params[paramKey]}';
+    final spec = this.spec;
+    final label = l10n.collectionQueryParamNotOffered(
+      figureParamKeyLabel(l10n, paramKey, moveId: figure.move),
+      spec == null
+          ? stored
+          : figureParamChoiceLabel(l10n, spec, dialect, stored),
+    );
+    return InputChip(
+      key: ValueKey('param-notice-${figure.id}-$paramKey'),
+      avatar: const Icon(Icons.info_outline, size: 18),
+      label: Text(label),
+      deleteIcon: const Icon(Icons.close, size: 18),
+      onDeleted: () {
+        figure.params.remove(paramKey);
+        onChanged();
+      },
+      deleteButtonTooltipMessage: l10n.commonRemove,
     );
   }
 }

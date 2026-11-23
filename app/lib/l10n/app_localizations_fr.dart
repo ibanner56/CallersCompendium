@@ -4872,6 +4872,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mois, enregistrés',
+      one: '1 mois, enregistré',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => 'Depuis une date…';
 
   @override
@@ -4932,6 +4943,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get collectionFacetAllHidden =>
       'Tous les filtres sont masqués. Vous pouvez les afficher à nouveau dans Réglages ▸ Valeurs par défaut.';
+
+  @override
+  String get collectionFacetMissingValue => 'Absent de votre bibliothèque';
 
   @override
   String get collectionFacetClear => 'Effacer les filtres';
@@ -5139,6 +5153,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String collectionQueryAnyParam(String param) {
     return 'N’importe quel $param';
+  }
+
+  @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param : $value (non proposé)';
   }
 
   @override
