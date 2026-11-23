@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/settings_keys.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
@@ -134,6 +135,7 @@ Future<_Harness> _pump(
   List<Dance>? extra,
   int initialGroup = 1,
   Object? storedDefaults,
+  Set<String> hiddenFacets = const {},
 }) async {
   tester.view.physicalSize = const Size(1400, 2400);
   tester.view.devicePixelRatio = 1;
@@ -151,6 +153,8 @@ Future<_Harness> _pump(
   final data = await CollectionData.load(repos);
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final hidden = ValueNotifier<Set<String>>(hiddenFacets);
+  addTearDown(hidden.dispose);
   final persisted = <Program>[];
   await tester.pumpWidget(
     MaterialApp(
@@ -158,7 +162,10 @@ Future<_Harness> _pump(
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: CollectionFacetsScope(
+          notifier: hidden,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
       ),
       home: PerformProgramScreen(
         program: program ?? _program(),
@@ -617,6 +624,20 @@ void main() {
       expect(find.text('Upcoming Reel'), findsNothing);
       expect(find.text('Slot 2 of 6'), findsOneWidget);
     });
+  });
+
+  testWidgets('a Filters section hidden in Settings is not offered as a Keep '
+      'item and adds no criterion', (tester) async {
+    await _pump(tester, hiddenFacets: {CollectionFacetIds.formation});
+    await _openAdjust(tester);
+    await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+    expect(
+      _inSwap(find.byKey(const ValueKey('swap-keep-formation'))),
+      findsNothing,
+    );
+    expect(_chip(tester, 'swap-keep-level').selected, isTrue);
+    expect(_tile('improper'), findsOneWidget, reason: 'another formation');
+    expect(_tile('harder'), findsNothing, reason: 'level is still kept');
   });
 
   testWidgets('a Keep item turned off in Swap a dance defaults opens off', (

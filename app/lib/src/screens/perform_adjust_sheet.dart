@@ -8,6 +8,7 @@ import '../search/facet_labels.dart' show danceLevelLabel;
 import '../theme/app_motion.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/collection_facets_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/settings_keys.dart' show kPerformSwapDefaultsKey;
 import '../theme/app_spacing.dart';
@@ -348,6 +349,10 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                       dance,
                       levels: widget.data.levels,
                       programMixesTypes: forms.length > 1,
+                      // A section hidden in Settings ▸ Collection is not
+                      // offered as a Keep item (its criterion would be
+                      // invisible in the panels).
+                      hiddenFacets: CollectionFacetsScope.of(sheetContext),
                     ),
               initialChoices: SwapKeepChoices.fromDefaults(defaults),
               swappedDanceId: slot.danceId,

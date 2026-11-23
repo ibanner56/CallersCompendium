@@ -43,6 +43,7 @@ import '../model/figure_source.dart';
 import '../model/formation.dart' show FormationShape;
 import '../model/phrase_structure.dart';
 import 'builder_nodes.dart';
+import 'collection_facet_ids.dart';
 import 'collection_panel_state.dart';
 
 /// One figure the caller can keep: a leaf of the dance's transcription, in
@@ -93,26 +94,34 @@ class SwapKeepSeed {
   /// Builds the seed for [dance]. [levels] is the difficulty scale (any
   /// order; positions decide). [programMixesTypes] is whether the program
   /// holds dances of more than one form, the only case **Same type** is
-  /// offered.
+  /// offered. [hiddenFacets] are the Filters sections the user has hidden
+  /// ([CollectionFacetIds]); a Keep item whose section is hidden is not
+  /// offered, since its criterion would sit in a panel the user cannot see.
   factory SwapKeepSeed.of(
     Dance dance, {
     required List<DifficultyLevel> levels,
     required bool programMixesTypes,
+    Set<String> hiddenFacets = const {},
   }) {
     final english = dance.form == DanceForm.ecd;
     final levelId = dance.difficultyLevelId;
-    final own = levelId == null
+    final own =
+        levelId == null || hiddenFacets.contains(CollectionFacetIds.level)
         ? null
         : levels.where((level) => level.id == levelId).firstOrNull;
     return SwapKeepSeed(
-      formation: english ? null : dance.formation.shape,
+      formation: english || hiddenFacets.contains(CollectionFacetIds.formation)
+          ? null
+          : dance.formation.shape,
       levelIds: own == null
           ? const {}
           : {
               for (final level in levels)
                 if (level.position <= own.position) level.id,
             },
-      form: programMixesTypes ? dance.form : null,
+      form: programMixesTypes && !hiddenFacets.contains(CollectionFacetIds.form)
+          ? dance.form
+          : null,
       figures: _figures(dance, refine: !english),
     );
   }
@@ -160,11 +169,15 @@ class SwapKeepSeed {
     final result = <SwapKeepFigure>[];
     for (var g = 0; g < groups.length; g++) {
       final previous = groups[(g - 1 + groups.length) % groups.length];
-      final before = refine && groups.length > 1 && previous.leaves.length == 1
+      final before =
+          refine &&
+              groups.length > 1 &&
+              previous.leaves.length == 1 &&
+              _keepable(previous.leaves.single)
           ? previous.leaves.single.move
           : null;
       for (final leaf in groups[g].leaves) {
-        if (leaf.move.trim().isEmpty) continue;
+        if (!_keepable(leaf)) continue;
         result.add(
           SwapKeepFigure(
             index: result.length,
@@ -177,6 +190,11 @@ class SwapKeepSeed {
     }
     return List.unmodifiable(result);
   }
+
+  /// Whether [figure] names a move a search can ask for: not blank, and not
+  /// a free-text figure ([customMove]), whose move says nothing about it.
+  static bool _keepable(Figure figure) =>
+      figure.move.trim().isNotEmpty && figure.move != customMove;
 
   static List<Figure> _leaves(Figure figure) {
     if (!figure.isContainer || figure.subFigures.isEmpty) return [figure];

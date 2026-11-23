@@ -330,6 +330,70 @@ void main() {
     expect(seedOf(d).formation, FormationShape.dupleImproper);
   });
 
+  test('a hidden Filters section offers no Keep item and writes no '
+      'criterion', () {
+    final d = dance(level: DifficultyLevel.intermediateId);
+    for (final (hidden, check) in <(String, bool Function(SwapKeepSeed))>[
+      (CollectionFacetIds.formation, (s) => s.formation == null),
+      (CollectionFacetIds.level, (s) => s.levelIds.isEmpty),
+      (CollectionFacetIds.form, (s) => s.form == null),
+    ]) {
+      final seed = SwapKeepSeed.of(
+        d,
+        levels: levels,
+        programMixesTypes: true,
+        hiddenFacets: {hidden},
+      );
+      expect(check(seed), isTrue, reason: hidden);
+      final facets = swapKeepPanelState(seed, const SwapKeepChoices()).facets;
+      expect(
+        [
+          if (facets.formations.isNotEmpty) CollectionFacetIds.formation,
+          if (facets.levels.isNotEmpty) CollectionFacetIds.level,
+          if (facets.forms.isNotEmpty) CollectionFacetIds.form,
+        ],
+        isNot(contains(hidden)),
+        reason: hidden,
+      );
+    }
+    // Another section hidden leaves all three.
+    final other = SwapKeepSeed.of(
+      d,
+      levels: levels,
+      programMixesTypes: true,
+      hiddenFacets: {CollectionFacetIds.tunes},
+    );
+    expect(other.formation, isNotNull);
+    expect(other.levelIds, isNotEmpty);
+    expect(other.form, isNotNull);
+  });
+
+  test('a free-text figure is neither kept nor the figure before one', () {
+    final freeText = testFigure(
+      move: customMove,
+      params: {'text': 'everyone wave', 'beats': 8},
+    );
+    final seed = seedOf(
+      dance(
+        figures: [
+          fig('circle', 16),
+          freeText,
+          fig('hey', 8),
+          fig('swing', 16),
+          fig('long_lines', 16),
+        ],
+      ),
+    );
+    expect(
+      [for (final f in seed.figures) f.move],
+      ['circle', 'hey', 'swing', 'long_lines'],
+    );
+    final hey = seed.figures.firstWhere((f) => f.move == 'hey');
+    expect(hey.beforeMove, isNull, reason: 'the figure before is free text');
+    final swing = seed.figures.firstWhere((f) => f.move == 'swing');
+    expect(swing.beforeMove, 'hey');
+  });
+
   test('the empty seed offers nothing', () {
     expect(filterOf(SwapKeepSeed.empty, const SwapKeepChoices()), 'and()');
   });
