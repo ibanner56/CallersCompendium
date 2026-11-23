@@ -14,6 +14,8 @@ import 'package:compendium_app/src/licenses.dart';
 /// CC BY 3.0, which requires the author, licence and source to be named on
 /// every distributed copy. ContraDB's attribution is the one
 /// `docs/research/contradb.md` promised for reusing its figure wording.
+/// CALLERLAB lets its timing data be reproduced with its notice, which the
+/// square calls' default beats need (ADR-007 Q1).
 ///
 /// Each notice therefore has to be present in several places: the bundled
 /// asset the in-app license page loads, the repo's `THIRD_PARTY_NOTICES.md`,
@@ -107,6 +109,19 @@ const List<_Notice> _notices = [
     // The renderer follows ContraDB's wording but transcribes no code, so no
     // source file carries the notice in its head; the renderer's own comments
     // name the libfigure functions.
+  ),
+  _Notice(
+    name: 'CALLERLAB',
+    package: 'CALLERLAB timing',
+    asset: 'app/assets/licenses/callerlab-NOTICE.txt',
+    opening: 'CALLERLAB Reprinted with permission of CALLERLAB.',
+    // The exact words CALLERLAB's timing lists ask for when their data is
+    // reproduced (ADR-007 Q1).
+    mustContain: [
+      'Reprinted with permission of CALLERLAB.',
+      'https://www.callerlab.org/',
+    ],
+    // Timing data, not code: no source file carries the notice in its head.
   ),
 ];
 
