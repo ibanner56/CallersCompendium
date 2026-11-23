@@ -858,9 +858,16 @@ new dance starts as (the **Type** default for new dances, which can be
 definitions yet. Your own figures and terms are listed under the type they
 were made for, and a square dance's under Contra, whose figures square dances
 use for now. One you add is made for the type shown. Copying an English
-figure as one of your own makes it an English figure, though it offers
-contra's groups of dancers for now, so English-only ones such as ends or top
-can't be chosen in it yet.
+figure as one of your own makes it an English figure, and it offers English's
+groups of dancers, such as the ends or the top.
+
+Versions of the app from before English figures offered English's groups of
+dancers can't read an English figure of yours whose default, or a condition in
+whose wording, names a group only English has, such as the ends or the top. On
+a device that hasn't been updated, that figure is marked **Needs repair**,
+though it is kept as it is, and a dance that uses it shows the wording the line
+last had. Repairing it there drops that default or condition, and the change
+then syncs to your other devices, so update the device instead.
 
 Names, definitions and examples of the built-in figures follow your active
 [dialect](dialects.md) for the type shown, so role words read the way you call
@@ -992,7 +999,9 @@ The Glossary lists them too, when it is shown. While it is on:
   yours becomes, and which of its values each of your options becomes; where a
   name matches, it is chosen for you. An option can become any parameter that
   takes words, such as a hand or who; any other parameter, one of the same
-  kind that takes all its values. A places parameter can also become a plain
+  kind that takes all its values. A group of dancers is measured against the
+  app's figure's groups, which are contra's, whatever type your figure is made
+  for. A places parameter can also become a plain
   number, which takes every count places can; the count then reads without
   the word "places". Two of yours can't become the same one.
   Every one must be chosen, so a parameter the app's figure has nothing for
@@ -1004,7 +1013,9 @@ The Glossary lists them too, when it is shown. While it is on:
   your figure no longer has, or whose name another shorthand also has, stays
   as it is). A line whose wording was edited in an older version of the app,
   or that holds a value your figure no longer has, keeps its wording as plain
-  text, and dances in Recently deleted keep the line each last stored. As with
+  text, and so does a line of an English figure that holds a group of dancers
+  only English has, such as the ends or the top; the confirmation says so.
+  Dances in Recently deleted keep the line each last stored. As with
   deleting, each dialect's name and wording for your figure, and its column in
   **Matrix columns**, are removed: the app's figure has its own.
 
