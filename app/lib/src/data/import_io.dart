@@ -230,7 +230,8 @@ typedef ImportFilePicker = Future<PickedImportFile?> Function();
 /// extension says nothing about the source.
 ///
 /// Only the dedicated file types are recognized: `.ccshare` (a Caller's
-/// Compendium share bundle) and `.usr` (a Caller's Companion export). A plain
+/// Compendium share bundle), `.usr` (a Caller's Companion export) and `.csv`
+/// (a spreadsheet, #2329). A plain
 /// `.json` is deliberately **not** claimed: The Caller's Box and others serve
 /// JSON too, so the extension does not say which source it came from. Matching
 /// is case-insensitive (`.USR` is how Caller's Companion names its export).
@@ -238,24 +239,32 @@ ImportSourceKind? importSourceKindForFileName(String fileName) {
   final lower = fileName.toLowerCase();
   if (lower.endsWith('.ccshare')) return ImportSourceKind.genericJson;
   if (lower.endsWith('.usr')) return ImportSourceKind.callersCompanionUsr;
+  if (lower.endsWith('.csv')) return ImportSourceKind.csv;
   return null;
 }
 
 /// Default [ImportFilePicker]: opens the native open-file dialog restricted to
-/// the file types the import screen understands (`.ccshare`, `.json`, `.usr`)
-/// and reads the chosen file's bytes — under [kMaxImportUsrBytes] for a `.usr`,
-/// [kMaxImportFileBytes] otherwise. Returns `null` when the user cancels.
+/// the file types the import screen understands (`.ccshare`, `.json`, `.usr`,
+/// `.csv`) and reads the chosen file's bytes — under [kMaxImportUsrBytes] for
+/// a `.usr`, [kMaxCsvImportBytes] for a `.csv`, [kMaxImportFileBytes]
+/// otherwise. Returns `null` when the user cancels.
 Future<PickedImportFile?> pickImportAnyFile() async {
   final file = await openFile(
-    acceptedTypeGroups: [importJsonTypeGroup(), importUsrTypeGroup()],
+    acceptedTypeGroups: [
+      importJsonTypeGroup(),
+      importUsrTypeGroup(),
+      importCsvTypeGroup(),
+    ],
   );
   if (file == null) return null;
-  final isUsr =
-      importSourceKindForFileName(file.name) ==
-      ImportSourceKind.callersCompanionUsr;
+  final kind = importSourceKindForFileName(file.name);
   final bytes = await readImportBytesCapped(
     file,
-    maxBytes: isUsr ? kMaxImportUsrBytes : kMaxImportFileBytes,
+    maxBytes: switch (kind) {
+      ImportSourceKind.callersCompanionUsr => kMaxImportUsrBytes,
+      ImportSourceKind.csv => kMaxCsvImportBytes,
+      _ => kMaxImportFileBytes,
+    },
   );
   return PickedImportFile(name: file.name, bytes: bytes);
 }
@@ -284,6 +293,27 @@ Future<Uint8List?> pickImportUsrFile() async {
   if (file == null) return null;
   return readImportUsrBytesCapped(file);
 }
+
+/// Default [ImportBytePicker] for a spreadsheet (#2329): opens the native
+/// open-file dialog restricted to `.csv` and reads the chosen file's bytes,
+/// under [kMaxCsvImportBytes]. The bytes, not decoded text, go to the review
+/// screen, which refuses a file that is not UTF-8 ([decodeCsvBytes]) rather
+/// than importing mojibake. Returns `null` when the user cancels.
+Future<Uint8List?> pickImportCsvFile() async {
+  final file = await openFile(acceptedTypeGroups: [importCsvTypeGroup()]);
+  if (file == null) return null;
+  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+}
+
+/// The file-type filter behind [pickImportCsvFile]. Its label is the format
+/// name, not prose, so it stays a literal (as the JSON bundle filter's does).
+@visibleForTesting
+XTypeGroup importCsvTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: 'CSV',
+  extensions: pickerExtensions(['csv'], isLinux),
+  uniformTypeIdentifiers: const ['public.comma-separated-values-text'],
+  mimeTypes: const ['text/csv', 'text/comma-separated-values'],
+);
 
 /// The file-type filter behind [pickImportFile].
 ///
@@ -929,6 +959,11 @@ enum ImportSourceKind {
   /// catalog. Its payload and metadata are verified before this source enters
   /// review.
   publishedCollection,
+
+  /// The caller's own spreadsheet saved as CSV (#2329). A byte source: the
+  /// file is read as bytes, decoded as UTF-8 and mapped column by column
+  /// before it is planned.
+  csv,
 }
 
 class ImportSource {
@@ -964,16 +999,18 @@ class ImportSource {
   /// which a host-only match cannot express.
   final bool Function(Uri uri)? matchesUrl;
 
-  /// When non-null, this source imports from a **binary file** the user picks
-  /// (its bytes are handed to [adapterFactory]'s adapter via
-  /// `ImportRequest.options['bytes']`), rather than from pasted/fetched text.
+  /// When non-null, this source imports from a **file the user picks as
+  /// bytes**, rather than from pasted/fetched text. A Caller's Companion
+  /// `.USR`'s bytes are handed to its adapter via
+  /// `ImportRequest.options['bytes']`; a spreadsheet's are decoded as UTF-8
+  /// and mapped column by column first, then carried as the payload (#2329).
   /// This governs the **input** concern only — the picker shown and how the
   /// payload is carried. It deliberately does **not** decide how commit/undo is
   /// routed (that is gated on the concrete adapter type, so a future byte source
   /// can't accidentally inherit Caller's Companion program persistence).
   ///
-  /// The only byte source today is Caller's Companion `.USR` (see
-  /// [defaultImportSources]).
+  /// The byte sources today are Caller's Companion `.USR` and the spreadsheet
+  /// (CSV) (see [defaultImportSources]).
   final ImportBytePicker? bytePicker;
 
   /// When true this source's payload is **typed or pasted by the user**, not
@@ -2188,6 +2225,11 @@ List<ImportSource> defaultImportSources() => [
     adapterFactory: () =>
         CallersCompanionUsrAdapter(reader: readCcUsrArchiveInIsolate),
     bytePicker: pickImportUsrFile,
+  ),
+  ImportSource(
+    kind: ImportSourceKind.csv,
+    adapterFactory: CsvAdapter.new,
+    bytePicker: pickImportCsvFile,
   ),
 ];
 

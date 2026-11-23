@@ -13536,4 +13536,105 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get exportCsvPayHiddenNotice =>
       'Honoraret er skjult i Indstillinger, så det er udeladt. Slå »Vis honorar« til under Indstillinger ▸ Program for at tage det med.';
+
+  @override
+  String get importSourceLabelCsv => 'Dit eget regneark (CSV)';
+
+  @override
+  String get importCsvPickFile => 'Vælg en CSV-fil …';
+
+  @override
+  String get importCsvSaveAsHint =>
+      'Vælg i dit regnearksprogram Filer ▸ Gem som (eller Download) og »CSV UTF-8«, og vælg så den fil her.';
+
+  @override
+  String get importCsvMapTitle => 'Tilknyt kolonner';
+
+  @override
+  String get importCsvMapIntro =>
+      'Vælg, hvad hver kolonne indeholder. Kolonner sat til Ignorer udelades. Intet tilføjes, før du har gennemset og bekræftet.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Skilletegn';
+
+  @override
+  String get importCsvSeparatorComma => 'Komma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Semikolon (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tabulator';
+
+  @override
+  String get importCsvFirstRowHeader => 'Første række navngiver kolonnerne';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Kolonne $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Ignorer';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figurer, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'Nyt brugerdefineret felt ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Brugerdefineret felt: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle =>
+      'Vælg den kolonne, der indeholder hver dans\' titel.';
+
+  @override
+  String get importCsvContinue => 'Fortsæt';
+
+  @override
+  String get importCsvPreviewHeading => 'Første rækker';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'Denne fil er ikke gemt som UTF-8-tekst, så bogstaver med accenter ville komme forkert ind. Gem den igen som »CSV UTF-8« i dit regnearksprogram, og vælg den fil.';
+
+  @override
+  String get importCsvTooLarge =>
+      'Denne fil er for stor til at importere. Del den op i mindre filer.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'Denne fil har mere end $limit rækker. Del den op i mindre filer.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'En række i denne fil har mere end $limit kolonner.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'En celle i denne fil er længere end $limit tegn.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'Denne fil har en celle i anførselstegn, der aldrig slutter, så den kan ikke læses.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'Denne fil har $count rækker. Gennemgangen kan tage et stykke tid.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'Denne fil har ingen rækker med danse, kun kolonnenavnene.';
 }

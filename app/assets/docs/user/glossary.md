@@ -105,7 +105,9 @@ A plain table that every spreadsheet program opens, such as Excel, Numbers,
 LibreOffice and Google Sheets: one line per row, with commas between the
 columns. Caller's Compendium can export your
 [dances](./sharing.md#export-dances-as-a-spreadsheet-csv) or your
-[programs](./sharing.md#export-programs-as-a-spreadsheet-csv) as one.
+[programs](./sharing.md#export-programs-as-a-spreadsheet-csv) as one, and
+import dances from one (see
+[Imports & migration](./imports.md#bring-in-your-own-spreadsheet)).
 
 ## Custom field
 

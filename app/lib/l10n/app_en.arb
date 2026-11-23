@@ -18209,5 +18209,157 @@
   "exportCsvPayHiddenNotice": "Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.",
   "@exportCsvPayHiddenNotice": {
     "description": "Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle)."
+  },
+  "importSourceLabelCsv": "Your own spreadsheet (CSV)",
+  "@importSourceLabelCsv": {
+    "description": "Import source label: a CSV file the person saved from their own spreadsheet (Excel, Numbers, LibreOffice or Google Sheets)."
+  },
+  "importCsvPickFile": "Choose a CSV file…",
+  "@importCsvPickFile": {
+    "description": "Button on the import screen that opens the file picker for a CSV spreadsheet file."
+  },
+  "importCsvSaveAsHint": "In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.",
+  "@importCsvSaveAsHint": {
+    "description": "Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program."
+  },
+  "importCsvMapTitle": "Map columns",
+  "@importCsvMapTitle": {
+    "description": "Heading of the import step where the person says what each spreadsheet column holds."
+  },
+  "importCsvMapIntro": "Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.",
+  "@importCsvMapIntro": {
+    "description": "Explanation at the top of the map-columns step of a CSV import."
+  },
+  "importCsvSeparatorLabel": "Separator",
+  "@importCsvSeparatorLabel": {
+    "description": "Label of the dropdown that chooses which character separates the columns of a CSV file."
+  },
+  "importCsvSeparatorComma": "Comma (,)",
+  "@importCsvSeparatorComma": {
+    "description": "Separator choice: comma."
+  },
+  "importCsvSeparatorSemicolon": "Semicolon (;)",
+  "@importCsvSeparatorSemicolon": {
+    "description": "Separator choice: semicolon, which Excel uses in many European languages."
+  },
+  "importCsvSeparatorTab": "Tab",
+  "@importCsvSeparatorTab": {
+    "description": "Separator choice: tab character."
+  },
+  "importCsvFirstRowHeader": "The first row names the columns",
+  "@importCsvFirstRowHeader": {
+    "description": "Switch on the map-columns step: whether the first row of the CSV holds column names rather than a dance."
+  },
+  "importCsvColumnFallback": "Column {number}",
+  "@importCsvColumnFallback": {
+    "description": "Name shown for a CSV column that has no header. {number} counts from 1.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "importCsvTargetIgnore": "Ignore",
+  "@importCsvTargetIgnore": {
+    "description": "Dropdown choice: leave this CSV column out of the import."
+  },
+  "importCsvTargetPhrase": "Figures, {phrase}",
+  "@importCsvTargetPhrase": {
+    "description": "Dropdown choice: this CSV column holds the figures of one phrase, such as A1 or B2.",
+    "placeholders": {
+      "phrase": {
+        "type": "String",
+        "example": "A1"
+      }
+    }
+  },
+  "importCsvTargetNewField": "New custom field ({type})",
+  "@importCsvTargetNewField": {
+    "description": "Dropdown choice: create a new custom field of this type from the column. {type} is a custom field type such as Number.",
+    "placeholders": {
+      "type": {
+        "type": "String",
+        "example": "Number"
+      }
+    }
+  },
+  "importCsvTargetExistingField": "Custom field: {name}",
+  "@importCsvTargetExistingField": {
+    "description": "Dropdown choice: put this column into one of the person's existing custom fields. {name} is the field's name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Season"
+      }
+    }
+  },
+  "importCsvNeedsTitle": "Choose the column that holds each dance's title.",
+  "@importCsvNeedsTitle": {
+    "description": "Shown on the map-columns step while no column, or more than one, is set to Title."
+  },
+  "importCsvContinue": "Continue",
+  "@importCsvContinue": {
+    "description": "Button that moves from the map-columns step to the review of the planned dances."
+  },
+  "importCsvPreviewHeading": "First rows",
+  "@importCsvPreviewHeading": {
+    "description": "Heading above the preview of the first few rows of the CSV file."
+  },
+  "importCsvNotUtf8": "This file isn't saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.",
+  "@importCsvNotUtf8": {
+    "description": "Error when a CSV file is in an old encoding such as Windows-1252 instead of UTF-8."
+  },
+  "importCsvTooLarge": "This file is too large to import. Split it into smaller files.",
+  "@importCsvTooLarge": {
+    "description": "Error when a CSV file is larger than the import allows."
+  },
+  "importCsvTooManyRows": "This file has more than {limit} rows. Split it into smaller files.",
+  "@importCsvTooManyRows": {
+    "description": "Error when a CSV file has too many rows.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "20000"
+      }
+    }
+  },
+  "importCsvTooManyColumns": "A row in this file has more than {limit} columns.",
+  "@importCsvTooManyColumns": {
+    "description": "Error when a row of a CSV file has too many columns.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "200"
+      }
+    }
+  },
+  "importCsvCellTooLong": "A cell in this file is longer than {limit} characters.",
+  "@importCsvCellTooLong": {
+    "description": "Error when one cell of a CSV file is too long.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "65536"
+      }
+    }
+  },
+  "importCsvUnterminatedQuote": "This file has a quoted cell that never ends, so it can't be read.",
+  "@importCsvUnterminatedQuote": {
+    "description": "Error when a CSV file has an opening double quote with no closing one."
+  },
+  "importCsvLargeBatch": "This file has {count} rows. Reviewing them may take a while.",
+  "@importCsvLargeBatch": {
+    "description": "Warning on the map-columns step when a CSV file has many rows.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1200"
+      }
+    }
+  },
+  "importCsvNoRows": "This file has no rows of dances, only the column names.",
+  "@importCsvNoRows": {
+    "description": "Shown on the map-columns step of a CSV import when the file has a header row but no dance rows (or only blank ones)."
   }
 }

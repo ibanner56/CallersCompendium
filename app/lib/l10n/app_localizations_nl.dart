@@ -13612,4 +13612,104 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get exportCsvPayHiddenNotice =>
       'De gage is verborgen in Instellingen en wordt daarom weggelaten. Zet ‘Gage tonen’ aan onder Instellingen ▸ Programma om hem op te nemen.';
+
+  @override
+  String get importSourceLabelCsv => 'Je eigen spreadsheet (CSV)';
+
+  @override
+  String get importCsvPickFile => 'CSV-bestand kiezen…';
+
+  @override
+  String get importCsvSaveAsHint =>
+      'Kies in je spreadsheetprogramma Bestand ▸ Opslaan als (of Downloaden) en ‘CSV UTF-8’, en kies dat bestand dan hier.';
+
+  @override
+  String get importCsvMapTitle => 'Kolommen koppelen';
+
+  @override
+  String get importCsvMapIntro =>
+      'Kies wat elke kolom bevat. Kolommen op ‘Negeren’ worden weggelaten. Er wordt niets toegevoegd voordat je controleert en bevestigt.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Scheidingsteken';
+
+  @override
+  String get importCsvSeparatorComma => 'Komma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Puntkomma (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tab';
+
+  @override
+  String get importCsvFirstRowHeader => 'De eerste rij noemt de kolommen';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Kolom $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Negeren';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figuren, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'Nieuw eigen veld ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Eigen veld: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle => 'Kies de kolom met de titel van elke dans.';
+
+  @override
+  String get importCsvContinue => 'Doorgaan';
+
+  @override
+  String get importCsvPreviewHeading => 'Eerste rijen';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'Dit bestand is niet als UTF-8-tekst opgeslagen, dus letters met accenten zouden verkeerd binnenkomen. Sla het in je spreadsheetprogramma opnieuw op als ‘CSV UTF-8’ en kies dat bestand.';
+
+  @override
+  String get importCsvTooLarge =>
+      'Dit bestand is te groot om te importeren. Splits het in kleinere bestanden.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'Dit bestand heeft meer dan $limit rijen. Splits het in kleinere bestanden.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'Een rij in dit bestand heeft meer dan $limit kolommen.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'Een cel in dit bestand is langer dan $limit tekens.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'Dit bestand heeft een cel tussen aanhalingstekens die nooit eindigt, dus het kan niet worden gelezen.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'Dit bestand heeft $count rijen. Controleren kan even duren.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'Dit bestand heeft geen rijen met dansen, alleen de kolomnamen.';
 }

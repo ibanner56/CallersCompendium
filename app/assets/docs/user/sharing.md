@@ -380,7 +380,8 @@ front, so the spreadsheet shows it as text instead of running it.
 A CSV is a file you might send to anyone, so it follows the same privacy rules
 as a shared dance, with one exception: **it includes your star ratings**. See
 [What stays private](#what-stays-private). It is not a backup, and the app
-cannot restore from it.
+cannot restore from it, but you can bring it back in as new or matching dances
+with [Bring in your own spreadsheet](./imports.md#bring-in-your-own-spreadsheet).
 
 ## Export programs as a spreadsheet (CSV)
 
