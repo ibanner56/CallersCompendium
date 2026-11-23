@@ -187,15 +187,20 @@ turned into slots before and after:
   the edit dialog's unsaved changes would leave it (an Alternate switch
   flipped in the dialog does not move the position).
 
+Maintainer ruling (2026-11-23):
+
+- *The dance being replaced is not a candidate.* A replacement list should
+  not contain the dance being replaced, since picking it changes nothing and
+  the caller can close the sheet instead. Replace… passes the dance the slot
+  edit dialog shows as `excludedDanceIds`, so a second Replace… in the same
+  dialog leaves out the earlier pick and offers the saved dance again.
+  Online rows are not filtered (their local id is unknown until import); one
+  that resolves to that dance hands it back, which changes nothing.
+  *Rejected (#2344's original call):* listing it and not marking it
+  *Already in this program*.
+
 Calls made in #2344 (not maintainer rulings):
 
-- *The dance being replaced is not a candidate.* The maintainer ruled
-  (2026-11-23) that a replacement list should not contain the dance being
-  replaced, since picking it changes nothing and the caller can close the
-  sheet instead. Replace… passes the dance the slot edit dialog shows as
-  `excludedDanceIds`, so a second Replace… in the same dialog leaves out the
-  earlier pick and offers the saved dance again. This replaces #2344's call,
-  which listed it and did not mark it *Already in this program*.
 - *The reason names one neighbour.* When a move collides on both sides, or
   with several alternates, the reason names the first (the side before, then
   after, nearest row first) and keeps the count of colliding moves; **Why?**

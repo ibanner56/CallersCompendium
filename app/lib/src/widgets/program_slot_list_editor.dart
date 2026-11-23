@@ -141,8 +141,8 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// dance the user picked, or `null` if they dismissed it without picking
   /// one (issue #964). The host ranks Suggested for that slot's place
   /// (#2344) and leaves the dance the dialog shows out of the list, since
-  /// picking it would change nothing. Passed straight through to the slot edit dialog, whose
-  /// "Replace…" **button** (not the whole dance row) is omitted when this is
+  /// picking it would change nothing. Passed straight through to the slot
+  /// edit dialog, whose "Replace…" **button** (not the whole dance row) is omitted when this is
   /// `null` — a host with no picker to offer (e.g. a future embedding without
   /// `CollectionData`) need not supply it. The pick is held in the dialog's
   /// own state and only committed if the dialog's Save is tapped afterward, so
