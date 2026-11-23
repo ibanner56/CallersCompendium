@@ -3213,6 +3213,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als dit is ingeschakeld, worden geldige wijzigingen tijdens het werken opgeslagen en wordt bij het verlaten van de editor niet gevraagd of je ze wilt verwerpen. Schakel dit uit om programma’s expliciet op te slaan.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Gage tonen';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Als dit uit staat, verbergen de programma-editor en het overzicht de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixkolommen';
 
   @override

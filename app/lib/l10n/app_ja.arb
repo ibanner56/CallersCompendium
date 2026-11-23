@@ -3168,6 +3168,14 @@
   "@settingsProgramAutoCommitSubtitle": {
     "x-sourceSha256": "dab382a008252ca4221a2fea20b8df985621a2d1c177cc36af31550940324e44"
   },
+  "settingsProgramShowPayTitle": "報酬を表示",
+  "@settingsProgramShowPayTitle": {
+    "x-sourceSha256": "8c2f3778ed4fded2d26f171856e27c2734856431736a8a7f126b7ae2211d4d6b"
+  },
+  "settingsProgramShowPaySubtitle": "オフにすると、プログラムのエディターと概要で報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。",
+  "@settingsProgramShowPaySubtitle": {
+    "x-sourceSha256": "23d1c431f016beafe23a6e667bcf0a2542e3c0a39e82c598c44778a5c6f34fc2"
+  },
   "settingsMatrixColumnsHeader": "マトリクスの列",
   "@settingsMatrixColumnsHeader": {
     "x-sourceSha256": "97677d73528538ac01a2289458bc8a0e7a0fd937d5306437fc4b6cd98b617f94"

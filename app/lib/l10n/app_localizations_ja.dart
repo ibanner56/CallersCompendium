@@ -3041,6 +3041,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、有効な変更が作業中に保存されるため、エディターを終了するときに破棄するかどうかを確認されません。オフにすると、プログラムを明示的に保存します。';
 
   @override
+  String get settingsProgramShowPayTitle => '報酬を表示';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'オフにすると、プログラムのエディターと概要で報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。';
+
+  @override
   String get settingsMatrixColumnsHeader => 'マトリクスの列';
 
   @override

@@ -3196,6 +3196,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når funktionen er slået til, gemmes gyldige ændringer, mens du arbejder, så du ikke bliver spurgt, om de skal kasseres, når du forlader editoren. Slå den fra for at gemme programmer eksplicit.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Vis honorar';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Når den er slået fra, skjuler programeditoren og oversigten honoraret. Honorar, der allerede er indtastet, bevares og vises igen, når du slår den til igen.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixkolonner';
 
   @override

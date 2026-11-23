@@ -233,6 +233,17 @@ details are handled when you export.
   saved as you work, so leaving the program editor never asks whether to
   discard them. Leave it off to save programs yourself.
 
+- **Show pay** (on by default) — shows each program's
+  [Pay](./programs.md#event-details) field under **More details** in the
+  program editor, and its pay line on the program's summary. Turn it off if you
+  don't track pay, and both are hidden. Hiding never clears anything: pay
+  already entered is kept, saving a program while pay is hidden keeps its amount
+  and currency as they are, and turning **Show pay** back on shows them again.
+  If you had changed a pay amount just before hiding it, that change is still
+  saved; an amount that isn't a valid number stays visible so you can fix it.
+  A sync conflict still compares pay, so two versions that differ only in pay
+  don't look the same.
+
 - **Matrix columns** — opens a dedicated editor for the columns of the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
   changes are saved and apply to **every** program, both on screen and in the

@@ -239,3 +239,9 @@ const String kSyncExcludeImportsKey = 'sync_exclude_imports';
 /// the status surface and used for the approaching-expiry warning. Device-local,
 /// never synced and never backed up.
 const String kSyncLastSuccessAtKey = 'sync_last_success_at';
+
+/// Key used to persist the "Show pay" Programs setting (issue #2355). Stored as
+/// a bool; absent/unset means on (`true`), so the program editor's Pay field
+/// and the summary's pay line show. Off hides both; it is display-only and
+/// never clears or changes a program's stored pay.
+const String kShowProgramPayKey = 'show_program_pay';

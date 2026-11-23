@@ -3172,6 +3172,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Show pay';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrix columns';
 
   @override

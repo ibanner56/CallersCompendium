@@ -3243,6 +3243,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Lorsque cette option est activée, les modifications valides sont enregistrées au fil du travail et l’éditeur ne demande pas de les abandonner à la fermeture. Désactivez-la pour enregistrer les programmes explicitement.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Afficher le cachet';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Lorsque cette option est désactivée, l’éditeur et le résumé du programme masquent le cachet. Un cachet déjà saisi est conservé et réapparaît lorsque vous la réactivez.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Colonnes de la matrice';
 
   @override
