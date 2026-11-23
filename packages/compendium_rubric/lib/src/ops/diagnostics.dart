@@ -257,8 +257,9 @@ enum WarningKind {
   /// rests on that must say so. Stamped with the flagged figure's index.
   heldProgressionUnfinished(
     'heldProgressionUnfinished',
-    'a progression was held until a couple reached an end, and none did; its '
-        'change-over never ran',
+    'a progression was held until a couple reached an end, and its '
+        'change-over never ran (no couple reached an end, or a later '
+        'progression overtook it)',
   );
 
   const WarningKind(this.key, this.description);
