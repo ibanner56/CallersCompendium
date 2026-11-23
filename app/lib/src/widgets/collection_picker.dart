@@ -717,8 +717,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _rankFailed = false;
       });
     } on SuggestionRankSuperseded {
-      // A newer ranking replaced this one and reports for both. Not a
-      // failure; only if none is running does the spinner stop.
+      // diagnostics: silent — a newer ranking replaced this one and reports
+      // for both. Not a failure; only if none is running does the spinner
+      // stop.
       if (mounted && seq == _rankSeq) setState(() => _rankPending = false);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'collection_picker._rank');
