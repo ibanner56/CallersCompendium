@@ -76,6 +76,22 @@ void main() {
     expect(vocab.statuses.values.toSet(), DanceStatus.values.toSet());
   });
 
+  test('levels read by their own label and the localized one; bar counts '
+      'read in each language', () {
+    final custom = DifficultyLevel(id: 'lvl-x', label: 'Wizard', position: 9);
+    final vocab = csvValueVocabulary(languages, levels: [custom]);
+    expect(vocab.levels[csvFold('wizard')], 'lvl-x');
+    for (final l10n in languages) {
+      for (final halfBars in const [0, 1]) {
+        final words = csvFold(
+          l10n.danceFigureBars('8', halfBars).replaceAll(RegExp('[0-9]'), ''),
+        );
+        expect(words, isNotEmpty);
+        expect(vocab.barWords, contains(words));
+      }
+    }
+  });
+
   test('no target takes an author\'s email or location', () {
     // Third-party private details (registry `choreographers.email` and
     // `choreographers.location`, deviceLocal): never a mapping target.
