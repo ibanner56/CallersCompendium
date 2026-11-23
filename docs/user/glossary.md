@@ -99,6 +99,13 @@ settings, your collection is part of your library.
 An online database of contra dances that the app can [import](#import) from,
 either by searching it online or by pasting a dance's link or ID number.
 
+## CSV file
+
+A plain table that every spreadsheet program opens, such as Excel, Numbers,
+LibreOffice and Google Sheets: one line per row, with commas between the
+columns. Caller's Compendium can export your dances as one. See
+[Share, print & export](./sharing.md#export-dances-as-a-spreadsheet-csv).
+
 ## Custom field
 
 An extra piece of information you define yourself and attach to dances — beyond
@@ -197,8 +204,9 @@ read at arm's length in dim light, one-handed, while you're on the floor.
 How a dance's [beats](#beats) are grouped — the familiar A1 A2 B1 B2 of most
 contras, or something else. The app assumes the standard structure unless you
 write your own in the dance editor, and it uses whatever you set to tell you
-whether a dance's beats add up. An English dance's phrases can be named A, B
-and C, each with its own bars and played once or twice.
+whether a dance's beats add up. A contra or square dance's phrases are set as
+rows of phrases, bars per phrase and beats per bar; an English dance's phrases
+can be named A, B and C, each with its own bars and played once or twice.
 
 ## Program
 

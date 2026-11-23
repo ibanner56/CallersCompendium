@@ -481,6 +481,59 @@ void main() {
       expect(decodeUserFigureDefinition(saved.payload)!.template, template);
     });
 
+    group('an English figure\'s wording (#2294)', () {
+      UserGlossaryEntry english(String template) => UserGlossaryEntry(
+        id: 'zoom-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoom',
+        definition: 'A zoom.',
+        description: 'Fast.',
+        payload: {
+          'form': 'ecd',
+          'template': template,
+          'defaultBeats': 8,
+          'params': [
+            {'key': 'who', 'kind': 'dancerSet'},
+          ],
+        },
+        createdAt: created,
+      );
+
+      testWidgets('may test a group only English has, and saves unchanged', (
+        tester,
+      ) async {
+        const template = "[{?if who is 'ends'}the ends zoom{?else}{who} zoom]";
+        final repos = await pump(tester, initial: english(template));
+        expect(
+          find.byKey(const ValueKey('user-figure-wording-error')),
+          findsNothing,
+        );
+        await save(tester);
+        final saved = (await tester.runAsync(
+          () => repos.userGlossary.getById('zoom-id'),
+        ))!;
+        final figure = decodeUserFigureDefinition(saved.payload)!;
+        expect(figure.template, template);
+        expect(figure.form, 'ecd');
+      });
+
+      testWidgets('may not test a group only contra has', (tester) async {
+        final repos = await pump(
+          tester,
+          initial: english(
+            "[{?if who is 'thirdCorners'}the third corners zoom"
+            '{?else}{who} zoom]',
+          ),
+        );
+        expect(
+          find.byKey(const ValueKey('user-figure-wording-error')),
+          findsOneWidget,
+        );
+        await save(tester);
+        expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+      });
+    });
+
     testWidgets('renaming a choice a condition tests shows the wording in '
         'the new label, and keeps what it tests', (tester) async {
       const template =

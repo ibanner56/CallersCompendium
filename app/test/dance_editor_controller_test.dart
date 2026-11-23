@@ -3748,6 +3748,31 @@ void main() {
       },
     );
 
+    test(
+      'a square dance warns of a figure across a phrase (ADR-007 §5.3)',
+      () async {
+        final controller = await openEcd(openTestRepositories(), [
+          Figure(move: 'ecd_honor', params: const {'beats': 12}),
+          Figure(move: 'ecd_lead', params: const {'beats': 8}),
+        ]);
+        addTearDown(controller.dispose);
+        bool crosses() =>
+            controller.warnings.any((w) => w.code == figureCrossesPhraseCode);
+        expect(crosses(), isFalse);
+
+        controller.setForm(DanceForm.square);
+        expect(
+          controller.warnings
+              .singleWhere((w) => w.code == figureCrossesPhraseCode)
+              .data,
+          {'position': 2, 'label': 'A1'},
+        );
+
+        controller.setForm(DanceForm.contra);
+        expect(crosses(), isFalse);
+      },
+    );
+
     test('ungrouping a spanned sequence times its untimed steps', () async {
       final repos = openTestRepositories();
       final controller = await openEcd(repos, [spanned]);

@@ -410,6 +410,92 @@ void main() {
       );
     });
 
+    group('a group of dancers follows the figure\'s form (#2294)', () {
+      FigureRenderer rendererFor(
+        String form, {
+        String template = '{who} {move}',
+      }) => FigureRenderer(
+        contraTaxonomy,
+        userFigures: UserFigureCatalog.fromEntries([
+          entry(
+            payload: {
+              'form': form,
+              'template': template,
+              'defaultBeats': 4,
+              'params': [
+                {'key': 'who', 'kind': 'dancerSet'},
+              ],
+            },
+          ),
+        ]),
+      );
+
+      test('an English figure shows a use of an English group as its own '
+          'wording, not its stored line', () {
+        expect(
+          rendererFor('ecd').renderCanonical(use(const {'who': 'ends'})),
+          'ends zoom',
+        );
+      });
+
+      test('a figure of another form still shows the stored line for it', () {
+        for (final form in ['contra', 'square', 'future']) {
+          expect(
+            rendererFor(form).renderCanonical(use(const {'who': 'ends'})),
+            'stored line',
+            reason: form,
+          );
+        }
+      });
+
+      test('an English figure shows the stored line for a group only contra '
+          'has', () {
+        expect(
+          rendererFor(
+            'ecd',
+          ).renderCanonical(use(const {'who': 'thirdCorners'})),
+          'stored line',
+        );
+        expect(
+          rendererFor(
+            'contra',
+          ).renderCanonical(use(const {'who': 'thirdCorners'})),
+          'third corners zoom',
+        );
+      });
+
+      test('"not stated" says nothing in an English figure', () {
+        expect(
+          rendererFor('ecd').renderCanonical(use(const {'who': 'unspecified'})),
+          'zoom',
+        );
+      });
+
+      test('a dialect\'s wording that tests an English group applies to an '
+          'English figure only', () {
+        final wording = Dialect.larksRobins.copyWith(
+          moveWordings: {
+            userFigureKeyFor('zoom-id'):
+                "[{?if who is 'ends'}the ends{?else}"
+                'someone] {move}',
+          },
+        );
+        expect(
+          rendererFor('ecd').render(use(const {'who': 'ends'}), wording),
+          'the ends zoom',
+        );
+        // A contra figure has no `ends`, so the condition does not fit and
+        // the figure's own template is shown.
+        expect(
+          rendererFor(
+            'contra',
+            template: '{move}',
+          ).render(use(const {'who': 'neighbors'}), wording),
+          'zoom',
+        );
+      });
+    });
+
     test('a definition that no longer decodes shows the stored line', () {
       final broken = FigureRenderer(
         contraTaxonomy,

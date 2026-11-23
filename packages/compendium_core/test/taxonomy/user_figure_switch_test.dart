@@ -410,6 +410,53 @@ void main() {
       expect(hasUserFigureReferenceKeys(switched), isFalse);
     });
 
+    group('a figure made for English (#2294)', () {
+      // English has groups of dancers contra lacks (`ends`), but the figure
+      // it switches to is always contra's.
+      final english = UserFigureDefinition(
+        form: 'ecd',
+        template: '{who} {move}',
+        defaultBeats: 16,
+        params: [UserFigureParam(key: 'who', kind: ParamKind.dancerSet)],
+      );
+      final mapping = UserFigureSwitch(
+        target: 'swing',
+        params: {'who': 'who'},
+        choices: const {},
+      );
+
+      Figure englishUse(String who) => userFigureUseFigure(
+        id: 'mine',
+        args: {'who': who},
+        text: '$who swing',
+      );
+
+      List<Figure> switchEnglish(List<Figure> figures) =>
+          switchUserFigureUsesIn(
+            figures,
+            'mine',
+            english,
+            mapping,
+            taxonomy,
+            FigureRenderer(taxonomy, userFigures: _catalog(english)),
+          );
+
+      test('a use of a group contra has switches', () {
+        final switched = switchEnglish([englishUse('neighbors')]).single;
+        expect(switched.move, 'swing');
+        expect(switched.params['who'], 'neighbors');
+      });
+
+      test('a use of a group only English has is kept as its wording', () {
+        for (final who in ['ends', 'unspecified']) {
+          final switched = switchEnglish([englishUse(who)]).single;
+          expect(switched.move, customMoveId, reason: who);
+          expect(hasUserFigureReferenceKeys(switched), isFalse, reason: who);
+          expect(switched.params['text'], isNotEmpty, reason: who);
+        }
+      });
+    });
+
     test('uses inside containers switch; other figures stay as they are', () {
       final plain = Figure(move: 'allemande');
       final other = userFigureUseFigure(
