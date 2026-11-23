@@ -122,6 +122,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
     l10n.settingsShowIndividualPerformTimerTitle,
   'show_program_slot_caller_notes' =>
     l10n.settingsShowProgramSlotCallerNotesTitle,
+  'perform_swap_defaults' => l10n.settingsPerformSwapTitle,
   'soft_delete_retention_days' => l10n.settingsGeneralSoftDeleteRetentionTitle,
   'sort_ignore_articles' => l10n.settingsGeneralSortIgnoreArticlesTitle,
   'theme_mode' => l10n.settingsAppearanceThemeHeader,

@@ -18321,5 +18321,191 @@
   "exportCsvPayHiddenNotice": "Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.",
   "@exportCsvPayHiddenNotice": {
     "description": "Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle)."
+  },
+  "performSwapThisDance": "Swap this dance",
+  "@performSwapThisDance": {
+    "description": "Button in Perform's Adjust program sheet, under the dance being called now: opens the swap sheet to replace it with another dance. The replaced dance is kept as an alternate."
+  },
+  "performSwapDanceNamed": "Swap {title}",
+  "@performSwapDanceNamed": {
+    "description": "Tooltip and screen-reader label of the Swap button on an upcoming dance in Perform's Adjust program sheet, and the title of the swap sheet. {title} is the dance's title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Becket Reel"
+      }
+    }
+  },
+  "performSwappedAnnounce": "Swapped in {title}",
+  "@performSwappedAnnounce": {
+    "description": "Screen-reader announcement after the caller picks a replacement in Perform's swap sheet. {title} is the new dance's title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Becket Reel"
+      }
+    }
+  },
+  "performSwapKeepHeader": "Keep",
+  "@performSwapKeepHeader": {
+    "description": "Heading over the choices in Perform's swap sheet that say what the replacement dance must share with the dance being swapped (verb: keep these the same)."
+  },
+  "performSwapKeepFormation": "Same formation: {formation}",
+  "@performSwapKeepFormation": {
+    "description": "Chip in Perform's swap sheet: only list dances in the same formation as the dance being swapped. {formation} is the formation's name.",
+    "placeholders": {
+      "formation": {
+        "type": "String",
+        "example": "Becket (clockwise)"
+      }
+    }
+  },
+  "performSwapKeepLevel": "This level or easier: {level}",
+  "@performSwapKeepLevel": {
+    "description": "Chip in Perform's swap sheet: only list dances at the level of the dance being swapped or an easier one. {level} is that level's name.",
+    "placeholders": {
+      "level": {
+        "type": "String",
+        "example": "Intermediate"
+      }
+    }
+  },
+  "performSwapKeepType": "Same type: {type}",
+  "@performSwapKeepType": {
+    "description": "Chip in Perform's swap sheet, shown only in a program that mixes types: only list dances of the same type (contra, English, square) as the dance being swapped. {type} is the type's name.",
+    "placeholders": {
+      "type": {
+        "type": "String",
+        "example": "Contra"
+      }
+    }
+  },
+  "performSwapKeepNotInProgram": "Not already in tonight's program",
+  "@performSwapKeepNotInProgram": {
+    "description": "Chip in Perform's swap sheet, and a switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: leave out dances already in this program."
+  },
+  "performSwapFiguresHeader": "Figures to keep",
+  "@performSwapFiguresHeader": {
+    "description": "Heading over the figures of the dance being swapped, in Perform's swap sheet. Tapping one only lists dances that also have that figure."
+  },
+  "performSwapFigureInPhrase": "{figure} in {phrase}",
+  "@performSwapFigureInPhrase": {
+    "description": "Label of a figure chip in Perform's swap sheet: the figure's name and the phrase of the music it starts in. {phrase} is a phrase label such as A1 or B2, never translated.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "hey"
+      },
+      "phrase": {
+        "type": "String",
+        "example": "A2"
+      }
+    }
+  },
+  "performSwapKeepFigureSemantic": "Keep {figure}",
+  "@performSwapKeepFigureSemantic": {
+    "description": "Screen-reader label of a figure chip in Perform's swap sheet. {figure} is the chip's text, for example \"hey in A2\".",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "hey in A2"
+      }
+    }
+  },
+  "performSwapSamePhrase": "In the same phrase ({phrase})",
+  "@performSwapSamePhrase": {
+    "description": "Chip under a kept figure in Perform's swap sheet: the replacement must have the figure in the same phrase of the music. {phrase} is a phrase label such as A1, never translated.",
+    "placeholders": {
+      "phrase": {
+        "type": "String",
+        "example": "A1"
+      }
+    }
+  },
+  "performSwapSamePhraseSemantic": "Keep {figure} in the same phrase, {phrase}",
+  "@performSwapSamePhraseSemantic": {
+    "description": "Screen-reader label of the In the same phrase chip in Perform's swap sheet. {figure} is the figure's name, {phrase} a phrase label such as A1.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "balance"
+      },
+      "phrase": {
+        "type": "String",
+        "example": "A1"
+      }
+    }
+  },
+  "performSwapWithBefore": "With what comes before it ({figure})",
+  "@performSwapWithBefore": {
+    "description": "Chip under a kept figure in Perform's swap sheet: the replacement must have the figure right after the same figure that comes before it in this dance. {figure} is the name of that earlier figure.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "balance"
+      }
+    }
+  },
+  "performSwapWithBeforeSemantic": "Keep {figure} right after {before}",
+  "@performSwapWithBeforeSemantic": {
+    "description": "Screen-reader label of the With what comes before it chip in Perform's swap sheet. {figure} is the kept figure's name, {before} the figure that comes right before it.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "swing"
+      },
+      "before": {
+        "type": "String",
+        "example": "balance"
+      }
+    }
+  },
+  "performSwapMoreFilters": "More filters",
+  "@performSwapMoreFilters": {
+    "description": "Button in Perform's swap sheet that opens the full Filters and Advanced search panels, with the Keep choices filled in."
+  },
+  "performSwapKeepInPanels": "The other Keep choices are now in Filters and Advanced.",
+  "@performSwapKeepInPanels": {
+    "description": "Note in Perform's swap sheet after More filters is tapped: the formation, level, type and figure choices can now be changed in the Filters and Advanced panels. 'Filters' and 'Advanced' are the names of those panels."
+  },
+  "performSwapEnglishNote": "For English dances, same formation and the figure refinements are not offered yet.",
+  "@performSwapEnglishNote": {
+    "description": "Note in Perform's swap sheet when the dance being swapped is an English country dance: the Same formation chip and the In the same phrase / With what comes before it chips are not offered for English dances."
+  },
+  "performSwapAlternatesHeading": "Your alternates",
+  "@performSwapAlternatesHeading": {
+    "description": "Heading in Perform's swap sheet over the dances the caller already listed as alternates for this slot, shown first."
+  },
+  "performSwapResultsHeading": "Matching dances",
+  "@performSwapResultsHeading": {
+    "description": "Heading in Perform's swap sheet over the dances that match the Keep choices, below Your alternates."
+  },
+  "settingsPerformSwapTitle": "Swap a dance",
+  "@settingsPerformSwapTitle": {
+    "description": "Settings ▸ Program ▸ Perform mode row, and the title of its screen: which Keep choices are on when the caller swaps a dance in Perform. Also names this setting in Device Sync lists."
+  },
+  "settingsPerformSwapSubtitle": "Choose which Keep choices are on when you swap a dance in Perform.",
+  "@settingsPerformSwapSubtitle": {
+    "description": "Subtitle of Settings ▸ Program ▸ Perform mode ▸ Swap a dance, and the first line of its screen. 'Keep' is the heading of those choices in the swap sheet (performSwapKeepHeader)."
+  },
+  "settingsPerformSwapFormation": "Same formation",
+  "@settingsPerformSwapFormation": {
+    "description": "Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same formation choice is on when the swap sheet opens."
+  },
+  "settingsPerformSwapLevel": "This level or easier",
+  "@settingsPerformSwapLevel": {
+    "description": "Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the This level or easier choice is on when the swap sheet opens."
+  },
+  "settingsPerformSwapType": "Same type",
+  "@settingsPerformSwapType": {
+    "description": "Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same type choice is on when the swap sheet opens."
+  },
+  "settingsPerformSwapTypeSubtitle": "Offered only in a program that mixes types, such as contras and English dances.",
+  "@settingsPerformSwapTypeSubtitle": {
+    "description": "Subtitle of the Same type switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance."
+  },
+  "settingsPerformSwapNewerVersion": "These choices were saved by a newer version of the app, so they can't be changed here. Update the app to change them.",
+  "@settingsPerformSwapNewerVersion": {
+    "description": "Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app; the switches are shown read-only."
   }
 }

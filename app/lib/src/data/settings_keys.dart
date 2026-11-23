@@ -89,6 +89,13 @@ const bool kConfirmPerformExitDefault = true;
 /// Perform" preference.
 const String kShowProgramSlotCallerNotesKey = 'show_program_slot_caller_notes';
 
+/// Key used to persist which **Keep** items start on in Perform's swap sheet
+/// (#2346): one JSON object, read and written only by
+/// `perform_swap_defaults.dart` in compendium_core
+/// (`readPerformSwapDefaults`, `PerformSwapDefaults.toJson`). Unset means
+/// every item on.
+const String kPerformSwapDefaultsKey = 'perform_swap_defaults';
+
 /// Key used to persist the opt-in "auto-commit program-editor changes"
 /// preference. Defaults to `false`, preserving explicit-save behavior until
 /// the caller enables background commits.

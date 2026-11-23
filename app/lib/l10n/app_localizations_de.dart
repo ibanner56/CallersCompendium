@@ -13713,4 +13713,112 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get exportCsvPayHiddenNotice =>
       'Die Gage ist in den Einstellungen ausgeblendet und fehlt daher. Schalte „Gage anzeigen“ unter Einstellungen ▸ Programm ein, um sie aufzunehmen.';
+
+  @override
+  String get performSwapThisDance => 'Diesen Tanz tauschen';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return '$title tauschen';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$title eingetauscht';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Beibehalten';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Gleiche Formation: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'Dieses Niveau oder leichter: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Gleicher Typ: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => 'Nicht schon im heutigen Programm';
+
+  @override
+  String get performSwapFiguresHeader => 'Figuren beibehalten';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure in $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return '$figure beibehalten';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'In derselben Phrase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return '$figure in derselben Phrase beibehalten, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'Mit der Figur davor ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return '$figure direkt nach $before beibehalten';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'Weitere Filter';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'Die übrigen Beibehalten-Optionen stehen jetzt unter Filter und Erweitert.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'Für englische Tänze gibt es die gleiche Formation und die Figur-Verfeinerungen noch nicht.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Deine Alternativen';
+
+  @override
+  String get performSwapResultsHeading => 'Passende Tänze';
+
+  @override
+  String get settingsPerformSwapTitle => 'Tanz tauschen';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Wähle, welche Beibehalten-Optionen eingeschaltet sind, wenn du im Perform-Modus einen Tanz tauschst.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Gleiche Formation';
+
+  @override
+  String get settingsPerformSwapLevel => 'Dieses Niveau oder leichter';
+
+  @override
+  String get settingsPerformSwapType => 'Gleicher Typ';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Nur in einem Programm, das Typen mischt, etwa Contras und englische Tänze.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'Diese Auswahl wurde von einer neueren App-Version gespeichert und kann hier nicht geändert werden. Aktualisiere die App, um sie zu ändern.';
 }

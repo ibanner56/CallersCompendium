@@ -85,13 +85,15 @@ void main() {
       recordsByDevice: records,
     );
 
-    test('advertises glossary.v1, glossary.v2, programTemplates.v1 and '
-        'suggestions.v1, and gates on each (#1023, #2337, #2343)', () {
+    test('advertises glossary.v1, glossary.v2, programTemplates.v1, '
+        'suggestions.v1 and performSwap.v1, and gates on each (#1023, #2337, '
+        '#2343, #2346)', () {
       expect(build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
       });
       // Saved searches (#2325) are gated but not yet advertised: a
       // capability is advertised only once the whole feature is in the build,
@@ -102,6 +104,7 @@ void main() {
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.savedSearchesV1,
         SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
       });
       expect(
         build.advertised,
@@ -116,14 +119,15 @@ void main() {
         SyncCapabilities.glossaryV2: {'a', 'b'},
         SyncCapabilities.programTemplatesV1: {'a', 'b'},
         SyncCapabilities.suggestionsV1: {'a', 'b'},
+        SyncCapabilities.performSwapV1: {'a', 'b'},
         // Not advertised by this build, so closed with no device to name.
         SyncCapabilities.savedSearchesV1: <String>{},
       });
     });
 
-    test('rollout: beside peers on the build before this one, which '
+    test('rollout: beside peers on the build before suggestions.v1, which '
         'advertise the glossary and program template capabilities, every '
-        'peer holds suggestions.v1 closed', () {
+        'peer holds suggestions.v1 and performSwap.v1 closed', () {
       const previous = {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
@@ -131,8 +135,31 @@ void main() {
       };
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
         SyncCapabilities.suggestionsV1: {'a', 'b'},
+        SyncCapabilities.performSwapV1: {'a', 'b'},
         SyncCapabilities.savedSearchesV1: <String>{},
       });
+    });
+
+    test('rollout: beside peers on the build before this one, which '
+        'advertise suggestions.v1 too, every peer holds performSwap.v1 '
+        'closed (#2346)', () {
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
+      };
+      expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
+        SyncCapabilities.performSwapV1: {'a', 'b'},
+        SyncCapabilities.savedSearchesV1: <String>{},
+      });
+    });
+
+    test('the Swap a dance defaults wait on performSwap.v1 (#2346)', () {
+      expect(
+        build.capabilityFor(SyncRecordKind.setting, 'perform_swap_defaults'),
+        SyncCapabilities.performSwapV1,
+      );
     });
 
     test('both suggestions keys wait on suggestions.v1 (#2343)', () {

@@ -13547,4 +13547,112 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportCsvPayHiddenNotice =>
       'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.';
+
+  @override
+  String get performSwapThisDance => 'Swap this dance';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return 'Swap $title';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return 'Swapped in $title';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Keep';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Same formation: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'This level or easier: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Same type: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => 'Not already in tonight\'s program';
+
+  @override
+  String get performSwapFiguresHeader => 'Figures to keep';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure in $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return 'Keep $figure';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'In the same phrase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return 'Keep $figure in the same phrase, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'With what comes before it ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return 'Keep $figure right after $before';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'More filters';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'The other Keep choices are now in Filters and Advanced.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'For English dances, same formation and the figure refinements are not offered yet.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Your alternates';
+
+  @override
+  String get performSwapResultsHeading => 'Matching dances';
+
+  @override
+  String get settingsPerformSwapTitle => 'Swap a dance';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Choose which Keep choices are on when you swap a dance in Perform.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Same formation';
+
+  @override
+  String get settingsPerformSwapLevel => 'This level or easier';
+
+  @override
+  String get settingsPerformSwapType => 'Same type';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Offered only in a program that mixes types, such as contras and English dances.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.';
 }

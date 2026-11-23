@@ -13065,4 +13065,111 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get exportCsvPayHiddenNotice =>
       '報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。';
+
+  @override
+  String get performSwapThisDance => 'このダンスを入れ替え';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return '$titleを入れ替え';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$titleに入れ替えました';
+  }
+
+  @override
+  String get performSwapKeepHeader => '維持する条件';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return '同じフォーメーション：$formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'このレベル以下：$level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return '同じタイプ：$type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => '今夜のプログラムにまだないもの';
+
+  @override
+  String get performSwapFiguresHeader => '維持するフィギュア';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$phraseの$figure';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return '$figureを維持';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return '同じフレーズ（$phrase）';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return '$figureを同じフレーズ$phraseで維持';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return '直前のフィギュアも（$figure）';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return '$figureを$beforeの直後で維持';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'その他のフィルター';
+
+  @override
+  String get performSwapKeepInPanels => 'ほかの維持する条件は、フィルターと詳細検索に移りました。';
+
+  @override
+  String get performSwapEnglishNote =>
+      'イングリッシュダンスでは、同じフォーメーションとフィギュアの細かい条件はまだ使えません。';
+
+  @override
+  String get performSwapAlternatesHeading => 'あなたの代替';
+
+  @override
+  String get performSwapResultsHeading => '条件に合うダンス';
+
+  @override
+  String get settingsPerformSwapTitle => 'ダンスの入れ替え';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'パフォームモードでダンスを入れ替えるときに、最初からオンにする維持条件を選びます。';
+
+  @override
+  String get settingsPerformSwapFormation => '同じフォーメーション';
+
+  @override
+  String get settingsPerformSwapLevel => 'このレベル以下';
+
+  @override
+  String get settingsPerformSwapType => '同じタイプ';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'コントラとイングリッシュダンスのように、タイプが混在するプログラムでのみ表示されます。';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。';
 }

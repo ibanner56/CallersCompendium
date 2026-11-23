@@ -4,18 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../search/collection_data.dart';
+import '../search/facet_labels.dart' show danceLevelLabel;
 import '../theme/app_motion.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/repositories_scope.dart';
+import '../data/settings_keys.dart' show kPerformSwapDefaultsKey;
 import '../theme/app_spacing.dart';
 import '../utils/slot_dance_title.dart';
 import '../widgets/collection_picker.dart';
+import '../widgets/picker_suggestions.dart';
+import 'perform_swap_sheet.dart';
 
 /// The non-destructive in-event "adjust" sheet for Performance mode
 /// (`docs/design/ux.md` §5: "reorder remaining slots, insert from quick-search,
 /// add ad-hoc note — all in an 'adjust' sheet, never disturbing the reading
 /// view"). Also lets the caller mark the current slot performed
-/// (`ProgramSlot.performedAt`).
+/// (`ProgramSlot.performedAt`), and swap the dance being called or an upcoming
+/// one for another (**Swap**, #2346): never a dance already called, that is a
+/// slot before the current one or one marked performed.
 ///
 /// Edits a private working copy of the [Program] and returns it via
 /// [Navigator.pop] when the caller taps **Done** (or `null` when nothing
@@ -253,6 +260,132 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     _announce(l10n.performInsertedAnnounce(title));
   }
 
+  Dance? _danceFor(String? id) => id == null
+      ? null
+      : widget.danceOverrides[id] ?? widget.data.dancesById[id];
+
+  /// Whether [slot] may be swapped (#2346): a dance not marked performed.
+  /// Callers also keep Swap off slots before the current one.
+  bool _swappable(ProgramSlot slot) =>
+      slot.danceId != null && slot.performedAt == null;
+
+  /// Swaps the dance of slot [slotId] for [danceId], keeping the old dance as
+  /// an alternate ([Program.swapSlotDanceKeepingAlternate]).
+  void _swapDance(String slotId, String danceId) {
+    final flat = [..._flatten(_working.grouped)];
+    final index = flat.indexWhere((s) => s.id == slotId);
+    if (index < 0) return;
+    setState(() {
+      _working = _withSlots(
+        Program.swapSlotDanceKeepingAlternate(
+          flat,
+          index,
+          danceId: danceId,
+          alternateId: uuidV4(),
+        ),
+      );
+      _markChanged();
+    });
+    final l10n = AppLocalizations.of(context);
+    _announce(
+      l10n.performSwappedAnnounce(
+        _danceFor(danceId)?.title ?? l10n.performDanceFallback,
+      ),
+    );
+  }
+
+  /// Opens the swap sheet for slot [slotId] (#2346), seeded from its dance,
+  /// with the Keep items Settings ▸ Program ▸ Perform mode ▸ Swap a dance
+  /// starts on.
+  Future<void> _openSwap(String slotId) async {
+    final repos = RepositoriesScope.of(context);
+    var defaults = PerformSwapDefaults.defaults;
+    try {
+      defaults = readPerformSwapDefaults(
+        await repos.settings.get(kPerformSwapDefaultsKey),
+      ).defaults;
+    } catch (_) {
+      // diagnostics: silent — a failed read opens with every Keep item on,
+      // the shipped defaults; the swap itself does not depend on it.
+    }
+    if (!mounted) return;
+    final group = _working.grouped.firstWhere(
+      (g) => [g.primary, ...g.alternates].any((s) => s.id == slotId),
+    );
+    final members = [group.primary, ...group.alternates];
+    final slot = members.firstWhere((s) => s.id == slotId);
+    final dance = _danceFor(slot.danceId);
+    final programDanceIds = {for (final s in _working.slots) ?s.danceId};
+    final forms = {for (final id in programDanceIds) ?_danceFor(id)?.form};
+    final levelId = dance?.difficultyLevelId;
+    final level = levelId == null
+        ? null
+        : widget.data.levels.where((l) => l.id == levelId).firstOrNull;
+    final l10n = AppLocalizations.of(context);
+    final program = _working;
+    final flatIndex = program.slots.indexWhere((s) => s.id == slotId);
+    final title = _label(l10n, slot);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.9;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: PerformSwapSheet(
+              key: const ValueKey('adjust-swap-sheet'),
+              title: title,
+              data: widget.data,
+              dialect: widget.dialect,
+              enrichment: widget.enrichment,
+              danceOverrides: widget.danceOverrides,
+              authorNameOverrides: widget.authorNameOverrides,
+              seed: dance == null
+                  ? SwapKeepSeed.empty
+                  : SwapKeepSeed.of(
+                      dance,
+                      levels: widget.data.levels,
+                      programMixesTypes: forms.length > 1,
+                    ),
+              initialChoices: SwapKeepChoices.fromDefaults(defaults),
+              swappedDanceId: slot.danceId,
+              swappedForm: dance?.form,
+              levelLabel: level == null
+                  ? null
+                  : danceLevelLabel(AppLocalizations.of(sheetContext), level),
+              // The slot's other choices, not yet called.
+              alternateIds: [
+                for (final member in members)
+                  if (member.id != slotId &&
+                      member.danceId != null &&
+                      member.danceId != slot.danceId &&
+                      member.performedAt == null)
+                    member.danceId!,
+              ],
+              programDanceIds: programDanceIds,
+              programContext: PickerProgramContext(
+                programId: program.id,
+                venueId: program.venueId,
+                venue: program.venue,
+                venueLabel: program.venue,
+                position: flatIndex < 0
+                    ? null
+                    : SuggestionPosition.replacing(program.slots, flatIndex),
+              ),
+              onPick: (danceId) {
+                _swapDance(slotId, danceId);
+                Navigator.of(sheetContext).pop();
+              },
+            ),
+          ),
+        );
+      },
+      sheetAnimationStyle: AppMotion.styleFor(context),
+    );
+  }
+
   void _addNote() {
     final l10n = AppLocalizations.of(context);
     final text = _noteController.text.trim();
@@ -449,6 +582,21 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             ),
           ),
         ),
+        if (_swappable(current)) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('adjust-swap-current'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(
+                kPerformSwapMinTarget,
+                kPerformSwapMinTarget,
+              ),
+            ),
+            onPressed: () => _openSwap(current.id),
+            icon: const Icon(Icons.swap_horiz),
+            label: Text(l10n.performSwapThisDance),
+          ),
+        ],
       ],
     );
   }
@@ -458,6 +606,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     final groups = _working.grouped;
     final start = _movableStart;
     final movable = groups.sublist(start);
+    final currentGroup = _currentGroupIndex();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -485,13 +634,20 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
               itemBuilder: (context, index) {
                 final group = movable[index];
                 final absolute = start + index;
+                final label = _label(l10n, group.primary);
+                // Upcoming only: never the current group (it has Swap this
+                // dance above) or one before it, which was already called.
+                final swappable =
+                    absolute > currentGroup && _swappable(group.primary);
                 return _ReorderRow(
                   key: ValueKey('adjust-reorder-${group.primary.id}'),
                   index: index,
                   absolutePosition: absolute,
                   total: movable.length,
-                  label: _label(l10n, group.primary),
+                  label: label,
                   alternates: group.alternates.length,
+                  onSwap: swappable ? () => _openSwap(group.primary.id) : null,
+                  swapKey: ValueKey('adjust-swap-${group.primary.id}'),
                   onMoveUp: index > 0
                       ? () => _moveGroup(index, index - 1)
                       : null,
@@ -558,6 +714,8 @@ class _ReorderRow extends StatelessWidget {
     required this.alternates,
     required this.onMoveUp,
     required this.onMoveDown,
+    this.onSwap,
+    this.swapKey,
   });
 
   final int index;
@@ -567,6 +725,11 @@ class _ReorderRow extends StatelessWidget {
   final int alternates;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
+
+  /// Opens the swap sheet for this row's dance, or null when it is not
+  /// offered (#2346).
+  final VoidCallback? onSwap;
+  final Key? swapKey;
 
   @override
   Widget build(BuildContext context) {
@@ -583,6 +746,13 @@ class _ReorderRow extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (onSwap != null)
+            IconButton(
+              key: swapKey,
+              tooltip: l10n.performSwapDanceNamed(label),
+              icon: const Icon(Icons.swap_horiz),
+              onPressed: onSwap,
+            ),
           IconButton(
             key: ValueKey('adjust-move-up-$index'),
             tooltip: l10n.performMoveLabelUp(label),

@@ -13745,4 +13745,113 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get exportCsvPayHiddenNotice =>
       'Le cachet est masqué dans les Paramètres, il est donc omis. Activez « Afficher le cachet » dans Paramètres ▸ Programme pour l’inclure.';
+
+  @override
+  String get performSwapThisDance => 'Échanger cette danse';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return 'Échanger $title';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$title mise à la place';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Conserver';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Même formation : $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'Ce niveau ou plus facile : $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Même type : $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram =>
+      'Pas déjà dans le programme de ce soir';
+
+  @override
+  String get performSwapFiguresHeader => 'Figures à conserver';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure en $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return 'Conserver $figure';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'Dans la même phrase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return 'Conserver $figure dans la même phrase, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'Avec ce qui la précède ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return 'Conserver $figure juste après $before';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'Plus de filtres';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'Les autres choix à conserver sont maintenant dans Filtres et Avancé.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'Pour les danses anglaises, la même formation et les précisions sur les figures ne sont pas encore proposées.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Vos alternatives';
+
+  @override
+  String get performSwapResultsHeading => 'Danses correspondantes';
+
+  @override
+  String get settingsPerformSwapTitle => 'Échanger une danse';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Choisissez les choix à conserver activés quand vous échangez une danse en mode Perform.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Même formation';
+
+  @override
+  String get settingsPerformSwapLevel => 'Ce niveau ou plus facile';
+
+  @override
+  String get settingsPerformSwapType => 'Même type';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Proposé seulement dans un programme qui mélange les types, comme des contras et des danses anglaises.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'Ces choix ont été enregistrés par une version plus récente de l’application et ne peuvent pas être modifiés ici. Mettez l’application à jour pour les modifier.';
 }

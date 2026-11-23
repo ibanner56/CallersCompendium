@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -95,6 +96,13 @@ class CollectionPicker extends StatefulWidget {
     this.programContext,
     this.rankSuggestions,
     this.clock = const SearchClock(),
+    this.initialQuery,
+    this.showSearchControls = true,
+    this.initialPanel,
+    this.header,
+    this.pinned,
+    this.excludedDanceIds = const {},
+    this.offerSuggested = true,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -194,8 +202,71 @@ class CollectionPicker extends StatefulWidget {
   /// Where "today" comes from, for the venue window. A test seam.
   final SearchClock clock;
 
+  /// A search to open with: its text, **Search in**, Filters selections, By
+  /// phrase rows and Advanced tree are loaded into the panels before the first
+  /// search, and its sort replaces the Collection's opening sort. The picker
+  /// edits the state it is given, as the panels edit their own
+  /// ([CollectionPanelState] holds live objects), so pass a fresh one.
+  ///
+  /// Passing a different state later (not `identical` to the last) loads it
+  /// in the same way and searches again, replacing whatever the panels held,
+  /// except the sort: the one being looked at stays. That is how a host
+  /// changes the query from outside the panels, as Perform's swap sheet does
+  /// when a **Keep** item changes (#2346).
+  final CollectionPanelState? initialQuery;
+
+  /// Whether the search field and the row of search tools show. A host whose
+  /// own controls set the query ([initialQuery]) can hide them until the
+  /// user asks for them; the results, their count and the sort show either
+  /// way.
+  final bool showSearchControls;
+
+  /// The search tool that is open when the tools first show, unless the user
+  /// already chose one on this route.
+  final PickerSearchPanel? initialPanel;
+
+  /// Scrolls with the results, above the search tools: the host's own
+  /// controls for the query, such as the swap sheet's **Keep** items.
+  final Widget? header;
+
+  /// Dances listed first under a heading of their own, whatever the query,
+  /// and left out of the results below (the swap sheet's **Your
+  /// alternates**). Rows act as result rows do.
+  final PickerPinnedDances? pinned;
+
+  /// Dances never listed, whatever the query (the swap sheet's dance being
+  /// swapped, and the program's dances under **Not already in tonight's
+  /// program**).
+  final Set<String> excludedDanceIds;
+
+  /// Whether the Sort menu may offer **Suggested** at all. False keeps a host
+  /// that passes a [programContext] position for other reasons on the plain
+  /// orders.
+  final bool offerSuggested;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
+}
+
+/// The search tools a [CollectionPicker] can open with
+/// ([CollectionPicker.initialPanel]).
+enum PickerSearchPanel { filters, byPhrase, advanced }
+
+/// Dances a [CollectionPicker] lists first, under [heading], above the
+/// results, which then go under [resultsHeading].
+@immutable
+class PickerPinnedDances {
+  const PickerPinnedDances({
+    required this.heading,
+    required this.resultsHeading,
+    required this.danceIds,
+  });
+
+  final String heading;
+  final String resultsHeading;
+
+  /// In the order listed. An id the collection does not hold is skipped.
+  final List<String> danceIds;
 }
 
 /// What a [CollectionPicker] row's tap target does, driving its tooltip,
@@ -216,9 +287,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
   /// The local Search in choice, restored when online search is turned off
   /// (online search maps All fields to Title).
   FullTextScope _localFtsScope = FullTextScope.omni;
-  final _facets = FacetSelections();
-  final _byPhrase = ByPhraseSelections();
-  final _advancedRoot = BuilderGroup();
+  FacetSelections _facets = FacetSelections();
+  ByPhraseSelections _byPhrase = ByPhraseSelections();
+  BuilderGroup _advancedRoot = BuilderGroup();
 
   CollectionSort _sort = CollectionSort.title;
   SortDirection _sortDir = CollectionSort.title.searchSort.defaultDirection;
@@ -331,6 +402,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final suggestionInputsChanged = _readSuggestionInputs();
     if (!_started) {
       _started = true;
+      if (widget.initialQuery case final query?) {
+        _loadQuery(query, withSort: true);
+      }
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
@@ -371,7 +445,27 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// Whether the Sort menu offers Suggested.
   bool get _suggestedAvailable =>
-      _suggestionsEnabled && widget.programContext?.position != null;
+      widget.offerSuggested &&
+      _suggestionsEnabled &&
+      widget.programContext?.position != null;
+
+  /// Puts [query]'s search into the panels ([CollectionPicker.initialQuery]).
+  /// The panels edit [query]'s own objects from here on.
+  void _loadQuery(CollectionPanelState query, {required bool withSort}) {
+    _ftsController.text = query.text;
+    _ftsScope = query.scope;
+    _localFtsScope = query.scope;
+    _facets = query.facets;
+    _byPhrase = query.byPhrase;
+    _advancedRoot = query.advanced;
+    _removedTags.clear();
+    if (withSort) {
+      final sort = query.effectiveSort;
+      _sort = sort.sort;
+      _sortDir = sort.direction;
+      _sortUserSet = true;
+    }
+  }
 
   /// Back to the plain order, dropping any ranking in flight.
   void _leaveSuggested() {
@@ -457,6 +551,20 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (onlineServiceChanged && _onlineEnabled) {
       _onlineSeq++;
       _runOnlineSearch();
+    }
+    final query = widget.initialQuery;
+    if (query != null &&
+        !identical(query, oldWidget.initialQuery) &&
+        !_onlineEnabled) {
+      _debounceTimer?.cancel();
+      _loadQuery(query, withSort: false);
+      _runSearch();
+    } else if (!setEquals(
+          oldWidget.excludedDanceIds,
+          widget.excludedDanceIds,
+        ) &&
+        !_onlineEnabled) {
+      _runSearch();
     }
     if (oldWidget.programContext != widget.programContext && _suggested) {
       if (widget.programContext?.position == null) {
@@ -574,14 +682,16 @@ class _CollectionPickerState extends State<CollectionPicker> {
         for (final entry in _importedChoreographers.entries)
           entry.key: entry.value.name,
       };
+      final hidden = {...widget.excludedDanceIds, ...?widget.pinned?.danceIds};
       setState(() {
         _results = [
           for (final id in ids)
-            if (_latestDanceFor(id, data) case final dance?)
-              data.entryFor(
-                dance,
-                choreographerNamesOverride: choreographerNamesOverride,
-              ),
+            if (!hidden.contains(id))
+              if (_latestDanceFor(id, data) case final dance?)
+                data.entryFor(
+                  dance,
+                  choreographerNamesOverride: choreographerNamesOverride,
+                ),
         ];
         _searching = false;
       });
@@ -1220,38 +1330,40 @@ class _CollectionPickerState extends State<CollectionPicker> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: SearchFieldWithScope(
-                searchField: searchField,
-                scopeField: SearchScopeField(
-                  fieldKey: const ValueKey('picker-search-scope'),
-                  scope: _ftsScope,
-                  online: _onlineEnabled,
-                  onChanged: _onFtsScopeChanged,
-                  border: const OutlineInputBorder(),
+            if (widget.showSearchControls)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
+                ),
+                child: SearchFieldWithScope(
+                  searchField: searchField,
+                  scopeField: SearchScopeField(
+                    fieldKey: const ValueKey('picker-search-scope'),
+                    scope: _ftsScope,
+                    online: _onlineEnabled,
+                    onChanged: _onFtsScopeChanged,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               ),
-            ),
             Expanded(
               child: CustomScrollView(
                 controller: widget.scrollController,
                 slivers: [
                   SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildSearchPanels(data),
+                      ?widget.header,
+                      if (widget.showSearchControls) _buildSearchPanels(data),
                       _buildResultCount(),
                       const Divider(height: 1),
                     ]),
                   ),
                   _onlineEnabled
                       ? _buildOnlineResultsSliver()
-                      : _buildResultsSliver(),
+                      : _buildLocalResultsSliver(),
                 ],
               ),
             ),
@@ -1273,6 +1385,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final byPhraseActive = _byPhraseActiveCount();
     final panelBar = SearchPanelBar(
       storageId: 'picker',
+      initialOpen: switch (widget.initialPanel) {
+        null => null,
+        PickerSearchPanel.filters => const ValueKey('picker-filters-panel'),
+        PickerSearchPanel.byPhrase => const ValueKey('picker-by-phrase-panel'),
+        PickerSearchPanel.advanced => const ValueKey('picker-advanced-panel'),
+      },
       trailing: widget.enableOnlineSearch
           ? OnlineSearchToggle(
               key: const ValueKey('picker-online-search-enable'),
@@ -1502,6 +1620,52 @@ class _CollectionPickerState extends State<CollectionPicker> {
           ],
         ],
       ),
+    );
+  }
+
+  /// The local results, after the [CollectionPicker.pinned] dances under
+  /// their own heading when there are any.
+  Widget _buildLocalResultsSliver() {
+    final pinned = widget.pinned;
+    final data = widget.data;
+    final pinnedEntries = pinned == null
+        ? const <DanceListEntry>[]
+        : [
+            for (final id in pinned.danceIds)
+              if (_latestDanceFor(id, data) case final dance?)
+                if (dance.deletedAt == null)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride:
+                        widget.choreographerNamesOverride,
+                  ),
+          ];
+    if (pinned == null || pinnedEntries.isEmpty) return _buildResultsSliver();
+    Widget heading(String text, Key key) => SliverToBoxAdapter(
+      child: Semantics(
+        header: true,
+        child: Padding(
+          key: key,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
+          child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+        ),
+      ),
+    );
+    return SliverMainAxisGroup(
+      slivers: [
+        heading(pinned.heading, const ValueKey('picker-pinned-heading')),
+        _buildResultRows(pinnedEntries, null),
+        heading(
+          pinned.resultsHeading,
+          const ValueKey('picker-results-heading'),
+        ),
+        _buildResultsSliver(),
+      ],
     );
   }
 

@@ -1,0 +1,398 @@
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/material.dart';
+
+import '../../l10n/app_localizations.dart';
+import '../search/collection_data.dart';
+import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/collection_picker.dart';
+import '../widgets/move_autocomplete.dart' show moveLabelWithForm;
+import '../widgets/picker_suggestions.dart';
+
+/// The smallest a control on this sheet may be, on each side: Perform's
+/// target size (docs/design/ux.md, "Cross-cutting UX rules": "44pt in
+/// Perform").
+const double kPerformSwapMinTarget = 44;
+
+/// Perform's swap sheet (#2346): **Keep** (what the replacement must share
+/// with the dance being swapped), then the matching dances, already searched,
+/// with the slot's alternates first under **Your alternates**.
+///
+/// Built on [CollectionPicker], as the program builder's pickers are: the
+/// Keep items are the picker's own Filters and Advanced state
+/// ([swapKeepPanelState]), loaded through [CollectionPicker.initialQuery], so
+/// every change searches again with no Search button, and **More filters**
+/// shows the same criteria in the panels, editable. From then on the panels
+/// hold the query, so the Keep chips that live in them are put away; **Not
+/// already in tonight's program**, which leaves dances out by id rather than
+/// by a panel criterion, stays.
+///
+/// Tapping a result calls [onPick] with its id. Online search is not offered:
+/// an import at the mic adds a network wait and a possible duplicate prompt.
+class PerformSwapSheet extends StatefulWidget {
+  const PerformSwapSheet({
+    super.key,
+    required this.title,
+    required this.data,
+    required this.dialect,
+    required this.enrichment,
+    required this.seed,
+    required this.initialChoices,
+    required this.onPick,
+    this.swappedDanceId,
+    this.swappedForm,
+    this.levelLabel,
+    this.alternateIds = const [],
+    this.programDanceIds = const {},
+    this.programContext,
+    this.danceOverrides = const {},
+    this.authorNameOverrides = const {},
+  });
+
+  /// The name of the dance being swapped, as the adjust sheet shows it.
+  final String title;
+
+  final CollectionData data;
+  final Dialect dialect;
+  final SearchEnrichment enrichment;
+
+  /// What the dance being swapped offers to keep.
+  final SwapKeepSeed seed;
+
+  /// The Keep items on when the sheet opens (from Settings ▸ Program ▸
+  /// Perform mode ▸ **Swap a dance**).
+  final SwapKeepChoices initialChoices;
+
+  final ValueChanged<String> onPick;
+
+  /// The dance being swapped, never listed as its own replacement.
+  final String? swappedDanceId;
+
+  /// The form of the dance being swapped, or null when it could not be read.
+  final DanceForm? swappedForm;
+
+  /// The name of the dance's level, for **This level or easier**.
+  final String? levelLabel;
+
+  /// The slot's other choices, listed first under **Your alternates**.
+  final List<String> alternateIds;
+
+  /// Every dance in the program, left out under **Not already in tonight's
+  /// program**.
+  final Set<String> programDanceIds;
+
+  final PickerProgramContext? programContext;
+  final Map<String, Dance> danceOverrides;
+  final Map<String, String> authorNameOverrides;
+
+  @override
+  State<PerformSwapSheet> createState() => _PerformSwapSheetState();
+}
+
+class _PerformSwapSheetState extends State<PerformSwapSheet> {
+  late SwapKeepChoices _choices = widget.initialChoices;
+  late CollectionPanelState _query = swapKeepPanelState(widget.seed, _choices);
+
+  /// Whether **More filters** was tapped: the panels now hold the query.
+  bool _moreFilters = false;
+
+  void _update(SwapKeepChoices next) {
+    setState(() {
+      _choices = next;
+      _query = swapKeepPanelState(widget.seed, next);
+    });
+  }
+
+  Set<String> get _excluded => {
+    ?widget.swappedDanceId,
+    if (_choices.notInProgram) ...widget.programDanceIds,
+  };
+
+  String _moveName(String move) {
+    final taxonomy = widget.data.taxonomy;
+    if (taxonomy.resolve(move) == null) return move;
+    return moveLabelWithForm(
+      context,
+      taxonomy,
+      move,
+      FigureRenderer(taxonomy).displayMoveName(move, widget.dialect),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          child: Semantics(
+            header: true,
+            child: Text(
+              l10n.performSwapDanceNamed(widget.title),
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
+        ),
+        Expanded(
+          child: CollectionPicker(
+            key: const ValueKey('swap-picker'),
+            data: widget.data,
+            dialect: widget.dialect,
+            enrichment: widget.enrichment,
+            danceOverrides: widget.danceOverrides,
+            choreographerNamesOverride: widget.authorNameOverrides,
+            rowAction: PickerRowAction.replace,
+            programContext: widget.programContext,
+            // Ordering by suggestions is #2348's, behind its own setting.
+            offerSuggested: false,
+            initialQuery: _query,
+            showSearchControls: _moreFilters,
+            initialPanel: PickerSearchPanel.filters,
+            excludedDanceIds: _excluded,
+            pinned: PickerPinnedDances(
+              heading: l10n.performSwapAlternatesHeading,
+              resultsHeading: l10n.performSwapResultsHeading,
+              danceIds: widget.alternateIds,
+            ),
+            header: _buildKeep(context),
+            onAddDance: widget.onPick,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _chip({
+    required Key key,
+    required String label,
+    String? semanticsLabel,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    final chip = ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: kPerformSwapMinTarget,
+        minWidth: kPerformSwapMinTarget,
+      ),
+      child: FilterChip(
+        key: key,
+        label: Text(label),
+        selected: selected,
+        onSelected: onSelected,
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+      ),
+    );
+    if (semanticsLabel == null) return chip;
+    return Semantics(
+      label: semanticsLabel,
+      excludeSemantics: true,
+      selected: selected,
+      button: true,
+      onTap: () => onSelected(!selected),
+      child: chip,
+    );
+  }
+
+  Widget _buildKeep(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final seed = widget.seed;
+    final keptFigures = [
+      for (final figure in seed.figures)
+        if (_choices.figures[figure.index] case final keep?) (figure, keep),
+    ];
+    final notInProgram = _chip(
+      key: const ValueKey('swap-keep-not-in-program'),
+      label: l10n.performSwapKeepNotInProgram,
+      selected: _choices.notInProgram,
+      onSelected: (on) => _update(_choices.copyWith(notInProgram: on)),
+    );
+    Widget section(String text) => Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          top: AppSpacing.sm,
+          bottom: AppSpacing.xxs,
+        ),
+        child: Text(text, style: theme.textTheme.titleSmall),
+      ),
+    );
+    const spacing = AppSpacing.xs;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          section(l10n.performSwapKeepHeader),
+          if (_moreFilters) ...[
+            Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [notInProgram],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Text(
+                l10n.performSwapKeepInPanels,
+                key: const ValueKey('swap-keep-in-panels'),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ] else ...[
+            Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                if (seed.formation case final shape?)
+                  _chip(
+                    key: const ValueKey('swap-keep-formation'),
+                    label: l10n.performSwapKeepFormation(
+                      formationShapeLabel(l10n, shape),
+                    ),
+                    selected: _choices.formation,
+                    onSelected: (on) =>
+                        _update(_choices.copyWith(formation: on)),
+                  ),
+                if (seed.levelIds.isNotEmpty)
+                  _chip(
+                    key: const ValueKey('swap-keep-level'),
+                    label: l10n.performSwapKeepLevel(widget.levelLabel ?? ''),
+                    selected: _choices.levelOrEasier,
+                    onSelected: (on) =>
+                        _update(_choices.copyWith(levelOrEasier: on)),
+                  ),
+                if (seed.form case final form?)
+                  _chip(
+                    key: const ValueKey('swap-keep-type'),
+                    label: l10n.performSwapKeepType(danceFormLabel(l10n, form)),
+                    selected: _choices.sameType,
+                    onSelected: (on) =>
+                        _update(_choices.copyWith(sameType: on)),
+                  ),
+                notInProgram,
+              ],
+            ),
+            if (seed.figures.isNotEmpty) ...[
+              section(l10n.performSwapFiguresHeader),
+              Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  for (final figure in seed.figures) _figureChip(l10n, figure),
+                ],
+              ),
+            ],
+            for (final (figure, keep) in keptFigures)
+              if (figure.section != null || figure.beforeMove != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        _figureLabel(l10n, figure),
+                        style: theme.textTheme.labelLarge,
+                      ),
+                      if (figure.section case final phrase?)
+                        _chip(
+                          key: ValueKey(
+                            'swap-keep-same-phrase-${figure.index}',
+                          ),
+                          label: l10n.performSwapSamePhrase(phrase),
+                          semanticsLabel: l10n.performSwapSamePhraseSemantic(
+                            _moveName(figure.move),
+                            phrase,
+                          ),
+                          selected: keep.samePhrase,
+                          onSelected: (on) => _update(
+                            _choices.withFigure(
+                              figure.index,
+                              keep.copyWith(samePhrase: on),
+                            ),
+                          ),
+                        ),
+                      if (figure.beforeMove case final before?)
+                        _chip(
+                          key: ValueKey(
+                            'swap-keep-with-before-${figure.index}',
+                          ),
+                          label: l10n.performSwapWithBefore(_moveName(before)),
+                          semanticsLabel: l10n.performSwapWithBeforeSemantic(
+                            _moveName(figure.move),
+                            _moveName(before),
+                          ),
+                          selected: keep.withBefore,
+                          onSelected: (on) => _update(
+                            _choices.withFigure(
+                              figure.index,
+                              keep.copyWith(withBefore: on),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            if (widget.swappedForm == DanceForm.ecd)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  l10n.performSwapEnglishNote,
+                  key: const ValueKey('swap-keep-english-note'),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('swap-more-filters'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(
+                      kPerformSwapMinTarget,
+                      kPerformSwapMinTarget,
+                    ),
+                  ),
+                  onPressed: () => setState(() => _moreFilters = true),
+                  icon: const Icon(Icons.tune),
+                  label: Text(l10n.performSwapMoreFilters),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.xs),
+        ],
+      ),
+    );
+  }
+
+  String _figureLabel(AppLocalizations l10n, SwapKeepFigure figure) {
+    final name = _moveName(figure.move);
+    final phrase = figure.section;
+    return phrase == null ? name : l10n.performSwapFigureInPhrase(name, phrase);
+  }
+
+  Widget _figureChip(AppLocalizations l10n, SwapKeepFigure figure) {
+    final keep = _choices.figures[figure.index];
+    final label = _figureLabel(l10n, figure);
+    return _chip(
+      key: ValueKey('swap-keep-figure-${figure.index}'),
+      label: label,
+      semanticsLabel: l10n.performSwapKeepFigureSemantic(label),
+      selected: keep != null,
+      onSelected: (on) => _update(
+        _choices.withFigure(figure.index, on ? const SwapFigureKeep() : null),
+      ),
+    );
+  }
+}

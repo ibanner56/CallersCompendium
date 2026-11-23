@@ -7902,10 +7902,11 @@ void main() {
       expect(SyncCapabilityPolicy.build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
-        // Program templates (#2337) and suggestions (#2343) are covered by
-        // their own rollout tests.
+        // Program templates (#2337), suggestions (#2343) and the Swap a
+        // dance defaults (#2346) are covered by their own rollout tests.
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
       });
       expect(SyncCapabilityPolicy.build.gatedRecordKinds, {
         SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -7919,6 +7920,7 @@ void main() {
         'program_template_default': SyncCapabilities.programTemplatesV1,
         'suggestions_enabled': SyncCapabilities.suggestionsV1,
         'suggestion_settings': SyncCapabilities.suggestionsV1,
+        'perform_swap_defaults': SyncCapabilities.performSwapV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,
@@ -8349,6 +8351,95 @@ void main() {
       expect(awaiting(result), isEmpty);
     });
 
+    test('rollout: the Swap a dance defaults (#2346) wait beside peers with '
+        'no record and peers on the previous build, and publish once every '
+        'device advertises performSwap.v1', () async {
+      const build = SyncCapabilityPolicy.build;
+      final swapDefaults = [
+        SyncMergeCandidate.fromBlob(
+          _setting(
+            'perform_swap_defaults',
+            '{"version":1,"keep":{"formation":false}}',
+          ),
+        ),
+      ];
+      for (final candidate in swapDefaults) {
+        expect(
+          build.capabilityFor(candidate.blob.kind, candidate.blob.id),
+          SyncCapabilities.performSwapV1,
+          reason: '${candidate.blob.id} is gated by the shipped policy',
+        );
+      }
+      final swapKeys = {for (final c in swapDefaults) c.blob.id};
+      final everyDevice = ['p1', 'p2'];
+      // What the build before this one advertised.
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
+      };
+
+      Future<(SyncPassResult, _FakeTransport)> pass(
+        Map<String, Set<String>> recorded,
+      ) async {
+        final records = [
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
+        ];
+        final local = {
+          for (final c in [...swapDefaults, plain, ...records]) c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [...swapDefaults, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          uploaded(transport),
+          contains(plain.wireHash),
+          reason: 'an ungated record uploads, so the checks below can fail',
+        );
+        return (result, transport);
+      }
+
+      for (final recorded in [
+        const <String, Set<String>>{},
+        {for (final peer in everyDevice) peer: previous},
+      ]) {
+        final (result, transport) = await pass(recorded);
+        expect(publishedSettings(transport), contains('theme_mode'));
+        expect(
+          publishedSettings(transport).intersection(swapKeys),
+          isEmpty,
+        );
+        for (final c in swapDefaults) {
+          expect(uploaded(transport), isNot(contains(c.wireHash)));
+        }
+        expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2'});
+        for (final report in awaiting(result)) {
+          expect(report.message, contains(SyncCapabilities.performSwapV1));
+        }
+      }
+
+      final (result, transport) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(publishedSettings(transport), containsAll(swapKeys));
+      for (final c in swapDefaults) {
+        expect(uploaded(transport), contains(c.wireHash));
+      }
+      expect(awaiting(result), isEmpty);
+    });
+
     test('glossary entries wait on the capability of their own kind: terms '
         'and figures of your own on glossary.v2, compounds and unknown kinds '
         'on glossary.v1, tombstones included (#1023)', () async {
@@ -8534,6 +8625,7 @@ void main() {
         'capabilities': [
           SyncCapabilities.glossaryV1,
           SyncCapabilities.glossaryV2,
+          SyncCapabilities.performSwapV1,
           SyncCapabilities.programTemplatesV1,
           SyncCapabilities.suggestionsV1,
         ],
