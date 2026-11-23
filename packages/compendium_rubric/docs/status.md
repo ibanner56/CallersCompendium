@@ -227,8 +227,8 @@ from this table because the compiler never ran against them. **Pass rate** is
 - Led by part of the set (`who:ones`, `twos`, `role1s` or `role2s`; user-ruled
   2026-11-23), the leaders move one place and the dancers they pass step back
   one. They take `moving:center` or `outsides`, `facing:forward`, and the
-  `none` or `turnAlone` enders; leads by `partners`, ending `turnCouple`, and
-  the rest stay deferred.
+  `none` or `turnAlone` enders; leads by `partners`, a single lead ending
+  `turnCouple`, and the rest stay deferred.
 - A lead out immediately followed by the same leaders' lead back is a round
   trip (user-ruled 2026-11-23): nobody else moves, and the leaders end where
   they started, or in their partner's place after a `turnCouple`. Role-set

@@ -115,7 +115,12 @@ sealed class HallFigure extends Operation {
   HallFigure _withLegs({HallFigure? returnLeg, bool isReturnLeg = false});
 
   /// Whether [out] and [back] are a lead out immediately followed by a lead
-  /// back: the same leaders, led by part of the set, travelling opposite ways.
+  /// back: the same leaders, led by part of the set, travelling opposite ways,
+  /// each leg with parameters a round trip takes.
+  ///
+  /// A leg whose own `moving`, `facing` or `ender` a round trip does not take
+  /// is left unpaired, so it is refused at its own line rather than at its
+  /// partner's.
   static bool areRoundTrip(Operation out, Operation back) =>
       out is HallFigure &&
       back is HallFigure &&
@@ -126,7 +131,36 @@ sealed class HallFigure extends Operation {
       back.returnLeg == null &&
       !back.isReturnLeg &&
       out.who == back.who &&
-      out.travel != back.travel;
+      out.travel != back.travel &&
+      out._roundTripLegError(out.name) == null &&
+      back._roundTripLegError(back.name) == null;
+
+  /// Why this leg's own parameters are outside what a round trip takes, or
+  /// `null` (see [_roundTripLeaders]).
+  OpError? _roundTripLegError(String label) {
+    if (moving == HallMoving.all) {
+      return OpError(
+        ErrorKind.unsupportedParam,
+        '$label: $name moving:all is deferred: part of the set leads, so it '
+        'travels down the center or the outsides',
+      );
+    }
+    if (facing != HallFacing.forward) {
+      return OpError(
+        ErrorKind.unsupportedParam,
+        '$label: $name facing:${facing.key} is deferred',
+      );
+    }
+    if (ender != HallEnder.none &&
+        ender != HallEnder.turnAlone &&
+        ender != HallEnder.turnCouple) {
+      return OpError(
+        ErrorKind.unsupportedParam,
+        '$label: $name ender:${ender.key} is deferred',
+      );
+    }
+    return null;
+  }
 
   /// The lead out of a round trip whose lead back is [back].
   ///
@@ -311,33 +345,7 @@ sealed class HallFigure extends Operation {
       );
     }
     for (final leg in [this, back]) {
-      if (leg.moving == HallMoving.all) {
-        return Err(
-          OpError(
-            ErrorKind.unsupportedParam,
-            '$label: ${leg.name} moving:all is deferred: part of the set '
-            'leads, so it travels down the center or the outsides',
-          ),
-        );
-      }
-      if (leg.facing != HallFacing.forward) {
-        return Err(
-          OpError(
-            ErrorKind.unsupportedParam,
-            '$label: ${leg.name} facing:${leg.facing.key} is deferred',
-          ),
-        );
-      }
-      if (leg.ender != HallEnder.none &&
-          leg.ender != HallEnder.turnAlone &&
-          leg.ender != HallEnder.turnCouple) {
-        return Err(
-          OpError(
-            ErrorKind.unsupportedParam,
-            '$label: ${leg.name} ender:${leg.ender.key} is deferred',
-          ),
-        );
-      }
+      if (leg._roundTripLegError(label) case final error?) return Err(error);
     }
     final trades = _roundTripTrades(back);
     if (trades && who != WhoSet.ones && who != WhoSet.twos) {
@@ -351,6 +359,15 @@ sealed class HallFigure extends Operation {
     }
     final leaders = <DancerId>[];
     for (final band in handsFourBands(formation)) {
+      if (lineOfFourRow(formation, band) != null) {
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            '$label needs the hands four standing in its two rows, but rows '
+            '${band.topRow}/${band.bottomRow} stand as a line of four',
+          ),
+        );
+      }
       final inBand = [
         ...formation.dancersInRow(band.topRow),
         ...formation.dancersInRow(band.bottomRow),

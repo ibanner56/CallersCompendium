@@ -2466,8 +2466,9 @@ To be defined later with worked examples.
     along the set and each dancer they pass steps one place the other way. No line of four is
     formed and nobody gathers. A hall figure carries no count, so the leaders go **one place**,
     to the other end of their own hands four; that is the reading the ruling was asked on ("ones
-    lead down, turn alone, lead up, cast off" compiles, and the ones progress one place exactly
-    as a cast off alone would).
+    lead down, turn alone, lead up, cast off"). That example is now a **round trip** (below),
+    with the same net result; the one-place reading applies to a lead that is not immediately
+    followed by its lead back, such as "ones lead down, cast up".
   - Base `[[R1-A,0,0,0,L1-A],[L2-B,0,0,0,R2-B]]`, `who: ones`, `moving: center`, `ender:
     turnAlone` → `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]`; the ones face **Up**, the twos are
     flexible.
@@ -2496,9 +2497,14 @@ To be defined later with worked examples.
     leaders' lead back (down then up, or up then down) does not move the other dancers. They stay
     in place, and the leaders return to where they started, or to their partner's place if the
     leaders traded on the way. The parser pairs the two adjacent top-level figures: the lead out
-    dances the whole trip and the lead back moves nobody, and each keeps its own line, flag and
-    diagnostics. Not cast-like, so it needs nobody to pass and works in Becket, where the ones
-    share a column.
+    dances the whole trip and the lead back moves nobody, and each keeps its own line and flag.
+    A refusal that only the pairing can raise (the leaders, a trade, the formation) is reported
+    at the lead out; a leg whose own `moving`, `facing` or `ender` a round trip does not take is
+    left unpaired and refused at its own line. Not cast-like, so it needs nobody to pass and
+    works in Becket, where the ones share a column. A band already standing as a line of four is
+    refused (`UnresolvableDancerSet`), as for a single lead.
+    - The pairing is the **parser's** *(agent's call)*: a `Dance` built directly in code, or two
+      leads nested inside a container, are danced as two single leads.
     - The leaders trade when the trip has an odd number of `turnCouple` enders (each wheels the
       couple). Only `ones` and `twos` name couples, so a trade led by a role set is deferred, and
       a leader with no leading partner in its hands four is `UnresolvableDancerSet`.

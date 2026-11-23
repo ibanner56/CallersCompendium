@@ -109,6 +109,19 @@ void main() {
       );
     });
 
+    test('a band standing as a line of four is refused', () {
+      final line = applyOk(const DownTheHall(ender: HallEnder.none), di(base));
+      final error = refusal(
+        trip(
+          down(WhoSet.ones, HallEnder.none),
+          up(WhoSet.ones, HallEnder.none),
+        ),
+        line,
+      );
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.message, contains('line of four'));
+    });
+
     test('the lead back moves nobody: the lead out danced it', () {
       final back = up(WhoSet.ones, HallEnder.none).asReturnLeg;
       expect(back.checkPreconditions(di(onesBelow)), isNull);
@@ -131,6 +144,15 @@ void main() {
         isFalse,
       );
       expect(HallFigure.areRoundTrip(out, const UpTheHall()), isFalse);
+      // A lead back whose own ender a round trip does not take stays
+      // unpaired, so it is refused at its own line.
+      expect(
+        HallFigure.areRoundTrip(
+          out,
+          const UpTheHall(who: WhoSet.ones, moving: HallMoving.center),
+        ),
+        isFalse,
+      );
     });
   });
 
