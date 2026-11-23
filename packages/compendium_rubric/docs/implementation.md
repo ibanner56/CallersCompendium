@@ -742,7 +742,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,167 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,198 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **51 figures registered**, plus 7 upstream aliases resolved to them
