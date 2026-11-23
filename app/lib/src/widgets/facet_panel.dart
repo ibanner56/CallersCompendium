@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/collection_facets_scope.dart';
 import '../search/called_venue_choices.dart';
-import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import 'calling_history_scopes.dart';
