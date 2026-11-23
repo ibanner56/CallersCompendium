@@ -1217,7 +1217,12 @@ class DanceEditorController extends ChangeNotifier {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
       final issues = <ValidationIssue>[];
       final figures = _figures;
-      deriveSections(figures, _phraseStructure, issues: issues);
+      deriveSections(
+        figures,
+        _phraseStructure,
+        issues: issues,
+        checkPhraseFill: _form == DanceForm.square,
+      );
       for (final (index, figure) in figures.indexed) {
         _flagSequenceSpans(figure, index + 1, issues);
       }

@@ -8998,6 +8998,10 @@
   "@validationOtherFormFigures": {
     "x-sourceSha256": "c9ecc275ac684f779261f8efede22076a2dd84f87b5d8b0f4ec812630fbc8e77"
   },
+  "validationFigureCrossesPhrase": "Figur {position} reicht über das Ende von {label} hinaus. In einem Square Dance sollten die Calls jeder Phrase sie genau füllen.",
+  "@validationFigureCrossesPhrase": {
+    "x-sourceSha256": "30e0b45cbe0c7888f4176602ea75398eb936512e6ddb481cd4f98626fc9d1ba7"
+  },
   "validationIncompleteFigure": "Figur {position} ist nicht vollständig, daher lässt Speichern sie weg.",
   "@validationIncompleteFigure": {
     "x-sourceSha256": "3c52fdb408c5114d40e661e2abc28520d0663fd0e7ff50a1096a901c31915a3a"
