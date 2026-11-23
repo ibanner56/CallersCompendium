@@ -276,6 +276,8 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'endMinute',
     'lessonMinute',
     'arrivalMinute',
+    // Shown on the Programs list and the summary (#2354).
+    'calendarFlag',
   },
   SyncRecordKind.choreographer => const {'name', 'website', 'notes'},
   SyncRecordKind.tag => const {'name', 'color'},
@@ -346,6 +348,12 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
         'A digest of the calendar event the program was imported from '
         '(#2352). Nothing shows it: only the calendar import reads it, to '
         'avoid offering the event again.',
+    'calendarEventFingerprint':
+        'What the calendar import last wrote from the event (#2354). Nothing '
+        'shows it: only the calendar import compares it.',
+    'calendarWrittenAt':
+        'The stamp the calendar import last wrote (#2354). Nothing shows it: '
+        'only the calendar import\'s untouched test reads it.',
   },
   SyncRecordKind.venue => const {
     'provenance':

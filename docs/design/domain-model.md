@@ -344,7 +344,12 @@ event again. It is not shown anywhere, and share files drop it. A calendar
 import also sets `startMinute` and `endMinute` from a timed event (#2423): a
 floating or `TZID` time as written, a UTC time at the device's local time, and
 the end only when the event lasts more than no time and less than a day. It
-never sets `lessonMinute` or `arrivalMinute`.
+never sets `lessonMinute` or `arrivalMinute`. Beside the key,
+the import keeps `calendarEventFingerprint` and `calendarWrittenAt` (#2354), to
+tell what changed upstream and whether the caller has touched the draft since,
+and `calendarFlag` (`cancelled`/`missing`), a label shown on the Programs list
+and the summary. The import never edits a program without the caller's tick
+and never deletes one.
 
 Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
 event date and calendar event key cleared (a copy is for a different event;

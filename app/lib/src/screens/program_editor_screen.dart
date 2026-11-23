@@ -1935,6 +1935,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     archivedAt: live.archivedAt,
     // The editor never edits it: the stored one stands (#2352).
     calendarEventKey: live.calendarEventKey,
+    calendarEventFingerprint: live.calendarEventFingerprint,
+    calendarWrittenAt: live.calendarWrittenAt,
+    calendarFlag: live.calendarFlag,
     provenance: live.provenance,
   );
 
@@ -3223,6 +3226,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       calendarEventKey: before != null
           ? before.calendarEventKey
           : existing?.calendarEventKey,
+      // The calendar import's change tracking and flag (#2354), likewise not
+      // edited here. The save's own new updated_at is what marks the program
+      // worked on; calendar_written_at keeps the import's stamp.
+      calendarEventFingerprint: before != null
+          ? before.calendarEventFingerprint
+          : existing?.calendarEventFingerprint,
+      calendarWrittenAt: before != null
+          ? before.calendarWrittenAt
+          : existing?.calendarWrittenAt,
+      calendarFlag: before != null
+          ? before.calendarFlag
+          : existing?.calendarFlag,
       provenance: existing?.provenance,
     );
     if (existing != null) {

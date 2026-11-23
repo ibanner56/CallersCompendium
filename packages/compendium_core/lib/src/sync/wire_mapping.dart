@@ -98,6 +98,11 @@ const _programFields = [
   SyncWireField('endMinute', ['programs.end_minute']),
   SyncWireField('lessonMinute', ['programs.lesson_minute']),
   SyncWireField('arrivalMinute', ['programs.arrival_minute']),
+  SyncWireField('calendarEventFingerprint', [
+    'programs.calendar_event_fingerprint',
+  ]),
+  SyncWireField('calendarWrittenAt', ['programs.calendar_written_at']),
+  SyncWireField('calendarFlag', ['programs.calendar_flag']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),

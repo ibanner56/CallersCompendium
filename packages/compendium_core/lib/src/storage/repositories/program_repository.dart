@@ -846,6 +846,7 @@ class ProgramRepository {
     assertUtc(program.updatedAt, 'program.updatedAt');
     assertUtcOrNull(program.deletedAt, 'program.deletedAt');
     assertUtcOrNull(program.archivedAt, 'program.archivedAt');
+    assertUtcOrNull(program.calendarWrittenAt, 'program.calendarWrittenAt');
     assertUtcOrNull(program.eventDate, 'program.eventDate');
     for (final slot in program.slots) {
       assertUtcOrNull(slot.performedAt, 'slot.performedAt');
@@ -984,6 +985,13 @@ class ProgramRepository {
               // because every shareable text column is written normalised.
               calendarEventKey: Value(
                 normalizeShareableTextOrNull(program.calendarEventKey),
+              ),
+              calendarEventFingerprint: Value(
+                normalizeShareableTextOrNull(program.calendarEventFingerprint),
+              ),
+              calendarWrittenAt: Value(program.calendarWrittenAt),
+              calendarFlag: Value(
+                normalizeShareableTextOrNull(program.calendarFlag),
               ),
             ),
           );
@@ -2486,6 +2494,9 @@ class ProgramRepository {
       row.endMinute == null &&
       row.lessonMinute == null &&
       row.arrivalMinute == null &&
+      row.calendarEventFingerprint == null &&
+      row.calendarWrittenAt == null &&
+      row.calendarFlag == null &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
                 ..where(_db.programSlots.programId.equals(row.id))
@@ -2542,6 +2553,9 @@ class ProgramRepository {
         endMinute: const Value(null),
         lessonMinute: const Value(null),
         arrivalMinute: const Value(null),
+        calendarEventFingerprint: Value(normalizeShareableTextOrNull(null)),
+        calendarWrittenAt: const Value(null),
+        calendarFlag: Value(normalizeShareableTextOrNull(null)),
         updatedAt: Value(
           nextStoredTimestamp(
             now: now.isAfter(current) ? now : current.add(storedTimestampTick),
@@ -2582,6 +2596,9 @@ class ProgramRepository {
     deletedAt: asUtcOrNull(row.deletedAt),
     archivedAt: asUtcOrNull(row.archivedAt),
     calendarEventKey: row.calendarEventKey,
+    calendarEventFingerprint: row.calendarEventFingerprint,
+    calendarWrittenAt: asUtcOrNull(row.calendarWrittenAt),
+    calendarFlag: row.calendarFlag,
     provenance: provenance,
   );
 

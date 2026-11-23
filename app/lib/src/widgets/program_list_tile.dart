@@ -8,6 +8,7 @@ import '../data/regional_formats.dart';
 import '../data/venue_label.dart';
 import '../theme/app_spacing.dart';
 import '../theme/selected_row.dart';
+import 'calendar_flag_label.dart';
 import 'program_status_chip.dart';
 import 'right_click_menu.dart';
 
@@ -112,6 +113,9 @@ class ProgramListTile extends StatelessWidget {
               children: [
                 ProgramStatusChip(status: program.status),
                 if (program.isArchived) const ProgramArchivedChip(),
+                // #2354: icon and text, never colour alone.
+                if (program.calendarFlag != null)
+                  CalendarFlagLabel(program: program),
               ],
             ),
           ],
