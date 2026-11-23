@@ -225,7 +225,7 @@ void main() {
       final figures = _lines('Men allemande left 1; face out; form long wave');
       expect(figures.map((f) => f.move).toList(), [
         'allemande',
-        'form_a_long_wave',
+        'form_long_waves',
       ]);
       expect(figures.first.note, 'face out');
       expect(figures.last.note, isNull);

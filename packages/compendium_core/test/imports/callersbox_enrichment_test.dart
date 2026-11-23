@@ -162,9 +162,12 @@ void main() {
       expect(_parse('Form long wave in center')!.move, 'form_a_long_wave');
     });
 
-    test('compound "Star left 1; form long wave" → star + long wave', () {
+    test('compound "Star left 1; form long wave" → star + long waves', () {
+      // A bare `form long wave` is the side-of-set long waves; only `… in
+      // center` is the single wave in the centre (#2331).
       final figs = _parseAll('Star left 1; form long wave');
-      expect(figs.map((f) => f.move), ['star', 'form_a_long_wave']);
+      expect(figs.map((f) => f.move), ['star', 'form_long_waves']);
+      expect(figs.last.params['who'], ParamVocab.unspecified);
     });
   });
 

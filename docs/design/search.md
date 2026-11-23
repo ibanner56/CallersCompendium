@@ -194,7 +194,7 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    reported. The parameters with no ContraDB counterpart, pinned by
    `contradb_advanced_params_test.dart`: `balance.hand`, `butterfly_whirl.who`
    and `.direction`, `circle.singleFile`, `contra_corners.custom`,
-   `figure_8.lead`, `form_long_waves.balance`/`whom`/`whomHand`, `gate.pair`/
+   `figure_8.lead`, `form_long_waves.balance`/`whom`/`whom2`/`whomHand`, `gate.pair`/
    `direction`/`travel`, `hey.meetTarget`/`pass2`, `mad_robin.direction`/`whom`,
    `promenade.destination`/`singleFile`, `roll_away.halfSashay`,
    `slice.by`/`return`, `swing.endFacing`, `turn_alone.custom`, `zig_zag.ender`.

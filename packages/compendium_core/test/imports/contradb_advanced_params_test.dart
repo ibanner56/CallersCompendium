@@ -175,7 +175,7 @@ void main() {
         // ContraDB's half_or_full stops at full, so an amount past it has
         // no ContraDB value (#2120); it has no double figure 8 either.
         'figure_8': ['amount', 'double', 'lead'],
-        'form_long_waves': ['balance', 'whom', 'whomHand'],
+        'form_long_waves': ['balance', 'whom', 'whom2', 'whomHand'],
         'gate': ['direction', 'pair', 'travel'],
         'hey': ['meetTarget', 'pass2'],
         // The alias pins it to long lines, the only formation ContraDB has
