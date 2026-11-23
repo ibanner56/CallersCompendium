@@ -130,22 +130,42 @@ class FacetSelections {
   ///
   /// Selecting the second tag sets [tagsMatchAll] to `true`; see there.
   bool setTag(String id, {required bool selected}) {
-    if (!selected) return tagIds.remove(id);
+    if (!selected) {
+      _keptTagIds.remove(id);
+      return tagIds.remove(id);
+    }
     if (!tagIds.add(id)) return false;
     if (tagIds.length == 2) tagsMatchAll = true;
     return true;
   }
 
-  /// Drops every selected tag not in [listed], the tags the Tags facet offers
-  /// (those a live dance carries). Returns whether anything was dropped.
+  /// Selected tags that [retainTags] keeps even when no live dance carries
+  /// them: the ones a host opened with, from a saved search or another
+  /// caller's panel state ([keepSelectedTags]). A tag picked by hand is not
+  /// among them.
+  final Set<String> _keptTagIds = {};
+
+  /// Marks every tag selected now as one [retainTags] keeps.
   ///
-  /// A selected tag whose last dance loses it has no chip left to deselect,
-  /// and under [tagsMatchAll] it would hide every dance, so the host calls
-  /// this whenever its collection data changes.
+  /// A host calls this when it opens with a given panel state: a search for a
+  /// tag nobody carries yet must not quietly turn into a search for anything
+  /// (a dance tagged later is meant to appear), so the tag stays selected, and
+  /// the Tags section shows it as a chip the user can remove.
+  void keepSelectedTags() => _keptTagIds.addAll(tagIds);
+
+  /// Drops every selected tag not in [listed], the tags the Tags facet offers
+  /// (those a live dance carries), except those marked by [keepSelectedTags].
+  /// Returns whether anything was dropped.
+  ///
+  /// A tag picked by hand whose last dance loses it would, under
+  /// [tagsMatchAll], hide every dance, so the host calls this whenever its
+  /// collection data changes and such a tag goes. A kept tag stays selected,
+  /// and the Tags section still shows it as a chip.
   bool retainTags(Iterable<String> listed) {
     final keep = listed.toSet();
     final before = tagIds.length;
-    tagIds.removeWhere((id) => !keep.contains(id));
+    tagIds.removeWhere((id) => !keep.contains(id) && !_keptTagIds.contains(id));
+    _keptTagIds.retainAll(tagIds);
     return tagIds.length != before;
   }
 
@@ -289,6 +309,7 @@ class FacetSelections {
     minRating = null;
     authorIds.clear();
     tagIds.clear();
+    _keptTagIds.clear();
     tagsMatchAll = true;
     untagged = false;
     sourceIds.clear();
@@ -388,6 +409,7 @@ class FacetSelections {
           musicalKeys.clear();
         case CollectionFacetIds.tags:
           tagIds.clear();
+          _keptTagIds.clear();
           tagsMatchAll = true;
         case CollectionFacetIds.source:
           sourceIds.clear();

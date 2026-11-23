@@ -21,6 +21,7 @@ class CollectionPanelState {
     BuilderGroup? advanced,
     this.sort = CollectionSort.title,
     SortDirection? sortDirection,
+    this.fromSavedSearch = false,
   }) : facets = facets ?? FacetSelections(),
        byPhrase = byPhrase ?? ByPhraseSelections(),
        advanced = advanced ?? BuilderGroup(),
@@ -40,6 +41,13 @@ class CollectionPanelState {
 
   CollectionSort sort;
   SortDirection sortDirection;
+
+  /// Whether this state was read from a saved search
+  /// (`SavedSearchSpec.toPanelState` sets it), rather than built by a caller.
+  /// A host says so where it matters: a **Within** window none of the
+  /// Calling history presets offers reads "12 months, saved" instead of
+  /// "12 months".
+  final bool fromSavedSearch;
 
   /// Whether any search text, filter, phrase row or Advanced row is set — the
   /// condition under which a search is worth saving. **Search in** and the sort
