@@ -178,6 +178,10 @@ the full picture.
   bring a copy back.
 - **Backup reminder** — set to **Off**, **Weekly**, or **Monthly**, with a "last
   backup" date so you know where you stand.
+- **Export dances as a spreadsheet** — every dance in your collection as a CSV
+  file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus
+  your star ratings, and it is not a backup: the app can't restore from it. See
+  [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv).
 
 For the whole workflow, see [Backup & portability](./backup-portability.md).
 

@@ -12593,5 +12593,141 @@
   "calendarPullNowSubtitle": "Lire le calendrier et choisir les événements à ajouter comme programmes brouillons.",
   "@calendarPullNowSubtitle": {
     "x-sourceSha256": "73279edb72cf7422e6dc07f05f4aed6c205c2c347a74deb627eb6eda203d1b5c"
+  },
+  "collectionExportCsv": "Exporter en CSV",
+  "@collectionExportCsv": {
+    "x-sourceSha256": "868da4093e746112392a0701d855a3d8170062351c0ea61d5cf26d8acc9df089"
+  },
+  "settingsExportDancesCsvTitle": "Exporter les danses en tableur",
+  "@settingsExportDancesCsvTitle": {
+    "x-sourceSha256": "8fe0504e6fe1473204015ec0d08ddb6aafe55000d03f160ab20b6759278960f3"
+  },
+  "settingsExportDancesCsvSubtitle": "Toutes les danses de votre collection, dans un fichier CSV pour Excel, Numbers ou Google Sheets. Les règles de partage s’appliquent, avec en plus vos notes en étoiles. Ce n’est pas une sauvegarde et il ne peut pas être restauré.",
+  "@settingsExportDancesCsvSubtitle": {
+    "x-sourceSha256": "31afd8d62fdea8bc9b72d2a377468eff48c65c5db402629d047070b026a92f6a"
+  },
+  "settingsExportDancesCsvAction": "Exporter",
+  "@settingsExportDancesCsvAction": {
+    "x-sourceSha256": "3664895579f0a7e68c4aa09c91316e20239bc74499010e6423ece40cad7c28f7"
+  },
+  "exportCsvDialogTitle": "Exporter un tableur (CSV)",
+  "@exportCsvDialogTitle": {
+    "x-sourceSha256": "a19ee99914fc3af962c373f12347b3a2d21f397831952733044bcd9ea3fd5cf1"
+  },
+  "exportCsvDialogMessage": "Enregistrez le fichier ou partagez-le avec une autre app. Il s’ouvre dans Excel, Numbers, LibreOffice ou Google Sheets.",
+  "@exportCsvDialogMessage": {
+    "x-sourceSha256": "d43a42b985681b87e305a0ef9ff710eae9c12dba40ea1ca888deb98c29b621ae"
+  },
+  "exportCsvSavedGeneric": "Tableur enregistré.",
+  "@exportCsvSavedGeneric": {
+    "x-sourceSha256": "3a3206f9a39102d9aecbad3368efff3b21d13fbe0413ae85e0a96431ed0d85d8"
+  },
+  "exportCsvSaveError": "Impossible d’enregistrer ce tableur. Réessayez.",
+  "@exportCsvSaveError": {
+    "x-sourceSha256": "895b982c695cec0bd023cd40191cb194720521656cc03c63022b10f6ff59967b"
+  },
+  "exportCsvShareError": "Impossible de partager ce tableur. Réessayez.",
+  "@exportCsvShareError": {
+    "x-sourceSha256": "06fe1bbb44ac5227b9bb9640b86c69fda9a1288c853399b79447fbdae8ccb736"
+  },
+  "exportCsvError": "Impossible de créer ce tableur. Réessayez.",
+  "@exportCsvError": {
+    "x-sourceSha256": "21b8afe4fe7c2b1fc10215848d2ac1d35e0162304bc9ea5a3b3a490f2355ded7"
+  },
+  "csvDancesFileStem": "danses",
+  "@csvDancesFileStem": {
+    "x-sourceSha256": "7802798a6c0852e490313b5ffe51d742aa927904e95aa53f4555f3b77ec5fc25"
+  },
+  "csvColumnTitle": "Titre",
+  "@csvColumnTitle": {
+    "x-sourceSha256": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674"
+  },
+  "csvColumnAuthors": "Auteurs",
+  "@csvColumnAuthors": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "csvColumnInterpreters": "Interprétée par",
+  "@csvColumnInterpreters": {
+    "x-sourceSha256": "7a3eef2a0a39813c78bae859524207a201116b461ca4bb4157637f384b1af050"
+  },
+  "csvColumnForm": "Type",
+  "@csvColumnForm": {
+    "x-sourceSha256": "baaddf70fb5d432b8bd948ef91d6f910124a6d138edae4d5f000c4610ddc8eae"
+  },
+  "csvColumnFormation": "Formation",
+  "@csvColumnFormation": {
+    "x-sourceSha256": "49a63d72be2fc0e6aa6de315ca626d27816fe9d584a01484daa694221f1ef7e1"
+  },
+  "csvColumnProgression": "Progression",
+  "@csvColumnProgression": {
+    "x-sourceSha256": "f193d07c37765ecb1de9acb1af52d788851273a68ddd8b3791e4288c5e85ef77"
+  },
+  "csvColumnLevel": "Niveau",
+  "@csvColumnLevel": {
+    "x-sourceSha256": "1709305c9fa966d14f56f0da3c3614bbc10adcf53d72f90341bb96d24afcfca3"
+  },
+  "csvColumnMixedLevel": "Niveau mixte",
+  "@csvColumnMixedLevel": {
+    "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
+  },
+  "csvColumnMixer": "Mixer",
+  "@csvColumnMixer": {
+    "x-sourceSha256": "8ae012d51747c9a3e51613b1ba8305b377fcada7de30e2b7156d51c19f0b89e0"
+  },
+  "csvColumnStatus": "Statut",
+  "@csvColumnStatus": {
+    "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "csvColumnRating": "Note",
+  "@csvColumnRating": {
+    "x-sourceSha256": "9f29530464f730bd28f137cfc9ea941af137187b57c21e8ff5fefed520764d99"
+  },
+  "csvColumnTags": "Tags",
+  "@csvColumnTags": {
+    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
+  },
+  "csvColumnTunes": "Airs",
+  "@csvColumnTunes": {
+    "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
+  "csvColumnMeter": "Mesure",
+  "@csvColumnMeter": {
+    "x-sourceSha256": "2293b30e539a68427851a623737eb92b4dd7ecdc432f67e62dc2f550dd33a907"
+  },
+  "csvColumnKey": "Tonalité",
+  "@csvColumnKey": {
+    "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
+  },
+  "csvColumnSources": "Sources publiées",
+  "@csvColumnSources": {
+    "x-sourceSha256": "9593fa8262f88c0e015f31d4cda44a91f2669472ab28224ac1a91df6bf3c8bd2"
+  },
+  "csvColumnHook": "Accroche",
+  "@csvColumnHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "csvColumnCallingNotes": "Notes d’appel",
+  "@csvColumnCallingNotes": {
+    "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
+  },
+  "csvColumnWalkthrough": "Déroulé",
+  "@csvColumnWalkthrough": {
+    "x-sourceSha256": "b463b316cebfc24441413d705d65e7707fae189ff880ff9e704aad73c5353be6"
+  },
+  "csvColumnFigures": "Figures",
+  "@csvColumnFigures": {
+    "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
+  },
+  "csvColumnComposed": "Composée",
+  "@csvColumnComposed": {
+    "x-sourceSha256": "48f8b936056c4a698e3bde4460b37d246596eda04eabdde954820dbd0bc877b2"
+  },
+  "csvColumnInterpreted": "Interprétée",
+  "@csvColumnInterpreted": {
+    "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
+  },
+  "csvColumnBarnes": "Référence Barnes",
+  "@csvColumnBarnes": {
+    "x-sourceSha256": "a87089c5e6ee0a0b519cc8136c7dc9e8133ed36735490fdb09559feefdb097a5"
   }
 }

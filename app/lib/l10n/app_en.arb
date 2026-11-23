@@ -17515,5 +17515,141 @@
   "calendarPullNowSubtitle": "Read the calendar and choose events to add as draft programs.",
   "@calendarPullNowSubtitle": {
     "description": "Subtitle of the Pull now settings item."
+  },
+  "collectionExportCsv": "Export as CSV",
+  "@collectionExportCsv": {
+    "description": "Collection selection-mode overflow menu item that exports the selected dances as a CSV spreadsheet file."
+  },
+  "settingsExportDancesCsvTitle": "Export dances as a spreadsheet",
+  "@settingsExportDancesCsvTitle": {
+    "description": "Title of the Settings > General > Backup & restore row that exports every dance as a CSV spreadsheet file."
+  },
+  "settingsExportDancesCsvSubtitle": "Every dance in your collection, as a CSV file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus your star ratings. It is not a backup and can't be restored.",
+  "@settingsExportDancesCsvSubtitle": {
+    "description": "Subtitle of the Settings row that exports every dance as a CSV spreadsheet. 'Sharing rules' are what the app leaves out of shared files (for example an author's email)."
+  },
+  "settingsExportDancesCsvAction": "Export",
+  "@settingsExportDancesCsvAction": {
+    "description": "Button label on the Settings row that exports every dance as a CSV spreadsheet."
+  },
+  "exportCsvDialogTitle": "Export a spreadsheet (CSV)",
+  "@exportCsvDialogTitle": {
+    "description": "Title of the dialog that asks how to deliver an exported CSV spreadsheet file."
+  },
+  "exportCsvDialogMessage": "Save the file, or share it with another app. It opens in Excel, Numbers, LibreOffice or Google Sheets.",
+  "@exportCsvDialogMessage": {
+    "description": "Message of the dialog that asks how to deliver an exported CSV spreadsheet file."
+  },
+  "exportCsvSavedGeneric": "Spreadsheet saved.",
+  "@exportCsvSavedGeneric": {
+    "description": "Snackbar confirming a CSV spreadsheet was saved when the platform does not report a file name."
+  },
+  "exportCsvSaveError": "Couldn't save this spreadsheet. Try again.",
+  "@exportCsvSaveError": {
+    "description": "Snackbar when saving an exported CSV spreadsheet fails."
+  },
+  "exportCsvShareError": "Couldn't share this spreadsheet. Try again.",
+  "@exportCsvShareError": {
+    "description": "Snackbar when sharing an exported CSV spreadsheet fails."
+  },
+  "exportCsvError": "Couldn't make this spreadsheet. Try again.",
+  "@exportCsvError": {
+    "description": "Snackbar when reading the data for, or building, a CSV spreadsheet export fails."
+  },
+  "csvDancesFileStem": "dances",
+  "@csvDancesFileStem": {
+    "description": "Start of the file name of an exported dances CSV spreadsheet, before the date (for example dances_2026-11-23.csv). Lower case; a single word if possible."
+  },
+  "csvColumnTitle": "Title",
+  "@csvColumnTitle": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance title."
+  },
+  "csvColumnAuthors": "Authors",
+  "@csvColumnAuthors": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's authors (choreographers)."
+  },
+  "csvColumnInterpreters": "Interpreted by",
+  "@csvColumnInterpreters": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the people who interpreted (reconstructed) a historical dance."
+  },
+  "csvColumnForm": "Type",
+  "@csvColumnForm": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance type, such as contra or English country. Matches the dance editor's Type field."
+  },
+  "csvColumnFormation": "Formation",
+  "@csvColumnFormation": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance formation."
+  },
+  "csvColumnProgression": "Progression",
+  "@csvColumnProgression": {
+    "description": "Column heading in an exported dances CSV spreadsheet: how the dance progresses (single, double, and so on)."
+  },
+  "csvColumnLevel": "Level",
+  "@csvColumnLevel": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the difficulty level."
+  },
+  "csvColumnMixedLevel": "Mixed level",
+  "@csvColumnMixedLevel": {
+    "description": "Column heading in an exported dances CSV spreadsheet: whether the dance spans the difficulty scale (Yes or No)."
+  },
+  "csvColumnMixer": "Mixer",
+  "@csvColumnMixer": {
+    "description": "Column heading in an exported dances CSV spreadsheet: whether dancers change partners each time through (Yes or No)."
+  },
+  "csvColumnStatus": "Status",
+  "@csvColumnStatus": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's status, such as active or retired."
+  },
+  "csvColumnRating": "Rating",
+  "@csvColumnRating": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the star rating, 1 to 5, empty when unrated."
+  },
+  "csvColumnTags": "Tags",
+  "@csvColumnTags": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's tags."
+  },
+  "csvColumnTunes": "Tunes",
+  "@csvColumnTunes": {
+    "description": "Column heading in an exported dances CSV spreadsheet: suggested tunes."
+  },
+  "csvColumnMeter": "Meter",
+  "@csvColumnMeter": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the musical meter, such as 6/8."
+  },
+  "csvColumnKey": "Key",
+  "@csvColumnKey": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the musical key."
+  },
+  "csvColumnSources": "Published sources",
+  "@csvColumnSources": {
+    "description": "Column heading in an exported dances CSV spreadsheet: books or collections the dance is published in, with page and number."
+  },
+  "csvColumnHook": "Hook",
+  "@csvColumnHook": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the one-line reason to call the dance."
+  },
+  "csvColumnCallingNotes": "Calling notes",
+  "@csvColumnCallingNotes": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the caller's notes."
+  },
+  "csvColumnWalkthrough": "Walkthrough",
+  "@csvColumnWalkthrough": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the step-by-step walkthrough."
+  },
+  "csvColumnFigures": "Figures",
+  "@csvColumnFigures": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's figures, one per line."
+  },
+  "csvColumnComposed": "Composed",
+  "@csvColumnComposed": {
+    "description": "Column heading in an exported dances CSV spreadsheet: when the dance was composed, as a year or a date."
+  },
+  "csvColumnInterpreted": "Interpreted in",
+  "@csvColumnInterpreted": {
+    "description": "Column heading in an exported dances CSV spreadsheet: when a historical dance was interpreted (reconstructed), as a year or a date."
+  },
+  "csvColumnBarnes": "Barnes reference",
+  "@csvColumnBarnes": {
+    "description": "Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books."
   }
 }

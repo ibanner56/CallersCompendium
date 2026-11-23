@@ -13133,4 +13133,112 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get calendarPullNowSubtitle =>
       'Lees de agenda en kies afspraken om als conceptprogramma\'s toe te voegen.';
+
+  @override
+  String get collectionExportCsv => 'Exporteren als CSV';
+
+  @override
+  String get settingsExportDancesCsvTitle =>
+      'Dansen exporteren als spreadsheet';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Alle dansen in je collectie, als CSV-bestand voor Excel, Numbers of Google Sheets. De regels voor delen gelden, plus je sterbeoordelingen. Het is geen back-up en kan niet worden hersteld.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Exporteren';
+
+  @override
+  String get exportCsvDialogTitle => 'Een spreadsheet exporteren (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Sla het bestand op of deel het met een andere app. Het opent in Excel, Numbers, LibreOffice of Google Sheets.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Spreadsheet opgeslagen.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Deze spreadsheet kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get exportCsvShareError =>
+      'Deze spreadsheet kon niet worden gedeeld. Probeer het opnieuw.';
+
+  @override
+  String get exportCsvError =>
+      'Deze spreadsheet kon niet worden gemaakt. Probeer het opnieuw.';
+
+  @override
+  String get csvDancesFileStem => 'dansen';
+
+  @override
+  String get csvColumnTitle => 'Titel';
+
+  @override
+  String get csvColumnAuthors => 'Auteurs';
+
+  @override
+  String get csvColumnInterpreters => 'Geïnterpreteerd door';
+
+  @override
+  String get csvColumnForm => 'Type';
+
+  @override
+  String get csvColumnFormation => 'Formatie';
+
+  @override
+  String get csvColumnProgression => 'Progressie';
+
+  @override
+  String get csvColumnLevel => 'Niveau';
+
+  @override
+  String get csvColumnMixedLevel => 'Gemengd niveau';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Status';
+
+  @override
+  String get csvColumnRating => 'Beoordeling';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Deuntjes';
+
+  @override
+  String get csvColumnMeter => 'Maatsoort';
+
+  @override
+  String get csvColumnKey => 'Toonsoort';
+
+  @override
+  String get csvColumnSources => 'Gepubliceerde bronnen';
+
+  @override
+  String get csvColumnHook => 'Hook';
+
+  @override
+  String get csvColumnCallingNotes => 'Callnotities';
+
+  @override
+  String get csvColumnWalkthrough => 'Doorloop';
+
+  @override
+  String get csvColumnFigures => 'Figuren';
+
+  @override
+  String get csvColumnComposed => 'Gecomponeerd';
+
+  @override
+  String get csvColumnInterpreted => 'Geïnterpreteerd';
+
+  @override
+  String get csvColumnBarnes => 'Barnes-verwijzing';
 }

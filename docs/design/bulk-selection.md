@@ -466,7 +466,9 @@ menu becomes a grouped menu, with dividers between:
 1. *Details*: Set rating, Status.
 2. *Other*: Add tunes, Clear tunes, Edit custom field, Add source.
 3. *Programs*: Add to program.
-4. *Delete* (error colour).
+4. *Export*: Export as CSV (#2332, which named the menu; its own group before
+   Delete is the implementer's call, since it changes no dance).
+5. *Delete* (error colour).
 
 If *Select all* does not fit it moves to the top of the ⋮ menu. The width test
 follows `_glyphsThatFit` (`:2052`), which already moves bar glyphs into the menu

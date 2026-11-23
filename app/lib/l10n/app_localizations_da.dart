@@ -13058,4 +13058,110 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get calendarPullNowSubtitle =>
       'Læs kalenderen, og vælg begivenheder, der skal tilføjes som programudkast.';
+
+  @override
+  String get collectionExportCsv => 'Eksportér som CSV';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'Eksportér danse som regneark';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Alle dansene i din samling som en CSV-fil til Excel, Numbers eller Google Sheets. Reglerne for deling gælder, og dine stjernevurderinger kommer med. Det er ikke en sikkerhedskopi og kan ikke gendannes.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Eksportér';
+
+  @override
+  String get exportCsvDialogTitle => 'Eksportér et regneark (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Gem filen, eller del den med en anden app. Den kan åbnes i Excel, Numbers, LibreOffice eller Google Sheets.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Regneark gemt.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Kunne ikke gemme dette regneark. Prøv igen.';
+
+  @override
+  String get exportCsvShareError =>
+      'Kunne ikke dele dette regneark. Prøv igen.';
+
+  @override
+  String get exportCsvError => 'Kunne ikke lave dette regneark. Prøv igen.';
+
+  @override
+  String get csvDancesFileStem => 'danse';
+
+  @override
+  String get csvColumnTitle => 'Titel';
+
+  @override
+  String get csvColumnAuthors => 'Forfattere';
+
+  @override
+  String get csvColumnInterpreters => 'Fortolket af';
+
+  @override
+  String get csvColumnForm => 'Type';
+
+  @override
+  String get csvColumnFormation => 'Formation';
+
+  @override
+  String get csvColumnProgression => 'Progression';
+
+  @override
+  String get csvColumnLevel => 'Niveau';
+
+  @override
+  String get csvColumnMixedLevel => 'Blandet niveau';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Status';
+
+  @override
+  String get csvColumnRating => 'Vurdering';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Melodier';
+
+  @override
+  String get csvColumnMeter => 'Taktart';
+
+  @override
+  String get csvColumnKey => 'Toneart';
+
+  @override
+  String get csvColumnSources => 'Publicerede kilder';
+
+  @override
+  String get csvColumnHook => 'Hook';
+
+  @override
+  String get csvColumnCallingNotes => 'Kaldsnotes';
+
+  @override
+  String get csvColumnWalkthrough => 'Gennemgang';
+
+  @override
+  String get csvColumnFigures => 'Figurer';
+
+  @override
+  String get csvColumnComposed => 'Komponeret';
+
+  @override
+  String get csvColumnInterpreted => 'Fortolket';
+
+  @override
+  String get csvColumnBarnes => 'Barnes-henvisning';
 }
