@@ -486,7 +486,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**126 settings keys**: 81 shareable, 12 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**128 settings keys**: 83 shareable, 12 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -557,7 +557,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `default_program_caller` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often themselves. Personal data, shareable for the same reason as programs.caller. |
 | `default_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
-| `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | User-authored semantic slot template for manually created programs. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
+| `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | Legacy user-authored semantic slot template for manually created programs (the Starting program). No longer written: it is shown as the first program template and copied into one at the user's first change to their templates (#2337), and left in place so a device on an older build keeps it. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
 | `ecd_convert_prompt_dismissed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -577,6 +577,8 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | **device-local** | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector, but it may travel in a user-controlled local backup. |
 | `program_dance_share_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `program_matrix_columns` | `dpv:NonPersonalData` | app user | shareable |  |
+| `program_template_default` | `dpv:NonPersonalData` | app user | shareable |  |
+| `program_template_order` | `dpv:NonPersonalData` | app user | shareable |  |
 | `recency_require_event_date` | `dpv:NonPersonalData` | app user | shareable |  |
 | `recency_require_performed` | `dpv:NonPersonalData` | app user | shareable |  |
 | `reduce_motion` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: an override set against one screen or one device's system Reduce Motion setting is not an answer for another. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
@@ -621,12 +623,13 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 
 Some settings-table keys are built at runtime from a per-entity suffix rather than declared as an exact key (`editor_draft:<id>`), so they cannot appear in the table above. Each prefix below classifies every key it matches; `classifySettingsKey` resolves the longest matching prefix.
 
-**3 settings key prefixes**: 1 shareable, 2 device-scoped. 0 personal data by category.
+**4 settings key prefixes**: 2 shareable, 2 device-scoped. 0 personal data by category.
 
 | Key prefix | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
 | `editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>, or editor_draft:new:<editor id> for a dance not yet saved). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
 | `program_editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient program-editor autosave draft, keyed per program (program_editor_draft:<id>, or program_editor_draft:new:<editor id> for a program not yet saved). Same rationale as editor_draft:. |
+| `program_template:` | `dpv:NonPersonalData` | app user | shareable | A user-authored program template (program_template:<id>): its name and an ordered list of slots — dance references, caller notes, breaks and free text, which can contain whatever the caller types. The user's own planning data; it syncs to their devices and travels in local backups, like the Starting program it replaces. |
 | `sync_capabilities:` | `dpv:NonPersonalData` | — | shareable | Sync protocol metadata, keyed per attachment (sync_capabilities:<deviceId>): the names of the sync capabilities the device's build understands, nothing about the user. Travels so every device can see what the others can read (#709 capability gate). The device id in the key is the same protocolIdentifier every manifest already carries. Never restored from a backup (backup_service.dart denylists the prefix), since only its own device may write it, apart from the tombstone written when a device is removed from the store. Erased, not tombstoned, on detach (SyncLocalRepository.clearOnDetach), so the device ids of a store this device has left never reach the next one. |
 
 <!-- END GENERATED: field-catalogue -->

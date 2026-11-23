@@ -28,6 +28,13 @@ abstract final class SyncCapabilities {
   /// [glossaryV1] reads such an entry as one it cannot use, so they wait for
   /// every device to understand this too.
   static const String glossaryV2 = 'glossary.v2';
+
+  /// Program templates (#2337): one settings value per template
+  /// (`program_template:<id>`), their order and the default template. An
+  /// older build only knows the single Starting program, so it would keep
+  /// these keys whole without using them; they wait so a peer is never shown
+  /// a "template" it cannot apply.
+  static const String programTemplatesV1 = 'programTemplates.v1';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -37,6 +44,7 @@ final class SyncCapabilityPolicy {
     this.advertised = const {},
     this.gatedRecordKinds = const {},
     this.gatedSettingKeys = const {},
+    this.gatedSettingKeyPrefixes = const {},
     this.gatedGlossaryEntryKinds = const {},
   });
 
@@ -50,6 +58,12 @@ final class SyncCapabilityPolicy {
 
   /// Settings keys whose records wait for a capability.
   final Map<String, String> gatedSettingKeys;
+
+  /// Prefixes of settings keys built at runtime (one key per item, such as
+  /// `program_template:<id>`) whose records wait for a capability. An exact
+  /// entry in [gatedSettingKeys] wins; otherwise the longest matching prefix
+  /// does, as `classifySettingsKey` resolves the privacy registry's prefixes.
+  final Map<String, String> gatedSettingKeyPrefixes;
 
   /// Kinds of user glossary entry (the `kind` in a `glossaryEntry` record's
   /// body) whose records wait for a capability of their own (#1023). An entry
@@ -73,8 +87,17 @@ final class SyncCapabilityPolicy {
   /// the whole of #1023 is in it: they publish once every other device
   /// attached to the store advertises it, and until then a device that
   /// doesn't is named in a held-back notice (sync-spec §6.15).
+  ///
+  /// [SyncCapabilities.programTemplatesV1] (#2337) gates every program
+  /// template (by its key prefix), the templates' order and the default
+  /// template, and this build advertises it. The legacy Starting program key
+  /// is not gated: older builds read it, and it is no longer written.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
-    advertised: {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
+    advertised: {
+      SyncCapabilities.glossaryV1,
+      SyncCapabilities.glossaryV2,
+      SyncCapabilities.programTemplatesV1,
+    },
     gatedRecordKinds: {
       SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
       SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
@@ -83,6 +106,11 @@ final class SyncCapabilityPolicy {
       'show_custom_figures': SyncCapabilities.glossaryV1,
       'compound_shorthands': SyncCapabilities.glossaryV1,
       'user_figure_shorthands': SyncCapabilities.glossaryV2,
+      'program_template_order': SyncCapabilities.programTemplatesV1,
+      'program_template_default': SyncCapabilities.programTemplatesV1,
+    },
+    gatedSettingKeyPrefixes: {
+      'program_template:': SyncCapabilities.programTemplatesV1,
     },
     gatedGlossaryEntryKinds: {
       'term': SyncCapabilities.glossaryV2,
@@ -100,7 +128,7 @@ final class SyncCapabilityPolicy {
     String recordId, {
     Map<String, Object?>? body,
   }) {
-    if (kind == SyncRecordKind.setting) return gatedSettingKeys[recordId];
+    if (kind == SyncRecordKind.setting) return _settingCapability(recordId);
     if (kind == SyncRecordKind.glossaryEntry) {
       final entryKind = body?['kind'];
       if (entryKind is String) {
@@ -111,10 +139,26 @@ final class SyncCapabilityPolicy {
     return gatedRecordKinds[kind];
   }
 
+  String? _settingCapability(String key) {
+    final exact = gatedSettingKeys[key];
+    if (exact != null) return exact;
+    String? best;
+    String? capability;
+    for (final entry in gatedSettingKeyPrefixes.entries) {
+      if (!key.startsWith(entry.key)) continue;
+      if (best == null || entry.key.length > best.length) {
+        best = entry.key;
+        capability = entry.value;
+      }
+    }
+    return capability;
+  }
+
   /// Every capability something is gated on.
   Set<String> get gatedCapabilities => {
     ...gatedRecordKinds.values,
     ...gatedSettingKeys.values,
+    ...gatedSettingKeyPrefixes.values,
     ...gatedGlossaryEntryKinds.values,
   };
 }
