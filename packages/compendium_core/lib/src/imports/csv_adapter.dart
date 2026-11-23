@@ -11,6 +11,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../storage/shareable_text.dart' show normalizeShareableText;
 import 'author_tokenizer.dart';
 import 'figure_front_end_fan_out.dart';
 import 'raw_record.dart';
@@ -362,6 +363,8 @@ StructuredDraft csvRowToDraft(
     );
   }
 
+  num? number(String value) => parseCsvNumber(value, mapping.separator);
+
   bool? yesNo(String value) {
     final f = csvFold(value);
     if (vocab.yes.contains(f) ||
@@ -497,7 +500,9 @@ StructuredDraft csvRowToDraft(
         );
       case CsvColumnTarget.customField:
         final def = mapping.existingFields[column.customFieldId];
-        final typed = def == null ? null : _typedValue(def, value, yesNo);
+        final typed = def == null
+            ? null
+            : _typedValue(def, value, yesNo, number);
         if (def == null || typed == null) {
           keep(i, value);
         } else {
@@ -506,7 +511,7 @@ StructuredDraft csvRowToDraft(
       case CsvColumnTarget.newCustomField:
         final type = column.newFieldType!;
         final typed = switch (type) {
-          CustomFieldType.number => parseFiniteNumber(value),
+          CustomFieldType.number => number(value),
           CustomFieldType.boolean => yesNo(value),
           // A new choice field takes its choices from the values it meets.
           CustomFieldType.text || CustomFieldType.choice => value,
@@ -637,17 +642,49 @@ Object? _typedValue(
   CustomFieldDef def,
   String value,
   bool? Function(String) yesNo,
+  num? Function(String) number,
 ) => switch (def.type) {
   CustomFieldType.text => value,
-  CustomFieldType.number => parseFiniteNumber(value),
+  CustomFieldType.number => number(value),
   CustomFieldType.boolean => yesNo(value),
-  // A choice matches its option ignoring case and surrounding space, and is
-  // stored as the field spells it.
+  // A choice matches its option ignoring case, surrounding space and Unicode
+  // form (a decomposed `café` is the option `café`), and is stored as the
+  // field spells it.
   CustomFieldType.choice =>
     (def.choices ?? const <String>[])
-        .where((c) => csvFold(c) == csvFold(value))
+        .where((c) => _choiceKey(c) == _choiceKey(value))
         .firstOrNull,
 };
+
+/// [value] as a choice cell is compared with an option: [csvFold] over the
+/// spelling the repository stores ([normalizeShareableText]).
+String _choiceKey(String value) => csvFold(normalizeShareableText(value));
+
+/// Spaces a spreadsheet groups digits with: a space, a no-break space and a
+/// narrow no-break space.
+const String _groupingSpaces = ' \u00a0\u202f';
+
+/// A number with `.` or a space between groups of three digits and `,` before
+/// the decimals: `1.234,5`, `3,5`, `1 000`, `1.000`.
+final RegExp _continentalNumber = RegExp(
+  '^[+-]?(?:\\d{1,3}([.$_groupingSpaces])\\d{3}(?:\\1\\d{3})*|\\d+)(?:,\\d+)?\$',
+);
+
+/// A number cell as [separator] says the sheet writes it. In a `;` sheet (the
+/// one Excel saves in Danish, German, French and Dutch) a `,` is the decimal
+/// mark and `.` or a space groups thousands, so `3,5` is 3.5 and `1.000` is
+/// 1000; a `,` before exactly three digits is still a decimal mark there
+/// (`1,000` is 1). A value that is neither that nor a plain number, such as
+/// `1,234.5`, is `null` rather than a guess. In any other sheet it reads as
+/// [parseFiniteNumber] does.
+num? parseCsvNumber(String raw, String separator) {
+  if (separator != ';') return parseFiniteNumber(raw);
+  final value = raw.trim();
+  if (!_continentalNumber.hasMatch(value)) return parseFiniteNumber(value);
+  return parseFiniteNumber(
+    value.replaceAll(RegExp('[.$_groupingSpaces]'), '').replaceAll(',', '.'),
+  );
+}
 
 /// [value] with the leading apostrophe this app's own export puts before a
 /// formula-like cell ([guardCsvFormula]) taken off again, so its export reads
