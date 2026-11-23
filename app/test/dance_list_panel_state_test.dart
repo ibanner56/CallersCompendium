@@ -105,16 +105,17 @@ void main() {
     await _pumpScreen(tester, repos);
     expect(_shows('Chorus Jig'), isTrue);
 
-    final state = CollectionPanelState(
-      sort: CollectionSort.recentlyAdded,
-      sortDirection: SortDirection.ascending,
-    );
+    // Its own default direction, so only what is written can differ.
+    final state = CollectionPanelState(sort: CollectionSort.recentlyAdded);
     state.facets.setTag('t1', selected: true);
     _list(tester).applyPanelState(state);
     await tester.pumpAndSettle();
 
     expect(_sort(tester), CollectionSort.recentlyAdded);
-    expect(_direction(tester), SortDirection.ascending);
+    expect(
+      _direction(tester),
+      CollectionSort.recentlyAdded.searchSort.defaultDirection,
+    );
     expect(_shows('Petronella'), isTrue);
     expect(_shows('Chorus Jig'), isFalse);
     // A search someone opened is not a sort the user chose.
@@ -133,17 +134,25 @@ void main() {
     await repos.dances.create(_dance('a', 'Petronella', tagIds: const ['t1']));
     await repos.dances.create(_dance('b', 'Chorus Jig'));
     await _pumpScreen(tester, repos);
+    // The user picks a sort, as from the Sort menu.
+    tester
+        .widget<CollectionSortMenuButton>(find.byType(CollectionSortMenuButton))
+        .onSelected(CollectionSort.recentlyAdded);
+    await tester.pumpAndSettle();
+    expect(_sort(tester), CollectionSort.recentlyAdded);
 
     final first = CollectionPanelState(
       text: 'Petronella',
       scope: FullTextScope.title,
-      sort: CollectionSort.recentlyAdded,
+      sort: CollectionSort.author,
       sortDirection: SortDirection.descending,
     );
     first.facets.setTag('t1', selected: true);
     _list(tester).applyPanelState(first);
     await tester.pumpAndSettle();
     expect(_shows('Chorus Jig'), isFalse);
+    expect(_sort(tester), CollectionSort.author);
+    expect(_direction(tester), SortDirection.descending);
 
     // An empty state: nothing of the first survives.
     _list(tester).applyPanelState(CollectionPanelState());
