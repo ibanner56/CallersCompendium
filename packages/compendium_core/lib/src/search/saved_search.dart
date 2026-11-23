@@ -137,8 +137,8 @@ final class SavedSearchSpec {
   /// as null and is never rewritten.
   ///
   /// A null for a search that does name a moved id (not expected: a rewrite
-  /// only replaces ids) leaves the search as it was; the merge's alias still
-  /// reads it as the survivor (`SavedSearchContext.aliases`).
+  /// only replaces ids) leaves the search as it was; until the merge's alias
+  /// is retired it is still read as the survivor (`SavedSearchContext.aliases`).
   SavedSearchSpec? movingReferences(
     SyncRecordKind kind,
     Map<String, String> moves,
@@ -158,19 +158,24 @@ final class SavedSearchSpec {
       return to;
     }
 
+    // Follows what `_readNode` reads: a group's children and a tag row's id,
+    // and nothing else (a figure's parameters are never read as rows).
     Object? walkAdvanced(Object? node) {
-      if (node is Map) {
-        return {
-          for (final e in node.entries)
-            e.key: node['t'] == 'tag' && e.key == 'tagId' && e.value is String
-                ? (kind == SyncRecordKind.tag
-                      ? move(e.value as String)
-                      : e.value)
-                : walkAdvanced(e.value),
-        };
+      if (node is! Map) return node;
+      switch (node['t']) {
+        case 'group':
+          final children = node['children'];
+          return {
+            ...node,
+            if (children is List)
+              'children': [for (final c in children) walkAdvanced(c)],
+          };
+        case 'tag':
+          final id = node['tagId'];
+          return id is String ? {...node, 'tagId': move(id)} : node;
+        default:
+          return node;
       }
-      if (node is List) return [for (final x in node) walkAdvanced(x)];
-      return node;
     }
 
     final next = <String, Object?>{..._json};

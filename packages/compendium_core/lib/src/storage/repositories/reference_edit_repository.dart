@@ -157,9 +157,9 @@ final class _UndoState {
 ///
 /// Sync: a merge adds no record kind and no key. Its peers learn of it from
 /// ordinary records — the survivor's edit, the loser's tombstone under the
-/// loser's own name freed with a suffix, the bumped dances and, for a tag,
-/// author or source, each saved search that named a loser, rewritten as an
-/// ordinary edit of its own settings value — and the alias
+/// loser's own name freed with a suffix, the bumped dances and each saved
+/// search that named a loser, rewritten as an ordinary edit of its own
+/// settings value — and the alias
 /// it records files a peer's later citations of the loser under the survivor
 /// (sync-spec §6.6, "The remap", amended 2026-10-30).
 class ReferenceEditRepository {

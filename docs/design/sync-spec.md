@@ -3728,7 +3728,8 @@ reconciliation.
 > key, so §6.15's gate does not apply. Its peers learn of it from ordinary
 > records, among them each saved search (§6.15, `savedSearches.v1`) the merge
 > rewrote from a loser's id to the survivor's, which is an ordinary settings
-> edit of that search's own key (#2325).
+> edit of that search's own key (#2325), so it wins or loses against a peer's
+> concurrent edit of the same search by the usual per-key stamp rule.
 >
 > 1. **The surviving id is the lexicographically smaller UUID** of all the
 >    entries merged, whichever one the user merged *into*. That entry's fields
@@ -5205,7 +5206,7 @@ not an exact entry matches the longest gated prefix it starts with, as the
 registry's classification does, and an exact key still wins. The reference client gates the prefix from the change that adds
 storage for saved searches and advertises the capability from the change that
 completes the feature (the menu), as `glossary.v2` was gated before #1023 was
-complete; until then nothing writes a saved search and none is published.
+complete; until then nothing creates a saved search and none is published.
 Saved searches reach a peer on a build that predates the prefix as unknown,
 retained records, which is why the gate exists. Deleting one is a tombstone that
 keeps its value until the record is purged, so a held-back deletion is published

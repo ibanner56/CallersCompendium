@@ -219,8 +219,9 @@ class SavedSearchRepository {
   ///
   /// A saved search this build cannot read (a newer format, a hostile value)
   /// is left byte for byte as it is: it cannot be rewritten without being
-  /// understood, and the merge's alias still reads its ids as the survivor
-  /// (`SavedSearchContext.aliases`). One that names none of [moves] is not
+  /// understood. The merge's alias is the only thing that can still read its
+  /// ids as the survivor, and only for a build that can read the format, and
+  /// only until the alias is retired. One that names none of [moves] is not
   /// written. Never throws for a stored value.
   Future<List<SavedSearchRewrite>> moveReferences(
     SyncRecordKind kind,

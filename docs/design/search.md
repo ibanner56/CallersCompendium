@@ -1045,13 +1045,17 @@ as the survivor.
 **Merges rewrite, aliases cover the rest.** Merging tags, authors or sources
 rewrites each readable saved search that names a loser to name the survivor, in
 the merge's own transaction, and an Undo puts it back only while it is still as
-the merge left it (`tags-and-people.md`, Merge step 8). The alias is the safety
-net, not the mechanism: it covers a saved search the merge could not rewrite
-(one in a newer format) and one a peer edited before it saw the merge, but only
+the merge left it (`tags-and-people.md`, Merge step 8). That is a user's merge:
+one sync's reconciliation applies does not rewrite saved searches. The alias is
+the safety net, not the mechanism: it covers a readable saved search a peer
+edited before it saw the merge, or one a reconciliation left naming the loser,
 until the alias is retired (once no peer lists the loser), after which a value
-naming the loser reports it as missing, which is safe. The alias map is built
-once per run, from one read (`SyncLocalRepository.aliasMaps`), never per
-reference. Deleting a tag has no survivor, so nothing is rewritten and the
+naming the loser reports it as missing, which is safe. It cannot help a saved
+search this build cannot read (one in a newer format, left untouched by the
+merge): the alias is applied only to a value that decodes, so only a build that
+reads that format can use it, and only until it is retired. A host builds the
+alias map once per run, from one read (`SyncLocalRepository.aliasMaps`), never
+per reference. Deleting a tag has no survivor, so nothing is rewritten and the
 resolver reports the missing tag.
 
 Moves and sections are not references to records, and are not reported here: a

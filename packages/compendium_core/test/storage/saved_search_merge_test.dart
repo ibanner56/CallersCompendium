@@ -63,6 +63,14 @@ void main() {
 
   Future<Object?> stored(String id) => repos.settings.get('saved_search:$id');
 
+  /// The row's `updated_at`: unchanged only if nothing wrote it.
+  Future<DateTime?> stamp(String id) async =>
+      (await (db.select(
+            db.settings,
+          )..where((t) => t.key.equals('saved_search:$id'))).getSingle())
+          .updatedAt
+          ?.toUtc();
+
   /// The tag ids a stored search names in its Tags facet and Advanced rows.
   Future<(List<String>, List<String>)> tagsOf(String id) async {
     final json = (await stored(id)) as Map;
@@ -114,6 +122,7 @@ void main() {
       await save('uses-loser', 'Flow', withTags([b], rows: [b]));
       await save('other', 'Other', withTags([c]));
       final otherBefore = await stored('other');
+      final otherStamp = await stamp('other');
 
       await repos.references.merge(
         ReferenceKind.tag,
@@ -124,6 +133,7 @@ void main() {
 
       await expectTags('uses-loser', [a], [a]);
       expect(await stored('other'), otherBefore);
+      expect(await stamp('other'), otherStamp, reason: 'not written at all');
       expect(
         await repos.savedSearches.get('uses-loser'),
         isNotNull,
@@ -254,23 +264,166 @@ void main() {
       await tag(a, 'Flowing');
       await save('s', 'S', withTags([a]));
       final before = await stored('s');
+      final spec = (await repos.savedSearches.get('s'))!.spec;
+      Future<ResolvedSavedSearch> resolveWith(Set<String> live) async =>
+          resolveSavedSearch(
+            spec,
+            SavedSearchContext(
+              today: today,
+              taxonomy: contraTaxonomy,
+              tagIds: live,
+              aliases: await repos.syncLocal.aliasMaps(),
+            ),
+          );
+      // The live tag set is read from the store, as a host would.
+      Future<Set<String>> liveTags() async => {
+        for (final t in await repos.tags.listAll()) t.id,
+      };
+      expect(await resolveWith(await liveTags()), isA<ResolvedFilter>());
 
       await repos.references.deleteTag(a);
 
       expect(await stored('s'), before);
-      final read = (await repos.savedSearches.get('s'))!;
-      final result = resolveSavedSearch(
-        read.spec,
-        SavedSearchContext(
-          today: today,
-          taxonomy: contraTaxonomy,
-          aliases: await repos.syncLocal.aliasMaps(),
-        ),
-      );
+      final result = await resolveWith(await liveTags());
       expect((result as UnresolvableSavedSearch).missing, [
         const MissingReference(MissingReferenceKind.tag, a),
       ]);
     });
+  });
+
+  group('merge rewrites saved searches, more', () {
+    test('a failure after the rewrite rolls the rewrite back', () async {
+      await tag(a, 'Flowing');
+      await tag(b, 'Flowy');
+      await save('s', 'S', withTags([b]));
+      final before = await stored('s');
+      final stampBefore = await stamp('s');
+      // The merge writes the survivor's own row last. Fail that write, but
+      // only once the saved search has been rewritten, so the failure is
+      // proved to come after it.
+      await db.customStatement(
+        "CREATE TRIGGER fail_after_rewrite BEFORE UPDATE ON tags "
+        "WHEN NEW.id = '$a' AND (SELECT value_json FROM settings "
+        "WHERE key = 'saved_search:s') LIKE '%$a%' "
+        "BEGIN SELECT RAISE(ABORT, 'boom'); END",
+      );
+
+      await expectLater(
+        repos.references.merge(ReferenceKind.tag, intoId: a, otherIds: [b]),
+        throwsA(anything),
+      );
+
+      expect(await stored('s'), before);
+      expect(await stamp('s'), stampBefore);
+      expect(
+        (await repos.tags.listAll()).map((t) => t.id),
+        containsAll([a, b]),
+        reason: 'both tags still live: the merge was rolled back',
+      );
+    });
+
+    test('hostile stored values are left as they are and the merge '
+        'succeeds', () async {
+      await tag(a, 'Flowing');
+      await tag(b, 'Flowy');
+      final hostile = <String, Object?>{
+        'text': 'a bare string',
+        'array': ['not', 'an', 'object'],
+        'no name': {
+          'v': 1,
+          'facets': {
+            'tagIds': [b],
+          },
+        },
+        'damaged name': {
+          'v': 1,
+          'name': 7,
+          'facets': {
+            'tagIds': [b],
+          },
+        },
+        'unknown key': {
+          'v': 1,
+          'name': 'X',
+          'surprise': true,
+          'facets': {
+            'tagIds': [b],
+          },
+        },
+      };
+      for (final e in hostile.entries) {
+        await repos.settings.set('saved_search:${e.key}', e.value, at: t0);
+      }
+      await save('ok', 'Readable', withTags([b]));
+
+      await repos.references.merge(ReferenceKind.tag, intoId: a, otherIds: [b]);
+
+      for (final e in hostile.entries) {
+        expect(await stored(e.key), e.value, reason: e.key);
+        expect(await stamp(e.key), t0, reason: e.key);
+      }
+      expect((await tagsOf('ok')).$1, [a]);
+    });
+
+    test(
+      'a deleted saved search that names the loser is not revived',
+      () async {
+        await tag(a, 'Flowing');
+        await tag(b, 'Flowy');
+        await save('gone', 'Gone', withTags([b]));
+        await repos.savedSearches.delete('gone', at: t0);
+
+        await repos.references.merge(
+          ReferenceKind.tag,
+          intoId: a,
+          otherIds: [b],
+        );
+
+        expect(await repos.savedSearches.get('gone'), isNull);
+        expect(await repos.settings.get('saved_search:gone'), isNull);
+      },
+    );
+
+    test(
+      'a figure whose parameters look like a tag row is not a row',
+      () async {
+        await tag(a, 'Flowing');
+        await tag(b, 'Flowy');
+        final json = {
+          'v': 1,
+          'name': 'Odd',
+          'advanced': {
+            't': 'group',
+            'kind': 'all',
+            'children': [
+              {
+                't': 'figure',
+                'params': {'t': 'tag', 'tagId': b},
+              },
+              {'t': 'tag', 'tagId': b},
+            ],
+          },
+        };
+        await repos.settings.set('saved_search:odd', json, at: t0);
+        expect(
+          await repos.savedSearches.get('odd'),
+          isNotNull,
+          reason: 'decodes',
+        );
+
+        await repos.references.merge(
+          ReferenceKind.tag,
+          intoId: a,
+          otherIds: [b],
+        );
+
+        final children =
+            ((await stored('odd') as Map)['advanced'] as Map)['children']
+                as List;
+        expect((children[0] as Map)['params'], {'t': 'tag', 'tagId': b});
+        expect((children[1] as Map)['tagId'], a);
+      },
+    );
   });
 
   group('Undo of a merge', () {
@@ -332,6 +485,61 @@ void main() {
         expect(await stored('s'), isNull);
       },
     );
+  });
+
+  group('Undo of a merge, more', () {
+    test(
+      'undoes an author merge, and leaves an unreadable search alone',
+      () async {
+        await author(a, 'Ann');
+        await author(b, 'Anne');
+        final state = CollectionPanelState();
+        state.facets.authorIds.add(b);
+        await save('s', 'S', state);
+        final newer = {'v': 99, 'name': 'Future'};
+        await repos.settings.set('saved_search:future', newer, at: t0);
+        final before = await stored('s');
+
+        final undo = await repos.references.merge(
+          ReferenceKind.author,
+          intoId: a,
+          otherIds: [b],
+        );
+        expect((((await stored('s')) as Map)['facets'] as Map)['authorIds'], [
+          a,
+        ]);
+        await repos.references.undo(undo);
+
+        expect(await stored('s'), before);
+        expect(await stored('future'), newer);
+        expect(await stamp('future'), t0);
+      },
+    );
+
+    test('a second merge in between leaves the first one\'s Undo from '
+        'overwriting it', () async {
+      await tag(a, 'One');
+      await tag(b, 'Two');
+      await tag(c, 'Three');
+      await save('s', 'S', withTags([c]));
+      final first = await repos.references.merge(
+        ReferenceKind.tag,
+        intoId: b,
+        otherIds: [c],
+      );
+      // Now the search names b. A second merge moves it again, to a.
+      await repos.references.merge(ReferenceKind.tag, intoId: a, otherIds: [b]);
+      final afterSecond = await stored('s');
+      expect((await tagsOf('s')).$1, [a]);
+
+      await repos.references.undo(first);
+
+      expect(
+        await stored('s'),
+        afterSecond,
+        reason: 'no longer as merge 1 left',
+      );
+    });
   });
 
   group('alias-aware evaluation', () {

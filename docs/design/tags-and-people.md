@@ -264,17 +264,26 @@ The steps run in one transaction:
    loser (the Tags, Authors or Sources filter, and for a tag the Advanced tag
    rows) is rewritten to name the survivor, as an ordinary edit of its own
    settings value (`SavedSearchRepository.moveReferences`, called from
-   `ReferenceEditRepository.merge` after step 2, so the tag manager, the
-   reference manager and the author flow all get it).
+   `ReferenceEditRepository.merge` after the per-loser steps 2 to 6, so the
+   tag manager, the reference manager and the author flow all get it). This
+   is a **user's** merge only: a merge that sync's own reconciliation applies
+   (§6.6) rewrites the dances' joins but not this device's saved searches, so
+   such a search is read through the alias until it is retired.
+   - A concurrent edit of the same saved search on a peer (a rename, say)
+     meets the rewrite by the usual per-key stamp rule: the later write wins
+     the whole value.
    - The id written is the **survivor's**: the smallest id, which is not
      necessarily the entry the user merged into.
    - An id set stays sorted and without duplicates. Nothing else in the search
      changes, and a search naming no loser is not written.
    - A saved search this build cannot read (a newer format, a damaged value) is
-     left byte for byte as it is, and the merge still succeeds. It is read
-     through the alias (step 6) until the alias is retired; after that it
-     reports the loser as missing, as it does for any reference that is gone
-     (`search.md`, "The resolver").
+     left byte for byte as it is, and the merge still succeeds. This build
+     cannot use the alias for it either (the alias is applied only to a value
+     that decodes); a build that can read the format reads it through the
+     alias (step 6) until the alias is retired, and after that it reports the
+     loser as missing, as it does for any reference that is gone
+     (`search.md`, "The resolver"). An upgrade does not rewrite it
+     retroactively.
    - Sync needs nothing new for this: each rewritten search is one ordinary
      settings edit, behind the `savedSearches.v1` gate like any other.
 
