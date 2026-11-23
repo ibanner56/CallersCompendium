@@ -13321,5 +13321,109 @@
   "settingsExperimentalShowRepertoireSubtitle": "Tilføjer Repertoire til Samlingens menu Flere handlinger: dine oftest og sjældnest kaldte danse, hvad du aldrig har kaldt, figurhyppighed, forfattere, formationer og gentagelser pr. spillested.",
   "@settingsExperimentalShowRepertoireSubtitle": {
     "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
+  },
+  "importSourceLabelCsv": "Dit eget regneark (CSV)",
+  "@importSourceLabelCsv": {
+    "x-sourceSha256": "9da38651a5a702664efb34eceb35b14d12b6934834c6b3d30162dcc1a8c20a96"
+  },
+  "importCsvPickFile": "Vælg en CSV-fil …",
+  "@importCsvPickFile": {
+    "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
+  },
+  "importCsvSaveAsHint": "Vælg i dit regnearksprogram Filer ▸ Gem som (eller Download) og »CSV UTF-8«, og vælg så den fil her.",
+  "@importCsvSaveAsHint": {
+    "x-sourceSha256": "3aa1ebd55b632f5a421fc0ed140c9486b22de931f544872cddeca51e7b3ca625"
+  },
+  "importCsvMapTitle": "Tilknyt kolonner",
+  "@importCsvMapTitle": {
+    "x-sourceSha256": "2778414273d997932756c9192b6ef4fbe57879654b3ea446f34ef54f5d5da1f3"
+  },
+  "importCsvMapIntro": "Vælg, hvad hver kolonne indeholder. Kolonner sat til Ignorer udelades. Intet tilføjes, før du har gennemset og bekræftet.",
+  "@importCsvMapIntro": {
+    "x-sourceSha256": "4d62456f1068a41b7ca803b120ba5d409420b6a2a3d3b31d99a578c3278da1ab"
+  },
+  "importCsvSeparatorLabel": "Skilletegn",
+  "@importCsvSeparatorLabel": {
+    "x-sourceSha256": "be237eda7fff4fd3596647c9665e5ec5f502602c74167b939b587a2abcbda156"
+  },
+  "importCsvSeparatorComma": "Komma (,)",
+  "@importCsvSeparatorComma": {
+    "x-sourceSha256": "88363d66de700d9e04f806c6061a9c51b45c97568683e215327efeee8ca0cbd2"
+  },
+  "importCsvSeparatorSemicolon": "Semikolon (;)",
+  "@importCsvSeparatorSemicolon": {
+    "x-sourceSha256": "599d532f1133a280ee5a238cf1e25ab1155a94281ad4636681c45bf12c04172d"
+  },
+  "importCsvSeparatorTab": "Tabulator",
+  "@importCsvSeparatorTab": {
+    "x-sourceSha256": "90ddf1963abb36c9921ce7f1ac9cbd94c9176d13e57c418d3d3c20ce44291c1c"
+  },
+  "importCsvFirstRowHeader": "Første række navngiver kolonnerne",
+  "@importCsvFirstRowHeader": {
+    "x-sourceSha256": "ce568b5b5d818b6357d3f150a6917d074f9ea7f3867bb565f9b176122c1fd2a0"
+  },
+  "importCsvColumnFallback": "Kolonne {number}",
+  "@importCsvColumnFallback": {
+    "x-sourceSha256": "e9a03bca31e4f537d8edfcd9d9b62cd8d8d848ead504e6f46fe121af6ecabc6c"
+  },
+  "importCsvTargetIgnore": "Ignorer",
+  "@importCsvTargetIgnore": {
+    "x-sourceSha256": "fce77c34d3fec98733dd4c29f1592a92e60e93e43f0bfe8690c91160ae7efebe"
+  },
+  "importCsvTargetPhrase": "Figurer, {phrase}",
+  "@importCsvTargetPhrase": {
+    "x-sourceSha256": "ccde59a8941c6dda4db79f6be209702d4b154bfd4b38b9161fd87a905861a101"
+  },
+  "importCsvTargetNewField": "Nyt brugerdefineret felt ({type})",
+  "@importCsvTargetNewField": {
+    "x-sourceSha256": "569155455b946e4dc1eba8e3f5d45cb8667f7bcd2e1429545770340d08f3296d"
+  },
+  "importCsvTargetExistingField": "Brugerdefineret felt: {name}",
+  "@importCsvTargetExistingField": {
+    "x-sourceSha256": "ccca5cc4ed6d5700d62324937469253825ff3c52ebc51b9430afb5135790b05b"
+  },
+  "importCsvNeedsTitle": "Vælg den kolonne, der indeholder hver dans' titel.",
+  "@importCsvNeedsTitle": {
+    "x-sourceSha256": "44f3de11d4f78aa9301dd21d319448923afea067c421fb741fe346e13af97301"
+  },
+  "importCsvContinue": "Fortsæt",
+  "@importCsvContinue": {
+    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
+  },
+  "importCsvPreviewHeading": "Første rækker",
+  "@importCsvPreviewHeading": {
+    "x-sourceSha256": "6b6f9a093dd6fe0455e331bbe10ec04415c2970206d9ecd6ab16378c4739da2b"
+  },
+  "importCsvNotUtf8": "Denne fil er ikke gemt som UTF-8-tekst, så bogstaver med accenter ville komme forkert ind. Gem den igen som »CSV UTF-8« i dit regnearksprogram, og vælg den fil.",
+  "@importCsvNotUtf8": {
+    "x-sourceSha256": "d1247bdaab67d98f64224bd3a8385c7c38636d89e8147210f0ddfa6926cccf22"
+  },
+  "importCsvTooLarge": "Denne fil er for stor til at importere. Del den op i mindre filer.",
+  "@importCsvTooLarge": {
+    "x-sourceSha256": "624f8e7da215ff26de3e13d343254ba34a3c8a639b346197af3b342071d5f5a0"
+  },
+  "importCsvTooManyRows": "Denne fil har mere end {limit} rækker. Del den op i mindre filer.",
+  "@importCsvTooManyRows": {
+    "x-sourceSha256": "9dd028326beac2b7c69df122c4e2a71a553ef4f5ac863b7d48d3281abddb3f84"
+  },
+  "importCsvTooManyColumns": "En række i denne fil har mere end {limit} kolonner.",
+  "@importCsvTooManyColumns": {
+    "x-sourceSha256": "33cf9e59d741fc496c92702b5feb2b945fe8571e2cec997b97a0c9bef2d96122"
+  },
+  "importCsvCellTooLong": "En celle i denne fil er længere end {limit} tegn.",
+  "@importCsvCellTooLong": {
+    "x-sourceSha256": "fb96e6d3fcf0208086dbc3e1de30edb1e86ee72c6b6d31df316215362767caa2"
+  },
+  "importCsvUnterminatedQuote": "Denne fil har en celle i anførselstegn, der aldrig slutter, så den kan ikke læses.",
+  "@importCsvUnterminatedQuote": {
+    "x-sourceSha256": "0cd019b41f719dea2fead39abe869ba4af54e5169d331d98347876f06e45909d"
+  },
+  "importCsvLargeBatch": "Denne fil har {count} rækker. Gennemgangen kan tage et stykke tid.",
+  "@importCsvLargeBatch": {
+    "x-sourceSha256": "080ae6dfc02b9c624a85963f3a307e9c9b9da220ea7d494ead52c35d7bc8e808"
+  },
+  "importCsvNoRows": "Denne fil har ingen rækker med danse, kun kolonnenavnene.",
+  "@importCsvNoRows": {
+    "x-sourceSha256": "38b4b25fdfbc56624e65823fcc8e0f756c7ce28b778905609c4a58344eaf71d2"
   }
 }

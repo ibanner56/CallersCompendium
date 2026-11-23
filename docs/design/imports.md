@@ -11,7 +11,7 @@
 
 - [Pipeline](#pipeline) — 21 lines
 - [Author resolution (resolve-or-create seam)](#author-resolution-resolve-or-create-seam) — 139 lines
-- [Sources](#sources) — 1048 lines
+- [Sources](#sources) — 1119 lines
   - [1. CallersBox — by link (primary)](#1-callersbox--by-link-primary) — 116 lines
   - [2. Caller's Companion migration (6.5)](#2-callers-companion-migration-65) — 97 lines
   - [3. ContraDB (6.4)](#3-contradb-64) — 33 lines
@@ -19,6 +19,7 @@
   - [4. Generic JSON (6.6)](#4-generic-json-66) — 27 lines
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
+  - [6. A spreadsheet (CSV) (#2329)](#6-a-spreadsheet-csv-2329) — 71 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
@@ -41,7 +42,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
 | **dedupe** | Match by (source, externalId) first — re-import replaces only the matched dance's choreography (figures, formation, progression) and updates its provenance; see *Re-import replaces only the choreography*. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Each title is keyed as written and with any trailing article fronted (`dedupeTitleKeys`, #1976), and two titles match exactly when their keys overlap: a library dance stored as "Bastringue, La" matches an incoming "La Bastringue", while "Thanks, Les" still matches "Thanks Les". In the fuzzy tier, only exactness uses the fronted key: an exact entry scores as the same title, and every other entry is scored on the titles as written, so a near-miss is no closer for its article. `normalizeTitle` itself, the sync key, is unchanged. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers never silently duplicate a confident match whose figures are identical: the title-list program import skips it, and the ContraDB program import links its slot to the existing dance (INTAKE-3; see *Program-import path*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs unrecognized figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. Two warnings count the existing dances a commit would change: one the dances links replace, one the dances re-imports update (only their choreography, and how many of them also take the title and credit). A target named by both counts as replaced. Nothing silently mutates existing user data. |
-| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the import result lists with the rest of the commit's notes. |
+| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR`, spreadsheet and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written (except for a spreadsheet's rows, which record none: see *6. A spreadsheet*); author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the import result lists with the rest of the commit's notes. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
 pure-Dart core → each adapter unit-tested against fixture files.
@@ -1488,6 +1489,91 @@ No new fetch path is introduced: the existing
 `buildCallersBoxSearchUrl` / `buildCallersBoxJsonUrl` host allowlist (#621, #766)
 still governs what is reachable.
 
+### 6. A spreadsheet (CSV) (#2329)
+
+The caller's own spreadsheet, saved as CSV: one dance per row, read through a
+column mapping the caller chooses in a **map columns** step between choosing
+the file and the plan (`CsvMappingStep`, `app/lib/src/screens/import_csv_mapping.dart`,
+written to be reused by the plain-text import, #2330).
+
+| piece | where |
+|---|---|
+| RFC 4180 reader, beside the export's writer | `packages/compendium_core/lib/src/csv/csv_reader.dart` |
+| adapter (`SourceAdapter`) | `packages/compendium_core/lib/src/imports/csv_adapter.dart` |
+| commit: tags and new custom fields, then the pipeline | `packages/compendium_core/lib/src/imports/csv_import.dart` (`CsvImporter`) |
+| header pre-mapping and value vocabulary | `app/lib/src/data/csv_import_mapping.dart` |
+
+#### The mapping travels in `ImportRequest.options`
+
+The confirmed `CsvImportMapping` (separator, header row, one `CsvColumnMapping`
+per column, the caller's custom fields, and a `CsvValueVocabulary`) rides on
+`ImportRequest.options[CsvAdapter.mappingOption]`, so the adapter stays
+transport-agnostic and is unit-tested without the app. The vocabulary carries
+the app's labels for forms, formations, progressions, statuses and yes/no in the
+UI language and in English; core knows only the enum names. A header names a
+target when it matches the export's own column heading (#2332) or the editor's
+label in either language, a phrase label (`A1`), or a custom field's label.
+There is no target for an author's email or location (third-party,
+`deviceLocal`).
+
+#### Nothing is written before commit
+
+The plan carries placeholder ids: `csv-tag:<name>` for tags and
+`csv-field:<column>` for a new custom field. `CsvImporter.commit` resolves tags
+by name (creating the missing ones), creates each new field once under a key
+derived from its label (a choice field takes its choices from the committed
+values), rewrites the placeholders, and only then calls `ImportPipeline.commit`.
+A failed commit removes what it created; Undo reverts the dances and removes the
+created tags and fields nothing else uses. As with `.USR` user fields, a
+placeholder that reaches a repository is refused, so a path that skips the
+importer fails closed.
+
+#### No provenance
+
+A dance from the caller's own file records no provenance, as for a hand-typed
+dance (maintainer decision on #2329). `RawRecord.recordsProvenance` is `false`
+on every row, and the pipeline then writes no provenance row; a link or
+re-import onto an existing dance keeps that dance's own. No `ProvenanceSource`
+value is added (it would travel in sync and archives). The adapter's `source` is
+an in-memory label only, and the review row names the spreadsheet rather than
+it. With no external id, dedupe uses the fuzzy title-and-author tier, so a
+re-imported file's dances surface as possible matches defaulting to **Skip**.
+
+#### Reading values
+
+Figures go through `parseFigureLinesFanOut`, one line at a time: a cell's lines,
+or its `;`-parts when it has no line break, or each phrase column in phrase
+order; two columns for one phrase are read one after the other. A leading
+phrase label, a leading `(8)` count, and the export's own trailing
+`(16 beats) ¶` or `(1½ bars) ¶` are read off first. A trailing bracket is read
+off only when its unit is a beat or bar word (`CsvValueVocabulary.beatWords`
+and `barWords`, in the export's languages and English), so `(3 places)` stays
+in the figure; a count in bars is left to the figure's default. A Level cell
+resolves through `CsvValueVocabulary.levels`, the caller's configured levels by
+their own and localized label, into `difficultyLevelId`. Authors go through
+`splitAuthorNames`; tags and tunes split on commas. A value that does not fit
+its field, and a second column for a single-valued field (everything but
+figures, authors, tags, tunes and notes) once an earlier column's value has
+filled it, is appended to the calling notes as
+`Column: value` with a `csv_value_kept_in_notes` issue. Only a new **choice**
+field's values are clamped to the choice length at commit; a new text field's
+are stored whole. A new-field column counts as the field commit will give it:
+an existing field of the same type and folded label (`CsvImporter` reuses the
+first such), else the field every new column of that label and type shares, as
+commit creates one and reuses it for the next. Two existing fields stay two
+whatever their labels.
+
+#### Bounding untrusted input
+
+The file is untrusted: `decodeCsvBytes` refuses more than `kMaxCsvImportBytes`
+(25 MiB, as a shared archive) and anything that is not UTF-8, with a message to
+save it as "CSV UTF-8"; `readCsv` caps rows (`kMaxCsvImportRows`, 20,000),
+columns (`kMaxCsvImportColumns`, 200) and cell length
+(`kMaxCsvImportCellChars`, 65,536), and refuses an unterminated quote. Each
+failure is a typed `CsvReadException` with its own localized message. More than
+500 rows (the shared-bundle soft cap) is allowed with a warning. The separator
+(`,`, `;` or tab) is detected from the header line and can be changed.
+
 ### Simultaneous-action fan-out (`meanwhile`) (#591/#572)
 - Two source dialects write simultaneous action on one line instead of
   splitting it into two: CallersBox's `||` operator (e.g. `(6) Women
@@ -1590,7 +1676,8 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-two** pre-recognizers: `_hey`,
+- `tcbFigureFrontEnd` registers **twenty-five** pre-recognizers:
+  `_amountAlternativeAnnotation`, `_hey`,
   `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
@@ -1599,20 +1686,23 @@ Which is which, derived from the code rather than from memory:
   `_singleFileWholeSetPromenade`, `_promenadeAnnotation`,
   `_rightLeftThroughAnnotation`, `_singleFileCircleRecognizer`,
   `_bracketAnnotation`, `_weaveSlideAnnotation`, `_perRoleChoreoAnnotation`,
-  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but five are the
-  falls-through kind. `_squareThroughPassList` sends a `without hands` line
+  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but six are the
+  falls-through kind. `_amountAlternativeAnnotation` (#2331 follow-up) reads
+  `(1 or 2)` as the first amount, with the choice as the note, and sends the
+  line to `custom` when its move has no place for the amount (`C1 corner
+  promenade counterclockwise (3/8 or 5/8)`). `_squareThroughPassList` sends a `without hands` line
   whose pass list does not decode to `custom` (#1971),
   `_bracketAnnotation` does the same for a leading bracket that names no
   modelled subject, `_tcbCast` (taxonomy v40) does it for a `(past …)`
   list it cannot count, or a count the line contradicts, `_tcbBareLongWave`
-  (#2331) for a bare `form long wave` whose annotation names holds
-  (`(P2L,P3R, women face in)`, `[M1 with N2, W1 with N1]`), and
+  (#2331) for a `form long wave` whose hold annotation does not decode, or
+  that carries a square bracket (`[M1 with N2, W1 with N1]`, which names no
+  hand; a decoded `(P2L,P3R, women face in)` reads as the holds), and
   `_singleFileWholeSetPromenade` (#2331) for a single-file promenade around
   the major set it cannot read whole (an unresolved destination, a places
   amount, or a counter-rotation annotation). The front end also has a veto
   (`_tcbDeclineToCustom`): a single-file circle amount that is not a
-  fraction, a per-role amount (`(M 1 & 1/2, W 2)`), and, since #2331, a
-  parenthetical that opens with a choice of amounts (`(1 or 2)`).
+  fraction, and a per-role amount (`(M 1 & 1/2, W 2)`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -1734,8 +1824,9 @@ has to be judged in its own context.
   the note because the v30 render gate hides the clause at the `across`
   default; a SINGLE-FILE promenade `clockwise`/`counterclockwise` around the
   major set (#2331) is `promenade{singleFile, where: along, direction,
-  destination}`, whose `along` renders the destination, so only `around the
-  major set` stays in the note — one it cannot read whole stays custom, never
+  destination}`, whose `along` renders the destination and, since the #2331
+  follow-up, always the rotation, so only `around the major set` stays in the
+  note — one it cannot read whole stays custom, never
   a single-file circle), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
@@ -2625,6 +2716,16 @@ without it would destroy detail the custom text preserved verbatim):
 | `Balance long wave (<pair><H>, <role> face in)` | `form_long_waves{balance, whom: <pair>, hand: <H>, who: <role>}` |
 | `Balance long wave (<pair><H>, <pair'><H'>, <role> face in)` (#2331; the hands opposite, the pairs different) | the same plus `whom2: <pair'>`, the pair held by the other hand |
 
+The same holds on the forming line itself, `form long wave (<pair><H>[,
+<pair'><H'>][, <role> face in])`, read the same way through the one decoder
+(`tcbLongWaveHolds`, #2331 follow-up); with no facing stated, `who` is
+`unspecified`. The balance after such a wave folds in only when the two
+lines' holds agree — together at most two pairs, by opposite hands, and one
+facing — and otherwise stays text; it is never promoted into a second
+long-waves figure beside the first, within a phrase or across one. Two
+forming lines in a row (`form long wave (release left hands)`, then `(0) Form
+long wave (P4R,P5L, women face in)`, dance 15461) are one figure.
+
 The role pair is the wave's **centre** and the relationship pair its **sides**,
 with the two hands OPPOSITE — verified on the corpus (2,560 of 2,764 wave-of-four
 lines match that shape, and only one of the parsed pairs states the same hand
@@ -2640,7 +2741,10 @@ hand-holds by the same hand or with the same pair (`(N2R,N1R, women face in)`),
 people codes with no
 taxonomy slot (`C2`, `1CC`, `O`, `TB`, `SRN…`, `?` — the omissions documented
 on `tcbPassPeople`, whose single map this decoder reuses), `someone face
-in`, and `Balance long wave for all in center`. The singular
+in`, and `Balance long wave for all in center`. After a bare `form long
+wave`, that `for all` balance keeps the wave's whole line as text too (dance
+1033, maintainer ruling 2026-11-23), as `…; form long wave for all in center`
+already is. The singular
 `form_a_long_wave` sense (ONE long wave in the centre formed by a subset) is
 never guessed at either — a line meaning that reaches it through Fold 4 from the
 preceding `form long wave in center` line, or from a bare `form long wave`
