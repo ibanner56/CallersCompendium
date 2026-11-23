@@ -3216,10 +3216,6 @@
   "@settingsDefaultsStartingProgramTitle": {
     "description": "Title for the reusable program template in Program defaults."
   },
-  "settingsDefaultsStartingProgramSubtitle": "Dance and note entries added to manually created programs.",
-  "@settingsDefaultsStartingProgramSubtitle": {
-    "description": "Explanation of the starting program template."
-  },
   "settingsDefaultsStartingProgramPickerTitle": "Add a dance",
   "@settingsDefaultsStartingProgramPickerTitle": {
     "description": "Title for the dance picker used by the starting program template."
@@ -12195,6 +12191,10 @@
   "@danceEditorTypeToAddOrCreateHint": {
     "description": "Hint text for a type-ahead field that can add an existing item or create a new one."
   },
+  "danceEditorChooseHint": "Choose…",
+  "@danceEditorChooseHint": {
+    "description": "Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to."
+  },
   "danceEditorCreateQuotedName": "Create \"{name}\"",
   "@danceEditorCreateQuotedName": {
     "description": "Type-ahead option label for creating a new item with the typed name/title.",
@@ -17123,5 +17123,126 @@
   "exportCallingCardsBiggerThanPaper": "These cards are bigger than the paper, so each was printed smaller, one to a page.",
   "@exportCallingCardsBiggerThanPaper": {
     "description": "Snack bar after printing calling cards several to a page when the card size does not fit on the chosen paper."
+  },
+  "settingsProgramTemplatesTitle": "Program templates",
+  "@settingsProgramTemplatesTitle": {
+    "description": "Settings ▸ Defaults ▸ Program defaults row and manager screen title for the list of program templates."
+  },
+  "settingsProgramTemplatesCount": "{count, plural, =0{No templates yet} =1{1 template} other{{count} templates}}",
+  "@settingsProgramTemplatesCount": {
+    "description": "Subtitle of the Program templates row: how many templates there are.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsProgramTemplateDefaultTitle": "Default template",
+  "@settingsProgramTemplateDefaultTitle": {
+    "description": "Settings row choosing the template a new program starts from when the user is not asked to choose."
+  },
+  "settingsProgramTemplateDefaultSubtitle": "What a new program starts from when you aren't asked to choose.",
+  "@settingsProgramTemplateDefaultSubtitle": {
+    "description": "Subtitle of the Default template row."
+  },
+  "settingsProgramTemplatesMigratedName": "Starting program",
+  "@settingsProgramTemplatesMigratedName": {
+    "description": "Name given to the template made from the old Starting program setting when the app is upgraded."
+  },
+  "programTemplateBlankProgram": "Blank program",
+  "@programTemplateBlankProgram": {
+    "description": "Choice of starting a new program with no slots, in the New program chooser and the Default template setting."
+  },
+  "programTemplateDefaultBadge": "Default",
+  "@programTemplateDefaultBadge": {
+    "description": "Marks the default template in the New program chooser."
+  },
+  "programTemplateChooserTitle": "Start from a template",
+  "@programTemplateChooserTitle": {
+    "description": "Title of the sheet New program shows when there are two or more templates."
+  },
+  "programTemplateNew": "New template",
+  "@programTemplateNew": {
+    "description": "Button and dialog title that creates a program template."
+  },
+  "programTemplatesEmptyTitle": "No templates yet",
+  "@programTemplatesEmptyTitle": {
+    "description": "Empty state title in the program templates manager."
+  },
+  "programTemplatesEmptyBody": "A template is a starting list of dances, notes and breaks for one kind of evening. With two or more, New program asks which to start from.",
+  "@programTemplatesEmptyBody": {
+    "description": "Empty state body in the program templates manager."
+  },
+  "programTemplateNameLabel": "Template name",
+  "@programTemplateNameLabel": {
+    "description": "Label of the program template name field."
+  },
+  "programTemplateRename": "Rename",
+  "@programTemplateRename": {
+    "description": "Menu action that renames a program template."
+  },
+  "programTemplateRenameTitle": "Rename template",
+  "@programTemplateRenameTitle": {
+    "description": "Dialog title for renaming a program template."
+  },
+  "programTemplateCopyName": "{name} (copy)",
+  "@programTemplateCopyName": {
+    "description": "Name of a duplicated program template.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "programTemplateUntitled": "Untitled template",
+  "@programTemplateUntitled": {
+    "description": "Shown for a program template with no name."
+  },
+  "programTemplateSlotCount": "{count, plural, =0{Empty} =1{1 slot} other{{count} slots}}",
+  "@programTemplateSlotCount": {
+    "description": "How many slots a program template has, in the manager list.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "programTemplateDefaultWithSlots": "Default · {slots}",
+  "@programTemplateDefaultWithSlots": {
+    "description": "Manager list subtitle of the default template; slots is the slot count text.",
+    "placeholders": {
+      "slots": {
+        "type": "String"
+      }
+    }
+  },
+  "programTemplateActionsTooltip": "Actions for {name}",
+  "@programTemplateActionsTooltip": {
+    "description": "Tooltip and screen-reader label of a program template row menu.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "programTemplateEditorTitle": "Edit template",
+  "@programTemplateEditorTitle": {
+    "description": "Title of the program template editor screen."
+  },
+  "programTemplateSlotsHeader": "Slots",
+  "@programTemplateSlotsHeader": {
+    "description": "Heading over a program template slot list."
+  },
+  "programTemplateSlotsSubtitle": "Dances, notes and breaks a program made from this template starts with.",
+  "@programTemplateSlotsSubtitle": {
+    "description": "Explains a program template slot list."
+  },
+  "programTemplatesLoadError": "Couldn't load your program templates.",
+  "@programTemplatesLoadError": {
+    "description": "Error shown when program templates cannot be read."
+  },
+  "programTemplateSaveError": "Couldn't save that change to your templates. Try again.",
+  "@programTemplateSaveError": {
+    "description": "Snackbar shown when creating, renaming, duplicating, reordering or deleting a program template fails to save."
   }
 }

@@ -2604,10 +2604,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => 'Startprogramma';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      'Dansen en notities die aan handmatig gemaakte programma\'s worden toegevoegd.';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Een dans toevoegen';
 
   @override
@@ -9344,6 +9340,9 @@ class AppLocalizationsNl extends AppLocalizations {
       'Typ om toe te voegen of aan te maken…';
 
   @override
+  String get danceEditorChooseHint => 'Kies…';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return '“$name” aanmaken';
   }
@@ -12801,4 +12800,105 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Deze kaarten zijn groter dan het papier, dus elke kaart is kleiner afgedrukt, één per pagina.';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'Programmasjablonen';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sjablonen',
+      one: '1 sjabloon',
+      zero: 'Nog geen sjablonen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => 'Standaardsjabloon';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      'Waarmee een nieuw programma begint als je niet wordt gevraagd te kiezen.';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => 'Startprogramma';
+
+  @override
+  String get programTemplateBlankProgram => 'Leeg programma';
+
+  @override
+  String get programTemplateDefaultBadge => 'Standaard';
+
+  @override
+  String get programTemplateChooserTitle => 'Beginnen met een sjabloon';
+
+  @override
+  String get programTemplateNew => 'Nieuw sjabloon';
+
+  @override
+  String get programTemplatesEmptyTitle => 'Nog geen sjablonen';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'Een sjabloon is een startlijst met dansen, notities en pauzes voor één soort avond. Met twee of meer vraagt Nieuw programma waarmee je wilt beginnen.';
+
+  @override
+  String get programTemplateNameLabel => 'Naam van sjabloon';
+
+  @override
+  String get programTemplateRename => 'Naam wijzigen';
+
+  @override
+  String get programTemplateRenameTitle => 'Sjabloon hernoemen';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name (kopie)';
+  }
+
+  @override
+  String get programTemplateUntitled => 'Naamloos sjabloon';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plekken',
+      one: '1 plek',
+      zero: 'Leeg',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return 'Standaard · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return 'Acties voor $name';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'Sjabloon bewerken';
+
+  @override
+  String get programTemplateSlotsHeader => 'Plekken';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'Dansen, notities en pauzes waarmee een programma op basis van dit sjabloon begint.';
+
+  @override
+  String get programTemplatesLoadError =>
+      'Je programmasjablonen konden niet worden geladen.';
+
+  @override
+  String get programTemplateSaveError =>
+      'Die wijziging in je sjablonen kon niet worden opgeslagen. Probeer het opnieuw.';
 }

@@ -273,10 +273,7 @@ void main() {
         .note;
 
     Future<void> addRae(WidgetTester tester) async {
-      await tester.enterText(find.byKey(const ValueKey('author-input')), 'Rae');
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('author-option-c1')));
-      await tester.pumpAndSettle();
+      await _pick(tester, 'author', 'Rae', 'c1');
     }
 
     testWidgets('adding and removing her as an author converts the drafts, and '
@@ -304,10 +301,7 @@ void main() {
       await addRae(tester);
       expect(noteOf(tester), 'larks go first');
 
-      tester
-          .widget<InputChip>(find.byKey(const ValueKey('author-chip-c1')))
-          .onDeleted!();
-      await tester.pumpAndSettle();
+      await _unpick(tester, 'author', 'c1');
       expect(noteOf(tester), 'leads go first');
 
       await addRae(tester);
@@ -372,8 +366,7 @@ void main() {
       required String name,
       String? website,
     }) async {
-      await tester.tap(find.byKey(const ValueKey('author-chip-c2')));
-      await tester.pumpAndSettle();
+      await _editPicked(tester, 'author', 'c2');
       await tester.enterText(
         find.byKey(const ValueKey('choreographer-name-field')),
         name,
@@ -388,10 +381,8 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    String? chipLabel(WidgetTester tester, String id) =>
-        (tester.widget<InputChip>(find.byKey(ValueKey('author-chip-$id'))).label
-                as Text)
-            .data;
+    List<String> authorNames(WidgetTester tester) =>
+        _pickedNames(tester, 'author');
 
     testWidgets('offers a merge, and Keep editing saves nothing and re-opens '
         'the details with the typed name', (tester) async {
@@ -425,7 +416,7 @@ void main() {
       // Issue #1348: nothing was written, so the chip still reads the stored
       // name, not the one that was typed.
       expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
-      expect(chipLabel(tester, 'c2'), 'Sam Jones');
+      expect(authorNames(tester), ['Sam Jones']);
     });
 
     testWidgets('Merge lists the detail it drops, leaves one author, credits '
@@ -445,8 +436,7 @@ void main() {
         'pat.example',
       );
       expect((await repos.dances.getById('d1'))!.authorIds, ['c1']);
-      expect(find.byKey(const ValueKey('author-chip-c2')), findsNothing);
-      expect(chipLabel(tester, 'c1'), 'Pat Smith');
+      expect(authorNames(tester), ['Pat Smith']);
 
       await tester.tap(
         find.byKey(const ValueKey('dance-editor-author-merge-undo')),
@@ -455,8 +445,7 @@ void main() {
 
       expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
       expect((await repos.dances.getById('d1'))!.authorIds, ['c2']);
-      expect(chipLabel(tester, 'c2'), 'Sam Jones');
-      expect(find.byKey(const ValueKey('author-chip-c1')), findsNothing);
+      expect(authorNames(tester), ['Sam Jones']);
     });
 
     testWidgets('Undo of a merge of two authors the dance both credits '
@@ -468,14 +457,13 @@ void main() {
       await renameC2(tester, name: 'Pat Smith');
       await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('author-chip-c2')), findsNothing);
+      expect(authorNames(tester), ['Pat Smith']);
 
       await tester.tap(
         find.byKey(const ValueKey('dance-editor-author-merge-undo')),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('author-chip-c2')), findsOneWidget);
-      expect(find.byKey(const ValueKey('author-chip-c1')), findsOneWidget);
+      expect(authorNames(tester), ['Sam Jones', 'Pat Smith']);
 
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
@@ -499,7 +487,7 @@ void main() {
       final renamed = await repos.choreographers.getById('c2');
       expect(renamed!.name, 'Pat Smith');
       expect(renamed.website, 'sam.example');
-      expect(chipLabel(tester, 'c2'), 'Pat Smith');
+      expect(authorNames(tester), ['Pat Smith']);
     });
 
     testWidgets('after a merge, Save credits the merged author', (
@@ -932,23 +920,14 @@ void main() {
     final repos = openTestRepositories();
     await _pumpEditor(tester, repos);
 
-    await tester.enterText(
-      find.byKey(const ValueKey('author-input')),
-      'Gene Hubert',
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const ValueKey('author-option-create:Gene Hubert')),
-    );
-    await tester.pumpAndSettle();
+    await _pick(tester, 'author', 'Gene Hubert', 'create:Gene Hubert');
 
     // Choreographer persisted immediately on creation.
     final choreographers = await repos.choreographers.listAll();
     expect(choreographers.map((c) => c.name), contains('Gene Hubert'));
 
-    // Chip shown, then save and confirm it is attached to the dance.
-    expect(find.widgetWithText(InputChip, 'Gene Hubert'), findsOneWidget);
+    // Shown in the field, then save and confirm it is attached to the dance.
+    expect(_pickedNames(tester, 'author'), ['Gene Hubert']);
     await tester.enterText(
       find.byKey(const ValueKey('title-field')),
       'With Author',
@@ -1008,9 +987,8 @@ void main() {
     expect(titleEditable.focusNode.hasPrimaryFocus, isFalse);
   });
 
-  testWidgets('author chip opens details dialog and saves shared edits', (
-    tester,
-  ) async {
+  testWidgets("an author's edit button opens details and saves shared "
+      "edits", (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.choreographers.upsert(
@@ -1018,18 +996,13 @@ void main() {
     );
     await _pumpEditor(tester, repos, danceId: null);
 
-    // Add the existing author, then edit via the chip.
-    await tester.enterText(find.byKey(const ValueKey('author-input')), 'Gene');
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('author-option-c1')));
-    await tester.pumpAndSettle();
+    // Add the existing author, then edit them from the list.
+    await _pick(tester, 'author', 'Gene', 'c1');
+    expect(_pickedNames(tester, 'author'), ['Gene Hubert']);
+    await _editPicked(tester, 'author', 'c1');
 
-    // The author chip is an editable InputChip; tapping its body opens the
-    // dialog.
-    expect(find.widgetWithText(InputChip, 'Gene Hubert'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('author-chip-c1')));
-    await tester.pumpAndSettle();
-
+    // The list closed, and the dialog is open.
+    expect(find.byKey(const ValueKey('author-input')), findsNothing);
     expect(find.text('Author details'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('choreographer-name-field')),
@@ -1046,11 +1019,11 @@ void main() {
     final saved = await repos.choreographers.getById('c1');
     expect(saved!.name, 'Gene H.');
     expect(saved.email, 'gene@example.com');
-    // Chip label reflects the renamed author.
-    expect(find.widgetWithText(InputChip, 'Gene H.'), findsOneWidget);
+    // The field reads the renamed author.
+    expect(_pickedNames(tester, 'author'), ['Gene H.']);
   });
 
-  testWidgets('tag chips are not editable (no details dialog)', (tester) async {
+  testWidgets('tags have no edit button', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
@@ -1060,78 +1033,80 @@ void main() {
     await _pumpEditor(tester, repos);
 
     await _expandMoreDetails(tester);
+    await _openPicker(tester, 'tag');
+
+    expect(find.byKey(const ValueKey('tag-option-t1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('tag-edit-t1')), findsNothing);
+  });
+
+  testWidgets('a name found by typing is checked, the search clears and '
+      'keeps focus, and the next name can be typed straight away', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't2', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1', 't2']),
+    );
+    await _pumpEditor(tester, repos);
+    await _expandMoreDetails(tester);
+    await _openPicker(tester, 'tag');
+
+    TextField search() =>
+        tester.widget<TextField>(find.byKey(const ValueKey('tag-input')));
+    bool checked(String id) => tester
+        .widget<CheckboxListTile>(find.byKey(ValueKey('tag-option-$id')))
+        .value!;
 
     await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('tag-option-t1')));
     await tester.pumpAndSettle();
+    expect(search().controller!.text, isEmpty);
+    expect(search().focusNode!.hasFocus, isTrue);
+    expect(checked('t1'), isTrue);
 
-    // Tag chips stay plain, non-tappable Chips — never InputChips.
-    expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
-    expect(find.widgetWithText(InputChip, 'flowy'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('tag-chip-t1')));
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'smooth');
     await tester.pumpAndSettle();
-    expect(find.text('Author details'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('tag-option-t2')));
+    await tester.pumpAndSettle();
+    expect(checked('t1'), isTrue);
+    expect(checked('t2'), isTrue);
+
+    await _closePicker(tester, 'tag');
+    expect(_pickedNames(tester, 'tag'), ['flowy', 'smooth']);
   });
 
-  testWidgets(
-    'committing a tag clears the input, keeps focus, and supports back-to-back adds',
-    (tester) async {
-      final repos = openTestRepositories();
-      // ignore: unused_result
-      await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
-      // ignore: unused_result
-      await repos.tags.upsert(Tag(id: 't2', name: 'smooth'));
-      await repos.dances.create(
-        _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1', 't2']),
-      );
-      await _pumpEditor(tester, repos);
-
-      await _expandMoreDetails(tester);
-
-      TextField tagField() =>
-          tester.widget<TextField>(find.byKey(const ValueKey('tag-input')));
-
-      // First tag: type, pick the existing option.
-      await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('tag-option-t1')));
-      await tester.pumpAndSettle();
-
-      expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
-      // The typed text is cleared and focus stays in the field so the next tag
-      // can be typed immediately (issue #402).
-      expect(tagField().controller!.text, isEmpty);
-      expect(tagField().focusNode!.hasFocus, isTrue);
-
-      // Second tag added straight away from the now-empty field.
-      await tester.enterText(find.byKey(const ValueKey('tag-input')), 'smooth');
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('tag-option-t2')));
-      await tester.pumpAndSettle();
-
-      expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
-      expect(find.widgetWithText(Chip, 'smooth'), findsOneWidget);
-      expect(tagField().controller!.text, isEmpty);
-    },
-  );
-
-  testWidgets('creating a new tag inline clears the input', (tester) async {
+  testWidgets('creating a new tag inline checks it and clears the search', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     await _pumpEditor(tester, repos);
 
     await _expandMoreDetails(tester);
-
+    await _openPicker(tester, 'tag');
     await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(Chip, 'sparkly'), findsOneWidget);
     final field = tester.widget<TextField>(
       find.byKey(const ValueKey('tag-input')),
     );
     expect(field.controller!.text, isEmpty);
+    // The new tag is listed, checked.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('tag-options')),
+        matching: find.text('sparkly'),
+      ),
+      findsOneWidget,
+    );
+    await _closePicker(tester, 'tag');
+    expect(_pickedNames(tester, 'tag'), ['sparkly']);
     expect(await repos.tags.listAll(), isEmpty);
   });
 
@@ -1145,10 +1120,7 @@ void main() {
       'Tagged dance',
     );
     await _expandMoreDetails(tester);
-    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
-    await tester.pumpAndSettle();
+    await _pick(tester, 'tag', 'sparkly', 'create:sparkly');
     await tester.tap(find.byKey(const ValueKey('save-dance')));
     await tester.pumpAndSettle();
 
@@ -1175,10 +1147,7 @@ void main() {
       'Rejected dance',
     );
     await _expandMoreDetails(tester);
-    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
-    await tester.pumpAndSettle();
+    await _pick(tester, 'tag', 'sparkly', 'create:sparkly');
 
     failingDances.failNextCreate = true;
     await tester.tap(find.byKey(const ValueKey('save-dance')));
@@ -1282,18 +1251,21 @@ void main() {
 
     await _expandMoreDetails(tester);
 
-    // Whitespace-only input never opens options, so nothing can be committed.
+    // Whitespace-only input is no search: the whole list shows, nothing is
+    // offered for creation, and Enter commits nothing.
+    await _openPicker(tester, 'tag');
     await tester.enterText(find.byKey(const ValueKey('tag-input')), '   ');
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('tag-option-t1')), findsNothing);
-    expect(find.byKey(const ValueKey('tag-chip-t1')), findsNothing);
+    expect(find.byKey(const ValueKey('tag-option-t1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('tag-option-create:')), findsNothing);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    await _closePicker(tester, 'tag');
+    expect(_pickedNames(tester, 'tag'), isEmpty);
 
     // The field is still usable: a real tag can still be added afterwards.
-    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('tag-option-t1')));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
+    await _pick(tester, 'tag', 'flowy', 't1');
+    expect(_pickedNames(tester, 'tag'), ['flowy']);
   });
 
   testWidgets(
@@ -1324,6 +1296,9 @@ void main() {
       );
 
       await tester.pumpWidget(harness(true));
+      await tester.tap(find.byKey(const ValueKey('tag-field')));
+      await tester.pumpAndSettle();
+      await _openPicker(tester, 'tag');
       await tester.enterText(
         find.byKey(const ValueKey('tag-input')),
         'sparkly',
@@ -1356,6 +1331,7 @@ void main() {
       );
       await _pumpEditor(tester, repos, danceId: null);
 
+      await _openPicker(tester, 'author');
       await tester.enterText(
         find.byKey(const ValueKey('author-input')),
         'Gene',
@@ -1364,7 +1340,14 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('author-option-c1')));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(InputChip, 'Gene Hubert'), findsOneWidget);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey('author-option-c1')),
+            )
+            .value,
+        isTrue,
+      );
       // The shared NamePicker clears + keeps focus for authors too, so the
       // guarantee can't silently regress for one field but not the other.
       final field = tester.widget<TextField>(
@@ -1391,6 +1374,7 @@ void main() {
       );
       await _pumpEditor(tester, repos, danceId: null);
 
+      await _openPicker(tester, 'author');
       await tester.enterText(
         find.byKey(const ValueKey('author-input')),
         'Gene Hubert',
@@ -1412,8 +1396,7 @@ void main() {
         find.textContaining("The new author wasn't created"),
         findsOneWidget,
       );
-      // Nothing attached, and the typed name is still there to act on.
-      expect(find.byType(InputChip), findsNothing);
+      // The typed name is still there to act on, and nothing is attached.
       expect(
         tester
             .widget<TextField>(find.byKey(const ValueKey('author-input')))
@@ -1421,6 +1404,8 @@ void main() {
             ?.text,
         'Gene Hubert',
       );
+      await _closePicker(tester, 'author');
+      expect(_pickedNames(tester, 'author'), isEmpty);
     },
   );
 
@@ -1574,6 +1559,9 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const ValueKey('custom-adj-add-option')),
     );
+    // The button is the last row of a lazy list, so the scroll lands a
+    // frame late; settle before tapping or the tap can miss below the screen.
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('custom-adj-add-option')));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -1616,6 +1604,9 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const ValueKey('custom-adj-add-option')),
     );
+    // The button is the last row of a lazy list, so the scroll lands a
+    // frame late; settle before tapping or the tap can miss below the screen.
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('custom-adj-add-option')));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -1730,6 +1721,8 @@ void main() {
     // ignore: unused_result
     await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Chris'));
     await _pumpEditor(tester, repos);
+
+    await _openPicker(tester, 'author');
 
     await tester.enterText(find.byKey(const ValueKey('author-input')), 'Chris');
     await tester.pumpAndSettle();
@@ -3086,10 +3079,7 @@ void main() {
 
       // Up front: More details is still collapsed.
       expect(find.byKey(const ValueKey('mixed-level-field')), findsNothing);
-      expect(
-        find.byKey(const ValueKey('interpreter-chip-pat')),
-        findsOneWidget,
-      );
+      expect(_pickedNames(tester, 'interpreter'), ['Pat Shaw']);
       expect(find.byKey(const ValueKey('composed-on-year')), findsOneWidget);
       expect(find.byKey(const ValueKey('interpreted-on-year')), findsOneWidget);
       final meter = find.byKey(const ValueKey('meter-field'));
@@ -3210,15 +3200,7 @@ void main() {
       final repos = await withEcdDance();
       await _pumpEditor(tester, repos, danceId: 'd1');
 
-      await tester.enterText(
-        find.byKey(const ValueKey('interpreter-input')),
-        'John',
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('interpreter-option-playford')),
-      );
-      await tester.pumpAndSettle();
+      await _pick(tester, 'interpreter', 'John', 'playford');
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
 
@@ -3233,10 +3215,10 @@ void main() {
       await _pumpEditor(tester, repos, danceId: 'd1');
 
       for (final (line, names, year) in [
-        ('authors-credit-line', 'author-input', 'composed-on-year'),
+        ('authors-credit-line', 'author-field', 'composed-on-year'),
         (
           'interpreters-credit-line',
-          'interpreter-input',
+          'interpreter-field',
           'interpreted-on-year',
         ),
       ]) {
@@ -3271,7 +3253,7 @@ void main() {
       );
 
       final namesBox = tester.getRect(
-        find.byKey(const ValueKey('author-input')),
+        find.byKey(const ValueKey('author-field')),
       );
       final yearBox = tester.getRect(
         find.byKey(const ValueKey('composed-on-year')),
@@ -3293,7 +3275,7 @@ void main() {
       );
 
       final namesBox = tester.getRect(
-        find.byKey(const ValueKey('author-input')),
+        find.byKey(const ValueKey('author-field')),
       );
       final yearBox = tester.getRect(
         find.byKey(const ValueKey('composed-on-year')),
@@ -3301,23 +3283,28 @@ void main() {
       expect(yearBox.top, greaterThanOrEqualTo(namesBox.bottom));
     });
 
-    testWidgets('an English credit picker keeps its typed text when its '
-        'line flips from beside the year to above it', (tester) async {
+    testWidgets('resizing the window closes an open list, and the credit '
+        'line flips with its names intact', (tester) async {
       final repos = await withEcdDance();
       await _pumpEditor(tester, repos, danceId: 'd1');
 
-      final input = find.byKey(const ValueKey('interpreter-input'));
-      await tester.enterText(input, 'Jo');
-      await tester.pumpAndSettle();
+      await _openPicker(tester, 'interpreter');
+      // The window itself resizes (MediaQuery), not only the test surface.
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(300, 3200);
+      addTearDown(tester.view.reset);
       await tester.binding.setSurfaceSize(const Size(300, 3200));
       await tester.pumpAndSettle();
 
-      final names = tester.getRect(input);
+      expect(find.byKey(const ValueKey('interpreter-input')), findsNothing);
+      final names = tester.getRect(
+        find.byKey(const ValueKey('interpreter-field')),
+      );
       final year = tester.getRect(
         find.byKey(const ValueKey('interpreted-on-year')),
       );
       expect(year.top, greaterThanOrEqualTo(names.bottom));
-      expect(tester.widget<TextField>(input).controller?.text, 'Jo');
+      expect(_pickedNames(tester, 'interpreter'), ['Pat Shaw']);
     });
 
     testWidgets('an English credit keeps a stored month and day until its '
@@ -3355,13 +3342,13 @@ void main() {
 
       expect(find.byKey(const ValueKey('improper-field')), findsNothing);
       expect(find.byKey(const ValueKey('meter-field')), findsNothing);
-      expect(find.byKey(const ValueKey('interpreter-input')), findsNothing);
+      expect(find.byKey(const ValueKey('interpreter-field')), findsNothing);
 
       await _expandMoreDetails(tester);
       expect(find.byKey(const ValueKey('improper-field')), findsNothing);
       final meter = find.byKey(const ValueKey('meter-field'));
       expect(tester.widget<TextFormField>(meter).controller?.text, '2/4');
-      expect(find.byKey(const ValueKey('interpreter-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('interpreter-field')), findsOneWidget);
       expect(find.byKey(const ValueKey('interpreted-on-year')), findsOneWidget);
     });
 
@@ -3706,10 +3693,7 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('draft-restore')));
         await tester.pumpAndSettle();
         await _expandMoreDetails(tester);
-        await tester.enterText(find.byKey(const ValueKey('tag-input')), 'easy');
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('tag-option-t-live')));
-        await tester.pumpAndSettle();
+        await _pick(tester, 'tag', 'easy', 't-live');
         await tester.tap(find.byKey(const ValueKey('save-dance')));
         await tester.pumpAndSettle();
 
@@ -4791,15 +4775,18 @@ void main() {
 
         // Author picker: option only exists if the choreographer cache was
         // re-read after the write above (the editor never queried it itself).
+        await _openPicker(tester, 'author');
         await tester.enterText(
           find.byKey(const ValueKey('author-input')),
           'Gene',
         );
         await tester.pumpAndSettle();
         expect(find.byKey(const ValueKey('author-option-c1')), findsOneWidget);
+        await _closePicker(tester, 'author');
 
         // Tag picker (Tier 2 — must expand "More details" first).
         await _expandMoreDetails(tester);
+        await _openPicker(tester, 'tag');
         await tester.enterText(
           find.byKey(const ValueKey('tag-input')),
           'flowy',
@@ -4871,6 +4858,7 @@ void main() {
         // above are evidence the reload is scoped correctly rather than
         // evidence that nothing happened.
         await _expandMoreDetails(tester);
+        await _openPicker(tester, 'tag');
         await tester.enterText(
           find.byKey(const ValueKey('tag-input')),
           'unrelated',
@@ -4880,6 +4868,7 @@ void main() {
           find.byKey(const ValueKey('tag-option-t-unrelated')),
           findsOneWidget,
         );
+        await _closePicker(tester, 'tag');
 
         // Save still works: the draft was never disturbed.
         await tester.tap(find.byKey(const ValueKey('save-dance')));
@@ -5329,4 +5318,65 @@ class _NonlinearTextScaler extends TextScaler {
   @override
   // The linear equivalent the framework asks for in a few places.
   double get textScaleFactor => 2;
+}
+
+/// Opens the [field] name picker's list (`author`, `interpreter`, `tag`),
+/// unless it is already open.
+Future<void> _openPicker(WidgetTester tester, String field) async {
+  if (find.byKey(ValueKey('$field-input')).evaluate().isNotEmpty) return;
+  final closed = find.byKey(ValueKey('$field-field'));
+  await tester.ensureVisible(closed);
+  await tester.pumpAndSettle();
+  await tester.tap(closed);
+  await tester.pumpAndSettle();
+}
+
+/// Closes the [field] name picker's list with its Done button.
+Future<void> _closePicker(WidgetTester tester, String field) async {
+  await tester.tap(find.byKey(ValueKey('$field-done')));
+  await tester.pumpAndSettle();
+}
+
+/// Opens the [field] picker, types [query], checks the option keyed
+/// [option] (an id, or `create:<name>`), and closes the list.
+Future<void> _pick(
+  WidgetTester tester,
+  String field,
+  String query,
+  String option,
+) async {
+  await _openPicker(tester, field);
+  await tester.enterText(find.byKey(ValueKey('$field-input')), query);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('$field-option-$option')));
+  await tester.pumpAndSettle();
+  await _closePicker(tester, field);
+}
+
+/// Unchecks [id] in the [field] picker, and closes the list.
+Future<void> _unpick(WidgetTester tester, String field, String id) async {
+  await _openPicker(tester, field);
+  await tester.tap(find.byKey(ValueKey('$field-option-$id')));
+  await tester.pumpAndSettle();
+  await _closePicker(tester, field);
+}
+
+/// Opens the details of [id] from the [field] picker's edit button.
+Future<void> _editPicked(WidgetTester tester, String field, String id) async {
+  await _openPicker(tester, field);
+  await tester.tap(find.byKey(ValueKey('$field-edit-$id')));
+  await tester.pumpAndSettle();
+}
+
+/// The names the closed [field] picker reads, in order.
+List<String> _pickedNames(WidgetTester tester, String field) {
+  final text = tester
+      .widget<Text>(
+        find.descendant(
+          of: find.byKey(ValueKey('$field-field')),
+          matching: find.byKey(ValueKey('$field-names')),
+        ),
+      )
+      .data!;
+  return text.isEmpty ? const [] : text.split(', ');
 }

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
@@ -72,8 +73,133 @@ List<String> _titlesInOrder(WidgetTester tester) => tester
     .map((t) => t.program.title)
     .toList();
 
+/// New program with program templates (#2337): the chooser appears only with
+/// two or more templates, and its pick reaches the create flow.
+void _templateChooserTests() {
+  Future<List<ProgramTemplateChoice>> pumpCapturing(
+    WidgetTester tester,
+    CompendiumRepositories repos,
+  ) async {
+    final choices = <ProgramTemplateChoice>[];
+    await tester.binding.setSurfaceSize(const Size(600, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: ProgramsListScreen(onCreateProgram: choices.add),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return choices;
+  }
+
+  Future<void> seed(CompendiumRepositories repos, int count) async {
+    final ids = <String>[];
+    for (var i = 0; i < count; i++) {
+      ids.add('t$i');
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(id: 't$i', name: 'Template $i'),
+      );
+    }
+    await saveProgramTemplateOrder(repos.settings, ids);
+  }
+
+  for (final count in [0, 1]) {
+    testWidgets('with $count template(s), New program opens the builder '
+        'directly', (tester) async {
+      final repos = openTestRepositories();
+      await seed(repos, count);
+      final choices = await pumpCapturing(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('program-template-chooser')),
+        findsNothing,
+      );
+      expect(choices, [const ProgramTemplateChoice.useDefault()]);
+    });
+  }
+
+  testWidgets('with two or more, New program asks, default first and marked', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos, 3);
+    await saveProgramTemplateDefault(repos.settings, 't2');
+    final choices = await pumpCapturing(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('program-template-chooser')),
+      findsOneWidget,
+    );
+    final order = [
+      for (final tile in tester.widgetList<ListTile>(
+        find.descendant(
+          of: find.byKey(const ValueKey('program-template-chooser')),
+          matching: find.byType(ListTile),
+        ),
+      ))
+        if (tile.key case ValueKey<String>(:final value)) value,
+    ];
+    expect(order, [
+      'program-template-choice-t2',
+      'program-template-choice-t0',
+      'program-template-choice-t1',
+      'program-template-choice-blank',
+    ]);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-template-choice-t2')),
+        matching: find.text('Default'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('program-template-choice-t1')));
+    await tester.pumpAndSettle();
+    expect(choices, [const ProgramTemplateChoice.template('t1')]);
+  });
+
+  testWidgets('Blank program is first and marked when it is the default, and '
+      'dismissing the chooser creates nothing', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos, 2);
+    final choices = await pumpCapturing(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+    await tester.pumpAndSettle();
+    final firstChoice = tester
+        .widgetList<ListTile>(
+          find.descendant(
+            of: find.byKey(const ValueKey('program-template-chooser')),
+            matching: find.byType(ListTile),
+          ),
+        )
+        .elementAt(1);
+    expect(firstChoice.key, const ValueKey('program-template-choice-blank'));
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(choices, isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('program-template-choice-blank')),
+    );
+    await tester.pumpAndSettle();
+    expect(choices, [const ProgramTemplateChoice.blank()]);
+  });
+}
+
 void main() {
   group('type filter (ADR-006)', _formFilterTests);
+  group('New program and program templates (#2337)', _templateChooserTests);
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   testWidgets('compact import menu uses action labels and opens both sources', (

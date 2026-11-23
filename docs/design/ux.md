@@ -189,10 +189,18 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   wording override. The row reads with the figure's current wording, and a save
   stores that line beside it. A row whose figure is gone says so and keeps its
   line.
-- Metadata form with author autocomplete (choreographer table), formation
+- Metadata form with author pickers (choreographer table), formation
   picker, custom fields.
+- **Name pickers** (Authors, Interpreted by, Tags) are multi-select
+  dropdowns: the closed field reads the chosen names as text, and opens a
+  list of every name with a checkbox, a search box that narrows it, a row
+  that creates a typed name nobody has, and (for people) an edit button per
+  row. They replaced a row of removable chips over a type-ahead, which the
+  maintainer found cluttered and hard to use (22 November 2026). The list
+  drops down under the field on a wide window and is a bottom sheet on a
+  phone or short window, above the keyboard.
 - **Field labels**: a text field or dropdown carries a floating label inside
-  the field (Title, Type, Formation); a chip group (authors, tags) or a
+  the field (Title, Type, Formation); a name picker (authors, tags) or a
   repeating group of fields (tunes, links, sources, related dances, custom
   fields) keeps a heading above it, because a floating label belongs to one
   field, not a group.
@@ -222,6 +230,17 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   or elsewhere, hidden by Hide archived, or by the Show archived reset when
   Programs is left), including a selection handed over by a rotation. Restoring a program from Recently deleted
   unarchives it; a delete's Undo does not.
+- New program (#2337): with two or more program templates, New program first
+  opens a short bottom sheet titled "Start from a template", listing the
+  templates in the user's order with the Default template first and marked
+  "Default", and **Blank program** (first and marked when it is the default,
+  otherwise last). Dismissing the sheet cancels. With zero or one template
+  there is no sheet: the builder opens on the Default template, so the common
+  case costs no extra tap. The templates are managed in Settings ▸ Defaults ▸
+  Program defaults ▸ Program templates, a full-screen manager that floats
+  **New template** once it has a list (the empty state carries its own
+  button), reorders by drag or move up / move down, and offers Rename,
+  Duplicate and Delete (with Undo) from each row's ⋮ menu.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called
   history filtering, and Collection's Search in, sort (session-only, opening in

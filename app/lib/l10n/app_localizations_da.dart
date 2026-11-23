@@ -2590,10 +2590,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => 'Startprogram';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      'Danse og noter, der føjes til manuelt oprettede programmer.';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Tilføj en dans';
 
   @override
@@ -9287,6 +9283,9 @@ class AppLocalizationsDa extends AppLocalizations {
       'Skriv for at tilføje eller oprette…';
 
   @override
+  String get danceEditorChooseHint => 'Vælg…';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return 'Opret „$name“';
   }
@@ -12728,4 +12727,105 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Disse kort er større end papiret, så hvert kort blev udskrevet mindre, ét pr. side.';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'Programskabeloner';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skabeloner',
+      one: '1 skabelon',
+      zero: 'Ingen skabeloner endnu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => 'Standardskabelon';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      'Det, et nyt program starter fra, når du ikke bliver spurgt.';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => 'Startprogram';
+
+  @override
+  String get programTemplateBlankProgram => 'Tomt program';
+
+  @override
+  String get programTemplateDefaultBadge => 'Standard';
+
+  @override
+  String get programTemplateChooserTitle => 'Start fra en skabelon';
+
+  @override
+  String get programTemplateNew => 'Ny skabelon';
+
+  @override
+  String get programTemplatesEmptyTitle => 'Ingen skabeloner endnu';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'En skabelon er en startliste med danse, noter og pauser til én slags aften. Har du to eller flere, spørger Nyt program, hvilken du vil starte fra.';
+
+  @override
+  String get programTemplateNameLabel => 'Skabelonens navn';
+
+  @override
+  String get programTemplateRename => 'Omdøb';
+
+  @override
+  String get programTemplateRenameTitle => 'Omdøb skabelon';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name (kopi)';
+  }
+
+  @override
+  String get programTemplateUntitled => 'Unavngiven skabelon';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pladser',
+      one: '1 plads',
+      zero: 'Tom',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return 'Standard · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return 'Handlinger for $name';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'Rediger skabelon';
+
+  @override
+  String get programTemplateSlotsHeader => 'Pladser';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'Danse, noter og pauser, som et program lavet ud fra denne skabelon starter med.';
+
+  @override
+  String get programTemplatesLoadError =>
+      'Dine programskabeloner kunne ikke indlæses.';
+
+  @override
+  String get programTemplateSaveError =>
+      'Ændringen af dine skabeloner kunne ikke gemmes. Prøv igen.';
 }
