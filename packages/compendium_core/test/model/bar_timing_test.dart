@@ -126,6 +126,187 @@ void main() {
     });
   });
 
+  group('BarTiming.maxBarsWithin', () {
+    test('is as many whole bars as fit in the beats, from the start', () {
+      // Bars at 18 (3), 21 (3), 24 (2), 26 (2): 10 beats are 4 bars.
+      expect(timing.maxBarsWithin(18, 10), 4);
+      expect(timing.maxBarsWithin(18, 9), 3);
+      expect(timing.maxBarsWithin(24, 5), 2);
+      expect(timing.maxBarsWithin(0, 64), greaterThan(20));
+    });
+
+    test('is the beats over the bar for one bar length', () {
+      for (var perBar = 1; perBar <= 12; perBar++) {
+        for (var start = 0; start < 12; start++) {
+          for (var beats = 0; beats <= 64; beats++) {
+            expect(
+              BarTiming.fixed(perBar).maxBarsWithin(start, beats),
+              beats ~/ perBar,
+              reason: '$beats beats of $perBar from $start',
+            );
+          }
+        }
+      }
+    });
+  });
+
+  group('BarTiming.doubledBeatsForHalfBars', () {
+    test('counts a half bar even where it is not a whole number of beats', () {
+      expect(timing.doubledBeatsForHalfBars(0, 1), 3);
+      expect(timing.doubledBeatsForHalfBars(0, 8), 24);
+      // Two bars of 3, then half a bar of the 2-beat phrase.
+      expect(timing.doubledBeatsForHalfBars(18, 5), 14);
+    });
+
+    test('is the half bars times the bar for one bar length', () {
+      for (var perBar = 1; perBar <= 12; perBar++) {
+        for (var halfBars = 0; halfBars <= 30; halfBars++) {
+          expect(
+            BarTiming.fixed(perBar).doubledBeatsForHalfBars(5, halfBars),
+            halfBars * perBar,
+            reason: '$halfBars half bars of $perBar',
+          );
+        }
+      }
+    });
+  });
+
+  group('BarTiming.beatsPerBarOfHalfAt', () {
+    test('is the bar the last half bar falls in', () {
+      expect(timing.beatsPerBarOfHalfAt(18, 1), 3);
+      // Two whole bars from 18 end at 24, where the half bar is B's.
+      expect(timing.beatsPerBarOfHalfAt(18, 5), 2);
+      expect(timing.beatsPerBarOfHalfAt(0, 1), 3);
+      expect(timing.beatsPerBarOfHalfAt(24, 3), 2);
+    });
+  });
+
+  group('barTimingFor', () {
+    final mixed = PhraseStructure.parse('A:2*4*3 + B:1*8*2');
+
+    test('counts a tune whose phrases differ by phrase, whatever the Meter '
+        'states', () {
+      for (final meter in ['', '3/4', '3/4 and 6/8', 'a jig']) {
+        expect(
+          barTimingFor(DanceForm.ecd, mixed, meter: meter),
+          timing,
+          reason: 'Meter "$meter"',
+        );
+      }
+    });
+
+    test('counts a tune in one meter by one bar length, as it always has', () {
+      expect(
+        barTimingFor(DanceForm.ecd, PhraseStructure.parse('4*8*3')),
+        const BarTiming.fixed(3),
+      );
+      expect(
+        barTimingFor(
+          DanceForm.ecd,
+          PhraseStructure.parse('4*8*3'),
+          meter: '6/8',
+        ),
+        const BarTiming.fixed(2),
+      );
+      expect(
+        barTimingFor(DanceForm.ecd, PhraseStructure.standard),
+        const BarTiming.fixed(2),
+      );
+    });
+
+    test('leaves any other form in beats', () {
+      expect(barTimingFor(DanceForm.contra, mixed), isNull);
+      expect(barTimingFor(DanceForm.contra, PhraseStructure.standard), isNull);
+    });
+  });
+
+  group('PhraseStructure.longestPhraseStart', () {
+    test('is where the longest phrase starts', () {
+      // A is 12 beats, B is 16.
+      expect(PhraseStructure.parse('A:2*4*3 + B:1*8*2').longestPhraseStart, 24);
+      expect(PhraseStructure.parse('A:1*8*2 + B:1*4*2').longestPhraseStart, 0);
+      expect(PhraseStructure.standard.longestPhraseStart, 0);
+    });
+
+    test('is the first of phrases tied for longest that agree in bars', () {
+      expect(PhraseStructure.parse('A:1*8*2 + B:1*8*2').longestPhraseStart, 0);
+    });
+
+    test('is null where phrases tied for longest differ in bars', () {
+      // Both are 16 beats: 8 bars of 2, and 4 bars of 4.
+      expect(
+        PhraseStructure.parse('A:1*8*2 + B:1*4*4').longestPhraseStart,
+        isNull,
+      );
+    });
+  });
+
+  group('childStartBeats', () {
+    Figure step(int beats) => customFigure('x', beats: beats);
+
+    test('a sequence\'s steps follow one another', () {
+      final sequence = Figure.sequence(
+        figures: [step(10), step(6), step(4)],
+        beats: 20,
+      );
+      expect(childStartBeats(sequence, 18), [18, 28, 34]);
+    });
+
+    test('a meanwhile\'s sides and a modifier\'s parts start with it', () {
+      final meanwhile = Figure.meanwhile(figures: [step(6), step(6)], beats: 6);
+      expect(childStartBeats(meanwhile, 18), [18, 18]);
+      final modifier = Figure.modifier(figures: [step(6), step(0)], beats: 6);
+      expect(childStartBeats(modifier, 18), [18, 18]);
+    });
+  });
+
+  group('the phrase warnings carry where they start', () {
+    // A is 12 beats (A1, A2 of 4 bars of 3), B is 8 (4 bars of 2).
+    final structure = PhraseStructure.parse('A:2*4*3 + B:1*4*2');
+
+    Figure step(int beats) => customFigure('x', beats: beats);
+
+    test('a sequence longer than a phrase has its start and its limit\'s', () {
+      final issues = <ValidationIssue>[];
+      deriveSections(
+        [
+          step(6),
+          Figure.sequence(figures: [step(7), step(7)], beats: 14),
+        ],
+        structure,
+        issues: issues,
+      );
+      final issue = issues.singleWhere(
+        (i) => i.code == 'sequence_exceeds_phrase',
+      );
+      expect(issue.data['startBeat'], 6);
+      expect(issue.data['limit'], 12);
+      expect(issue.data['limitStart'], 0);
+    });
+
+    test('a sequence inside a meanwhile starts with the meanwhile', () {
+      final issues = <ValidationIssue>[];
+      deriveSections(
+        [
+          step(20),
+          Figure.meanwhile(
+            figures: [
+              Figure.sequence(figures: [step(7), step(7)], beats: 14),
+              step(14),
+            ],
+            beats: 14,
+          ),
+        ],
+        structure,
+        issues: issues,
+      );
+      final issue = issues.singleWhere(
+        (i) => i.code == 'sequence_exceeds_phrase',
+      );
+      expect(issue.data['startBeat'], 20);
+    });
+  });
+
   group('BarTiming.fixed', () {
     test('reads and counts as one bar length wherever the figure starts', () {
       for (var perBar = 1; perBar <= 12; perBar++) {

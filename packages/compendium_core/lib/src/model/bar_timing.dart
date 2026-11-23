@@ -84,6 +84,27 @@ class BarTiming {
     return (text: whole == 0 ? '½' : '$whole½', halfBars: whole * 2 + 1);
   }
 
+  /// Most whole bars from [start] that fit within [maxBeats] beats.
+  int maxBarsWithin(int start, int maxBeats) {
+    // Red-run stub: one bar length for the whole count.
+    return maxBeats ~/ beatsPerBarAt(0);
+  }
+
+  /// Twice the beats of [halfBars] half bars from [start], counted even where
+  /// the half bar is not a whole number of beats: the beats range check on a
+  /// typed count compares it to twice the range's top.
+  int doubledBeatsForHalfBars(int start, int halfBars) {
+    // Red-run stub: one bar length for the whole count.
+    return halfBars * beatsPerBarAt(0);
+  }
+
+  /// Beats in the bar that the last half bar of [halfBars] half bars from
+  /// [start] falls in: the bar a refused half bar is refused in.
+  int beatsPerBarOfHalfAt(int start, int halfBars) {
+    // Red-run stub: the bar at the start.
+    return beatsPerBarAt(start);
+  }
+
   @override
   bool operator ==(Object other) =>
       other is BarTiming &&

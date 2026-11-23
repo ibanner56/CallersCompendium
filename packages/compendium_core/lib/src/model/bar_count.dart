@@ -1,4 +1,5 @@
 import '../imports/ecd_bars.dart';
+import 'bar_timing.dart';
 import 'enums.dart';
 import 'phrase_structure.dart';
 
@@ -25,6 +26,21 @@ int? danceBeatsPerBar(
   if (perBar.length != 1) return null;
   final stated = ecdBeatsPerBar(meter);
   return stated.stated ? stated.beatsPerBar : perBar.single;
+}
+
+/// How a dance of [form] set to [structure] in [meter] counts its figures in
+/// bars, or null where they are counted in beats: [danceBeatsPerBar]'s one bar
+/// length where the phrases agree (so a dance in one meter reads as ever), and
+/// each phrase's own where they differ (#2303), whatever [meter] states.
+BarTiming? barTimingFor(
+  DanceForm form,
+  PhraseStructure structure, {
+  String meter = '',
+}) {
+  // Red-run stub: the old rule, which counts a tune whose parts differ in
+  // beats.
+  final perBar = danceBeatsPerBar(form, structure, meter: meter);
+  return perBar == null ? null : BarTiming.fixed(perBar);
 }
 
 /// [beats] as a count of bars of [beatsPerBar] beats, such as "4" or "1½",

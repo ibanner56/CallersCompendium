@@ -244,6 +244,14 @@ class PhraseStructure {
         component.beatsPerPhrase > longest ? component.beatsPerPhrase : longest,
   );
 
+  /// The beat at which the longest phrase ([longestPhraseBeats]) starts, so
+  /// that its length reads in the bars of its own part of the tune; null where
+  /// phrases tied for longest differ in bars, which no one bar length reads.
+  int? get longestPhraseStart {
+    // Red-run stub.
+    return null;
+  }
+
   /// The persisted representation (`""` for standard).
   final String raw;
 
@@ -538,6 +546,14 @@ List<SectionedFigure> deriveSections(
     );
   }
   return result;
+}
+
+/// The beats at which each child of [container] starts, [containerStart] being
+/// the container's own start: a sequence's steps one after another, and a
+/// meanwhile's sides and a modifier's parts all with the container.
+List<int> childStartBeats(Figure container, int containerStart) {
+  // Red-run stub: every child starts with the container.
+  return [for (final _ in container.subFigures) containerStart];
 }
 
 /// Whether [sequence], a `sequence` container, is counted longer than one

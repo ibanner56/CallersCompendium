@@ -20,7 +20,7 @@
 /// English defaults are the single source of truth mirrored into `app_en.arb`.
 library;
 
-import '../model/bar_count.dart';
+import '../model/bar_timing.dart';
 
 String _englishBeats(int beats) => '$beats ${beats == 1 ? 'beat' : 'beats'}';
 
@@ -119,11 +119,11 @@ class DanceExportLabels {
   /// [beatsPerBar] beats for a dance timed in bars ([danceBeatsPerBar]), or in
   /// beats where [beatsPerBar] is null or the count is not a whole number of
   /// half bars, as the editor shows it.
-  String count(int beats, int? beatsPerBar) {
-    final text = beatsPerBar == null ? null : barsText(beats, beatsPerBar);
-    return text == null
+  String count(int beats, BarTiming? timing, [int startBeat = 0]) {
+    final counted = timing?.barsTextAt(startBeat, beats);
+    return counted == null
         ? this.beats(beats)
-        : bars(text, beats * 2 ~/ beatsPerBar!);
+        : bars(counted.text, counted.halfBars);
   }
 
   /// Page footer of the dance PDF, e.g. `"Page 2 of 3"`.
