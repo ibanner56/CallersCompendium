@@ -47,6 +47,15 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **A waiting couple chains on either diagonal (2026-11-23)**: a couple
+> waiting out at an end now takes part in a diagonal chain from whichever line
+> its chaining dancer stands on (user-ruled, on Ragtime Annie, 10098); a
+> dancer stays put only when no couple stands on that diagonal. Against
+> `rubric` at `c1f98f57` the count is unchanged at 3,874 of 5,119 compiled in
+> scope (75.7%) and the core set at 519; no dance changed status, and six
+> still-failing dances report different detail. Ragtime Annie itself still
+> fails, at its figure 5 swing.
+>
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
 > Double dance flags its second progression by the first N3 mention and a
 > Triple its third by the first N4 (user-ruled). Against `rubric` at
