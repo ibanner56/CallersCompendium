@@ -185,4 +185,44 @@ void main() {
     expect(_fieldText(tester, 'cf-num-fn-lo'), '5');
     expect(facets.numberValues, isEmpty);
   });
+
+  testWidgets('text typed that is no value yet is emptied by Clear all', (
+    tester,
+  ) async {
+    // Between with only its lower bound, and spaces in a text filter, write
+    // nothing, so nothing in the facets changes when they are cleared; the
+    // fields must empty anyway, or a later bound would make a filter the user
+    // thinks they cleared.
+    final facets = FacetSelections()..minRating = 3;
+    final host = await _pump(tester, facets);
+    await tester.tap(find.byKey(const ValueKey('cf-num-fn-between')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('cf-num-fn-lo')), '5');
+    await tester.enterText(
+      find.byKey(const ValueKey('cf-text-ft-input')),
+      '   ',
+    );
+    await tester.pumpAndSettle();
+    expect(facets.numberValues, isEmpty);
+    expect(facets.textValues, isEmpty);
+
+    // What a host's Clear all does.
+    facets.clear();
+    host.currentState!.rebuild();
+    await tester.pumpAndSettle();
+    expect(_fieldText(tester, 'cf-num-fn-lo'), isEmpty);
+    expect(_fieldText(tester, 'cf-text-ft-input'), isEmpty);
+  });
+
+  testWidgets('a half-typed "-" is emptied by a state with no value for the '
+      'field', (tester) async {
+    final host = await _pump(tester, FacetSelections());
+    await tester.enterText(find.byKey(const ValueKey('cf-num-fn-lo')), '-');
+    await tester.pumpAndSettle();
+    expect(_fieldText(tester, 'cf-num-fn-lo'), '-');
+
+    host.currentState!.replace(FacetSelections());
+    await tester.pumpAndSettle();
+    expect(_fieldText(tester, 'cf-num-fn-lo'), isEmpty);
+  });
 }

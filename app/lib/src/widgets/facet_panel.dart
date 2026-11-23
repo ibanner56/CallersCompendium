@@ -1306,11 +1306,15 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
   /// outside and is shown instead ([didUpdateWidget]).
   TextFacetState? _shown;
 
+  /// [FacetSelections.clearCount] when the field last showed the facets.
+  int _clears = 0;
+
   @override
   void initState() {
     super.initState();
     final existing = widget.facets.textValues[widget.def.id];
     _shown = existing;
+    _clears = widget.facets.clearCount;
     _controller = TextEditingController(text: existing?.value ?? '');
     if (existing != null) _op = existing.op;
   }
@@ -1322,9 +1326,15 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
     // place of this one (a saved search). Show the new value, whatever it
     // is, or the field would keep showing the old text while the new one
     // filters. The field's own writes are [_shown] already, so typing is
-    // never rewritten under the cursor.
+    // never rewritten under the cursor. Text that is no value yet (spaces)
+    // writes nothing, so a clear, or other selections put in place, is told
+    // apart by [FacetSelections.clearCount] and the facets' identity.
+    final reset =
+        !identical(widget.facets, oldWidget.facets) ||
+        widget.facets.clearCount != _clears;
+    _clears = widget.facets.clearCount;
     final current = widget.facets.textValues[widget.def.id];
-    if (identical(current, _shown)) return;
+    if (!reset && identical(current, _shown)) return;
     _shown = current;
     final text = current?.value ?? '';
     if (_controller.text != text) _controller.text = text;
@@ -1457,11 +1467,15 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
   /// The value the fields show; see [_TextFieldFacetState._shown].
   NumberFacetState? _shown;
 
+  /// See [_TextFieldFacetState._clears].
+  int _clears = 0;
+
   @override
   void initState() {
     super.initState();
     final existing = widget.facets.numberValues[widget.def.id];
     _shown = existing;
+    _clears = widget.facets.clearCount;
     _lo = TextEditingController(
       text: existing != null ? existing.lo.toString() : '',
     );
@@ -1474,9 +1488,14 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
     super.didUpdateWidget(oldWidget);
     // As for the text facet: a value the parent set (Clear all, or a whole
     // panel state put in place) is shown, whatever it is; the fields' own
-    // writes are not, so a half-typed "-" or a lone lower bound stays.
+    // writes are not, so a half-typed "-" or a lone lower bound stays —
+    // until a clear or other selections put in place, which empty it too.
+    final reset =
+        !identical(widget.facets, oldWidget.facets) ||
+        widget.facets.clearCount != _clears;
+    _clears = widget.facets.clearCount;
     final current = widget.facets.numberValues[widget.def.id];
-    if (identical(current, _shown)) return;
+    if (!reset && identical(current, _shown)) return;
     _shown = current;
     final lo = current == null ? '' : current.lo.toString();
     final hi = current?.hi?.toString() ?? '';

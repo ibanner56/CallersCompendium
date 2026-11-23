@@ -299,7 +299,19 @@ class FacetSelections {
       textValues.values.where((s) => s.isEffective).length +
       numberValues.values.where((s) => s.isEffective).length;
 
+  /// How many times [clear], or a [clearFacets] that cleared something, has
+  /// run on these selections. In memory only, never stored.
+  ///
+  /// A custom text or number filter's field can hold text the user typed that
+  /// is no value yet (a lone "-", Between's first bound, spaces), so its
+  /// selection here is empty both before and after a clear; the field reads
+  /// this to tell a clear from a rebuild its own typing caused, and empties
+  /// itself only for the first.
+  int get clearCount => _clearCount;
+  int _clearCount = 0;
+
   void clear() {
+    _clearCount++;
     forms.clear();
     formations.clear();
     progressions.clear();
@@ -381,6 +393,7 @@ class FacetSelections {
     var changed = false;
     for (final id in ids) {
       if (!hasSelectionFor(id)) continue;
+      if (!changed) _clearCount++;
       changed = true;
       switch (id) {
         case CollectionFacetIds.form:
