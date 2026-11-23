@@ -92,7 +92,9 @@ class ShareSetListCallerBandScope
   }
 }
 
-/// Whether a shared or copied set list includes the date and venue. A live [ValueNotifier]; `true` (the default) when no scope is
+/// Whether a shared or copied set list includes the date, the program's start,
+/// end and lesson times, and the venue (never Arrive by, which no set list
+/// carries). A live [ValueNotifier]; `true` (the default) when no scope is
 /// mounted. Use [ShareSetListDateVenueScope.notifierOf] to change it from Settings.
 class ShareSetListDateVenueScope
     extends InheritedNotifier<ValueNotifier<bool>> {

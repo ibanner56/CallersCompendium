@@ -129,6 +129,9 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   text renderer); [ProgramExportLabels.unknownDance] (`labels.unknownDance`)
 ///   is used when it returns null.
 /// - [formatDate] formats the event date; defaults to ISO `yyyy-MM-dd`.
+/// - [formatTime] formats the start, end and lesson times (minutes after
+///   midnight); defaults to 24-hour `HH:mm`. Arrive by is never printed: the
+///   PDF is made for other people (#2350).
 /// - [venuesById] maps venue ids to the loaded [Venue] records. When the
 ///   program links a resolvable venue ([Program.venueId]), its
 ///   [Venue.displayName] wins in the header date·venue line and a richer venue
@@ -174,6 +177,7 @@ Future<Uint8List> buildProgramPdf(
   required String? Function(String danceId) titleFor,
   Map<String, Venue> venuesById = const {},
   String Function(DateTime date)? formatDate,
+  String Function(int minuteOfDay)? formatTime,
   ProgramExportLabels labels = const ProgramExportLabels(),
   pw.ThemeData? theme,
   List<({Dance dance, bool isAlternate})>? appendDances,
@@ -209,6 +213,9 @@ Future<Uint8List> buildProgramPdf(
     program,
     venueNameFor: (_) => venueText.headerLabel,
     formatDate: formatDate,
+    // Start, end and lesson only: the header never prints Arrive by, the
+    // caller's own logistics (maintainer ruling, #2350).
+    formatTime: formatTime,
     labels: labels,
     renderer: fig,
     dialect: resolvedDialect,
@@ -518,6 +525,11 @@ List<pw.Widget> _slotWidgets(
 /// is printed only when it is in [includeVenueContact]. Callers pass the raw
 /// venue; they need no redaction of their own.
 ///
+/// When [program] records its own start or end time (#2350), the block leaves
+/// out the venue's free-text `time`: that is the series' usual schedule, and
+/// printing it beside this evening's times would give the reader two answers.
+/// A lesson time alone does not say when the dance runs, so it keeps it.
+///
 /// Extracted so the redaction is testable without decoding PDF bytes; it is the
 /// single path [buildProgramPdf] draws from.
 @visibleForTesting
@@ -541,6 +553,8 @@ List<pw.Widget> _slotWidgets(
         : _venueLines(
             sanitizeVenueForShare(linkedVenue, include: includeVenueContact),
             labels,
+            includeTime:
+                program.startMinute == null && program.endMinute == null,
           ),
   );
 }
@@ -549,10 +563,16 @@ List<pw.Widget> _slotWidgets(
 /// descriptive fields, then the contact lines that survived the consent
 /// choice. Each line/field is emitted only when present (relying on the model's
 /// trim/empty→null normalization) so an unset field never shows a placeholder.
-List<String> _venueLines(Venue venue, ProgramExportLabels labels) {
+/// [includeTime] is false when the program's own times replace the venue's.
+List<String> _venueLines(
+  Venue venue,
+  ProgramExportLabels labels, {
+  required bool includeTime,
+}) {
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
-    if (_has(venue.time)) '${labels.labelled(labels.time)}${venue.time}',
+    if (includeTime && _has(venue.time))
+      '${labels.labelled(labels.time)}${venue.time}',
     if (_has(venue.genericSchedule))
       '${labels.labelled(labels.schedule)}${venue.genericSchedule}',
     if (_has(venue.price)) '${labels.labelled(labels.price)}${venue.price}',

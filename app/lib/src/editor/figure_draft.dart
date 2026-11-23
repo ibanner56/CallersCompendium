@@ -993,6 +993,23 @@ class CompoundPlaceholder {
   );
 }
 
+/// The beats at which each child of [container], a group draft, starts, its
+/// own start being [containerStart]: a sequence's steps one after another (a
+/// step with no timing of its own adding none), and a meanwhile's sides and a
+/// modifier's parts with the group ([childStartBeats]).
+List<int> childStartBeatsOfDraft(FigureDraft container, int containerStart) {
+  final children = container.containerChildren ?? const <FigureDraft>[];
+  var start = containerStart;
+  return [
+    for (final child in children)
+      () {
+        final childStart = start;
+        if (container.containerKind == sequenceMove) start += child.beats;
+        return childStart;
+      }(),
+  ];
+}
+
 /// The beat at which a figure placed after [drafts] starts: the beats of the
 /// rows Save writes as figures ([FigureDraft.savesAsFigure]), as
 /// `deriveSections` counts the saved figures. A bar range in an English dance
