@@ -1,0 +1,9 @@
+{
+  "id": "suggestion-reason-dialects",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "With Suggestions on, the reason a dance is suggested (\"Same swing beats as the previous dance\") names a figure in the same dialect as its column in the program matrix: a figure of your own, or an English or square figure, in the dialect of its own type, rather than always your contra dialect. Nothing changes while your dialects are the same."
+    ]
+  }
+}

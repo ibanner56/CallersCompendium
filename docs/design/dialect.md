@@ -154,12 +154,14 @@ wording, saved unchanged, reads as the default line. Imported
   name a plain shorthand or a term. Import review's check that a shared
   figure's name is taken follows the figure's own form, as the Glossary's does.
   The dance list's advanced search names a figure of your own in the list's
-  dialect, whatever its form. So do the reasons the dance picker gives for a
-  suggestion ("overlaps with ..."): `SuggestionReasonLabels` takes the picker's
-  one dialect, so a column it names reads in that dialect where the program
-  matrix names the same column in its figure's form's. Program-wide text and the switch screen's names
-  for the app's figure, which is always one of contra's, also read in contra's
-  dialect. Plain shorthands are matched against contra's figures only, and read
+  dialect, whatever its form. The reasons the dance picker gives for a
+  suggestion ("Same ... beats as the previous dance") name a column as the
+  program matrix does, through `matrixColumnDialect`, so a reason and its
+  column read alike; the picker has no matrix to say which dances use a
+  figure with no prefix, so that figure reads in the form of the program's
+  dances when they are all of one form, and in contra's otherwise. Program-wide
+  text and the switch screen's names for the app's figure, which is always one
+  of contra's, read in contra's dialect. Plain shorthands are matched against contra's figures only, and read
   in contra's dialect.
   Program-wide text (notes, set lists) is rendered in contra's dialect, while
   each dance in a program renders in its own form's (implementer's call; the
