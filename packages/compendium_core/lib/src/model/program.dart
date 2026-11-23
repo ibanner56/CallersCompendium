@@ -570,14 +570,19 @@ class Program {
   ///
   /// The slot keeps its id, note, guest caller, lengths and performed mark,
   /// as the builder's **Replace…** does, so Perform stays on it. Unlike
-  /// Replace, the old dance is not dropped: when another member of the
+  /// Replace, the old dance is not dropped. When another member of the
   /// slot's alternate group ([alternateGroupRange]) already holds [danceId]
   /// and is not marked performed, the two members trade dances (the caller
-  /// chose one of their alternates); otherwise a new unmarked alternate
-  /// with id [alternateId] holding the old dance is inserted just after the
-  /// slot. Either way the old dance sits in an unmarked alternate, which
-  /// does not count toward calling history
-  /// ([ProgramSlot.countsTowardCallingHistory]).
+  /// chose one of their alternates); otherwise a new unmarked alternate with
+  /// id [alternateId] holding the old dance is inserted just after the slot.
+  ///
+  /// The dance swapped in is the one being called, so it lands on the
+  /// group's primary, which counts toward calling history
+  /// ([ProgramSlot.countsTowardCallingHistory]): when the slot is an
+  /// alternate (Perform's **Show alternate**), it becomes the group's primary,
+  /// moved to the front of the group, and the old primary becomes an
+  /// alternate. The swapped-out dance always ends on an unmarked alternate,
+  /// which does not count.
   ///
   /// Returns [slots] unchanged (as a copy) when the slot holds no dance or
   /// already holds [danceId].
@@ -592,25 +597,38 @@ class Program {
     final slot = next[index];
     final old = slot.danceId;
     if (old == null || old == danceId) return next;
-    next[index] = slot.copyWith(danceId: danceId);
     final range = alternateGroupRange(slots, index);
+    var traded = false;
     for (var i = range.start; i < range.end; i++) {
       if (i == index) continue;
       final member = next[i];
       if (member.danceId == danceId && member.performedAt == null) {
         next[i] = member.copyWith(danceId: old);
-        return next;
+        traded = true;
+        break;
       }
     }
-    next.insert(
-      index + 1,
-      ProgramSlot(
-        id: alternateId,
-        position: slot.position,
-        danceId: old,
-        isAlt: true,
-      ),
-    );
+    final swapped = slot.copyWith(danceId: danceId, isAlt: false);
+    // The slot leads its group already (a primary, or a leading orphaned
+    // alternate, which now plans its run): it stays where it is.
+    final front = slot.isAlt && index != range.start ? range.start : index;
+    next.removeAt(index);
+    if (front != index) {
+      // The old primary, now an alternate of the dance being called.
+      next[front] = next[front].copyWith(isAlt: true);
+    }
+    next.insert(front, swapped);
+    if (!traded) {
+      next.insert(
+        front + 1,
+        ProgramSlot(
+          id: alternateId,
+          position: slot.position,
+          danceId: old,
+          isAlt: true,
+        ),
+      );
+    }
     return next;
   }
 

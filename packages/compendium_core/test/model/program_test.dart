@@ -724,6 +724,75 @@ void main() {
       expect(next[3].performedAt, played);
     });
 
+    // Calling history counts the dance being called and never the one
+    // swapped out, in every trade and insert case.
+    Set<String?> counted(List<ProgramSlot> list) => {
+      for (final s in list)
+        if (s.countsTowardCallingHistory) s.danceId,
+    };
+    final group = [
+      ProgramSlot(id: 'p', position: 0, danceId: 'dp', text: 'plan'),
+      ProgramSlot(id: 'x', position: 1, danceId: 'dx', isAlt: true),
+      ProgramSlot(id: 'y', position: 2, danceId: 'dy', isAlt: true),
+      ProgramSlot(id: 'q', position: 3, danceId: 'dq'),
+    ];
+
+    test('on the primary, choosing another alternate trades with it', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        0,
+        danceId: 'dy',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['p', 'x', 'y', 'q']);
+      expect(next.map((s) => s.danceId), ['dy', 'dx', 'dp', 'dq']);
+      expect(counted(next), {'dy', 'dq'});
+    });
+
+    test('on an alternate, a new dance becomes the group\'s primary and the '
+        'old primary an alternate', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['x', 'kept', 'p', 'y', 'q']);
+      expect(next.map((s) => s.danceId), ['new', 'dx', 'dp', 'dy', 'dq']);
+      expect(next.map((s) => s.isAlt), [false, true, true, true, false]);
+      expect(next[2].text, 'plan', reason: 'each slot keeps its own fields');
+      expect(counted(next), {'new', 'dq'});
+      expect(Program.alternateGroupsForSlots(next), [0, 0, 0, 0, 1]);
+    });
+
+    test('on an alternate, choosing the primary\'s dance puts the bailed-on '
+        'dance on an alternate, not the primary', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        1,
+        danceId: 'dp',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['x', 'p', 'y', 'q']);
+      expect(next.map((s) => s.danceId), ['dp', 'dx', 'dy', 'dq']);
+      expect(next.map((s) => s.isAlt), [false, true, true, false]);
+      expect(counted(next), {'dp', 'dq'});
+    });
+
+    test('on an alternate, choosing another alternate trades with it and '
+        'leads the group', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        2,
+        danceId: 'dx',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['y', 'p', 'x', 'q']);
+      expect(next.map((s) => s.danceId), ['dx', 'dp', 'dy', 'dq']);
+      expect(next.map((s) => s.isAlt), [false, true, true, false]);
+      expect(counted(next), {'dx', 'dq'});
+    });
+
     test('a slot with no dance, or the same dance, is left alone', () {
       final note = [ProgramSlot(id: 'n', position: 0, text: 'Waltz')];
       expect(

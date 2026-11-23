@@ -555,6 +555,32 @@ void main() {
       expect(calls('d4'), 1, reason: 'the history is read at all');
     });
 
+    testWidgets('on a shown alternate, choosing the planned dance counts '
+        'that dance and not the alternate bailed on', (tester) async {
+      final h = await _pump(tester);
+      await _tap(tester, find.byKey(const ValueKey('perform-alt-swap')));
+      expect(find.text('Backup Jig'), findsWidgets);
+      await _openAdjust(tester);
+      await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+      // The planned dance is one of Your alternates here.
+      await _tap(tester, _pick('d1'));
+      await _tap(tester, find.byKey(const ValueKey('adjust-done')));
+
+      final group = h.persisted.single.slots.take(3).toList();
+      expect(group.map((s) => s.id), ['s0', 's1-alt', 's1']);
+      expect(group[1].danceId, 'd1');
+      expect(group[1].isAlt, isFalse);
+      expect(group[2].danceId, 'alt');
+      expect(group[2].isAlt, isTrue);
+
+      await h.repos.programs.create(h.persisted.single);
+      final data = await CollectionData.load(h.repos);
+      int calls(String id) =>
+          data.callCounts[id]?.countFor(false, requireEventDate: false) ?? 0;
+      expect(calls('d1'), 1);
+      expect(calls('alt'), 0, reason: 'bailed on: an unmarked alternate');
+    });
+
     testWidgets('choosing one of Your alternates trades the two dances', (
       tester,
     ) async {
