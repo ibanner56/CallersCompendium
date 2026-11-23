@@ -1559,6 +1559,9 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const ValueKey('custom-adj-add-option')),
     );
+    // The button is the last row of a lazy list, so the scroll lands a
+    // frame late; settle before tapping or the tap can miss below the screen.
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('custom-adj-add-option')));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -1601,6 +1604,9 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const ValueKey('custom-adj-add-option')),
     );
+    // The button is the last row of a lazy list, so the scroll lands a
+    // frame late; settle before tapping or the tap can miss below the screen.
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('custom-adj-add-option')));
     await tester.pumpAndSettle();
     await tester.enterText(
