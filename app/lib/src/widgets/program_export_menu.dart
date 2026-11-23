@@ -203,6 +203,48 @@ class ProgramExportMenu extends StatelessWidget {
     ];
   }
 
+  /// Resolves [dance]'s interpreter names via [choreographerFor], names only,
+  /// as [_authorNamesFor] does. An interpreter the collection no longer lists
+  /// (in Recently deleted) is left out.
+  List<String> _interpreterNamesFor(Dance dance) => [
+    for (final id in dance.interpreterIds)
+      if (choreographerFor?.call(id)?.name case final String name
+          when name.isNotEmpty)
+        name,
+  ];
+
+  /// Each slot's meter and key for the set list, such as
+  /// "Meter: 6/8 · Key: G minor", as the dance detail screen writes them, when
+  /// the Meter, key and Barnes share field is on; null, adding none, when it
+  /// is off or nothing resolves a dance. The values go through the
+  /// discouraged-term rendering, in each dance's own dialect.
+  String? Function(String danceId)? _tuneDetailsFor(BuildContext context) {
+    final resolveDance = danceFor;
+    if (resolveDance == null ||
+        !DanceShareFieldsScope.of(context).contains(DanceShareField.music)) {
+      return null;
+    }
+    final l10n = AppLocalizations.of(context);
+    final dialects = _dialects(context);
+    final renderer = UserFiguresScope.rendererOf(context);
+    final canonical = CanonicalDiscouragedTermsScope.of(context);
+    return (danceId) {
+      final dance = resolveDance(danceId);
+      if (dance == null) return null;
+      final dialect = dialects.forDance(dance);
+      return meterAndKeyLabel(
+        l10n,
+        dance,
+        render: (value) => canonical
+            ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                value,
+                dialect,
+              )
+            : renderer.renderFreeText(value, dialect),
+      );
+    };
+  }
+
   /// Names each slot's dance form in the set list when the program mixes
   /// forms, as the program screens do (ADR-006 S5); null, naming none, when
   /// its dances share one form or none resolves. A dance in Recently deleted
@@ -251,6 +293,7 @@ class ProgramExportMenu extends StatelessWidget {
           ? _authorNamesFor
           : null,
       formLabelFor: _formLabelFor(AppLocalizations.of(context)),
+      tuneDetailsFor: _tuneDetailsFor(context),
     );
   }
 
@@ -312,6 +355,7 @@ class ProgramExportMenu extends StatelessWidget {
     final authorNames = _authorNamesFor(dance.id);
     return (
       authorNames: authorNames,
+      interpreterNames: _interpreterNamesFor(dance),
       formationLabel: formationDisplayLabel(
         l10n,
         dance.formation,
@@ -368,6 +412,7 @@ class ProgramExportMenu extends StatelessWidget {
         danceToPlainText(
           dance,
           authorNames: cardLabels.authorNames,
+          interpreterNames: cardLabels.interpreterNames,
           formationLabel: cardLabels.formationLabel,
           levelLabel: cardLabels.levelLabel,
           statusLabel: cardLabels.statusLabel,
@@ -590,6 +635,7 @@ class ProgramExportMenu extends StatelessWidget {
         ? _authorNamesFor
         : null;
     final formLabelFor = _formLabelFor(l10n);
+    final tuneDetailsFor = _tuneDetailsFor(context);
     final cardLabelsById = <String, DanceCardLabels>{
       if (appendDances != null)
         for (final entry in appendDances)
@@ -622,6 +668,7 @@ class ProgramExportMenu extends StatelessWidget {
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: resolvedAuthorNamesFor,
         formLabelFor: formLabelFor,
+        tuneDetailsFor: tuneDetailsFor,
         cardLabelsFor: appendDances == null
             ? null
             : (dance) => cardLabelsById[dance.id]!,

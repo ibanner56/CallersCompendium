@@ -2623,6 +2623,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'ソース';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => '拍子・調・Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
 
   @override
@@ -12043,7 +12046,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'ダンスのタイトル。';
 
   @override
-  String get callingCardHelpBlockAuthors => 'ダンスの作者。';
+  String get callingCardHelpBlockAuthors => 'ダンスの作者と作られた年、続いて解釈した人とその年。';
 
   @override
   String get callingCardHelpBlockFormation => 'フォーメーション（Improper、Becket など）。';
@@ -12054,6 +12057,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'フォーメーション、レベル、ミキサー、ステータス、フレーズを、それぞれのラベル付きで1行に。';
+
+  @override
+  String get callingCardHelpBlockMusic => '曲の拍子と調、Barnes の参照を1行に。';
 
   @override
   String get callingCardHelpBlockFigures =>

@@ -39,11 +39,16 @@ Dance _dance({
   updatedAt: _now,
 );
 
-CallingCardEntry _entry(Dance d, {String number = ''}) => CallingCardEntry(
+CallingCardEntry _entry(
+  Dance d, {
+  String number = '',
+  List<String> interpreterNames = const [],
+}) => CallingCardEntry(
   dance: d,
   number: number,
   labels: (
     authorNames: const ['Pat Author'],
+    interpreterNames: interpreterNames,
     formationLabel: 'Improper',
     levelLabel: 'Easy',
     statusLabel: 'Active',
@@ -101,6 +106,46 @@ void main() {
       expect(pdfMediaBox(a6), (298, 420));
     },
   );
+
+  group('credits and tune details', () {
+    final english = _dance().copyWith(
+      form: DanceForm.ecd,
+      formation: const Formation(FormationShape.dupleMinor),
+      composedOn: PartialDate(1951),
+      interpretedOn: PartialDate(1916),
+      meter: '3/2',
+      musicalKey: 'D minor',
+      barnesReference: 'BI p. 63',
+    );
+
+    test('the default layout prints them under the title', () async {
+      final text = await _text([
+        _entry(english, interpreterNames: const ['Cecil Sharp']),
+      ]);
+      for (final words in [
+        // The PDF escapes the parentheses around each year.
+        r'Pat Author \(1951\)',
+        r'Interpreted by Cecil Sharp \(1916\)',
+        'Meter: 3/2',
+        'Key: D minor',
+        'Barnes: BI p. 63',
+      ]) {
+        expect(text, contains(words));
+      }
+    });
+
+    test('the music block is empty without its field or the details', () async {
+      final off = await _text(
+        [_entry(english)],
+        fields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.music),
+      );
+      expect(off, isNot(contains('Meter:')));
+      expect(off, isNot(contains('Barnes:')));
+      final contra = await _text([_entry(_dance())]);
+      expect(contra, isNot(contains('Meter:')));
+    });
+  });
 
   test('the default layout prints the header, figures and notes', () async {
     final text = await _text([_entry(_dance())]);
@@ -302,6 +347,7 @@ notes label=""
       dance: d,
       labels: (
         authorNames: const [],
+        interpreterNames: const <String>[],
         formationLabel: '',
         levelLabel: null,
         statusLabel: 'Active',

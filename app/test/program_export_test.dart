@@ -2880,6 +2880,139 @@ void main() {
       },
     );
 
+    group('English credits and tune details', () {
+      final english = Dance(
+        id: 'd4',
+        title: 'Hole in the Wall',
+        form: DanceForm.ecd,
+        formation: const Formation(FormationShape.dupleMinor),
+        authorIds: const ['c1'],
+        composedOn: PartialDate(1951),
+        interpreterIds: const ['i1'],
+        interpretedOn: PartialDate(1916),
+        meter: '3/2',
+        musicalKey: 'D minor',
+        barnesReference: 'BI p. 63',
+        figures: [
+          Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final people = <String, Choreographer>{
+        'c1': Choreographer(id: 'c1', name: 'Jane Smith'),
+        'i1': Choreographer(id: 'i1', name: 'Cecil Sharp'),
+      };
+
+      Future<String?> copy(
+        WidgetTester tester,
+        Set<DanceShareField> fields, {
+        bool withFigures = false,
+      }) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: ValueNotifier(fields),
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd4'),
+                        ],
+                      ),
+                      titleFor: (id) => id == 'd4' ? english.title : null,
+                      danceFor: (id) => id == 'd4' ? english : null,
+                      choreographerFor: (id) => people[id],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy set list'));
+        await tester.pumpAndSettle();
+        if (withFigures) {
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+        }
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+        return clipboardText;
+      }
+
+      testWidgets('the set-list line carries the meter and key', (
+        tester,
+      ) async {
+        final text = await copy(tester, DanceShareField.allExceptTunes);
+        expect(
+          text,
+          contains(
+            '1. Hole in the Wall — by Jane Smith '
+            '(Meter: 3/2 · Key: D minor)',
+          ),
+        );
+        // The set-list line stays short: no years, interpreters or Barnes.
+        expect(text, isNot(contains('1951')));
+        expect(text, isNot(contains('Cecil Sharp')));
+        expect(text, isNot(contains('Barnes')));
+      });
+
+      testWidgets('the set-list line leaves them off with their field', (
+        tester,
+      ) async {
+        final text = await copy(
+          tester,
+          {...DanceShareField.allExceptTunes}..remove(DanceShareField.music),
+        );
+        expect(text, contains('1. Hole in the Wall — by Jane Smith'));
+        expect(text, isNot(contains('Meter')));
+      });
+
+      testWidgets('the appended card carries the years, interpreters, meter, '
+          'key and Barnes', (tester) async {
+        final text = await copy(
+          tester,
+          DanceShareField.allExceptTunes,
+          withFigures: true,
+        );
+        final card = text!.split('---').last.split('\n');
+        expect(card, contains('Jane Smith (1951)'));
+        expect(card, contains('Interpreted by Cecil Sharp (1916)'));
+        expect(card, contains('Meter: 3/2 · Key: D minor'));
+        expect(card, contains('Barnes: BI p. 63'));
+      });
+    });
+
     testWidgets('omits the author suffix when authors is deselected', (
       tester,
     ) async {

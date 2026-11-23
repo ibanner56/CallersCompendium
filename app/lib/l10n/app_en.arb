@@ -3422,6 +3422,10 @@
   "@settingsDefaultsShareFieldsSources": {
     "description": "Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed."
   },
+  "settingsDefaultsShareFieldsMusic": "Meter, key and Barnes",
+  "@settingsDefaultsShareFieldsMusic": {
+    "description": "Label for the share-field toggle that prints a dance's tune details: its meter and key (time signature and musical key of the tune) and its Barnes reference (where the tune is printed in the Barnes books of English dance tunes). On by default. 'Barnes' is a name and stays as is."
+  },
   "settingsDefaultsCollectionFiltersHeader": "Collection filters",
   "@settingsDefaultsCollectionFiltersHeader": {
     "description": "Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419)."
@@ -16886,7 +16890,7 @@
   "@callingCardHelpBlockTitle": {
     "description": "Help: what the title block prints."
   },
-  "callingCardHelpBlockAuthors": "Who wrote the dance.",
+  "callingCardHelpBlockAuthors": "Who wrote the dance and when, then who interpreted it and when.",
   "@callingCardHelpBlockAuthors": {
     "description": "Help: what the authors block prints."
   },
@@ -16901,6 +16905,10 @@
   "callingCardHelpBlockMeta": "Formation, level, mixer, status and phrase on one line, each with its label.",
   "@callingCardHelpBlockMeta": {
     "description": "Help: what the meta block prints."
+  },
+  "callingCardHelpBlockMusic": "The tune's meter and key, and its Barnes reference, on one line.",
+  "@callingCardHelpBlockMusic": {
+    "description": "Help: what the music block prints: the tune's meter (time signature) and key, and the Barnes reference (where the tune is printed in the Barnes books). 'Barnes' is a name and stays as is."
   },
   "callingCardHelpBlockFigures": "The figures, grouped by phrase (A1, A2, B1, B2), with their counts: beats, or bars for an English dance.",
   "@callingCardHelpBlockFigures": {

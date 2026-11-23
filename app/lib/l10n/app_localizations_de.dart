@@ -2780,6 +2780,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Quellen';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => 'Taktart, Tonart und Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Sammlungsfilter';
 
   @override
@@ -12644,7 +12647,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'Der Titel des Tanzes.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Wer den Tanz geschrieben hat.';
+  String get callingCardHelpBlockAuthors =>
+      'Wer den Tanz geschrieben hat und wann, dann wer ihn interpretiert hat und wann.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12656,6 +12660,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Aufstellung, Niveau, Mixer, Status und Phrase in einer Zeile, jeweils mit Bezeichnung.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'Taktart und Tonart der Melodie sowie die Barnes-Angabe in einer Zeile.';
 
   @override
   String get callingCardHelpBlockFigures =>

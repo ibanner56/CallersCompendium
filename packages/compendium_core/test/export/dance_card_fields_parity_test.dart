@@ -18,6 +18,11 @@ void main() {
     status: status,
     tunes: const ['Tune One', 'Tune Two'],
     hook: 'Open with a long swing',
+    meter: '6/8',
+    musicalKey: 'G minor',
+    barnesReference: 'BIII p. 92',
+    composedOn: PartialDate(1951),
+    interpretedOn: PartialDate(1916),
     createdAt: now,
     updatedAt: now,
   );
@@ -33,6 +38,7 @@ void main() {
     danceWith(status: DanceStatus.broken, mixer: false),
   ];
   const authorNames = ['Alice Author', 'Bob Writer'];
+  const interpreterNames = ['Cecil Interpreter'];
   const sourceLines = ['Give-and-Take — A. Author, 1990 (p. 12)'];
   const labels = DanceExportLabels();
 
@@ -48,14 +54,19 @@ void main() {
   }
 
   /// The lines the helpers say the card carries for [fields], in order:
-  /// authors, then the meta lines, the hook, the tunes and (each with its
-  /// header) the sources.
+  /// the credit lines, then the meta lines, the music lines, the hook, the
+  /// tunes and (each with its header) the sources.
   List<String> helperLines(Dance dance, Set<DanceShareField> fields) {
-    final authors = danceCardAuthorNames(authorNames, fields);
     final tunes = danceCardTuneNames(dance, fields);
     final sources = danceCardSourceLines(sourceLines, fields);
     return [
-      if (authors.isNotEmpty) authors.join(', '),
+      ...danceCardCreditLines(
+        dance,
+        authorNames: authorNames,
+        interpreterNames: interpreterNames,
+        labels: labels,
+        fields: fields,
+      ),
       ...danceCardMetaLines(
         dance,
         formationLabel: 'Becket',
@@ -63,6 +74,12 @@ void main() {
         statusLabel: 'Broken',
         labels: labels,
         fields: fields,
+      ),
+      ...danceCardMusicLines(
+        dance,
+        labels: labels,
+        fields: fields,
+        render: (v) => v,
       ),
       if (fields.contains(DanceShareField.hook))
         '${labels.labelled(labels.hook)}${dance.hook}',
@@ -72,20 +89,21 @@ void main() {
   }
 
   test('danceToPlainText emits exactly the lines '
-      'danceCardMetaLines/AuthorNames/TuneNames gate, '
+      'danceCardCreditLines/MetaLines/MusicLines/TuneNames gate, '
       'for every DanceShareField subset', () {
     // Every line any subset can produce; each must appear iff gated in.
     final universe = helperLines(full, DanceShareField.all);
-    expect(universe, hasLength(11));
+    expect(universe, hasLength(14));
 
     final subsets = allSubsets();
-    expect(subsets, hasLength(2048));
+    expect(subsets, hasLength(4096));
     for (final dance in variants) {
       for (final fields in subsets) {
         final text = danceToPlainText(
           dance,
           dialect: Dialect.larksRobins,
           authorNames: authorNames,
+          interpreterNames: interpreterNames,
           formationLabel: 'Becket',
           levelLabel: 'Intermediate',
           statusLabel: 'Broken',

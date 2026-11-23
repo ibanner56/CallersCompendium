@@ -2720,6 +2720,10 @@
   "@settingsDefaultsShareFieldsSources": {
     "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
   },
+  "settingsDefaultsShareFieldsMusic": "Taktart, Tonart und Barnes",
+  "@settingsDefaultsShareFieldsMusic": {
+    "x-sourceSha256": "108a07a195ce0e89dc552794035bf799b093036e1ff08f16ee18d49cb56a7312"
+  },
   "settingsDefaultsCollectionFiltersHeader": "Sammlungsfilter",
   "@settingsDefaultsCollectionFiltersHeader": {
     "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
@@ -12070,9 +12074,9 @@
   "@callingCardHelpBlockTitle": {
     "x-sourceSha256": "5d5fe3e0ea5489236a7644326e57abae2a692cd5c127e7e594c6f2d0848c68cc"
   },
-  "callingCardHelpBlockAuthors": "Wer den Tanz geschrieben hat.",
+  "callingCardHelpBlockAuthors": "Wer den Tanz geschrieben hat und wann, dann wer ihn interpretiert hat und wann.",
   "@callingCardHelpBlockAuthors": {
-    "x-sourceSha256": "9cfbd8aba0a013c5676fe67625a5c40e1ae9efb9b03e589675302355901f410c"
+    "x-sourceSha256": "e731cc93fac58c222da22ce8c93e02f6dc3eb996c4c38c275f0d79337d3c5290"
   },
   "callingCardHelpBlockFormation": "Die Aufstellung, etwa Improper oder Becket.",
   "@callingCardHelpBlockFormation": {
@@ -12085,6 +12089,10 @@
   "callingCardHelpBlockMeta": "Aufstellung, Niveau, Mixer, Status und Phrase in einer Zeile, jeweils mit Bezeichnung.",
   "@callingCardHelpBlockMeta": {
     "x-sourceSha256": "1928a9d33c4ba8624ec07f3fca1ea6e98c0a289f9874f6f63a0307d616555f75"
+  },
+  "callingCardHelpBlockMusic": "Taktart und Tonart der Melodie sowie die Barnes-Angabe in einer Zeile.",
+  "@callingCardHelpBlockMusic": {
+    "x-sourceSha256": "f4aa25ebd36e9bd35718ab99ebb5fca1119d764965c467a703d6a0a05b1afb6d"
   },
   "callingCardHelpBlockFigures": "Die Figuren, nach Phrasen gruppiert (A1, A2, B1, B2), mit ihrer Länge: in Schlägen, bei einem englischen Tanz in Takten.",
   "@callingCardHelpBlockFigures": {

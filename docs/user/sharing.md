@@ -197,10 +197,18 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 Settings ▸ Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
-notes, walkthrough, suggested tunes, hook, and published sources. Everything
-except suggested tunes, the hook and published sources is on by default,
-matching every export before this setting existed; those three are off by
-default, since no export showed them before.
+notes, walkthrough, suggested tunes, hook, published sources, and meter, key
+and Barnes. Everything except suggested tunes, the hook and published sources
+is on by default, matching every export before this setting existed; those
+three are off by default, since no export showed them before.
+
+**Authors** also prints the year the dance was composed beside its authors,
+such as *Pat Shaw (1951)*, and who interpreted it and when on a line of its
+own, such as *Interpreted by Cecil Sharp (1916)*. **Meter, key and Barnes**
+prints the tune's meter and key on one line, such as *Meter: 6/8 · Key: G
+minor*, and the Barnes reference on the next, such as *Barnes: BIII p. 92*.
+It is on for a new install. If you had already changed this checklist before
+it was added, it starts off: tick it to print them.
 
 A published source prints as one line per citation, such as *Give-and-Take —
 A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and
@@ -212,11 +220,13 @@ related dance) never appear on a card. Only a
 you marked it **Include in sharing**).
 
 Turning a field off removes it everywhere it would otherwise appear — but
-**author is the only one of these fields the plain numbered set-list line
-ever shows.** The rest only appear on the richer per-dance card: the "Set
-list and figures" appendix, a single dance's own **Share dance (text)**/
-**Copy dance** card, or a single dance's PDF. Figures are not part of this
-list; they stay controlled by the **Include figures?** choice above.
+**the plain numbered set-list line shows only the authors' names and the
+meter and key**, such as *1. Lilac Lane — by A. Author (English; Meter: 6/8 ·
+Key: G minor; 5 min)*, where the form is named only when the program mixes
+forms. The rest only appear on the richer per-dance card: the "Set list and
+figures" appendix, a single dance's own **Share dance (text)**/**Copy dance**
+card, a single dance's PDF, or a printed calling card. Figures are not part of
+this list; they stay controlled by the **Include figures?** choice above.
 
 ### Share a program with its dances
 
