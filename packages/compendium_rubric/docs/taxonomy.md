@@ -165,7 +165,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `whoMismatch` | the stated `who` relation is not in position. Two cases: a `swing`'s relation isn't in swing position (e.g. a `sides` swing where the column-mate isn't the stated relation), **or** a distance dancer set names a grouping that isn't the one standing there — checked by home grouping, see "The neighbor-distance sets" | figure |
 | `notAdjacent` | a trade figure requires the two interacting dancers to be **adjacent** — same row or same column — but they are diagonal, so neither can give the other a hand (e.g. `box_the_gnat`). This is about *where dancers stand*, not which way they face, which is why it survives the ruling below. **Renamed from `notFacing`**, which named the symptom rather than the cause and read as an exception to that ruling; the kind has never been serialized outside this repository | figure |
 | `unresolvableDancerSet` | a `who` / pair selection cannot be resolved in the current arrangement (e.g. `turn_as_couples` where the pair isn't standing together; `down_the_hall` where the column pairs aren't complete) | figure |
-| `unsupportedParam` | a parameter value is valid in the baseline but **deliberately not implemented** — the Held-table cases (e.g. quarter-turn `gate` / `two_hand_turn`, a whole-hands-four `down_the_hall` `moving: center`, the four held hall `ender`s) | figure |
+| `unsupportedParam` | a parameter value is valid in the baseline but **deliberately not implemented** — the Held-table cases (e.g. quarter-turn `two_hand_turn`, a same-sense fractional `gate`, a whole-hands-four `down_the_hall` `moving: center`, the four held hall `ender`s) | figure |
 | `unperformedProgression` | a dance claims a progression in its success criterion but flags **no figure** as performing it, so the progression could never happen. The **only dance-level** kind: it is owned by no single figure, so `CompileError.opIndex` and `.opName` are `null` (§10.1). Deliberately not inferred onto the last eligible figure — guessing which figure progresses is exactly the judgement the flag exists to record | dance |
 
 > **⚠️ Ruled: facing is never fatal.** There was an `invalidFacing` kind here. There is no
@@ -2114,14 +2114,42 @@ To be defined later with worked examples.
     falls out of where the paired dancers currently stand:
     - paired dancers are **column-mates** → **row swap** `(r0,c) ↔ (r1,c)`;
     - paired dancers are **row-mates** → **column swap** `(r,c0) ↔ (r,c4)`.
-  - **`turn` = quarter or other fraction** → **deferred / unsupported** (`UnsupportedParam`).
-    Fractional gates are used to get into and out of a **line of four**, which is a different
-    shape from the wave a quarter `allemande` lands in (a line fills one row and empties the
-    other; a wave keeps two per row) and is not modelled.
+  - **`turn` = quarter or three-quarter** (¼, ¾, 1¼, …) → **each gating pair turns as a rigid
+    unit, a net quarter.** *(User-ruled 2026-11-23: "a gate of 1¼ or ¾ turns each gating pair as
+    a rigid unit a net quarter, holding hands".)* Positions and facings rotate together about the
+    pair's middle; a three-quarter gate is a quarter the other way round. Two shapes are built:
+    - a **complete hands four**: the gating pairs are its two **side columns**, taken to be facing
+      **in** (the posture a gate is danced from there). A quarter makes each side one half of a
+      **line of four** (§8.1) on its own side of the set, in the row the line's facing gives it.
+    - a **line of four**: the gating pairs are its two halves (`{c0, c1}`, `{c3, c4}`). A quarter
+      makes each half a side of the ring again.
+    - **Sense.** `clockwise` / `counterclockwise` name it outright. A `mirror` gate takes it from
+      the dancer who **walks forward** — `whom`, or the one of the pair not in `who` — each pair
+      turning so that dancer moves the way the pair faces. So "neighbor mirror gate 1¼, ones
+      forward" from long lines puts the ones in the centre of a line facing the way they walked,
+      and from a line facing down it carries the ones (the ends) down below the twos.
+    - **Refused** rather than guessed: a band that is neither a complete ring nor a line of four;
+      a stated `pair` that does not name the two sides or halves (`whoMismatch`); no `direction`;
+      a `mirror` gate that does not name exactly one forward dancer per pair (the Caller's Box
+      import drops "woman one and man two forward"); a line not facing up or down the hall; a stated `face` that
+      disagrees with where the turn leaves a dancer facing (the rotation sets the facing; `face` is
+      only checked against it); and a landing whose two halves face **opposite ways**. That last is what a same-sense gate from
+      the ring makes ("neighbor gate clockwise 1¼" in Circle of Love and Bingham's Pie): a
+      two-faced line with the women meeting in the middle, which the matrix does not hold yet
+      (§8.5.4 reads two per row as a wave). *(User-ruled: keep those refused for now.)*
+  - **`turn` unstated** → refused (`UnsupportedParam`), with one exception: a **bare** gate, with
+    nothing at all stated, standing in a **line of four**. That is how the Caller's Box's
+    "Hand cast" arrives (`hand_cast` → `gate`), and in the corpus it follows "in a line of four, go
+    up/down the hall". It **closes the line into the ring with the same landing as
+    `bendTheLine`**: the ends walk forward, so each half wheels into its side of the ring facing
+    in. *(User-ruled 2026-11-23.)* Read as a gate, that is the centres walking forward ¾, which
+    lands exactly where the ends walking forward ¼ does. A bare gate anywhere else is still
+    refused.
   - Role, number, and couple identity travel with each dancer.
 - **normalization:** none — the gate ends where the rotation puts each dancer.
 - **facing (output):**
-  - If `face` is **stated**, that is the ending facing (it is stored data, not derived).
+  - If `face` is **stated**, that is the ending facing (it is stored data, not derived). On a
+    fractional gate the rotation sets the facing and a stated `face` is only checked against it.
   - If `face` is **absent**, **infer from the starting facing and `turn`**: a **half** gate
     **inverts** each participant's facing 180° (Up↔Down, In↔Out i.e. Across→↔Across←); a **whole**
     gate leaves facing unchanged.
@@ -2143,7 +2171,7 @@ To be defined later with worked examples.
   (half = row swap, whole = no-op); a specified `pair` may override it (neighbors standing as
   row-mates → column swap); "without a facing note, it's assumed that half gates invert facing";
   fractional gates "are sometimes used to get in and out of a line of four, which we haven't
-  modeled yet"; `face` is "yes but it may not always be present and may have to be inferred from
+  modeled yet" (since ruled, 2026-11-23: rigid net quarter; bare hand cast = bend the line); `face` is "yes but it may not always be present and may have to be inferred from
   starting-facing"; plus the worked example above.
 
 ### `two_hand_turn`

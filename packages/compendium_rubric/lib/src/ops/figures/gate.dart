@@ -131,6 +131,12 @@ final class Gate extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     final amount = turn;
+    if (amount == null && _isBareHandCast) {
+      return switch (_quarterPlan(formation)) {
+        Ok() => null,
+        Err(:final error) => error,
+      };
+    }
     if (amount == null) {
       return const OpError(
         ErrorKind.unsupportedParam,
@@ -139,11 +145,10 @@ final class Gate extends Operation {
       );
     }
     if (rotationAmountOf(amount).landsInWave) {
-      return OpError(
-        ErrorKind.unsupportedParam,
-        'gate supports whole and half turns; turn: $amount is a fractional '
-        'gate, used to get into and out of a line of four, which is deferred',
-      );
+      return switch (_quarterPlan(formation)) {
+        Ok() => null,
+        Err(:final error) => error,
+      };
     }
     if (face == GateFace.along) {
       return const OpError(
@@ -184,6 +189,12 @@ final class Gate extends Operation {
 
   @override
   Result<Formation, OpError> perform(Formation formation) {
+    if (turn == null || rotationAmountOf(turn!).landsInWave) {
+      return switch (_quarterPlan(formation)) {
+        Ok(:final value) => Ok(formation.withUpdates(value)),
+        Err(:final error) => Err(error),
+      };
+    }
     final pairs = _gatingPairs(formation);
     final isHalf = rotationAmountOf(turn!) == RotationAmount.half;
     if (isHalf) {
@@ -215,6 +226,201 @@ final class Gate extends Operation {
     );
   }
 
+  /// Where a fractional gate puts every gating dancer.
+  ///
+  /// Each gating pair turns as a rigid unit about its joined hands, a net
+  /// quarter: positions and facings rotate together. A pair standing on a side
+  /// of a complete hands four (the two dancers of a side column, taken to be
+  /// facing in, as a gate is danced from there) becomes one half of a line of
+  /// four, and a half of a line of four becomes a side of the ring.
+  ///
+  /// The sense of rotation is [direction] when it names one; a `mirror` gate
+  /// takes it from the dancer who walks forward ([whom], or the one not in
+  /// [who]), each pair turning so that dancer moves the way the pair faces. A
+  /// three-quarter gate is a quarter the other way.
+  ///
+  /// Refused rather than guessed: a band that is neither a complete ring nor a
+  /// line of four, gating pairs other than its two sides or two halves, a
+  /// `mirror` gate that does not say who walks forward, and a landing whose two
+  /// halves would face opposite ways (a two-faced line, which the matrix does
+  /// not hold).
+  Result<Map<DancerId, DancerState>, OpError> _quarterPlan(
+    Formation formation,
+  ) {
+    final handCast = turn == null;
+    final quarters =
+        handCast || rotationAmountOf(turn!) == RotationAmount.quarter ? 1 : 3;
+    final changes = <DancerId, DancerState>{};
+    for (final band in handsFourBands(formation)) {
+      final lineRow = lineOfFourRow(formation, band);
+      final List<_GateHalf> halves;
+      if (lineRow != null) {
+        halves = [
+          for (final (west, east) in const [(0, 1), (3, 4)])
+            _GateHalf.ofLine(formation, lineRow, west, east),
+        ];
+      } else if (handCast) {
+        return Err(
+          OpError(
+            ErrorKind.unsupportedParam,
+            'gate needs a stated turn: a bare hand cast is read only as '
+            'closing a line of four into the ring, and rows ${band.topRow}/'
+            '${band.bottomRow} hold no line',
+          ),
+        );
+      } else if (bandIsComplete(formation, band)) {
+        halves = [
+          for (final col in const [0, kColumnCount - 1])
+            _GateHalf.ofSide(formation, band, col),
+        ];
+      } else {
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            'gate turn: $turn turns a complete hands four into a line of four '
+            'or a line back into a ring, but rows ${band.topRow}/'
+            '${band.bottomRow} hold neither',
+          ),
+        );
+      }
+
+      for (final half in halves) {
+        if (half.facing case Facing.up || Facing.down) continue;
+        if (lineRow == null) continue;
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            'gate turn: $turn turns a line of four by the way it faces, but '
+            '${half.a} and ${half.b} face neither up nor down the hall',
+          ),
+        );
+      }
+
+      final stated = pair;
+      if (stated != null) {
+        for (final half in halves) {
+          if (!whoMatches(formation, half.a, half.b, stated)) {
+            return Err(
+              OpError(
+                ErrorKind.whoMismatch,
+                'gate pair:${stated.key} turn: $turn gates the two halves of '
+                'the hands four, but ${half.a} and ${half.b} are not '
+                '${stated.key}',
+              ),
+            );
+          }
+        }
+      }
+
+      final landed = <_GateLanding>[];
+      for (final half in halves) {
+        final sense = _senseFor(formation, half);
+        if (sense case Err(:final error)) return Err(error);
+        landed.add(
+          half.turned((sense as Ok<bool, OpError>).value, quarters, band),
+        );
+      }
+      final facings = {for (final l in landed) l.lineFacing};
+      if (facings.length > 1) {
+        return Err(
+          OpError(
+            ErrorKind.unsupportedParam,
+            'gate ${direction?.key ?? ''} turn: $turn would leave the two '
+            'halves of the hands four at rows ${band.topRow}/${band.bottomRow} '
+            'facing opposite ways, a two-faced line, which is deferred',
+          ),
+        );
+      }
+      final lineFacing = facings.single;
+      final statedFace = face;
+      if (statedFace != null) {
+        for (final l in landed) {
+          for (final MapEntry(key: id, value: spot) in l.dancers.entries) {
+            final want = _endFacing(
+              formation.stateOf(id),
+              Position(band.topRow, spot.col),
+              false,
+            );
+            if (want == spot.facing) continue;
+            return Err(
+              OpError(
+                ErrorKind.unsupportedParam,
+                'gate turn: $turn face:${statedFace.key} disagrees with where the '
+                'turn leaves $id facing (${spot.facing.label})',
+              ),
+            );
+          }
+        }
+      }
+      for (final l in landed) {
+        for (final MapEntry(key: id, value: (:col, :y, :facing))
+            in l.dancers.entries) {
+          final row = switch (lineFacing) {
+            final f? => lineRowFor(band, f)!,
+            null => y > 0 ? band.topRow : band.bottomRow,
+          };
+          changes[id] = formation
+              .stateOf(id)
+              .copyWith(position: Position(row, col), facing: facing);
+        }
+      }
+    }
+    return Ok(changes);
+  }
+
+  /// Whether [half] turns clockwise: [direction] when it names a sense, else
+  /// the sense that carries the forward dancer the way the pair faces.
+  Result<bool, OpError> _senseFor(Formation formation, _GateHalf half) {
+    if (turn == null) return Ok(half.clockwiseMoves(half.end));
+    switch (direction) {
+      case GateDirection.clockwise:
+        return const Ok(true);
+      case GateDirection.counterclockwise:
+        return const Ok(false);
+      case null:
+        return Err(
+          OpError(
+            ErrorKind.unsupportedParam,
+            'gate turn: $turn needs a direction: which way the pair turns '
+            'decides where a fractional gate lands',
+          ),
+        );
+      case GateDirection.mirror:
+        break;
+    }
+    bool forward(DancerId id) {
+      final w = whom;
+      if (w != null) return whoIncludes(formation, id, w);
+      final b = who;
+      if (b != null) return !whoIncludes(formation, id, b);
+      return false;
+    }
+
+    final walkers = [half.a, half.b].where(forward).toList();
+    if (walkers.length != 1) {
+      return Err(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          'gate mirror turn: $turn needs exactly one dancer of each pair to '
+          'walk forward, but ${half.a} and ${half.b} have '
+          '${walkers.length} named${whom == null && who == null ? ' (the '
+                    'record names neither who backs up nor who walks forward)' : ''}',
+        ),
+      );
+    }
+    return Ok(half.clockwiseMoves(walkers.single));
+  }
+
+  /// A gate with nothing stated at all, which is how a bare "hand cast"
+  /// arrives: read as closing a line of four the way `bendTheLine` does.
+  bool get _isBareHandCast =>
+      turn == null &&
+      who == null &&
+      whom == null &&
+      pair == null &&
+      direction == null &&
+      face == null;
+
   @override
   bool operator ==(Object other) =>
       other is Gate &&
@@ -232,4 +438,126 @@ final class Gate extends Operation {
   String toString() =>
       'gate(pair: ${pair?.key ?? 'byColumn'}, turn: $turn, '
       'face: ${face?.key ?? 'unspecified'})';
+}
+
+/// A unit vector on the floor: `x` toward c4 (East), `y` toward row 0 (up).
+typedef _Vec = ({int x, int y});
+
+_Vec _vecOf(Facing facing) => switch (facing) {
+  Facing.up => (x: 0, y: 1),
+  Facing.down => (x: 0, y: -1),
+  Facing.acrossEast => (x: 1, y: 0),
+  Facing.acrossWest => (x: -1, y: 0),
+  _ => (x: 0, y: 0),
+};
+
+Facing _facingOf(_Vec v) => switch (v) {
+  (x: 0, y: 1) => Facing.up,
+  (x: 0, y: -1) => Facing.down,
+  (x: 1, y: 0) => Facing.acrossEast,
+  _ => Facing.acrossWest,
+};
+
+/// [v] turned a quarter clockwise (seen from above, up the hall at the top).
+_Vec _cw(_Vec v) => (x: v.y, y: -v.x);
+
+/// [v] turned a quarter counter-clockwise.
+_Vec _ccw(_Vec v) => (x: -v.y, y: v.x);
+
+/// Where one gating dancer lands: a column, which side of the pair's middle
+/// along the hall (`y`, for a ring side), and a facing.
+typedef _GateSpot = ({int col, int y, Facing facing});
+
+/// One turned half of a hands four.
+class _GateLanding {
+  const _GateLanding(this.dancers, this.lineFacing);
+
+  final Map<DancerId, _GateSpot> dancers;
+
+  /// The facing of the line this half now belongs to, or `null` when it
+  /// landed as a side of the ring.
+  final Facing? lineFacing;
+}
+
+/// A gating pair as one half of a hands four: either a side of the ring or a
+/// half of a line of four, with each dancer's offset from the pair's middle.
+class _GateHalf {
+  _GateHalf._(this.a, this.b, this.offsets, this.facing, this.westCol);
+
+  /// The two dancers of the side column at [col], facing in.
+  factory _GateHalf.ofSide(Formation formation, Band band, int col) {
+    final top = formation.dancerAt(Position(band.topRow, col))!;
+    final bottom = formation.dancerAt(Position(band.bottomRow, col))!;
+    return _GateHalf._(
+      top,
+      bottom,
+      {top: (x: 0, y: 1), bottom: (x: 0, y: -1)},
+      acrossFacingInto(col),
+      col == 0 ? 0 : kColumnCount - 2,
+    );
+  }
+
+  /// The two dancers of the line half on columns [west] and [east].
+  factory _GateHalf.ofLine(Formation formation, int row, int west, int east) {
+    final w = formation.dancerAt(Position(row, west))!;
+    final e = formation.dancerAt(Position(row, east))!;
+    return _GateHalf._(
+      w,
+      e,
+      {w: (x: -1, y: 0), e: (x: 1, y: 0)},
+      formation.stateOf(w).facing,
+      west,
+    );
+  }
+
+  final DancerId a;
+  final DancerId b;
+  final Map<DancerId, _Vec> offsets;
+
+  /// The way the pair faces, side by side.
+  final Facing facing;
+
+  /// The west column of the two this half spans as a line.
+  final int westCol;
+
+  /// The dancer of a line half standing at the end of the line.
+  DancerId get end => offsets[a]!.x * (westCol == 0 ? 1 : -1) < 0 ? a : b;
+
+  /// Whether turning clockwise carries [walker] the way the pair faces.
+  bool clockwiseMoves(DancerId walker) {
+    final p = offsets[walker]!;
+    final f = _vecOf(facing);
+    // The clockwise velocity at p is (p.y, -p.x).
+    return p.y * f.x - p.x * f.y > 0;
+  }
+
+  _GateLanding turned(bool clockwise, int quarters, Band band) {
+    final turn = clockwise ? _cw : _ccw;
+    _Vec spin(_Vec v) {
+      var out = v;
+      for (var i = 0; i < quarters; i++) {
+        out = turn(out);
+      }
+      return out;
+    }
+
+    final faced = _facingOf(spin(_vecOf(facing)));
+    final dancers = <DancerId, _GateSpot>{};
+    var asLine = false;
+    for (final MapEntry(key: id, value: p) in offsets.entries) {
+      final q = spin(p);
+      if (q.x != 0) {
+        asLine = true;
+        dancers[id] = (
+          col: q.x < 0 ? westCol : westCol + 1,
+          y: 0,
+          facing: faced,
+        );
+      } else {
+        final sideCol = westCol == 0 ? 0 : kColumnCount - 1;
+        dancers[id] = (col: sideCol, y: q.y, facing: faced);
+      }
+    }
+    return _GateLanding(dancers, asLine ? faced : null);
+  }
 }
