@@ -68,11 +68,11 @@ Future<void> _pumpEditor(
   CompendiumRepositories repos, {
   String? danceId,
   ThemeData? theme,
-  Size surfaceSize = const Size(1200, 3200),
+  Size surfaceSize = const Size(1200, 3600),
   Dialect? activeDialect,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
-  // field, #370) lays out without the trailing controls falling beyond a
+  // field, #370, and the phrase-structure rows, #2304) lays out without the trailing controls falling beyond a
   // lazily-built ListView's cache extent, which makes `ensureVisible`
   // under-scroll the last element in widget tests.
   await tester.binding.setSurfaceSize(surfaceSize);

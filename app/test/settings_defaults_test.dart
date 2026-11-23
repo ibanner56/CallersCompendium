@@ -1706,6 +1706,25 @@ void main() {
       );
     });
 
+    testWidgets('an empty number says so without mentioning a dance or Save, '
+        'which Settings has neither of', (tester) async {
+      final repos = await pumpWith(tester, stored: '2*8*2');
+      await tester.enterText(
+        find.byKey(const ValueKey('phrase-row-0-bars')),
+        '',
+      );
+      await tester.pumpAndSettle();
+      final message = tester
+          .widget<Text>(find.byKey(const ValueKey('phrase-rows-invalid')))
+          .data!;
+      expect(message, isNot(contains('Save')));
+      expect(message, isNot(contains('dance')));
+      expect(
+        await repos.settings.get(kDefaultDancePhraseStructureKey),
+        '2*8*2',
+      );
+    });
+
     testWidgets('a default with phrase names is left to the field', (
       tester,
     ) async {

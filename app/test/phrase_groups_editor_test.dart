@@ -177,6 +177,18 @@ void main() {
       expect(find.byKey(const ValueKey('phrase-row-0-remove')), findsNothing);
     });
 
+    testWidgets('removing a middle row writes the others, in order, and the '
+        'rows after it take its place', (tester) async {
+      final host = await _pump(tester, text: '2*8*2 + 3*4*3 + 1*6*2');
+      await tester.tap(find.byKey(const ValueKey('phrase-row-1-remove')));
+      await tester.pump();
+      expect(host.written, ['2*8*2 + 1*6*2']);
+      expect(_text(tester, 1, 'phrases'), '1');
+      expect(_text(tester, 1, 'bars'), '6');
+      expect(_text(tester, 1, 'beats'), '2');
+      expect(_field(2, 'bars'), findsNothing);
+    });
+
     testWidgets('opening a structure writes nothing', (tester) async {
       final host = await _pump(tester, text: '2*8*2+2*10*2');
       expect(host.written, isEmpty);
@@ -336,6 +348,31 @@ void main() {
       }
     }
   });
+
+  // A label grows with the text size, so its field must, to the width there
+  // is: the labels read in the fields (Bars per phrase, Mesures par phrase).
+  for (final (scale, width, expected) in [
+    (1.0, 800.0, 128.0),
+    (2.0, 800.0, 256.0),
+    (3.0, 800.0, 384.0),
+    (3.0, 320.0, 320.0),
+  ]) {
+    testWidgets(
+      'a number field is $expected dp wide at text scale $scale in $width dp',
+      (tester) async {
+        await _pump(
+          tester,
+          text: '2*8*2',
+          textScale: scale,
+          size: Size(width, 2400),
+        );
+        expect(
+          tester.getSize(find.byKey(const ValueKey('phrase-row-0-bars'))).width,
+          expected,
+        );
+      },
+    );
+  }
 
   testWidgets('three rows fit 320 dp at twice the text size', (tester) async {
     await _pump(

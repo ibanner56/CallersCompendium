@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -8328,7 +8327,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorPhraseRowsInvalid(int max) {
-    return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれ、保存するとそれが保存されます。';
+    return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。';
   }
 
   @override

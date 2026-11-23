@@ -8450,7 +8450,7 @@
   "@danceEditorPhraseRemove": {
     "x-sourceSha256": "ac53653b0502a2963db64c69011dbd463efc6e80b1d2020418209439d3e33e52"
   },
-  "danceEditorPhraseRowsHelp": "Hver række er en række ens fraser: hvor mange der er, takterne i hver og slagene i en takt. Frastrukturen nedenfor ændres sammen med rækkerne.",
+  "danceEditorPhraseRowsHelp": "Hver række er en serie ens fraser: hvor mange der er, takterne i hver og slagene i en takt. Frastrukturen nedenfor ændres sammen med rækkerne.",
   "@danceEditorPhraseRowsHelp": {
     "x-sourceSha256": "6f0ab175d6660a4825350727f257f4d9a04f8d9236ec55aaba61f64f41cd7dca"
   },
@@ -8478,9 +8478,9 @@
   "@danceEditorPhraseRowsRemove": {
     "x-sourceSha256": "5d1e14b6c4353c8b98e78ebd9904ec2da1cfd0312165096b4e426a686372bba8"
   },
-  "danceEditorPhraseRowsInvalid": "Angiv et helt tal fra 1 til {max} i hvert felt, i en struktur der ikke er for lang. Indtil da beholder dansen sin sidste gyldige frastruktur, og Gem gemmer den.",
+  "danceEditorPhraseRowsInvalid": "Angiv et helt tal fra 1 til {max} i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.",
   "@danceEditorPhraseRowsInvalid": {
-    "x-sourceSha256": "839b062e6f6680aee54a7838b12beab574fff665f8a14182cf3b1c79fc7fe91c"
+    "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
   },
   "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1 slag} other{{beats} slag}}",
   "@danceEditorPhraseRowsSummary": {

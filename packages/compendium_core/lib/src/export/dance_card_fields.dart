@@ -51,8 +51,8 @@ List<String> danceCardMetaLines(
 /// a figure's count does, and the punctuation is the locale's
 /// ([DanceExportLabels.namedPhrases], [DanceExportLabels.namedPhraseSeparator]),
 /// so Japanese prints `AAB（A 4小節、B 8小節）`. Any other structure prints as
-/// stored, trimmed:
-/// making the contra notation readable is issue #2304.
+/// stored, trimmed, so a contra card keeps The Caller's Box formula as it is;
+/// the editor sets that text as rows (#2304) and the card still prints it.
 String phraseStructureText(
   PhraseStructure structure,
   DanceExportLabels labels,

@@ -678,10 +678,12 @@ nothing in it to lose.
   all: 8 phrases are labeled A1 A2 B1 B2 C1 C2 D1 D2, so a tune played twice
   carries on to C and D. Each number is 1 to 1000; while one is left empty or
   past that, the dance keeps its last valid structure, and **Save** saves that.
-  The rows and the field hold the same structure, so you can use either. While
-  what you type in the field can't be read as a structure, or has phrase names
-  (which only an English dance keeps), the rows stay as they were and are
-  dimmed until it can.
+  The rows and the field show the same structure, so you can use either; a
+  row with a number missing waits for it, and the structure stays as it was.
+  While what you type in the field can't be read as a structure, or has phrase
+  names (which only an English dance keeps), the rows stay as they were and are
+  dimmed until it can. A dance that opens with a structure that can't be read
+  shows no rows until it can.
 - **Phrases** (English dances) — choose **Name the phrases** to give the
   tune's parts their own names instead: one row each for A, B and C, with
   its **Bars** and whether it plays **Once** or **Twice**, the repeat
@@ -895,8 +897,9 @@ as:
 - **Type**, **Formation**, and **Progression** — what a new dance begins with.
 - **Default phrase structure** — seeded into new dances; blank means the standard
   4×16 (A1 A2 B1 B2). It is set as the same rows as a contra or square dance's
-  **Phrase structure**, with the field under them. A default with phrase names
-  (`A:2*8*2 + B:1*8*2`, for English dances) shows only in the field.
+  **Phrase structure**, with the field under them. Phrase names
+  (`A:2*8*2 + B:1*8*2`, for English dances) go in the field; the rows don't
+  show for a default that has them, and are dimmed if you type them.
 - **Starting figures** — the figures a new dance starts with. It defaults to
   eight stand stills of eight beats each, or to no figures while **Free-text
   entry** is on; clear it for a completely blank dance.

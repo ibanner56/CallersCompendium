@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,8 +11,12 @@ import '../../theme/app_spacing.dart';
 /// (contra and square; #2304). Each row is one `phrases*bars*beatsPerBar`
 /// component of the text: how many phrases, the bars in each, and the beats in
 /// a bar. The rows write that same text ([PhraseStructure.raw]); they store no
-/// names and no pass marker, so labels (A1 A2 B1 B2 …), sync and dedupe see
-/// what they saw before.
+/// names and no pass marker, so labels (A1 A2 B1 B2 …) are as they were, and a
+/// dance whose rows are not edited keeps its stored text byte for byte. An
+/// edit rewrites the text in its canonical spelling (` + ` between
+/// components, blank for the standard structure), so imported text spelled
+/// another way (`3*8*2+1*4*2`) is respelled once it is edited, and an edit
+/// that is undone by hand is not unwound to the imported spelling.
 ///
 /// The formula stays editable beside the rows. While it does not parse, or
 /// holds phrase names this form cannot keep, the rows stay on screen
@@ -280,74 +286,91 @@ class _PhraseGroupsEditorState extends State<PhraseGroupsEditor> {
     );
   }
 
+  /// The narrowest a number field is at the default text size; its label
+  /// (Bars per phrase, Beats per bar) reads in it.
+  static const double _fieldWidth = 128;
+
   Widget _rowFor(BuildContext context, int index, _Row row, bool enabled) {
     final l10n = AppLocalizations.of(context);
-    Widget field(
-      String name,
-      TextEditingController controller,
-      String label,
-      int? value,
-    ) {
-      return SizedBox(
-        width: 128,
-        child: TextField(
-          key: ValueKey('phrase-row-$index-$name'),
-          controller: controller,
-          enabled: enabled,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(
-              '${PhraseStructure.maxComponentNumber}'.length,
-            ),
-          ],
-          decoration: InputDecoration(
-            labelText: label,
-            errorText: value == null
-                ? l10n.danceEditorPhraseRowsRange(
-                    PhraseStructure.maxComponentNumber,
-                  )
-                : null,
-            errorMaxLines: 2,
-          ),
-          onChanged: (_) => _write(typed: true),
-        ),
-      );
-    }
-
+    final scaler = MediaQuery.textScalerOf(context);
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.sm),
-      child: Wrap(
-        spacing: AppSpacing.sm,
-        runSpacing: AppSpacing.xs,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          field(
-            'phrases',
-            row.phrases,
-            l10n.danceEditorPhraseRowsPhrasesLabel,
-            row.phraseCount,
-          ),
-          field(
-            'bars',
-            row.bars,
-            l10n.danceEditorPhraseRowsBarsLabel,
-            row.barCount,
-          ),
-          field(
-            'beats',
-            row.beatsPerBar,
-            l10n.danceEditorPhraseRowsBeatsLabel,
-            row.beatCount,
-          ),
-          if (_rows.length > 1)
-            IconButton(
-              key: ValueKey('phrase-row-$index-remove'),
-              tooltip: l10n.danceEditorPhraseRowsRemove(index + 1),
-              icon: const Icon(Icons.close),
-              onPressed: enabled ? () => _remove(index) : null,
-            ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // The label grows with the text size, so the field does too (to the
+          // width there is), rather than cutting its label short.
+          final width = constraints.hasBoundedWidth
+              ? min(
+                  constraints.maxWidth,
+                  max(_fieldWidth, scaler.scale(_fieldWidth)),
+                )
+              : _fieldWidth;
+          Widget field(
+            String name,
+            TextEditingController controller,
+            String label,
+            int? value,
+          ) {
+            return SizedBox(
+              width: width,
+              child: TextField(
+                key: ValueKey('phrase-row-$index-$name'),
+                controller: controller,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(
+                    '${PhraseStructure.maxComponentNumber}'.length,
+                  ),
+                ],
+                decoration: InputDecoration(
+                  labelText: label,
+                  errorText: value == null
+                      ? l10n.danceEditorPhraseRowsRange(
+                          PhraseStructure.maxComponentNumber,
+                        )
+                      : null,
+                  errorMaxLines: 2,
+                ),
+                onChanged: (_) => _write(typed: true),
+              ),
+            );
+          }
+
+          return Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              field(
+                'phrases',
+                row.phrases,
+                l10n.danceEditorPhraseRowsPhrasesLabel,
+                row.phraseCount,
+              ),
+              field(
+                'bars',
+                row.bars,
+                l10n.danceEditorPhraseRowsBarsLabel,
+                row.barCount,
+              ),
+              field(
+                'beats',
+                row.beatsPerBar,
+                l10n.danceEditorPhraseRowsBeatsLabel,
+                row.beatCount,
+              ),
+              if (_rows.length > 1)
+                IconButton(
+                  key: ValueKey('phrase-row-$index-remove'),
+                  tooltip: l10n.danceEditorPhraseRowsRemove(index + 1),
+                  icon: const Icon(Icons.close),
+                  onPressed: enabled ? () => _remove(index) : null,
+                ),
+            ],
+          );
+        },
       ),
     );
   }

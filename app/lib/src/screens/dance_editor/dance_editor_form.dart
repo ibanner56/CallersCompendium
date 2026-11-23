@@ -546,8 +546,9 @@ class DanceEditorForm extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     l10n.danceEditorFiguresUnreadable,
-                    style: Theme.of(context).textTheme.bodySmall
-                        ?.copyWith(color: Theme.of(context).colorScheme.error),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ],
                 const SizedBox(height: AppSpacing.xs),
@@ -957,8 +958,9 @@ class DanceEditorForm extends StatelessWidget {
               if (controller.openedWithUnreadableTunes) ...[
                 Text(
                   l10n.danceEditorTunesUnreadable,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: Theme.of(context).colorScheme.error),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
               ],

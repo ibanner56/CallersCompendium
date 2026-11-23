@@ -621,8 +621,9 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           children: [
             ListTile(
               title: Text(
-                AppLocalizations.of(context)
-                    .settingsDefaultsStartingProgramPickerTitle,
+                AppLocalizations.of(
+                  context,
+                ).settingsDefaultsStartingProgramPickerTitle,
               ),
               trailing: IconButton(
                 tooltip: AppLocalizations.of(context).commonClose,
@@ -1324,8 +1325,9 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 
   Future<void> _reload() async {
-    final levels = await RepositoriesScope.of(context).difficultyLevels
-        .listAll();
+    final levels = await RepositoriesScope.of(
+      context,
+    ).difficultyLevels.listAll();
     if (!mounted) return;
     final levelIds = {for (final level in levels) level.id};
     for (final entry in _labelControllers.entries.toList()) {
@@ -1345,8 +1347,9 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
 
   void _say(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Shows [error] as a localized sentence. A caught exception is logged by its
@@ -1415,8 +1418,10 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     }
     if (label == level.label) return;
     try {
-      await RepositoriesScope.of(context).difficultyLevels
-          .upsert(level.copyWith(label: label), localUserEdit: true);
+      await RepositoriesScope.of(context).difficultyLevels.upsert(
+        level.copyWith(label: label),
+        localUserEdit: true,
+      );
       await _reload();
     } catch (error, stackTrace) {
       _labelControllers[level.id]?.text = level.label;
@@ -1501,8 +1506,9 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     updated.insert(newIndex, level);
     setState(() => _levels = updated);
     try {
-      await RepositoriesScope.of(context).difficultyLevels
-          .reorder(updated.map((level) => level.id).toList());
+      await RepositoriesScope.of(
+        context,
+      ).difficultyLevels.reorder(updated.map((level) => level.id).toList());
       await _reload();
       return level;
     } catch (error, stackTrace) {
@@ -2462,8 +2468,9 @@ class _DefaultsView extends StatelessWidget {
                 phraseStructure: PhraseStructure.standard,
                 dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
-                shorthandMappings: ShorthandMappingsScope.maybeOf(context)
-                    ?.store,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
                 userFigureOptions: userFigureOptions,
                 onChanged: onDanceFigureTemplateChanged,
                 onAdd: onDanceFigureTemplateAdd,
@@ -2507,8 +2514,9 @@ class _DefaultsView extends StatelessWidget {
                 phraseStructure: PhraseStructure.standard,
                 dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
-                shorthandMappings: ShorthandMappingsScope.maybeOf(context)
-                    ?.store,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
                 userFigureOptions: userFigureOptions,
                 onChanged: onMeanwhileSideChanged,
                 onAdd: onMeanwhileSideAdd,
@@ -2555,8 +2563,9 @@ class _DefaultsView extends StatelessWidget {
                 phraseStructure: PhraseStructure.standard,
                 dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
-                shorthandMappings: ShorthandMappingsScope.maybeOf(context)
-                    ?.store,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
                 userFigureOptions: userFigureOptions,
                 onChanged: onModifierChanged,
                 onAdd: onModifierAdd,

@@ -12832,61 +12832,61 @@ abstract class AppLocalizations {
   /// **'Remove phrase {name}'**
   String danceEditorPhraseRemove(String name);
 
-  /// Help under the heading of the phrase-structure rows in a contra or square dance's editor. Each row is one part of the phrase structure text. The text field below the rows shows the same structure.
+  /// Help under the heading of the phrase-structure rows in a contra or square dance's editor. Each row is one part of the phrase structure text. The text field below the rows shows the same structure. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.'**
   String get danceEditorPhraseRowsHelp;
 
-  /// Label of the number field for how many equal phrases one row of a contra or square dance's phrase structure has.
+  /// Label of the number field for how many equal phrases one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'Phrases'**
   String get danceEditorPhraseRowsPhrasesLabel;
 
-  /// Label of the number field for how many bars of music each phrase of one row of a contra or square dance's phrase structure has.
+  /// Label of the number field for how many bars of music each phrase of one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'Bars per phrase'**
   String get danceEditorPhraseRowsBarsLabel;
 
-  /// Label of the number field for how many beats are in a bar in one row of a contra or square dance's phrase structure, such as 2 for a reel or 3 for a slip jig.
+  /// Label of the number field for how many beats are in a bar in one row of a contra or square dance's phrase structure, such as 2 for a reel or 3 for a slip jig. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'Beats per bar'**
   String get danceEditorPhraseRowsBeatsLabel;
 
-  /// Short error under a number field of the phrase-structure rows in a contra or square dance when it is empty, zero or too large: the numbers it may hold.
+  /// Short error under a number field of the phrase-structure rows in a contra or square dance when it is empty, zero or too large: the numbers it may hold. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'1 to {max}'**
   String danceEditorPhraseRowsRange(int max);
 
-  /// Button that adds a row to the phrase-structure rows of a contra or square dance.
+  /// Button that adds a row to the phrase-structure rows of a contra or square dance. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'Add row'**
   String get danceEditorPhraseRowsAdd;
 
-  /// Tooltip of the button that removes one row from the phrase-structure rows of a contra or square dance. The number counts the rows from 1.
+  /// Tooltip of the button that removes one row from the phrase-structure rows of a contra or square dance. The number counts the rows from 1. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'Remove row {number}'**
   String danceEditorPhraseRowsRemove(int number);
 
-  /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
-  /// **'Give each field a whole number from 1 to {max}, in a structure that is not too long. Until then the dance keeps its last valid phrase structure, and Save saves that.'**
+  /// **'Give each field a whole number from 1 to {max}, in a structure that is not too long. Until then the last valid phrase structure is kept.'**
   String danceEditorPhraseRowsInvalid(int max);
 
-  /// One line under the phrase-structure rows of a contra or square dance: the labels the phrases get, such as A1 A2 B1 B2 (a long list ends with an ellipsis), then the beats in all. The labels are music-phrase labels and stay as written.
+  /// One line under the phrase-structure rows of a contra or square dance: the labels the phrases get, such as A1 A2 B1 B2 (a long list ends with an ellipsis), then the beats in all. The labels are music-phrase labels and stay as written. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'{labels} · {beats, plural, =1{1 beat} other{{beats} beats}}'**
   String danceEditorPhraseRowsSummary(String labels, int beats);
 
-  /// Note under the phrase-structure rows of a contra or square dance while the phrase structure text below them is not valid, or holds phrase names that only an English dance keeps. The rows are disabled until it is.
+  /// Note under the phrase-structure rows of a contra or square dance while the phrase structure text below them is not valid, or holds phrase names that only an English dance keeps. The rows are disabled until it is. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
   /// **'These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.'**
