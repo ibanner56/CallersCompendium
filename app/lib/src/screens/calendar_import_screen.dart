@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../export/export_labels_l10n.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/calendar_import.dart';
 import '../data/calendar_import_settings.dart';
@@ -293,8 +294,16 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
     String titleOf(CalendarImportEntry e) => e.candidate.title.trim().isEmpty
         ? l10n.calendarImportUntitled
         : e.candidate.title;
+    // The event's times beside its date (#2423), phrased as the set list
+    // phrases a program's start and end.
+    String? timesOf(CalendarImportEntry e) => danceTimesText(
+      startMinute: e.candidate.startMinute,
+      endMinute: e.candidate.endMinute,
+      formatTime: (m) => formatTimeOfDay(m, l10n),
+      labels: programExportLabels(l10n),
+    );
     String subtitleOf(CalendarImportEntry e) =>
-        [dateOf(e), ?e.candidate.venueLabel].join(' · ');
+        [dateOf(e), ?timesOf(e), ?e.candidate.venueLabel].join(' · ');
 
     List<CalendarImportEntry> withState(CalendarEntryState s) =>
         preview.entries.where((e) => e.state == s).toList();

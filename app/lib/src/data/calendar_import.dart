@@ -169,6 +169,9 @@ Future<List<String>> commitCalendarImport(
           id: id,
           title: c.title.trim().isEmpty ? untitledTitle : c.title,
           eventDate: c.date,
+          // A timed event's start and end (#2423); an all-day one has none.
+          startMinute: c.startMinute,
+          endMinute: c.endMinute,
           venue: c.venueLabel,
           venueId: entry.venueId,
           caller: caller,
