@@ -1,4 +1,5 @@
 import '../../search/saved_search.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../util/uuid.dart';
 import 'settings_repository.dart';
 
@@ -94,6 +95,42 @@ final class StoredSavedSearch {
   String get savedSearchId => search?.id ?? id!;
 }
 
+/// One saved search a merge rewrote: its value before and as the merge left
+/// it, so an Undo can put it back only while nothing has changed it since.
+final class SavedSearchRewrite {
+  const SavedSearchRewrite({
+    required this.id,
+    required this.before,
+    required this.after,
+  });
+
+  final String id;
+
+  /// The stored value before the merge.
+  final Object? before;
+
+  /// The stored value as the merge wrote it, read back from the store.
+  final Object? after;
+}
+
+bool _sameJson(Object? a, Object? b) {
+  if (a is Map && b is Map) {
+    if (a.length != b.length) return false;
+    for (final e in a.entries) {
+      if (!b.containsKey(e.key) || !_sameJson(e.value, b[e.key])) return false;
+    }
+    return true;
+  }
+  if (a is List && b is List) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!_sameJson(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  return a == b;
+}
+
 /// Saved searches, one settings value each under [savedSearchKeyPrefix]. A
 /// saved search is the user's own configuration and syncs behind the
 /// `savedSearches.v1` capability.
@@ -173,6 +210,58 @@ class SavedSearchRepository {
       throw ArgumentError.value(search.name, 'search', check.problem);
     }
     await _settings.set(search.settingsKey, json, at: at);
+  }
+
+  /// Reads every [kind] reference in [moves] (losing id → surviving id) as
+  /// the survivor in every live saved search that names one, as one edit each
+  /// (a merge of tags, authors or sources). Returns what it rewrote, for
+  /// [restoreRewrites].
+  ///
+  /// A saved search this build cannot read (a newer format, a hostile value)
+  /// is left byte for byte as it is: it cannot be rewritten without being
+  /// understood, and the merge's alias still reads its ids as the survivor
+  /// (`SavedSearchContext.aliases`). One that names none of [moves] is not
+  /// written. Never throws for a stored value.
+  Future<List<SavedSearchRewrite>> moveReferences(
+    SyncRecordKind kind,
+    Map<String, String> moves, {
+    DateTime? at,
+  }) async {
+    final rewrites = <SavedSearchRewrite>[];
+    for (final key in await _settings.keysWithPrefix(savedSearchKeyPrefix)) {
+      final id = key.substring(savedSearchKeyPrefix.length);
+      final before = await _settings.get(key);
+      final read = SavedSearch.decode(id, before).value;
+      if (read == null) continue;
+      final spec = read.spec.movingReferences(kind, moves);
+      if (spec == null) continue;
+      final json = SavedSearch(id: id, name: read.name, spec: spec).toJson();
+      if (SavedSearch.decodeAsStored(id, json).value == null) continue;
+      await _settings.set(key, json, at: at);
+      rewrites.add(
+        SavedSearchRewrite(
+          id: id,
+          before: before,
+          after: await _settings.get(key),
+        ),
+      );
+    }
+    return rewrites;
+  }
+
+  /// Puts back each of [rewrites] that is still as [moveReferences] left it.
+  /// One that has since been edited, deleted or synced from a peer is left
+  /// alone: Undo must not overwrite a later change.
+  Future<void> restoreRewrites(
+    List<SavedSearchRewrite> rewrites, {
+    DateTime? at,
+  }) async {
+    for (final rewrite in rewrites) {
+      final key = '$savedSearchKeyPrefix${rewrite.id}';
+      if (_sameJson(await _settings.get(key), rewrite.after)) {
+        await _settings.set(key, rewrite.before, at: at);
+      }
+    }
   }
 
   /// Deletes the saved search [id] (a tombstone, so the deletion syncs).

@@ -10,6 +10,7 @@ import '../../model/choreographer.dart';
 import '../../model/published_source.dart';
 import '../../model/stored_timestamp.dart';
 import 'dance_repository.dart';
+import 'saved_search_repository.dart';
 import 'sync_local_repository.dart';
 
 /// The three kinds a user can rename, merge and delete from a manager
@@ -106,6 +107,7 @@ final class _UndoState {
     this.retainedBefore = const [],
     this.pendingBefore = const [],
     this.coexisting = const {},
+    this.savedSearchRewrites = const [],
   });
 
   /// Each entry's row before the edit, to write back (survivor, losers, or
@@ -139,6 +141,10 @@ final class _UndoState {
   /// Live entries outside the edit that already matched an old name when it
   /// ran, as case variants can. Undo leaves them be rather than refusing.
   final Set<String> coexisting;
+
+  /// For a merge: the saved searches whose references to a loser it moved to
+  /// the survivor, each as it was and as the merge left it.
+  final List<SavedSearchRewrite> savedSearchRewrites;
 }
 
 /// Rename, merge and delete for tags, authors and sources, with Undo
@@ -151,15 +157,23 @@ final class _UndoState {
 ///
 /// Sync: a merge adds no record kind and no key. Its peers learn of it from
 /// ordinary records — the survivor's edit, the loser's tombstone under the
-/// loser's own name freed with a suffix, and the bumped dances — and the alias
+/// loser's own name freed with a suffix, the bumped dances and, for a tag,
+/// author or source, each saved search that named a loser, rewritten as an
+/// ordinary edit of its own settings value — and the alias
 /// it records files a peer's later citations of the loser under the survivor
 /// (sync-spec §6.6, "The remap", amended 2026-10-30).
 class ReferenceEditRepository {
-  ReferenceEditRepository(this._db, this._dances, this._syncLocal);
+  ReferenceEditRepository(
+    this._db,
+    this._dances,
+    this._syncLocal,
+    this._savedSearches,
+  );
 
   final CompendiumDatabase _db;
   final DanceRepository _dances;
   final SyncLocalRepository _syncLocal;
+  final SavedSearchRepository _savedSearches;
 
   /// Every entry of [kind], live or tombstoned, whose name the app treats as
   /// [name] ([naturalKeyMatchKey]), other than [excludeId], in ascending id
@@ -358,6 +372,12 @@ class ReferenceEditRepository {
   ///    [SyncLocalRepository.remapIdentity], which also collapses alias
   ///    chains, moves retained sync fields and unions publication markers.
   ///
+  /// Every live saved search that names a loser is rewritten to name the
+  /// survivor, in the same transaction ([SavedSearchRepository.moveReferences]).
+  /// One this build cannot read is left byte for byte as it is, and the alias
+  /// still reads its ids as the survivor. The survivor is the smallest id, not
+  /// necessarily [intoId], and that is the id written.
+  ///
   /// Then the survivor's fields are written, a tombstone holding [name] is
   /// freed as [rename] frees it, and the affected dances' search rows are
   /// rebuilt.
@@ -458,6 +478,14 @@ class ReferenceEditRepository {
           survivingId: survivorId,
         );
       }
+      // The user's saved searches name tags, authors and sources by id; they
+      // follow the survivor in the same transaction, so a search is never left
+      // naming a loser a peer's tombstone has retired.
+      final savedSearchRewrites = await _savedSearches.moveReferences(
+        kind.syncKind,
+        {for (final loser in losers) loser: survivorId},
+        at: now,
+      );
       final citationFills = await _applyCitationLocators(locators, survivorId);
       await _writeFields(kind, merged, now: now);
       // Merging into an entry is a deliberate edit of it, so it cancels a
@@ -488,6 +516,7 @@ class ReferenceEditRepository {
           pendingBefore: pendingBefore,
           touchedIds: all,
           coexisting: coexisting,
+          savedSearchRewrites: savedSearchRewrites,
         ),
       );
     });
@@ -559,7 +588,9 @@ class ReferenceEditRepository {
   /// touched dance is bumped again.
   ///
   /// An alias row, or a retained part of the survivor, that a sync pass has
-  /// changed since is left as the pass left it.
+  /// changed since is left as the pass left it. So is a saved search that has
+  /// been edited, deleted or synced since the merge rewrote it; each of the
+  /// rest goes back to naming the losers.
   Future<void> undo(ReferenceEditUndo token, {DateTime? at}) {
     final now = resolveStamp(at);
     final kind = token.kind;
@@ -632,6 +663,10 @@ class ReferenceEditRepository {
               .insert(row, mode: InsertMode.insertOrReplace);
         }
       }
+
+      // Saved searches go back to naming the losers, each only while it is as
+      // the merge left it: one edited, deleted or synced since is not undone.
+      await _savedSearches.restoreRewrites(state.savedSearchRewrites, at: now);
 
       dances.addAll(await _citingDances(kind, state.touchedIds));
       await _bumpDances(dances, now: now);

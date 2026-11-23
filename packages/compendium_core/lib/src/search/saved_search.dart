@@ -124,6 +124,75 @@ final class SavedSearchSpec {
     }
   }
 
+  /// This spec with every [kind] reference named in [moves] (losing id →
+  /// surviving id) rewritten to the survivor, or null when it names none of
+  /// them or the result would not be readable. Used by a merge of tags,
+  /// authors or sources.
+  ///
+  /// Only the id leaves change: the Filters **Tags**, **Authors** and
+  /// **Sources** selections, and the Advanced tag rows (which carry tag ids
+  /// only). An id set stays sorted and without duplicates, so the bytes
+  /// still depend only on the search; a second row for the same tag is kept.
+  /// Nothing else is touched, so a search that names no moved id comes back
+  /// as null and is never rewritten.
+  ///
+  /// A null for a search that does name a moved id (not expected: a rewrite
+  /// only replaces ids) leaves the search as it was; the merge's alias still
+  /// reads it as the survivor (`SavedSearchContext.aliases`).
+  SavedSearchSpec? movingReferences(
+    SyncRecordKind kind,
+    Map<String, String> moves,
+  ) {
+    final facetKey = switch (kind) {
+      SyncRecordKind.tag => 'tagIds',
+      SyncRecordKind.choreographer => 'authorIds',
+      SyncRecordKind.publishedSource => 'sourceIds',
+      _ => null,
+    };
+    if (facetKey == null || moves.isEmpty) return null;
+    var changed = false;
+    String move(String id) {
+      final to = moves[id];
+      if (to == null || to == id) return id;
+      changed = true;
+      return to;
+    }
+
+    Object? walkAdvanced(Object? node) {
+      if (node is Map) {
+        return {
+          for (final e in node.entries)
+            e.key: node['t'] == 'tag' && e.key == 'tagId' && e.value is String
+                ? (kind == SyncRecordKind.tag
+                      ? move(e.value as String)
+                      : e.value)
+                : walkAdvanced(e.value),
+        };
+      }
+      if (node is List) return [for (final x in node) walkAdvanced(x)];
+      return node;
+    }
+
+    final next = <String, Object?>{..._json};
+    final facets = _json['facets'];
+    if (facets is Map && facets[facetKey] is List) {
+      final ids = {
+        for (final x in facets[facetKey] as List)
+          if (x is String) move(x),
+      }.toList()..sort();
+      if (changed) next['facets'] = {...facets, facetKey: ids};
+    }
+    if (kind == SyncRecordKind.tag && _json.containsKey('advanced')) {
+      final facetsChanged = changed;
+      changed = false;
+      final advanced = walkAdvanced(_json['advanced']);
+      if (changed) next['advanced'] = advanced;
+      changed = changed || facetsChanged;
+    }
+    if (!changed) return null;
+    return decode(next).value;
+  }
+
   /// The live panel state this spec describes, with every reference read
   /// through [map] (a merge's alias) and the text shown through [text]. Always
   /// a fresh state, with fresh builder ids.
