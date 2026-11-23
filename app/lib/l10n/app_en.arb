@@ -12463,10 +12463,6 @@
   "@danceEditorChooseHint": {
     "description": "Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to."
   },
-  "figureParamSearchDancersHint": "Search dancers",
-  "@figureParamSearchDancersHint": {
-    "description": "Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list."
-  },
   "danceEditorCreateQuotedName": "Create \"{name}\"",
   "@danceEditorCreateQuotedName": {
     "description": "Type-ahead option label for creating a new item with the typed name/title.",
@@ -17520,6 +17516,296 @@
   "programTemplateSaveError": "Couldn't save that change to your templates. Try again.",
   "@programTemplateSaveError": {
     "description": "Snackbar shown when creating, renaming, duplicating, reordering or deleting a program template fails to save."
+  },
+  "settingsSuggestionsHeader": "Suggestions",
+  "@settingsSuggestionsHeader": {
+    "description": "Header of the Suggestions group in the Experimental settings section (#2343)."
+  },
+  "settingsSuggestionsEnabledTitle": "Suggest the next dance",
+  "@settingsSuggestionsEnabledTitle": {
+    "description": "Title of the switch that turns on the Suggested sort in the program builder's dance list."
+  },
+  "settingsSuggestionsEnabledSubtitle": "Adds Suggested to the Sort menu of the program builder's dance list. It orders the dances for the end of the program and says why.",
+  "@settingsSuggestionsEnabledSubtitle": {
+    "description": "Subtitle of the Suggest the next dance switch."
+  },
+  "settingsSuggestionsEditorTitle": "What suggestions look for",
+  "@settingsSuggestionsEditorTitle": {
+    "description": "Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts."
+  },
+  "settingsSuggestionsEditorSubtitle": "Choose how much each thing counts when dances are suggested.",
+  "@settingsSuggestionsEditorSubtitle": {
+    "description": "Subtitle of the What suggestions look for row."
+  },
+  "suggestionFactorMatrixVarietyTitle": "Variety on the matrix",
+  "@suggestionFactorMatrixVarietyTitle": {
+    "description": "Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighbouring dance."
+  },
+  "suggestionFactorMatrixVarietyHelp": "Favor dances with moves the program hasn't used yet. Avoid moves on the same beats as the dance before.",
+  "@suggestionFactorMatrixVarietyHelp": {
+    "description": "Explanation under the Variety on the matrix factor in the suggestions editor."
+  },
+  "suggestionFactorFormationBalanceTitle": "Formation balance",
+  "@suggestionFactorFormationBalanceTitle": {
+    "description": "Name of the suggestion factor that avoids repeating formations."
+  },
+  "suggestionFactorFormationBalanceHelp": "Avoid the formation of the dance before, and formations the program already has many of.",
+  "@suggestionFactorFormationBalanceHelp": {
+    "description": "Explanation under the Formation balance factor in the suggestions editor."
+  },
+  "suggestionFactorDifficultyCurveTitle": "Difficulty curve",
+  "@suggestionFactorDifficultyCurveTitle": {
+    "description": "Name of the suggestion factor that fits dance difficulty to a chosen shape over the evening."
+  },
+  "suggestionFactorDifficultyCurveHelp": "Fit the difficulty of the evening to a shape.",
+  "@suggestionFactorDifficultyCurveHelp": {
+    "description": "Explanation under the Difficulty curve factor in the suggestions editor."
+  },
+  "suggestionFactorVenueRecencyTitle": "Recent calls at this venue",
+  "@suggestionFactorVenueRecencyTitle": {
+    "description": "Name of the suggestion factor that avoids dances called recently at the program's venue."
+  },
+  "suggestionFactorVenueRecencyHelp": "Avoid dances called recently at the program's venue. A program with no venue skips this.",
+  "@suggestionFactorVenueRecencyHelp": {
+    "description": "Explanation under the Recent calls at this venue factor in the suggestions editor."
+  },
+  "suggestionWeightOff": "Off",
+  "@suggestionWeightOff": {
+    "description": "Weight choice for a suggestion factor: it does not count at all. Also the curve shape choice that turns the difficulty curve off."
+  },
+  "suggestionWeightALittle": "A little",
+  "@suggestionWeightALittle": {
+    "description": "Weight choice for a suggestion factor: it counts a little."
+  },
+  "suggestionWeightALot": "A lot",
+  "@suggestionWeightALot": {
+    "description": "Weight choice for a suggestion factor: it counts a lot."
+  },
+  "suggestionWeightSemantic": "How much {factor} counts",
+  "@suggestionWeightSemantic": {
+    "description": "Screen-reader label of the Off / A little / A lot choice for one suggestion factor.",
+    "placeholders": {
+      "factor": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionCurveShapeLabel": "Shape",
+  "@suggestionCurveShapeLabel": {
+    "description": "Label of the difficulty curve's shape choice in the suggestions editor."
+  },
+  "suggestionCurveBuildThenEase": "Build up, then ease off",
+  "@suggestionCurveBuildThenEase": {
+    "description": "Difficulty curve shape: start easy, build to the hardest dances about two thirds of the way in, then ease off."
+  },
+  "suggestionCurveEven": "Even",
+  "@suggestionCurveEven": {
+    "description": "Difficulty curve shape: stay close to the level of the dances already in the program."
+  },
+  "suggestionsResetDefaults": "Reset to defaults",
+  "@suggestionsResetDefaults": {
+    "description": "Button in the suggestions editor that restores the shipped choices."
+  },
+  "suggestionsResetDone": "Suggestions look for the default things again.",
+  "@suggestionsResetDone": {
+    "description": "Snackbar after Reset to defaults in the suggestions editor."
+  },
+  "suggestionsNewerVersion": "These choices were saved by a newer version of the app, so they can't be changed here. Update the app to change them.",
+  "@suggestionsNewerVersion": {
+    "description": "Notice in the suggestions editor when the stored choices come from a newer app version; the editor is read-only then."
+  },
+  "collectionSortSuggested": "Suggested",
+  "@collectionSortSuggested": {
+    "description": "Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program."
+  },
+  "suggestionReasonNewMoves": "{count, plural, =1{A new move for tonight} other{{count} new moves for tonight}}",
+  "@suggestionReasonNewMoves": {
+    "description": "Suggestion reason: the dance brings moves no other dance in the program uses.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestionReasonBeatOverlapPrevious": "Same {move} beats as the previous dance",
+  "@suggestionReasonBeatOverlapPrevious": {
+    "description": "Suggestion reason: a move lands on the same beats as in the previous dance (the matrix's collision rule). {move} is the matrix column's name, such as partner swing.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonBeatOverlapNext": "Same {move} beats as the next dance",
+  "@suggestionReasonBeatOverlapNext": {
+    "description": "Suggestion reason: a move lands on the same beats as in the next dance. {move} is the matrix column's name.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonSameFormationPrevious": "{formation}, like the previous dance",
+  "@suggestionReasonSameFormationPrevious": {
+    "description": "Suggestion reason: the dance is in the same formation as the previous one.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonSameFormationNext": "{formation}, like the next dance",
+  "@suggestionReasonSameFormationNext": {
+    "description": "Suggestion reason: the dance is in the same formation as the next one.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonFormationCommon": "Already {count} {formation} dances tonight",
+  "@suggestionReasonFormationCommon": {
+    "description": "Suggestion reason: the program already has many dances in this formation. {count} is at least 3.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonFirstFormation": "{formation}: the first tonight",
+  "@suggestionReasonFirstFormation": {
+    "description": "Suggestion reason: no other dance in the program is in this formation.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonFitsCurve": "Fits the difficulty curve here",
+  "@suggestionReasonFitsCurve": {
+    "description": "Suggestion reason: the dance's level fits the chosen difficulty curve at this point of the program."
+  },
+  "suggestionReasonHarderThanCurve": "Harder than the difficulty curve wants here",
+  "@suggestionReasonHarderThanCurve": {
+    "description": "Suggestion reason: the dance's level is above what the difficulty curve wants at this point."
+  },
+  "suggestionReasonEasierThanCurve": "Easier than the difficulty curve wants here",
+  "@suggestionReasonEasierThanCurve": {
+    "description": "Suggestion reason: the dance's level is below what the difficulty curve wants at this point."
+  },
+  "suggestionReasonCalledHereRecently": "Called at {venue} on {date}",
+  "@suggestionReasonCalledHereRecently": {
+    "description": "Suggestion reason: the dance was called at this program's venue within the chosen window.",
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonNotCalledHereSince": "Not called at {venue} since {date}",
+  "@suggestionReasonNotCalledHereSince": {
+    "description": "Suggestion reason: the dance was last called at this venue before the chosen window, on {date}.",
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonNeverCalledHere": "Never called at {venue}",
+  "@suggestionReasonNeverCalledHere": {
+    "description": "Suggestion reason: the dance has never been called at this program's venue.",
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonVenueSkipped": "Recent calls at this venue: skipped, because the program has no venue",
+  "@suggestionReasonVenueSkipped": {
+    "description": "Note in a suggestion's Why? list when the program has no venue, so the venue factor could not be used."
+  },
+  "suggestionReasonNoFactor": "Nothing it looks for moved this dance",
+  "@suggestionReasonNoFactor": {
+    "description": "Suggestion reason when no factor raised or lowered the dance."
+  },
+  "suggestionReasonEnglishNotCovered": "Suggestions don't cover English dances yet",
+  "@suggestionReasonEnglishNotCovered": {
+    "description": "Reason on an English dance in the Suggested order: English dances are listed after the ranked ones, in the plain order."
+  },
+  "suggestionReasonPhraseOverlapPrevious": "{move} in the same phrase as the previous dance",
+  "@suggestionReasonPhraseOverlapPrevious": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the previous dance. {move} is the matrix column's name.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonPhraseOverlapNext": "{move} in the same phrase as the next dance",
+  "@suggestionReasonPhraseOverlapNext": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the next dance. {move} is the matrix column's name.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonAlreadyInProgram": "Already in this program",
+  "@suggestionReasonAlreadyInProgram": {
+    "description": "Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed)."
+  },
+  "suggestionRankingFailed": "Couldn't rank these dances, so they're in their usual order.",
+  "@suggestionRankingFailed": {
+    "description": "Notice in the program builder's dance picker when the Suggested sort is chosen but ranking failed; the list shows in its plain order."
+  },
+  "suggestionWhyTooltip": "Why {title} is suggested here",
+  "@suggestionWhyTooltip": {
+    "description": "Tooltip and screen-reader label of the Why? button on a row in the Suggested order.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionWhyTitle": "Why {title}",
+  "@suggestionWhyTitle": {
+    "description": "Title of the dialog listing every factor that moved a dance in the Suggested order.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionWhyRaises": "Raises it: {reason}",
+  "@suggestionWhyRaises": {
+    "description": "Screen-reader label of a reason in the Why? dialog that moved the dance up.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionWhyLowers": "Lowers it: {reason}",
+  "@suggestionWhyLowers": {
+    "description": "Screen-reader label of a reason in the Why? dialog that moved the dance down.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "figureParamSearchDancersHint": "Search dancers",
+  "@figureParamSearchDancersHint": {
+    "description": "Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list."
   },
   "exportAddToCalendar": "Add to calendar (.ics)",
   "@exportAddToCalendar": {

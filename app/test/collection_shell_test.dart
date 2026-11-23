@@ -20,6 +20,7 @@ import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/published_collections/published_collection_service.dart';
 import 'package:compendium_app/src/published_collections/published_collection_config.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
+import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 
 import 'support/dance_detail_actions.dart';
 import 'support/test_repositories.dart';
@@ -1083,11 +1084,7 @@ void main() {
         await tester.tap(find.text('Author').last);
         await tester.pumpAndSettle();
         expect(
-          tester
-              .widget<PopupMenuButton<CollectionSort>>(
-                find.byType(PopupMenuButton<CollectionSort>),
-              )
-              .initialValue,
+          tester.widget<PopupMenuButton<Object>>(_sortMenu).initialValue,
           CollectionSort.author,
         );
 
@@ -1095,11 +1092,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          tester
-              .widget<PopupMenuButton<CollectionSort>>(
-                find.byType(PopupMenuButton<CollectionSort>),
-              )
-              .initialValue,
+          tester.widget<PopupMenuButton<Object>>(_sortMenu).initialValue,
           CollectionSort.author,
           reason:
               'Crossing the breakpoint must reparent the existing '
@@ -1126,11 +1119,7 @@ void main() {
         await tester.tap(find.text('Recently added').last);
         await tester.pumpAndSettle();
         expect(
-          tester
-              .widget<PopupMenuButton<CollectionSort>>(
-                find.byType(PopupMenuButton<CollectionSort>),
-              )
-              .initialValue,
+          tester.widget<PopupMenuButton<Object>>(_sortMenu).initialValue,
           CollectionSort.recentlyAdded,
         );
 
@@ -1138,11 +1127,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          tester
-              .widget<PopupMenuButton<CollectionSort>>(
-                find.byType(PopupMenuButton<CollectionSort>),
-              )
-              .initialValue,
+          tester.widget<PopupMenuButton<Object>>(_sortMenu).initialValue,
           CollectionSort.recentlyAdded,
           reason:
               'Same hazard in the other direction: narrow -> wide also '
@@ -1153,3 +1138,10 @@ void main() {
     );
   });
 }
+
+/// The collection list's Sort menu (its items are typed `Object` since the
+/// picker's Suggested entry, #2343, so other menus share the widget type).
+final Finder _sortMenu = find.descendant(
+  of: find.byType(CollectionSortMenuButton),
+  matching: find.byType(PopupMenuButton<Object>),
+);

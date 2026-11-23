@@ -97,6 +97,11 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('regional-date-format')", 'false'),
     ("const ValueKey('regional-first-day-of-week-dropdown')", 'false'),
   ],
+  'lib/src/screens/settings/suggestion_settings_screen.dart': [
+    // Three fixed choices each: select-only.
+    ("const ValueKey('suggestion-curve-shape')", 'false'),
+    ("const ValueKey('suggestion-venue-window')", 'false'),
+  ],
   'lib/src/widgets/advanced_query_builder.dart': [
     (r"ValueKey('group-kind-${group.id}')", 'false'),
     (r"ValueKey('tag-${node.id}')", 'true'),

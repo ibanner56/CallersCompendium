@@ -1,0 +1,239 @@
+// Settings ▸ Experimental ▸ Suggestions and its editor (#2343).
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart';
+import 'package:compendium_app/src/screens/settings/suggestion_settings_screen.dart';
+
+import '../support/dropdown.dart';
+import '../support/l10n_harness.dart';
+import '../support/test_repositories.dart';
+
+class _Harness {
+  _Harness(this.repos, this.enabled, this.settings);
+  final CompendiumRepositories repos;
+  final ValueNotifier<bool> enabled;
+  final ValueNotifier<SuggestionSettingsRead> settings;
+}
+
+Future<_Harness> _pump(
+  WidgetTester tester,
+  Widget home, {
+  bool enabled = false,
+  SuggestionSettingsRead read = (
+    settings: const SuggestionSettings(),
+    isNewer: false,
+  ),
+}) async {
+  await tester.binding.setSurfaceSize(const Size(800, 2000));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final repos = openTestRepositories();
+  final enabledNotifier = ValueNotifier<bool>(enabled);
+  addTearDown(enabledNotifier.dispose);
+  final settings = ValueNotifier<SuggestionSettingsRead>(read);
+  addTearDown(settings.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: SuggestionsEnabledScope(
+          notifier: enabledNotifier,
+          child: SuggestionSettingsScope(notifier: settings, child: child!),
+        ),
+      ),
+      home: home,
+    ),
+  );
+  await tester.pumpAndSettle();
+  return _Harness(repos, enabledNotifier, settings);
+}
+
+Finder _segment(SuggestionFactor factor, String label) => find.descendant(
+  of: find.byKey(ValueKey('suggestion-weight-${factor.name}')),
+  matching: find.text(label),
+);
+
+SuggestionWeight _selected(WidgetTester tester, SuggestionFactor factor) =>
+    tester
+        .widget<SegmentedButton<SuggestionWeight>>(
+          find.byKey(ValueKey('suggestion-weight-${factor.name}')),
+        )
+        .selected
+        .single;
+
+Future<SuggestionSettingsRead> _stored(_Harness h) async =>
+    readSuggestionSettings(await h.repos.settings.get(kSuggestionSettingsKey));
+
+void main() {
+  testWidgets('the Experimental toggle is off by default, and turning it on '
+      'sets and saves suggestions_enabled', (tester) async {
+    final h = await _pump(
+      tester,
+      const Scaffold(body: SingleChildScrollView(child: SuggestionsSection())),
+    );
+    // Off, the section starts collapsed, like the Glossary group above it.
+    await tester.tap(find.text('Suggestions'));
+    await tester.pumpAndSettle();
+    final toggle = find.byKey(
+      const ValueKey('experimental-suggestions-enabled'),
+    );
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(await h.repos.settings.get(kSuggestionsEnabledKey), isNull);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(h.enabled.value, isTrue);
+    expect(await h.repos.settings.get(kSuggestionsEnabledKey), isTrue);
+
+    await tester.tap(
+      find.byKey(const ValueKey('experimental-suggestions-open')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(SuggestionSettingsScreen), findsOneWidget);
+  });
+
+  testWidgets('the editor shows the shipped defaults, in words only', (
+    tester,
+  ) async {
+    await _pump(tester, const SuggestionSettingsScreen());
+    expect(
+      _selected(tester, SuggestionFactor.matrixVariety),
+      SuggestionWeight.aLot,
+    );
+    expect(
+      _selected(tester, SuggestionFactor.formationBalance),
+      SuggestionWeight.aLittle,
+    );
+    expect(
+      _selected(tester, SuggestionFactor.difficultyCurve),
+      SuggestionWeight.aLittle,
+    );
+    expect(
+      _selected(tester, SuggestionFactor.venueRecency),
+      SuggestionWeight.aLot,
+    );
+    // No weights as numbers anywhere.
+    for (final digit in ['0', '1', '3', '0.5']) {
+      expect(find.text(digit), findsNothing, reason: digit);
+    }
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const ValueKey('suggestion-settings-reset')),
+          )
+          .onPressed,
+      isNull,
+      reason: 'nothing to reset',
+    );
+  });
+
+  testWidgets('choosing Off for a factor saves it, and the other choices '
+      'stay', (tester) async {
+    final h = await _pump(tester, const SuggestionSettingsScreen());
+    await tester.tap(_segment(SuggestionFactor.matrixVariety, 'Off'));
+    await tester.pumpAndSettle();
+
+    expect(
+      _selected(tester, SuggestionFactor.matrixVariety),
+      SuggestionWeight.off,
+    );
+    final stored = await _stored(h);
+    expect(stored.settings.matrixVariety, SuggestionWeight.off);
+    expect(stored.settings.venueRecency, SuggestionWeight.aLot);
+    expect(h.settings.value.settings, stored.settings);
+  });
+
+  testWidgets('the curve shape and venue window save their choices', (
+    tester,
+  ) async {
+    final h = await _pump(tester, const SuggestionSettingsScreen());
+    await pickDropdownValue(
+      tester,
+      find.byKey(const ValueKey('suggestion-curve-shape')),
+      DifficultyCurveShape.even,
+    );
+    await pickDropdownValue(
+      tester,
+      find.byKey(const ValueKey('suggestion-venue-window')),
+      VenueRecencyWindow.sixMonths,
+    );
+    final stored = await _stored(h);
+    expect(stored.settings.curveShape, DifficultyCurveShape.even);
+    expect(stored.settings.venueWindow, VenueRecencyWindow.sixMonths);
+  });
+
+  testWidgets('Reset to defaults writes the shipped defaults and keeps what '
+      'this build cannot read', (tester) async {
+    final changed = readSuggestionSettings({
+      'version': 1,
+      'factors': {
+        'matrixVariety': {'weight': 'off'},
+        'difficultyCurve': {'weight': 'aLot', 'shape': 'even'},
+        'futureFactor': {'weight': 'aLot'},
+      },
+      'preferences': [
+        {'savedSearchId': 's1', 'mode': 'prefer'},
+      ],
+    });
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: changed,
+    );
+    expect(
+      _selected(tester, SuggestionFactor.matrixVariety),
+      SuggestionWeight.off,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Suggestions look for the default things again.'),
+      findsOneWidget,
+    );
+    expect(
+      _selected(tester, SuggestionFactor.matrixVariety),
+      SuggestionWeight.aLot,
+    );
+    final stored = await _stored(h);
+    expect(stored.settings.hasDefaultChoices, isTrue);
+    final json = stored.settings.toJson();
+    expect((json['factors']! as Map).containsKey('futureFactor'), isTrue);
+    expect(json['preferences'], [
+      {'savedSearchId': 's1', 'mode': 'prefer'},
+    ]);
+  });
+
+  testWidgets('a value saved by a newer version is shown read-only and never '
+      'overwritten', (tester) async {
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: readSuggestionSettings({
+        'version': 2,
+        'factors': <String, Object?>{},
+      }),
+    );
+    expect(
+      find.byKey(const ValueKey('suggestion-settings-newer')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<SegmentedButton<SuggestionWeight>>(
+            find.byKey(const ValueKey('suggestion-weight-matrixVariety')),
+          )
+          .onSelectionChanged,
+      isNull,
+    );
+    await tester.tap(_segment(SuggestionFactor.matrixVariety, 'Off'));
+    await tester.pumpAndSettle();
+    expect(await h.repos.settings.get(kSuggestionSettingsKey), isNull);
+    expect(h.settings.value.isNewer, isTrue);
+  });
+}

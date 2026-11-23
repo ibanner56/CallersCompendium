@@ -11,6 +11,8 @@ import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
+import 'package:compendium_app/src/widgets/collection_picker.dart';
+import 'package:compendium_app/src/widgets/picker_suggestions.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 
 import 'support/l10n_harness.dart';
@@ -343,6 +345,27 @@ void main() {
       await tester.pumpAndSettle();
       final slots = await _saveAndRead(tester, repos);
       expect(_order(slots), ['a', 'b', 'b-alt1', 'b-alt2', 'brk', 'c', 'NEW']);
+    });
+
+    testWidgets('while inserting, the picker gets no slots, so it offers no '
+        'Suggested; Cancel gives them back (#2343)', (tester) async {
+      final repos = await _seed();
+      await _pump(tester, repos);
+      PickerProgramContext? contextOf() => tester
+          .widget<CollectionPicker>(find.byKey(const ValueKey('inline-picker')))
+          .programContext;
+
+      expect(contextOf()?.programId, 'p1');
+      expect(contextOf()?.slots, hasLength(_groupedSlots().length));
+
+      await _chooseFromSlotMenu(tester, 1, 'add-before');
+      expect(find.byKey(const ValueKey('insertion-banner')), findsOneWidget);
+      expect(contextOf()?.programId, 'p1');
+      expect(contextOf()?.slots, isNull);
+
+      await tester.tap(find.byKey(const ValueKey('insertion-banner-cancel')));
+      await tester.pumpAndSettle();
+      expect(contextOf()?.slots, hasLength(_groupedSlots().length));
     });
 
     testWidgets('cutting the target ends the insertion', (tester) async {

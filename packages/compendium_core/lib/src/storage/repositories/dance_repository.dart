@@ -3844,7 +3844,9 @@ class DanceRepository {
   /// values. They have no effect on any other sort. [tracking]'s
   /// `orderIgnoreUndated` and `orderIgnoreUnperformed` drop a slot with no
   /// ordering date from [SearchSort.lastCalled] without changing which dances
-  /// count as called.
+  /// count as called. [currentProgramId] leaves that program's slots out of
+  /// [SearchSort.lastCalled], as it leaves them out of a [CalledFilter]
+  /// (N1-6): pass the same value.
   ///
   /// [SearchSort.title] and [SearchSort.author] compare accent-folded keys
   /// ([foldForTitleMatch]), so "École" files with **E**. When
@@ -3871,6 +3873,7 @@ class DanceRepository {
     bool performedOnly = false,
     bool requireEventDate = false,
     CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+    String? currentProgramId,
   }) async {
     final dir = direction ?? sort.defaultDirection;
     final descending = dir == SortDirection.descending;
@@ -3897,6 +3900,7 @@ class DanceRepository {
           performedOnly: performedOnly,
           requireEventDate: requireEventDate,
           tracking: tracking,
+          currentProgramId: currentProgramId,
         );
       case SearchSort.title:
         // SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
@@ -4040,6 +4044,7 @@ class DanceRepository {
     required bool performedOnly,
     required bool requireEventDate,
     required CallingHistoryTracking tracking,
+    String? currentProgramId,
   }) async {
     if (ids.isEmpty) return ids;
     // The aggregate is restricted to the incoming result `ids` (chunked
@@ -4063,10 +4068,12 @@ class DanceRepository {
             '${callingHistoryAlternateClause(slotTable: 'program_slots')}'
             '${callingHistoryEventDateClause(requireEventDate: requireEventDate, programTable: 'programs')}'
             '${callingHistoryCallerClause(caller, callerColumn: 'programs.caller')}'
+            '${currentProgramId == null ? '' : 'AND programs.id <> ? '}'
             'AND program_slots.dance_id IN ($placeholders) '
             'GROUP BY program_slots.dance_id',
             variables: [
               if (caller != null) Variable<String>(caller),
+              if (currentProgramId != null) Variable<String>(currentProgramId),
               for (final id in chunk) Variable(id),
             ],
           )

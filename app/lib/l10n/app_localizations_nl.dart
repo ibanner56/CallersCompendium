@@ -9495,9 +9495,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorChooseHint => 'Kies…';
 
   @override
-  String get figureParamSearchDancersHint => 'Dansers zoeken';
-
-  @override
   String danceEditorCreateQuotedName(String name) {
     return '“$name” aanmaken';
   }
@@ -13061,6 +13058,207 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programTemplateSaveError =>
       'Die wijziging in je sjablonen kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get settingsSuggestionsHeader => 'Suggesties';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => 'De volgende dans voorstellen';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'Voegt Voorgesteld toe aan het menu Sorteren van de danslijst in de programma-editor. Het ordent de dansen voor het einde van het programma en zegt waarom.';
+
+  @override
+  String get settingsSuggestionsEditorTitle => 'Waar suggesties op letten';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'Kies hoeveel elk punt meetelt als er dansen worden voorgesteld.';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'Afwisseling in de matrix';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'Geeft voorkeur aan dansen met figuren die het programma nog niet gebruikt. Vermijdt figuren op dezelfde tellen als de dans ervoor.';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle => 'Evenwicht in formaties';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      'Vermijdt de formatie van de dans ervoor en formaties waarvan het programma er al veel heeft.';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => 'Moeilijkheidscurve';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp =>
+      'Laat de moeilijkheid van de avond een vorm volgen.';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle => 'Recent op deze locatie';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'Vermijdt dansen die onlangs op de locatie van het programma zijn gecalld. Een programma zonder locatie slaat dit over.';
+
+  @override
+  String get suggestionWeightOff => 'Uit';
+
+  @override
+  String get suggestionWeightALittle => 'Een beetje';
+
+  @override
+  String get suggestionWeightALot => 'Veel';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return 'Hoeveel $factor meetelt';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => 'Vorm';
+
+  @override
+  String get suggestionCurveBuildThenEase => 'Opbouwen, dan afbouwen';
+
+  @override
+  String get suggestionCurveEven => 'Gelijkmatig';
+
+  @override
+  String get suggestionsResetDefaults => 'Standaardwaarden herstellen';
+
+  @override
+  String get suggestionsResetDone =>
+      'Suggesties letten weer op de standaardpunten.';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'Deze keuzes zijn opgeslagen door een nieuwere versie van de app en kunnen hier niet worden gewijzigd. Werk de app bij om ze te wijzigen.';
+
+  @override
+  String get collectionSortSuggested => 'Voorgesteld';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nieuwe figuren voor vanavond',
+      one: 'Een nieuwe figuur voor vanavond',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return '$move op dezelfde tellen als de vorige dans';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return '$move op dezelfde tellen als de volgende dans';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation, net als de vorige dans';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation, net als de volgende dans';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return 'Vanavond al $count dansen in $formation';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation: de eerste vanavond';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve => 'Past hier bij de moeilijkheidscurve';
+
+  @override
+  String get suggestionReasonHarderThanCurve =>
+      'Moeilijker dan de moeilijkheidscurve hier wil';
+
+  @override
+  String get suggestionReasonEasierThanCurve =>
+      'Makkelijker dan de moeilijkheidscurve hier wil';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return 'Op $date gecalld in $venue';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return 'Sinds $date niet gecalld in $venue';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return 'Nooit gecalld in $venue';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'Recent op deze locatie: overgeslagen, omdat het programma geen locatie heeft';
+
+  @override
+  String get suggestionReasonNoFactor =>
+      'Geen van de punten heeft deze dans verschoven';
+
+  @override
+  String get suggestionReasonEnglishNotCovered =>
+      'Suggesties gelden nog niet voor Engelse dansen';
+
+  @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$move in dezelfde frase als de vorige dans';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$move in dezelfde frase als de volgende dans';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'Al in dit programma';
+
+  @override
+  String get suggestionRankingFailed =>
+      'Deze dansen konden niet worden gerangschikt, dus ze staan in de gewone volgorde.';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return 'Waarom $title hier wordt voorgesteld';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return 'Waarom $title';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return 'Zet hem hoger: $reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return 'Zet hem lager: $reason';
+  }
+
+  @override
+  String get figureParamSearchDancersHint => 'Dansers zoeken';
 
   @override
   String get exportAddToCalendar => 'Toevoegen aan agenda (.ics)';

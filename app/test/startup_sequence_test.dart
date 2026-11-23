@@ -53,6 +53,7 @@ import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -2469,6 +2470,11 @@ void main() {
           (
             key: kShowCustomFiguresKey,
             read: ShowCustomFiguresScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kSuggestionsEnabledKey,
+            read: SuggestionsEnabledScope.of,
             defaultValue: false,
           ),
           (
