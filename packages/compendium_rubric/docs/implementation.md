@@ -621,7 +621,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 >
 > **One retry, and only one** *(user-ruled).* When the positional placement does
 > not compile, `runCoreDance` tries a second: the figure **immediately before the
-> first `nextNeighbors` reach** (`nextNeighborsProgressionIndex`). A figure
+> first `nextNeighbors` reach**, in a param or (below) a note
+> (`nextNeighborsProgressionIndex`). A figure
 > reaching for the next couple is naming people this hands four has not met yet,
 > so the progression must already have happened — which makes the figure before
 > it the latest point the progression can sit and still leave that reach meaning
@@ -629,9 +630,21 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > neighbours inside a modifier is danced in the modifier's slot *(agent's call,
 > 2026-11-23)*.
 >
+> **A figure's note counts too** *(user-ruled 2026-11-23)*. Caller's Box uses N2
+> for the rest of a dance after its progression, and the import keeps some of
+> those mentions only as a note. A note dancing *with* the next neighbours
+> ("[with N2]", imported as `with nextNeighbors`) is a reach like a param. A note
+> ending *facing* them ("face N2") places the progression on that figure itself,
+> since it must be done by then. A note-only mention followed later by a figure
+> naming plain `neighbors` is an excursion out of the minor set and back, so it
+> is skipped and the scan goes on; a param mention is never skipped. A note
+> clause that speaks of only some dancers or of other neighbours too ("M1 with
+> N2, W1 with N1", "Heads with N2", "face N2 M2") is not a mention. Notes inside
+> a container count, as params do *(agent's call)*.
+>
 > This stays inside rule 5 because the landmark comes from the *record*: it reads
-> figure parameters, exactly as the positional rule reads formation and move
-> names. Nothing looks at where the dancers ended up. It is also not a search —
+> figure parameters and notes, exactly as the positional rule reads formation and
+> move names. Nothing looks at where the dancers ended up. It is also not a search —
 > two placements are ever tried, never more — which matters, because 155 of the
 > 416 dances a perfect oracle would rescue admit **more than one** working
 > placement, and a search would have no principled way to choose among them.
@@ -815,7 +828,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,372 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,411 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
