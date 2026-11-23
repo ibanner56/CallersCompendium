@@ -67,6 +67,7 @@ lib/
       sizing.dart               computeHandsFour
       success_criterion.dart    the oracle
       end_normalization.dart    §10.2 progression end behaviour
+      figure_fold.dart          FigureFold — threads figures, holds Becket progressions
       compile_result.dart       sealed Compiled / Mismatch / CompileError
       result.dart               Result<T, E> — Ok / Err
     io/
@@ -152,11 +153,20 @@ behind §3.5's equality rule.
 1. seed warnings   <- dance.warnings (parse-time) + _oneSidedHallWarnings (dance-level pre-scan)
 2. refuse          <- _unperformedProgression: claims a progression, flags none
 3. size + build    <- dance.requiredHandsFour, then dance.instantiate()
-4. fold            <- for each figure:
+4. fold            <- FigureFold(holdsProgressions: Becket); for each figure:
                         a. figure.operation.lint(state)  -> warnings, stamped with opIndex
-                        b. figure.apply(state, progressions:)
+                        b. fold.step(figure, state, index:)
+                             Becket: figure.applyHolding(...) -- a flagged figure with no whole
+                               couple at either end is HELD (no change-over yet)
+                             else:   figure.apply(...)
+                             then, if this figure is flagged and ran its own change-over:
+                               any held progression is overtaken (given up, reported)
+                             else, if a progression is held:
+                               finishHeldProgression(...) once a whole couple is at an end
+                             if flagged, progressions++ (counted where flagged, held or not)
                         c. Err  -> return CompileError(opIndex, opName, error, warnings)
-                        d. Ok   -> state = value; if flagged, progressions++
+                        d. Ok   -> state = value
+   then            <- a held progression never finished -> heldProgressionUnfinished warning
 5. oracle          <- expected = dance.success.expected(input)      // from the INPUT
 6. compare         <- normalizeWaveOffsets(state) == expected
                         ? Compiled(state)      // note: the RAW state, offsets and all
@@ -184,6 +194,13 @@ operation.apply(...)                       the figure's own transform
        applyEndNormalization(next, servedRound: waitingCouples(BEFORE))
        └─ if the figure also reached along the set: toggleBandPhase(...)
 ```
+
+`applyHolding` is the same, except that a flagged figure (not its own
+progression, not reaching) whose transform leaves no whole couple at either end
+returns its transform with `held: true` and no change-over; `FigureFold` owes
+it one (`fundamentals.md` §10.2.1). Tools that trace a dance step by step
+(`tool/probe_dance.dart`, the golden test's failure report) fold through
+`FigureFold` too, so a trace cannot disagree with `compile`.
 
 - **`servedRound` is read from the state the figure *started* in.** Only
   `slide_along_set` (and `slice`, which dances it) can tell the difference — it sets its own waiting-out state,
@@ -370,7 +387,7 @@ into "malformed input".
 `unperformedProgression` is the only **dance-level** error and carries no figure
 index.
 
-### 7.2 Warnings — seven kinds
+### 7.2 Warnings — eight kinds
 
 | Kind | Raised by | When |
 |---|---|---|
@@ -381,6 +398,7 @@ index.
 | `anchorMismatch` | figure lint | a descriptive param contradicts the derived arrangement |
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
+| `heldProgressionUnfinished` | engine (`FigureFold`) | a held Becket progression's change-over never ran |
 
 Three rules about warnings:
 
@@ -564,11 +582,17 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > **The assumed-progression rule** *(user-ruled).* `CallersBoxAdapter` never sets
 > `Figure.progression` — the Caller's Box records do not carry it. Rather than
 > refuse every imported dance, `assumedProgressionIndex` assumes a placement:
-> the **last figure**, except in a Becket dance whose first figure is
+> the **last figure**, except in a Becket dance. There, a first figure that is
 > `slide_along_set` sliding left, or a `slice` left (which lands exactly like
-> one, user-ruled 2026-11-22), where it is the **first**. (Core's
-> `slide_along_set.slide` and `slice.slice` both default to `left`, so a bare
-> slide or slice takes the Becket branch.) The assumption **always warns**, with `assumedProgression`, even when
+> one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
+> `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
+> Becket progression is the obvious move), and only a Becket dance with
+> neither falls back to the last figure. (Core's `slide_along_set.slide` and
+> `slice.slice` both default to `left`, so a bare slide or slice takes the
+> Becket branch.) A diagonal chain or pass through usually progresses before
+> any couple stands whole at an end, so the compiler **holds** such a
+> progression until one does (`OperationInvocation.applyHolding`,
+> `fundamentals.md` §10.2.1). The assumption **always warns**, with `assumedProgression`, even when
 > the dance compiles — a green result resting on a guess must not read like a
 > green result resting on the record.
 >
@@ -742,7 +766,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,230 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,241 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **52 figures registered**, plus 7 upstream aliases resolved to them
@@ -820,8 +844,8 @@ rest cannot pass for the wrong reason.
   `crashed` outcome keeps a sweep alive through it. The two former
   `give_and_take` crashes, *The Digital Divide* and *Road to Rochester*, put
   both takers of a hands four on one side of the set; `give_and_take` now
-  refuses that with an `OpError` instead of colliding. *(Agent's call,
-  2026-11-22, not yet ratified.)* Both dances progress mid-dance, so the
+  refuses that with an `OpError` instead of colliding. *(User-ruled
+  2026-11-23.)* Both dances progress mid-dance, so the
   same-side state looks like the result of a misplaced progression rather
   than a wrong permutation; see `status.md`.
 - **A hey may open on the side, and now does.** `pass1` names the first pass,

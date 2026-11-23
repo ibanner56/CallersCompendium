@@ -102,8 +102,8 @@ final class GiveAndTake extends Operation {
   /// so the two pairs of a hands four can only both be danced when their
   /// takers stand on opposite sides of the set. Two takers on one side would
   /// land on each other's taken partner: the starting state is legal, but the
-  /// state it leads to is not one a set can be in. *(Agent's call, 2026-11-22: refused rather than
-  /// left to throw a cell collision.)*
+  /// state it leads to is not one a set can be in. *(User-ruled 2026-11-23:
+  /// refused rather than left to throw a cell collision.)*
   OpError? _requireRoom(Formation formation, List<_TakePair> pairs) {
     final moves = _moves(formation, pairs);
     final landing = <Position, DancerId>{};

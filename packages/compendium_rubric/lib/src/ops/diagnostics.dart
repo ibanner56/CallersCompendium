@@ -244,6 +244,22 @@ enum WarningKind {
     'assumedProgression',
     'the source did not say which figure progresses, so one was assumed; the '
         'result rests on that assumption',
+  ),
+
+  /// A progression was **held** (no couple stood whole at an end when its
+  /// figure finished) and its change-over never ran: no later unflagged figure
+  /// brought a couple to an end, or a later flagged figure ran its own first.
+  ///
+  /// The dance is still compared against the oracle, and may even match it:
+  /// with no whole couple at an end the change-over would only have cleared
+  /// waiting-out marks, and the comparison does not read those.
+  /// But the round's waiting-out change never happened, and a result that
+  /// rests on that must say so. Stamped with the flagged figure's index.
+  heldProgressionUnfinished(
+    'heldProgressionUnfinished',
+    'a progression was held until a couple reached an end, and its '
+        'change-over never ran (no couple reached an end, or a later '
+        'progression overtook it)',
   );
 
   const WarningKind(this.key, this.description);

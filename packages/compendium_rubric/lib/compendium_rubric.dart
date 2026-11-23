@@ -21,6 +21,7 @@ export 'src/domain/starting_formations.dart';
 export 'src/engine/compile_result.dart';
 export 'src/engine/compiler.dart';
 export 'src/engine/end_normalization.dart';
+export 'src/engine/figure_fold.dart';
 export 'src/engine/invocation.dart';
 export 'src/engine/result.dart';
 export 'src/engine/sizing.dart';

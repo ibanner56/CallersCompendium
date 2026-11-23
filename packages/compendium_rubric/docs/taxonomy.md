@@ -191,6 +191,8 @@ Precondition/error kinds accumulated as figures are defined:
 | `archFromLine` | `arch_and_dive` is called on a hands four standing as a **line of four**, typically left by a hall figure. Its unconditional row swap then moves the whole line to the band's other row, usually back along the set, instead of trading two facing couples. The figure still runs as ruled; the warning says the order of figures probably needs a look. **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled, 2026-11-23.)* |
 | `anchorMismatch` | a **descriptive anchor** contradicts the arrangement the figure produced — `form_long_waves` naming a `whom`/`hand` hold the wave it forms cannot offer. An anchor states a fact the figure does not need in order to run, so the figure runs unchanged and only the description is at fault. Anchors are still worth carrying: they **disambiguate** (a record naming the hold but not the pair has said everything needed) and they **corroborate** (a claim about the arrangement can be checked rather than trusted). **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled.)* |
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
+| `assumedProgression` | an **import bridge** (the Caller's Box) assumed which figure progresses, because the source has nowhere to say. Raised whenever the assumption is made, including when the dance compiles. *(User-ruled.)* |
+| `heldProgressionUnfinished` | a **Becket** progression was held because no couple stood whole at an end when its figure finished, and its change-over never ran: no later unflagged figure brought a couple to an end, or a later flagged figure overtook it (`fundamentals.md` §10.2.1). Raised by the engine after the last figure. *(User-ruled hold, 2026-11-23; the warning is the agent's call.)* |
 
 ---
 
@@ -1588,7 +1590,7 @@ To be defined later with worked examples.
   (matches verifier `CheckGiveAndTakeAcross`, fails otherwise). The moves must also leave every
   dancer in a cell of their own: two takers of one hands four on the **same side** would slide into
   each other's taken partner, and that is refused as `unresolvableDancerSet` rather than danced.
-  *(Agent's call, 2026-11-22, not yet ratified.)*
+  *(User-ruled 2026-11-23: refused rather than crashing.)*
 - **effect:** for each (taker `T` at `(r, cT)`, taken `K` at `(r, cK)`) pair:
   - **K (taken)** → `(r, cT)` — crosses into the taker's column, staying in the shared row.
   - **T (taker)** → `(r̄, cT)` — keeps their column, slides to the **free row** (`r̄ = 1-r`).
@@ -1920,7 +1922,7 @@ To be defined later with worked examples.
   first, as for any named set).
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (not its own progression).
-- **corpus note (2026-11-23, `rubric` at `e88bc9ce`):** 10 Caller's Box dances stopped at this
+- **corpus note (2026-11-23, `rubric` at `5f683503`):** 10 Caller's Box dances stopped at this
   figure before it was built. 6 now compile. One refuses before the hey is reached. The other 3
   (4099, 4101, 18890) dance a full-circuit hey and then refuse at the very next figure, an
   `N2` swing or mad robin, with a `nextNeighbors` `whoMismatch`. Why is not yet diagnosed.

@@ -23,10 +23,22 @@
 > with no previously compiling dance lost. `arch_and_dive` and
 > `contra_corners` followed, also on rulings: against `rubric` at `11b1860a`
 > they took the count from 2,759 to 2,795 and the core set from 391 to 397,
-> again losing nothing. `circular_hey` followed on the agent's reading of the
-> core definition (not yet ruled): against `rubric` at `e88bc9ce` it took the
-> count from 2,795 to 2,801, the core set unchanged at 397. The tables below
-> count all six in their new rows but keep the September per-figure numbers.
+> again losing nothing. The tables below count all six figures added since
+> (with `circular_hey`, below) in their new rows but keep the September
+> per-figure numbers.
+>
+> **Becket progressions (2026-11-23):** the Caller's Box bridge now places a
+> Becket dance's progression on its first diagonal `chain` or `pass_through`
+> along the set, and a Becket progression with no whole couple at an end is
+> held until one gets there (both user-ruled). Measured against `rubric` at
+> `e88bc9ce`: 2,795 to 2,843 compiled in scope (49 gained, 1 lost: *More
+> Summer Haze*, whose pass through along goes to the previous neighbours), and
+> the core set from 397 to 410.
+>
+> **`circular_hey` (2026-11-23)** is built on the agent's reading of the core
+> definition, not yet ruled. Against `rubric` at `5f683503` it took the count
+> from 2,843 to 2,849 compiled in scope, with the core set unchanged at 410 and
+> nothing lost.
 
 The compiler implements 52 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 24 have an implemented core with explicit
@@ -262,8 +274,8 @@ collision:
 `r0,c0` inside `give_and_take`: both takers of one hands four stood on the same
 side of the set, so each slid along that column into the cell the other's
 taken partner was entering. `give_and_take` now refuses that state as an
-`unresolvableDancerSet` before moving anyone. *(Agent's call, 2026-11-22, not
-yet ratified: a refusal rather than a crash.)* Measured in a local corpus
+`unresolvableDancerSet` before moving anyone. *(Proposed as the agent's call on
+2026-11-22; user-ruled 2026-11-23: a refusal rather than a crash.)* Measured in a local corpus
 sweep on 2026-11-22: both dances now end `FIGUREREFUSED` at their
 `give_and_take`. The evidence so far points at an earlier wrong position rather
 than at the permutation: both dances progress mid-dance (*The Digital Divide*
