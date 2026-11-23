@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../export/dance_code.dart';
 import '../export/share_file.dart';
 import '../screens/perform_wakelock.dart';
+import '../theme/app_spacing.dart';
 import 'brand_mark.dart';
 
 /// How much of the code's width the brand mark covers (#2334). The issue asks
@@ -66,7 +67,7 @@ class _DanceCodeScreenState extends State<DanceCodeScreen>
           children: [
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Center(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -106,7 +107,12 @@ class _DanceCodeScreenState extends State<DanceCodeScreen>
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
               child: Text(
                 widget.title,
                 key: const ValueKey('dance-code-title'),
@@ -264,7 +270,7 @@ class DanceCodeTooLongScreen extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
@@ -275,13 +281,13 @@ class DanceCodeTooLongScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     l10n.danceCodeTooLong,
                     key: const ValueKey('dance-code-too-long'),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.lg),
                   Builder(
                     builder: (context) => FilledButton.icon(
                       key: const ValueKey('dance-code-share-file'),
