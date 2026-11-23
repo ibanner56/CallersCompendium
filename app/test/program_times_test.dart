@@ -113,6 +113,9 @@ Future<void> _pumpEditor(
     ),
   );
   await tester.pumpAndSettle();
+  // The times live in the More details drawer, with the other event details.
+  await tester.tap(find.text('More details'));
+  await tester.pumpAndSettle();
 }
 
 String _fieldValue(WidgetTester tester, String field) => _plain(

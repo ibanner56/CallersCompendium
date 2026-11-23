@@ -384,7 +384,7 @@ skip it: there is nothing left of it to send.
 A program carries the details of its event:
 
 - **Event date**, **Venue**, and **Notes**;
-- four optional **times** under the event date: **Start time** and **End
+- four optional **times** under **More details**: **Start time** and **End
   time** for the dance, **Beginner lesson** for a lesson before it, and
   **Arrive by** for when you need to be at the hall (see
   [Times](#times) below);

@@ -4506,15 +4506,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        _buildTimesSection(l10n),
-        const SizedBox(height: AppSpacing.md),
         _buildMoreDetails(l10n),
       ],
     );
   }
 
   /// The four optional times (#2350): start and end, the beginner lesson and
-  /// when the caller needs to arrive. Two to a row where there is room. When
+  /// when the caller needs to arrive. They sit in More details with the other
+  /// event details, after the dancer level, so the builder's top stays short
+  /// on a phone. Two to a row where there is room. When
   /// the linked venue records its usual time, that free text is shown beneath
   /// as a hint; it is never parsed into the fields, and nothing here writes to
   /// the venue.
@@ -4704,6 +4704,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   border: const OutlineInputBorder(),
                 ),
               ),
+              const SizedBox(height: AppSpacing.md),
+              _buildTimesSection(l10n),
               const SizedBox(height: AppSpacing.md),
               TextFormField(
                 key: const ValueKey('program-notes'),
