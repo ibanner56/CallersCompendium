@@ -615,7 +615,9 @@ final Map<String, DataClassification> fieldClassifications = {
         'sanitizeProgramForShare). It is never part of the shared set-list '
         'text or PDF. Besides the backup, the one export that carries it is '
         'the programs CSV export (#2333; sanitizeProgramForCsv), by ruling 2 '
-        '(maintainer, feature triage, 2026-11-22). Kept shareable rather than deviceLocal because '
+        '(maintainer, feature triage, 2026-11-22), and only while the caller '
+        'shows pay (show_program_pay, #2355). Kept shareable rather than '
+        'deviceLocal because '
         'deviceLocal means never serialised and would stop sync. Sync can '
         'still reach another person when a store is shared (ADR-004 '
         'storeAddress), so "travels in sync" is not "stays on my devices".',
