@@ -52,7 +52,7 @@ Pulled verbatim from `app/lib/src/theme/color_schemes.dart` — do not eyeball.
 | `icon-foreground.svg` | Android adaptive foreground (108 vb, illustration scaled 0.80 into the 66dp safe circle) |
 | `icon-background.svg` | solid Soft Dark background (mirrors `@color/ic_launcher_background`) |
 | `icon-monochrome.svg` | single-colour small-mark silhouette (`currentColor`) for Android 13+ themed icons |
-| `mark-raised.png` | **generated raster**, not an SVG source: the small mark raised on a pale pressed-in floor, in the Mac installer's bump-mapped style, for the middle of a Show code QR code. Rebuilt by `tools/brand/generate_raised_mark.py` (local only; needs Pillow and cairosvg) from `mark-small.svg`, reusing the shading of `tools/brand/generate_dmg_background.py`. Committed, like the installer background |
+| `mark-raised.png` | **generated raster**, not an SVG source: the small mark raised in dark enamel (lit top edge, deeper lower edge, soft shadow) on the Mac installer's pale pressed-in floor, in the installer's bump-mapped construction, for the middle of a Show code QR code. Rebuilt by `tools/brand/generate_raised_mark.py` (local only; needs Pillow and cairosvg) from `mark-small.svg`, reusing the shading of `tools/brand/generate_dmg_background.py`. Committed, like the installer background |
 
 The in-app reuse path (`app/lib/src/widgets/brand_mark.dart`) now renders these
 SVGs via **`flutter_svg`** so the nav-rail mark / empty-state marks stay

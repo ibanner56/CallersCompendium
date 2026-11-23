@@ -2,17 +2,23 @@
 """The brand mark, raised, for the middle of a Show code QR code (#2334).
 
 The Mac installer window (``generate_dmg_background.py``) draws the brand's
-small mark "standing raised" on a pressed-in floor: a face barely lighter than
-the floor, lit along its top edge, darker along its bottom edge, with a small
-soft shadow, all in pale tone on tone. This script gives the Show code screen
-the same look, using the installer's own shading helpers, palette and
-proportions, so the two read as one family.
+small mark "standing raised" on a pressed-in floor: lit along its top edge,
+darker along its bottom edge, with a small soft shadow. This script gives the
+Show code screen the same construction, using the installer's own shading
+helpers, palette, floor and proportions, so the two read as one family.
+
+One thing differs on purpose: the installer's mark is pale on a pale floor,
+which is far too faint in the middle of a QR code. Here the mark is dark
+enamel: a deep slate face with a vertical sheen (lighter at the top, deeper at
+the bottom), a lit top edge, a deeper lower edge and a stronger soft shadow on
+the floor. It is a dark mark with a raised, lit surface, not a flat black
+shape, and its colours come from the app's own dark scheme.
 
 The output is a small rounded-square badge: the pale installer floor, pressed
 in (shadowed upper rim, lit lower rim), with the mark raised on it. The app
 draws it over the white clear zone at the middle of a code. It is baked
-(opaque, floor included) rather than drawn at run time because the effect only
-reads on the grey floor; a highlight on pure white would vanish.
+(opaque, floor included) rather than drawn at run time so the shading matches
+the installer's exactly.
 
 The mark's shading is specified in points against the installer's 22 pt mark
 height, then scaled with the mark, so the badge keeps the installer's
@@ -57,6 +63,15 @@ MARK_FRACTION = 0.70
 # packaging/macos/dmg-background.png away from the mark.
 FLOOR = (0xE5, 0xE8, 0xEE)
 
+# The mark's dark enamel. The face runs from FACE_TOP to FACE_BOTTOM over the
+# mark's height; both sit around the app's Soft Dark surface (#1E2A38, the
+# brand tile's colour, `BrandMark.brandBackground`).
+FACE_TOP = (0x3B, 0x4B, 0x60)
+FACE_BOTTOM = (0x17, 0x21, 0x2D)
+LIT_EDGE = (0xA2, 0xB3, 0xC8)
+LOWER_EDGE = (0x0B, 0x11, 0x19)
+SHADOW = dmg.ON_SURFACE
+
 
 def badge() -> Image.Image:
     side = SIZE * SUPERSAMPLE
@@ -83,7 +98,8 @@ def badge() -> Image.Image:
         rim_light.filter(ImageFilter.GaussianBlur(0.6 * s)), outline)
     img = dmg.tint(img, dmg.WHITE, dmg.faded(rim_light, 0.65))
 
-    # The raised mark: the installer's recipe, layer for layer.
+    # The raised mark: the installer's construction (soft shadow, lower edge,
+    # lit top edge, face) in dark enamel.
     origin = ((side - mark.width) / 2, (side - mark.height) / 2)
 
     def placed(dy_pt: float = 0, alpha: float = 1.0, blur: float = 0) -> Image.Image:
@@ -93,11 +109,19 @@ def badge() -> Image.Image:
             layer = layer.filter(ImageFilter.GaussianBlur(blur * s))
         return dmg.faded(layer, alpha)
 
-    img = dmg.tint(img, dmg.MARK_SHADOW, placed(1.2, 0.14, 1.4))
-    img = dmg.tint(img, dmg.MARK_LOWER_EDGE, placed(0.4, 0.5))
-    img = dmg.tint(img, dmg.WHITE, placed(-0.4, 0.6))
-    face = tuple(round(c + (255 - c) * 0.18) for c in FLOOR)
-    img = dmg.tint(img, face, placed())
+    img = dmg.tint(img, SHADOW, placed(1.6, 0.34, 1.8))
+    img = dmg.tint(img, LOWER_EDGE, placed(0.5, 0.9))
+    img = dmg.tint(img, LIT_EDGE, placed(-0.5, 0.8))
+
+    # The face: a vertical sheen over exactly the mark's height.
+    top = round(origin[1])
+    ramp = Image.linear_gradient("L").resize((side, mark.height))
+    sheen = Image.new("L", img.size, 0)
+    sheen.paste(255, (0, top + mark.height, side, side))
+    sheen.paste(ramp, (0, top))
+    face = Image.composite(Image.new("RGB", img.size, FACE_BOTTOM),
+                           Image.new("RGB", img.size, FACE_TOP), sheen)
+    img = Image.composite(face, img, placed())
 
     out = img.resize((SIZE, SIZE), Image.LANCZOS).convert("RGBA")
     out.putalpha(outline.resize((SIZE, SIZE), Image.LANCZOS))

@@ -67,8 +67,8 @@ class _Seen {
   final int floorPixels;
 
   /// Pixels in the badge's middle that are clearly not floor: the raised
-  /// mark's lit edges, lower edges and shadows. Proof the artwork is there,
-  /// not just its floor.
+  /// mark's dark face, edges and shadow. Proof the artwork is there, not just
+  /// its floor.
   final int artPixels;
 }
 

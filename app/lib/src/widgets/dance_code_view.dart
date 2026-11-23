@@ -14,8 +14,8 @@ import '../theme/app_spacing.dart';
 /// `dance_code_render_test.dart` decodes a rendered one to show it still scans.
 const double kDanceCodeMarkFraction = 0.20;
 
-/// The raised brand mark on its pale floor, baked by
-/// `tools/brand/generate_raised_mark.py` in the style of the Mac installer.
+/// The raised brand mark, dark on the Mac installer's pale floor, baked by
+/// `tools/brand/generate_raised_mark.py` in the installer's bump-mapped style.
 const String _markBadgeAsset = 'assets/brand/mark-raised.png';
 
 /// A QR code needs a quiet zone of at least this many modules on each side.
