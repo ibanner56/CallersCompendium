@@ -331,6 +331,23 @@ class VenueKey {
 
   const VenueKey._typed(String this.typedVenue) : venueId = null;
 
+  /// The key a [storageKey] string names, or null when it is not one: no
+  /// `id:`/`text:` prefix, a blank rest, or a `text:` rest that is not already
+  /// folded (a stored key is always folded, so one that is not was not written
+  /// by [storageKey]). Never throws.
+  static VenueKey? fromStorageKey(String key) {
+    if (key.startsWith('id:')) {
+      final id = key.substring(3);
+      return id.trim().isEmpty || id != id.trim() ? null : VenueKey.record(id);
+    }
+    if (key.startsWith('text:')) {
+      final text = key.substring(5);
+      if (callingHistoryVenueText(text) != text) return null;
+      return VenueKey._typed(text);
+    }
+    return null;
+  }
+
   /// The key of a program with this linked [venueId] and typed [venue], or
   /// null when it has neither. A linked record wins over the typed text.
   static VenueKey? forProgram({String? venueId, String? venue}) {
