@@ -3022,23 +3022,32 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   /// A sequence's [length] and the longest phrase's [limit], for the message
-  /// that the first is longer than the second: the limit in the bars of its
-  /// own phrase ([PhraseStructure.longestPhraseStart]), as the dance's
-  /// warning reads it. Where phrases tied for longest differ in bars it has
-  /// none, and both read in beats, so the message never mixes the two.
+  /// that the first is longer than the second: each in the bars of the part of
+  /// the tune it falls in (the sequence from where it starts, the limit from
+  /// where that phrase does, [PhraseStructure.longestPhraseStart]), as the
+  /// dance's warning reads them. Both read in bars only if both come to whole
+  /// or half bars, else both in beats, so the message never mixes the two.
   (String, String) _overPhraseLabels(
     BuildContext context,
     int length,
     int limit,
   ) {
-    final start = widget.phraseStructure.longestPhraseStart;
-    if (start == null) {
-      final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context);
+    final timing = BarTimingScope.maybeOf(context)?.timing;
+    final limitStart = widget.phraseStructure.longestPhraseStart;
+    final lengthBars = timing?.barsTextAt(
+      FigureStartScope.startOf(context),
+      length,
+    );
+    final limitBars = limitStart == null
+        ? null
+        : timing?.barsTextAt(limitStart, limit);
+    if (lengthBars == null || limitBars == null) {
       return (l10n.danceFigureBeats(length), l10n.danceFigureBeats(limit));
     }
     return (
-      timingLabel(context, length),
-      timingLabel(context, limit, startBeat: start),
+      l10n.danceFigureBars(lengthBars.text, lengthBars.halfBars),
+      l10n.danceFigureBars(limitBars.text, limitBars.halfBars),
     );
   }
 
