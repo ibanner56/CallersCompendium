@@ -570,6 +570,15 @@ void main() {
         calendarFingerprintLocalDate(stored, utcAt(23 * 60), minus4),
         DateTime.utc(2030, 6, 20),
       );
+      // An all-day event then started on its written date.
+      final allDay = calendarEventFingerprint(
+        title: 'T',
+        date: DateTime.utc(2030, 6, 21),
+      );
+      expect(
+        calendarFingerprintLocalDate(allDay, utcAt(18 * 60), minus4),
+        DateTime.utc(2030, 6, 21),
+      );
       expect(calendarFingerprintLocalDate(null, utcAt(60), minus4), isNull);
       expect(
         calendarFingerprintLocalDate('v1:a:b:c', utcAt(60), minus4),

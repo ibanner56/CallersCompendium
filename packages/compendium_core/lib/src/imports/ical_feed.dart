@@ -723,8 +723,9 @@ String _fingerprintHash(String s) =>
 /// The local date [now]'s event started on when [stored] was written, for a
 /// UTC event whose UTC date has not changed since (#2354): its start minute
 /// is one of 1,440, so it is found from the stored hash, then read through
-/// [toLocal] on that UTC date. Null when that cannot be told: no readable
-/// fingerprint, not a UTC event, a changed UTC date, or no start.
+/// [toLocal] on that UTC date. An event that was all-day then started on its
+/// written date, which is the same date. Null when that cannot be told: no
+/// readable fingerprint, not a UTC event now, or a changed UTC date.
 ///
 /// A UTC event's fingerprint holds its UTC date, so a new start can move the
 /// local date while the UTC date stays; this says whether it did.
@@ -737,6 +738,8 @@ DateTime? calendarFingerprintLocalDate(
   final written = now.asWritten;
   if (parts == null || written == null || !now.startsInUtc) return null;
   if (parts[1] != _fingerprintParts(now.fingerprint)![1]) return null;
+  // All-day then: its date was written as is, and the date part matches.
+  if (parts[3] == _fingerprintHash('')) return written.date;
   int? minute;
   for (var m = 0; m < 24 * 60; m++) {
     if (_fingerprintHash('$m') == parts[3]) {

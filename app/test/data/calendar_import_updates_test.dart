@@ -629,6 +629,29 @@ void main() {
           expect((offer.date, offer.start, offer.end), (false, true, true));
         });
 
+        test('a caller\'s edited date is not offered back when an all-day '
+            'event gains a UTC time on the same day', () async {
+          final repos = openTestRepositories();
+          await importAt(
+            repos,
+            _cal([
+              ['UID:z', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:Contra Z'],
+            ]),
+            west,
+          );
+          final p = await _only(repos);
+          await repos.programs.update(
+            p.copyWith(
+              eventDate: DateTime.utc(2030, 6, 21),
+              updatedAt: _t0.add(const Duration(hours: 1)),
+            ),
+          );
+          // 18:00Z is 14:00 on 20 June at UTC-4: the same day.
+          final timed = utc('20300620T180000Z', '20300620T210000Z');
+          final offer = (await read(repos, timed, west)).changes.single;
+          expect((offer.date, offer.start, offer.end), (false, true, true));
+        });
+
         test('a real change is offered, read in this time zone', () async {
           final repos = openTestRepositories();
           await importAt(
