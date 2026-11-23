@@ -3199,7 +3199,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Datum en locatie opnemen bij het delen van een setlijst';
+      'Datum, tijden en locatie opnemen bij het delen van een setlijst';
 
   @override
   String get settingsSharingSubtitle =>
@@ -5833,6 +5833,65 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsClearEventDate => 'Eventdatum wissen';
 
   @override
+  String get programsStartTimeLabel => 'Begintijd';
+
+  @override
+  String get programsEndTimeLabel => 'Eindtijd';
+
+  @override
+  String get programsLessonTimeLabel => 'Beginnersles';
+
+  @override
+  String get programsArrivalTimeLabel => 'Aanwezig om';
+
+  @override
+  String get programsNoTimeSet => 'Niet ingesteld';
+
+  @override
+  String get programsSetTime => 'Instellen';
+
+  @override
+  String get programsChangeTime => 'Wijzigen';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return '$field instellen';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return '$field wijzigen';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return '$field wissen';
+  }
+
+  @override
+  String get programsTimeNextDay => 'Eindigt de volgende dag';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return 'Gebruikelijke tijd van de locatie: $time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'Les $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'Dans $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return 'Aanwezig om $time';
+  }
+
+  @override
   String get programsVenueLabel => 'Locatie';
 
   @override
@@ -7111,6 +7170,24 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return 'Pagina $page van $pages';
+  }
+
+  @override
+  String get exportLabelLesson => 'Les';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start–$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return 'tot $end';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times (volgende dag)';
   }
 
   @override

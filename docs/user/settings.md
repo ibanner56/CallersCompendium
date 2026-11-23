@@ -282,8 +282,9 @@ one off.
   which is also the subject line of the share.
 - **Include caller and band when sharing a set list** (on) — the **Band** and
   **Caller** lines.
-- **Include date and venue when sharing a set list** (on) — the date and venue
-  line.
+- **Include date, times and venue when sharing a set list** (on) — the line
+  with the date, the dance's start and end times and the venue, and the
+  beginner lesson's time. **Arrive by** is never in a shared set list.
 
 They don't change what is shared when you share the whole program as a
 `.ccshare` or JSON file: that file always carries the full program.
