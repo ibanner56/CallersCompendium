@@ -14,7 +14,7 @@
       "sequenceExceedsPhrase takes the sequence's startBeat and measures it against the phrase it starts in; the sequence_exceeds_phrase warning's limit and limitStart are that phrase's length and start. The Caller's Box adapter groups a named compound only when it fits the phrase it starts in."
     ],
     "removed": [
-      "PhraseStructure.longestPhraseBeats and longestPhraseStart, which nothing uses any more."
+      "PhraseStructure.longestPhraseBeats, which nothing uses any more."
     ]
   }
 }

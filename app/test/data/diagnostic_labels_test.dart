@@ -151,7 +151,7 @@ void main() {
             }),
             timing: const BarTiming.fixed(2),
           ),
-          'A sequence in figure 3 is 10 bars, longer than one phrase '
+          'A sequence in figure 3 is 10 bars, longer than its phrase '
           '(8 bars).',
         );
       });
@@ -220,7 +220,7 @@ void main() {
               }),
               timing: mixed,
             ),
-            'A sequence in figure 2 is 4 bars, longer than one phrase '
+            'A sequence in figure 2 is 4 bars, longer than its phrase '
             '(8 bars).',
           );
         });

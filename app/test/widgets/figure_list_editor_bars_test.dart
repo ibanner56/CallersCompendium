@@ -380,7 +380,7 @@ void main() {
               find.byKey(const ValueKey('figure-1-sequence-over-phrase')),
             )
             .data,
-        'This sequence is 9 bars, longer than one phrase (4 bars).',
+        'This sequence is 9 bars, longer than its phrase (4 bars).',
       );
     });
 
@@ -404,7 +404,7 @@ void main() {
               find.byKey(const ValueKey('figure-1-sequence-over-phrase')),
             )
             .data,
-        'This sequence is 6 bars, longer than one phrase (4 bars).',
+        'This sequence is 6 bars, longer than its phrase (4 bars).',
       );
     });
 
@@ -485,7 +485,7 @@ void main() {
             find.byKey(const ValueKey('figure-0-sequence-over-phrase')),
           )
           .data,
-      'This sequence is 25 beats, longer than one phrase (24 beats).',
+      'This sequence is 25 beats, longer than its phrase (24 beats).',
     );
   });
 

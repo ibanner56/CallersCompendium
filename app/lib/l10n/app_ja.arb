@@ -5284,9 +5284,9 @@
   "@danceEditorSequenceSpanNoRoom": {
     "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
   },
-  "danceEditorSequenceOverPhraseTimed": "このシーケンスは{length}で、1フレーズ（{limit}）より長くなっています。",
+  "danceEditorSequenceOverPhraseTimed": "このシーケンスは{length}で、始まるフレーズ（{limit}）より長くなっています。",
   "@danceEditorSequenceOverPhraseTimed": {
-    "x-sourceSha256": "e0c6028e36e38a6357c326de3d2c4b9898039706cdf8bfd6fe49d185fc52762b"
+    "x-sourceSha256": "9934038b8b22b7528851ff87a633a2e3ae83f580553450b4e1c7d5f8f0381a5a"
   },
   "danceFigureProgressionSemantic": "プログレッション",
   "@danceFigureProgressionSemantic": {
@@ -9106,9 +9106,9 @@
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
-  "validationSequenceExceedsPhrase": "フィギュア{position}のシーケンスは{actual}拍で、1フレーズ（{limit}拍）より長くなっています。",
+  "validationSequenceExceedsPhrase": "フィギュア{position}のシーケンスは{actual}拍で、始まるフレーズ（{limit}拍）より長くなっています。",
   "@validationSequenceExceedsPhrase": {
-    "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
+    "x-sourceSha256": "a286391f4293c584271c4e05681091eec316b8b18f3abc18ecda2152600446d4"
   },
   "validationSequenceSpanMismatch": "フィギュア{position}のシーケンスのステップは{actual}拍ですが、シーケンスは{expected}拍です。",
   "@validationSequenceSpanMismatch": {
@@ -9118,9 +9118,9 @@
   "@validationPhraseCountMismatch": {
     "x-sourceSha256": "cb74c7f6cd49148a70e50356760215c17a5226fb6a816f7fe87c5e1db050a30b"
   },
-  "validationSequenceExceedsPhraseCount": "フィギュア{position}のシーケンスは{actual}で、1フレーズ（{limit}）より長くなっています。",
+  "validationSequenceExceedsPhraseCount": "フィギュア{position}のシーケンスは{actual}で、始まるフレーズ（{limit}）より長くなっています。",
   "@validationSequenceExceedsPhraseCount": {
-    "x-sourceSha256": "bfee5fd2f8ee58fe06f82a78cf851e3eac4482597a4e2f83d02e1196bdeecd28"
+    "x-sourceSha256": "6e52db86fea47ea4ac1e1b3d37877411ade93acc4d233fa4082f44690aa3c481"
   },
   "validationSequenceSpanNoRoomCount": "フィギュア{position}のシーケンスで長さのあるステップが{actual}を使い、{expected}のうち残りのステップの分がありません。",
   "@validationSequenceSpanNoRoomCount": {
@@ -9666,13 +9666,13 @@
   "@danceEditorSequenceTotalBeats": {
     "x-sourceSha256": "5939821f14dca9d0edb89c7b340aed8f7f16bc24d1b4d9b2a185dbf77b5e63c8"
   },
-  "danceEditorSequenceOverPhrase": "このシーケンスは{beats}拍で、1フレーズ（{limit}拍）より長くなっています。",
+  "danceEditorSequenceOverPhrase": "このシーケンスは{beats}拍で、始まるフレーズ（{limit}拍）より長くなっています。",
   "@danceEditorSequenceOverPhrase": {
-    "x-sourceSha256": "6ae93313359a72f07ebee85db77f4cef8a909076b8df31715a5e9dccc10ab214"
+    "x-sourceSha256": "69cda6e549a9dcffe8757f73f11f9057bfa2efacfbdc94aebdf92038bd4ec4fe"
   },
-  "danceEditorSequencePhraseFull": "これらのフィギュアで1フレーズ（{limit}拍）が埋まっています。",
+  "danceEditorSequencePhraseFull": "これらのフィギュアで、始まるフレーズ（{limit}拍）が埋まっています。",
   "@danceEditorSequencePhraseFull": {
-    "x-sourceSha256": "bca2abe6ab4af53f5bdf6dc57507aada937cc15b528249a4910e60ca260adc84"
+    "x-sourceSha256": "89db3e55065d6ae3a82bab01094b25566f20c3664c162e50bc59565cf263ad92"
   },
   "danceEditorSequenceStepsCapReached": "シーケンスのフィギュアは最大{max}件です。",
   "@danceEditorSequenceStepsCapReached": {

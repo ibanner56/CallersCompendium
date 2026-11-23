@@ -2538,7 +2538,7 @@ class DanceEditorController extends ChangeNotifier {
       _groupWithNext(draft, modifierMove);
 
   /// Groups a top-level figure with the following row as a sequence, when
-  /// their counts together fit in one phrase. Existing meanwhile or modifier
+  /// their counts together fit in the phrase the first starts in. Existing meanwhile or modifier
   /// groups may be nested as steps when they contain no further container.
   void groupFigureWithNextAsSequence(FigureDraft draft) =>
       _groupWithNext(draft, sequenceMove);

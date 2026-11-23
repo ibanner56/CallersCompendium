@@ -255,7 +255,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsNothing);
     expect(
-      find.text('These figures fill one phrase (16 beats).'),
+      find.text('These figures fill their phrase (16 beats).'),
       findsOneWidget,
     );
   });
@@ -298,7 +298,7 @@ void main() {
       await _open(tester, 0);
       expect(find.byKey(const ValueKey('figure-0-add-side')), findsNothing);
       expect(
-        find.text('These figures fill one phrase (8 beats).'),
+        find.text('These figures fill their phrase (8 beats).'),
         findsOneWidget,
       );
     });

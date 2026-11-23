@@ -300,11 +300,10 @@ not.
   untimed steps (#2269, #2296).
 - Validation checks the whole dance against its phrase structure
   (`phrase_overflow`, `phrase_underflow`), and warns when a `sequence` is
-  longer than the longest phrase (`sequence_exceeds_phrase`). There is no
-  per-phrase check, for ECD either. (Since 23 November 2026, by the
-  maintainer's decision, a `sequence` is measured against the phrase it
-  starts in rather than the longest; that warning still judges a sequence's
-  length, not whether the calls fill each phrase.) The editor adds `other_form_figures`
+  longer than the phrase it starts in (`sequence_exceeds_phrase`; the longest
+  phrase of the dance until the maintainer changed it on 23 November 2026).
+  That warning judges a sequence's length, not whether the calls fill each
+  phrase: there is no per-phrase fill check, for ECD either. The editor adds `other_form_figures`
   for a dance that holds another form's figures, and, for ECD only,
   `sequence_span_mismatch`.
 

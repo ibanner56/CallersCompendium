@@ -285,8 +285,8 @@ class FigureListEditor extends StatefulWidget {
   final ValueChanged<FigureDraft>? onGroupWithNextAsModifier;
 
   /// Groups [draft] with the following row as a sequence container. Offered
-  /// only while the two rows' counts together fit in one phrase of
-  /// [phraseStructure].
+  /// only while the two rows' counts together fit in the phrase of
+  /// [phraseStructure] the first row starts in.
   final ValueChanged<FigureDraft>? onGroupWithNextAsSequence;
 
   /// Collapses a meanwhile group back to a plain figure (#593): called when a
@@ -3134,8 +3134,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// Expanded editor for a structural container draft. A meanwhile or
   /// modifier shows one shared Beats field (the container's single count —
   /// never per-child); a sequence instead shows its total, the sum of its
-  /// steps' own Beats fields, and a warning once that total is longer than a
-  /// phrase of [_FigureDraftCard.phraseStructure]. An English sequence timed
+  /// steps' own Beats fields, and a warning once that total is longer than the
+  /// phrase of [_FigureDraftCard.phraseStructure] it starts in. An English sequence timed
   /// in bars ([BarTimingScope]) shows its own span field instead
   /// ([_buildSequenceSpan]). Then come each ordered child
   /// editor, an add-child control (capped at the kind's

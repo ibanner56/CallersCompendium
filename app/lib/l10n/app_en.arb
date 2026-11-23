@@ -6737,9 +6737,9 @@
       }
     }
   },
-  "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than one phrase ({limit}).",
+  "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than its phrase ({limit}).",
   "@danceEditorSequenceOverPhraseTimed": {
-    "description": "Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.",
+    "description": "Warning in a sequence of an English country dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars'; {limit} is the length of that phrase.",
     "placeholders": {
       "length": {
         "type": "String"
@@ -12160,9 +12160,9 @@
       }
     }
   },
-  "validationSequenceExceedsPhrase": "A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).",
+  "validationSequenceExceedsPhrase": "A sequence in figure {position} is {actual} beats, longer than its phrase ({limit} beats).",
   "@validationSequenceExceedsPhrase": {
-    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.",
+    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than the phrase of the dance it starts in ({limit} is that phrase's length). {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.",
     "placeholders": {
       "position": {
         "type": "int",
@@ -12205,9 +12205,9 @@
       }
     }
   },
-  "validationSequenceExceedsPhraseCount": "A sequence in figure {position} is {actual}, longer than one phrase ({limit}).",
+  "validationSequenceExceedsPhraseCount": "A sequence in figure {position} is {actual}, longer than its phrase ({limit}).",
   "@validationSequenceExceedsPhraseCount": {
-    "description": "Editor warning for an English country dance, timed in bars, whose sequence group runs longer than one phrase. {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.",
+    "description": "Editor warning for an English country dance, timed in bars, whose sequence group runs longer than the phrase it starts in ({limit} is that phrase's length). {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.",
     "placeholders": {
       "position": {
         "type": "int"
@@ -13081,7 +13081,7 @@
   },
   "danceEditorGroupWithNextAsSequence": "Group with next as sequence",
   "@danceEditorGroupWithNextAsSequence": {
-    "description": "Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase."
+    "description": "Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in the phrase the first one starts in."
   },
   "danceEditorConvertToMeanwhile": "Convert to meanwhile",
   "@danceEditorConvertToMeanwhile": {
@@ -13145,9 +13145,9 @@
       }
     }
   },
-  "danceEditorSequenceOverPhrase": "This sequence is {beats} beats, longer than one phrase ({limit} beats).",
+  "danceEditorSequenceOverPhrase": "This sequence is {beats} beats, longer than its phrase ({limit} beats).",
   "@danceEditorSequenceOverPhrase": {
-    "description": "Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.",
+    "description": "Warning in a sequence group's editor when its figures together run longer than the phrase of the dance it starts in; {limit} is that phrase's length.",
     "placeholders": {
       "beats": {
         "type": "int",
@@ -13159,9 +13159,9 @@
       }
     }
   },
-  "danceEditorSequencePhraseFull": "These figures fill one phrase ({limit} beats).",
+  "danceEditorSequencePhraseFull": "These figures fill their phrase ({limit} beats).",
   "@danceEditorSequencePhraseFull": {
-    "description": "Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.",
+    "description": "Shown in place of the add-figure button once a sequence's figures already fill the whole phrase it starts in, so no further figure fits. {limit} is that phrase's length.",
     "placeholders": {
       "limit": {
         "type": "int",
