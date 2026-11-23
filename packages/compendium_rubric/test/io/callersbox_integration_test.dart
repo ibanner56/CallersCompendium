@@ -974,6 +974,69 @@ void main() {
       expect(nextNeighborsProgressionIndex(dance), isNull);
     });
 
+    group('N2 in a note (user-ruled 2026-11-23)', () {
+      core.Figure noted(String move, String note) =>
+          core_test.testFigure(move: move, note: note);
+
+      test('a note dancing with the next neighbours is a reach', () {
+        // Songbird: "Partner poussette ... [with N2]" is imported as a note.
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            figure('circle'),
+            figure('poussette'),
+            noted('poussette', 'with nextNeighbors'),
+            figure('swing', {'who': 'partners'}),
+          ],
+        );
+        expect(nextNeighborsProgressionIndex(dance), 1);
+      });
+
+      test('the source spelling and company in the note still count', () {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            figure('circle'),
+            figure('swing'),
+            noted('balance', 'with N2, shadow'),
+          ],
+        );
+        expect(nextNeighborsProgressionIndex(dance), 1);
+      });
+
+      test('ending face N2 places the progression on that figure', () {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            figure('circle'),
+            noted('swing', 'face N2'),
+            figure('do_si_do'),
+          ],
+        );
+        expect(nextNeighborsProgressionIndex(dance), 1);
+      });
+
+      test('N2 and then plain neighbours again is an excursion', () {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            figure('circle'),
+            noted('balance', 'with nextNeighbors'),
+            figure('swing', {'who': 'neighbors'}),
+          ],
+        );
+        expect(nextNeighborsProgressionIndex(dance), isNull);
+      });
+
+      test('a note on another figure is not read as a reach', () {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [figure('circle'), noted('swing', 'finish proper; face up')],
+        );
+        expect(nextNeighborsProgressionIndex(dance), isNull);
+      });
+    });
+
     test('a flagged source is never second-guessed', () {
       final dance = _shapedLike(
         shape: core.FormationShape.dupleImproper,

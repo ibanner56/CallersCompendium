@@ -487,8 +487,8 @@ BridgedDance bridgeCoreDance(
             '${assumedAt + 1} (${figures[assumedAt].move}) was assumed '
             'to be it'
             '${useNextNeighborsFallback ? ', because the positional rule did '
-                      'not compile and this is the figure before the first '
-                      'nextNeighbors reach' : ''}',
+                      'not compile and this is where the first mention of the '
+                      'next neighbours (nextNeighbors, N2) puts it' : ''}',
       ),
   ];
 
@@ -634,32 +634,76 @@ bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
 /// therefore the latest point the progression can sit and still leave that
 /// reach meaning what it says. *(User-ruled.)*
 ///
-/// This reads the figures' parameters, not the compiled state: it is the same
-/// kind of positional reasoning as [assumedProgressionIndex], with the record
-/// supplying the landmark instead of the formation. Nothing here inspects where
-/// dancers ended up, which the compiler forbids as a basis for progression.
+/// **Notes count as well as params** *(user-ruled 2026-11-23)*. Caller's Box
+/// uses N2 for the rest of a dance after its progression, and the import keeps
+/// some of those mentions only as the figure's note:
+/// - a note that dances *with* the next neighbours ("[with N2]", which the
+///   import writes `with nextNeighbors`) reaches for them, as a param does;
+/// - a note that ends *facing* them ("face N2") says the progression is done by
+///   the end of that figure, so the figure itself is the placement.
 ///
-/// Returns `null` when no figure mentions `nextNeighbors`, or when the first
-/// mention is the opening figure and so has nothing before it.
+/// A dance that names the next neighbours and later names plain `neighbors`
+/// again has left its minor set and come back, so its N2 is not a progression
+/// marker; a note-only mention followed by such a figure is skipped. A mention
+/// carried in a param keeps its earlier ruling and is never skipped.
+///
+/// This reads the figures' parameters and notes, not the compiled state: it is
+/// the same kind of positional reasoning as [assumedProgressionIndex], with the
+/// record supplying the landmark instead of the formation. Nothing here
+/// inspects where dancers ended up, which the compiler forbids as a basis for
+/// progression.
+///
+/// Returns `null` when no figure mentions the next neighbours, or when the
+/// first mention reaches for them in the opening figure and so has nothing
+/// before it.
 int? nextNeighborsProgressionIndex(core.Dance dance) {
   final figures = _requireDecoded(dance);
   for (var index = 0; index < figures.length; index++) {
-    if (!_mentionsNextNeighbors(figures[index])) continue;
-    return index == 0 ? null : index - 1;
+    final figure = figures[index];
+    if (_namesNextNeighbors(figure)) return index == 0 ? null : index - 1;
+    final reaches = _noteReaches(figure);
+    final faces = _noteFaces(figure);
+    if (!reaches && !faces) continue;
+    if (figures.skip(index + 1).any(_namesNeighbors)) continue;
+    if (reaches) return index == 0 ? null : index - 1;
+    return index;
   }
   return null;
 }
 
-/// Whether [figure], or any figure inside it, names `nextNeighbors`.
+/// Whether [figure], or any figure inside it, names `nextNeighbors` in a param.
 ///
 /// A container's children are danced in its slot, so a roll away with the next
 /// neighbours inside a modifier reaches for them as surely as one on its own
 /// line. *(Agent's call, 2026-11-23.)*
-bool _mentionsNextNeighbors(core.Figure figure) =>
+bool _namesNextNeighbors(core.Figure figure) =>
     figure.params.values.any(
       (value) => value == 'nextNeighbors' || value == 'nextNeighbor',
     ) ||
-    figure.subFigures.any(_mentionsNextNeighbors);
+    figure.subFigures.any(_namesNextNeighbors);
+
+/// Whether [figure], or any figure inside it, names plain `neighbors`.
+bool _namesNeighbors(core.Figure figure) =>
+    figure.params.values.any(
+      (value) => value == 'neighbors' || value == 'neighbor',
+    ) ||
+    figure.subFigures.any(_namesNeighbors);
+
+/// A note that dances with the next neighbours: "with N2", or the import's
+/// `with nextNeighbors`, possibly with others named alongside ("with N2,
+/// shadow"). Stops at a `;`, which separates a note's clauses.
+final _withNextNeighbors = RegExp(r'\bwith\b[^;]*\b(N2|nextNeighbors?)\b');
+
+/// A note that ends facing the next neighbours: "face N2".
+final _faceNextNeighbors = RegExp(r'\bface\s+(N2|nextNeighbors?)\b');
+
+bool _noteReaches(core.Figure figure) =>
+    _withNextNeighbors.hasMatch(figure.note ?? '') ||
+    figure.subFigures.any(_noteReaches);
+
+bool _noteFaces(core.Figure figure) =>
+    _faceNextNeighbors.hasMatch(figure.note ?? '') ||
+    figure.subFigures.any(_noteFaces);
 
 /// [dance]'s figures when its transcription decoded, or `null` when it did not.
 ///
