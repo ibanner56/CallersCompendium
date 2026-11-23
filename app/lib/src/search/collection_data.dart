@@ -450,7 +450,13 @@ class CollectionData {
     final usedTagIds = {for (final d in dances) ...d.tagIds};
     // The tags a live dance carries: what `listReferencedByLiveDances` reads,
     // without a second query for the rest.
-    final tags = allTags.where((t) => usedTagIds.contains(t.id)).toList();
+    // Ordered by name then id, as that query orders them, so tags whose names
+    // are equal keep one order from load to load.
+    final tags = allTags.where((t) => usedTagIds.contains(t.id)).toList()
+      ..sort((a, b) {
+        final byName = a.name.compareTo(b.name);
+        return byName != 0 ? byName : a.id.compareTo(b.id);
+      });
     final tagNames = {for (final t in tags) t.id: t.name};
     final allTagNames = {for (final t in allTags) t.id: t.name};
     // A null-aware element: tags with no colour assigned are simply absent.
@@ -484,8 +490,13 @@ class CollectionData {
           ..sort(
             (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
           );
+    // Id breaks a tie, so tags named alike keep one order (`List.sort` is not
+    // stable).
     final tagList = tags.where((t) => usedTagIds.contains(t.id)).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      ..sort((a, b) {
+        final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        return byName != 0 ? byName : a.id.compareTo(b.id);
+      });
 
     final usedSourceIds = {
       for (final d in dances)

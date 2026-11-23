@@ -2972,6 +2972,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _advancedRoot.children.clear();
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
       drillDown.applyTo(_facets, _advancedRoot);
     });
     _runSearch();

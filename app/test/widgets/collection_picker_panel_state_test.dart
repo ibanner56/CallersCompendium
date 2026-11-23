@@ -375,4 +375,46 @@ void main() {
       expect(chip, findsNothing);
     });
   });
+
+  testWidgets('a state naming a tag, level, author and source no dance has '
+      'shows each by its name', (tester) async {
+    final repos = await _library();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 'fam', name: 'family'));
+    final level = await repos.difficultyLevels.createCustom(
+      label: 'Gnarly',
+      position: 9,
+    );
+    await repos.choreographers.upsert(
+      Choreographer(id: 'c1', name: 'Gene Hubert'),
+    );
+    await repos.publishedSources.upsert(
+      PublishedSource(id: 's1', title: 'Zesty Contras'),
+    );
+    final host = await _pump(tester, repos);
+    final state = CollectionPanelState();
+    state.facets
+      ..setTag('fam', selected: true)
+      ..levels.add(level.id)
+      ..authorIds.add('c1')
+      ..sourceIds.add('s1');
+    host.currentState!.open(state);
+    await tester.pumpAndSettle();
+    await _openFilters(tester);
+
+    String chipText(String key) => tester
+        .widget<Text>(
+          find
+              .descendant(
+                of: find.byKey(ValueKey(key)),
+                matching: find.byType(Text),
+              )
+              .first,
+        )
+        .data!;
+    expect(chipText('tag-fam'), 'family');
+    expect(chipText('level-id-${level.id}'), 'Gnarly');
+    expect(chipText('author-facet-chip-c1'), 'Gene Hubert');
+    expect(chipText('source-s1'), 'Zesty Contras');
+  });
 }
