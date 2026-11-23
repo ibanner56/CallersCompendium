@@ -51,6 +51,8 @@
     "walkthrough": "baseline",
     "meter": "archiveSchemaVersionEcdDanceFields",
     "musicalKey": "archiveSchemaVersionEcdDanceFields",
+    "alternateTitles": "archiveSchemaVersionEcdDanceFields",
+    "barnesReference": "archiveSchemaVersionEcdDanceFields",
     "status": "baseline",
     "difficultyLevelId": "archiveSchemaVersionDifficultyLevels",
     "mixedLevel": "baseline",

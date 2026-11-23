@@ -96,6 +96,18 @@ class Dances extends Table {
   /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
   /// reserves.
   TextColumn get musicalKey => text().withDefault(const Constant(''))();
+
+  /// The dance's other titles, `Dance.alternateTitles`, one per line in the
+  /// order entered; `''` when it has none. One line per title is safe because
+  /// a title never holds a line break (`normalizeAlternateTitles`), and it
+  /// keeps the value plain text that cannot fail to decode. Added in schema
+  /// v42 while v42 was unreleased.
+  TextColumn get alternateTitles => text().withDefault(const Constant(''))();
+
+  /// Where the tune is printed in the Barnes books, `Dance.barnesReference`,
+  /// as free text ("BIII p. 92", "NiB"); `''` when not given. Added in schema
+  /// v42 while v42 was unreleased.
+  TextColumn get barnesReference => text().withDefault(const Constant(''))();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 

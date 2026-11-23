@@ -4242,6 +4242,30 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'bijv. g mineur';
 
   @override
+  String get danceEditorAlternateTitlesLabel => 'Andere titels';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      'Eén per regel. Zoeken op titel vindt de dans onder elk ervan.';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes-verwijzing';
+
+  @override
+  String get danceEditorBarnesReferenceHint => 'bijv. BIII p. 92 of NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return 'Ook bekend als $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '; ';
+
+  @override
+  String get danceSectionBarnes => 'Barnes-boeken';
+
+  @override
   String danceAuthorsWithYear(String names, String year) {
     return '$names ($year)';
   }
