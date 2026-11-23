@@ -310,6 +310,15 @@ class _GlossaryCustomFigureDetailState
             )
             .length ??
         0;
+    // An English figure's groups of dancers include some contra's figures
+    // lack (the ends): a use that holds one cannot switch, and keeps its
+    // wording instead (#2294).
+    final keepsWording =
+        figure.form == DanceForm.ecd.name &&
+        figure.params.any(
+          (p) =>
+              p.kind == ParamKind.dancerSet || p.kind == ParamKind.dancerPair,
+        );
     if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -318,6 +327,8 @@ class _GlossaryCustomFigureDetailState
         content: Text(
           [
             l10n.userFigureSwitchConfirmUses(uses, targetName),
+            if (keepsWording)
+              l10n.userFigureSwitchConfirmKeepsWording(targetName),
             if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
             if (inDefaults) l10n.userFigureSwitchConfirmDefaults,
             if (shorthandCount > 0)

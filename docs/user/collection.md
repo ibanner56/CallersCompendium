@@ -660,8 +660,9 @@ To organize in bulk, enter selection mode: choose **Select dances** from the **M
 or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
 across all of them. Tags and level are on the toolbar; the rest are under
-**More batch actions**, grouped as details (rating, status) and other (tunes,
-custom field), with **Delete** on its own at the bottom.
+**More batch actions**, grouped as details (rating, status), other (tunes,
+custom field) and export (**Export as CSV**), with **Delete** on its own at the
+bottom.
 
 The bar at the top counts how many dances you have selected. **Select all**
 picks every dance in the list you are looking at — the current search, filters
@@ -697,6 +698,9 @@ The changes:
 - **Edit custom field** — set one of your fields to a value, or choose **Clear
   this field**. For a choice field, the **+** button beside the list adds a new
   option on the spot, just as it does when editing a single dance.
+- **Export as CSV** — saves or shares the selected dances, shown or not, as a
+  spreadsheet. It changes nothing, so selection mode stays open. See
+  [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv).
 - **Delete** — moves every selected dance, shown or not, to **Recently
   deleted**, all together or not at all. It asks first only when
   **Confirm before delete** is on in [Settings](./settings.md#accessibility), and then the

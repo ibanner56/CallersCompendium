@@ -20,6 +20,7 @@ void main() {
             child: UserFigureArgumentEditor(
               keyPrefix: 'use',
               param: UserFigureParam(key: 'part', kind: ParamKind.fraction),
+              form: 'contra',
               value: value,
               onChanged: (_) {},
               dialect: Dialect.canonical,
@@ -48,7 +49,7 @@ void main() {
 
   test('an other already chosen still validates', () {
     final param = UserFigureParam(key: 'part', kind: ParamKind.fraction);
-    expect(param.spec.validate('other'), isTrue);
+    expect(param.specIn('contra').validate('other'), isTrue);
   });
 
   testWidgets('a rotation of your own named amount is an ordinary turn', (
@@ -64,6 +65,7 @@ void main() {
             child: UserFigureArgumentEditor(
               keyPrefix: 'use',
               param: UserFigureParam(key: 'amount', kind: ParamKind.rotation),
+              form: 'contra',
               value: 0.5,
               onChanged: (v) => reported = v,
               dialect: Dialect.canonical,

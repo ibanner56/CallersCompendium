@@ -1221,6 +1221,7 @@ class DanceEditorController extends ChangeNotifier {
         figures,
         _phraseStructure,
         issues: issues,
+        checkPhraseFill: _form == DanceForm.square,
       );
       for (final (index, figure) in figures.indexed) {
         _flagSequenceSpans(
@@ -2669,7 +2670,8 @@ class DanceEditorController extends ChangeNotifier {
     return perBar.stated ? perBar.beatsPerBar : null;
   }
 
-  /// Sets the phrase structure text, as the named phrases write it. A
+  /// Sets the phrase structure text, as the named phrases (English dances) or
+  /// the phrase rows (other forms) write it. A
   /// [typed] change (a bar count, or the meter) is debounced into one undo
   /// step with the typing around it; any other is its own undo step.
   void setPhraseStructureText(String raw, {bool typed = true}) {

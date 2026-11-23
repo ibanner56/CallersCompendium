@@ -572,6 +572,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dine standardfigurer bruger den også og skifter på samme måde.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Enhver brug af en dansergruppe, som $name ikke har, beholder i stedet sin ordlyd.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8791,6 +8796,52 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Hver række er en serie ens fraser: hvor mange der er, takterne i hver og slagene i en takt. Frastrukturen nedenfor ændres sammen med rækkerne.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Fraser';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Takter pr. frase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Slag pr. takt';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 til $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Tilføj række';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Fjern række $number';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Angiv et helt tal fra 1 til $max i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag',
+      one: '1 slag',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Rækkerne viser den sidste gyldige frastruktur. Ret frastrukturen nedenfor for at redigere dem igen.';
+
+  @override
   String get danceEditorFiguresSection => 'Figurer';
 
   @override
@@ -9178,6 +9229,11 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 figur er',
     );
     return 'Dette er en $danceForm-dans, men $_temp0 fra $figureForm. De beholdes som de er, men figurvælgeren tilbyder kun $pickerForm-figurer.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figur $position går ud over slutningen af $label. I en squaredans bør kaldene i hver frase fylde den helt ud.';
   }
 
   @override
@@ -13058,4 +13114,110 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get calendarPullNowSubtitle =>
       'Læs kalenderen, og vælg begivenheder, der skal tilføjes som programudkast.';
+
+  @override
+  String get collectionExportCsv => 'Eksportér som CSV';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'Eksportér danse som regneark';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Alle dansene i din samling som en CSV-fil til Excel, Numbers eller Google Sheets. Reglerne for deling gælder, og dine stjernevurderinger kommer med. Det er ikke en sikkerhedskopi og kan ikke gendannes.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Eksportér';
+
+  @override
+  String get exportCsvDialogTitle => 'Eksportér et regneark (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Gem filen, eller del den med en anden app. Den kan åbnes i Excel, Numbers, LibreOffice eller Google Sheets.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Regneark gemt.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Kunne ikke gemme dette regneark. Prøv igen.';
+
+  @override
+  String get exportCsvShareError =>
+      'Kunne ikke dele dette regneark. Prøv igen.';
+
+  @override
+  String get exportCsvError => 'Kunne ikke lave dette regneark. Prøv igen.';
+
+  @override
+  String get csvDancesFileStem => 'danse';
+
+  @override
+  String get csvColumnTitle => 'Titel';
+
+  @override
+  String get csvColumnAuthors => 'Forfattere';
+
+  @override
+  String get csvColumnInterpreters => 'Fortolket af';
+
+  @override
+  String get csvColumnForm => 'Type';
+
+  @override
+  String get csvColumnFormation => 'Formation';
+
+  @override
+  String get csvColumnProgression => 'Progression';
+
+  @override
+  String get csvColumnLevel => 'Niveau';
+
+  @override
+  String get csvColumnMixedLevel => 'Blandet niveau';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Status';
+
+  @override
+  String get csvColumnRating => 'Vurdering';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Melodier';
+
+  @override
+  String get csvColumnMeter => 'Taktart';
+
+  @override
+  String get csvColumnKey => 'Toneart';
+
+  @override
+  String get csvColumnSources => 'Publicerede kilder';
+
+  @override
+  String get csvColumnHook => 'Hook';
+
+  @override
+  String get csvColumnCallingNotes => 'Kaldsnotes';
+
+  @override
+  String get csvColumnWalkthrough => 'Gennemgang';
+
+  @override
+  String get csvColumnFigures => 'Figurer';
+
+  @override
+  String get csvColumnComposed => 'Komponeret';
+
+  @override
+  String get csvColumnInterpreted => 'Fortolket';
+
+  @override
+  String get csvColumnBarnes => 'Barnes-henvisning';
 }
