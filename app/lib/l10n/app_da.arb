@@ -13425,5 +13425,73 @@
   "importCsvNoRows": "Denne fil har ingen rækker med danse, kun kolonnenavnene.",
   "@importCsvNoRows": {
     "x-sourceSha256": "38b4b25fdfbc56624e65823fcc8e0f756c7ce28b778905609c4a58344eaf71d2"
+  },
+  "calendarImportUpdated": "{count, plural, =1{1 program opdateret fra din kalender.} other{{count} programmer opdateret fra din kalender.}}",
+  "@calendarImportUpdated": {
+    "x-sourceSha256": "6ac5eca3ccc48d48449bf0b5aaf3df3010042c0070d3992c45d66b011f754861"
+  },
+  "calendarImportReviewed": "Kalenderen er tjekket. Intet blev tilføjet eller ændret.",
+  "@calendarImportReviewed": {
+    "x-sourceSha256": "9cd1e0a6b36cba778e39a9e673d043a81e968b8311624582fc5e2d541c069388"
+  },
+  "calendarChangeDate": "Dato: {before} → {after}",
+  "@calendarChangeDate": {
+    "x-sourceSha256": "6012b4741531f2b145ba0fe217de29f7bd8798cb80739ffa5ad69c045d1966c4"
+  },
+  "calendarChangeTitle": "Titel: {before} → {after}",
+  "@calendarChangeTitle": {
+    "x-sourceSha256": "0318a23428e2c61a0bf541126aec5d6fb7e83e0231c4fb82630e88eaf4286a56"
+  },
+  "calendarChangeTime": "Tid: {before} → {after}",
+  "@calendarChangeTime": {
+    "x-sourceSha256": "67199899e02aa6128a22606137672135a164931b2e025d9ca9f2ca342455a04f"
+  },
+  "calendarChangeVenue": "Spillested: {before} → {after}",
+  "@calendarChangeVenue": {
+    "x-sourceSha256": "8b60cf0ee9dd2aa34c02b13d42531f743f69dc6bb09f436f65c38aec52fec0bc"
+  },
+  "calendarImportUpdatedHeader": "Opdateret i din kalender",
+  "@calendarImportUpdatedHeader": {
+    "x-sourceSha256": "2bcda26fb7e395c4d8d151c5098778831dd263ba32b0fb30f6439bdb66bf9c58"
+  },
+  "calendarImportChangedHeader": "Ændret i din kalender",
+  "@calendarImportChangedHeader": {
+    "x-sourceSha256": "72457ccccb8cbb8493166f0a84a73037d42d4333bf3ccf43fbc9a5aa158d176f"
+  },
+  "calendarImportChangedBody": "Du har arbejdet på disse programmer, så intet ændres, medmindre du sætter flueben.",
+  "@calendarImportChangedBody": {
+    "x-sourceSha256": "8f1e742f3f9ea634e3a0d98fb91ef62f9ae6452125ae12b17d30739e2ab439cf"
+  },
+  "calendarImportFlaggedHeader": "Aflyst eller væk fra din kalender",
+  "@calendarImportFlaggedHeader": {
+    "x-sourceSha256": "18f9adf7cc15b59897eac82b0e42e2df700f91359732ae7ba17c8b34f511ed48"
+  },
+  "calendarImportFlaggedBody": "Disse programmer forbliver, som de er, og bliver markeret. Arkivér eller slet dem selv, hvis du ikke længere har brug for dem.",
+  "@calendarImportFlaggedBody": {
+    "x-sourceSha256": "047395fd755db6af23edc249f435614d0b55f72f93b2d40ff21c546dc0753a5f"
+  },
+  "calendarFlagCancelled": "Aflyst i din kalender",
+  "@calendarFlagCancelled": {
+    "x-sourceSha256": "d28cdbc519a0160e36ad2fc791414a1f45a77d1ab409968879b128ae8684c7da"
+  },
+  "calendarFlagMissing": "Ikke længere i din kalender",
+  "@calendarFlagMissing": {
+    "x-sourceSha256": "e77f9c4e3f6d45b55ffbf6a45be4a10eacd9b61c4d282092269ee21f688dd16b"
+  },
+  "calendarFlagOther": "Markeret af din kalender",
+  "@calendarFlagOther": {
+    "x-sourceSha256": "c4a917f4468288346665c33ee3344ac95884df50239c68df20e79347c319b12a"
+  },
+  "calendarFlagFieldLabel": "Kalendermarkering",
+  "@calendarFlagFieldLabel": {
+    "x-sourceSha256": "65966db64c3264f3fb482984dd40bc75ce1c9d49747b10a7b979d2bea720daec"
+  },
+  "calendarClearFlag": "Fjern kalendermarkering",
+  "@calendarClearFlag": {
+    "x-sourceSha256": "70492bc4421a39eea800e78cf5094663b514956d23a55ba55a7df62e35749f87"
+  },
+  "calendarClearFlagError": "Kunne ikke fjerne kalendermarkeringen. Prøv igen.",
+  "@calendarClearFlagError": {
+    "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
   }
 }

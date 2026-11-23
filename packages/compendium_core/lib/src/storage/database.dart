@@ -812,7 +812,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// Also the program times (#2350): `programs.start_minute`, `end_minute`,
   /// `lesson_minute` and `arrival_minute`, all nullable, so every existing
   /// program has none. They joined v42 while v42 was unreleased, after
-  /// `calendar_event_key`.
+  /// `calendar_event_key`. So, after them, did the calendar import's change
+  /// tracking (#2354): `calendar_event_fingerprint`, `calendar_written_at`
+  /// and `calendar_flag`, all nullable.
   ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
@@ -851,6 +853,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       programs.endMinute,
       programs.lessonMinute,
       programs.arrivalMinute,
+      programs.calendarEventFingerprint,
+      programs.calendarWrittenAt,
+      programs.calendarFlag,
     ]) {
       if (!presentProgramColumns.contains(column.name)) {
         await m.addColumn(programs, column);

@@ -14082,4 +14082,76 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importCsvNoRows =>
       'Ce fichier ne contient aucune ligne de danse, seulement les noms des colonnes.';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmes mis à jour depuis votre calendrier.',
+      one: '1 programme mis à jour depuis votre calendrier.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Calendrier vérifié. Rien n’a été ajouté ni modifié.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Date : $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Titre : $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return 'Heure : $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Lieu : $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Mis à jour dans votre calendrier';
+
+  @override
+  String get calendarImportChangedHeader => 'Modifié dans votre calendrier';
+
+  @override
+  String get calendarImportChangedBody =>
+      'Vous avez travaillé sur ces programmes : rien ne change sauf si vous cochez.';
+
+  @override
+  String get calendarImportFlaggedHeader =>
+      'Annulé ou absent de votre calendrier';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'Ces programmes restent tels quels et sont signalés. Archivez-les ou supprimez-les vous-même si vous n’en avez plus besoin.';
+
+  @override
+  String get calendarFlagCancelled => 'Annulé dans votre calendrier';
+
+  @override
+  String get calendarFlagMissing => 'N’est plus dans votre calendrier';
+
+  @override
+  String get calendarFlagOther => 'Signalé par votre calendrier';
+
+  @override
+  String get calendarFlagFieldLabel => 'Signalement du calendrier';
+
+  @override
+  String get calendarClearFlag => 'Retirer le signalement du calendrier';
+
+  @override
+  String get calendarClearFlagError =>
+      'Impossible de retirer le signalement du calendrier. Réessayez.';
 }

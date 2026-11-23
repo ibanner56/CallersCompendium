@@ -1,0 +1,17 @@
+{
+  "id": "2354-calendar-import-updates",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A calendar import now notices when an event you imported has changed or been canceled. A changed title, date, location or start and end time is offered in the review, ticked if you haven't touched the draft and unticked if you have, and nothing changes until you choose Import. A canceled event, or one no longer in your calendar, is never deleted or edited: its program is labeled Canceled in your calendar or No longer in your calendar in the Programs list and on its summary, and you can clear the label there. Undo puts back everything an import changed."
+    ],
+    "data_migrations": [
+      "The same schema v42 step also adds three hidden program columns the calendar import uses to see what changed. Nothing in your library changes."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add Program.calendarEventFingerprint, calendarWrittenAt and calendarFlag (schema v42) with isUntouchedCalendarDraft, their archive codec, sync wire fields and privacy classifications; calendarEventFingerprint and calendarFingerprintChanges; and CalendarImportPlan.knownKeys, cancelledAnywhereKeys and canJudgeMissing, which tell a moved event from one that is canceled or gone."
+    ]
+  }
+}
