@@ -10360,6 +10360,36 @@ abstract class AppLocalizations {
   /// **'Save dance file…'**
   String get exportSaveDanceBundle;
 
+  /// Export-menu item: show the dance as a full-screen QR code for another caller to scan in person. The code holds the same dance file as 'Share dance file'.
+  ///
+  /// In en, this message translates to:
+  /// **'Show code'**
+  String get exportShowCode;
+
+  /// Snackbar shown when the dance could not be turned into a QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t show the code. Your dance is unchanged. Try again.'**
+  String get exportShowCodeError;
+
+  /// Title bar of the full-screen view that shows a dance as a QR code (and of the notice that replaces it when the dance is too long for one).
+  ///
+  /// In en, this message translates to:
+  /// **'Dance code'**
+  String get danceCodeScreenTitle;
+
+  /// Accessible name of the QR code image on the full-screen dance code view. The code itself cannot be read aloud.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code for {title}'**
+  String danceCodeSemanticLabel(String title);
+
+  /// Message shown instead of a QR code when the dance holds more than any QR code can. A button below it shares or saves the dance file.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance is too long to share as a code. Share it as a file instead.'**
+  String get danceCodeTooLong;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:

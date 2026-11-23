@@ -6802,6 +6802,26 @@
   "@exportSaveDanceBundle": {
     "x-sourceSha256": "09e808c7c50eb5ca371424b818a64ba45450b29a5ae7b5522c6deb4994b3eed1"
   },
+  "exportShowCode": "Vis kode",
+  "@exportShowCode": {
+    "x-sourceSha256": "c9eab29c97b914ff931c7618451257a68f575d2d2f2e063a0a7a1da1b92058c8"
+  },
+  "exportShowCodeError": "Kunne ikke vise koden. Din dans er uændret. Prøv igen.",
+  "@exportShowCodeError": {
+    "x-sourceSha256": "2b99edb4797659fac134dbe901f9782135215e58896323bb3eba14e85f0b71a6"
+  },
+  "danceCodeScreenTitle": "Dansekode",
+  "@danceCodeScreenTitle": {
+    "x-sourceSha256": "8783ed47915582f0c22234101e9604e6501e6b70e37c99494b53de5220abcc83"
+  },
+  "danceCodeSemanticLabel": "QR-kode for {title}",
+  "@danceCodeSemanticLabel": {
+    "x-sourceSha256": "4174abc825964302de0f02998e5d2905578b818c7a8f790751e998bcb7251088"
+  },
+  "danceCodeTooLong": "Denne dans er for lang til at dele som kode. Del den som fil i stedet.",
+  "@danceCodeTooLong": {
+    "x-sourceSha256": "86c81ce29026dbb79a0bac1fb2eed4b6b180d909068438030db1ea5ea701ca11"
+  },
   "exportCopyDance": "Kopiér dans",
   "@exportCopyDance": {
     "x-sourceSha256": "2ffac8a5b092603538cd48f6dc8841ab41879f471ad6fea998797ecdc824c1d5"

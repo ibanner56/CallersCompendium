@@ -17,18 +17,19 @@ dialects — to move to a new device? That is a different job, and
 ## Share a dance
 
 Open a dance and choose **Export**. (On a narrow screen, the same actions are in
-the dance's **More actions** menu.) There are five actions:
+the dance's **More actions** menu.) There are six actions:
 
 | Action | What happens |
 |---|---|
 | **Share dance (text)** | Hands a plain-text dance card to your system's share sheet — email, messages, notes, whatever you have |
 | **Share dance file** | Packages the dance, with the details that go with it, into a `.ccshare` file for another Caller's Compendium user |
+| **Show code** | Shows the same dance file as a full-screen QR code, and keeps the screen awake while it shows — see [Show a dance as a code](#show-a-dance-as-a-code) |
 | **Copy dance** | Puts the same text on your clipboard, and confirms with "Dance copied to clipboard." |
 | **Export dance as JSON** | Builds the same file as **Share dance file**, named `.json` instead, then offers **Save**, **Copy raw JSON**, **Share**, or **Cancel** |
 | **Export / print PDF** | Builds a PDF and opens your system's print dialog |
 
 With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
-cards, there is a sixth: **Print calling card**, which prints the dance on a small card — see
+cards, there is a seventh: **Print calling card**, which prints the dance on a small card — see
 [Print calling cards](#print-calling-cards).
 
 **Copying a selection instead.** On Windows, macOS and Linux you can also drag
@@ -123,6 +124,29 @@ link is left out, and the rest of the dance still imports. After the import, a
 summary says what happened to each dance, lists any dance that could not be
 imported and any link that was left out, and offers **Undo** until you choose
 **Done**.
+
+### Show a dance as a code
+
+**Show code** opens a full-screen QR code that holds the same dance file
+**Share dance file** sends, with the dance's title underneath. The screen stays
+awake while the code is up, so you can hold it out for someone to read. It needs
+no network, and the app asks for no new permission.
+
+The code carries exactly what [a dance file](#share-a-dance-file) carries, under
+the same privacy rules: authors' private details are removed (see
+[What stays private](#what-stays-private)), custom fields with **Include in
+sharing** turned off are left out, and your star rating and your notes on your
+own figures stay on your devices.
+
+Opening a code inside Caller's Compendium itself is not available yet. For now,
+another phone's camera app reads the code and shows the link as text; to hand a
+dance to another Caller's Compendium user, use **Share dance file**.
+
+A short dance is drawn with the Caller's Compendium logo in the middle. A longer
+one is drawn without it, because the logo would cover too much of a code that
+full. A dance too long for any code (a long walkthrough is the usual reason)
+says so, and offers **Share dance file** on the same screen. On Linux that
+button is labeled **Save dance file…**.
 
 ## Share a program
 
@@ -375,10 +399,10 @@ leave, and one thing asks you first.
 
 - **Your pay, Perform dialect, archived state and star ratings.** A program
   file leaves out the program's **Pay**, its **Perform dialect** and whether you
-  archived it, and every share file leaves out your star rating of a dance. They stay on your devices, still move with
+  archived it, and every share file or code leaves out your star rating of a dance. They stay on your devices, still move with
   Device Sync, and are kept in a [backup](./backup-portability.md).
 
-- **Your notes on your own figures.** A shared file carries each of
+- **Your notes on your own figures.** A shared file or code carries each of
   [your own new figures](./authoring.md#your-own-figures) its dances use, but
   not the notes you keep on it. They stay in your Glossary and in a
   [backup](./backup-portability.md).
