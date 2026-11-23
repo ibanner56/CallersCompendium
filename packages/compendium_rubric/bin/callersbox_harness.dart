@@ -26,7 +26,6 @@
 /// set, so a corpus sweep will exit `1` as a matter of course.
 library;
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_rubric/compendium_rubric.dart';
@@ -237,42 +236,25 @@ void _writeFailureReport(
   List<FailureDiagnosis> diagnoses,
   Set<String> coreIds,
 ) {
-  final directory = Directory(dir);
-  try {
-    directory.createSync(recursive: true);
-  } on FileSystemException catch (error) {
-    // After the summary, so the run's own result is already printed; the
-    // exit code stays the run's.
-    stderr.writeln('error: --report $dir: ${error.message}');
-    return;
-  }
-  String at(String name) => '${directory.path}${Platform.pathSeparator}$name';
   final headline =
       'in scope ${report.compiled}/${report.inScope} '
       '(${_percent(report.inScopeRate)}), '
       '${report.inScope - report.compiled} in-scope failures';
-  File(at('failures.jsonl')).writeAsStringSync(
-    diagnoses
-        .map(
-          (d) =>
-              '${jsonEncode(d.toJson(core: coreIds.contains(d.run.sourceId)))}\n',
-        )
-        .join(),
+  final error = writeFailureReport(
+    dir,
+    diagnoses,
+    coreIds: coreIds,
+    headline: headline,
   );
-  File(at('summary.md')).writeAsStringSync(
-    '$headline.\n\n${summarizeFailures(diagnoses, coreIds: coreIds)}',
-  );
-  File(at('report.js')).writeAsStringSync(
-    failureReportScript(diagnoses, coreIds: coreIds, headline: headline),
-  );
-  File(at('index.html')).writeAsStringSync(
-    '<!doctype html>\n<meta charset="utf-8">\n'
-    '<meta name="viewport" content="width=device-width, initial-scale=1, '
-    'viewport-fit=cover">\n$failureReportPage',
-  );
+  if (error != null) {
+    // After the summary, so the run's own result is already printed; the
+    // exit code stays the run's.
+    stderr.writeln('error: --report $dir: $error');
+    return;
+  }
   stdout.writeln('');
   stdout.writeln(
-    'failure report: ${diagnoses.length} dances written to ${directory.path} '
+    'failure report: ${diagnoses.length} dances written to $dir '
     '(open index.html; summary.md groups them by cause)',
   );
 }

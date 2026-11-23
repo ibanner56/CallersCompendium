@@ -1,13 +1,14 @@
-/// The browsable page the harness writes beside a `--report` (see
-/// `bin/callersbox_harness.dart`).
+/// The files the harness writes for `--report` (see
+/// `bin/callersbox_harness.dart`), and [writeFailureReport], which writes them.
 ///
-/// Two files: [failureReportPage] is static HTML, and [failureReportScript]
+/// The page is two files: [failureReportPage] is static HTML, and [failureReportScript]
 /// renders the data as `report.js`, which the page loads with a plain
 /// `<script src>`. A script rather than `fetch` of JSON so the page also opens
 /// straight from disk (`file://`), where `fetch` is refused.
 library;
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'failure_report.dart';
 
@@ -29,6 +30,49 @@ String failureReportScript(
     ],
   };
   return 'window.RUBRIC_REPORT = ${jsonEncode(data)};\n';
+}
+
+/// Writes the whole report into [dir], creating it if need be:
+/// `failures.jsonl`, `summary.md`, `report.js` and `index.html`.
+///
+/// Returns `null` on success and the reason on failure. It never throws a
+/// [FileSystemException], so a report that cannot be written can never end a
+/// harness run or change its exit code.
+String? writeFailureReport(
+  String dir,
+  List<FailureDiagnosis> diagnoses, {
+  Set<String> coreIds = const {},
+  String headline = '',
+}) {
+  try {
+    final directory = Directory(dir)..createSync(recursive: true);
+    String at(String name) => '${directory.path}${Platform.pathSeparator}$name';
+    File(at('failures.jsonl')).writeAsStringSync(
+      diagnoses
+          .map(
+            (d) =>
+                '${jsonEncode(d.toJson(core: coreIds.contains(d.run.sourceId)))}\n',
+          )
+          .join(),
+    );
+    File(at('summary.md')).writeAsStringSync(
+      '${headline.isEmpty ? '' : '$headline.\n\n'}'
+      '${summarizeFailures(diagnoses, coreIds: coreIds)}',
+    );
+    File(at('report.js')).writeAsStringSync(
+      failureReportScript(diagnoses, coreIds: coreIds, headline: headline),
+    );
+    File(at('index.html')).writeAsStringSync(
+      '<!doctype html>\n<meta charset="utf-8">\n'
+      '<meta name="viewport" content="width=device-width, initial-scale=1, '
+      'viewport-fit=cover">\n$failureReportPage',
+    );
+    return null;
+  } on FileSystemException catch (error) {
+    return error.path == null
+        ? error.message
+        : '${error.path}: ${error.message}';
+  }
 }
 
 /// `index.html`. Reads `report.js` from beside itself.

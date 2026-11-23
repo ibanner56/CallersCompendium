@@ -287,6 +287,31 @@ void main() {
     expect(summary, contains('- 1 on a middle figure'));
   });
 
+  group('writeFailureReport', () {
+    late Directory temp;
+    setUp(() => temp = Directory.systemTemp.createTempSync('rubric_report'));
+    tearDown(() => temp.deleteSync(recursive: true));
+
+    test('writes the four files', () {
+      expect(writeFailureReport(temp.path, const [], headline: 'h'), isNull);
+      expect(temp.listSync().map((e) => e.uri.pathSegments.last).toSet(), {
+        'failures.jsonl',
+        'summary.md',
+        'report.js',
+        'index.html',
+      });
+    });
+
+    test('reports, never throws, when a file cannot be written', () {
+      // index.html already exists as a directory, so the directory itself is
+      // created fine and the write inside it fails.
+      Directory('${temp.path}/index.html').createSync();
+      final error = writeFailureReport(temp.path, const []);
+      expect(error, isNotNull);
+      expect(error, contains('index.html'));
+    });
+  });
+
   test('report.js is one global holding valid JSON', () async {
     final draft = await _draft(_fixture());
     final diagnosis = diagnoseFailure(
