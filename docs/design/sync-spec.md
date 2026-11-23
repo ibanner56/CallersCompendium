@@ -2962,8 +2962,8 @@ republishes, which is an ordinary upload and needs no special path.
    than a UUID: two attached devices that each set the same shareable preference
    before the next pass reach exactly this state, and 64 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
-   `shareable`, counted 2026-10-15), as is one prefix entry,
-   `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
+   `shareable`, counted 2026-10-15), as are two prefix entries,
+   `sync_capabilities:` and `saved_search:` (§6.15). Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
@@ -5172,6 +5172,22 @@ that change it gated them without advertising the capability, so they were
 held back on every pass with no notice. That change is subject to *Rollout*:
 a device on a build that lists only `glossary.v1` holds `glossary.v2` closed and
 is named for it, while what `glossary.v1` gates publishes past it.
+
+**`savedSearches.v1`.** Gates every settings key that starts with
+`saved_search:`, tombstones included: one saved search is one setting record
+(#2325, amended 2026-11-23). A build that does not know the prefix keeps such a
+record whole (ADR-004) but cannot read its search, so they wait for every device
+to advertise the capability. This is the first capability that gates a settings
+**prefix**: a gated key that is not an exact entry matches the longest gated
+prefix it starts with, as the registry's classification does, and an exact key
+still wins. The reference client gates the prefix from the change that adds
+storage for saved searches and advertises the capability from the change that
+completes the feature (the menu), as `glossary.v2` was gated before #1023 was
+complete; until then nothing writes a saved search and none is published.
+Saved searches reach a peer on a build that predates the prefix as unknown,
+retained records, which is why the gate exists. Deleting one is a tombstone that
+keeps its value until the record is purged, so a held-back deletion is published
+once the gate opens, as any gated tombstone is.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

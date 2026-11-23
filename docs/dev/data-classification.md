@@ -621,12 +621,13 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 
 Some settings-table keys are built at runtime from a per-entity suffix rather than declared as an exact key (`editor_draft:<id>`), so they cannot appear in the table above. Each prefix below classifies every key it matches; `classifySettingsKey` resolves the longest matching prefix.
 
-**3 settings key prefixes**: 1 shareable, 2 device-scoped. 0 personal data by category.
+**4 settings key prefixes**: 2 shareable, 2 device-scoped. 0 personal data by category.
 
 | Key prefix | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
 | `editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>, or editor_draft:new:<editor id> for a dance not yet saved). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
 | `program_editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient program-editor autosave draft, keyed per program (program_editor_draft:<id>, or program_editor_draft:new:<editor id> for a program not yet saved). Same rationale as editor_draft:. |
+| `saved_search:` | `dpv:NonPersonalData` | app user | shareable | One saved search per key (saved_search:<id>): the user's own search text, filters and sort under a name they chose, with the ids of their tags, authors, sources, difficulty levels, venue records, custom fields and figures of their own, and the folded text of a venue typed by name (text:<venue>). Their own configuration, which follows them to their other devices; it names no one else. A deletion is a tombstone that keeps the value until the record is purged. Held back from peers until every device advertises savedSearches.v1. |
 | `sync_capabilities:` | `dpv:NonPersonalData` | — | shareable | Sync protocol metadata, keyed per attachment (sync_capabilities:<deviceId>): the names of the sync capabilities the device's build understands, nothing about the user. Travels so every device can see what the others can read (#709 capability gate). The device id in the key is the same protocolIdentifier every manifest already carries. Never restored from a backup (backup_service.dart denylists the prefix), since only its own device may write it, apart from the tombstone written when a device is removed from the store. Erased, not tombstoned, on detach (SyncLocalRepository.clearOnDetach), so the device ids of a store this device has left never reach the next one. |
 
 <!-- END GENERATED: field-catalogue -->

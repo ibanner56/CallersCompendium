@@ -92,18 +92,56 @@ void main() {
           SyncCapabilities.glossaryV1,
           SyncCapabilities.glossaryV2,
         });
+        // Saved searches (#2325) are gated but not yet advertised: a
+        // capability is advertised only once the whole feature is in the
+        // build, so this build publishes none and nothing writes one.
         expect(build.gatedCapabilities, {
           SyncCapabilities.glossaryV1,
           SyncCapabilities.glossaryV2,
+          SyncCapabilities.savedSearchesV1,
         });
+        expect(
+          build.advertised,
+          isNot(contains(SyncCapabilities.savedSearchesV1)),
+        );
       },
     );
+
+    test('gates every saved_search: key on savedSearches.v1', () {
+      for (final key in ['saved_search:abc', 'saved_search:x:y']) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.savedSearchesV1,
+          reason: key,
+        );
+      }
+      // Only the prefix, and only settings.
+      for (final key in ['saved_search', 'saved_searches:abc', 'theme_mode']) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          isNot(SyncCapabilities.savedSearchesV1),
+          reason: key,
+        );
+      }
+      expect(
+        build.capabilityFor(SyncRecordKind.dance, 'saved_search:abc'),
+        isNull,
+      );
+    });
+
+    test('a saved search is shareable user configuration', () {
+      final c = classifySettingsKey('${savedSearchKeyPrefix}abc');
+      expect(c?.egress, EgressClass.shareable);
+      expect(c?.subject, DataSubject.appUser);
+    });
 
     test('rollout: with no record from any peer, every peer holds both '
         'closed', () {
       expect(closedBeside(['a', 'b'], const {}), {
         SyncCapabilities.glossaryV1: {'a', 'b'},
         SyncCapabilities.glossaryV2: {'a', 'b'},
+        // Not advertised by this build, so closed with no device to name.
+        SyncCapabilities.savedSearchesV1: <String>{},
       });
     });
 
@@ -119,17 +157,19 @@ void main() {
         ),
         {
           SyncCapabilities.glossaryV2: {'a', 'b'},
+          SyncCapabilities.savedSearchesV1: <String>{},
         },
       );
     });
 
-    test('with every peer advertising what the build does, both are open', () {
+    test('with every peer advertising what the build does, the glossary '
+        'capabilities are open and saved searches stay closed', () {
       expect(
         closedBeside(
           ['a', 'b'],
           {'a': build.advertised, 'b': build.advertised},
         ),
-        isEmpty,
+        {SyncCapabilities.savedSearchesV1: <String>{}},
       );
     });
   });
@@ -182,6 +222,37 @@ void main() {
     expect(policy.capabilityFor(SyncRecordKind.setting, 'other'), isNull);
     expect(policy.capabilityFor(SyncRecordKind.dance, 'x'), isNull);
     expect(policy.gatedCapabilities, {'v.v1', 's.v1'});
+  });
+
+  group('a gated settings-key prefix', () {
+    const policy = SyncCapabilityPolicy(
+      gatedSettingKeys: {'p:exact': 'exact.v1'},
+      gatedSettingKeyPrefixes: {'p:': 'short.v1', 'p:long:': 'long.v1'},
+    );
+
+    test('gates every key under it, and counts as gated', () {
+      expect(policy.capabilityFor(SyncRecordKind.setting, 'p:abc'), 'short.v1');
+      expect(policy.capabilityFor(SyncRecordKind.setting, 'q:abc'), isNull);
+      expect(
+        policy.gatedCapabilities,
+        containsAll(['exact.v1', 'short.v1', 'long.v1']),
+      );
+    });
+
+    test('the longest prefix wins, and an exact key beats any prefix', () {
+      expect(
+        policy.capabilityFor(SyncRecordKind.setting, 'p:long:abc'),
+        'long.v1',
+      );
+      expect(
+        policy.capabilityFor(SyncRecordKind.setting, 'p:exact'),
+        'exact.v1',
+      );
+    });
+
+    test('does not gate other kinds of record', () {
+      expect(policy.capabilityFor(SyncRecordKind.dance, 'p:abc'), isNull);
+    });
   });
 
   test('a glossary entry waits on its own kind\'s capability when it has one '

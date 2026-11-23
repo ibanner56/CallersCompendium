@@ -9982,6 +9982,10 @@
   "@shorthandsUserFigureSyncLabel": {
     "x-sourceSha256": "0d3bbcab1f6e886cc37a28859a00354f3bbc29474f53b2d49120becbf6b6b5fe"
   },
+  "syncSavedSearchLabel": "Opgeslagen zoekopdracht",
+  "@syncSavedSearchLabel": {
+    "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
+  },
   "shorthandsCompoundIntro": "Als vrije tekstinvoer aan staat, voegt het typen van een van deze afkortingen als hele regel tijdens het bewerken van een dans een van je eigen figuren toe, met de waarden die hier zijn gekozen.",
   "@shorthandsCompoundIntro": {
     "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"

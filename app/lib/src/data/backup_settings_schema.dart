@@ -1,5 +1,9 @@
 import 'package:compendium_core/compendium_core.dart'
-    show MatrixColumnConfig, shareableTextNormalisationScopeKey;
+    show
+        MatrixColumnConfig,
+        SavedSearch,
+        savedSearchKeyPrefix,
+        shareableTextNormalisationScopeKey;
 
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
@@ -284,6 +288,15 @@ bool _isValidMatrixColumnConfig(Object? v) =>
 /// forward-compatible keys through unchanged (see [_backupSettingValidators]).
 /// Never throws: the whole point is that no restored value can abort the apply.
 bool? validateBackupSettingValue(String key, Object? value) {
+  // A saved search is one settings value per key under a prefix: read it with
+  // the codec that wrote it, which never throws, so a crafted backup cannot
+  // restore a value the app would then have to defend against.
+  if (key.startsWith(savedSearchKeyPrefix)) {
+    return SavedSearch.decode(
+      key.substring(savedSearchKeyPrefix.length),
+      value,
+    ).isOk;
+  }
   final validator = _backupSettingValidators[key];
   if (validator == null) return null;
   return validator(value);

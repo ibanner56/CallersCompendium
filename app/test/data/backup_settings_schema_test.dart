@@ -36,8 +36,13 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart'
         kVenueCallCountKey;
 import 'package:compendium_core/compendium_core.dart'
     show
+        CollectionPanelState,
+        EgressClass,
         MatrixColumnConfig,
+        SavedSearch,
+        SavedSearchSpec,
         settingsClassifications,
+        settingsPrefixClassifications,
         shareableTextNormalisationScopeKey;
 import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart'
     show
@@ -530,6 +535,42 @@ void main() {
       );
     });
 
+    group('saved searches (#2325)', () {
+      final spec = SavedSearchSpec.fromPanelState(
+        CollectionPanelState(text: 'petronella'),
+        today: DateTime.utc(2026, 11, 22),
+      ).value!;
+      final good = SavedSearch(id: 'a', name: 'Easy mixers', spec: spec);
+
+      test('a value the codec wrote is accepted', () {
+        expect(
+          validateBackupSettingValue('saved_search:a', good.toJson()),
+          isTrue,
+        );
+      });
+
+      test(
+        'anything the codec cannot read is rejected, not passed through',
+        () {
+          for (final value in <Object?>[
+            null,
+            'x',
+            42,
+            <String, Object?>{},
+            {...good.toJson(), 'v': 2},
+            {...good.toJson(), 'name': ''},
+            {...good.toJson(), 'extra': true},
+          ]) {
+            expect(
+              validateBackupSettingValue('saved_search:a', value),
+              isFalse,
+              reason: '$value',
+            );
+          }
+        },
+      );
+    });
+
     test('unknown / forward-compatible keys pass through (null verdict)', () {
       expect(
         validateBackupSettingValue('some_future_key_v99', 'anything'),
@@ -585,6 +626,27 @@ void main() {
           'restore writes whatever JSON the file carries. Add each to '
           '_backupSettingValidators, or exempt it above with a reason:\n  '
           '${unvalidated.join('\n  ')}',
+    );
+
+    // The prefix counterpart: a key under a shareable prefix that travels in
+    // backups is a settings value a restore writes, so it needs a validator
+    // too. Probed with the prefix plus a suffix, as a stored key is.
+    final unvalidatedPrefixes = [
+      for (final MapEntry(key: prefix, value: classification)
+          in settingsPrefixClassifications.entries)
+        if (classification.egress == EgressClass.shareable &&
+            isBackupEligibleSettingKey('${prefix}probe') &&
+            validateBackupSettingValue('${prefix}probe', null) == null)
+          prefix,
+    ]..sort();
+    expect(
+      unvalidatedPrefixes,
+      isEmpty,
+      reason:
+          'These shareable settings prefixes travel in backups but '
+          'validateBackupSettingValue has no verdict for a key under them, so '
+          'a restore writes whatever JSON the file carries:\n  '
+          '${unvalidatedPrefixes.join('\n  ')}',
     );
 
     final staleExemptions =

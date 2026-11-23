@@ -11,6 +11,11 @@ import 'filter.dart';
 import 'search_clock.dart';
 import 'search_sort.dart';
 
+/// The settings-key prefix of one saved search: `saved_search:<id>`. One
+/// settings value per saved search, so two devices that each add one offline
+/// keep both, and deleting one tombstones its own key.
+const String savedSearchKeyPrefix = 'saved_search:';
+
 /// The format version this build writes and reads.
 const int savedSearchFormatVersion = 1;
 
@@ -134,6 +139,9 @@ final class SavedSearch {
 
   /// The value to store for this search (one value per saved search).
   Map<String, Object?> toJson() => {...spec.toJson(), 'name': name};
+
+  /// The settings key this search is stored under.
+  String get settingsKey => '$savedSearchKeyPrefix$id';
 
   /// Reads the value stored for [id]. Never throws.
   static SavedSearchDecoded<SavedSearch> decode(String id, Object? json) {

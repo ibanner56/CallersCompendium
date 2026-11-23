@@ -10270,6 +10270,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shorthandsUserFigureSyncLabel => 'Shorthands for new figures';
 
   @override
+  String get syncSavedSearchLabel => 'Saved search';
+
+  @override
   String get shorthandsCompoundIntro =>
       'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.';
 

@@ -596,6 +596,24 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         '(SyncLocalRepository.clearOnDetach), so the device ids of a store '
         'this device has left never reach the next one.',
   ),
+  // One saved search per key (#2325): the user's own search, stored under a
+  // name. Shareable user configuration, like custom_dialects, behind the
+  // savedSearches.v1 sync capability.
+  'saved_search:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'One saved search per key (saved_search:<id>): the user\'s own search '
+        'text, filters and sort under a name they chose, with the ids of '
+        'their tags, authors, sources, difficulty levels, venue records, '
+        'custom fields and figures of their own, and the folded text of a '
+        'venue typed by name (text:<venue>). Their own configuration, which '
+        'follows them to their other devices; it names no one else. A '
+        'deletion is a tombstone that keeps the value until the record is '
+        'purged. Held back from peers until every device advertises '
+        'savedSearches.v1.',
+  ),
 };
 
 /// Resolves a settings-table [key] to its classification: an exact

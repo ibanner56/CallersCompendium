@@ -15162,6 +15162,12 @@ abstract class AppLocalizations {
   /// **'Shorthands for new figures'**
   String get shorthandsUserFigureSyncLabel;
 
+  /// The name of a saved search (#2325), a setting a device syncs under its own key, in sync notices and the sync conflict view.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved search'**
+  String get syncSavedSearchLabel;
+
   /// Explains the compound shorthands section.
   ///
   /// In en, this message translates to:

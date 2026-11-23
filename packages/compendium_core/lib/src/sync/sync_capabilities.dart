@@ -1,3 +1,4 @@
+import '../search/saved_search.dart' show savedSearchKeyPrefix;
 import 'sync_record_kind.dart';
 
 /// The settings-key prefix of a device's capability record (#709):
@@ -28,6 +29,11 @@ abstract final class SyncCapabilities {
   /// [glossaryV1] reads such an entry as one it cannot use, so they wait for
   /// every device to understand this too.
   static const String glossaryV2 = 'glossary.v2';
+
+  /// The user's saved searches (#2325), one settings value each under
+  /// `saved_search:`. An older build keeps such a value whole but cannot read
+  /// it, so they wait for every device to understand them.
+  static const String savedSearchesV1 = 'savedSearches.v1';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -37,6 +43,7 @@ final class SyncCapabilityPolicy {
     this.advertised = const {},
     this.gatedRecordKinds = const {},
     this.gatedSettingKeys = const {},
+    this.gatedSettingKeyPrefixes = const {},
     this.gatedGlossaryEntryKinds = const {},
   });
 
@@ -50,6 +57,11 @@ final class SyncCapabilityPolicy {
 
   /// Settings keys whose records wait for a capability.
   final Map<String, String> gatedSettingKeys;
+
+  /// Settings-key prefixes whose records wait for a capability: every key that
+  /// starts with one (a record per key, as a saved search is). An exact key in
+  /// [gatedSettingKeys] wins, then the longest matching prefix.
+  final Map<String, String> gatedSettingKeyPrefixes;
 
   /// Kinds of user glossary entry (the `kind` in a `glossaryEntry` record's
   /// body) whose records wait for a capability of their own (#1023). An entry
@@ -73,6 +85,12 @@ final class SyncCapabilityPolicy {
   /// the whole of #1023 is in it: they publish once every other device
   /// attached to the store advertises it, and until then a device that
   /// doesn't is named in a held-back notice (sync-spec §6.15).
+  ///
+  /// [SyncCapabilities.savedSearchesV1] (#2325) gates the user's saved searches
+  /// (every `saved_search:` key). It is gated but **not yet advertised**: the
+  /// capability is advertised only once the whole feature, sync included, is in
+  /// the build, as for glossary.v2 before #1023 completed. Until then this
+  /// build publishes none, and nothing writes one.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
     gatedRecordKinds: {
@@ -83,6 +101,9 @@ final class SyncCapabilityPolicy {
       'show_custom_figures': SyncCapabilities.glossaryV1,
       'compound_shorthands': SyncCapabilities.glossaryV1,
       'user_figure_shorthands': SyncCapabilities.glossaryV2,
+    },
+    gatedSettingKeyPrefixes: {
+      savedSearchKeyPrefix: SyncCapabilities.savedSearchesV1,
     },
     gatedGlossaryEntryKinds: {
       'term': SyncCapabilities.glossaryV2,
@@ -100,7 +121,9 @@ final class SyncCapabilityPolicy {
     String recordId, {
     Map<String, Object?>? body,
   }) {
-    if (kind == SyncRecordKind.setting) return gatedSettingKeys[recordId];
+    if (kind == SyncRecordKind.setting) {
+      return gatedSettingKeys[recordId] ?? _gatedByPrefix(recordId);
+    }
     if (kind == SyncRecordKind.glossaryEntry) {
       final entryKind = body?['kind'];
       if (entryKind is String) {
@@ -111,10 +134,25 @@ final class SyncCapabilityPolicy {
     return gatedRecordKinds[kind];
   }
 
+  /// The capability of the longest prefix in [gatedSettingKeyPrefixes] that
+  /// [key] starts with, as `classifySettingsKey` picks a prefix's
+  /// classification.
+  String? _gatedByPrefix(String key) {
+    String? best;
+    for (final prefix in gatedSettingKeyPrefixes.keys) {
+      if (key.startsWith(prefix) &&
+          (best == null || prefix.length > best.length)) {
+        best = prefix;
+      }
+    }
+    return best == null ? null : gatedSettingKeyPrefixes[best];
+  }
+
   /// Every capability something is gated on.
   Set<String> get gatedCapabilities => {
     ...gatedRecordKinds.values,
     ...gatedSettingKeys.values,
+    ...gatedSettingKeyPrefixes.values,
     ...gatedGlossaryEntryKinds.values,
   };
 }
