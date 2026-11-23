@@ -330,6 +330,26 @@ class PhraseStructure {
     throw StateError('could not find component for beat $beat');
   }
 
+  /// Beats in the phrase that plays at [beat], wrapping past the end as
+  /// [componentAtBeat] does: the most a `sequence` that starts at [beat] may
+  /// hold ([sequenceExceedsPhrase]).
+  int phraseBeatsAt(int beat) => componentAtBeat(beat).beatsPerPhrase;
+
+  /// The beat at which the phrase that plays at [beat] starts: [beat] less
+  /// how far into that phrase it falls. Wraps past the end as
+  /// [componentAtBeat] does, so the result is never after [beat].
+  int phraseStartAt(int beat) {
+    if (beat < 0) throw ArgumentError.value(beat, 'beat', 'must be >= 0');
+    var offset = beat % totalBeats;
+    for (final component in components) {
+      if (offset < component.totalBeats) {
+        return beat - offset % component.beatsPerPhrase;
+      }
+      offset -= component.totalBeats;
+    }
+    throw StateError('could not find phrase for beat $beat');
+  }
+
   /// Beats in [halfBars] half bars of the component that plays at [atBeat],
   /// or `null` when that is not a whole number of beats.
   ///
@@ -629,8 +649,11 @@ void _flagPhraseCrossing(
 /// Whether [sequence], a `sequence` container, is counted longer than one
 /// phrase of [structure] ([PhraseStructure.longestPhraseBeats]). False for any
 /// other figure.
-bool sequenceExceedsPhrase(Figure sequence, PhraseStructure structure) =>
-    sequence.isSequence && sequence.beats > structure.longestPhraseBeats;
+bool sequenceExceedsPhrase(
+  Figure sequence,
+  PhraseStructure structure, {
+  required int startBeat,
+}) => sequence.isSequence && sequence.beats > structure.longestPhraseBeats;
 
 void _flagLongSequences(
   Figure figure,
@@ -639,7 +662,7 @@ void _flagLongSequences(
   PhraseStructure structure,
   List<ValidationIssue> issues,
 ) {
-  if (sequenceExceedsPhrase(figure, structure)) {
+  if (sequenceExceedsPhrase(figure, structure, startBeat: startBeat)) {
     issues.add(
       ValidationIssue(
         severity: ValidationSeverity.warning,

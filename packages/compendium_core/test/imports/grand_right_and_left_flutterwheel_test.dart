@@ -630,6 +630,51 @@ void main() {
       },
     );
 
+    test('a block is grouped only if it fits the phrase it starts in '
+        '(23 November 2026)', () async {
+      // A1 and A2 are 8 beats each, B is 16. The same 12-beat block is too
+      // long for A1 and fits B.
+      final adapter = CallersBoxAdapter();
+      Future<List<Figure>> import(List<Map<String, Object>> phrases) async {
+        final payload = jsonEncode({
+          'ID': '9003',
+          'Name': 'Uneven phrases',
+          'Permission': 'full',
+          'PhraseStructure': '2*4*2 + 1*8*2',
+          'phrases': phrases,
+        });
+        final found = await adapter.discover(ImportRequest(payload: payload));
+        return figuresOf(
+          adapter.parse(await adapter.fetch(found.single)).dance,
+        );
+      }
+
+      const block = [
+        '(12) Allemande run:',
+        '     (4) Neighbor allemande right 1/2',
+        '     (4) Partner allemande left 1/2',
+        '     (4) Neighbor allemande right 1/2',
+      ];
+      final inA1 = await import([
+        {'name': 'A1', 'figures': block},
+      ]);
+      expect(inA1.any((f) => f.isContainer), isFalse);
+      expect(inA1.first.note, 'Allemande run');
+
+      final inB = await import([
+        {
+          'name': 'A1',
+          'figures': ['(8) Neighbor swing'],
+        },
+        {
+          'name': 'A2',
+          'figures': ['(8) Partner swing'],
+        },
+        {'name': 'B', 'figures': block},
+      ]);
+      expect(_named(inB).containerTitle, 'Allemande run');
+    });
+
     test('more figures than a sequence holds keeps it flat', () async {
       final figures = await _figures([
         '(20) Allemande marathon:',
