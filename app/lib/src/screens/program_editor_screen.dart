@@ -4717,6 +4717,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             scrollController: scrollController,
                             addedDanceCounts: counts,
                             programContext: programContext,
+                            excludedDanceIds: {?slot.danceId},
                             rowAction: PickerRowAction.replace,
                             enableOnlineSearch: true,
                             onDanceImported: _rememberImportedDance,
