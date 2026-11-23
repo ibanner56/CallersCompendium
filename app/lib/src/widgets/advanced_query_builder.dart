@@ -24,6 +24,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
     required this.tags,
     required this.onChanged,
     this.tagsUnavailableFor,
+    this.allTagNames = const {},
   });
 
   final BuilderGroup root;
@@ -40,6 +41,10 @@ class AdvancedQueryBuilder extends StatelessWidget {
   /// offers (tags carried by at least one live dance). With none, the Add menu
   /// does not offer "Has tag" at all.
   final List<Tag> tags;
+
+  /// Every tag's name by id, to name a "Has tag" row's tag that no live dance
+  /// carries (so it is not among [tags]), or that is gone.
+  final Map<String, String> allTagNames;
   final VoidCallback onChanged;
 
   /// The name of the source being searched when that source cannot carry a tag
@@ -56,6 +61,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
       dialect: dialect,
       sectionLabels: sectionLabels,
       tags: tags,
+      allTagNames: allTagNames,
       tagsUnavailableFor: tagsUnavailableFor,
       onChanged: onChanged,
       onRemove: null,
@@ -71,6 +77,7 @@ class _GroupView extends StatelessWidget {
     required this.dialect,
     required this.sectionLabels,
     required this.tags,
+    required this.allTagNames,
     required this.tagsUnavailableFor,
     required this.onChanged,
     required this.onRemove,
@@ -82,6 +89,7 @@ class _GroupView extends StatelessWidget {
   final Dialect dialect;
   final List<String> sectionLabels;
   final List<Tag> tags;
+  final Map<String, String> allTagNames;
   final String? tagsUnavailableFor;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
@@ -190,6 +198,7 @@ class _GroupView extends StatelessWidget {
           dialect: dialect,
           sectionLabels: sectionLabels,
           tags: tags,
+          allTagNames: allTagNames,
           tagsUnavailableFor: tagsUnavailableFor,
           onChanged: onChanged,
           onRemove: remove,
@@ -211,6 +220,7 @@ class _GroupView extends StatelessWidget {
         return _TagRow(
           node: child,
           tags: tags,
+          allTagNames: allTagNames,
           onChanged: onChanged,
           onRemove: () {
             remove();
@@ -394,12 +404,14 @@ class _TagRow extends StatelessWidget {
   const _TagRow({
     required this.node,
     required this.tags,
+    required this.allTagNames,
     required this.onChanged,
     required this.onRemove,
   });
 
   final BuilderTag node;
   final List<Tag> tags;
+  final Map<String, String> allTagNames;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
 
@@ -407,24 +419,20 @@ class _TagRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final stored = node.tagId;
-    // [tags] is the set of tags carried by a LIVE dance, so a picked tag can
-    // drop out of it while the row is open (its last dance is deleted or
-    // untagged). A value that is gone is shown as unpicked, as the dropdown
-    // would show it anyway (an empty field, a value not among its entries).
-    final value = tags.any((t) => t.id == stored) ? stored : null;
-    // Showing "unpicked" is not enough on its own: `BuilderTag.toFilter` would
-    // still emit the gone tag, a filter the user can neither see nor clear
-    // (the same hazard `_ParamDropdown` closes for params). So the MODEL is
-    // normalised to match and the search re-run — but only if the row still
-    // holds that id, so a pick made in the meantime is never overwritten.
-    if (stored != null && value == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (node.tagId == stored) {
-          node.tagId = null;
-          onChanged();
-        }
-      });
-    }
+    // [tags] is the set of tags carried by a LIVE dance, so the row's tag can
+    // be outside it: its last dance was deleted or untagged while the row was
+    // open, or a panel state (a saved search) came in asking for a tag nobody
+    // carries yet. The row KEEPS that tag and shows it, named from every tag
+    // or as "Not in your library" when it is gone, as one more entry: the
+    // search goes on asking for it, the user can see that, and removes the
+    // row or picks another tag to change it. Clearing it instead (as this did
+    // before saved searches could be opened) would widen the search with no
+    // sign, a broader search than the one the saved-search resolver hands
+    // every other feature (the same hazard `_ParamDropdown` closes for
+    // params).
+    final unoffered = stored != null && !tags.any((t) => t.id == stored)
+        ? stored
+        : null;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
@@ -438,7 +446,7 @@ class _TagRow extends StatelessWidget {
               label: l10n.collectionQueryTagLabel,
               child: AppDropdownField<String?>(
                 key: ValueKey('tag-${node.id}'),
-                value: value,
+                value: stored,
                 // The user's own tags: a list that grows.
                 filterable: true,
                 decoration: InputDecoration(
@@ -453,6 +461,13 @@ class _TagRow extends StatelessWidget {
                 entries: [
                   for (final tag in tags)
                     AppDropdownEntry<String?>(value: tag.id, label: tag.name),
+                  if (unoffered != null)
+                    AppDropdownEntry<String?>(
+                      value: unoffered,
+                      label:
+                          allTagNames[unoffered] ??
+                          l10n.collectionFacetMissingValue,
+                    ),
                 ],
               ),
             ),

@@ -1529,6 +1529,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       dialect: widget.dialect,
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      allTagNames: data.allTagNames,
       tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
           ? _onlineSource.label
           : null,

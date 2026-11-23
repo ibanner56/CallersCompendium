@@ -15,6 +15,7 @@ import '../support/screen_size.dart';
 class _Host extends StatefulWidget {
   const _Host({
     this.tagsUnavailableFor,
+    this.allTagNames = const {},
     required this.root,
     required this.sectionLabels,
     required this.taxonomy,
@@ -25,6 +26,7 @@ class _Host extends StatefulWidget {
   });
   final double textScale;
   final String? tagsUnavailableFor;
+  final Map<String, String> allTagNames;
   final BuilderGroup root;
   final List<Tag> tags;
   final VoidCallback? onChanged;
@@ -57,6 +59,7 @@ class _HostState extends State<_Host> {
             sectionLabels: widget.sectionLabels,
             tags: widget.tags,
             tagsUnavailableFor: widget.tagsUnavailableFor,
+            allTagNames: widget.allTagNames,
             onChanged: () {
               widget.onChanged?.call();
               setState(() {});
@@ -92,6 +95,7 @@ Future<void> _pump(
   VoidCallback? onChanged,
   double textScale = 1.0,
   String? tagsUnavailableFor,
+  Map<String, String> allTagNames = const {},
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -102,6 +106,7 @@ Future<void> _pump(
       dialect: dialect ?? Dialect.larksRobins,
       tags: tags,
       tagsUnavailableFor: tagsUnavailableFor,
+      allTagNames: allTagNames,
       onChanged: onChanged,
       textScale: textScale,
     ),
@@ -318,37 +323,58 @@ void main() {
       expect(changes, 1);
     });
 
-    testWidgets('a picked tag that is no longer offered is cleared, not a '
-        'crash', (tester) async {
+    testWidgets('changed by #2325: a tag that is gone is kept and shown as '
+        'missing, not cleared', (tester) async {
+      // It used to be cleared from the model a frame later, which widened
+      // the search with no sign. Now the row keeps asking for it, says so,
+      // and the user removes the row or picks another tag.
       final row = BuilderTag(tagId: 'gone');
       final root = BuilderGroup(children: [row]);
       var changes = 0;
       await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
 
       expect(tester.takeException(), isNull);
-      expect(row.tagId, isNull, reason: 'a filter the row cannot show is gone');
-      expect(root.toFilter(), isNull);
+      expect(row.tagId, 'gone');
+      expect((root.toFilter() as TagFilter?)?.tagId, 'gone');
+      expect(changes, 0, reason: 'nothing changed the search behind its back');
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('tag-${row.id}')),
+          matching: find.text('Not in your library'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(ValueKey('remove-${row.id}')));
+      await tester.pumpAndSettle();
+      expect(root.children, isEmpty);
       expect(changes, 1);
-      expect(find.text('Choose a tag'), findsOneWidget);
     });
 
-    testWidgets('a pick made before the stale-clear callback runs survives', (
-      tester,
-    ) async {
-      final row = BuilderTag();
+    testWidgets('added by #2325: a loaded tag no dance carries yet keeps its '
+        'name, and another tag can be picked over it', (tester) async {
+      final row = BuilderTag(tagId: 'family');
       final root = BuilderGroup(children: [row]);
-      await _pump(tester, root: root, tags: tags);
+      await _pump(
+        tester,
+        root: root,
+        tags: tags,
+        allTagNames: const {'family': 'family'},
+      );
+      expect(row.tagId, 'family');
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('tag-${row.id}')),
+          matching: find.text('family'),
+        ),
+        findsOneWidget,
+      );
 
-      // Make the row stale and schedule a rebuild, but register the "user
-      // picks a tag" callback FIRST so it runs before the row's own post-frame
-      // clear. The clear must then find a different id and leave it alone.
-      row.tagId = 'gone';
-      WidgetsBinding.instance.addPostFrameCallback((_) => row.tagId = 't1');
-      tester.element(find.byType(_Host)).markNeedsBuild();
-      await tester.pump();
+      await tester.tap(find.byKey(ValueKey('tag-${row.id}')));
       await tester.pumpAndSettle();
-
-      expect(row.tagId, 't1');
+      await tester.tap(find.text('Energetic').last);
+      await tester.pumpAndSettle();
+      expect(row.tagId, 't2');
     });
   });
 

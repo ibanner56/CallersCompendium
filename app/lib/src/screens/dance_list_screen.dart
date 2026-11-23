@@ -3504,6 +3504,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       dialect: _dialect,
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      allTagNames: data.allTagNames,
       tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
           ? _onlineSource.label
           : null,
