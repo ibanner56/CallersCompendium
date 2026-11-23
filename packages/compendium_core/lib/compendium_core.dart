@@ -24,6 +24,7 @@ export 'src/export/dance_card_fields.dart';
 export 'src/export/dance_share_fields.dart';
 export 'src/export/dance_text.dart';
 export 'src/export/export_labels.dart';
+export 'src/export/program_calendar.dart';
 export 'src/export/program_text.dart';
 export 'src/imports/author_tokenizer.dart';
 export 'src/imports/callers_companion_mapping.dart';

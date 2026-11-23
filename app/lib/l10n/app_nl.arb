@@ -12329,5 +12329,69 @@
   "programTemplateSaveError": "Die wijziging in je sjablonen kon niet worden opgeslagen. Probeer het opnieuw.",
   "@programTemplateSaveError": {
     "x-sourceSha256": "ccd2779aa982c2a20d48a6c1edb35883736c674d626a6cc6981d3465ce6b44d0"
+  },
+  "exportAddToCalendar": "Toevoegen aan agenda (.ics)",
+  "@exportAddToCalendar": {
+    "x-sourceSha256": "31e4f0aa94451560029a2d96bd786f7e184eba170090b42de83aa7c1dc9e3a19"
+  },
+  "programsExportCalendar": "Agenda exporteren (.ics)",
+  "@programsExportCalendar": {
+    "x-sourceSha256": "86b003eef617962e68f7c96cd8b1ffe6b22f3e407cf427e78c4624d1b82efacf"
+  },
+  "exportCalendarPickTitle": "Agenda exporteren",
+  "@exportCalendarPickTitle": {
+    "x-sourceSha256": "08b44debb5e5e2751b4cab06ba83defc0fce32f05958a0c43641caf7f33ff267"
+  },
+  "exportCalendarPickBody": "Kies de programma's die in het agendabestand komen.",
+  "@exportCalendarPickBody": {
+    "x-sourceSha256": "a43694d55ecf6529fcd0238a35991f54e9a1122fe886c4f7c6437821694352ea"
+  },
+  "exportCalendarShowPast": "Eerdere programma's tonen",
+  "@exportCalendarShowPast": {
+    "x-sourceSha256": "3f94290ca9527673e8b23273869540e2a57224cd8ada68cf042e53b1b6fca0ee"
+  },
+  "exportCalendarNoUpcoming": "Geen komende programma's om te tonen. Gearchiveerde programma's staan hier niet. Zet Eerdere programma's tonen aan om een eerder programma te kiezen.",
+  "@exportCalendarNoUpcoming": {
+    "x-sourceSha256": "1a64efc53cf4aa10bbb236edb8b21869c2a8333d70f3eea80aaf32162bbe53e0"
+  },
+  "exportCalendarNoDated": "Nog geen enkel programma heeft een datum. Geef een programma een datum om het aan een agenda toe te voegen.",
+  "@exportCalendarNoDated": {
+    "x-sourceSha256": "b7a7be72847071936ec34552731a763659f9a443a3872bad9a0c8b1eba3716be"
+  },
+  "exportCalendarPickConfirm": "Exporteren",
+  "@exportCalendarPickConfirm": {
+    "x-sourceSha256": "3664895579f0a7e68c4aa09c91316e20239bc74499010e6423ece40cad7c28f7"
+  },
+  "exportCalendarAddressTitle": "Adres van de locatie opnemen?",
+  "@exportCalendarAddressTitle": {
+    "x-sourceSha256": "fab5026a2199b657c01748136578015b3c02c4747c03898ac16b53b6a7913266"
+  },
+  "exportCalendarAddressBody": "Het agendabestand noemt de locatie. Het adres blijft weg, tenzij je het opneemt. Agenda's worden vaak gesynchroniseerd of met anderen gedeeld.",
+  "@exportCalendarAddressBody": {
+    "x-sourceSha256": "8b1013c914481bc3a487e99844c4a27701f5dec8ca30c9f230fc61dc7404c8fd"
+  },
+  "exportCalendarAddressInclude": "Adres van de locatie opnemen",
+  "@exportCalendarAddressInclude": {
+    "x-sourceSha256": "2ec8652944af313644e3e72e40771235130f8627123fefe955506ca8530c3ea5"
+  },
+  "exportCalendarDialogTitle": "Agendabestand exporteren",
+  "@exportCalendarDialogTitle": {
+    "x-sourceSha256": "bde2345dc1ffa1d83facef2dec3f0c553ed1d32cff88ec5191b6beabeb684afd"
+  },
+  "exportCalendarDialogMessage": "Kies hoe je dit agendabestand wilt afleveren.",
+  "@exportCalendarDialogMessage": {
+    "x-sourceSha256": "166796fbf5beba4abe49be5f4ce64438923b8eaaa46cc7a5b65a5f99a7c435c2"
+  },
+  "exportCalendarSavedGeneric": "Agendabestand opgeslagen.",
+  "@exportCalendarSavedGeneric": {
+    "x-sourceSha256": "c596bc8fa7b3430e59f6b548b1ae0323dc0bd8cf098246bb5cc65671bc2eaafd"
+  },
+  "exportCalendarSaveError": "Dit agendabestand kon niet worden opgeslagen. Probeer het opnieuw.",
+  "@exportCalendarSaveError": {
+    "x-sourceSha256": "2fc41316829b2fdc9ab4618e245d737365ce66fc802908ba0e66e917a3cec2ff"
+  },
+  "exportCalendarShareError": "Dit agendabestand kon niet worden gedeeld. Probeer het opnieuw.",
+  "@exportCalendarShareError": {
+    "x-sourceSha256": "59c6b29f097723c0ffa242aec5f53af9c45340534f0a13260560b1892481c0c1"
   }
 }

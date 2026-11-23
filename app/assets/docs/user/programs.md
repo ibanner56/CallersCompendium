@@ -74,6 +74,10 @@ direction the list opens with, see
   and a program that already holds the dance says **In this program** and asks
   before adding it again. See
   [What you can do with a dance](./collection.md#what-you-can-do-with-a-dance).
+- **Export calendar (.ics)**, in the **More actions** (⋮) menu in the
+  **Programs** toolbar, puts your upcoming programs — and any past ones you
+  tick — into one calendar file for your calendar app. See
+  [Put programs in your calendar](./sharing.md#put-programs-in-your-calendar).
 - **Duplicate** a program from its row's **⋮** menu (on a computer, you can
   also right-click the row) to reuse last month's shape
   as a starting point. The copy starts as a **Draft** with no performed marks,
@@ -611,6 +615,10 @@ menu:
   named `.json` so a device without the app can still open it. **Save** opens
   your system's save dialog; canceling it saves nothing.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
+- **Add to calendar (.ics)** — for a program with a date, writes a calendar
+  file your calendar app can open, with a choice to **Save** or **Share**. To
+  put several programs in one file, use **More actions** (⋮) ▸ **Export
+  calendar (.ics)** on the Programs list.
 
 A set list is titles, event details, and slot notes by default, with each
 dance's author shown next to its title if you have authors turned on.
@@ -628,7 +636,8 @@ have anything to put on a card, the question is skipped. If your program is link
 a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 **Share program and dances** exports first ask whether to include those
 contacts, and leave them out unless you say otherwise. A venue's street address
-is never included in any export.
+is never included in any export except a calendar file, which asks first and
+leaves it out unless you tick it.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

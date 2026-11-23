@@ -150,7 +150,8 @@ button is labeled **Save dance file…**.
 
 ## Share a program
 
-Open a program and choose **Export**. Five actions:
+Open a program and choose **Export**. Five actions, and a sixth for a program
+with a date:
 
 | Action | What happens |
 |---|---|
@@ -159,9 +160,10 @@ Open a program and choose **Export**. Five actions:
 | **Copy set list** | Puts the set list text on your clipboard, and confirms with "Set list copied to clipboard." |
 | **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
+| **Add to calendar (.ics)** | Only when the program has an event date. Writes a calendar file for your calendar app — see [Put programs in your calendar](#put-programs-in-your-calendar) |
 
 With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
-cards, there is a sixth: **Print calling cards**, one small card for each of the program's dances — see
+cards, there is one more: **Print calling cards**, one small card for each of the program's dances — see
 [Print calling cards](#print-calling-cards).
 
 The set list — text and PDF alike — is titles, event details, and slot notes by
@@ -319,6 +321,52 @@ one when you are:
 Either file imports back into the app the same way, so nothing is lost by
 choosing one over the other.
 
+## Put programs in your calendar
+
+A calendar file (`.ics`) puts your gigs in the calendar app you already use, so
+you don't type them in twice. There are two ways to make one:
+
+- **One program:** open it and choose **Export ▸ Add to calendar (.ics)**. It is
+  offered for any program with an event date, past or upcoming.
+- **Several programs:** on the Programs list, choose **More actions** (⋮) ▸
+  **Export calendar (.ics)**. A checklist shows your upcoming programs — dated
+  today or later, not archived — all ticked. Turn on **Show past programs** to
+  add earlier ones to the list, unticked, and tick the ones you want. Choose
+  **Export** to write them all into one file. A program with no date is not
+  listed.
+
+You then choose **Save**, **Share** (**Save as…** on Linux), or **Cancel**, as
+for a JSON file. Open the file with your calendar app, or import it there.
+
+Each program becomes one calendar event:
+
+- **Title:** the program's title.
+- **When:** the program's date, as an all-day event.
+- **Where:** the venue's name — a linked venue's name, or the venue you typed.
+- **Notes:** the program's status (Draft, Finalized or Performed), and a linked
+  venue's time, if it has one.
+
+**The venue's street address is yours to include.** If a chosen program is
+linked to a venue with an address, the app asks first:
+
+> **Include the venue's address?**
+
+with one tick box, **Include the venue's address**, unticked. Leave it unticked
+and the event names the venue only. Tick it and the address follows the name in
+the event's location. Dismissing the dialog cancels the export, and nothing is
+written. The app does not remember your answer: it asks again next time.
+Calendars are often synced to an online account or shared with family or
+bandmates, so think about who sees yours.
+
+A calendar file never carries the venue's contact people, your pay, program
+notes, the band, the caller, or the set list.
+
+**Exporting again.** A program keeps the same event identity in every calendar
+file, from any of your devices, and an edited program is marked as the newer
+version. Calendar apps differ in what they do with a file they have imported
+before. A program you delete in the app is not removed from a calendar you exported it
+to; delete it there yourself.
+
 ## Print calling cards
 
 A calling card is one dance on a small card, such as a 3 × 5 index card, to hold
@@ -399,10 +447,13 @@ leave, and one thing asks you first.
   not the notes you keep on it. They stay in your Glossary and in a
   [backup](./backup-portability.md).
 
-- **A venue's street address.** The address lines, city, state or province,
-  country, and postcode of a saved venue record are left out of everything you
-  share, print, or copy — the `.ccshare` file, the JSON file, the PDF, and the
-  text set list alike. There is no tick box for these: they are never sent. What
+- **A venue's street address, except in a calendar file you ask for.** The
+  address lines, city, state or province, country, and postcode of a saved
+  venue record are left out of everything you share, print, or copy — the
+  `.ccshare` file, the JSON file, the PDF, and the text set list alike. There is
+  no tick box for these. The one exception is a
+  [calendar file](#put-programs-in-your-calendar), which asks whether to include
+  the venue's address and leaves it out unless you tick it. What
   does travel is the venue's **name**, so a recipient still knows which hall you
   mean; the `.ccshare` and JSON files also carry its website, time, schedule,
   price, sponsor, event name, and notes, and the PDF prints all of those except
@@ -437,13 +488,13 @@ Whatever you leave unticked is genuinely absent from the file, not hidden inside
 it. The venue's other details — its name, website, time, schedule, price, sponsor,
 event name, and notes — are not personal contact details, so they are not part
 of this choice: the `.ccshare` and JSON files carry all of them, and the PDF
-prints all of them except the notes. Its street address is always left out; see
+prints all of them except the notes. Its street address is left out; see
 **Never included** above.
 
 You will not see this dialog when there is nothing to ask about: a program with no
 linked venue, or a venue with no contact people recorded, exports straight away.
-Text set lists and dance exports never show it either, because neither carries
-contact people in the first place.
+Text set lists, calendar files and dance exports never show it either, because
+none of them carries contact people in the first place.
 
 ### A note on diagnostics
 
