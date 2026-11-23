@@ -305,9 +305,14 @@ How the values come in:
   Several in one cell can be separated by commas or "and".
 - **Tags** are separated by commas, matched to your tags by name, and added
   when new. Your **Import defaults** tags are added too.
-- A value that doesn't fit its field — a formation the app doesn't know, or
-  text in a number field — goes into the dance's **calling notes**, with a note
-  on the review row, so nothing is lost.
+- **Level** is matched to your difficulty levels by name.
+- A value that doesn't fit its field — a formation or level the app doesn't
+  know, or text in a number field — goes into the dance's **calling notes**,
+  with a note on the review row, so nothing is lost.
+- When two columns are set to the same field, the first value that fits fills
+  it and the other goes into the calling notes. A new custom field named like
+  one of yours, with the same type, counts as the same field. Two columns for the same phrase of
+  **Figures** are both kept, one after the other.
 - A dance from your own spreadsheet records **no source**, just like one you
   typed in. If you import the same file again, the dances you already have show
   up as possible matches by title and author, and default to **Skip**.

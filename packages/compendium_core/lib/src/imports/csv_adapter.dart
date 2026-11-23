@@ -208,10 +208,11 @@ final RegExp _phraseLabel = RegExp(r'^[A-Za-z][0-9]{1,2}[:.]?\s+');
 final RegExp _leadingBeats = RegExp(r'^\(\s*(\d{1,4})\s*\)\s*');
 
 /// A trailing count as this app's own export writes one, in any language and
-/// with or without the progression mark: `(16 beats)`, `(16 Schläge) ¶`. The
+/// with or without the progression mark: `(16 beats)`, `(16 Schläge) ¶`,
+/// `(1½ bars)`. The count is group 1 (a half only for bars); the
 /// unit is group 2; [CsvValueVocabulary.beatWords] says which units are beats.
 final RegExp _trailingCount = RegExp(
-  r'\s*\((\d{1,4})\s*([^()\d]{1,20})\)\s*(¶)?\s*$',
+  r'\s*\((\d{1,4}½?|½)\s*([^()\d½]{1,20})\)\s*(¶)?\s*$',
 );
 
 /// Reads a CSV the caller saved from a spreadsheet, one dance per row, through
@@ -376,13 +377,26 @@ StructuredDraft csvRowToDraft(
       CsvColumnTarget.key ||
       CsvColumnTarget.hook ||
       CsvColumnTarget.walkthrough => column.target,
-      CsvColumnTarget.customField => column.customFieldId,
+      // A custom field, existing or new, by the name and type commit reuses
+      // a field by: an existing "Story" and a new text "Story" are one field.
+      CsvColumnTarget.customField =>
+        switch (mapping.existingFields[column.customFieldId]) {
+          final def? => (csvFold(def.label), def.type),
+          null => column.customFieldId,
+        },
+      CsvColumnTarget.newCustomField => (
+        csvFold(column.newFieldLabel!.trim()),
+        column.newFieldType!,
+      ),
       _ => null,
     };
-    if (single != null && !filled.add(single)) {
+    if (single != null && filled.contains(single)) {
       keep(i, value);
       continue;
     }
+    // A value that does not fit (kept in the notes) leaves the field to a
+    // later column; only one that is used fills it.
+    final keptBefore = keptNotes.length;
     switch (column.target) {
       case CsvColumnTarget.ignore:
         break;
@@ -499,6 +513,7 @@ StructuredDraft csvRowToDraft(
           );
         }
     }
+    if (single != null && keptNotes.length == keptBefore) filled.add(single);
   }
 
   if (title == null || title.trim().isEmpty) {
@@ -570,7 +585,10 @@ List<Figure> _figuresOf(String line, CsvValueVocabulary vocab) {
   }
   final trail = _trailingCount.firstMatch(text);
   final unit = trail == null ? null : csvFold(trail.group(2)!);
+  final count = trail == null ? null : int.tryParse(trail.group(1)!);
+  // Beats are whole; a half count (`1½ bars`) is only ever bars.
   final isBeats =
+      count != null &&
       unit != null &&
       (vocab.beatWords.contains(unit) || unit == 'beat' || unit == 'beats');
   final isBars =
@@ -580,7 +598,7 @@ List<Figure> _figuresOf(String line, CsvValueVocabulary vocab) {
   // other trailing bracket, `(3 places)`, is part of the figure.
   if (trail != null && (isBeats || isBars)) {
     // A count in bars is left to the figure's default, rather than guessed.
-    if (isBeats) beats = int.parse(trail.group(1)!);
+    if (isBeats) beats = count;
     progression = trail.group(3) != null;
     text = text.substring(0, trail.start);
   } else if (text.trimRight().endsWith('¶')) {

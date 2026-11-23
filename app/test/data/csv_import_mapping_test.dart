@@ -95,6 +95,9 @@ void main() {
       german.levels[csvFold(de.commonDanceLevelIntermediate)],
       DifficultyLevel.intermediateId,
     );
+    // The export's beat label, singular and plural (German `Schlag`).
+    expect(vocab.beatWords, contains(csvFold('Schlag')));
+    expect(vocab.beatWords, contains(csvFold('Schläge')));
     for (final l10n in languages) {
       for (final halfBars in const [0, 1]) {
         final words = csvFold(

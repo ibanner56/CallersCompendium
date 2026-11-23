@@ -1545,7 +1545,7 @@ Figures go through `parseFigureLinesFanOut`, one line at a time: a cell's lines,
 or its `;`-parts when it has no line break, or each phrase column in phrase
 order; two columns for one phrase are read one after the other. A leading
 phrase label, a leading `(8)` count, and the export's own trailing
-`(16 beats) ¶` or `(8 bars) ¶` are read off first. A trailing bracket is read
+`(16 beats) ¶` or `(1½ bars) ¶` are read off first. A trailing bracket is read
 off only when its unit is a beat or bar word (`CsvValueVocabulary.beatWords`
 and `barWords`, in the export's languages and English), so `(3 places)` stays
 in the figure; a count in bars is left to the figure's default. A Level cell
@@ -1553,7 +1553,9 @@ resolves through `CsvValueVocabulary.levels`, the caller's configured levels by
 their own and localized label, into `difficultyLevelId`. Authors go through
 `splitAuthorNames`; tags and tunes split on commas. A value that does not fit
 its field, and a second column for a single-valued field (everything but
-figures, authors, tags, tunes and notes), is appended to the calling notes as
+figures, authors, tags, tunes and notes; a custom field by folded label and
+type, the key commit reuses a field by) once an earlier column's value has
+filled it, is appended to the calling notes as
 `Column: value` with a `csv_value_kept_in_notes` issue. Only a new **choice**
 field's values are clamped to the choice length at commit; a new text field's
 are stored whole.

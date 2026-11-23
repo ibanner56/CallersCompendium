@@ -174,7 +174,8 @@ CsvValueVocabulary csvValueVocabulary(
   },
   beatWords: {
     for (final l10n in languages)
-      csvFold(danceExportLabels(l10n).beats(16).replaceAll(_digits, '')),
+      for (final count in const [1, 16])
+        csvFold(danceExportLabels(l10n).beats(count).replaceAll(_digits, '')),
   },
   progressions: {
     for (final l10n in languages)

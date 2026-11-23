@@ -323,6 +323,82 @@ void main() {
     });
   });
 
+  group('review round 2 (#2429)', () {
+    CsvImportMapping m(
+      List<CsvColumnMapping> cols, {
+      CsvValueVocabulary vocab = const CsvValueVocabulary(),
+      Map<String, CustomFieldDef> existingFields = const {},
+    }) => CsvImportMapping(
+      separator: ',',
+      hasHeader: true,
+      columns: cols,
+      vocabulary: vocab,
+      existingFields: existingFields,
+    );
+
+    test('the export\'s half-bar counts are read off', () async {
+      final batch = await plan(
+        'Title,Figures\r\nA,"neighbors balance (1½ bars) ¶\nneighbors swing (½ bar)"\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.figures),
+        ]),
+      );
+      expect(
+        (batch.records.single.draft.dance.figuresSource as DecodedFigures)
+            .figures,
+        [
+          ...parseFigureLinesFanOut('neighbors balance', progression: true),
+          ...parseFigureLinesFanOut('neighbors swing'),
+        ],
+      );
+    });
+
+    test('a first value that does not fit leaves the field to a later '
+        'column', () async {
+      final batch = await plan(
+        'Title,Level,Level\r\nA,Wizard,beginner\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.level),
+          CsvColumnMapping(CsvColumnTarget.level),
+        ], vocab: const CsvValueVocabulary(levels: {'beginner': 'lvl-b'})),
+      );
+      final dance = batch.records.single.draft.dance;
+      expect(dance.difficultyLevelId, 'lvl-b');
+      expect(dance.callingNotes, 'Level: Wizard');
+    });
+
+    test('a new field named like an existing one of the same type, or like '
+        'another new one, is the same field', () async {
+      final story = CustomFieldDef(
+        id: 'f-story',
+        key: 'story',
+        label: 'Story',
+        type: CustomFieldType.text,
+      );
+      final batch = await plan(
+        'Title,Story,Story,Story\r\nA,one,two,three\r\n',
+        m(
+          const [
+            CsvColumnMapping(CsvColumnTarget.title),
+            CsvColumnMapping.customField('f-story'),
+            CsvColumnMapping.newCustomField('story', CustomFieldType.text),
+            CsvColumnMapping.newCustomField('Story', CustomFieldType.number),
+          ],
+          existingFields: {'f-story': story},
+        ),
+      );
+      final dance = batch.records.single.draft.dance;
+      expect(dance.customFields.map((v) => (v.fieldId, v.value)), [
+        ('f-story', 'one'),
+      ]);
+      // The number column is another field (another type), but `three` is
+      // not a number.
+      expect(dance.callingNotes, 'Story: two\n\nStory: three');
+    });
+  });
+
   group('committing', () {
     test('records no provenance, and adds no provenance source', () async {
       final batch = await plan(sheet(','), mapping(','));
