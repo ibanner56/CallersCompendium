@@ -1,0 +1,9 @@
+{
+  "id": "combination-dancer-groups",
+  "user_visible": false,
+  "core": {
+    "changed": [
+      "allowedValues gives a combination's group-of-dancers parameter that fills no slot the groups of the combination's own form (ecdSelectors for ecd, as userFigureDancerChoices does), instead of contra's for every form. A parameter that fills a slot already took that slot's own groups, so no working combination changes."
+    ]
+  }
+}
