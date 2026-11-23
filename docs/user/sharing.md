@@ -369,7 +369,8 @@ Each program becomes one calendar event:
   its end time when you've set them, or as an all-day event when it has no
   start time. The times are local to the hall, so your calendar shows them at
   that clock time wherever you are. An end earlier than the start ends the next
-  day; with a start and no end, the event has no end time.
+  day; with a start and no end, the event has no end time. An end with no
+  start makes an all-day event, and its notes give the end time.
 - **Where:** the venue's name — a linked venue's name, or the venue you typed.
 - **Notes:** the program's status (Draft, Finalized or Performed); the
   beginner lesson and **Arrive by** times, if you've set them; and a linked
